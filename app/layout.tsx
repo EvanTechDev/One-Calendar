@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "One Calendar",
-  description: "",
+  description: "A simple free encrypted calendar 📅",
 };
 
 export default function RootLayout({
