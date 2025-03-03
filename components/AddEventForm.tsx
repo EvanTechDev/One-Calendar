@@ -54,4 +54,3 @@ export default function AddEventForm({ onAdd, onCancel }: AddEventFormProps) {
     </form>
   )
 }
-
