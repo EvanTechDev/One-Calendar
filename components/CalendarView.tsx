@@ -219,4 +219,3 @@ export default function CalendarView({ view, currentDate, events, onTimeSlotClic
     </div>
   )
 }
-
