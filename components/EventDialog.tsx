@@ -1,22 +1,27 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
+import type { CalendarEvent } from "./Calendar"
+import type { CalendarCategory } from "./Sidebar"
+import { cn } from "@/lib/utils"
 
 const colorOptions = [
-  { value: "#4f46e5", label: "靛蓝" },
-  { value: "#0891b2", label: "青色" },
-  { value: "#059669", label: "绿色" },
-  { value: "#ca8a04", label: "黄色" },
-  { value: "#dc2626", label: "红色" },
-  { value: "#9333ea", label: "紫色" },
-  { value: "#be185d", label: "粉色" },
+  { value: "bg-blue-500", label: "蓝色" },
+  { value: "bg-green-500", label: "绿色" },
+  { value: "bg-yellow-500", label: "黄色" },
+  { value: "bg-red-500", label: "红色" },
+  { value: "bg-purple-500", label: "紫色" },
+  { value: "bg-pink-500", label: "粉色" },
 ]
 
 interface EventDialogProps {
@@ -25,8 +30,9 @@ interface EventDialogProps {
   onEventAdd: (event: CalendarEvent) => void
   onEventUpdate: (event: CalendarEvent) => void
   onEventDelete: (eventId: string) => void
-  initialDate: Date | null
+  initialDate: Date
   event: CalendarEvent | null
+  calendars: CalendarCategory[]
 }
 
 export default function EventDialog({
@@ -37,17 +43,18 @@ export default function EventDialog({
   onEventDelete,
   initialDate,
   event,
+  calendars,
 }: EventDialogProps) {
   const [title, setTitle] = useState("")
   const [isAllDay, setIsAllDay] = useState(false)
-  const [startDate, setStartDate] = useState(initialDate || new Date())
-  const [endDate, setEndDate] = useState(initialDate || new Date())
-  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none")
+  const [startDate, setStartDate] = useState(initialDate)
+  const [endDate, setEndDate] = useState(initialDate)
   const [location, setLocation] = useState("")
   const [participants, setParticipants] = useState("")
   const [notification, setNotification] = useState("0")
   const [description, setDescription] = useState("")
   const [color, setColor] = useState(colorOptions[0].value)
+  const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
 
   useEffect(() => {
     if (event) {
@@ -55,31 +62,55 @@ export default function EventDialog({
       setIsAllDay(event.isAllDay)
       setStartDate(new Date(event.startDate))
       setEndDate(new Date(event.endDate))
-      setRecurrence(event.recurrence)
       setLocation(event.location || "")
       setParticipants(event.participants.join(", "))
       setNotification(event.notification.toString())
       setDescription(event.description || "")
       setColor(event.color)
+      setSelectedCalendar(event?.calendarId || calendars[0]?.id || "")
     } else {
       resetForm()
     }
-  }, [event])
+  }, [event, calendars])
+
+  const resetForm = () => {
+    const now = new Date()
+    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000)
+    setTitle("")
+    setIsAllDay(false)
+    setStartDate(now)
+    setEndDate(thirtyMinutesLater)
+    setLocation("")
+    setParticipants("")
+    setNotification("0")
+    setDescription("")
+    setColor(colorOptions[0].value)
+    setSelectedCalendar(calendars[0]?.id || "")
+  }
+
+  const handleStartDateChange = (newStartDate: Date) => {
+    setStartDate(newStartDate)
+    const newEndDate = new Date(newStartDate.getTime() + 30 * 60000)
+    if (newEndDate > endDate) {
+      setEndDate(newEndDate)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const eventData = {
+    const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString(),
       title,
       isAllDay,
       startDate,
       endDate,
-      recurrence,
+      recurrence: "none",
       location,
       participants: participants.split(",").map((p) => p.trim()),
       notification: Number.parseInt(notification),
       description,
       color,
+      calendarId: selectedCalendar,
     }
 
     if (event) {
@@ -87,116 +118,148 @@ export default function EventDialog({
     } else {
       onEventAdd(eventData)
     }
-    resetForm()
-  }
-
-  const resetForm = () => {
-    setTitle("")
-    setIsAllDay(false)
-    setStartDate(initialDate || new Date())
-    setEndDate(initialDate || new Date())
-    setRecurrence("none")
-    setLocation("")
-    setParticipants("")
-    setNotification("0")
-    setDescription("")
-    setColor(colorOptions[0].value)
+    onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{event ? "编辑日程" : "添加新日程"}</DialogTitle>
+          <DialogTitle>{event ? "编辑日程" : "创建新日程"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input placeholder="标题" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <form onSubmit={handleSubmit} className="space-y-4 pb-6">
+          <div>
+            <Label htmlFor="title">标题</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
 
           <div className="flex items-center space-x-2">
             <Checkbox id="all-day" checked={isAllDay} onCheckedChange={(checked) => setIsAllDay(checked as boolean)} />
-            <label htmlFor="all-day">全天事件</label>
+            <Label htmlFor="all-day">全天事件</Label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="start-date">开始时间</Label>
+              <Input
+                id="start-date"
+                type="datetime-local"
+                value={format(startDate, "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => handleStartDateChange(new Date(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="end-date">结束时间</Label>
+              <Input
+                id="end-date"
+                type="datetime-local"
+                value={format(endDate, "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => {
+                  const newEndDate = new Date(e.target.value)
+                  if (newEndDate > startDate) {
+                    setEndDate(newEndDate)
+                  } else {
+                    alert("结束时间不能早于开始时间")
+                  }
+                }}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="calendar">日历</Label>
+            <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择日历" />
+              </SelectTrigger>
+              <SelectContent>
+                {calendars.map((calendar) => (
+                  <SelectItem key={calendar.id} value={calendar.id}>
+                    <div className="flex items-center">
+                      <div className={cn("w-4 h-4 rounded-full mr-2", calendar.color)} />
+                      {calendar.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="color">颜色</Label>
+            <Select value={color} onValueChange={setColor}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择颜色" />
+              </SelectTrigger>
+              <SelectContent>
+                {colorOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center">
+                      <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                      {option.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="location">地点</Label>
+            <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+
+          <div>
+            <Label htmlFor="participants">参与者</Label>
             <Input
-              type="datetime-local"
-              value={format(startDate, "yyyy-MM-dd'T'HH:mm")}
-              onChange={(e) => setStartDate(new Date(e.target.value))}
-              required
-            />
-            <Input
-              type="datetime-local"
-              value={format(endDate, "yyyy-MM-dd'T'HH:mm")}
-              onChange={(e) => setEndDate(new Date(e.target.value))}
-              required
+              id="participants"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
+              placeholder="用逗号分隔多个参与者"
             />
           </div>
 
-          <Select value={color} onValueChange={setColor}>
-            <SelectTrigger>
-              <SelectValue placeholder="选择颜色" />
-            </SelectTrigger>
-            <SelectContent>
-              {colorOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: option.value }} />
-                    {option.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <Label htmlFor="notification">提醒时间</Label>
+            <Select value={notification} onValueChange={setNotification}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择提醒时间" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">事件开始时</SelectItem>
+                <SelectItem value="5">5分钟前</SelectItem>
+                <SelectItem value="15">15分钟前</SelectItem>
+                <SelectItem value="30">30分钟前</SelectItem>
+                <SelectItem value="60">1小时前</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={recurrence} onValueChange={(value: any) => setRecurrence(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="重复" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">不重复</SelectItem>
-              <SelectItem value="daily">每天</SelectItem>
-              <SelectItem value="weekly">每周</SelectItem>
-              <SelectItem value="monthly">每月</SelectItem>
-              <SelectItem value="yearly">每年</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Input placeholder="地点" value={location} onChange={(e) => setLocation(e.target.value)} />
-
-          <Input
-            placeholder="参与者 (用逗号分隔)"
-            value={participants}
-            onChange={(e) => setParticipants(e.target.value)}
-          />
-
-          <Select value={notification} onValueChange={setNotification}>
-            <SelectTrigger>
-              <SelectValue placeholder="提醒时间" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">事件开始时</SelectItem>
-              <SelectItem value="5">5分钟前</SelectItem>
-              <SelectItem value="15">15分钟前</SelectItem>
-              <SelectItem value="30">30分钟前</SelectItem>
-              <SelectItem value="60">1小时前</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Textarea placeholder="描述" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <div>
+            <Label htmlFor="description">描述</Label>
+            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
 
           <div className="flex justify-between">
-            <div>
-              {event && (
-                <Button type="button" variant="destructive" onClick={() => onEventDelete(event.id)}>
-                  删除
-                </Button>
-              )}
-            </div>
+            {event && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  onEventDelete(event.id)
+                  onOpenChange(false)
+                }}
+              >
+                删除
+              </Button>
+            )}
             <div className="flex space-x-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 取消
               </Button>
-              <Button type="submit">{event ? "更新" : "保存"}</Button>
+              <Button type="submit">{event ? "更新" : "创建"}</Button>
             </div>
           </div>
         </form>
@@ -204,4 +267,3 @@ export default function EventDialog({
     </Dialog>
   )
 }
-
