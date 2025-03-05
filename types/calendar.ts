@@ -4,7 +4,7 @@ interface CalendarEvent {
   startDate: Date
   endDate: Date
   isAllDay: boolean
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  recurrence: "none" | "daily" | "weekly" | "monthly" | "yearly"
   location?: string
   participants: string[]
   notification: number
