@@ -14,14 +14,15 @@ import { format } from "date-fns"
 import type { CalendarEvent } from "./Calendar"
 import type { CalendarCategory } from "./Sidebar"
 import { cn } from "@/lib/utils"
+import { translations, type Language } from "@/lib/i18n"
 
 const colorOptions = [
-  { value: "bg-blue-500", label: "蓝色" },
-  { value: "bg-green-500", label: "绿色" },
-  { value: "bg-yellow-500", label: "黄色" },
-  { value: "bg-red-500", label: "红色" },
-  { value: "bg-purple-500", label: "紫色" },
-  { value: "bg-pink-500", label: "粉色" },
+  { value: "bg-blue-500", label: "Blue" },
+  { value: "bg-green-500", label: "Green" },
+  { value: "bg-yellow-500", label: "Yellow" },
+  { value: "bg-red-500", label: "Red" },
+  { value: "bg-purple-500", label: "Purple" },
+  { value: "bg-pink-500", label: "Pink" },
 ]
 
 interface EventDialogProps {
@@ -33,6 +34,8 @@ interface EventDialogProps {
   initialDate: Date
   event: CalendarEvent | null
   calendars: CalendarCategory[]
+  language: Language
+  timezone: string
 }
 
 export default function EventDialog({
@@ -44,6 +47,8 @@ export default function EventDialog({
   initialDate,
   event,
   calendars,
+  language,
+  timezone,
 }: EventDialogProps) {
   const [title, setTitle] = useState("")
   const [isAllDay, setIsAllDay] = useState(false)
@@ -52,9 +57,12 @@ export default function EventDialog({
   const [location, setLocation] = useState("")
   const [participants, setParticipants] = useState("")
   const [notification, setNotification] = useState("0")
+  const [customNotificationTime, setCustomNotificationTime] = useState("10")
   const [description, setDescription] = useState("")
   const [color, setColor] = useState(colorOptions[0].value)
   const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
+
+  const t = translations[language]
 
   useEffect(() => {
     if (event) {
@@ -64,7 +72,21 @@ export default function EventDialog({
       setEndDate(new Date(event.endDate))
       setLocation(event.location || "")
       setParticipants(event.participants.join(", "))
-      setNotification(event.notification.toString())
+
+      // Handle custom notification time
+      if (
+        event.notification > 0 &&
+        event.notification !== 5 &&
+        event.notification !== 15 &&
+        event.notification !== 30 &&
+        event.notification !== 60
+      ) {
+        setNotification("custom")
+        setCustomNotificationTime(event.notification.toString())
+      } else {
+        setNotification(event.notification.toString())
+      }
+
       setDescription(event.description || "")
       setColor(event.color)
       setSelectedCalendar(event?.calendarId || calendars[0]?.id || "")
@@ -83,6 +105,7 @@ export default function EventDialog({
     setLocation("")
     setParticipants("")
     setNotification("0")
+    setCustomNotificationTime("10")
     setDescription("")
     setColor(colorOptions[0].value)
     setSelectedCalendar(calendars[0]?.id || "")
@@ -98,6 +121,13 @@ export default function EventDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Determine the actual notification time in minutes
+    let notificationMinutes = Number.parseInt(notification)
+    if (notification === "custom") {
+      notificationMinutes = Number.parseInt(customNotificationTime)
+    }
+
     const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString(),
       title,
@@ -107,10 +137,11 @@ export default function EventDialog({
       recurrence: "none",
       location,
       participants: participants.split(",").map((p) => p.trim()),
-      notification: Number.parseInt(notification),
+      notification: notificationMinutes,
       description,
       color,
       calendarId: selectedCalendar,
+      notified: event?.notified || false, // 保留原有的通知状态，或者对新事件设为 false
     }
 
     if (event) {
@@ -123,24 +154,24 @@ export default function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{event ? "编辑日程" : "创建新日程"}</DialogTitle>
+          <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pb-6">
           <div>
-            <Label htmlFor="title">标题</Label>
+            <Label htmlFor="title">{t.title}</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
 
           <div className="flex items-center space-x-2">
             <Checkbox id="all-day" checked={isAllDay} onCheckedChange={(checked) => setIsAllDay(checked as boolean)} />
-            <Label htmlFor="all-day">全天事件</Label>
+            <Label htmlFor="all-day">{t.allDay}</Label>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="start-date">开始时间</Label>
+              <Label htmlFor="start-date">{t.startTime}</Label>
               <Input
                 id="start-date"
                 type="datetime-local"
@@ -150,7 +181,7 @@ export default function EventDialog({
               />
             </div>
             <div>
-              <Label htmlFor="end-date">结束时间</Label>
+              <Label htmlFor="end-date">{t.endTime}</Label>
               <Input
                 id="end-date"
                 type="datetime-local"
@@ -160,7 +191,7 @@ export default function EventDialog({
                   if (newEndDate > startDate) {
                     setEndDate(newEndDate)
                   } else {
-                    alert("结束时间不能早于开始时间")
+                    alert(t.endTimeError)
                   }
                 }}
                 required
@@ -169,10 +200,10 @@ export default function EventDialog({
           </div>
 
           <div>
-            <Label htmlFor="calendar">日历</Label>
+            <Label htmlFor="calendar">{t.calendar}</Label>
             <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
               <SelectTrigger>
-                <SelectValue placeholder="选择日历" />
+                <SelectValue placeholder={t.selectCalendar} />
               </SelectTrigger>
               <SelectContent>
                 {calendars.map((calendar) => (
@@ -188,10 +219,10 @@ export default function EventDialog({
           </div>
 
           <div>
-            <Label htmlFor="color">颜色</Label>
+            <Label htmlFor="color">{t.color}</Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger>
-                <SelectValue placeholder="选择颜色" />
+                <SelectValue placeholder={t.selectColor} />
               </SelectTrigger>
               <SelectContent>
                 {colorOptions.map((option) => (
@@ -207,38 +238,53 @@ export default function EventDialog({
           </div>
 
           <div>
-            <Label htmlFor="location">地点</Label>
+            <Label htmlFor="location">{t.location}</Label>
             <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
 
           <div>
-            <Label htmlFor="participants">参与者</Label>
+            <Label htmlFor="participants">{t.participants}</Label>
             <Input
               id="participants"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
-              placeholder="用逗号分隔多个参与者"
+              placeholder={t.participantsPlaceholder}
             />
           </div>
 
           <div>
-            <Label htmlFor="notification">提醒时间</Label>
+            <Label htmlFor="notification">{t.notification}</Label>
             <Select value={notification} onValueChange={setNotification}>
               <SelectTrigger>
-                <SelectValue placeholder="选择提醒时间" />
+                <SelectValue placeholder={t.selectNotification} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">事件开始时</SelectItem>
-                <SelectItem value="5">5分钟前</SelectItem>
-                <SelectItem value="15">15分钟前</SelectItem>
-                <SelectItem value="30">30分钟前</SelectItem>
-                <SelectItem value="60">1小时前</SelectItem>
+                <SelectItem value="0">{t.atEventTime}</SelectItem>
+                <SelectItem value="5">{t.minutesBefore.replace("{minutes}", "5")}</SelectItem>
+                <SelectItem value="15">{t.minutesBefore.replace("{minutes}", "15")}</SelectItem>
+                <SelectItem value="30">{t.minutesBefore.replace("{minutes}", "30")}</SelectItem>
+                <SelectItem value="60">{t.hourBefore.replace("{hours}", "1")}</SelectItem>
+                <SelectItem value="custom">{t.customTime}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {notification === "custom" && (
+            <div>
+              <Label htmlFor="custom-notification-time">{t.customTimeMinutes}</Label>
+              <Input
+                id="custom-notification-time"
+                type="number"
+                min="1"
+                value={customNotificationTime}
+                onChange={(e) => setCustomNotificationTime(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <div>
-            <Label htmlFor="description">描述</Label>
+            <Label htmlFor="description">{t.description}</Label>
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
@@ -252,14 +298,14 @@ export default function EventDialog({
                   onOpenChange(false)
                 }}
               >
-                删除
+                {t.delete}
               </Button>
             )}
             <div className="flex space-x-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                取消
+                {t.cancel}
               </Button>
-              <Button type="submit">{event ? "更新" : "创建"}</Button>
+              <Button type="submit">{event ? t.update : t.save}</Button>
             </div>
           </div>
         </form>
