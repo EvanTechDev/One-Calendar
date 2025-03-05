@@ -1,20 +1,38 @@
 "use client"
 
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import type { Language } from "@/lib/i18n"
 
 interface WeekViewProps {
   date: Date
   events: any[]
   onEventClick: (event: any) => void
+  language: Language
+  firstDayOfWeek: number
+  timezone: string
 }
 
-export default function WeekView({ date, events, onEventClick }: WeekViewProps) {
-  const weekStart = startOfWeek(date, { locale: zhCN })
-  const weekEnd = endOfWeek(date, { locale: zhCN })
+export default function WeekView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: WeekViewProps) {
+  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
+  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
+
+  const formatTime = (hour: number) => {
+    return `${hour.toString().padStart(2, "0")}:00`
+  }
+
+  const formatDateWithTimezone = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    }
+    return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -22,8 +40,8 @@ export default function WeekView({ date, events, onEventClick }: WeekViewProps) 
         <div />
         {weekDays.map((day) => (
           <div key={day.toString()} className="text-center py-2">
-            <div className="text-sm text-muted-foreground">{format(day, "E", { locale: zhCN })}</div>
-            <div className="text-lg font-semibold">{format(day, "d")}</div>
+            <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
+            <div>{format(day, "d")}</div>
           </div>
         ))}
       </div>
@@ -32,9 +50,7 @@ export default function WeekView({ date, events, onEventClick }: WeekViewProps) 
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
-              <span className="absolute -top-3 right-4">
-                {`${hour === 0 ? "上午" : ""}${hour === 12 ? "下午" : ""} ${hour % 12 || 12}点`}
-              </span>
+              <span className="absolute -top-3 right-4">{formatTime(hour)}</span>
             </div>
           ))}
         </div>
@@ -66,13 +82,12 @@ export default function WeekView({ date, events, onEventClick }: WeekViewProps) 
                   >
                     <div className="font-medium text-white">{event.title}</div>
                     <div className="text-xs text-white/90">
-                      {format(start, "HH:mm")} - {format(end, "HH:mm")}
+                      {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
                     </div>
                   </div>
                 )
               })}
 
-            {/* Add current time indicator */}
             {isSameDay(day, new Date()) && (
               <div
                 className="absolute left-0 right-0 border-t-2 border-red-500 z-10"
