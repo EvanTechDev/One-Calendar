@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 
 interface SidebarProps {
-  open: boolean
   onCreateEvent: () => void
   onDateSelect: (date: Date) => void
+  language?: Language
 }
 
 export interface CalendarCategory {
@@ -20,7 +20,9 @@ export interface CalendarCategory {
   color: string
 }
 
-export default function Sidebar({ open, onCreateEvent, onDateSelect }: SidebarProps) {
+export type Language = "en" | "zh"
+
+export default function Sidebar({ onCreateEvent, onDateSelect, language }: SidebarProps) {
   const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>("calendar-categories", [
     { id: "1", name: "Personal", color: "bg-blue-500" },
     { id: "2", name: "Work", color: "bg-green-500" },
@@ -48,7 +50,7 @@ export default function Sidebar({ open, onCreateEvent, onDateSelect }: SidebarPr
   }
 
   return (
-    <div className={cn("w-80 border-r bg-background transition-all duration-300 overflow-y-auto", !open && "w-0")}>
+    <div className="w-80 border-r bg-background overflow-y-auto">
       <div className="p-4">
         <Button
           className="w-full justify-start bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4"
