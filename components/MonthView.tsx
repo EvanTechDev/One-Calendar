@@ -4,24 +4,39 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "./Calendar"
 
+type Language = "en" | "zh"
+
 interface MonthViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent) => void
+  language: Language
+  firstDayOfWeek: number
+  timezone: string
 }
 
-export default function MonthView({ date, events, onEventClick }: MonthViewProps) {
+export default function MonthView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: MonthViewProps) {
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
   return (
     <div className="grid grid-cols-7 gap-1 p-4">
-      {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
-        <div key={day} className="text-center font-medium text-sm py-2">
-          {day}
-        </div>
-      ))}
+      {(() => {
+        const days =
+          language === "zh"
+            ? ["日", "一", "二", "三", "四", "五", "六"]
+            : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        // Reorder days based on firstDayOfWeek
+        const orderedDays = [...days.slice(firstDayOfWeek), ...days.slice(0, firstDayOfWeek)]
+
+        return orderedDays.map((day) => (
+          <div key={day} className="text-center font-medium text-sm py-2">
+            {day}
+          </div>
+        ))
+      })()}
       {monthDays.map((day) => (
         <div
           key={day.toString()}
