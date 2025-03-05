@@ -25,10 +25,8 @@ import { toast } from "@/components/ui/use-toast"
 // 导入通知权限请求函数
 import { requestNotificationPermission } from "@/utils/notification-permission"
 
-// 定义 ViewType 类型
 type ViewType = "day" | "week" | "month"
 
-// 在 CalendarEvent 接口中添加 notified 字段
 export interface CalendarEvent {
   id: string
   title: string
@@ -42,7 +40,6 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
-  notified?: boolean
 }
 
 export default function Calendar() {
@@ -110,8 +107,8 @@ export default function Calendar() {
       const eventTime = new Date(event.startDate).getTime()
       const now = Date.now()
 
-      // 只为未通知的未来事件安排通知
-      if (eventTime > now && !event.notified) {
+      // 确保包括notification为0的事件（事件开始时通知）
+      if (eventTime > now) {
         scheduleEventNotification(event, event.notification, notificationSound)
       }
     }
@@ -209,18 +206,16 @@ export default function Calendar() {
   }
 
   const handleEventAdd = async (event: CalendarEvent) => {
-    // 确保新事件的 notified 字段为 false
-    const newEvent = { ...event, notified: false }
-    setEvents((prev) => [...prev, newEvent])
+    setEvents((prev) => [...prev, event])
     setEventDialogOpen(false)
 
     // Schedule notification for the event
     // 确保包括notification为0的事件（事件开始时通知）
-    scheduleEventNotification(newEvent, newEvent.notification, notificationSound)
+    scheduleEventNotification(event, event.notification, notificationSound)
 
     // Show a toast confirmation
     const notificationMessage =
-      newEvent.notification === 0 ? "将在事件开始时提醒您" : `将在事件开始前 ${newEvent.notification} 分钟提醒您`
+      event.notification === 0 ? "将在事件开始时提醒您" : `将在事件开始前 ${event.notification} 分钟提醒您`
 
     toast({
       title: "提醒已设置",
@@ -230,26 +225,19 @@ export default function Calendar() {
   }
 
   const handleEventUpdate = async (updatedEvent: CalendarEvent) => {
-    // 查找原始事件，保留其 notified 状态
-    const originalEvent = events.find((e) => e.id === updatedEvent.id)
-    const eventToUpdate = {
-      ...updatedEvent,
-      notified: originalEvent?.notified || false,
-    }
-
-    setEvents((prev) => prev.map((event) => (event.id === eventToUpdate.id ? eventToUpdate : event)))
+    setEvents((prev) => prev.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
     setEventDialogOpen(false)
     setSelectedEvent(null)
 
     // Schedule notification for the updated event
     // 确保包括notification为0的事件（事件开始时通知）
-    scheduleEventNotification(eventToUpdate, eventToUpdate.notification, notificationSound)
+    scheduleEventNotification(updatedEvent, updatedEvent.notification, notificationSound)
 
     // Show a toast confirmation
     const notificationMessage =
-      eventToUpdate.notification === 0
+      updatedEvent.notification === 0
         ? "将在事件开始时提醒您"
-        : `将在事件开始前 ${eventToUpdate.notification} 分钟提醒您`
+        : `将在事件开始前 ${updatedEvent.notification} 分钟提醒您`
 
     toast({
       title: "提醒已更新",
@@ -431,3 +419,4 @@ export default function Calendar() {
     </div>
   )
 }
+
