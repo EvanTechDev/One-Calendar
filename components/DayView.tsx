@@ -1,36 +1,53 @@
 "use client"
 
 import { format, isSameDay } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "./Calendar"
+import type { Language } from "@/lib/i18n"
 
 interface DayViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent) => void
+  language: Language
+  timezone: string
 }
 
-export default function DayView({ date, events, onEventClick }: DayViewProps) {
+export default function DayView({ date, events, onEventClick, language, timezone }: DayViewProps) {
   const hours = Array.from({ length: 24 }, (_, i) => i)
+
+  const formatTime = (hour: number) => {
+    return `${hour.toString().padStart(2, "0")}:00`
+  }
+
+  const formatDateWithTimezone = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    }
+    return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
+  }
 
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b">
         <div className="py-2 text-center">
-          <div className="text-sm text-muted-foreground">{format(date, "E", { locale: zhCN })}</div>
+          <div className="text-sm text-muted-foreground">
+            {format(date, "E", { locale: language === "zh" ? zhCN : enUS })}
+          </div>
           <div className="text-3xl font-semibold text-blue-600">{format(date, "d")}</div>
         </div>
-        <div className="p-2">GMT+08</div>
+        <div className="p-2">{timezone}</div>
       </div>
 
       <div className="flex-1 grid grid-cols-[100px_1fr] overflow-auto">
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
-              <span className="absolute -top-3 right-4">
-                {`${hour === 0 ? "上午" : ""}${hour === 12 ? "下午" : ""} ${hour % 12 || 12}点`}
-              </span>
+              <span className="absolute -top-3 right-4">{formatTime(hour)}</span>
             </div>
           ))}
         </div>
@@ -61,7 +78,7 @@ export default function DayView({ date, events, onEventClick }: DayViewProps) {
                 >
                   <div className="font-medium text-white">{event.title}</div>
                   <div className="text-xs text-white/90">
-                    {format(start, "HH:mm")} - {format(end, "HH:mm")}
+                    {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
                   </div>
                 </div>
               )
