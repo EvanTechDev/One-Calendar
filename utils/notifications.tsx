@@ -14,7 +14,7 @@ export const NOTIFICATION_SOUNDS = {
 export function playNotificationSound(soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx") {
   try {
     const audio = new Audio(NOTIFICATION_SOUNDS[soundType])
-    audio.play().catch((error) => {
+    audio.play().catch(error => {
       console.error("播放通知声音失败:", error)
     })
   } catch (error) {
@@ -22,25 +22,21 @@ export function playNotificationSound(soundType: keyof typeof NOTIFICATION_SOUND
   }
 }
 
-// 修改 scheduleEventNotification 函数，添加对 notified 的处理
+// Schedule a notification for an event
 export function scheduleEventNotification(
-  event: { id: string; title: string; startDate: Date; description?: string; location?: string; notified?: boolean },
+  event: { id: string; title: string; startDate: Date; description?: string; location?: string },
   minutesBefore: number,
-  soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx",
+  soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx"
 ): void {
-  // 如果事件已经被通知过，则不再安排通知
-  if (event.notified) {
-    console.log(`事件 ${event.title} 已经通知过，跳过通知安排`)
-    return
-  }
-
   // 确保startDate是Date对象
   const eventStartDate = event.startDate instanceof Date ? event.startDate : new Date(event.startDate)
   const eventTime = eventStartDate.getTime()
-
+  
   // 当minutesBefore为0时，通知时间就是事件时间
-  const notificationTime = minutesBefore === 0 ? eventTime : eventTime - minutesBefore * 60 * 1000
-
+  const notificationTime = minutesBefore === 0 
+    ? eventTime 
+    : eventTime - minutesBefore * 60 * 1000
+    
   const now = Date.now()
 
   console.log(`为事件安排通知: ${event.title}`)
@@ -62,11 +58,12 @@ export function scheduleEventNotification(
   filteredNotifications.push({
     id: event.id,
     title: event.title,
-    body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件将在 ${minutesBefore} 分钟后开始`),
+    body: event.description || (minutesBefore === 0 
+      ? `事件开始时间到了` 
+      : `事件将在 ${minutesBefore} 分钟后开始`),
     location: event.location || "",
     timestamp: notificationTime,
-    soundType: soundType,
-    notified: event.notified || false,
+    soundType: soundType
   })
 
   localStorage.setItem("scheduled-notifications", JSON.stringify(filteredNotifications))
@@ -74,16 +71,9 @@ export function scheduleEventNotification(
   if (notificationTime <= now) {
     // 如果通知时间已经过去，立即显示通知
     console.log(`通知时间已过，立即显示通知: ${event.title}`)
-    showToastNotification(
-      event.title,
-      event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
-      event.id,
-      soundType,
-      event.location,
-    )
-
-    // 标记事件为已通知
-    markEventAsNotified(event.id)
+    showToastNotification(event.title, event.description || (minutesBefore === 0 
+      ? `事件开始时间到了` 
+      : `事件即将开始`), event.id, soundType, event.location)
     return
   }
 
@@ -106,9 +96,11 @@ export function scheduleEventNotification(
       try {
         // 播放通知声音
         playNotificationSound(soundType)
-
+        
         const notification = new Notification(event.title, {
-          body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+          body: event.description || (minutesBefore === 0 
+            ? `事件开始时间到了` 
+            : `事件即将开始`),
           icon: "/calendar-icon.png",
         })
 
@@ -116,34 +108,23 @@ export function scheduleEventNotification(
           window.focus()
           window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: event.id } }))
         }
-
-        // 标记事件为已通知
-        markEventAsNotified(event.id)
       } catch (e) {
         console.error("系统通知失败，回退到Toast通知", e)
-        showToastNotification(
-          event.title,
-          event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
-          event.id,
-          soundType,
-          event.location,
-        )
-
-        // 标记事件为已通知
-        markEventAsNotified(event.id)
+        showToastNotification(event.title, event.description || (minutesBefore === 0 
+          ? `事件开始时间到了` 
+          : `事件即将开始`), event.id, soundType, event.location)
       }
     } else {
       // 回退到Toast通知
       showToastNotification(
-        event.title,
-        event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+        event.title, 
+        event.description || (minutesBefore === 0 
+          ? `事件开始时间到了` 
+          : `事件即将开始`), 
         event.id,
         soundType,
-        event.location,
+        event.location
       )
-
-      // 标记事件为已通知
-      markEventAsNotified(event.id)
     }
 
     // 通知显示后，从活跃计时器中移除
@@ -156,32 +137,40 @@ export function scheduleEventNotification(
   console.log(`通知已安排，将在 ${new Date(notificationTime).toLocaleString()} 显示`)
 }
 
-// 添加一个新函数，用于标记事件为已通知
-function markEventAsNotified(eventId: string): void {
-  console.log(`标记事件 ${eventId} 为已通知`)
+// Show a toast notification
+export function showToastNotification(
+  title: string, 
+  body: string, 
+  eventId: string, 
+  soundType: keyof typeof NOTIFICATION_SOUNDS = "telegram",
+  location?: string
+): void {
+  console.log(`显示通知: ${title} - ${body}`)
 
-  // 更新 localStorage 中的通知状态
-  const notifications = JSON.parse(localStorage.getItem("scheduled-notifications") || "[]")
-  const updatedNotifications = notifications.map((n: any) => {
-    if (n.id === eventId) {
-      return { ...n, notified: true }
-    }
-    return n
-  })
-  localStorage.setItem("scheduled-notifications", JSON.stringify(updatedNotifications))
+  // 播放通知声音
+  playNotificationSound(soundType)
 
-  // 更新 localStorage 中的事件状态
-  const events = JSON.parse(localStorage.getItem("calendar-events") || "[]")
-  const updatedEvents = events.map((e: any) => {
-    if (e.id === eventId) {
-      return { ...e, notified: true }
-    }
-    return e
-  })
-  localStorage.setItem("calendar-events", JSON.stringify(updatedEvents))
+  // 确保在主线程上调用toast
+  setTimeout(() => {
+    toast({
+      title: title,
+      description: body + (location ? ` - ${location}` : ""),
+      duration: 60000, // 1 minute
+      action: (
+        <ToastAction
+          altText="查看"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId } }))
+          }}
+        >
+          查看
+        </ToastAction>
+      ),
+    })
+  }, 0)
 }
 
-// 修改 checkPendingNotifications 函数，只处理未通知的事件
+// Check and trigger pending notifications
 export function checkPendingNotifications(): void {
   const notifications = JSON.parse(localStorage.getItem("scheduled-notifications") || "[]")
   const now = Date.now()
@@ -190,12 +179,6 @@ export function checkPendingNotifications(): void {
   console.log(`检查 ${notifications.length} 个待处理通知，当前时间: ${new Date(now).toLocaleString()}`)
 
   for (const notification of notifications) {
-    // 跳过已经通知过的事件
-    if (notification.notified) {
-      updatedNotifications.push(notification)
-      continue
-    }
-
     if (notification.timestamp <= now) {
       // 如果通知时间已经过去，显示它
       console.log(`触发待处理通知: ${notification.title} (计划于 ${new Date(notification.timestamp).toLocaleString()})`)
@@ -205,7 +188,7 @@ export function checkPendingNotifications(): void {
         try {
           // 播放通知声音
           playNotificationSound(notification.soundType || "telegramSfx")
-
+          
           const systemNotification = new Notification(notification.title, {
             body: notification.body,
             icon: "/calendar-icon.png",
@@ -215,43 +198,25 @@ export function checkPendingNotifications(): void {
             window.focus()
             window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: notification.id } }))
           }
-
-          // 标记为已通知
-          markEventAsNotified(notification.id)
-
-          // 更新通知对象，但仍然保留在列表中
-          updatedNotifications.push({ ...notification, notified: true })
         } catch (e) {
           console.error("系统通知失败，回退到Toast通知", e)
           showToastNotification(
-            notification.title,
-            notification.body,
-            notification.id,
-            notification.soundType || "telegram",
-            notification.location,
+            notification.title, 
+            notification.body, 
+            notification.id, 
+            notification.soundType || "telegram", 
+            notification.location
           )
-
-          // 标记为已通知
-          markEventAsNotified(notification.id)
-
-          // 更新通知对象，但仍然保留在列表中
-          updatedNotifications.push({ ...notification, notified: true })
         }
       } else {
         // 回退到Toast通知
         showToastNotification(
-          notification.title,
-          notification.body,
-          notification.id,
-          notification.soundType || "telegramSfx",
-          notification.location,
+          notification.title, 
+          notification.body, 
+          notification.id, 
+          notification.soundType || "telegramSfx", 
+          notification.location
         )
-
-        // 标记为已通知
-        markEventAsNotified(notification.id)
-
-        // 更新通知对象，但仍然保留在列表中
-        updatedNotifications.push({ ...notification, notified: true })
       }
     } else {
       // Keep future notifications
@@ -274,26 +239,3 @@ export function clearAllNotificationTimers(): void {
   })
 }
 
-function showToastNotification(
-  title: string,
-  description: string,
-  eventId: string,
-  soundType: string,
-  location?: string,
-) {
-  toast({
-    title: title,
-    description: description,
-    action: (
-      <ToastAction
-        altText="查看"
-        onClick={() => {
-          window.focus()
-          window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: eventId } }))
-        }}
-      >
-        查看
-      </ToastAction>
-    ),
-  })
-}
