@@ -1,3 +1,5 @@
+"use client"
+
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 
@@ -14,7 +16,7 @@ export const NOTIFICATION_SOUNDS = {
 export function playNotificationSound(soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx") {
   try {
     const audio = new Audio(NOTIFICATION_SOUNDS[soundType])
-    audio.play().catch(error => {
+    audio.play().catch((error) => {
       console.error("播放通知声音失败:", error)
     })
   } catch (error) {
@@ -26,17 +28,15 @@ export function playNotificationSound(soundType: keyof typeof NOTIFICATION_SOUND
 export function scheduleEventNotification(
   event: { id: string; title: string; startDate: Date; description?: string; location?: string },
   minutesBefore: number,
-  soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx"
+  soundType: keyof typeof NOTIFICATION_SOUNDS = "telegramSfx",
 ): void {
   // 确保startDate是Date对象
   const eventStartDate = event.startDate instanceof Date ? event.startDate : new Date(event.startDate)
   const eventTime = eventStartDate.getTime()
-  
+
   // 当minutesBefore为0时，通知时间就是事件时间
-  const notificationTime = minutesBefore === 0 
-    ? eventTime 
-    : eventTime - minutesBefore * 60 * 1000
-    
+  const notificationTime = minutesBefore === 0 ? eventTime : eventTime - minutesBefore * 60 * 1000
+
   const now = Date.now()
 
   console.log(`为事件安排通知: ${event.title}`)
@@ -58,12 +58,10 @@ export function scheduleEventNotification(
   filteredNotifications.push({
     id: event.id,
     title: event.title,
-    body: event.description || (minutesBefore === 0 
-      ? `事件开始时间到了` 
-      : `事件将在 ${minutesBefore} 分钟后开始`),
+    body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件将在 ${minutesBefore} 分钟后开始`),
     location: event.location || "",
     timestamp: notificationTime,
-    soundType: soundType
+    soundType: soundType,
   })
 
   localStorage.setItem("scheduled-notifications", JSON.stringify(filteredNotifications))
@@ -71,9 +69,13 @@ export function scheduleEventNotification(
   if (notificationTime <= now) {
     // 如果通知时间已经过去，立即显示通知
     console.log(`通知时间已过，立即显示通知: ${event.title}`)
-    showToastNotification(event.title, event.description || (minutesBefore === 0 
-      ? `事件开始时间到了` 
-      : `事件即将开始`), event.id, soundType, event.location)
+    showToastNotification(
+      event.title,
+      event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+      event.id,
+      soundType,
+      event.location,
+    )
     return
   }
 
@@ -96,11 +98,9 @@ export function scheduleEventNotification(
       try {
         // 播放通知声音
         playNotificationSound(soundType)
-        
+
         const notification = new Notification(event.title, {
-          body: event.description || (minutesBefore === 0 
-            ? `事件开始时间到了` 
-            : `事件即将开始`),
+          body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
           icon: "/calendar-icon.png",
         })
 
@@ -110,20 +110,22 @@ export function scheduleEventNotification(
         }
       } catch (e) {
         console.error("系统通知失败，回退到Toast通知", e)
-        showToastNotification(event.title, event.description || (minutesBefore === 0 
-          ? `事件开始时间到了` 
-          : `事件即将开始`), event.id, soundType, event.location)
+        showToastNotification(
+          event.title,
+          event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+          event.id,
+          soundType,
+          event.location,
+        )
       }
     } else {
       // 回退到Toast通知
       showToastNotification(
-        event.title, 
-        event.description || (minutesBefore === 0 
-          ? `事件开始时间到了` 
-          : `事件即将开始`), 
+        event.title,
+        event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
         event.id,
         soundType,
-        event.location
+        event.location,
       )
     }
 
@@ -139,11 +141,11 @@ export function scheduleEventNotification(
 
 // Show a toast notification
 export function showToastNotification(
-  title: string, 
-  body: string, 
-  eventId: string, 
+  title: string,
+  body: string,
+  eventId: string,
   soundType: keyof typeof NOTIFICATION_SOUNDS = "telegram",
-  location?: string
+  location?: string,
 ): void {
   console.log(`显示通知: ${title} - ${body}`)
 
@@ -155,7 +157,7 @@ export function showToastNotification(
     toast({
       title: title,
       description: body + (location ? ` - ${location}` : ""),
-      duration: 60000, // 1 minute
+      duration: 5000, // Change from 60000 (1 minute) to 5000 (5 seconds) for testing
       action: (
         <ToastAction
           altText="查看"
@@ -188,7 +190,7 @@ export function checkPendingNotifications(): void {
         try {
           // 播放通知声音
           playNotificationSound(notification.soundType || "telegramSfx")
-          
+
           const systemNotification = new Notification(notification.title, {
             body: notification.body,
             icon: "/calendar-icon.png",
@@ -201,21 +203,21 @@ export function checkPendingNotifications(): void {
         } catch (e) {
           console.error("系统通知失败，回退到Toast通知", e)
           showToastNotification(
-            notification.title, 
-            notification.body, 
-            notification.id, 
-            notification.soundType || "telegram", 
-            notification.location
+            notification.title,
+            notification.body,
+            notification.id,
+            notification.soundType || "telegram",
+            notification.location,
           )
         }
       } else {
         // 回退到Toast通知
         showToastNotification(
-          notification.title, 
-          notification.body, 
-          notification.id, 
-          notification.soundType || "telegramSfx", 
-          notification.location
+          notification.title,
+          notification.body,
+          notification.id,
+          notification.soundType || "telegramSfx",
+          notification.location,
         )
       }
     } else {
