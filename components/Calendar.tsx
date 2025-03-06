@@ -217,6 +217,15 @@ export default function Calendar() {
     const notificationMessage =
       event.notification === 0 ? "将在事件开始时提醒您" : `将在事件开始前 ${event.notification} 分钟提醒您`
 
+    console.log("Showing toast notification:", notificationMessage)
+
+    // Try showing a test toast directly
+    toast({
+      title: "测试通知",
+      description: "这是一个测试通知，检查toast是否正常工作",
+      duration: 5000,
+    })
+
     toast({
       title: "提醒已设置",
       description: notificationMessage,
