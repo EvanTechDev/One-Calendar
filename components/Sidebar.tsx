@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
+import { toast } from "@/components/ui/use-toast"
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -112,7 +113,24 @@ export default function Sidebar({ onCreateEvent, onDateSelect, language }: Sideb
             </Button>
           )}
         </div>
+        <div className="mt-4">
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => {
+              console.log("Test toast button clicked")
+              toast({
+                title: "测试通知",
+                description: "这是一个测试通知，检查toast是否正常工作",
+                duration: 5000,
+              })
+            }}
+          >
+            测试通知
+          </Button>
+        </div>
       </div>
     </div>
   )
 }
+
