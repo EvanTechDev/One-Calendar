@@ -15,7 +15,7 @@ import { translations, type Language } from "@/lib/i18n"
 
 export default function AnalyticsGuide() {
   const [open, setOpen] = useState(false)
-  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-analytics-guide", true) // 默认设为true，不显示弹窗
+  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-analytics-guide", false) // 默认设为true，不显示弹窗
   const [language] = useLocalStorage<Language>("preferred-language", "zh")
   const t = translations[language]
 
