@@ -290,7 +290,7 @@ export const translations = {
     basicFeatures: "基础功能",
     timeAnalyticsFeatures: "时间分析",
     scheduleSuggestionsFeatures: "智能建议",
-    importExportFeatures: "导入导出",
+    moodTrackerFeatures: "导入导出",
     createEventGuide: "创建事件",
     createEventDesc: '点击侧边栏顶部的"创建日程"按钮，或直接点击日历上的时间段来创建新事件。',
     switchViewGuide: "切换视图",
