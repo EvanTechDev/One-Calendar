@@ -4,17 +4,17 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { CalendarIcon, ChevronLeft, ChevronRight, Search, Moon, Sun } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Search, Moon, Sun, BarChart } from "lucide-react"
 import { addDays, subDays, startOfToday } from "date-fns"
-import Sidebar, { type CalendarCategory } from "./Sidebar"
+import Sidebar from "./Sidebar"
 import DayView from "./DayView"
 import WeekView from "./WeekView"
 import MonthView from "./MonthView"
+import AnalyticsView from "./AnalyticsView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useTheme } from "next-themes"
-import { useLanguage, translations } from "@/lib/i18n"
+import { translations, useLanguage } from "@/lib/i18n"
 import {
   scheduleEventNotification,
   checkPendingNotifications,
@@ -24,8 +24,13 @@ import {
 import { toast } from "@/components/ui/use-toast"
 // 导入通知权限请求函数
 import { requestNotificationPermission } from "@/utils/notification-permission"
+// 在Calendar组件顶部导入QuickStartGuide
+import QuickStartGuide from "./QuickStartGuide"
+import EventPreview from "./EventPreview"
+import { useLocalStorage } from "@/hooks/useLocalStorage"
+import { useCalendar } from "@/contexts/CalendarContext"
 
-type ViewType = "day" | "week" | "month"
+type ViewType = "day" | "week" | "month" | "analytics"
 
 export interface CalendarEvent {
   id: string
@@ -42,20 +47,18 @@ export interface CalendarEvent {
   calendarId: string
 }
 
+export type Language = "en" | "zh"
+
 export default function Calendar() {
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const [events, setEvents] = useLocalStorage<CalendarEvent[]>("calendar-events", [])
-  const [calendars] = useLocalStorage<CalendarCategory[]>("calendar-categories", [
-    { id: "1", name: "Personal", color: "bg-blue-500" },
-    { id: "2", name: "Work", color: "bg-green-500" },
-    { id: "3", name: "Family", color: "bg-yellow-500" },
-  ])
+  const { events, setEvents } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
   const { theme, setTheme } = useTheme()
   const calendarRef = useRef<HTMLDivElement>(null)
+  // 使用useLanguage而不是useLocalStorage
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
   const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>("first-day-of-week", 0) // 0 for Sunday, 1 for Monday, etc.
@@ -66,6 +69,8 @@ export default function Calendar() {
   )
   const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const notificationsInitializedRef = useRef(false)
+  const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   // 在组件顶部添加一个useEffect来请求权限
   useEffect(() => {
@@ -206,7 +211,7 @@ export default function Calendar() {
   }
 
   const handleEventAdd = async (event: CalendarEvent) => {
-    setEvents((prev) => [...prev, event])
+    setEvents([...events, event])
     setEventDialogOpen(false)
 
     // Schedule notification for the event
@@ -234,7 +239,7 @@ export default function Calendar() {
   }
 
   const handleEventUpdate = async (updatedEvent: CalendarEvent) => {
-    setEvents((prev) => prev.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
+    setEvents(events.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
     setEventDialogOpen(false)
     setSelectedEvent(null)
 
@@ -256,7 +261,7 @@ export default function Calendar() {
   }
 
   const handleEventDelete = (eventId: string) => {
-    setEvents((prev) => prev.filter((event) => event.id !== eventId))
+    setEvents(events.filter((event) => event.id !== eventId))
     setEventDialogOpen(false)
     setSelectedEvent(null)
 
@@ -266,9 +271,89 @@ export default function Calendar() {
     localStorage.setItem("scheduled-notifications", JSON.stringify(updatedNotifications))
   }
 
+  const handleImportEvents = (importedEvents: CalendarEvent[]) => {
+    // 确保导入的事件有正确的日期格式
+    const processedEvents = importedEvents.map((event) => ({
+      ...event,
+      // 确保日期是Date对象
+      startDate: event.startDate instanceof Date ? event.startDate : new Date(event.startDate),
+      endDate: event.endDate instanceof Date ? event.endDate : new Date(event.endDate),
+      // 确保有ID
+      id: event.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      // 确保有日历ID
+      calendarId: event.calendarId || "1",
+      // 确保有颜色
+      color: event.color || "bg-blue-500",
+      // 确保有参与者数组
+      participants: Array.isArray(event.participants) ? event.participants : [],
+      // 确保有通知设置
+      notification: typeof event.notification === "number" ? event.notification : 0,
+      // 确保有重复设置
+      recurrence: event.recurrence || "none",
+    }))
+
+    // 检查每个导入的事件，确保它不与现有事件重复
+    const newEvents = processedEvents.filter((importedEvent) => {
+      return !events.some(
+        (existingEvent) =>
+          existingEvent.id === importedEvent.id ||
+          (existingEvent.title === importedEvent.title &&
+            new Date(existingEvent.startDate).getTime() === new Date(importedEvent.startDate).getTime()),
+      )
+    })
+
+    if (newEvents.length > 0) {
+      setEvents([...events, ...newEvents])
+
+      // 为新导入的事件设置通知
+      for (const event of newEvents) {
+        const eventTime = new Date(event.startDate).getTime()
+        const now = Date.now()
+
+        if (eventTime > now) {
+          scheduleEventNotification(event, event.notification, notificationSound)
+        }
+      }
+
+      toast({
+        title: "导入成功",
+        description: `成功导入 ${newEvents.length} 个事件`,
+      })
+    } else {
+      toast({
+        title: "导入注意",
+        description: "没有发现新的事件或所有事件已存在",
+      })
+    }
+  }
+
+  // Update handleEventClick to show preview instead of edit dialog
   const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event)
+    setPreviewEvent(event)
+    setPreviewOpen(true)
+  }
+
+  // Add handler for edit button in preview
+  const handleEventEdit = () => {
+    setSelectedEvent(previewEvent)
     setEventDialogOpen(true)
+    setPreviewOpen(false)
+  }
+
+  // Add handler for duplicate button in preview
+  const handleEventDuplicate = () => {
+    if (previewEvent) {
+      const newEvent = {
+        ...previewEvent,
+        id: Date.now().toString(),
+        title: `${previewEvent.title} (${t.copy || "Copy"})`,
+      }
+      setEvents([...events, newEvent])
+      toast({
+        title: t.eventDuplicated || "Event duplicated",
+        description: newEvent.title,
+      })
+    }
   }
 
   const handleTodayClick = () => {
@@ -278,6 +363,23 @@ export default function Calendar() {
 
   const handleDateSelect = (selectedDate: Date) => {
     setDate(selectedDate)
+  }
+
+  const handleViewChange = (newView: string) => {
+    if (newView === "analytics") {
+      setView("analytics")
+    }
+  }
+
+  const handleCreateFromSuggestion = (startDate: Date, endDate: Date) => {
+    setSelectedEvent(null)
+    const newEvent: Partial<CalendarEvent> = {
+      startDate,
+      endDate,
+    }
+    // 预填充事件对话框
+    setSelectedEvent(newEvent as any)
+    setEventDialogOpen(true)
   }
 
   const filteredEvents = events.filter(
@@ -298,8 +400,14 @@ export default function Calendar() {
 
   return (
     <div className="flex h-screen bg-background">
+      <QuickStartGuide />
       <div className="w-80 border-r bg-background">
-        <Sidebar onCreateEvent={() => setEventDialogOpen(true)} onDateSelect={handleDateSelect} language={language} />
+        <Sidebar
+          onCreateEvent={() => setEventDialogOpen(true)}
+          onDateSelect={handleDateSelect}
+          onViewChange={handleViewChange}
+          language={language}
+        />
       </div>
 
       <div className="flex-1 flex flex-col">
@@ -312,26 +420,36 @@ export default function Calendar() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="icon" onClick={handlePrevious}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleNext}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <span className="text-lg">{formatDateDisplay(date)}</span>
+            {view !== "analytics" && (
+              <>
+                <div className="flex items-center space-x-1">
+                  <Button variant="ghost" size="icon" onClick={handlePrevious}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={handleNext}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <span className="text-lg">{formatDateDisplay(date)}</span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
             <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="day">{t.day}</SelectItem>
                 <SelectItem value="week">{t.week}</SelectItem>
                 <SelectItem value="month">{t.month}</SelectItem>
+                <SelectItem value="analytics">
+                  <div className="flex items-center">
+                    <BarChart className="mr-2 h-4 w-4" />
+                    <span>分析</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
             <div className="relative">
@@ -410,8 +528,31 @@ export default function Calendar() {
               timezone={timezone}
             />
           )}
+          {view === "analytics" && (
+            <AnalyticsView
+              events={events}
+              onCreateEvent={handleCreateFromSuggestion}
+              onImportEvents={handleImportEvents}
+            />
+          )}
         </div>
       </div>
+
+      <EventPreview
+        event={previewEvent}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        onEdit={handleEventEdit}
+        onDelete={() => {
+          if (previewEvent) {
+            handleEventDelete(previewEvent.id)
+            setPreviewOpen(false)
+          }
+        }}
+        onDuplicate={handleEventDuplicate}
+        language={language}
+        timezone={timezone}
+      />
 
       <EventDialog
         open={eventDialogOpen}
@@ -421,7 +562,6 @@ export default function Calendar() {
         onEventDelete={handleEventDelete}
         initialDate={date}
         event={selectedEvent}
-        calendars={calendars}
         language={language}
         timezone={timezone}
       />
