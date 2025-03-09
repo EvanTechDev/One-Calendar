@@ -12,9 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
 import type { CalendarEvent } from "./Calendar"
-import type { CalendarCategory } from "./Sidebar"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
+import { useCalendar } from "@/contexts/CalendarContext"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },
@@ -33,7 +33,6 @@ interface EventDialogProps {
   onEventDelete: (eventId: string) => void
   initialDate: Date
   event: CalendarEvent | null
-  calendars: CalendarCategory[]
   language: Language
   timezone: string
 }
@@ -46,10 +45,12 @@ export default function EventDialog({
   onEventDelete,
   initialDate,
   event,
-  calendars,
   language,
   timezone,
 }: EventDialogProps) {
+  // 使用 Context 中的日历分类数据
+  const { calendars } = useCalendar()
+
   const [title, setTitle] = useState("")
   const [isAllDay, setIsAllDay] = useState(false)
   const [startDate, setStartDate] = useState(initialDate)
@@ -89,7 +90,7 @@ export default function EventDialog({
 
       setDescription(event.description || "")
       setColor(event.color)
-      setSelectedCalendar(event?.calendarId || calendars[0]?.id || "")
+      setSelectedCalendar(event?.calendarId || (calendars.length > 0 ? calendars[0]?.id : ""))
     } else {
       resetForm()
     }
@@ -108,7 +109,7 @@ export default function EventDialog({
     setCustomNotificationTime("10")
     setDescription("")
     setColor(colorOptions[0].value)
-    setSelectedCalendar(calendars[0]?.id || "")
+    setSelectedCalendar(calendars.length > 0 ? calendars[0]?.id : "")
   }
 
   const handleStartDateChange = (newStartDate: Date) => {
@@ -141,7 +142,6 @@ export default function EventDialog({
       description,
       color,
       calendarId: selectedCalendar,
-      notified: event?.notified || false, // 保留原有的通知状态，或者对新事件设为 false
     }
 
     if (event) {
@@ -313,3 +313,4 @@ export default function EventDialog({
     </Dialog>
   )
 }
+

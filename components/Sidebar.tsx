@@ -4,50 +4,59 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronDown, X } from "lucide-react"
+import { Plus, ChevronDown, X, BarChart2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { toast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { translations } from "@/lib/i18n"
+import { useCalendar, type CalendarCategory } from "@/contexts/CalendarContext"
 
 interface SidebarProps {
   onCreateEvent: () => void
   onDateSelect: (date: Date) => void
+  onViewChange?: (view: string) => void
   language?: Language
-}
-
-export interface CalendarCategory {
-  id: string
-  name: string
-  color: string
 }
 
 export type Language = "en" | "zh"
 
-export default function Sidebar({ onCreateEvent, onDateSelect, language }: SidebarProps) {
-  const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>("calendar-categories", [
-    { id: "1", name: "Personal", color: "bg-blue-500" },
-    { id: "2", name: "Work", color: "bg-green-500" },
-    { id: "3", name: "Family", color: "bg-yellow-500" },
-  ])
+export default function Sidebar({ onCreateEvent, onDateSelect, onViewChange, language = "zh" }: SidebarProps) {
+  // 使用 Context 中的日历分类数据
+  const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
+
   const [newCategoryName, setNewCategoryName] = useState("")
+  const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500")
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
+  const t = translations[language || "zh"]
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
       const newCategory: CalendarCategory = {
         id: Date.now().toString(),
         name: newCategoryName.trim(),
-        color: `bg-${["red", "green", "blue", "yellow", "purple", "pink"][Math.floor(Math.random() * 6)]}-500`,
+        color: newCategoryColor,
+        keywords: [],
       }
-      setCalendars([...calendars, newCategory])
+      addCategoryToContext(newCategory)
       setNewCategoryName("")
+      setNewCategoryColor("bg-blue-500")
       setShowAddCategory(false)
+      toast({
+        title: "分类已添加",
+        description: `已成功添加"${newCategoryName}"分类`,
+      })
     }
   }
 
   const removeCategory = (id: string) => {
-    setCalendars(calendars.filter((cal) => cal.id !== id))
+    removeCategoryFromContext(id)
+    toast({
+      title: "分类已删除",
+      description: "已成功删除分类",
+    })
   }
 
   return (
@@ -58,7 +67,15 @@ export default function Sidebar({ onCreateEvent, onDateSelect, language }: Sideb
           onClick={onCreateEvent}
         >
           <Plus className="mr-2 h-4 w-4" />
-          创建日程
+          {t.createEvent}
+        </Button>
+
+        <Button
+          className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700 mb-4"
+          onClick={() => onViewChange && onViewChange("analytics")}
+        >
+          <BarChart2 className="mr-2 h-4 w-4" />
+          {t.analytics || "分析与洞察"}
         </Button>
 
         <div className="mt-4">
@@ -75,7 +92,7 @@ export default function Sidebar({ onCreateEvent, onDateSelect, language }: Sideb
 
         <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">我的日历</span>
+            <span className="text-sm font-medium">{t.myCalendars}</span>
             <ChevronDown className="h-4 w-4" />
           </div>
           {calendars.map((calendar) => (
@@ -94,11 +111,11 @@ export default function Sidebar({ onCreateEvent, onDateSelect, language }: Sideb
               <Input
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="新日历名称"
+                placeholder={t.categoryName || "新日历名称"}
                 className="text-sm"
               />
               <Button size="sm" onClick={addCategory}>
-                添加
+                {t.addCategory || "添加"}
               </Button>
             </div>
           ) : (
@@ -106,30 +123,80 @@ export default function Sidebar({ onCreateEvent, onDateSelect, language }: Sideb
               variant="ghost"
               size="sm"
               className="w-full justify-start text-muted-foreground"
-              onClick={() => setShowAddCategory(true)}
+              onClick={() => setManageCategoriesOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              添加新日历
+              {t.addNewCalendar}
             </Button>
           )}
         </div>
-        <div className="mt-4">
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={() => {
-              console.log("Test toast button clicked")
-              toast({
-                title: "测试通知",
-                description: "这是一个测试通知，检查toast是否正常工作",
-                duration: 5000,
-              })
-            }}
-          >
-            测试通知
-          </Button>
-        </div>
       </div>
+      <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.manageCategories}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">{t.categoryName}</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="输入分类名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t.color}</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "blue-500",
+                  "green-500",
+                  "purple-500",
+                  "yellow-500",
+                  "red-500",
+                  "pink-500",
+                  "indigo-500",
+                  "orange-500",
+                  "teal-500",
+                ].map((color) => (
+                  <div
+                    key={color}
+                    className={cn(
+                      `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
+                      newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
+                    )}
+                    onClick={() => setNewCategoryColor(`bg-${color}`)}
+                  />
+                ))}
+              </div>
+            </div>
+            <Button onClick={addCategory} disabled={!newCategoryName}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addCategory}
+            </Button>
+            <div className="space-y-2 mt-4">
+              <Label>{t.existingCategories}</Label>
+              <div className="space-y-2">
+                {calendars.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <div className="flex items-center">
+                      <div className={cn("w-4 h-4 rounded-full mr-2", category.color)} />
+                      <span>{category.name}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => removeCategory(category.id)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setManageCategoriesOpen(false)}>{t.cancel || "关闭"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
