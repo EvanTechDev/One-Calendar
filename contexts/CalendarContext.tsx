@@ -3,7 +3,6 @@
 import type React from "react"
 import { createContext, useContext } from "react"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
-import { defaultTimeCategories } from "@/utils/time-analytics"
 
 export interface CalendarCategory {
   id: string
@@ -39,16 +38,25 @@ interface CalendarContextType {
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined)
 
+// 默认日历分类
+const defaultCalendars: CalendarCategory[] = [
+  {
+    id: "work",
+    name: "工作",
+    color: "bg-blue-500",
+    keywords: [],
+  },
+  {
+    id: "personal",
+    name: "个人",
+    color: "bg-green-500",
+    keywords: [],
+  },
+]
+
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>(
-    "calendar-categories",
-    defaultTimeCategories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      color: cat.color,
-      keywords: cat.keywords,
-    })),
-  )
+  // 修改这里，使用空数组作为默认值，不自动创建分类
+  const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>("calendar-categories", [])
 
   const [events, setEvents] = useLocalStorage<CalendarEvent[]>("calendar-events", [])
 
