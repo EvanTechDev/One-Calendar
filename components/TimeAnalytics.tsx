@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { analyzeTimeUsage, type TimeAnalytics } from "@/utils/time-analytics"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
@@ -122,16 +121,8 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     <Card className="w-full">
       <CardHeader>
         <CardTitle>{t.timeAnalytics}</CardTitle>
-        {/* 在CardHeader内部，CardTitle后面添加 */}
         <CardDescription>{t.timeAnalytics}</CardDescription>
-        <div className="flex justify-between items-center">
-          <Tabs defaultValue="month" value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
-            <TabsList>
-              <TabsTrigger value="week">{t.thisWeek}</TabsTrigger>
-              <TabsTrigger value="month">{t.thisMonth}</TabsTrigger>
-              <TabsTrigger value="year">{t.thisYear}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="flex justify-end">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
