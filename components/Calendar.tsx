@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { CalendarIcon, ChevronLeft, ChevronRight, Search, Moon, Sun, BarChart } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Search, Moon, Sun } from "lucide-react"
 import { addDays, subDays, startOfToday } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -71,6 +71,8 @@ export default function Calendar() {
   const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  // 添加一个状态来同步侧边栏日历
+  const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
 
   // 在组件顶部添加一个useEffect来请求权限
   useEffect(() => {
@@ -89,6 +91,11 @@ export default function Calendar() {
       }
     })
   }, [])
+
+  // 当主日历日期变化时，同步侧边栏日历
+  useEffect(() => {
+    setSidebarDate(date)
+  }, [date])
 
   // Initialize notification system
   useEffect(() => {
@@ -222,15 +229,6 @@ export default function Calendar() {
     const notificationMessage =
       event.notification === 0 ? "将在事件开始时提醒您" : `将在事件开始前 ${event.notification} 分钟提醒您`
 
-    console.log("Showing toast notification:", notificationMessage)
-
-    // Try showing a test toast directly
-    toast({
-      title: "测试通知",
-      description: "这是一个测试通知，检查toast是否正常工作",
-      duration: 5000,
-    })
-
     toast({
       title: "提醒已设置",
       description: notificationMessage,
@@ -357,7 +355,12 @@ export default function Calendar() {
   }
 
   const handleTodayClick = () => {
-    setDate(startOfToday())
+    const today = startOfToday()
+    if (view === "analytics") {
+      setView("week")
+    }
+    setDate(today)
+    setSidebarDate(today) // 同步侧边栏日历
     scrollToCurrentTime()
   }
 
@@ -407,6 +410,7 @@ export default function Calendar() {
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
           language={language}
+          selectedDate={sidebarDate} // 传递同步的日期给侧边栏
         />
       </div>
 
@@ -444,12 +448,6 @@ export default function Calendar() {
                 <SelectItem value="day">{t.day}</SelectItem>
                 <SelectItem value="week">{t.week}</SelectItem>
                 <SelectItem value="month">{t.month}</SelectItem>
-                <SelectItem value="analytics">
-                  <div className="flex items-center">
-                    <BarChart className="mr-2 h-4 w-4" />
-                    <span>分析</span>
-                  </div>
-                </SelectItem>
               </SelectContent>
             </Select>
             <div className="relative">
