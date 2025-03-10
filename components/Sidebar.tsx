@@ -17,20 +17,33 @@ interface SidebarProps {
   onDateSelect: (date: Date) => void
   onViewChange?: (view: string) => void
   language?: Language
+  selectedDate?: Date // 添加selectedDate属性
 }
 
 export type Language = "en" | "zh"
 
-export default function Sidebar({ onCreateEvent, onDateSelect, onViewChange, language = "zh" }: SidebarProps) {
+export default function Sidebar({
+  onCreateEvent,
+  onDateSelect,
+  onViewChange,
+  language = "zh",
+  selectedDate,
+}: SidebarProps) {
   // 使用 Context 中的日历分类数据
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
   const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500")
   const [showAddCategory, setShowAddCategory] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  // 使用传入的selectedDate，如果没有则使用当前日期
+  const [localSelectedDate, setLocalSelectedDate] = useState<Date | undefined>(selectedDate || new Date())
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
   const t = translations[language || "zh"]
+
+  // 当外部selectedDate变化时，更新本地状态
+  if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
+    setLocalSelectedDate(selectedDate)
+  }
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
@@ -81,9 +94,9 @@ export default function Sidebar({ onCreateEvent, onDateSelect, onViewChange, lan
         <div className="mt-4">
           <Calendar
             mode="single"
-            selected={selectedDate}
+            selected={localSelectedDate}
             onSelect={(date) => {
-              setSelectedDate(date)
+              setLocalSelectedDate(date)
               date && onDateSelect(date)
             }}
             className="rounded-md border"
