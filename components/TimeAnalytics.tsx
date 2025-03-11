@@ -53,7 +53,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
     const result = analyzeTimeUsage(filteredEvents, timeCategories)
     setAnalytics(result)
-  }, [events, timeCategories, timeRange])
+  }, [events, timeCategories, timeRange, language]) // 添加language依赖，确保语言变化时重新渲染
 
   const handleAddCategory = () => {
     if (newCategory.name) {
@@ -77,7 +77,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   }
 
   if (!analytics) {
-    return <div>{t.loading || "加载中..."}</div>
+    return <div>{t.loading}</div>
   }
 
   // 为饼图准备数据
@@ -86,7 +86,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     .map(([categoryId, hours]) => {
       const category = timeCategories.find((cat) => cat.id === categoryId)
       return {
-        name: category ? category.name : t.uncategorized || "未分类",
+        name: category ? category.name : t.uncategorized,
         value: Math.round(hours * 10) / 10,
         color: category ? category.color.replace("bg-", "") : "gray-500",
       }
@@ -98,7 +98,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     .map(([categoryId, hours]) => {
       const category = timeCategories.find((cat) => cat.id === categoryId)
       return {
-        name: category ? category.name : t.uncategorized || "未分类",
+        name: category ? category.name : t.uncategorized,
         hours: Math.round(hours * 10) / 10,
         color: category ? category.color.replace("bg-", "") : "gray-500",
       }
@@ -121,7 +121,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     <Card className="w-full">
       <CardHeader>
         <CardTitle>{t.timeAnalytics}</CardTitle>
-        <CardDescription>{t.timeAnalytics}</CardDescription>
+        <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
         <div className="flex justify-end">
           <Dialog>
             <DialogTrigger asChild>
@@ -193,7 +193,6 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         </div>
       </CardHeader>
       <CardContent>
-        {/* 其余部分保持不变 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="text-lg font-medium mb-2">{t.timeDistribution}</h3>
@@ -214,7 +213,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
                       <Cell key={`cell-${index}`} fill={colorMap[entry.color] || "#6b7280"} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} ${t.hours || "小时"}`, ""]} />
+                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, ""]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -226,9 +225,9 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
                 <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={80} />
-                  <Tooltip formatter={(value) => [`${value} ${t.hours || "小时"}`, ""]} />
+                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, ""]} />
                   <Legend />
-                  <Bar dataKey="hours" name={t.hours || "小时"}>
+                  <Bar dataKey="hours" name={t.hours}>
                     {barData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={colorMap[entry.color] || "#6b7280"} />
                     ))}
