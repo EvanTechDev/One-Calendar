@@ -32,6 +32,21 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   const [timeRange, setTimeRange] = useState<"week" | "month" | "year">("month")
   const [language] = useLanguage()
   const t = translations[language]
+  // 添加一个状态来强制组件重新渲染
+  const [forceUpdate, setForceUpdate] = useState(0)
+
+  // 监听语言变化事件
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // 强制组件重新渲染
+      setForceUpdate((prev) => prev + 1)
+    }
+
+    window.addEventListener("languagechange", handleLanguageChange)
+    return () => {
+      window.removeEventListener("languagechange", handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // 根据选择的时间范围过滤事件
@@ -53,7 +68,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
     const result = analyzeTimeUsage(filteredEvents, timeCategories)
     setAnalytics(result)
-  }, [events, timeCategories, timeRange, language]) // 添加language依赖，确保语言变化时重新渲染
+  }, [events, timeCategories, timeRange, language, forceUpdate]) // 添加language依赖，确保语言变化时重新渲染
 
   const handleAddCategory = () => {
     if (newCategory.name) {
