@@ -134,7 +134,7 @@ export default function EventPreview({
           </div>
 
           {/* 只有当participants数组不为空时才显示 */}
-          {event.participants && event.participants.length > 0 && (
+          {event.participants && event.participants.length > 0 && event.participants[0] !== "" && (
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">{t.participants}</div>
               <div className="font-medium">
