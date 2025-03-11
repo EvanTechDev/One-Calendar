@@ -1,12 +1,12 @@
 "use client"
 
-import { SettingsIcon } from 'lucide-react'
+import { SettingsIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { translations, type Language } from "@/lib/i18n"
-import { NOTIFICATION_SOUNDS, playNotificationSound } from "@/utils/notifications"
+import { type NOTIFICATION_SOUNDS, playNotificationSound } from "@/utils/notifications"
 
 interface SettingsProps {
   language: Language
@@ -31,12 +31,19 @@ export default function Settings({
 }: SettingsProps) {
   const t = translations[language]
 
-  // Get list of timezones
+  // 获取list of timezones
   const timezones = Intl.supportedValuesOf("timeZone")
 
   // 测试通知声音
   const testNotificationSound = (sound: keyof typeof NOTIFICATION_SOUNDS) => {
     playNotificationSound(sound)
+  }
+
+  // 添加一个处理语言变化的函数
+  const handleLanguageChange = (newLang: Language) => {
+    setLanguage(newLang)
+    // 触发一个自定义事件，通知其他组件语言已更改
+    window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
   }
 
   return (
@@ -54,7 +61,7 @@ export default function Settings({
         <div className="space-y-6 py-6">
           <div className="space-y-2">
             <Label htmlFor="language">{t.language}</Label>
-            <Select value={language} onValueChange={(value: Language) => setLanguage(value)}>
+            <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
               <SelectTrigger id="language">
                 <SelectValue />
               </SelectTrigger>
@@ -100,8 +107,8 @@ export default function Settings({
           <div className="space-y-2">
             <Label htmlFor="notification-sound">{t.notificationSound}</Label>
             <div className="flex gap-2">
-              <Select 
-                value={notificationSound} 
+              <Select
+                value={notificationSound}
                 onValueChange={(value: keyof typeof NOTIFICATION_SOUNDS) => setNotificationSound(value)}
               >
                 <SelectTrigger id="notification-sound" className="flex-1">
@@ -112,9 +119,9 @@ export default function Settings({
                   <SelectItem value="telegramSfx">{t.telegramSfxSound}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => testNotificationSound(notificationSound)}
                 title="Test sound"
               >
