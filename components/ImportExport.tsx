@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -34,6 +34,21 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
   const [debugInfo, setDebugInfo] = useState<string>("")
   const [language] = useLanguage() // 使用useLanguage钩子
   const t = translations[language]
+  // 添加一个状态来强制组件重新渲染
+  const [forceUpdate, setForceUpdate] = useState(0)
+
+  // 监听语言变化事件
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // 强制组件重新渲染
+      setForceUpdate((prev) => prev + 1)
+    }
+
+    window.addEventListener("languagechange", handleLanguageChange)
+    return () => {
+      window.removeEventListener("languagechange", handleLanguageChange)
+    }
+  }, [])
 
   const handleExport = async () => {
     try {
