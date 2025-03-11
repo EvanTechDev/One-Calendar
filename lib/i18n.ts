@@ -56,6 +56,7 @@ export const translations = {
     telegramSfxSound: "Telegram SFX",
     // Analytics translations
     timeAnalytics: "Time Analytics",
+    timeAnalyticsDesc: "Analyze how you spend your time",
     timeDistribution: "Time Distribution",
     categoryTime: "Category Time (Hours)",
     totalEvents: "Total Events",
@@ -154,6 +155,8 @@ export const translations = {
     events: "events",
     uncategorized: "Uncategorized",
     loading: "Loading...",
+    welcomeToAnalytics: "Welcome to Advanced Analytics",
+    analyticsDescription: "We've added powerful features to help you better manage your time and schedule",
   },
   zh: {
     // Keep existing Chinese translations
@@ -207,6 +210,7 @@ export const translations = {
     telegramSfxSound: "Telegram SFX",
     // Analytics translations
     timeAnalytics: "时间分析",
+    timeAnalyticsDesc: "分析您如何利用时间",
     timeDistribution: "时间分布",
     categoryTime: "分类时间（小时）",
     totalEvents: "总事件数",
@@ -297,6 +301,8 @@ export const translations = {
     events: "事件",
     uncategorized: "未分类",
     loading: "加载中...",
+    welcomeToAnalytics: "欢迎使用高级分析功能",
+    analyticsDescription: "我们添加了强大的功能，帮助您更好地管理时间和日程",
   },
 }
 
@@ -321,25 +327,41 @@ function detectSystemLanguage(): Language {
 export function useLanguage(): [Language, (lang: Language) => void] {
   const [language, setLanguageState] = useState<Language>("zh") // 默认为中文
 
-  useEffect(() => {
-    // 首先检查localStorage中是否有存储的语言偏好
+  // 从localStorage读取语言设置
+  const readLanguageFromStorage = () => {
     const storedLanguage = localStorage.getItem("preferred-language")
-
     if (storedLanguage === "en" || storedLanguage === "zh") {
-      // 如果有存储的语言偏好，使用它
-      setLanguageState(storedLanguage)
-    } else {
-      // 如果没有存储的语言偏好，检测系统语言
-      const systemLanguage = detectSystemLanguage()
-      setLanguageState(systemLanguage)
-      // 将检测到的系统语言保存到localStorage
-      localStorage.setItem("preferred-language", systemLanguage)
+      return storedLanguage as Language
+    }
+    return detectSystemLanguage()
+  }
+
+  useEffect(() => {
+    // 初始化时读取语言设置
+    const storedLanguage = readLanguageFromStorage()
+    setLanguageState(storedLanguage)
+
+    // 创建一个事件监听器，当localStorage变化时触发
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "preferred-language") {
+        const newLanguage = e.newValue as Language
+        if (newLanguage === "en" || newLanguage === "zh") {
+          setLanguageState(newLanguage)
+        }
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
     }
   }, [])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("preferred-language", lang)
+    // 触发一个自定义事件，通知其他组件语言已更改
+    window.dispatchEvent(new Event("languagechange"))
   }
 
   return [language, setLanguage]
