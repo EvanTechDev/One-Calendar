@@ -6,9 +6,10 @@ import ImportExport from "./ImportExport"
 import AnalyticsGuide from "./AnalyticsGuide"
 import type { CalendarEvent } from "./Calendar"
 import { useCalendar } from "@/contexts/CalendarContext"
-import { useLanguage } from "@/lib/i18n"
+import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
 import Settings from "./Settings" // 导入Settings组件
+import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
@@ -22,6 +23,10 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
   const t = translations[language]
   // 添加一个状态来强制组件重新渲染
   const [forceUpdate, setForceUpdate] = useState(0)
+  // 添加必要的状态以传递给Settings组件
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState(0)
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  const [notificationSound, setNotificationSound] = useState<keyof typeof NOTIFICATION_SOUNDS>("telegram")
 
   // 监听localStorage变化
   useEffect(() => {
@@ -33,9 +38,18 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
       }
     }
 
+    // 监听语言变化事件
+    const handleLanguageChange = () => {
+      // 强制组件重新渲染
+      setForceUpdate((prev) => prev + 1)
+    }
+
     window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("languagechange", handleLanguageChange)
+
     return () => {
       window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("languagechange", handleLanguageChange)
     }
   }, [])
 
@@ -47,17 +61,13 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
           {/* 添加Settings组件到分析页面 */}
           <Settings
             language={language}
-            setLanguage={(newLang) => {
-              setLanguage(newLang)
-              // 强制组件重新渲染
-              setForceUpdate((prev) => prev + 1)
-            }}
-            firstDayOfWeek={0}
-            setFirstDayOfWeek={() => {}}
-            timezone={"UTC"}
-            setTimezone={() => {}}
-            notificationSound={"telegram"}
-            setNotificationSound={() => {}}
+            setLanguage={setLanguage}
+            firstDayOfWeek={firstDayOfWeek}
+            setFirstDayOfWeek={setFirstDayOfWeek}
+            timezone={timezone}
+            setTimezone={setTimezone}
+            notificationSound={notificationSound}
+            setNotificationSound={setNotificationSound}
           />
         </div>
       </div>
