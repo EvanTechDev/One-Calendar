@@ -54,6 +54,7 @@ export const translations = {
     notificationSound: "Notification Sound",
     telegramSound: "Telegram",
     telegramSfxSound: "Telegram SFX",
+    today: "Today",
     // Analytics translations
     timeAnalytics: "Time Analytics",
     timeAnalyticsDesc: "Analyze how you spend your time",
@@ -208,6 +209,7 @@ export const translations = {
     notificationSound: "通知声音",
     telegramSound: "Telegram",
     telegramSfxSound: "Telegram SFX",
+    today: "今天",
     // Analytics translations
     timeAnalytics: "时间分析",
     timeAnalyticsDesc: "分析您如何利用时间",

@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { translations, type Language } from "@/lib/i18n"
-import { type NOTIFICATION_SOUNDS, playNotificationSound } from "@/utils/notifications"
+import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 
 interface SettingsProps {
   language: Language
@@ -34,10 +34,12 @@ export default function Settings({
   // 获取list of timezones
   const timezones = Intl.supportedValuesOf("timeZone")
 
-  // 测试通知声音
-  const testNotificationSound = (sound: keyof typeof NOTIFICATION_SOUNDS) => {
-    playNotificationSound(sound)
-  }
+  // 移除测试通知声音的功能
+
+  // 移除测试通知声音的函数
+  // const testNotificationSound = (sound: keyof typeof NOTIFICATION_SOUNDS) => {
+  //   playNotificationSound(sound)
+  // }
 
   // 添加一个处理语言变化的函数
   const handleLanguageChange = (newLang: Language) => {
@@ -119,14 +121,7 @@ export default function Settings({
                   <SelectItem value="telegramSfx">{t.telegramSfxSound}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => testNotificationSound(notificationSound)}
-                title="Test sound"
-              >
-                🔊
-              </Button>
+              {/* 移除测试声音按钮 */}
             </div>
           </div>
         </div>

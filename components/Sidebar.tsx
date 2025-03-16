@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
-import { useCalendar, type CalendarCategory } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/contexts/CalendarContext"
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -21,6 +21,13 @@ interface SidebarProps {
 }
 
 export type Language = "en" | "zh"
+
+export interface CalendarCategory {
+  id: string
+  name: string
+  color: string
+  keywords?: string[]
+}
 
 export default function Sidebar({
   onCreateEvent,

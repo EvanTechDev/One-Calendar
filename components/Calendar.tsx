@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { CalendarIcon, ChevronLeft, ChevronRight, Search, Moon, Sun } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { addDays, subDays, startOfToday } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -13,7 +13,6 @@ import MonthView from "./MonthView"
 import AnalyticsView from "./AnalyticsView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
-import { useTheme } from "next-themes"
 import { translations, useLanguage } from "@/lib/i18n"
 import {
   scheduleEventNotification,
@@ -56,7 +55,6 @@ export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
-  const { theme, setTheme } = useTheme()
   const calendarRef = useRef<HTMLDivElement>(null)
   // 使用useLanguage而不是useLocalStorage
   const [language, setLanguage] = useLanguage()
@@ -76,18 +74,13 @@ export default function Calendar() {
 
   // 在组件顶部添加一个useEffect来请求权限
   useEffect(() => {
-    // 请求通知权限
+    // 请求通知权限，但不显示 toast
     requestNotificationPermission().then((granted) => {
       if (granted) {
         console.log("通知权限已授予")
       } else {
         console.log("通知权限被拒绝")
-        // 显示一个提示，告诉用户启用通知的好处
-        toast({
-          title: "通知权限",
-          description: "启用通知可以帮助您不错过重要事件。您可以在浏览器设置中更改此权限。",
-          duration: 8000,
-        })
+        // 移除 toast 提示
       }
     })
   }, [])
@@ -141,6 +134,24 @@ export default function Calendar() {
       clearAllNotificationTimers()
     }
   }, [events, notificationSound])
+
+  // 添加监听预览事件的处理函数
+  useEffect(() => {
+    const handlePreviewEvent = (e: CustomEvent) => {
+      const eventId = e.detail.eventId
+      const event = events.find((e) => e.id === eventId)
+      if (event) {
+        setPreviewEvent(event)
+        setPreviewOpen(true)
+      }
+    }
+
+    window.addEventListener("preview-event", handlePreviewEvent as EventListener)
+
+    return () => {
+      window.removeEventListener("preview-event", handlePreviewEvent as EventListener)
+    }
+  }, [events])
 
   // Listen for view-event custom event
   useEffect(() => {
@@ -221,19 +232,8 @@ export default function Calendar() {
     setEvents([...events, event])
     setEventDialogOpen(false)
 
-    // Schedule notification for the event
-    // 确保包括notification为0的事件（事件开始时通知）
+    // 仍然调度通知，但不显示 toast
     scheduleEventNotification(event, event.notification, notificationSound)
-
-    // Show a toast confirmation
-    const notificationMessage =
-      event.notification === 0 ? "将在事件开始时提醒您" : `将在事件开始前 ${event.notification} 分钟提醒您`
-
-    toast({
-      title: "提醒已设置",
-      description: notificationMessage,
-      duration: 3000,
-    })
   }
 
   const handleEventUpdate = async (updatedEvent: CalendarEvent) => {
@@ -241,21 +241,8 @@ export default function Calendar() {
     setEventDialogOpen(false)
     setSelectedEvent(null)
 
-    // Schedule notification for the updated event
-    // 确保包括notification为0的事件（事件开始时通知）
+    // 仍然调度通知，但不显示 toast
     scheduleEventNotification(updatedEvent, updatedEvent.notification, notificationSound)
-
-    // Show a toast confirmation
-    const notificationMessage =
-      updatedEvent.notification === 0
-        ? "将在事件开始时提醒您"
-        : `将在事件开始前 ${updatedEvent.notification} 分钟提醒您`
-
-    toast({
-      title: "提醒已更新",
-      description: notificationMessage,
-      duration: 3000,
-    })
   }
 
   const handleEventDelete = (eventId: string) => {
@@ -314,13 +301,17 @@ export default function Calendar() {
       }
 
       toast({
-        title: "导入成功",
-        description: `成功导入 ${newEvents.length} 个事件`,
+        title: language === "en" ? "Import Successful" : "导入成功",
+        description:
+          language === "en"
+            ? `Successfully imported ${newEvents.length} events`
+            : `成功导入 ${newEvents.length} 个事件`,
       })
     } else {
       toast({
-        title: "导入注意",
-        description: "没有发现新的事件或所有事件已存在",
+        title: language === "en" ? "Import Notice" : "导入注意",
+        description:
+          language === "en" ? "No new events found or all events already exist" : "没有发现新的事件或所有事件已存在",
       })
     }
   }
@@ -418,9 +409,10 @@ export default function Calendar() {
         <header className="flex items-center justify-between px-4 h-16 border-b">
           <div className="flex items-center space-x-4">
             <CalendarIcon className="h-8 w-8 text-blue-500" />
-            <h1 className="text-xl font-semibold cursor-pointer" onClick={handleTodayClick}>
-              {t.calendar}
-            </h1>
+            <h1 className="text-xl font-semibold">{t.calendar}</h1>
+            <Button variant="outline" size="sm" onClick={handleTodayClick}>
+              {t.today || "今天"}
+            </Button>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -460,29 +452,24 @@ export default function Calendar() {
                 className="pl-9 pr-4 py-2 w-48"
               />
               {searchTerm && (
-                <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg">
                   {filteredEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="p-2 hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700"
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
                       onClick={() => {
-                        setSelectedEvent(event)
-                        setEventDialogOpen(true)
+                        setPreviewEvent(event)
+                        setPreviewOpen(true)
                         setSearchTerm("")
                       }}
                     >
                       <div className="font-medium">{event.title}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {formatDateDisplay(new Date(event.startDate))}
-                      </div>
+                      <div className="text-sm text-gray-500">{formatDateDisplay(new Date(event.startDate))}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
             <Settings
               language={language}
               setLanguage={setLanguage}

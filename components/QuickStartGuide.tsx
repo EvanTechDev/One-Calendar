@@ -12,13 +12,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { translations, type Language } from "@/lib/i18n"
+import { translations } from "@/lib/i18n"
+import { useLanguage } from "@/hooks/useLanguage"
 
 export default function QuickStartGuide() {
   const [open, setOpen] = useState(false)
   const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-quick-start-guide", false)
   const [activeTab, setActiveTab] = useState("basics")
-  const [language] = useLocalStorage<Language>("preferred-language", "zh")
+  const [language] = useLanguage()
   const t = translations[language]
 
   useEffect(() => {
