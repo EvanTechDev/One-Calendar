@@ -24,7 +24,9 @@ export function playNotificationSound(soundType: keyof typeof NOTIFICATION_SOUND
   }
 }
 
-// Schedule a notification for an event
+// 修改通知相关函数，移除测试通知和其他不必要的 toast
+
+// 修改 scheduleEventNotification 函数，移除 toast 通知
 export function scheduleEventNotification(
   event: { id: string; title: string; startDate: Date; description?: string; location?: string },
   minutesBefore: number,
@@ -48,6 +50,19 @@ export function scheduleEventNotification(
     console.log(`已清除事件 ${event.id} 的现有计时器`)
   }
 
+  // 获取当前语言
+  const language = localStorage.getItem("preferred-language") || "zh"
+
+  // 根据语言设置通知文本
+  const notificationBody =
+    language === "en"
+      ? minutesBefore === 0
+        ? `Event time has arrived`
+        : `Event will start in ${minutesBefore} minutes`
+      : minutesBefore === 0
+        ? `事件开始时间到了`
+        : `事件将在 ${minutesBefore} 分钟后开始`
+
   // Store the notification in localStorage for persistence
   const notifications = JSON.parse(localStorage.getItem("scheduled-notifications") || "[]")
 
@@ -58,10 +73,11 @@ export function scheduleEventNotification(
   filteredNotifications.push({
     id: event.id,
     title: event.title,
-    body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件将在 ${minutesBefore} 分钟后开始`),
+    body: event.description || notificationBody,
     location: event.location || "",
     timestamp: notificationTime,
     soundType: soundType,
+    language: language, // 保存当前语言设置
   })
 
   localStorage.setItem("scheduled-notifications", JSON.stringify(filteredNotifications))
@@ -69,13 +85,7 @@ export function scheduleEventNotification(
   if (notificationTime <= now) {
     // 如果通知时间已经过去，立即显示通知
     console.log(`通知时间已过，立即显示通知: ${event.title}`)
-    showToastNotification(
-      event.title,
-      event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
-      event.id,
-      soundType,
-      event.location,
-    )
+    showToastNotification(event.title, event.description || notificationBody, event.id, soundType, event.location)
     return
   }
 
@@ -93,6 +103,17 @@ export function scheduleEventNotification(
   const timerId = setTimeout(() => {
     console.log(`触发计时器通知: ${event.title}`)
 
+    // 获取最新的语言设置
+    const currentLanguage = localStorage.getItem("preferred-language") || "zh"
+    const currentNotificationBody =
+      currentLanguage === "en"
+        ? minutesBefore === 0
+          ? `Event time has arrived`
+          : `Event will start in ${minutesBefore} minutes`
+        : minutesBefore === 0
+          ? `事件开始时间到了`
+          : `事件将在 ${minutesBefore} 分钟后开始`
+
     // 使用Web Notifications API显示系统通知
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       try {
@@ -100,19 +121,19 @@ export function scheduleEventNotification(
         playNotificationSound(soundType)
 
         const notification = new Notification(event.title, {
-          body: event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+          body: event.description || currentNotificationBody,
           icon: "/calendar-icon.png",
         })
 
         notification.onclick = () => {
           window.focus()
-          window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: event.id } }))
+          window.dispatchEvent(new CustomEvent("preview-event", { detail: { eventId: event.id } }))
         }
       } catch (e) {
         console.error("系统通知失败，回退到Toast通知", e)
         showToastNotification(
           event.title,
-          event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+          event.description || currentNotificationBody,
           event.id,
           soundType,
           event.location,
@@ -122,7 +143,7 @@ export function scheduleEventNotification(
       // 回退到Toast通知
       showToastNotification(
         event.title,
-        event.description || (minutesBefore === 0 ? `事件开始时间到了` : `事件即将开始`),
+        event.description || currentNotificationBody,
         event.id,
         soundType,
         event.location,
@@ -135,11 +156,10 @@ export function scheduleEventNotification(
 
   // 存储计时器ID
   activeNotificationTimers[event.id] = timerId
-
-  console.log(`通知已安排，将在 ${new Date(notificationTime).toLocaleString()} 显示`)
 }
 
-// Show a toast notification
+// 修改 showToastNotification 函数，支持英文
+// Replace the showToastNotification function with this improved version:
 export function showToastNotification(
   title: string,
   body: string,
@@ -152,20 +172,24 @@ export function showToastNotification(
   // 播放通知声音
   playNotificationSound(soundType)
 
+  // 获取当前语言
+  const language = localStorage.getItem("preferred-language") || "zh"
+  const viewText = language === "en" ? "View" : "查看"
+
   // 确保在主线程上调用toast
   setTimeout(() => {
     toast({
       title: title,
       description: body + (location ? ` - ${location}` : ""),
-      duration: 5000, // Change from 60000 (1 minute) to 5000 (5 seconds) for testing
+      duration: 5000,
       action: (
         <ToastAction
-          altText="查看"
+          altText={viewText}
           onClick={() => {
-            window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId } }))
+            window.dispatchEvent(new CustomEvent("preview-event", { detail: { eventId } }))
           }}
         >
-          查看
+          {viewText}
         </ToastAction>
       ),
     })
@@ -198,7 +222,7 @@ export function checkPendingNotifications(): void {
 
           systemNotification.onclick = () => {
             window.focus()
-            window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: notification.id } }))
+            window.dispatchEvent(new CustomEvent("preview-event", { detail: { eventId: notification.id } }))
           }
         } catch (e) {
           console.error("系统通知失败，回退到Toast通知", e)
