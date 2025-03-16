@@ -171,6 +171,20 @@ ${rawContent.substring(0, 500)}...`)
       if (!debugMode) {
         setImportDialogOpen(false)
       }
+      if (debugMode && importedEvents.length > 0) {
+        const firstEvent = importedEvents[0]
+        setDebugInfo(`${t.parsedEvents || "Parsed"} ${importedEvents.length} ${t.events || "events"}
+
+First event details:
+Title: ${firstEvent.title}
+Start: ${new Date(firstEvent.startDate).toLocaleString()} (Local)
+End: ${new Date(firstEvent.endDate).toLocaleString()} (Local)
+UTC Start: ${new Date(firstEvent.startDate).toUTCString()}
+UTC End: ${new Date(firstEvent.endDate).toUTCString()}
+
+${t.rawContentPreview || "Raw content preview"}:
+${rawContent.substring(0, 500)}...`)
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.unknownError || "Unknown error"
       toast({
@@ -196,27 +210,18 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 `
 
-    // 修改格式化日期的函数，保留时区信息
+    // 修改格式化日期的函数，确保使用UTC时间
     const formatDate = (date: Date) => {
-      // 创建一个新的日期对象，确保使用正确的时区
-      const d = new Date(date)
+      // 转换为UTC时间
+      const utcYear = date.getUTCFullYear()
+      const utcMonth = String(date.getUTCMonth() + 1).padStart(2, "0")
+      const utcDay = String(date.getUTCDate()).padStart(2, "0")
+      const utcHours = String(date.getUTCHours()).padStart(2, "0")
+      const utcMinutes = String(date.getUTCMinutes()).padStart(2, "0")
+      const utcSeconds = String(date.getUTCSeconds()).padStart(2, "0")
 
-      // 获取用户时区的偏移量（分钟）
-      const tzOffset = d.getTimezoneOffset()
-      const tzOffsetSign = tzOffset <= 0 ? "+" : "-"
-      const tzOffsetHours = String(Math.abs(Math.floor(tzOffset / 60))).padStart(2, "0")
-      const tzOffsetMinutes = String(Math.abs(tzOffset % 60)).padStart(2, "0")
-
-      // 格式化为 YYYYMMDDTHHMMSS 格式
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, "0")
-      const day = String(d.getDate()).padStart(2, "0")
-      const hours = String(d.getHours()).padStart(2, "0")
-      const minutes = String(d.getMinutes()).padStart(2, "0")
-      const seconds = String(d.getSeconds()).padStart(2, "0")
-
-      // 返回带时区信息的日期字符串
-      return `${year}${month}${day}T${hours}${minutes}${seconds}${tzOffsetSign}${tzOffsetHours}${tzOffsetMinutes}`
+      // 返回UTC格式的日期字符串
+      return `${utcYear}${utcMonth}${utcDay}T${utcHours}${utcMinutes}${utcSeconds}Z`
     }
 
     events.forEach((event) => {
@@ -373,7 +378,7 @@ END:VEVENT
   // 改进的ICS日期解析函数
   const parseICSDate = (dateString: string, hasTimeZone: boolean): Date => {
     // 处理不同格式的日期
-    // 1. 基本格式：20230101T120000Z
+    // 1. 基本格式：20230101T120000Z (UTC时间)
     // 2. 没有T的格式（全天事件）：20230101
     // 3. 带时区的格式：20230101T120000 或 20230101T120000+0800
 
@@ -383,10 +388,10 @@ END:VEVENT
       hour = 0,
       minute = 0,
       second = 0
-    let tzOffset = 0
 
     // 检查是否有时区偏移信息
     const hasOffset = dateString.includes("+") || (dateString.includes("-") && dateString.indexOf("-") > 8)
+    const isUTC = dateString.endsWith("Z")
 
     if (dateString.includes("T")) {
       // 有时间部分
@@ -398,48 +403,76 @@ END:VEVENT
         datePart = dateString.substring(0, dateString.indexOf("T"))
         timePart = dateString.substring(dateString.indexOf("T") + 1, offsetIndex)
 
+        // 解析日期和时间
+        year = Number.parseInt(datePart.substring(0, 4), 10)
+        month = Number.parseInt(datePart.substring(4, 6), 10) - 1 // JavaScript月份从0开始
+        day = Number.parseInt(datePart.substring(6, 8), 10)
+
+        if (timePart.length >= 6) {
+          hour = Number.parseInt(timePart.substring(0, 2), 10)
+          minute = Number.parseInt(timePart.substring(2, 4), 10)
+          second = Number.parseInt(timePart.substring(4, 6), 10)
+        }
+
+        // 创建日期对象，使用本地时间
+        const date = new Date(year, month, day, hour, minute, second)
+
         // 解析时区偏移
         const offsetStr = dateString.substring(offsetIndex)
+        const offsetSign = offsetStr.charAt(0) === "+" ? 1 : -1
         const offsetHours = Number.parseInt(offsetStr.substring(1, 3), 10)
         const offsetMinutes = Number.parseInt(offsetStr.substring(3, 5), 10)
-        tzOffset = (offsetStr.startsWith("+") ? -1 : 1) * (offsetHours * 60 + offsetMinutes)
-      } else {
-        // 处理没有明确时区偏移的格式
+        const totalOffsetMinutes = offsetSign * (offsetHours * 60 + offsetMinutes)
+
+        // 调整时间以考虑时区偏移
+        const userTimezoneOffset = date.getTimezoneOffset()
+        date.setMinutes(date.getMinutes() + userTimezoneOffset + totalOffsetMinutes)
+
+        return date
+      } else if (isUTC) {
+        // 处理UTC时间 (Z结尾)
         datePart = dateString.split("T")[0]
         timePart = dateString.split("T")[1].replace("Z", "")
 
-        // 如果是UTC时间 (Z结尾)
-        if (dateString.endsWith("Z")) {
-          // 需要调整为本地时间
-          tzOffset = new Date().getTimezoneOffset()
+        year = Number.parseInt(datePart.substring(0, 4), 10)
+        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
+        day = Number.parseInt(datePart.substring(6, 8), 10)
+
+        if (timePart.length >= 6) {
+          hour = Number.parseInt(timePart.substring(0, 2), 10)
+          minute = Number.parseInt(timePart.substring(2, 4), 10)
+          second = Number.parseInt(timePart.substring(4, 6), 10)
         }
-      }
 
-      year = Number.parseInt(datePart.substring(0, 4), 10)
-      month = Number.parseInt(datePart.substring(4, 6), 10) - 1 // JavaScript月份从0开始
-      day = Number.parseInt(datePart.substring(6, 8), 10)
+        // 创建UTC日期
+        return new Date(Date.UTC(year, month, day, hour, minute, second))
+      } else {
+        // 处理没有明确时区的时间，假定为本地时间
+        datePart = dateString.split("T")[0]
+        timePart = dateString.split("T")[1]
 
-      if (timePart.length >= 6) {
-        hour = Number.parseInt(timePart.substring(0, 2), 10)
-        minute = Number.parseInt(timePart.substring(2, 4), 10)
-        second = Number.parseInt(timePart.substring(4, 6), 10)
+        year = Number.parseInt(datePart.substring(0, 4), 10)
+        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
+        day = Number.parseInt(datePart.substring(6, 8), 10)
+
+        if (timePart.length >= 6) {
+          hour = Number.parseInt(timePart.substring(0, 2), 10)
+          minute = Number.parseInt(timePart.substring(2, 4), 10)
+          second = Number.parseInt(timePart.substring(4, 6), 10)
+        }
+
+        // 创建本地日期
+        return new Date(year, month, day, hour, minute, second)
       }
     } else {
       // 只有日期部分（全天事件）
       year = Number.parseInt(dateString.substring(0, 4), 10)
       month = Number.parseInt(dateString.substring(4, 6), 10) - 1
       day = Number.parseInt(dateString.substring(6, 8), 10)
+
+      // 创建本地日期
+      return new Date(year, month, day)
     }
-
-    // 创建日期对象
-    const date = new Date(year, month, day, hour, minute, second)
-
-    // 应用时区偏移
-    if (tzOffset !== 0) {
-      date.setMinutes(date.getMinutes() + tzOffset)
-    }
-
-    return date
   }
 
   const parseCSV = (csvContent: string): CalendarEvent[] => {
