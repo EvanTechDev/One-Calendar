@@ -49,7 +49,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
               .map((event) => (
                 <div
                   key={event.id}
-                  className={cn("text-xs truncate rounded-md p-1 cursor-pointer", event.color)}
+                  className={cn("text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
                   onClick={() => onEventClick(event)}
                 >
                   {event.title}
@@ -61,3 +61,4 @@ export default function MonthView({ date, events, onEventClick, language, firstD
     </div>
   )
 }
+
