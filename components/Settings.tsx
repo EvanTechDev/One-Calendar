@@ -121,7 +121,6 @@ export default function Settings({
                   <SelectItem value="telegramSfx">{t.telegramSfxSound}</SelectItem>
                 </SelectContent>
               </Select>
-              {/* 移除测试声音按钮 */}
             </div>
           </div>
         </div>
@@ -129,4 +128,3 @@ export default function Settings({
     </Sheet>
   )
 }
-
