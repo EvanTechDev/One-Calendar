@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,7 @@ import {
   type NOTIFICATION_SOUNDS,
 } from "@/utils/notifications"
 import { toast } from "@/components/ui/use-toast"
+// 在Calendar组件顶部导入QuickStartGuide
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
@@ -539,8 +540,9 @@ export default function Calendar() {
         timezone={timezone}
       />
 
-      {/* 添加EventUrlHandler组件 */}
-      <EventUrlHandler />
+      <Suspense fallback={null}>
+        <EventUrlHandler />
+      </Suspense>
     </div>
   )
 }
