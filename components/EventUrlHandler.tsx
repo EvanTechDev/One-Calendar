@@ -24,7 +24,7 @@ interface EventFromUrl {
   description?: string
   location?: string
   color?: string
-  participants?: string[] // 添加参与者数组
+  participants?: string[]
 }
 
 export default function EventUrlHandler() {
