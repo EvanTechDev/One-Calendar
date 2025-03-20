@@ -93,11 +93,9 @@ export function scheduleEventNotification(
   const delay = notificationTime - now
   console.log(`设置通知计时器，延迟: ${delay}ms (${delay / 1000 / 60} 分钟)`)
 
-  // 使用Web Notifications API请求权限并显示通知
+  // 检查通知权限但不自动请求
   if (typeof window !== "undefined" && "Notification" in window) {
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission()
-    }
+    console.log("通知权限状态:", Notification.permission)
   }
 
   const timerId = setTimeout(() => {

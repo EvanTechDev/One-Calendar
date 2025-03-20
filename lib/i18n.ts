@@ -158,6 +158,7 @@ export const translations = {
     loading: "Loading...",
     welcomeToAnalytics: "Welcome to Advanced Analytics",
     analyticsDescription: "We've added powerful features to help you better manage your time and schedule",
+    unnamedEvent: "Unnamed Event",
   },
   zh: {
     // Keep existing Chinese translations
@@ -305,6 +306,7 @@ export const translations = {
     loading: "加载中...",
     welcomeToAnalytics: "欢迎使用高级分析功能",
     analyticsDescription: "我们添加了强大的功能，帮助您更好地管理时间和日程",
+    unnamedEvent: "未命名日程",
   },
 }
 

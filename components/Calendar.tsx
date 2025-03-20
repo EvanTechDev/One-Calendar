@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -21,13 +21,12 @@ import {
   type NOTIFICATION_SOUNDS,
 } from "@/utils/notifications"
 import { toast } from "@/components/ui/use-toast"
-// 导入通知权限请求函数
-import { requestNotificationPermission } from "@/utils/notification-permission"
 // 在Calendar组件顶部导入QuickStartGuide
-import QuickStartGuide from "./QuickStartGuide"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
+// 在import部分添加
+import EventUrlHandler from "./EventUrlHandler"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -74,15 +73,8 @@ export default function Calendar() {
 
   // 在组件顶部添加一个useEffect来请求权限
   useEffect(() => {
-    // 请求通知权限，但不显示 toast
-    requestNotificationPermission().then((granted) => {
-      if (granted) {
-        console.log("通知权限已授予")
-      } else {
-        console.log("通知权限被拒绝")
-        // 移除 toast 提示
-      }
-    })
+    // 移除自动请求通知权限的功能
+    // 不再自动请求通知权限
   }, [])
 
   // 当主日历日期变化时，同步侧边栏日历
@@ -97,11 +89,9 @@ export default function Calendar() {
     console.log("初始化通知系统...")
     notificationsInitializedRef.current = true
 
-    // 请求通知权限
+    // 检查通知权限状态但不请求
     if (typeof window !== "undefined" && "Notification" in window) {
-      Notification.requestPermission().then((permission) => {
-        console.log("通知权限状态:", permission)
-      })
+      console.log("通知权限状态:", Notification.permission)
     }
 
     // 立即检查一次通知
@@ -394,7 +384,6 @@ export default function Calendar() {
 
   return (
     <div className="flex h-screen bg-background">
-      <QuickStartGuide />
       <div className="w-80 border-r bg-background">
         <Sidebar
           onCreateEvent={() => setEventDialogOpen(true)}
@@ -550,6 +539,10 @@ export default function Calendar() {
         language={language}
         timezone={timezone}
       />
+
+      <Suspense fallback={null}>
+        <EventUrlHandler />
+      </Suspense>
     </div>
   )
 }
