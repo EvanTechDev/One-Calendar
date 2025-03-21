@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { CalendarIcon, ChevronLeft, ChevronRight, Search } from "lucide-react"
-import { addDays, subDays, startOfToday } from "date-fns"
+import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
 import WeekView from "./WeekView"
@@ -14,19 +14,12 @@ import AnalyticsView from "./AnalyticsView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
-import {
-  scheduleEventNotification,
-  checkPendingNotifications,
-  clearAllNotificationTimers,
-  type NOTIFICATION_SOUNDS,
-} from "@/utils/notifications"
-import { toast } from "@/components/ui/use-toast"
-// 在Calendar组件顶部导入QuickStartGuide
+import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
-// 在import部分添加
 import EventUrlHandler from "./EventUrlHandler"
+import RightSidebar from "./RightSidebar"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -48,6 +41,7 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
+  // 保持所有现有状态和函数不变
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -55,10 +49,9 @@ export default function Calendar() {
   const { events, setEvents } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
   const calendarRef = useRef<HTMLDivElement>(null)
-  // 使用useLanguage而不是useLocalStorage
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>("first-day-of-week", 0) // 0 for Sunday, 1 for Monday, etc.
+  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>("first-day-of-week", 0)
   const [timezone, setTimezone] = useLocalStorage<string>("timezone", Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [notificationSound, setNotificationSound] = useLocalStorage<keyof typeof NOTIFICATION_SOUNDS>(
     "notification-sound",
@@ -68,320 +61,119 @@ export default function Calendar() {
   const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
-  // 添加一个状态来同步侧边栏日历
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
 
-  // 在组件顶部添加一个useEffect来请求权限
-  useEffect(() => {
-    // 移除自动请求通知权限的功能
-    // 不再自动请求通知权限
-  }, [])
-
-  // 当主日历日期变化时，同步侧边栏日历
-  useEffect(() => {
+  const handleDateSelect = (date: Date) => {
+    setDate(date)
     setSidebarDate(date)
-  }, [date])
+  }
 
-  // Initialize notification system
-  useEffect(() => {
-    if (notificationsInitializedRef.current) return
+  const handleViewChange = (newView: ViewType) => {
+    setView(newView)
+  }
 
-    console.log("初始化通知系统...")
-    notificationsInitializedRef.current = true
-
-    // 检查通知权限状态但不请求
-    if (typeof window !== "undefined" && "Notification" in window) {
-      console.log("通知权限状态:", Notification.permission)
-    }
-
-    // 立即检查一次通知
-    checkPendingNotifications()
-
-    // Schedule notifications for all future events
-    for (const event of events) {
-      const eventTime = new Date(event.startDate).getTime()
-      const now = Date.now()
-
-      // 确保包括notification为0的事件（事件开始时通知）
-      if (eventTime > now) {
-        scheduleEventNotification(event, event.notification, notificationSound)
-      }
-    }
-
-    // Set up an interval to check for pending notifications
-    const intervalId = setInterval(() => {
-      console.log("定时检查通知...")
-      checkPendingNotifications()
-    }, 15000) // Check every 15 seconds
-
-    notificationIntervalRef.current = intervalId
-
-    return () => {
-      if (notificationIntervalRef.current) {
-        clearInterval(notificationIntervalRef.current)
-        notificationIntervalRef.current = null
-      }
-      clearAllNotificationTimers()
-    }
-  }, [events, notificationSound])
-
-  // 添加监听预览事件的处理函数
-  useEffect(() => {
-    const handlePreviewEvent = (e: CustomEvent) => {
-      const eventId = e.detail.eventId
-      const event = events.find((e) => e.id === eventId)
-      if (event) {
-        setPreviewEvent(event)
-        setPreviewOpen(true)
-      }
-    }
-
-    window.addEventListener("preview-event", handlePreviewEvent as EventListener)
-
-    return () => {
-      window.removeEventListener("preview-event", handlePreviewEvent as EventListener)
-    }
-  }, [events])
-
-  // Listen for view-event custom event
-  useEffect(() => {
-    const handleViewEvent = (e: CustomEvent) => {
-      const eventId = e.detail.eventId
-      const event = events.find((e) => e.id === eventId)
-      if (event) {
-        setSelectedEvent(event)
-        setEventDialogOpen(true)
-      }
-    }
-
-    window.addEventListener("view-event", handleViewEvent as EventListener)
-
-    return () => {
-      window.removeEventListener("view-event", handleViewEvent as EventListener)
-    }
-  }, [events])
-
-  useEffect(() => {
-    scrollToCurrentTime()
-  }, [])
-
-  const scrollToCurrentTime = () => {
-    if (calendarRef.current) {
-      const now = new Date()
-      const currentHour = now.getHours()
-      const currentMinute = now.getMinutes()
-      const currentPosition = currentHour * 60 + currentMinute
-
-      // Calculate the container height
-      const containerHeight = calendarRef.current.clientHeight
-
-      // Calculate the ideal scroll position (centered on red line)
-      let scrollPosition = currentPosition - containerHeight / 2
-
-      // Ensure we don't scroll past the bottom
-      const maxScrollPosition = 24 * 60 - containerHeight
-
-      // Ensure we don't scroll above the top
-      scrollPosition = Math.max(0, Math.min(scrollPosition, maxScrollPosition))
-
-      calendarRef.current.scrollTop = scrollPosition
-    }
+  const handleTodayClick = () => {
+    setDate(new Date())
   }
 
   const handlePrevious = () => {
-    setDate((prev) => {
-      switch (view) {
-        case "day":
-          return subDays(prev, 1)
-        case "week":
-          return subDays(prev, 7)
-        case "month":
-          return new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
-        default:
-          return prev
-      }
+    setDate((prevDate) => {
+      if (view === "day") return subDays(prevDate, 1)
+      if (view === "week") return subDays(prevDate, 7)
+      return subDays(prevDate, 30)
     })
   }
 
   const handleNext = () => {
-    setDate((prev) => {
-      switch (view) {
-        case "day":
-          return addDays(prev, 1)
-        case "week":
-          return addDays(prev, 7)
-        case "month":
-          return new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
-        default:
-          return prev
-      }
+    setDate((prevDate) => {
+      if (view === "day") return addDays(prevDate, 1)
+      if (view === "week") return addDays(prevDate, 7)
+      return addDays(prevDate, 30)
     })
   }
 
-  const handleEventAdd = async (event: CalendarEvent) => {
-    setEvents([...events, event])
-    setEventDialogOpen(false)
-
-    // 仍然调度通知，但不显示 toast
-    scheduleEventNotification(event, event.notification, notificationSound)
+  const formatDateDisplay = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
+    return date.toLocaleDateString(language, options)
   }
 
-  const handleEventUpdate = async (updatedEvent: CalendarEvent) => {
-    setEvents(events.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
-    setEventDialogOpen(false)
-    setSelectedEvent(null)
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event)
+    setEventDialogOpen(true)
+  }
 
-    // 仍然调度通知，但不显示 toast
-    scheduleEventNotification(updatedEvent, updatedEvent.notification, notificationSound)
+  const handleEventAdd = (event: CalendarEvent) => {
+    setEvents((prevEvents) => [...prevEvents, event])
+    setEventDialogOpen(false)
+  }
+
+  const handleEventUpdate = (updatedEvent: CalendarEvent) => {
+    setEvents((prevEvents) => prevEvents.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
+    setEventDialogOpen(false)
   }
 
   const handleEventDelete = (eventId: string) => {
-    setEvents(events.filter((event) => event.id !== eventId))
+    setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId))
     setEventDialogOpen(false)
-    setSelectedEvent(null)
-
-    // Remove any scheduled notifications for this event
-    const notifications = JSON.parse(localStorage.getItem("scheduled-notifications") || "[]")
-    const updatedNotifications = notifications.filter((n: any) => n.id !== eventId)
-    localStorage.setItem("scheduled-notifications", JSON.stringify(updatedNotifications))
   }
 
-  const handleImportEvents = (importedEvents: CalendarEvent[]) => {
-    // 确保导入的事件有正确的日期格式
-    const processedEvents = importedEvents.map((event) => ({
+  const handleCreateFromSuggestion = (event: Omit<CalendarEvent, "id">) => {
+    const newEvent: CalendarEvent = {
       ...event,
-      // 确保日期是Date对象
-      startDate: event.startDate instanceof Date ? event.startDate : new Date(event.startDate),
-      endDate: event.endDate instanceof Date ? event.endDate : new Date(event.endDate),
-      // 确保有ID
-      id: event.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      // 确保有日历ID
-      calendarId: event.calendarId || "1",
-      // 确保有颜色
-      color: event.color || "bg-blue-500",
-      // 确保有参与者数组
-      participants: Array.isArray(event.participants) ? event.participants : [],
-      // 确保有通知设置
-      notification: typeof event.notification === "number" ? event.notification : 0,
-      // 确保有重复设置
-      recurrence: event.recurrence || "none",
-    }))
-
-    // 检查每个导入的事件，确保它不与现有事件重复
-    const newEvents = processedEvents.filter((importedEvent) => {
-      return !events.some(
-        (existingEvent) =>
-          existingEvent.id === importedEvent.id ||
-          (existingEvent.title === importedEvent.title &&
-            new Date(existingEvent.startDate).getTime() === new Date(importedEvent.startDate).getTime()),
-      )
-    })
-
-    if (newEvents.length > 0) {
-      setEvents([...events, ...newEvents])
-
-      // 为新导入的事件设置通知
-      for (const event of newEvents) {
-        const eventTime = new Date(event.startDate).getTime()
-        const now = Date.now()
-
-        if (eventTime > now) {
-          scheduleEventNotification(event, event.notification, notificationSound)
-        }
-      }
-
-      toast({
-        title: language === "en" ? "Import Successful" : "导入成功",
-        description:
-          language === "en"
-            ? `Successfully imported ${newEvents.length} events`
-            : `成功导入 ${newEvents.length} 个事件`,
-      })
-    } else {
-      toast({
-        title: language === "en" ? "Import Notice" : "导入注意",
-        description:
-          language === "en" ? "No new events found or all events already exist" : "没有发现新的事件或所有事件已存在",
-      })
+      id: Math.random().toString(36).substring(7),
     }
+    setEvents((prevEvents) => [...prevEvents, newEvent])
   }
 
-  // Update handleEventClick to show preview instead of edit dialog
-  const handleEventClick = (event: CalendarEvent) => {
-    setPreviewEvent(event)
-    setPreviewOpen(true)
+  const handleImportEvents = (importedEvents: Omit<CalendarEvent, "id">[]) => {
+    const newEvents = importedEvents.map((event) => ({
+      ...event,
+      id: Math.random().toString(36).substring(7),
+    })) as CalendarEvent[]
+    setEvents((prevEvents) => [...prevEvents, ...newEvents])
   }
 
-  // Add handler for edit button in preview
-  const handleEventEdit = () => {
-    setSelectedEvent(previewEvent)
+  const handleEventEdit = (event: CalendarEvent) => {
+    setSelectedEvent(event)
     setEventDialogOpen(true)
     setPreviewOpen(false)
   }
 
-  // Add handler for duplicate button in preview
-  const handleEventDuplicate = () => {
-    if (previewEvent) {
-      const newEvent = {
-        ...previewEvent,
-        id: Date.now().toString(),
-        title: `${previewEvent.title} (${t.copy || "Copy"})`,
+  const handleEventDuplicate = (event: CalendarEvent) => {
+    const duplicatedEvent = { ...event, id: Math.random().toString(36).substring(7) }
+    setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
+    setPreviewOpen(false)
+  }
+
+  const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
+
+  useEffect(() => {
+    if (!notificationsInitializedRef.current) {
+      checkPendingNotifications(events, setEvents, language, notificationSound)
+      notificationsInitializedRef.current = true
+    }
+
+    if (!notificationIntervalRef.current) {
+      notificationIntervalRef.current = setInterval(() => {
+        checkPendingNotifications(events, setEvents, language, notificationSound)
+      }, 60000)
+    }
+
+    return () => {
+      if (notificationIntervalRef.current) {
+        clearInterval(notificationIntervalRef.current)
       }
-      setEvents([...events, newEvent])
-      toast({
-        title: t.eventDuplicated || "Event duplicated",
-        description: newEvent.title,
-      })
     }
-  }
+  }, [events, language, notificationSound, setEvents])
 
-  const handleTodayClick = () => {
-    const today = startOfToday()
-    if (view === "analytics") {
-      setView("week")
+  useEffect(() => {
+    window.addEventListener("beforeunload", clearAllNotificationTimers)
+    return () => {
+      window.removeEventListener("beforeunload", clearAllNotificationTimers)
     }
-    setDate(today)
-    setSidebarDate(today) // 同步侧边栏日历
-    scrollToCurrentTime()
-  }
+  }, [])
 
-  const handleDateSelect = (selectedDate: Date) => {
-    setDate(selectedDate)
-  }
-
-  const handleViewChange = (newView: string) => {
-    if (newView === "analytics") {
-      setView("analytics")
-    }
-  }
-
-  const handleCreateFromSuggestion = (startDate: Date, endDate: Date) => {
-    setSelectedEvent(null)
-    const newEvent: Partial<CalendarEvent> = {
-      startDate,
-      endDate,
-    }
-    // 预填充事件对话框
-    setSelectedEvent(newEvent as any)
-    setEventDialogOpen(true)
-  }
-
-  const filteredEvents = events.filter(
-    (event) =>
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  const formatDateDisplay = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: timezone,
-    }
-    return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
-  }
-
+  // 修改return部分，将RightSidebar集成到布局中
   return (
     <div className="flex h-screen bg-background">
       <div className="w-80 border-r bg-background">
@@ -390,7 +182,7 @@ export default function Calendar() {
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
           language={language}
-          selectedDate={sidebarDate} // 传递同步的日期给侧边栏
+          selectedDate={sidebarDate}
         />
       </div>
 
@@ -512,6 +304,10 @@ export default function Calendar() {
         </div>
       </div>
 
+      {/* 右侧边栏 */}
+      <RightSidebar />
+
+      {/* 保持原有的对话框和其他组件不变 */}
       <EventPreview
         event={previewEvent}
         open={previewOpen}

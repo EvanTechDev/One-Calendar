@@ -89,6 +89,131 @@ export default function DayView({ date, events, onEventClick, language, timezone
     return { start, end, isPartial: false, position: "full" }
   }
 
+  // 改进的事件布局算法，处理重叠事件
+  const layoutEvents = (events: CalendarEvent[]) => {
+    if (events.length === 0) return []
+
+    // 获取当天的事件时间
+    const eventsWithTimes = events
+      .map((event) => {
+        const times = getEventTimesForDay(event, date)
+        if (!times || !times.start || !times.end) return null
+        return { event, ...times }
+      })
+      .filter(Boolean) as Array<{
+      event: CalendarEvent
+      start: Date
+      end: Date
+      isPartial: boolean
+      position: string
+    }>
+
+    // 按开始时间排序
+    eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
+
+    // 创建时间段数组，每个时间段包含在该时间段内活跃的事件
+    type TimePoint = { time: number; isStart: boolean; eventIndex: number }
+    const timePoints: TimePoint[] = []
+
+    // 添加所有事件的开始和结束时间点
+    eventsWithTimes.forEach((eventWithTime, index) => {
+      const startTime = eventWithTime.start.getTime()
+      const endTime = eventWithTime.end.getTime()
+
+      timePoints.push({ time: startTime, isStart: true, eventIndex: index })
+      timePoints.push({ time: endTime, isStart: false, eventIndex: index })
+    })
+
+    // 按时间排序
+    timePoints.sort((a, b) => {
+      // 如果时间相同，结束时间点排在开始时间点之前
+      if (a.time === b.time) {
+        return a.isStart ? 1 : -1
+      }
+      return a.time - b.time
+    })
+
+    // 处理每个时间段
+    const eventLayouts: Array<{
+      event: CalendarEvent
+      start: Date
+      end: Date
+      column: number
+      totalColumns: number
+      isPartial: boolean
+      position: string
+    }> = []
+
+    // 当前活跃的事件
+    const activeEvents = new Set<number>()
+    // 事件到列的映射
+    const eventToColumn = new Map<number, number>()
+
+    for (let i = 0; i < timePoints.length; i++) {
+      const point = timePoints[i]
+
+      if (point.isStart) {
+        // 事件开始
+        activeEvents.add(point.eventIndex)
+
+        // 找到可用的最小列号
+        let column = 0
+        const usedColumns = new Set<number>()
+
+        // 收集当前已使用的列
+        activeEvents.forEach((eventIndex) => {
+          if (eventToColumn.has(eventIndex)) {
+            usedColumns.add(eventToColumn.get(eventIndex)!)
+          }
+        })
+
+        // 找到第一个未使用的列
+        while (usedColumns.has(column)) {
+          column++
+        }
+
+        // 分配列
+        eventToColumn.set(point.eventIndex, column)
+      } else {
+        // 事件结束
+        activeEvents.delete(point.eventIndex)
+      }
+
+      // 如果是最后一个时间点或下一个时间点与当前不同，处理当前时间段
+      if (i === timePoints.length - 1 || timePoints[i + 1].time !== point.time) {
+        // 计算当前活跃事件的布局
+        const totalColumns =
+          activeEvents.size > 0 ? Math.max(...Array.from(activeEvents).map((idx) => eventToColumn.get(idx)!)) + 1 : 0
+
+        // 更新所有活跃事件的总列数
+        activeEvents.forEach((eventIndex) => {
+          const column = eventToColumn.get(eventIndex)!
+          const { event, start, end, isPartial, position } = eventsWithTimes[eventIndex]
+
+          // 检查是否已经添加过这个事件
+          const existingLayout = eventLayouts.find((layout) => layout.event.id === event.id)
+
+          if (!existingLayout) {
+            eventLayouts.push({
+              event,
+              start,
+              end,
+              column,
+              totalColumns: Math.max(totalColumns, 1),
+              isPartial,
+              position,
+            })
+          }
+        })
+      }
+    }
+
+    return eventLayouts
+  }
+
+  // 获取当天的事件布局
+  const eventLayouts = layoutEvents(events)
+
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b">
@@ -105,7 +230,8 @@ export default function DayView({ date, events, onEventClick, language, timezone
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
-              <span className="absolute -top-3 right-4">{formatTime(hour)}</span>
+              {/* 修复时间标签位置，特别是0:00的显示问题 */}
+              <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
         </div>
@@ -115,60 +241,61 @@ export default function DayView({ date, events, onEventClick, language, timezone
             <div key={hour} className="h-[60px] border-t border-gray-200" />
           ))}
 
-          {events
-            .map((event) => {
-              const eventTimes = getEventTimesForDay(event, date)
-              if (!eventTimes) return null
-              return { ...event, ...eventTimes }
-            })
-            .filter(Boolean)
-            .map((event) => {
-              const start = event.start
-              const end = event.end
+          {eventLayouts.map(({ event, start, end, column, totalColumns, isPartial, position }) => {
+            const startMinutes = start.getHours() * 60 + start.getMinutes()
+            const endMinutes = end.getHours() * 60 + end.getMinutes()
+            const duration = endMinutes - startMinutes
 
-              if (!start || !end) return null
+            // 确保事件不会超出当天的时间范围
+            const maxEndMinutes = 24 * 60 // 最大到午夜
+            const displayDuration = Math.min(duration, maxEndMinutes - startMinutes)
 
-              const startMinutes = start.getHours() * 60 + start.getMinutes()
-              const endMinutes = end.getHours() * 60 + end.getMinutes()
-              const duration = endMinutes - startMinutes
+            // 设置最小高度，确保短事件也能显示文本
+            const minHeight = 20 // 最小高度为20px
+            const height = Math.max(displayDuration, minHeight)
 
-              // 确保事件不会超出当天的时间范围
-              const maxEndMinutes = 24 * 60 // 最大到午夜
-              const displayDuration = Math.min(duration, maxEndMinutes - startMinutes)
-
-              let positionLabel = ""
-              if (event.isPartial) {
-                if (event.position === "start") {
-                  positionLabel = " (继续...)"
-                } else if (event.position === "end") {
-                  positionLabel = " (...结束)"
-                } else if (event.position === "middle") {
-                  positionLabel = " (...继续...)"
-                }
+            let positionLabel = ""
+            if (isPartial) {
+              if (position === "start") {
+                positionLabel = " (继续...)"
+              } else if (position === "end") {
+                positionLabel = " (...结束)"
+              } else if (position === "middle") {
+                positionLabel = " (...继续...)"
               }
+            }
 
-              return (
-                <div
-                  key={event.id}
-                  className={cn("absolute left-0 right-4 rounded-lg p-2 text-sm cursor-pointer", event.color)}
-                  style={{
-                    top: `${startMinutes}px`,
-                    height: `${displayDuration}px`,
-                    opacity: 0.9,
-                  }}
-                  onClick={() => onEventClick(event)}
-                >
-                  <div className="font-medium text-white">
-                    {event.title}
-                    {positionLabel}
-                  </div>
-                  <div className="text-xs text-white/90">
+            // 计算事件宽度和位置，处理重叠
+            const width = `calc((100% - 8px) / ${totalColumns})`
+            const left = `calc(${column} * ${width})`
+
+            return (
+              <div
+                key={event.id}
+                className={cn("absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                style={{
+                  top: `${startMinutes}px`,
+                  height: `${height}px`,
+                  opacity: 0.9,
+                  width,
+                  left,
+                  zIndex: column + 1, // 确保后面的事件在上层
+                }}
+                onClick={() => onEventClick(event)}
+              >
+                <div className="font-medium text-white truncate">
+                  {event.title}
+                  {positionLabel}
+                </div>
+                {height >= 40 && ( // 只在高度足够时显示时间
+                  <div className="text-xs text-white/90 truncate">
                     {formatDateWithTimezone(new Date(event.startDate))} -{" "}
                     {formatDateWithTimezone(new Date(event.endDate))}
                   </div>
-                </div>
-              )
-            })}
+                )}
+              </div>
+            )
+          })}
 
           <div
             className="absolute left-0 right-0 border-t-2 border-red-500 z-10"
