@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -10,11 +12,12 @@ interface DayViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent) => void
+  onTimeSlotClick: (date: Date) => void
   language: Language
   timezone: string
 }
 
-export default function DayView({ date, events, onEventClick, language, timezone }: DayViewProps) {
+export default function DayView({ date, events, onEventClick, onTimeSlotClick, language, timezone }: DayViewProps) {
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
   const formatTime = (hour: number) => {
@@ -214,6 +217,25 @@ export default function DayView({ date, events, onEventClick, language, timezone
   // 获取当天的事件布局
   const eventLayouts = layoutEvents(events)
 
+  // 处理时间格子点击，根据点击位置确定更精确的时间
+  const handleTimeSlotClick = (hour: number, event: React.MouseEvent<HTMLDivElement>) => {
+    // 获取点击位置在时间格子内的相对位置
+    const rect = event.currentTarget.getBoundingClientRect()
+    const relativeY = event.clientY - rect.top
+    const cellHeight = rect.height
+
+    // 根据点击位置确定分钟数
+    // 如果点击在格子的上半部分，分钟为0，否则为30
+    const minutes = relativeY < cellHeight / 2 ? 0 : 30
+
+    // 创建一个新的日期对象，设置为当前日期的指定小时和分钟
+    const clickTime = new Date(date)
+    clickTime.setHours(hour, minutes, 0, 0)
+
+    // 调用传入的回调函数
+    onTimeSlotClick(clickTime)
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b">
@@ -238,7 +260,11 @@ export default function DayView({ date, events, onEventClick, language, timezone
 
         <div className="relative border-l">
           {hours.map((hour) => (
-            <div key={hour} className="h-[60px] border-t border-gray-200" />
+            <div
+              key={hour}
+              className="h-[60px] border-t border-gray-200"
+              onClick={(e) => handleTimeSlotClick(hour, e)}
+            />
           ))}
 
           {eventLayouts.map(({ event, start, end, column, totalColumns, isPartial, position }) => {
@@ -281,7 +307,10 @@ export default function DayView({ date, events, onEventClick, language, timezone
                   left,
                   zIndex: column + 1, // 确保后面的事件在上层
                 }}
-                onClick={() => onEventClick(event)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEventClick(event)
+                }}
               >
                 <div className="font-medium text-white truncate">
                   {event.title}
