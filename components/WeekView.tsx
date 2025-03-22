@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -9,6 +11,7 @@ interface WeekViewProps {
   date: Date
   events: any[]
   onEventClick: (event: any) => void
+  onTimeSlotClick: (date: Date) => void
   language: Language
   firstDayOfWeek: number
   timezone: string
@@ -22,11 +25,20 @@ interface CalendarEvent {
   color: string
 }
 
-export default function WeekView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: WeekViewProps) {
+export default function WeekView({
+  date,
+  events,
+  onEventClick,
+  onTimeSlotClick,
+  language,
+  firstDayOfWeek,
+  timezone,
+}: WeekViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
+  const today = new Date() // 获取今天的日期
 
   const formatTime = (hour: number) => {
     return `${hour.toString().padStart(2, "0")}:00`
@@ -223,19 +235,39 @@ export default function WeekView({ date, events, onEventClick, language, firstDa
     return eventLayouts
   }
 
+  // 处理时间格子点击，根据点击位置确定更精确的时间
+  const handleTimeSlotClick = (day: Date, hour: number, event: React.MouseEvent<HTMLDivElement>) => {
+    // 获取点击位置在时间格子内的相对位置
+    const rect = event.currentTarget.getBoundingClientRect()
+    const relativeY = event.clientY - rect.top
+    const cellHeight = rect.height
+
+    // 根据点击位置确定分钟数
+    // 如果点击在格子的上半部分，分钟为0，否则为30
+    const minutes = relativeY < cellHeight / 2 ? 0 : 30
+
+    // 创建一个新的日期对象，设置为指定日期的指定小时和分钟
+    const clickTime = new Date(day)
+    clickTime.setHours(hour, minutes, 0, 0)
+
+    // 调用传入的回调函数
+    onTimeSlotClick(clickTime)
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[100px_repeat(7,1fr)] border-b">
+      <div className="grid grid-cols-[100px_repeat(7,1fr)] divide-x">
         <div />
         {weekDays.map((day) => (
-          <div key={day.toString()} className="text-center py-2">
+          <div key={day.toString()} className="sticky top-0 z-10 bg-background p-2 text-center">
             <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
-            <div>{format(day, "d")}</div>
+            {/* 如果是今天，使用蓝色高亮显示日期 */}
+            <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>{format(day, "d")}</div>
           </div>
         ))}
       </div>
 
-      <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] overflow-auto">
+      <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto">
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
@@ -254,7 +286,11 @@ export default function WeekView({ date, events, onEventClick, language, firstDa
           return (
             <div key={day.toString()} className="relative border-l">
               {hours.map((hour) => (
-                <div key={hour} className="h-[60px] border-t border-gray-200" />
+                <div
+                  key={hour}
+                  className="h-[60px] border-t border-gray-200"
+                  onClick={(e) => handleTimeSlotClick(day, hour, e)}
+                />
               ))}
 
               {eventLayouts.map(({ event, start, end, column, totalColumns }) => {
@@ -282,7 +318,10 @@ export default function WeekView({ date, events, onEventClick, language, firstDa
                       left,
                       zIndex: column + 1, // 确保后面的事件在上层
                     }}
-                    onClick={() => onEventClick(event)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEventClick(event)
+                    }}
                   >
                     <div className="font-medium text-white truncate">{event.title}</div>
                     {height >= 40 && ( // 只在高度足够时显示时间
