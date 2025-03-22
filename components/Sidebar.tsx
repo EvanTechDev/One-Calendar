@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronDown, X, BarChart2 } from "lucide-react"
+import { Plus, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -88,14 +88,6 @@ export default function Sidebar({
         >
           <Plus className="mr-2 h-4 w-4" />
           {t.createEvent}
-        </Button>
-
-        <Button
-          className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700 mb-4"
-          onClick={() => onViewChange && onViewChange("analytics")}
-        >
-          <BarChart2 className="mr-2 h-4 w-4" />
-          {t.analytics || "分析与洞察"}
         </Button>
 
         <div className="mt-4">

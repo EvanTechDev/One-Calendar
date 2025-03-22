@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, Trash, ArrowLeft } from "lucide-react"
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2 } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -50,7 +50,10 @@ const colorOptions = [
   { value: "bg-teal-500", label: "Teal" },
 ]
 
-export default function RightSidebar() {
+// 联系人视图类型
+type ContactView = "list" | "detail" | "edit"
+
+export default function RightSidebar({ onViewChange }: { onViewChange?: (view: string) => void }) {
   const [language] = useLanguage()
   const t = translations[language]
 
@@ -62,9 +65,9 @@ export default function RightSidebar() {
   const [contactSearch, setContactSearch] = useState("")
   const [noteSearch, setNoteSearch] = useState("")
 
-  // 联系人编辑状态
-  const [addingContact, setAddingContact] = useState(false)
-  const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  // 联系人视图状态
+  const [contactView, setContactView] = useState<ContactView>("list")
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [newContact, setNewContact] = useState<Partial<Contact>>({
     name: "",
     company: "",
@@ -93,23 +96,36 @@ export default function RightSidebar() {
       notes: "",
       color: "bg-blue-500", // 默认颜色
     })
-    setAddingContact(true)
+    setContactView("edit")
+    setSelectedContact(null)
   }
 
   // 编辑联系人
   const startEditContact = (contact: Contact) => {
-    setEditingContact(contact)
+    setSelectedContact(contact)
     setNewContact({ ...contact })
+    setContactView("edit")
+  }
+
+  // 查看联系人详情
+  const viewContactDetail = (contact: Contact) => {
+    setSelectedContact(contact)
+    setContactView("detail")
+  }
+
+  // 返回联系人列表
+  const backToContactList = () => {
+    setContactView("list")
+    setSelectedContact(null)
   }
 
   // 保存联系人
   const saveContact = () => {
     if (!newContact.name || !newContact.color) return // 名称和颜色是必填项
 
-    if (editingContact) {
+    if (selectedContact) {
       // 更新现有联系人
-      setContacts(contacts.map((c) => (c.id === editingContact.id ? ({ ...c, ...newContact } as Contact) : c)))
-      setEditingContact(null)
+      setContacts(contacts.map((c) => (c.id === selectedContact.id ? ({ ...c, ...newContact } as Contact) : c)))
     } else {
       // 添加新联系人
       const contact = {
@@ -118,15 +134,16 @@ export default function RightSidebar() {
       } as Contact
       setContacts([...contacts, contact])
     }
-    setAddingContact(false)
+    setContactView("list")
+    setSelectedContact(null)
   }
 
   // 删除联系人
   const deleteContact = (id: string) => {
     setContacts(contacts.filter((contact) => contact.id !== id))
-    if (editingContact?.id === id) {
-      setEditingContact(null)
-      setAddingContact(false)
+    if (selectedContact?.id === id) {
+      setSelectedContact(null)
+      setContactView("list")
     }
   }
 
@@ -153,6 +170,325 @@ export default function RightSidebar() {
       setEditingNoteId(null)
     }
   }
+
+  // 处理分析按钮点击
+  const handleAnalyticsClick = () => {
+    if (onViewChange) {
+      onViewChange("analytics")
+    }
+  }
+
+  // 渲染联系人列表视图
+  const renderContactListView = () => (
+    <>
+      <SheetHeader className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <SheetTitle>{language === "zh" ? "通讯录" : "Contacts"}</SheetTitle>
+        </div>
+        <div className="mt-2">
+          <Input
+            placeholder={language === "zh" ? "搜索联系人..." : "Search contacts..."}
+            value={contactSearch}
+            onChange={(e) => setContactSearch(e.target.value)}
+            className="w-full"
+          />
+        </div>
+      </SheetHeader>
+
+      <div className="p-4">
+        <Button variant="outline" size="sm" onClick={startAddContact} className="w-full mb-4">
+          <Plus className="mr-2 h-4 w-4" />
+          {language === "zh" ? "添加联系人" : "Add Contact"}
+        </Button>
+
+        <ScrollArea className="h-[calc(100vh-200px)]">
+          {contacts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {language === "zh" ? "暂无联系人" : "No contacts yet"}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {contacts
+                .filter(
+                  (contact) =>
+                    contact.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                    contact.email?.toLowerCase().includes(contactSearch.toLowerCase()),
+                )
+                .map((contact) => (
+                  <div
+                    key={contact.id}
+                    className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
+                    onClick={() => viewContactDetail(contact)}
+                  >
+                    <Avatar className="h-10 w-10 mr-3">
+                      {contact.avatar ? (
+                        <AvatarImage src={contact.avatar} alt={contact.name} />
+                      ) : (
+                        <AvatarFallback className={contact.color}>
+                          <span className="text-white">{contact.name.charAt(0).toUpperCase()}</span>
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{contact.name}</div>
+                      {contact.email && <div className="text-sm text-muted-foreground">{contact.email}</div>}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+    </>
+  )
+
+  // 渲染联系人详情视图
+  const renderContactDetailView = () => {
+    if (!selectedContact) return null
+
+    return (
+      <>
+        <SheetHeader className="p-4 border-b">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" className="mr-2" onClick={backToContactList}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <SheetTitle>{language === "zh" ? "联系人详情" : "Contact Details"}</SheetTitle>
+          </div>
+        </SheetHeader>
+
+        <div className="p-4">
+          <div className="flex items-center mb-6">
+            <Avatar className="h-16 w-16 mr-4">
+              {selectedContact.avatar ? (
+                <AvatarImage src={selectedContact.avatar} alt={selectedContact.name} />
+              ) : (
+                <AvatarFallback className={selectedContact.color}>
+                  <span className="text-white text-xl">{selectedContact.name.charAt(0).toUpperCase()}</span>
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <h2 className="text-xl font-bold">{selectedContact.name}</h2>
+              {selectedContact.position && selectedContact.company && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedContact.position} {language === "zh" ? "在" : "at"} {selectedContact.company}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {selectedContact.email && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  {language === "zh" ? "电子邮件" : "Email"}
+                </h3>
+                <p>{selectedContact.email}</p>
+              </div>
+            )}
+
+            {selectedContact.phone && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  {language === "zh" ? "电话" : "Phone"}
+                </h3>
+                <p>{selectedContact.phone}</p>
+              </div>
+            )}
+
+            {selectedContact.address && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  {language === "zh" ? "地址" : "Address"}
+                </h3>
+                <p>{selectedContact.address}</p>
+              </div>
+            )}
+
+            {selectedContact.birthday && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  {language === "zh" ? "生日" : "Birthday"}
+                </h3>
+                <p>{selectedContact.birthday}</p>
+              </div>
+            )}
+
+            {selectedContact.notes && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  {language === "zh" ? "备注" : "Notes"}
+                </h3>
+                <p className="whitespace-pre-wrap">{selectedContact.notes}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex space-x-2 mt-8">
+            <Button variant="outline" className="flex-1" onClick={() => startEditContact(selectedContact)}>
+              <Edit2 className="mr-2 h-4 w-4" />
+              {language === "zh" ? "编辑" : "Edit"}
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={() => deleteContact(selectedContact.id)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              {language === "zh" ? "删除" : "Delete"}
+            </Button>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // 渲染联系人编辑视图
+  const renderContactEditView = () => (
+    <div className="h-full flex flex-col">
+      <SheetHeader className="p-4 border-b">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2"
+            onClick={() => {
+              if (selectedContact) {
+                setContactView("detail")
+              } else {
+                setContactView("list")
+              }
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <SheetTitle>
+            {selectedContact
+              ? language === "zh"
+                ? "编辑联系人"
+                : "Edit Contact"
+              : language === "zh"
+                ? "添加联系人"
+                : "Add Contact"}
+          </SheetTitle>
+        </div>
+      </SheetHeader>
+
+      <div className="flex-1 overflow-auto p-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">{language === "zh" ? "姓名" : "Name"}*</Label>
+            <Input
+              id="name"
+              value={newContact.name || ""}
+              onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="color">{language === "zh" ? "颜色" : "Color"}*</Label>
+            <Select value={newContact.color} onValueChange={(value) => setNewContact({ ...newContact, color: value })}>
+              <SelectTrigger id="color">
+                <SelectValue placeholder={language === "zh" ? "选择颜色" : "Select color"} />
+              </SelectTrigger>
+              <SelectContent>
+                {colorOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center">
+                      <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                      {option.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="company">{language === "zh" ? "公司" : "Company"}</Label>
+            <Input
+              id="company"
+              value={newContact.company || ""}
+              onChange={(e) => setNewContact({ ...newContact, company: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="position">{language === "zh" ? "职位" : "Position"}</Label>
+            <Input
+              id="position"
+              value={newContact.position || ""}
+              onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">{language === "zh" ? "电子邮件" : "Email"}</Label>
+            <Input
+              id="email"
+              type="email"
+              value={newContact.email || ""}
+              onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">{language === "zh" ? "电话" : "Phone"}</Label>
+            <Input
+              id="phone"
+              value={newContact.phone || ""}
+              onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">{language === "zh" ? "地址" : "Address"}</Label>
+            <Input
+              id="address"
+              value={newContact.address || ""}
+              onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="birthday">{language === "zh" ? "生日" : "Birthday"}</Label>
+            <Input
+              id="birthday"
+              type="date"
+              value={newContact.birthday || ""}
+              onChange={(e) => setNewContact({ ...newContact, birthday: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">{language === "zh" ? "备注" : "Notes"}</Label>
+            <Textarea
+              id="notes"
+              value={newContact.notes || ""}
+              onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 border-t flex justify-between">
+        {selectedContact && (
+          <Button variant="destructive" onClick={() => deleteContact(selectedContact.id)}>
+            {language === "zh" ? "删除" : "Delete"}
+          </Button>
+        )}
+        <div className="flex space-x-2 ml-auto">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (selectedContact) {
+                setContactView("detail")
+              } else {
+                setContactView("list")
+              }
+            }}
+          >
+            {language === "zh" ? "取消" : "Cancel"}
+          </Button>
+          <Button onClick={saveContact} disabled={!newContact.name || !newContact.color}>
+            {language === "zh" ? "保存" : "Save"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <>
@@ -190,220 +526,35 @@ export default function RightSidebar() {
               <BookText className="h-5 w-5 text-primary-foreground" />
             </div>
           </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            onClick={handleAnalyticsClick}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-600">
+              <BarChart2 className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </Button>
         </div>
       </div>
 
       {/* 通讯录面板 - 使用Sheet组件 */}
-      <Sheet open={contactsOpen} onOpenChange={setContactsOpen}>
+      <Sheet
+        open={contactsOpen}
+        onOpenChange={(open) => {
+          setContactsOpen(open)
+          if (!open) {
+            // 当关闭面板时，重置为列表视图
+            setContactView("list")
+          }
+        }}
+      >
         <SheetContent side="right" className="w-[350px] sm:w-[400px] p-0">
-          {addingContact || editingContact ? (
-            // 添加/编辑联系人表单
-            <div className="h-full flex flex-col">
-              <SheetHeader className="p-4 border-b">
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mr-2"
-                    onClick={() => {
-                      setAddingContact(false)
-                      setEditingContact(null)
-                    }}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <SheetTitle>
-                    {editingContact
-                      ? language === "zh"
-                        ? "编辑联系人"
-                        : "Edit Contact"
-                      : language === "zh"
-                        ? "添加联系人"
-                        : "Add Contact"}
-                  </SheetTitle>
-                </div>
-              </SheetHeader>
-
-              <div className="flex-1 overflow-auto p-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">{language === "zh" ? "姓名" : "Name"}*</Label>
-                    <Input
-                      id="name"
-                      value={newContact.name || ""}
-                      onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="color">{language === "zh" ? "颜色" : "Color"}*</Label>
-                    <Select
-                      value={newContact.color}
-                      onValueChange={(value) => setNewContact({ ...newContact, color: value })}
-                    >
-                      <SelectTrigger id="color">
-                        <SelectValue placeholder={language === "zh" ? "选择颜色" : "Select color"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colorOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className="flex items-center">
-                              <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
-                              {option.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="company">{language === "zh" ? "公司" : "Company"}</Label>
-                    <Input
-                      id="company"
-                      value={newContact.company || ""}
-                      onChange={(e) => setNewContact({ ...newContact, company: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="position">{language === "zh" ? "职位" : "Position"}</Label>
-                    <Input
-                      id="position"
-                      value={newContact.position || ""}
-                      onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{language === "zh" ? "电子邮件" : "Email"}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newContact.email || ""}
-                      onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{language === "zh" ? "电话" : "Phone"}</Label>
-                    <Input
-                      id="phone"
-                      value={newContact.phone || ""}
-                      onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">{language === "zh" ? "地址" : "Address"}</Label>
-                    <Input
-                      id="address"
-                      value={newContact.address || ""}
-                      onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="birthday">{language === "zh" ? "生日" : "Birthday"}</Label>
-                    <Input
-                      id="birthday"
-                      type="date"
-                      value={newContact.birthday || ""}
-                      onChange={(e) => setNewContact({ ...newContact, birthday: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">{language === "zh" ? "备注" : "Notes"}</Label>
-                    <Textarea
-                      id="notes"
-                      value={newContact.notes || ""}
-                      onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 border-t flex justify-between">
-                {editingContact && (
-                  <Button variant="destructive" onClick={() => deleteContact(editingContact.id)}>
-                    {language === "zh" ? "删除" : "Delete"}
-                  </Button>
-                )}
-                <div className="flex space-x-2 ml-auto">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setAddingContact(false)
-                      setEditingContact(null)
-                    }}
-                  >
-                    {language === "zh" ? "取消" : "Cancel"}
-                  </Button>
-                  <Button onClick={saveContact} disabled={!newContact.name || !newContact.color}>
-                    {language === "zh" ? "保存" : "Save"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // 联系人列表视图
-            <>
-              <SheetHeader className="p-4 border-b">
-                <div className="flex items-center justify-between">
-                  <SheetTitle>{language === "zh" ? "通讯录" : "Contacts"}</SheetTitle>
-                </div>
-                <div className="mt-2">
-                  <Input
-                    placeholder={language === "zh" ? "搜索联系人..." : "Search contacts..."}
-                    value={contactSearch}
-                    onChange={(e) => setContactSearch(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-              </SheetHeader>
-
-              <div className="p-4">
-                <Button variant="outline" size="sm" onClick={startAddContact} className="w-full mb-4">
-                  <Plus className="mr-2 h-4 w-4" />
-                  {language === "zh" ? "添加联系人" : "Add Contact"}
-                </Button>
-
-                <ScrollArea className="h-[calc(100vh-200px)]">
-                  {contacts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      {language === "zh" ? "暂无联系人" : "No contacts yet"}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {contacts
-                        .filter(
-                          (contact) =>
-                            contact.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            contact.email?.toLowerCase().includes(contactSearch.toLowerCase()),
-                        )
-                        .map((contact) => (
-                          <div
-                            key={contact.id}
-                            className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
-                            onClick={() => startEditContact(contact)}
-                          >
-                            <Avatar className="h-10 w-10 mr-3">
-                              {contact.avatar ? (
-                                <AvatarImage src={contact.avatar} alt={contact.name} />
-                              ) : (
-                                <AvatarFallback className={contact.color}>
-                                  <span className="text-white">{contact.name.charAt(0).toUpperCase()}</span>
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{contact.name}</div>
-                              {contact.email && <div className="text-sm text-muted-foreground">{contact.email}</div>}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            </>
-          )}
+          {contactView === "list" && renderContactListView()}
+          {contactView === "detail" && renderContactDetailView()}
+          {contactView === "edit" && renderContactEditView()}
         </SheetContent>
       </Sheet>
 
@@ -474,7 +625,7 @@ export default function RightSidebar() {
                                     deleteNote(note.id)
                                   }}
                                 >
-                                  <Trash className="mr-2 h-4 w-4" />
+                                  <Trash2 className="mr-2 h-4 w-4" />
                                   {language === "zh" ? "删除" : "Delete"}
                                 </Button>
                                 <Button
