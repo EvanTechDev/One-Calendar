@@ -20,6 +20,7 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import EventUrlHandler from "./EventUrlHandler"
 import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -116,16 +117,19 @@ export default function Calendar() {
   const handleEventAdd = (event: CalendarEvent) => {
     setEvents((prevEvents) => [...prevEvents, event])
     setEventDialogOpen(false)
+    setSelectedEvent(null) // 重置选中的事件
   }
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) => prevEvents.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
     setEventDialogOpen(false)
+    setSelectedEvent(null) // 重置选中的事件
   }
 
   const handleEventDelete = (eventId: string) => {
     setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId))
     setEventDialogOpen(false)
+    setSelectedEvent(null) // 重置选中的事件
   }
 
   const handleCreateFromSuggestion = (event: Omit<CalendarEvent, "id">) => {
@@ -164,7 +168,7 @@ export default function Calendar() {
     // 创建一个新的空事件，设置开始和结束时间
     const endTime = new Date(clickTime.getTime() + 30 * 60000) // 30分钟后
 
-    setSelectedEvent({
+    const newEvent: CalendarEvent = {
       id: Math.random().toString(36).substring(7),
       title: "",
       startDate: clickTime,
@@ -175,7 +179,9 @@ export default function Calendar() {
       notification: 15, // 默认提前15分钟通知
       color: "bg-blue-500",
       calendarId: "1", // 默认日历
-    })
+    }
+
+    setSelectedEvent(newEvent)
 
     // 打开事件对话框
     setEventDialogOpen(true)
@@ -271,20 +277,22 @@ export default function Calendar() {
               />
               {searchTerm && (
                 <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg">
-                  {filteredEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setPreviewEvent(event)
-                        setPreviewOpen(true)
-                        setSearchTerm("")
-                      }}
-                    >
-                      <div className="font-medium">{event.title}</div>
-                      <div className="text-sm text-gray-500">{formatDateDisplay(new Date(event.startDate))}</div>
-                    </div>
-                  ))}
+                  <ScrollArea className="max-h-[300px]">
+                    {filteredEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setPreviewEvent(event)
+                          setPreviewOpen(true)
+                          setSearchTerm("")
+                        }}
+                      >
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-gray-500">{formatDateDisplay(new Date(event.startDate))}</div>
+                      </div>
+                    ))}
+                  </ScrollArea>
                 </div>
               )}
             </div>
@@ -297,8 +305,6 @@ export default function Calendar() {
               setTimezone={setTimezone}
               notificationSound={notificationSound}
               setNotificationSound={setNotificationSound}
-              events={events}
-              onImportEvents={handleImportEvents}
             />
           </div>
         </header>
