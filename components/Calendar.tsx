@@ -10,7 +10,6 @@ import Sidebar from "./Sidebar"
 import DayView from "./DayView"
 import WeekView from "./WeekView"
 import MonthView from "./MonthView"
-import AnalyticsView from "./AnalyticsView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -20,6 +19,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
 import EventUrlHandler from "./EventUrlHandler"
 import RightSidebar from "./RightSidebar"
+import AnalyticsView from "./AnalyticsView"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -63,6 +63,9 @@ export default function Calendar() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
 
+  // 新增：快速创建事件的初始时间
+  const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(null)
+
   const handleDateSelect = (date: Date) => {
     setDate(date)
     setSidebarDate(date)
@@ -92,9 +95,17 @@ export default function Calendar() {
     })
   }
 
+  // 修改：根据语言设置不同的日期格式
   const formatDateDisplay = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
-    return date.toLocaleDateString(language, options)
+    if (language === "en") {
+      // 英文格式：只显示月和年，不显示日
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
+      return date.toLocaleDateString(language, options)
+    } else {
+      // 中文格式：保持原样，显示年月日
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
+      return date.toLocaleDateString(language, options)
+    }
   }
 
   const handleEventClick = (event: CalendarEvent) => {
@@ -145,17 +156,42 @@ export default function Calendar() {
     setPreviewOpen(false)
   }
 
+  // 新增：处理时间格子点击事件
+  const handleTimeSlotClick = (clickTime: Date) => {
+    // 设置开始时间为点击的时间
+    setQuickCreateStartTime(clickTime)
+
+    // 创建一个新的空事件，设置开始和结束时间
+    const endTime = new Date(clickTime.getTime() + 30 * 60000) // 30分钟后
+
+    setSelectedEvent({
+      id: Math.random().toString(36).substring(7),
+      title: "",
+      startDate: clickTime,
+      endDate: endTime,
+      isAllDay: false,
+      recurrence: "none",
+      participants: [],
+      notification: 15, // 默认提前15分钟通知
+      color: "bg-blue-500",
+      calendarId: "1", // 默认日历
+    })
+
+    // 打开事件对话框
+    setEventDialogOpen(true)
+  }
+
   const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(events, setEvents, language, notificationSound)
+      checkPendingNotifications()
       notificationsInitializedRef.current = true
     }
 
     if (!notificationIntervalRef.current) {
       notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications(events, setEvents, language, notificationSound)
+        checkPendingNotifications()
       }, 60000)
     }
 
@@ -164,7 +200,7 @@ export default function Calendar() {
         clearInterval(notificationIntervalRef.current)
       }
     }
-  }, [events, language, notificationSound, setEvents])
+  }, [])
 
   useEffect(() => {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
@@ -221,6 +257,7 @@ export default function Calendar() {
                 <SelectItem value="day">{t.day}</SelectItem>
                 <SelectItem value="week">{t.week}</SelectItem>
                 <SelectItem value="month">{t.month}</SelectItem>
+                <SelectItem value="analytics">{t.analytics}</SelectItem>
               </SelectContent>
             </Select>
             <div className="relative">
@@ -260,6 +297,8 @@ export default function Calendar() {
               setTimezone={setTimezone}
               notificationSound={notificationSound}
               setNotificationSound={setNotificationSound}
+              events={events}
+              onImportEvents={handleImportEvents}
             />
           </div>
         </header>
@@ -270,6 +309,7 @@ export default function Calendar() {
               date={date}
               events={filteredEvents}
               onEventClick={handleEventClick}
+              onTimeSlotClick={handleTimeSlotClick}
               language={language}
               timezone={timezone}
             />
@@ -279,6 +319,7 @@ export default function Calendar() {
               date={date}
               events={filteredEvents}
               onEventClick={handleEventClick}
+              onTimeSlotClick={handleTimeSlotClick}
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               timezone={timezone}
@@ -297,7 +338,21 @@ export default function Calendar() {
           {view === "analytics" && (
             <AnalyticsView
               events={events}
-              onCreateEvent={handleCreateFromSuggestion}
+              onCreateEvent={(startDate, endDate) => {
+                setSelectedEvent({
+                  id: Math.random().toString(36).substring(7),
+                  title: "",
+                  startDate,
+                  endDate,
+                  isAllDay: false,
+                  recurrence: "none",
+                  participants: [],
+                  notification: 15,
+                  color: "bg-blue-500",
+                  calendarId: "1",
+                })
+                setEventDialogOpen(true)
+              }}
               onImportEvents={handleImportEvents}
             />
           )}
@@ -305,7 +360,7 @@ export default function Calendar() {
       </div>
 
       {/* 右侧边栏 */}
-      <RightSidebar />
+      <RightSidebar onViewChange={handleViewChange} />
 
       {/* 保持原有的对话框和其他组件不变 */}
       <EventPreview
@@ -330,7 +385,7 @@ export default function Calendar() {
         onEventAdd={handleEventAdd}
         onEventUpdate={handleEventUpdate}
         onEventDelete={handleEventDelete}
-        initialDate={date}
+        initialDate={quickCreateStartTime || date}
         event={selectedEvent}
         language={language}
         timezone={timezone}
