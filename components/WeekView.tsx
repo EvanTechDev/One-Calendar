@@ -256,10 +256,10 @@ export default function WeekView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[100px_repeat(7,1fr)] divide-x">
-        <div />
+      <div className="grid grid-cols-[100px_repeat(7,1fr)] divide-x relative z-30 bg-background">
+        <div className="sticky top-0 z-30 bg-background" />
         {weekDays.map((day) => (
-          <div key={day.toString()} className="sticky top-0 z-10 bg-background p-2 text-center">
+          <div key={day.toString()} className="sticky top-0 z-30 bg-background p-2 text-center">
             <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
             {/* 如果是今天，使用蓝色高亮显示日期 */}
             <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>{format(day, "d")}</div>
