@@ -1,123 +1,221 @@
 "use client"
 
-import { SettingsIcon } from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
+import { Plus, ChevronDown, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { translations, type Language } from "@/lib/i18n"
-import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
+import { translations } from "@/lib/i18n"
+import { useCalendar } from "@/contexts/CalendarContext"
+import { CalendarIcon } from "lucide-react"
 
-interface SettingsProps {
-  language: Language
-  setLanguage: (lang: Language) => void
-  firstDayOfWeek: number
-  setFirstDayOfWeek: (day: number) => void
-  timezone: string
-  setTimezone: (timezone: string) => void
-  notificationSound: keyof typeof NOTIFICATION_SOUNDS
-  setNotificationSound: (sound: keyof typeof NOTIFICATION_SOUNDS) => void
+interface SidebarProps {
+  onCreateEvent: () => void
+  onDateSelect: (date: Date) => void
+  onViewChange?: (view: string) => void
+  language?: Language
+  selectedDate?: Date // 添加selectedDate属性
 }
 
-export default function Settings({
-  language,
-  setLanguage,
-  firstDayOfWeek,
-  setFirstDayOfWeek,
-  timezone,
-  setTimezone,
-  notificationSound,
-  setNotificationSound,
-}: SettingsProps) {
-  const t = translations[language]
-  const timezones = Intl.supportedValuesOf("timeZone")
+export type Language = "en" | "zh"
 
-  // 添加一个处理语言变化的函数
-  const handleLanguageChange = (newLang: Language) => {
-    setLanguage(newLang)
-    // 触发一个自定义事件，通知其他组件语言已更改
-    window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
+export interface CalendarCategory {
+  id: string
+  name: string
+  color: string
+  keywords?: string[]
+}
+
+export default function Sidebar({
+  onCreateEvent,
+  onDateSelect,
+  onViewChange,
+  language = "zh",
+  selectedDate,
+}: SidebarProps) {
+  // 使�� Context 中的日历分类数据
+  const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
+
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500")
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  // 使用传入的selectedDate，如果没有则使用当前日期
+  const [localSelectedDate, setLocalSelectedDate] = useState<Date | undefined>(selectedDate || new Date())
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
+  const t = translations[language || "zh"]
+
+  // 当外部selectedDate变化时，更新本地状态
+  if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
+    setLocalSelectedDate(selectedDate)
+  }
+
+  const addCategory = () => {
+    if (newCategoryName.trim()) {
+      const newCategory: CalendarCategory = {
+        id: Date.now().toString(),
+        name: newCategoryName.trim(),
+        color: newCategoryColor,
+        keywords: [],
+      }
+      addCategoryToContext(newCategory)
+      setNewCategoryName("")
+      setNewCategoryColor("bg-blue-500")
+      setShowAddCategory(false)
+      toast({
+        title: "分类已添加",
+        description: `已成功添加"${newCategoryName}"分类`,
+      })
+    }
+  }
+
+  const removeCategory = (id: string) => {
+    removeCategoryFromContext(id)
+    toast({
+      title: "分类已删除",
+      description: "已成功删除分类",
+    })
   }
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <SettingsIcon className="h-5 w-5" />
-          <span className="sr-only">Settings</span>
+    <div className="w-80 border-r bg-background overflow-y-auto">
+      <div className="p-4">
+        {/* Add calendar icon and title at the top */}
+        <div className="flex items-center mb-4">
+          <CalendarIcon className="h-6 w-6 text-blue-500 mr-2" />
+          <h1 className="text-lg font-semibold">{t.calendar}</h1>
+        </div>
+
+        <Button
+          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10"
+          onClick={onCreateEvent}
+        >
+          {t.createEvent}
         </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{t.settings}</SheetTitle>
-        </SheetHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="language">{t.language}</Label>
-            <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
-              <SelectTrigger id="language">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="zh">中文</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="mt-4">
+          <Calendar
+            mode="single"
+            selected={localSelectedDate}
+            onSelect={(date) => {
+              setLocalSelectedDate(date)
+              date && onDateSelect(date)
+            }}
+            className="rounded-md border"
+          />
+        </div>
+
+        <div className="mt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{t.myCalendars}</span>
+            <ChevronDown className="h-4 w-4" />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
-            <Select
-              value={firstDayOfWeek.toString()}
-              onValueChange={(value) => setFirstDayOfWeek(Number.parseInt(value))}
+          {calendars.map((calendar) => (
+            <div key={calendar.id} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
+                <span className="text-sm">{calendar.name}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => removeCategory(calendar.id)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {showAddCategory ? (
+            <div className="flex items-center space-x-2">
+              <Input
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder={t.categoryName || "新日历名称"}
+                className="text-sm"
+              />
+              <Button size="sm" onClick={addCategory}>
+                {t.addCategory || "添加"}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => setManageCategoriesOpen(true)}
             >
-              <SelectTrigger id="first-day">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">{t.sunday}</SelectItem>
-                <SelectItem value="1">{t.monday}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="timezone">{t.timezone}</Label>
-            <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger id="timezone">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
-                {timezones.map((tz) => (
-                  <SelectItem key={tz} value={tz}>
-                    {tz}
-                  </SelectItem>
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addNewCalendar}
+            </Button>
+          )}
+        </div>
+      </div>
+      <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.manageCategories}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">{t.categoryName}</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="输入分类名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t.color}</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "blue-500",
+                  "green-500",
+                  "purple-500",
+                  "yellow-500",
+                  "red-500",
+                  "pink-500",
+                  "indigo-500",
+                  "orange-500",
+                  "teal-500",
+                ].map((color) => (
+                  <div
+                    key={color}
+                    className={cn(
+                      `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
+                      newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
+                    )}
+                    onClick={() => setNewCategoryColor(`bg-${color}`)}
+                  />
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notification-sound">{t.notificationSound}</Label>
-            <div className="flex gap-2">
-              <Select
-                value={notificationSound}
-                onValueChange={(value: keyof typeof NOTIFICATION_SOUNDS) => setNotificationSound(value)}
-              >
-                <SelectTrigger id="notification-sound" className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="telegram">{t.telegramSound}</SelectItem>
-                  <SelectItem value="telegramSfx">{t.telegramSfxSound}</SelectItem>
-                </SelectContent>
-              </Select>
+              </div>
+            </div>
+            <Button onClick={addCategory} disabled={!newCategoryName}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addCategory}
+            </Button>
+            <div className="space-y-2 mt-4">
+              <Label>{t.existingCategories}</Label>
+              <div className="space-y-2">
+                {calendars.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <div className="flex items-center">
+                      <div className={cn("w-4 h-4 rounded-full mr-2", category.color)} />
+                      <span>{category.name}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => removeCategory(category.id)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+          <DialogFooter>
+            <Button onClick={() => setManageCategoriesOpen(false)}>{t.cancel || "关闭"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
