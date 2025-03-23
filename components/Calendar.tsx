@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { CalendarIcon, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -67,6 +67,80 @@ export default function Calendar() {
   // 新增：快速创建事件的初始时间
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(null)
 
+  // Add the new state variables for default view and keyboard shortcuts
+  const [defaultView, setDefaultView] = useLocalStorage<ViewType>("default-view", "week")
+  const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>("enable-shortcuts", true)
+
+  // Add a useEffect to set the initial view based on the default view setting
+  useEffect(() => {
+    // Only set the view on initial load
+    if (view !== defaultView) {
+      setView(defaultView as ViewType)
+    }
+  }, [])
+
+  // Add the keyboard shortcut handler
+  useEffect(() => {
+    if (!enableShortcuts) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input, textarea, or contentEditable element
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return
+      }
+
+      switch (e.key) {
+        case "n":
+        case "N":
+          e.preventDefault()
+          setEventDialogOpen(true)
+          break
+        case "/":
+          e.preventDefault()
+          // Focus the search input
+          const searchInput = document.querySelector('input[placeholder="' + t.searchEvents + '"]') as HTMLInputElement
+          if (searchInput) {
+            searchInput.focus()
+          }
+          break
+        case "t":
+        case "T":
+          e.preventDefault()
+          handleTodayClick()
+          break
+        case "1":
+          e.preventDefault()
+          setView("day")
+          break
+        case "2":
+          e.preventDefault()
+          setView("week")
+          break
+        case "3":
+          e.preventDefault()
+          setView("month")
+          break
+        case "ArrowRight":
+          e.preventDefault()
+          handleNext()
+          break
+        case "ArrowLeft":
+          e.preventDefault()
+          handlePrevious()
+          break
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.addEventListener("keydown", handleKeyDown)
+    }
+  }, [enableShortcuts, t.searchEvents])
+
   const handleDateSelect = (date: Date) => {
     setDate(date)
     setSidebarDate(date)
@@ -110,8 +184,8 @@ export default function Calendar() {
   }
 
   const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event)
-    setEventDialogOpen(true)
+    setPreviewEvent(event)
+    setPreviewOpen(true)
   }
 
   const handleEventAdd = (event: CalendarEvent) => {
@@ -229,10 +303,8 @@ export default function Calendar() {
       </div>
 
       <div className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between px-4 h-16 border-b">
+        <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <div className="flex items-center space-x-4">
-            <CalendarIcon className="h-8 w-8 text-blue-500" />
-            <h1 className="text-xl font-semibold">{t.calendar}</h1>
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
               {t.today || "今天"}
             </Button>
@@ -255,18 +327,20 @@ export default function Calendar() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="day">{t.day}</SelectItem>
-                <SelectItem value="week">{t.week}</SelectItem>
-                <SelectItem value="month">{t.month}</SelectItem>
-                <SelectItem value="analytics">{t.analytics}</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative">
+            <div className="relative z-50">
+              <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">{t.day}</SelectItem>
+                  <SelectItem value="week">{t.week}</SelectItem>
+                  <SelectItem value="month">{t.month}</SelectItem>
+                  <SelectItem value="analytics">{t.analytics}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="relative z-50">
               <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
@@ -276,22 +350,30 @@ export default function Calendar() {
                 className="pl-9 pr-4 py-2 w-48"
               />
               {searchTerm && (
-                <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg">
-                  <ScrollArea className="max-h-[300px]">
-                    {filteredEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setPreviewEvent(event)
-                          setPreviewOpen(true)
-                          setSearchTerm("")
-                        }}
-                      >
-                        <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-gray-500">{formatDateDisplay(new Date(event.startDate))}</div>
+                <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                  <ScrollArea className="h-[300px] py-2">
+                    {filteredEvents.length > 0 ? (
+                      filteredEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                          onClick={() => {
+                            setPreviewEvent(event)
+                            setPreviewOpen(true)
+                            setSearchTerm("")
+                          }}
+                        >
+                          <div className="font-medium">{event.title}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatDateDisplay(new Date(event.startDate))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        {language === "zh" ? "没有找到匹配的事件" : "No matching events found"}
                       </div>
-                    ))}
+                    )}
                   </ScrollArea>
                 </div>
               )}
@@ -305,6 +387,10 @@ export default function Calendar() {
               setTimezone={setTimezone}
               notificationSound={notificationSound}
               setNotificationSound={setNotificationSound}
+              defaultView={defaultView}
+              setDefaultView={setDefaultView}
+              enableShortcuts={enableShortcuts}
+              setEnableShortcuts={setEnableShortcuts}
             />
           </div>
         </header>

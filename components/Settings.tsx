@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { translations, type Language } from "@/lib/i18n"
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
+import { Switch } from "@/components/ui/switch"
 
+// Update the timezone options to use GMT format and add new settings for default view and keyboard shortcuts
+
+// First, add the defaultView and enableShortcuts props to the SettingsProps interface
 interface SettingsProps {
   language: Language
   setLanguage: (lang: Language) => void
@@ -17,8 +21,13 @@ interface SettingsProps {
   setTimezone: (timezone: string) => void
   notificationSound: keyof typeof NOTIFICATION_SOUNDS
   setNotificationSound: (sound: keyof typeof NOTIFICATION_SOUNDS) => void
+  defaultView: string
+  setDefaultView: (view: string) => void
+  enableShortcuts: boolean
+  setEnableShortcuts: (enable: boolean) => void
 }
 
+// Then update the Settings component to include the new props
 export default function Settings({
   language,
   setLanguage,
@@ -28,14 +37,47 @@ export default function Settings({
   setTimezone,
   notificationSound,
   setNotificationSound,
+  defaultView,
+  setDefaultView,
+  enableShortcuts,
+  setEnableShortcuts,
 }: SettingsProps) {
   const t = translations[language]
-  const timezones = Intl.supportedValuesOf("timeZone")
 
-  // 添加一个处理语言变化的函数
+  // Replace the timezones array with GMT formatted timezones
+  const getGMTTimezones = () => {
+    const timezones = Intl.supportedValuesOf("timeZone")
+    const now = new Date()
+
+    return timezones
+      .map((tz) => {
+        try {
+          // Get the GMT offset for this timezone
+          const offsetMinutes = new Date(now.toLocaleString("en-US", { timeZone: tz })).getTimezoneOffset() * -1
+          const offsetHours = Math.abs(Math.floor(offsetMinutes / 60))
+          const offsetMins = Math.abs(offsetMinutes % 60)
+          const offsetSign = offsetMinutes >= 0 ? "+" : "-"
+          const offsetString = `GMT${offsetSign}${offsetHours.toString().padStart(2, "0")}:${offsetMins.toString().padStart(2, "0")}`
+
+          return {
+            value: tz,
+            label: `${tz} (${offsetString})`,
+          }
+        } catch (e) {
+          return {
+            value: tz,
+            label: tz,
+          }
+        }
+      })
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }
+
+  const gmtTimezones = getGMTTimezones()
+
+  // Add the handleLanguageChange function as before
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang)
-    // 触发一个自定义事件，通知其他组件语言已更改
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
   }
 
@@ -83,15 +125,29 @@ export default function Settings({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="default-view">{language === "zh" ? "默认视图" : "Default View"}</Label>
+            <Select value={defaultView} onValueChange={setDefaultView}>
+              <SelectTrigger id="default-view">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">{t.day}</SelectItem>
+                <SelectItem value="week">{t.week}</SelectItem>
+                <SelectItem value="month">{t.month}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="timezone">{t.timezone}</Label>
             <Select value={timezone} onValueChange={setTimezone}>
               <SelectTrigger id="timezone">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[200px]">
-                {timezones.map((tz) => (
-                  <SelectItem key={tz} value={tz}>
-                    {tz}
+                {gmtTimezones.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -115,6 +171,27 @@ export default function Settings({
               </Select>
             </div>
           </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch id="enable-shortcuts" checked={enableShortcuts} onCheckedChange={setEnableShortcuts} />
+            <Label htmlFor="enable-shortcuts">{language === "zh" ? "开启快捷键" : "Enable Keyboard Shortcuts"}</Label>
+          </div>
+
+          {enableShortcuts && (
+            <div className="rounded-md border p-4">
+              <h3 className="mb-2 font-medium">{language === "zh" ? "可用快捷键" : "Available Shortcuts"}</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>N - {language === "zh" ? "创建新事件" : "New Event"}</div>
+                <div>/ - {language === "zh" ? "搜索事件" : "Search Events"}</div>
+                <div>T - {language === "zh" ? "今天" : "Today"}</div>
+                <div>1 - {language === "zh" ? "日视图" : "Day View"}</div>
+                <div>2 - {language === "zh" ? "周视图" : "Week View"}</div>
+                <div>3 - {language === "zh" ? "月视图" : "Month View"}</div>
+                <div>→ - {language === "zh" ? "下个周期" : "Next Period"}</div>
+                <div>← - {language === "zh" ? "上个周期" : "Previous Period"}</div>
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
