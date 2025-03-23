@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
 import { useCalendar } from "@/contexts/CalendarContext"
+import { CalendarIcon } from "lucide-react"
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -36,7 +37,7 @@ export default function Sidebar({
   language = "zh",
   selectedDate,
 }: SidebarProps) {
-  // 使用 Context 中的日历分类数据
+  // 使�� Context 中的日历分类数据
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -82,11 +83,16 @@ export default function Sidebar({
   return (
     <div className="w-80 border-r bg-background overflow-y-auto">
       <div className="p-4">
+        {/* Add calendar icon and title at the top */}
+        <div className="flex items-center mb-4">
+          <CalendarIcon className="h-6 w-6 text-blue-500 mr-2" />
+          <h1 className="text-lg font-semibold">{t.calendar}</h1>
+        </div>
+
         <Button
-          className="w-full justify-start bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4"
+          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10"
           onClick={onCreateEvent}
         >
-          <Plus className="mr-2 h-4 w-4" />
           {t.createEvent}
         </Button>
 
