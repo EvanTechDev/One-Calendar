@@ -81,7 +81,7 @@ export default function Calendar() {
 
   // Add the keyboard shortcut handler
   useEffect(() => {
-    if (!enableShortcuts) return
+    if (!enableShortcuts) return // Early return if shortcuts are disabled
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input, textarea, or contentEditable element
@@ -137,9 +137,9 @@ export default function Calendar() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.addEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [enableShortcuts, t.searchEvents])
+  }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
 
   const handleDateSelect = (date: Date) => {
     setDate(date)
@@ -151,7 +151,9 @@ export default function Calendar() {
   }
 
   const handleTodayClick = () => {
-    setDate(new Date())
+    const today = new Date()
+    setDate(today)
+    setSidebarDate(today) // Add this line to update the sidebar calendar
   }
 
   const handlePrevious = () => {
