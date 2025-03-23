@@ -23,6 +23,9 @@ const colorOptions = [
   { value: "bg-red-500", label: "Red" },
   { value: "bg-purple-500", label: "Purple" },
   { value: "bg-pink-500", label: "Pink" },
+  { value: "bg-indigo-500", label: "Indigo"},
+  { value: "bg-orange-500", label: "Orange"},
+  { value: "bg-teal-500", label: "Teal"},
 ]
 
 interface EventDialogProps {
@@ -165,7 +168,26 @@ export default function EventDialog({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox id="all-day" checked={isAllDay} onCheckedChange={(checked) => setIsAllDay(checked as boolean)} />
+            <Checkbox
+              id="all-day"
+              checked={isAllDay}
+              onCheckedChange={(checked) => {
+                const isChecked = checked as boolean
+                setIsAllDay(isChecked)
+
+                if (isChecked) {
+                  // If checked, set start time to beginning of day and end time to end of day
+                  const startOfDay = new Date(startDate)
+                  startOfDay.setHours(0, 0, 0, 0)
+
+                  const endOfDay = new Date(startDate)
+                  endOfDay.setHours(23, 59, 59, 999)
+
+                  setStartDate(startOfDay)
+                  setEndDate(endOfDay)
+                }
+              }}
+            />
             <Label htmlFor="all-day">{t.allDay}</Label>
           </div>
 
