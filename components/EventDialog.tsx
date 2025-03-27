@@ -23,9 +23,6 @@ const colorOptions = [
   { value: "bg-red-500", label: "Red" },
   { value: "bg-purple-500", label: "Purple" },
   { value: "bg-pink-500", label: "Pink" },
-  { value: "bg-indigo-500", label: "Indigo"},
-  { value: "bg-orange-500", label: "Orange"},
-  { value: "bg-teal-500", label: "Teal"},
 ]
 
 interface EventDialogProps {
@@ -66,38 +63,59 @@ export default function EventDialog({
   const [color, setColor] = useState(colorOptions[0].value)
   const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
 
+  // 添加调试日志
+  console.log("EventDialog render - event:", event, "initialDate:", initialDate)
+
   const t = translations[language]
 
+  // 每次对话框打开时重置表单
   useEffect(() => {
-    if (event) {
-      setTitle(event.title)
-      setIsAllDay(event.isAllDay)
-      setStartDate(new Date(event.startDate))
-      setEndDate(new Date(event.endDate))
-      setLocation(event.location || "")
-      setParticipants(event.participants.join(", "))
+    if (open) {
+      if (event) {
+        // 编辑现有事件
+        setTitle(event.title)
+        setIsAllDay(event.isAllDay)
+        setStartDate(new Date(event.startDate))
+        setEndDate(new Date(event.endDate))
+        setLocation(event.location || "")
+        setParticipants(event.participants.join(", "))
 
-      // Handle custom notification time
-      if (
-        event.notification > 0 &&
-        event.notification !== 5 &&
-        event.notification !== 15 &&
-        event.notification !== 30 &&
-        event.notification !== 60
-      ) {
-        setNotification("custom")
-        setCustomNotificationTime(event.notification.toString())
+        // 修复notification undefined问题
+        if (event.notification !== undefined) {
+          // 处理通知时间
+          if (
+            event.notification > 0 &&
+            event.notification !== 5 &&
+            event.notification !== 15 &&
+            event.notification !== 30 &&
+            event.notification !== 60
+          ) {
+            setNotification("custom")
+            setCustomNotificationTime(event.notification.toString())
+          } else {
+            setNotification(event.notification.toString())
+          }
+        } else {
+          // 如果notification未定义，设置默认值
+          setNotification("0")
+        }
+
+        setDescription(event.description || "")
+        setColor(event.color)
+        setSelectedCalendar(event.calendarId || (calendars.length > 0 ? calendars[0]?.id : ""))
       } else {
-        setNotification(event.notification.toString())
-      }
+        // 创建新事件
+        resetForm()
 
-      setDescription(event.description || "")
-      setColor(event.color)
-      setSelectedCalendar(event?.calendarId || (calendars.length > 0 ? calendars[0]?.id : ""))
-    } else {
-      resetForm()
+        // 如果有初始日期，使用它设置开始和结束时间
+        if (initialDate) {
+          const endTime = new Date(initialDate.getTime() + 30 * 60000) // 30分钟后结束
+          setStartDate(initialDate)
+          setEndDate(endTime)
+        }
+      }
     }
-  }, [event, calendars])
+  }, [event, calendars, initialDate, open])
 
   const resetForm = () => {
     const now = new Date()
@@ -117,6 +135,7 @@ export default function EventDialog({
 
   const handleStartDateChange = (newStartDate: Date) => {
     setStartDate(newStartDate)
+    // 修改为30分钟后结束
     const newEndDate = new Date(newStartDate.getTime() + 30 * 60000)
     if (newEndDate > endDate) {
       setEndDate(newEndDate)
@@ -125,6 +144,7 @@ export default function EventDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("Form submitted")
 
     // Determine the actual notification time in minutes
     let notificationMinutes = Number.parseInt(notification)
@@ -132,26 +152,41 @@ export default function EventDialog({
       notificationMinutes = Number.parseInt(customNotificationTime)
     }
 
+    // Ensure we have valid dates
+    const validStartDate = startDate instanceof Date && !isNaN(startDate.getTime()) ? startDate : new Date()
+
+    const validEndDate =
+      endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : new Date(validStartDate.getTime() + 30 * 60000)
+
+    // Create the event data object
     const eventData: CalendarEvent = {
-      id: event?.id || Date.now().toString(),
-      title,
+      id: event?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      title: title.trim() || (language === "zh" ? "未命名事件" : "Untitled Event"),
       isAllDay,
-      startDate,
-      endDate,
+      startDate: validStartDate,
+      endDate: validEndDate,
       recurrence: "none",
       location,
-      participants: participants.split(",").map((p) => p.trim()),
+      participants: participants
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean),
       notification: notificationMinutes,
       description,
       color,
-      calendarId: selectedCalendar,
+      calendarId: selectedCalendar || (calendars.length > 0 ? calendars[0]?.id : "1"),
     }
 
+    // Call the appropriate handler based on whether we're editing or creating
     if (event) {
+      console.log("Updating event:", eventData)
       onEventUpdate(eventData)
     } else {
+      console.log("Adding new event:", eventData)
       onEventAdd(eventData)
     }
+
+    // Close the dialog
     onOpenChange(false)
   }
 
