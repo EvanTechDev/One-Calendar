@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useRef } from "react"
 
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
@@ -92,7 +93,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     return { start, end, isPartial: false, position: "full" }
   }
 
-  // 改进的事件布局算法，处理重叠事件
+  // 改进的事件布���算法，处理重叠事件
   const layoutEvents = (events: CalendarEvent[]) => {
     if (events.length === 0) return []
 
@@ -236,6 +237,22 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     onTimeSlotClick(clickTime)
   }
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // 添加自动滚动到当前时间的效果
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const now = new Date()
+      const currentTimePosition = now.getHours() * 60 + now.getMinutes() - 120 // 减去120px使当前时间线在视图中间偏上位置
+
+      // 确保不会滚动到负值
+      const scrollPosition = Math.max(0, currentTimePosition)
+
+      // 滚动到计算出的位置
+      scrollContainerRef.current.scrollTop = scrollPosition
+    }
+  }, [])
+
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
@@ -248,7 +265,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
         <div className="p-2">{timezone}</div>
       </div>
 
-      <div className="flex-1 grid grid-cols-[100px_1fr] overflow-auto">
+      <div className="flex-1 grid grid-cols-[100px_1fr] overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
@@ -327,7 +344,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           })}
 
           <div
-            className="absolute left-0 right-0 border-t-2 border-red-500 z-10"
+            className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
             style={{
               top: `${new Date().getHours() * 60 + new Date().getMinutes()}px`,
             }}
