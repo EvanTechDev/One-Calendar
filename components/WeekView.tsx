@@ -259,17 +259,32 @@ export default function WeekView({
 
   // 添加自动滚动到当前时间的效果
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      const now = new Date()
-      const currentTimePosition = now.getHours() * 60 + now.getMinutes() - 120 // 减去120px使当前时间线在视图中间偏上位置
+    // 使用setTimeout确保DOM已完全渲染
+    const timer = setTimeout(() => {
+      if (scrollContainerRef.current) {
+        const now = new Date()
+        const currentHour = now.getHours()
 
-      // 确保不会滚动到负值
-      const scrollPosition = Math.max(0, currentTimePosition)
+        // 找到对应当前小时的DOM元素
+        const hourElements = scrollContainerRef.current.querySelectorAll(".h-\\[60px\\]")
+        if (hourElements.length > 0 && currentHour < hourElements.length) {
+          // 获取当前小时的元素 (注意这里的索引计算)
+          const hourElementsPerDay = 24 // 每天24小时
+          const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
 
-      // 滚动到计算出的位置
-      scrollContainerRef.current.scrollTop = scrollPosition
-    }
-  }, [])
+          if (currentHourElement) {
+            // 滚动到当前小时的位置，并向上偏移100px使其在视图中间偏上
+            scrollContainerRef.current.scrollTo({
+              top: (currentHourElement as HTMLElement).offsetTop - 100,
+              behavior: "auto",
+            })
+          }
+        }
+      }
+    }, 100) // 短暂延迟确保DOM已渲染
+
+    return () => clearTimeout(timer)
+  }, [date, weekDays]) // 当日期或周视图变化时重新执行
 
   return (
     <div className="flex flex-col h-full">
