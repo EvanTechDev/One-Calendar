@@ -11,7 +11,6 @@ import DayView from "./DayView"
 import WeekView from "./WeekView"
 import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
-import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
 import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
@@ -289,7 +288,7 @@ export default function Calendar() {
     }
   }, [])
 
-  // 修改return部分，将RightSidebar集成到布局中
+  // 修改return部分，将RightSidebar集成到布局中，并调整主内容区域的宽度
   return (
     <div className="flex h-screen bg-background">
       <div className="w-80 border-r bg-background">
@@ -306,7 +305,10 @@ export default function Calendar() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col">
+      {/* 调整主内容区域，减少宽度以适应右侧边栏 */}
+      <div className="flex-1 flex flex-col pr-14">
+        {" "}
+        {/* 添加右侧padding为14，与右侧边栏宽度相同 */}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
@@ -382,23 +384,9 @@ export default function Calendar() {
                 </div>
               )}
             </div>
-            <Settings
-              language={language}
-              setLanguage={setLanguage}
-              firstDayOfWeek={firstDayOfWeek}
-              setFirstDayOfWeek={setFirstDayOfWeek}
-              timezone={timezone}
-              setTimezone={setTimezone}
-              notificationSound={notificationSound}
-              setNotificationSound={setNotificationSound}
-              defaultView={defaultView}
-              setDefaultView={setDefaultView}
-              enableShortcuts={enableShortcuts}
-              setEnableShortcuts={setEnableShortcuts}
-            />
+            {/* 移除Settings组件，因为它现在在右侧边栏中 */}
           </div>
         </header>
-
         <div className="flex-1 overflow-auto" ref={calendarRef}>
           {view === "day" && (
             <DayView
@@ -446,7 +434,23 @@ export default function Calendar() {
       </div>
 
       {/* 右侧边栏 */}
-      <RightSidebar onViewChange={handleViewChange} />
+      <RightSidebar
+        onViewChange={handleViewChange}
+        settingsProps={{
+          language,
+          setLanguage,
+          firstDayOfWeek,
+          setFirstDayOfWeek,
+          timezone,
+          setTimezone,
+          notificationSound,
+          setNotificationSound,
+          defaultView,
+          setDefaultView,
+          enableShortcuts,
+          setEnableShortcuts,
+        }}
+      />
 
       {/* 保持原有的对话框和其他组件不变 */}
       <EventPreview
