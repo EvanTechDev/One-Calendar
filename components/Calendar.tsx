@@ -11,6 +11,7 @@ import DayView from "./DayView"
 import WeekView from "./WeekView"
 import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
+import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
 import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
@@ -384,7 +385,21 @@ export default function Calendar() {
                 </div>
               )}
             </div>
-            {/* 移除Settings组件，因为它现在在右侧边栏中 */}
+            {/* 将Settings组件放回顶部栏 */}
+            <Settings
+              language={language}
+              setLanguage={setLanguage}
+              firstDayOfWeek={firstDayOfWeek}
+              setFirstDayOfWeek={setFirstDayOfWeek}
+              timezone={timezone}
+              setTimezone={setTimezone}
+              notificationSound={notificationSound}
+              setNotificationSound={setNotificationSound}
+              defaultView={defaultView}
+              setDefaultView={setDefaultView}
+              enableShortcuts={enableShortcuts}
+              setEnableShortcuts={setEnableShortcuts}
+            />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
@@ -433,24 +448,8 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* 右侧边栏 */}
-      <RightSidebar
-        onViewChange={handleViewChange}
-        settingsProps={{
-          language,
-          setLanguage,
-          firstDayOfWeek,
-          setFirstDayOfWeek,
-          timezone,
-          setTimezone,
-          notificationSound,
-          setNotificationSound,
-          defaultView,
-          setDefaultView,
-          enableShortcuts,
-          setEnableShortcuts,
-        }}
-      />
+      {/* 右侧边栏 - 现在从顶部栏下方开始 */}
+      <RightSidebar onViewChange={handleViewChange} />
 
       {/* 保持原有的对话框和其他组件不变 */}
       <EventPreview
