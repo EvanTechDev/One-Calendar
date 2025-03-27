@@ -47,7 +47,7 @@ export default function Calendar() {
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const { events, setEvents } = useCalendar()
+  const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
@@ -97,6 +97,8 @@ export default function Calendar() {
         case "n":
         case "N":
           e.preventDefault()
+          setSelectedEvent(null) // 确保是创建新事件
+          setQuickCreateStartTime(new Date()) // 使用当前时间
           setEventDialogOpen(true)
           break
         case "/":
@@ -191,15 +193,23 @@ export default function Calendar() {
   }
 
   const handleEventAdd = (event: CalendarEvent) => {
-    setEvents((prevEvents) => [...prevEvents, event])
+    // Make sure we're adding a new event with the correct ID
+    const newEvent = {
+      ...event,
+      id: event.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
+    }
+
+    setEvents((prevEvents) => [...prevEvents, newEvent])
     setEventDialogOpen(false)
-    setSelectedEvent(null) // 重置选中的事件
+    setSelectedEvent(null)
+    setQuickCreateStartTime(null) // Reset the quick create time
   }
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) => prevEvents.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
     setEventDialogOpen(false)
-    setSelectedEvent(null) // 重置选中的事件
+    setSelectedEvent(null)
+    setQuickCreateStartTime(null) // Reset the quick create time
   }
 
   const handleEventDelete = (eventId: string) => {
@@ -224,10 +234,15 @@ export default function Calendar() {
     setEvents((prevEvents) => [...prevEvents, ...newEvents])
   }
 
-  const handleEventEdit = (event: CalendarEvent) => {
-    setSelectedEvent(event)
-    setEventDialogOpen(true)
-    setPreviewOpen(false)
+  // 修改handleEventEdit函数，确保正确传递事件对象的深拷贝
+  const handleEventEdit = () => {
+    if (previewEvent) {
+      // 使用当前预览的事件
+      setSelectedEvent(previewEvent)
+      setQuickCreateStartTime(null)
+      setEventDialogOpen(true)
+      setPreviewOpen(false)
+    }
   }
 
   const handleEventDuplicate = (event: CalendarEvent) => {
@@ -238,28 +253,11 @@ export default function Calendar() {
 
   // 新增：处理时间格子点击事件
   const handleTimeSlotClick = (clickTime: Date) => {
-    // 设置开始时间为点击的时间
+    // 设置快速创建时间
     setQuickCreateStartTime(clickTime)
 
-    // 创建一个新的空事件，设置开始和结束时间
-    const endTime = new Date(clickTime.getTime() + 30 * 60000) // 30分钟后
-
-    const newEvent: CalendarEvent = {
-      id: Math.random().toString(36).substring(7),
-      title: "",
-      startDate: clickTime,
-      endDate: endTime,
-      isAllDay: false,
-      recurrence: "none",
-      participants: [],
-      notification: 15, // 默认提前15分钟通知
-      color: "bg-blue-500",
-      calendarId: "1", // 默认日历
-    }
-
-    setSelectedEvent(newEvent)
-
-    // 打开事件对话框
+    // 重要：设置为null表示创建新事件
+    setSelectedEvent(null)
     setEventDialogOpen(true)
   }
 
@@ -296,7 +294,11 @@ export default function Calendar() {
     <div className="flex h-screen bg-background">
       <div className="w-80 border-r bg-background">
         <Sidebar
-          onCreateEvent={() => setEventDialogOpen(true)}
+          onCreateEvent={() => {
+            setSelectedEvent(null) // 确保是创建新事件
+            setQuickCreateStartTime(new Date()) // 使用当前时间
+            setEventDialogOpen(true)
+          }}
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
           language={language}
@@ -433,18 +435,8 @@ export default function Calendar() {
             <AnalyticsView
               events={events}
               onCreateEvent={(startDate, endDate) => {
-                setSelectedEvent({
-                  id: Math.random().toString(36).substring(7),
-                  title: "",
-                  startDate,
-                  endDate,
-                  isAllDay: false,
-                  recurrence: "none",
-                  participants: [],
-                  notification: 15,
-                  color: "bg-blue-500",
-                  calendarId: "1",
-                })
+                setSelectedEvent(null) // 确保是创建新事件
+                setQuickCreateStartTime(startDate)
                 setEventDialogOpen(true)
               }}
               onImportEvents={handleImportEvents}

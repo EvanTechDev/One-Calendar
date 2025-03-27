@@ -74,7 +74,9 @@ export default function EventPreview({
               size="icon"
               onClick={(e) => {
                 e.stopPropagation()
-                onEdit()
+                if (event) {
+                  onEdit()
+                }
               }}
               className="h-8 w-8"
             >
