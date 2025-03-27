@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2 } from "lucide-react"
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import MiniCalendarSheet from "./MiniCalendarSheet"
 
 // 通讯录类型定义
 interface Contact {
@@ -60,6 +61,8 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
   // 状态管理
   const [contactsOpen, setContactsOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
+  const [miniCalendarOpen, setMiniCalendarOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [contacts, setContacts] = useState<Contact[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [contactSearch, setContactSearch] = useState("")
@@ -176,6 +179,11 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
     if (onViewChange) {
       onViewChange("analytics")
     }
+  }
+
+  // 处理日期选择
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date)
   }
 
   // 渲染联系人列表视图
@@ -492,9 +500,26 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
 
   return (
     <>
-      {/* 右侧图标栏 - 固定在右侧 */}
-      <div className="w-14 bg-background border-l flex flex-col items-center py-4">
+      {/* 右侧图标栏 - 固定在右侧，从顶部栏下方开始 */}
+      <div className="w-14 bg-background border-l flex flex-col items-center py-4 h-[calc(100vh-4rem)] fixed right-0 top-16 z-30">
         <div className="flex flex-col items-center space-y-8 flex-1">
+          {/* Mini Calendar Button - 现在是第一个按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            onClick={() => setMiniCalendarOpen(true)}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500",
+                miniCalendarOpen && "ring-2 ring-primary",
+              )}
+            >
+              <Calendar className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -659,6 +684,14 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Mini Calendar Sheet */}
+      <MiniCalendarSheet
+        open={miniCalendarOpen}
+        onOpenChange={setMiniCalendarOpen}
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+      />
     </>
   )
 }
