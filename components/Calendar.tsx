@@ -21,6 +21,7 @@ import EventUrlHandler from "./EventUrlHandler"
 import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import UserProfileButton from "./UserProfileButton"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -400,6 +401,8 @@ export default function Calendar() {
               enableShortcuts={enableShortcuts}
               setEnableShortcuts={setEnableShortcuts}
             />
+            {/* 添加用户头像按钮 */}
+            <UserProfileButton />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
