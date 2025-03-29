@@ -97,3 +97,5 @@ export function useCalendar() {
   return context
 }
 
+export const useCalendarContext = useCalendar
+
