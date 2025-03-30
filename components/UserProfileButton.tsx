@@ -16,13 +16,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { validatePassword } from "@/lib/backup-utils"
-import { useCalendarContext } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events, categories, setEvents, setCategories } = useCalendarContext()
+  const { events = [], calendars = [], setEvents, setCalendars } = useCalendar()
 
   const [isBackupOpen, setIsBackupOpen] = useState(false)
   const [isRestoreOpen, setIsRestoreOpen] = useState(false)
@@ -47,8 +47,12 @@ export default function UserProfileButton() {
   const getLocalData = () => {
     try {
       console.log("Getting data from localStorage")
-      const contacts = JSON.parse(localStorage.getItem("contacts") || "[]")
-      const notes = JSON.parse(localStorage.getItem("notes") || "[]")
+      const contactsStr = localStorage.getItem("contacts")
+      const notesStr = localStorage.getItem("notes")
+
+      const contacts = contactsStr ? JSON.parse(contactsStr) : []
+      const notes = notesStr ? JSON.parse(notesStr) : []
+
       console.log(`Found ${contacts.length} contacts and ${notes.length} notes`)
       return { contacts, notes }
     } catch (error) {
@@ -58,11 +62,14 @@ export default function UserProfileButton() {
   }
 
   // 将数据保存到localStorage
-  const saveLocalData = (data: { contacts: any[]; notes: any[] }) => {
+  const saveLocalData = (data: { contacts?: any[]; notes?: any[] }) => {
     try {
-      console.log(`Saving ${data.contacts.length} contacts and ${data.notes.length} notes to localStorage`)
-      localStorage.setItem("contacts", JSON.stringify(data.contacts))
-      localStorage.setItem("notes", JSON.stringify(data.notes))
+      const contacts = data.contacts || []
+      const notes = data.notes || []
+
+      console.log(`Saving ${contacts.length} contacts and ${notes.length} notes to localStorage`)
+      localStorage.setItem("contacts", JSON.stringify(contacts))
+      localStorage.setItem("notes", JSON.stringify(notes))
       console.log("Data saved to localStorage")
     } catch (error) {
       console.error("Error saving data to localStorage:", error)
@@ -103,14 +110,16 @@ export default function UserProfileButton() {
 
       // 准备备份数据
       const backupData = {
-        events,
-        categories,
+        events: events || [],
+        calendars: calendars || [],
         contacts,
         notes,
         timestamp: new Date().toISOString(),
       }
 
-      console.log(`Backup: Prepared data with ${events.length} events, ${categories.length} categories`)
+      console.log(
+        `Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars`,
+      )
 
       // 从密码生成唯一ID
       const backupId = generateIdFromPassword(password)
@@ -132,11 +141,11 @@ export default function UserProfileButton() {
       console.log(`Backup: API response status: ${response.status}`)
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `API returned status ${response.status}`)
       }
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({ success: false }))
       console.log("Backup: API response:", result)
 
       if (result.success) {
@@ -196,11 +205,11 @@ export default function UserProfileButton() {
           throw new Error(language === "zh" ? "未找到备份数据" : "No backup found for this password")
         }
 
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `API returned status ${response.status}`)
       }
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({ success: false }))
       console.log("Restore: API response:", result)
 
       if (!result.success || !result.data) {
@@ -208,28 +217,39 @@ export default function UserProfileButton() {
       }
 
       // 解析数据
-      const restoredData = JSON.parse(result.data)
+      let restoredData
+      try {
+        restoredData = JSON.parse(result.data)
+      } catch (parseError) {
+        console.error("Restore: Error parsing data:", parseError)
+        throw new Error(language === "zh" ? "数据格式错误" : "Invalid data format")
+      }
+
       console.log("Restore: Successfully parsed data")
 
       // 恢复数据到应用
-      const { events: restoredEvents, categories: restoredCategories, contacts, notes } = restoredData
+      const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = restoredData
 
       // 更新日历事件和分类
-      if (restoredEvents) {
+      if (Array.isArray(restoredEvents)) {
         console.log(`Restore: Restoring ${restoredEvents.length} events`)
         setEvents(restoredEvents)
+      } else {
+        console.warn("Restore: No valid events data found")
       }
 
-      if (restoredCategories) {
-        console.log(`Restore: Restoring ${restoredCategories.length} categories`)
-        setCategories(restoredCategories)
+      if (Array.isArray(restoredCalendars)) {
+        console.log(`Restore: Restoring ${restoredCalendars.length} calendars`)
+        setCalendars(restoredCalendars)
+      } else {
+        console.warn("Restore: No valid calendars data found")
       }
 
       // 更新localStorage中的联系人和笔记
       console.log("Restore: Restoring contacts and notes to localStorage")
       saveLocalData({
-        contacts: contacts || [],
-        notes: notes || [],
+        contacts: Array.isArray(contacts) ? contacts : [],
+        notes: Array.isArray(notes) ? notes : [],
       })
 
       console.log("Restore: All data restored successfully")
