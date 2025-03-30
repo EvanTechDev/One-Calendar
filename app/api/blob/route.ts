@@ -1,6 +1,9 @@
 import { put, list, del } from "@vercel/blob";
 import { type NextRequest, NextResponse } from "next/server";
 
+// 确保备份文件路径一致
+const BACKUP_PATH = "backups";
+
 export async function POST(request: NextRequest) {
   try {
     console.log("Backup API: Received POST request");
@@ -22,14 +25,23 @@ export async function POST(request: NextRequest) {
     // 创建Blob对象
     const blob = new Blob([dataString], { type: "application/json" });
 
+    // 构建完整的文件路径
+    const filePath = `${BACKUP_PATH}/${id}.json`;
+    console.log(`Backup API: Using file path: ${filePath}`);
+
     // 上传到Vercel Blob
-    const result = await put(`backups/${id}.json`, blob, {
+    const result = await put(filePath, blob, {
       access: "public", // 确保可以公开访问
       contentType: "application/json",
     });
 
     console.log(`Backup API: Backup successfully stored at: ${result.url}`);
-    return NextResponse.json({ success: true, url: result.url });
+    return NextResponse.json({ 
+      success: true, 
+      url: result.url,
+      path: filePath,
+      id: id
+    });
   } catch (error) {
     console.error("Backup API error:", error);
     return NextResponse.json(
@@ -53,12 +65,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
-    console.log(`Restore API: Looking for backup with ID: ${id}`);
+    // 构建完整的文件路径
+    const filePath = `${BACKUP_PATH}/${id}.json`;
+    console.log(`Restore API: Looking for backup with path: ${filePath}`);
 
     try {
       // 首先尝试使用Vercel Blob API直接获取
-      const blobs = await list({ prefix: `backups/${id}.json` });
-      console.log(`Restore API: Found ${blobs.blobs.length} matching blobs`);
+      console.log(`Restore API: Listing blobs with prefix: ${filePath}`);
+      const blobs = await list({ prefix: filePath });
+      console.log(`Restore API: Found ${blobs.blobs.length} matching blobs:`, 
+        blobs.blobs.map(b => ({ url: b.url, pathname: b.pathname })));
       
       if (blobs.blobs.length > 0) {
         const blobUrl = blobs.blobs[0].url;
@@ -79,43 +95,52 @@ export async function GET(request: NextRequest) {
       }
       
       // 如果没有找到，尝试直接通过URL获取
-      const directUrl = `https://public.blob.vercel-storage.com/backups/${id}.json`;
-      console.log(`Restore API: Trying direct URL: ${directUrl}`);
+      // 尝试多种可能的URL格式
+      const possibleUrls = [
+        `https://public.blob.vercel-storage.com/${filePath}`,
+        `https://public.blob.vercel-storage.com/${id}.json`,
+        `https://public.blob.vercel-storage.com/backups/${id}.json`,
+        `https://public.blob.vercel-storage.com/${BACKUP_PATH}/${id}.json`
+      ];
       
-      const directResponse = await fetch(directUrl);
+      console.log(`Restore API: Trying multiple possible URLs:`, possibleUrls);
       
-      if (!directResponse.ok) {
-        console.error(`Restore API: Failed to fetch from direct URL, status: ${directResponse.status}`);
-        return NextResponse.json({ error: "Backup not found" }, { status: 404 });
+      // 尝试所有可能的URL
+      for (const url of possibleUrls) {
+        try {
+          console.log(`Restore API: Trying URL: ${url}`);
+          const directResponse = await fetch(url);
+          
+          if (directResponse.ok) {
+            const directData = await directResponse.text();
+            console.log(`Restore API: Successfully retrieved backup data from URL: ${url}`);
+            
+            return NextResponse.json({ success: true, data: directData });
+          } else {
+            console.log(`Restore API: Failed to fetch from URL: ${url}, status: ${directResponse.status}`);
+          }
+        } catch (urlError) {
+          console.error(`Restore API: Error fetching from URL: ${url}`, urlError);
+        }
       }
       
-      const directData = await directResponse.text();
-      console.log("Restore API: Successfully retrieved backup data from direct URL");
+      // 如果所有尝试都失败，返回404
+      console.error("Restore API: All attempts to fetch backup failed");
+      return NextResponse.json({ 
+        error: "Backup not found", 
+        id: id,
+        path: filePath,
+        triedUrls: possibleUrls
+      }, { status: 404 });
       
-      return NextResponse.json({ success: true, data: directData });
     } catch (fetchError) {
       console.error("Restore API: Error fetching backup:", fetchError);
-      
-      // 最后尝试使用完全公开的URL
-      try {
-        const publicUrl = `https://public.blob.vercel-storage.com/backups/${id}.json`;
-        console.log(`Restore API: Trying public URL as last resort: ${publicUrl}`);
-        
-        const publicResponse = await fetch(publicUrl);
-        
-        if (!publicResponse.ok) {
-          console.error(`Restore API: Failed to fetch from public URL, status: ${publicResponse.status}`);
-          return NextResponse.json({ error: "Backup not found" }, { status: 404 });
-        }
-        
-        const publicData = await publicResponse.text();
-        console.log("Restore API: Successfully retrieved backup data from public URL");
-        
-        return NextResponse.json({ success: true, data: publicData });
-      } catch (publicError) {
-        console.error("Restore API: Error fetching from public URL:", publicError);
-        return NextResponse.json({ error: "Failed to fetch backup" }, { status: 500 });
-      }
+      return NextResponse.json({ 
+        error: "Failed to fetch backup", 
+        details: fetchError instanceof Error ? fetchError.message : "Unknown error",
+        id: id,
+        path: filePath
+      }, { status: 500 });
     }
   } catch (error) {
     console.error("Restore API error:", error);
@@ -140,9 +165,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
+    // 构建完整的文件路径
+    const filePath = `${BACKUP_PATH}/${id}.json`;
+    console.log(`Delete API: Looking for backup with path: ${filePath}`);
+
     try {
       // 尝试删除备份
-      const blobs = await list({ prefix: `backups/${id}.json` });
+      const blobs = await list({ prefix: filePath });
       
       if (blobs.blobs.length > 0) {
         await del(blobs.blobs[0].url);
