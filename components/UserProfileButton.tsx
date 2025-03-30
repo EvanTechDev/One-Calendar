@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { User, Upload, Download, X, Check, Info } from "lucide-react"
+import { User, Upload, Download, X, Check, Info, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,9 +15,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { validatePassword } from "@/lib/backup-utils"
+import { validatePassword, generateIdFromPassword, listAllBackups } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -34,18 +35,8 @@ export default function UserProfileButton() {
   const [debugMode, setDebugMode] = useState(false)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [directBackupId, setDirectBackupId] = useState("")
-
-  // 从密码生成唯一ID - 确保备份和恢复使用相同的算法
-  function generateIdFromPassword(password: string): string {
-    // 简单的哈希函数，用于从密码生成唯一ID
-    let hash = 0
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash = hash & hash // 转换为32位整数
-    }
-    return `backup_${Math.abs(hash).toString(16)}`
-  }
+  const [allBackups, setAllBackups] = useState<any[]>([])
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false)
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -82,6 +73,25 @@ export default function UserProfileButton() {
         title: language === "zh" ? "保存本地数据失败" : "Failed to save local data",
         description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
       })
+    }
+  }
+
+  // 加载所有备份
+  const loadAllBackups = async () => {
+    setIsLoadingBackups(true)
+    try {
+      const backups = await listAllBackups()
+      setAllBackups(backups)
+      console.log("Loaded backups:", backups)
+    } catch (error) {
+      console.error("Error loading backups:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load backups",
+      })
+    } finally {
+      setIsLoadingBackups(false)
     }
   }
 
@@ -403,7 +413,65 @@ export default function UserProfileButton() {
     }
   }
 
-  // 直接通过ID恢复备份（仅调试模式）
+  // 直接通过URL恢复备份
+  const handleRestoreFromUrl = async (url: string) => {
+    setIsLoading(true)
+    setDebugInfo(null)
+
+    try {
+      console.log(`Direct Restore: Starting restore process from URL: ${url}`)
+
+      // 直接从URL获取数据
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from URL: ${url}, status: ${response.status}`)
+      }
+
+      // 获取数据
+      const text = await response.text()
+
+      // 解析数据
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (parseError) {
+        throw new Error(`Failed to parse data from URL: ${url}`)
+      }
+
+      // 恢复数据
+      const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = data
+
+      if (Array.isArray(restoredEvents)) {
+        setEvents(restoredEvents)
+      }
+
+      if (Array.isArray(restoredCalendars)) {
+        setCalendars(restoredCalendars)
+      }
+
+      saveLocalData({
+        contacts: Array.isArray(contacts) ? contacts : [],
+        notes: Array.isArray(notes) ? notes : [],
+      })
+
+      toast({
+        title: "Restore Successful",
+        description: `Successfully restored data from ${url}`,
+      })
+    } catch (error) {
+      console.error("Direct URL Restore error:", error)
+      toast({
+        variant: "destructive",
+        title: "Restore Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 直接通过ID恢复备份
   const handleDirectRestore = async () => {
     if (!directBackupId) {
       toast({
@@ -551,7 +619,12 @@ export default function UserProfileButton() {
           </DropdownMenuItem>
           {/* 调试信息对话框 - 仅在调试模式下显示 */}
           {debugMode && (
-            <DropdownMenuItem onClick={() => setIsDebugOpen(true)}>
+            <DropdownMenuItem
+              onClick={() => {
+                setIsDebugOpen(true)
+                loadAllBackups()
+              }}
+            >
               <Info className="mr-2 h-4 w-4" />
               {language === "zh" ? "调试信息" : "Debug Info"}
             </DropdownMenuItem>
@@ -597,6 +670,15 @@ export default function UserProfileButton() {
                 ? "密码必须至少包含8个字符，包括大小写字母、数字和特殊字符。"
                 : "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters."}
             </p>
+
+            {debugMode && (
+              <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <h4 className="text-sm font-medium mb-1">Debug Info</h4>
+                <p className="text-xs">
+                  Backup ID: {password ? generateIdFromPassword(password) : "Enter password to see ID"}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsBackupOpen(false)} disabled={isLoading}>
@@ -667,6 +749,15 @@ export default function UserProfileButton() {
                 ? "警告：恢复数据将覆盖您当前的所有数据。此操作无法撤销。"
                 : "Warning: Restoring data will overwrite all your current data. This action cannot be undone."}
             </p>
+
+            {debugMode && (
+              <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <h4 className="text-sm font-medium mb-1">Debug Info</h4>
+                <p className="text-xs">
+                  Restore ID: {password ? generateIdFromPassword(password) : "Enter password to see ID"}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRestoreOpen(false)} disabled={isLoading}>
@@ -716,47 +807,151 @@ export default function UserProfileButton() {
             <DialogTitle>Debug Information</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Direct Backup ID Access</h3>
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Enter backup ID"
-                  value={directBackupId}
-                  onChange={(e) => setDirectBackupId(e.target.value)}
-                />
-                <Button onClick={handleDirectRestore} disabled={isLoading}>
-                  {isLoading ? "Loading..." : "Restore"}
+          <Tabs defaultValue="direct">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="direct">Direct Restore</TabsTrigger>
+              <TabsTrigger value="backups">Backup Browser</TabsTrigger>
+              <TabsTrigger value="info">Debug Info</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="direct" className="space-y-4 mt-4">
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium mb-2">Direct Backup ID Access</h3>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Enter backup ID"
+                    value={directBackupId}
+                    onChange={(e) => setDirectBackupId(e.target.value)}
+                  />
+                  <Button onClick={handleDirectRestore} disabled={isLoading}>
+                    {isLoading ? "Loading..." : "Restore"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This will attempt to directly restore a backup using the provided ID without password verification.
+                </p>
+              </div>
+
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium mb-2">Backup Path Information</h3>
+                <p className="text-sm">The system stores backups in the following location:</p>
+                <code className="bg-gray-100 p-2 rounded-md block mt-2 text-xs">backups/backup_[hash].json</code>
+                <p className="text-sm mt-2">
+                  Where [hash] is derived from your password. When restoring, the system will try multiple possible
+                  paths:
+                </p>
+                <ul className="list-disc list-inside text-xs mt-2 space-y-1">
+                  <li>https://public.blob.vercel-storage.com/backups/backup_[hash].json</li>
+                  <li>https://public.blob.vercel-storage.com/backup_[hash].json</li>
+                  <li>/api/blob?id=backup_[hash]</li>
+                </ul>
+              </div>
+
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium mb-2">Password to ID Converter</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="password-converter">Password</Label>
+                  <Input
+                    id="password-converter"
+                    type="text"
+                    placeholder="Enter password to see ID"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setDebugInfo((prev) => ({
+                          ...prev,
+                          convertedId: generateIdFromPassword(e.target.value),
+                        }))
+                      }
+                    }}
+                  />
+                  {debugInfo?.convertedId && (
+                    <div className="bg-gray-100 p-2 rounded-md mt-2">
+                      <p className="text-xs font-mono">ID: {debugInfo.convertedId}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="backups" className="space-y-4 mt-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium">Available Backups</h3>
+                <Button size="sm" onClick={loadAllBackups} disabled={isLoadingBackups}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingBackups ? "animate-spin" : ""}`} />
+                  Refresh
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                This will attempt to directly restore a backup using the provided ID without password verification.
-              </p>
-            </div>
 
-            {debugInfo && (
-              <div className="border rounded-md p-4">
-                <h3 className="font-medium mb-2">Debug Info</h3>
-                <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-x-auto">
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              </div>
-            )}
+              {isLoadingBackups ? (
+                <div className="text-center py-8">
+                  <svg
+                    className="animate-spin h-8 w-8 mx-auto text-primary"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p className="mt-2 text-sm text-muted-foreground">Loading backups...</p>
+                </div>
+              ) : allBackups.length === 0 ? (
+                <div className="text-center py-8 border rounded-md">
+                  <p className="text-muted-foreground">No backups found</p>
+                </div>
+              ) : (
+                <div className="border rounded-md overflow-hidden">
+                  <div className="grid grid-cols-3 gap-4 p-2 bg-muted font-medium text-sm">
+                    <div>Pathname</div>
+                    <div>Size</div>
+                    <div>Actions</div>
+                  </div>
+                  <div className="divide-y">
+                    {allBackups.map((backup, index) => (
+                      <div key={index} className="grid grid-cols-3 gap-4 p-2 text-sm items-center">
+                        <div className="truncate font-mono">{backup.pathname}</div>
+                        <div>{(backup.size / 1024).toFixed(2)} KB</div>
+                        <div>
+                          <Button size="sm" onClick={() => handleRestoreFromUrl(backup.url)}>
+                            Restore
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
-            <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Backup Path Information</h3>
-              <p className="text-sm">The system stores backups in the following location:</p>
-              <code className="bg-gray-100 p-2 rounded-md block mt-2 text-xs">backups/backup_[hash].json</code>
-              <p className="text-sm mt-2">
-                Where [hash] is derived from your password. When restoring, the system will try multiple possible paths:
-              </p>
-              <ul className="list-disc list-inside text-xs mt-2 space-y-1">
-                <li>https://public.blob.vercel-storage.com/backups/backup_[hash].json</li>
-                <li>https://public.blob.vercel-storage.com/backup_[hash].json</li>
-                <li>/api/blob?id=backup_[hash]</li>
-              </ul>
-            </div>
-          </div>
+            <TabsContent value="info" className="space-y-4 mt-4">
+              {debugInfo ? (
+                <div className="border rounded-md p-4">
+                  <h3 className="font-medium mb-2">Debug Info</h3>
+                  <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-x-auto">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <div className="text-center py-8 border rounded-md">
+                  <p className="text-muted-foreground">No debug information available</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Perform a backup or restore operation with debug mode enabled to see information here.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDebugOpen(false)}>
