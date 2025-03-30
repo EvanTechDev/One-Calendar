@@ -358,12 +358,23 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             )
           })}
 
-          <div
-            className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
-            style={{
-              top: `${new Date().getHours() * 60 + new Date().getMinutes()}px`,
-            }}
-          />
+          {(() => {
+            // 获取当前本地时间
+            const now = new Date()
+            const currentHours = now.getHours()
+            const currentMinutes = now.getMinutes()
+            // 计算像素位置
+            const topPosition = currentHours * 60 + currentMinutes
+
+            return (
+              <div
+                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
+                style={{
+                  top: `${topPosition}px`,
+                }}
+              />
+            )
+          })()}
         </div>
       </div>
     </div>
