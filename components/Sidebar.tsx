@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
 import { useCalendar } from "@/contexts/CalendarContext"
-import { CalendarIcon } from "lucide-react"
+import { Calendar2 } from "lucide-react"
 
 interface SidebarProps {
   onCreateEvent: () => void
