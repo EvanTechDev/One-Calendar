@@ -1,5 +1,3 @@
-import { encrypt, decrypt } from "./crypto"
-
 // 验证密码强度
 export function validatePassword(password: string): boolean {
   // 至少8个字符，包含大小写字母、数字和特殊字符
@@ -19,7 +17,7 @@ export function generateIdFromPassword(password: string): string {
   return `backup_${Math.abs(hash).toString(16)}`
 }
 
-// 备份数据
+// 备份数据 - 简化为直接使用fetch
 export async function backupData(password: string, data: any): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("Backup: Starting backup process")
@@ -28,11 +26,6 @@ export async function backupData(password: string, data: any): Promise<{ success
     const backupId = generateIdFromPassword(password)
     console.log(`Backup: Generated backup ID: ${backupId}`)
 
-    // 加密数据
-    console.log("Backup: Encrypting data")
-    const encryptedData = await encrypt(JSON.stringify(data), password)
-
-    console.log("Backup: Sending data to API")
     // 上传到API路由
     const response = await fetch("/api/blob", {
       method: "POST",
@@ -41,18 +34,22 @@ export async function backupData(password: string, data: any): Promise<{ success
       },
       body: JSON.stringify({
         id: backupId,
-        data: encryptedData,
+        data,
       }),
     })
 
     console.log(`Backup: API response status: ${response.status}`)
 
-    // 获取响应内容
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      throw new Error(result.error || `API returned status ${response.status}`)
+    }
+
     const result = await response.json()
     console.log("Backup: API response:", result)
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || `API returned status ${response.status}`)
+    if (!result.success) {
+      throw new Error(result.error || "Unknown error during backup")
     }
 
     console.log("Backup: Backup completed successfully")
@@ -66,7 +63,7 @@ export async function backupData(password: string, data: any): Promise<{ success
   }
 }
 
-// 恢复数据
+// 恢复数据 - 简化为直接使用fetch
 export async function restoreData(password: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     console.log("Restore: Starting restore process")
@@ -75,8 +72,8 @@ export async function restoreData(password: string): Promise<{ success: boolean;
     const backupId = generateIdFromPassword(password)
     console.log(`Restore: Generated backup ID: ${backupId}`)
 
-    console.log("Restore: Fetching data from API")
     // 从API路由获取加密数据
+    console.log("Restore: Fetching data from API")
     const response = await fetch(`/api/blob?id=${backupId}`, {
       method: "GET",
     })
@@ -89,12 +86,12 @@ export async function restoreData(password: string): Promise<{ success: boolean;
         return { success: false, error: "No backup found for this password" }
       }
 
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.error || `API returned status ${response.status}`)
     }
 
     // 获取响应内容
-    const result = await response.json()
+    const result = await response.json().catch(() => ({ success: false }))
     console.log("Restore: API response:", result)
 
     if (!result.success || !result.data) {
@@ -102,16 +99,8 @@ export async function restoreData(password: string): Promise<{ success: boolean;
       return { success: false, error: "No backup data found" }
     }
 
-    console.log("Restore: Decrypting data")
-    // 解密数据
-    const decryptedData = await decrypt(result.data, password)
-
-    console.log("Restore: Parsing JSON data")
-    // 解析JSON数据
-    const parsedData = JSON.parse(decryptedData)
-
     console.log("Restore: Restore completed successfully")
-    return { success: true, data: parsedData }
+    return { success: true, data: result.data }
   } catch (error) {
     console.error("Restore error:", error)
     return {
