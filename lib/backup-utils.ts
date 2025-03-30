@@ -22,13 +22,18 @@ export function generateIdFromPassword(password: string): string {
 // 备份数据
 export async function backupData(password: string, data: any): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log("Backup: Starting backup process")
+
     // 从密码生成唯一ID
     const backupId = generateIdFromPassword(password)
+    console.log(`Backup: Generated backup ID: ${backupId}`)
 
     // 加密数据
+    console.log("Backup: Encrypting data")
     const encryptedData = await encrypt(JSON.stringify(data), password)
 
-    // 上传到Vercel Blob
+    console.log("Backup: Sending data to API")
+    // 上传到API路由
     const response = await fetch("/api/blob", {
       method: "POST",
       headers: {
@@ -40,11 +45,17 @@ export async function backupData(password: string, data: any): Promise<{ success
       }),
     })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || "Failed to upload backup")
+    console.log(`Backup: API response status: ${response.status}`)
+
+    // 获取响应内容
+    const result = await response.json()
+    console.log("Backup: API response:", result)
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || `API returned status ${response.status}`)
     }
 
+    console.log("Backup: Backup completed successfully")
     return { success: true }
   } catch (error) {
     console.error("Backup error:", error)
@@ -58,32 +69,48 @@ export async function backupData(password: string, data: any): Promise<{ success
 // 恢复数据
 export async function restoreData(password: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
+    console.log("Restore: Starting restore process")
+
     // 从密码生成唯一ID
     const backupId = generateIdFromPassword(password)
+    console.log(`Restore: Generated backup ID: ${backupId}`)
 
-    // 从Vercel Blob获取加密数据
+    console.log("Restore: Fetching data from API")
+    // 从API路由获取加密数据
     const response = await fetch(`/api/blob?id=${backupId}`, {
       method: "GET",
     })
 
+    console.log(`Restore: API response status: ${response.status}`)
+
     if (!response.ok) {
       if (response.status === 404) {
+        console.error("Restore: Backup not found")
         return { success: false, error: "No backup found for this password" }
       }
+
       const errorData = await response.json()
-      throw new Error(errorData.error || "Failed to retrieve backup")
+      throw new Error(errorData.error || `API returned status ${response.status}`)
     }
 
-    const { data: encryptedData } = await response.json()
+    // 获取响应内容
+    const result = await response.json()
+    console.log("Restore: API response:", result)
 
-    if (!encryptedData) {
+    if (!result.success || !result.data) {
+      console.error("Restore: No data in response")
       return { success: false, error: "No backup data found" }
     }
 
+    console.log("Restore: Decrypting data")
     // 解密数据
-    const decryptedData = await decrypt(encryptedData, password)
+    const decryptedData = await decrypt(result.data, password)
+
+    console.log("Restore: Parsing JSON data")
+    // 解析JSON数据
     const parsedData = JSON.parse(decryptedData)
 
+    console.log("Restore: Restore completed successfully")
     return { success: true, data: parsedData }
   } catch (error) {
     console.error("Restore error:", error)
