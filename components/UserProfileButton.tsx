@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { User, Upload, Download, X, Check, Info, RefreshCw } from "lucide-react"
+import { User, Upload, Download, X, Check, Info, RefreshCw, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { validatePassword, generateIdFromPassword, listAllBackups } from "@/lib/backup-utils"
+import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,6 +37,7 @@ export default function UserProfileButton() {
   const [directBackupId, setDirectBackupId] = useState("")
   const [allBackups, setAllBackups] = useState<any[]>([])
   const [isLoadingBackups, setIsLoadingBackups] = useState(false)
+  const [lastBackupInfo, setLastBackupInfo] = useState<any>(null)
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -80,9 +81,15 @@ export default function UserProfileButton() {
   const loadAllBackups = async () => {
     setIsLoadingBackups(true)
     try {
-      const backups = await listAllBackups()
-      setAllBackups(backups)
-      console.log("Loaded backups:", backups)
+      // 直接从API获取所有备份
+      const response = await fetch("/api/blob/list")
+      if (!response.ok) {
+        throw new Error(`Failed to list backups: ${response.status}`)
+      }
+
+      const result = await response.json()
+      setAllBackups(result.backups || [])
+      console.log("Loaded backups:", result.backups)
     } catch (error) {
       console.error("Error loading backups:", error)
       toast({
@@ -176,6 +183,9 @@ export default function UserProfileButton() {
       const result = await response.json().catch(() => ({ success: false }))
       console.log("Backup: API response:", result)
 
+      // 保存最后一次备份的信息，包括实际文件名
+      setLastBackupInfo(result)
+
       if (debugMode && result) {
         setDebugInfo((prev) => ({
           ...prev,
@@ -194,10 +204,10 @@ export default function UserProfileButton() {
         })
 
         if (debugMode) {
-          // 在调试模式下，显示备份ID
+          // 在调试模式下，显示备份ID和实际文件名
           toast({
             title: "Debug Info",
-            description: `Backup ID: ${backupId}`,
+            description: `Backup ID: ${backupId}${result.actualFilename ? `\nActual filename: ${result.actualFilename}` : ""}`,
           })
         }
 
@@ -594,6 +604,21 @@ export default function UserProfileButton() {
     }
   }
 
+  // 复制文本到剪贴板
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description: "Text has been copied to clipboard",
+        })
+      })
+      .catch((err) => {
+        console.error("Failed to copy text: ", err)
+      })
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -677,6 +702,18 @@ export default function UserProfileButton() {
                 <p className="text-xs">
                   Backup ID: {password ? generateIdFromPassword(password) : "Enter password to see ID"}
                 </p>
+                <div className="flex items-center mt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => password && copyToClipboard(generateIdFromPassword(password))}
+                    disabled={!password}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy ID
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -756,6 +793,18 @@ export default function UserProfileButton() {
                 <p className="text-xs">
                   Restore ID: {password ? generateIdFromPassword(password) : "Enter password to see ID"}
                 </p>
+                <div className="flex items-center mt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => password && copyToClipboard(generateIdFromPassword(password))}
+                    disabled={!password}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy ID
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -842,6 +891,7 @@ export default function UserProfileButton() {
                 </p>
                 <ul className="list-disc list-inside text-xs mt-2 space-y-1">
                   <li>https://public.blob.vercel-storage.com/backups/backup_[hash].json</li>
+                  <li>https://public.blob.vercel-storage.com/backups/backup_[hash]_*.json (with additional hash)</li>
                   <li>https://public.blob.vercel-storage.com/backup_[hash].json</li>
                   <li>/api/blob?id=backup_[hash]</li>
                 </ul>
@@ -867,10 +917,28 @@ export default function UserProfileButton() {
                   {debugInfo?.convertedId && (
                     <div className="bg-gray-100 p-2 rounded-md mt-2">
                       <p className="text-xs font-mono">ID: {debugInfo.convertedId}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs mt-1"
+                        onClick={() => copyToClipboard(debugInfo.convertedId)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy ID
+                      </Button>
                     </div>
                   )}
                 </div>
               </div>
+
+              {lastBackupInfo && (
+                <div className="border rounded-md p-4">
+                  <h3 className="font-medium mb-2">Last Backup Information</h3>
+                  <pre className="bg-gray-100 p-2 rounded-md text-xs overflow-x-auto">
+                    {JSON.stringify(lastBackupInfo, null, 2)}
+                  </pre>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="backups" className="space-y-4 mt-4">
@@ -922,9 +990,12 @@ export default function UserProfileButton() {
                       <div key={index} className="grid grid-cols-3 gap-4 p-2 text-sm items-center">
                         <div className="truncate font-mono">{backup.pathname}</div>
                         <div>{(backup.size / 1024).toFixed(2)} KB</div>
-                        <div>
+                        <div className="flex space-x-2">
                           <Button size="sm" onClick={() => handleRestoreFromUrl(backup.url)}>
                             Restore
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => copyToClipboard(backup.url)}>
+                            <Copy className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
