@@ -29,6 +29,38 @@ export async function POST(request: NextRequest) {
     const filePath = `${BACKUP_PATH}/${id}.json`;
     console.log(`Backup API: Using file path: ${filePath}`);
 
+    // 在上传新备份前，检查并删除同ID的旧备份
+    try {
+      console.log(`Backup API: Checking for existing backups with ID: ${id}`);
+      const existingBlobs = await list();
+      
+      // 查找所有以该ID开头的文件
+      const matchingBlobs = existingBlobs.blobs.filter(blob => {
+        const pathname = blob.pathname;
+        // 检查是否匹配 backups/id 或 backups/id_[additional_hash]
+        return pathname.startsWith(`${BACKUP_PATH}/${id}`) || 
+               pathname.includes(`/${id}_`) ||
+               pathname === `${id}.json`;
+      });
+      
+      if (matchingBlobs.length > 0) {
+        console.log(`Backup API: Found ${matchingBlobs.length} existing backups with same ID`);
+        
+        // 删除所有匹配的旧备份
+        for (const blob of matchingBlobs) {
+          console.log(`Backup API: Deleting old backup: ${blob.pathname}`);
+          await del(blob.url);
+        }
+        
+        console.log(`Backup API: Successfully deleted ${matchingBlobs.length} old backups`);
+      } else {
+        console.log(`Backup API: No existing backups found with ID: ${id}`);
+      }
+    } catch (deleteError) {
+      // 如果删除失败，记录错误但继续尝试上传新备份
+      console.error("Backup API: Error deleting old backups:", deleteError);
+    }
+
     // 上传到Vercel Blob
     const result = await put(filePath, blob, {
       access: "public", // 确保可以公开访问
@@ -58,7 +90,8 @@ export async function POST(request: NextRequest) {
       url: result.url,
       path: filePath,
       actualFilename: actualFilename,
-      id: id
+      id: id,
+      message: "Backup created successfully. Any previous backups with the same ID were replaced."
     });
   } catch (error) {
     console.error("Backup API error:", error);
