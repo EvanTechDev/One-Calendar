@@ -664,8 +664,8 @@ export default function UserProfileButton() {
             <DialogTitle>{language === "zh" ? "备份数据" : "Backup Data"}</DialogTitle>
             <DialogDescription>
               {language === "zh"
-                ? "请创建一个强密码来保护您的数据。您将需要此密码来恢复数据。"
-                : "Please create a strong password to protect your data. You will need this password to restore your data."}
+                ? "请创建一个强密码来保护您的数据。您将需要此密码来恢复数据。使用相同密码进行备份将覆盖之前的备份。"
+                : "Please create a strong password to protect your data. You will need this password to restore your data. Using the same password will overwrite previous backups."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
