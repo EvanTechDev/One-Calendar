@@ -23,6 +23,9 @@ const colorOptions = [
   { value: "bg-red-500", label: "Red" },
   { value: "bg-purple-500", label: "Purple" },
   { value: "bg-pink-500", label: "Pink" },
+  { value: "bg-indigo-500", label: "Indigo" },
+  { value: "bg-orange-500", label: "Orange" },
+  { value: "bg-teal-500", label: "Teal" },
 ]
 
 interface EventDialogProps {
