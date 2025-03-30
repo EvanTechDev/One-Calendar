@@ -42,6 +42,7 @@ export default function WeekView({
   const today = new Date() // 获取今天的日期
 
   const formatTime = (hour: number) => {
+    // 使用24小时制格式化时间
     return `${hour.toString().padStart(2, "0")}:00`
   }
 
@@ -49,13 +50,13 @@ export default function WeekView({
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
+      hour12: false, // 使用24小时制
       timeZone: timezone,
     }
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
   }
 
-  // 安全地检查事件是否跨越多天
+  // 安全地检查事件���否跨越多天
   const isMultiDayEvent = (start: Date, end: Date) => {
     if (!start || !end) return false
 
@@ -119,7 +120,7 @@ export default function WeekView({
 
   // 改进的事件布局算法，处理重叠事件
   const layoutEventsForDay = (dayEvents: CalendarEvent[], day: Date) => {
-    if (dayEvents.length === 0) return []
+    if (!dayEvents || dayEvents.length === 0) return []
 
     // 获取当天的事件时间
     const eventsWithTimes = dayEvents
