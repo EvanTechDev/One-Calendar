@@ -83,9 +83,8 @@ export default function Sidebar({
   return (
     <div className="w-80 border-r bg-background overflow-y-auto">
       <div className="p-4">
-        {/* Add calendar icon and title at the top */}
         <div className="flex items-center mb-4">
-          <CalendarIcon className="h-6 w-6 text-blue-500 mr-2" />
+          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2" />
           <h1 className="text-lg font-semibold">{t.calendar}</h1>
         </div>
 
