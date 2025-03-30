@@ -15,14 +15,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { restoreData, validatePassword } from "@/lib/backup-utils"
+import { validatePassword } from "@/lib/backup-utils"
 import { useCalendarContext } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events, calendars, setEvents, setCalendars } = useCalendarContext()
+  const { events, categories, setEvents, setCategories } = useCalendarContext()
 
   const [isBackupOpen, setIsBackupOpen] = useState(false)
   const [isRestoreOpen, setIsRestoreOpen] = useState(false)
@@ -30,6 +30,18 @@ export default function UserProfileButton() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [passwordError, setPasswordError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // 从密码生成唯一ID
+  function generateIdFromPassword(password: string): string {
+    // 简单的哈希函数，用于从密码生成唯一ID
+    let hash = 0
+    for (let i = 0; i < password.length; i++) {
+      const char = password.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // 转换为32位整数
+    }
+    return `backup_${Math.abs(hash).toString(16)}`
+  }
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -92,17 +104,40 @@ export default function UserProfileButton() {
       // 准备备份数据
       const backupData = {
         events,
-        calendars,
+        categories,
         contacts,
         notes,
         timestamp: new Date().toISOString(),
       }
 
-      console.log(`Backup: Prepared data with ${events.length} events, ${calendars.length} calendars`)
+      console.log(`Backup: Prepared data with ${events.length} events, ${categories.length} categories`)
 
-      // 备份到Vercel Blob
-      console.log("Backup: Calling backupData function")
-      const result = await backupData(password, backupData)
+      // 从密码生成唯一ID
+      const backupId = generateIdFromPassword(password)
+      console.log(`Backup: Generated backup ID: ${backupId}`)
+
+      // 直接使用fetch调用API
+      console.log("Backup: Sending data to API")
+      const response = await fetch("/api/blob", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: backupId,
+          data: backupData,
+        }),
+      })
+
+      console.log(`Backup: API response status: ${response.status}`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API returned status ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("Backup: API response:", result)
 
       if (result.success) {
         console.log("Backup: Backup successful")
@@ -115,7 +150,6 @@ export default function UserProfileButton() {
         })
         setIsBackupOpen(false)
       } else {
-        console.error("Backup: Backup failed", result.error)
         throw new Error(result.error || (language === "zh" ? "备份失败" : "Backup failed"))
       }
     } catch (error) {
@@ -145,44 +179,65 @@ export default function UserProfileButton() {
     try {
       console.log("Restore: Starting restore process")
 
-      // 从Vercel Blob恢复数据
-      console.log("Restore: Calling restoreData function")
-      const result = await restoreData(password)
+      // 从密码生成唯一ID
+      const backupId = generateIdFromPassword(password)
+      console.log(`Restore: Generated backup ID: ${backupId}`)
 
-      if (result.success && result.data) {
-        console.log("Restore: Restore successful, processing data")
+      // 直接使用fetch调用API
+      console.log("Restore: Fetching data from API")
+      const response = await fetch(`/api/blob?id=${backupId}`, {
+        method: "GET",
+      })
 
-        // 恢复数据到应用
-        const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = result.data
+      console.log(`Restore: API response status: ${response.status}`)
 
-        // 更新日历事件和分类
-        if (restoredEvents) {
-          console.log(`Restore: Restoring ${restoredEvents.length} events`)
-          setEvents(restoredEvents)
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(language === "zh" ? "未找到备份数据" : "No backup found for this password")
         }
 
-        if (restoredCalendars) {
-          console.log(`Restore: Restoring ${restoredCalendars.length} calendars`)
-          setCalendars(restoredCalendars)
-        }
-
-        // 更新localStorage中的联系人和笔记
-        console.log("Restore: Restoring contacts and notes to localStorage")
-        saveLocalData({
-          contacts: contacts || [],
-          notes: notes || [],
-        })
-
-        console.log("Restore: All data restored successfully")
-        toast({
-          title: language === "zh" ? "恢复成功" : "Restore Successful",
-          description: language === "zh" ? "您的数据已成功恢复。" : "Your data has been restored successfully.",
-        })
-        setIsRestoreOpen(false)
-      } else {
-        console.error("Restore: Restore failed", result.error)
-        throw new Error(result.error || (language === "zh" ? "未找到备份数据" : "No backup found"))
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API returned status ${response.status}`)
       }
+
+      const result = await response.json()
+      console.log("Restore: API response:", result)
+
+      if (!result.success || !result.data) {
+        throw new Error(language === "zh" ? "未找到备份数据" : "No backup data found")
+      }
+
+      // 解析数据
+      const restoredData = JSON.parse(result.data)
+      console.log("Restore: Successfully parsed data")
+
+      // 恢复数据到应用
+      const { events: restoredEvents, categories: restoredCategories, contacts, notes } = restoredData
+
+      // 更新日历事件和分类
+      if (restoredEvents) {
+        console.log(`Restore: Restoring ${restoredEvents.length} events`)
+        setEvents(restoredEvents)
+      }
+
+      if (restoredCategories) {
+        console.log(`Restore: Restoring ${restoredCategories.length} categories`)
+        setCategories(restoredCategories)
+      }
+
+      // 更新localStorage中的联系人和笔记
+      console.log("Restore: Restoring contacts and notes to localStorage")
+      saveLocalData({
+        contacts: contacts || [],
+        notes: notes || [],
+      })
+
+      console.log("Restore: All data restored successfully")
+      toast({
+        title: language === "zh" ? "恢复成功" : "Restore Successful",
+        description: language === "zh" ? "您的数据已成功恢复。" : "Your data has been restored successfully.",
+      })
+      setIsRestoreOpen(false)
     } catch (error) {
       console.error("Restore error:", error)
       toast({
