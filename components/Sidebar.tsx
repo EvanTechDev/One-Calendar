@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
 import { useCalendar } from "@/contexts/CalendarContext"
-import { Calendar2 } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -84,7 +84,7 @@ export default function Sidebar({
     <div className="w-80 border-r bg-background overflow-y-auto">
       <div className="p-4">
         <div className="flex items-center mb-4">
-          <Calendar2 className="h-6 w-6 text-[#0066ff] mr-2" />
+          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2" />
           <h1 className="text-lg font-semibold">{t.calendar}</h1>
         </div>
 
