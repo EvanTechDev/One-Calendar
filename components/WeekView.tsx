@@ -56,7 +56,7 @@ export default function WeekView({
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
   }
 
-  // 安全地检查事件���否跨越多天
+  // 安全地检查事件是否跨越多天
   const isMultiDayEvent = (start: Date, end: Date) => {
     if (!start || !end) return false
 
@@ -366,14 +366,24 @@ export default function WeekView({
                 )
               })}
 
-              {isSameDay(day, new Date()) && (
-                <div
-                  className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
-                  style={{
-                    top: `${new Date().getHours() * 60 + new Date().getMinutes()}px`,
-                  }}
-                />
-              )}
+              {isSameDay(day, new Date()) &&
+                (() => {
+                  // 获取当前本地时间
+                  const now = new Date()
+                  const currentHours = now.getHours()
+                  const currentMinutes = now.getMinutes()
+                  // 计算像素位置
+                  const topPosition = currentHours * 60 + currentMinutes
+
+                  return (
+                    <div
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
+                      style={{
+                        top: `${topPosition}px`,
+                      }}
+                    />
+                  )
+                })()}
             </div>
           )
         })}
