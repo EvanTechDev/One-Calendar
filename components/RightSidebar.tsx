@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -86,6 +86,28 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
   // 笔记编辑状态
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
 
+  useEffect(() => {
+    // 从localStorage加载联系人数据
+    const storedContacts = localStorage.getItem("contacts")
+    if (storedContacts) {
+      try {
+        setContacts(JSON.parse(storedContacts))
+      } catch (error) {
+        console.error("Error parsing contacts from localStorage:", error)
+      }
+    }
+
+    // 从localStorage加载笔记数据
+    const storedNotes = localStorage.getItem("notes")
+    if (storedNotes) {
+      try {
+        setNotes(JSON.parse(storedNotes))
+      } catch (error) {
+        console.error("Error parsing notes from localStorage:", error)
+      }
+    }
+  }, [])
+
   // 添加新联系人
   const startAddContact = () => {
     setNewContact({
@@ -126,24 +148,34 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
   const saveContact = () => {
     if (!newContact.name || !newContact.color) return // 名称和颜色是必填项
 
+    let updatedContacts = []
+
     if (selectedContact) {
       // 更新现有联系人
-      setContacts(contacts.map((c) => (c.id === selectedContact.id ? ({ ...c, ...newContact } as Contact) : c)))
+      updatedContacts = contacts.map((c) => (c.id === selectedContact.id ? ({ ...c, ...newContact } as Contact) : c))
     } else {
       // 添加新联系人
       const contact = {
         ...newContact,
         id: Date.now().toString(),
       } as Contact
-      setContacts([...contacts, contact])
+      updatedContacts = [...contacts, contact]
     }
+
+    // 更新状态和localStorage
+    setContacts(updatedContacts)
+    localStorage.setItem("contacts", JSON.stringify(updatedContacts))
+
     setContactView("list")
     setSelectedContact(null)
   }
 
   // 删除联系人
   const deleteContact = (id: string) => {
-    setContacts(contacts.filter((contact) => contact.id !== id))
+    const updatedContacts = contacts.filter((contact) => contact.id !== id)
+    setContacts(updatedContacts)
+    localStorage.setItem("contacts", JSON.stringify(updatedContacts))
+
     if (selectedContact?.id === id) {
       setSelectedContact(null)
       setContactView("list")
@@ -157,18 +189,25 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
       title: "",
       content: "",
     }
-    setNotes([...notes, newNote])
+    const updatedNotes = [...notes, newNote]
+    setNotes(updatedNotes)
+    localStorage.setItem("notes", JSON.stringify(updatedNotes))
     setEditingNoteId(newNote.id)
   }
 
   // 更新笔记
   const updateNote = (id: string, data: Partial<Note>) => {
-    setNotes(notes.map((note) => (note.id === id ? { ...note, ...data } : note)))
+    const updatedNotes = notes.map((note) => (note.id === id ? { ...note, ...data } : note))
+    setNotes(updatedNotes)
+    localStorage.setItem("notes", JSON.stringify(updatedNotes))
   }
 
   // 删除笔记
   const deleteNote = (id: string) => {
-    setNotes(notes.filter((note) => note.id !== id))
+    const updatedNotes = notes.filter((note) => note.id !== id)
+    setNotes(updatedNotes)
+    localStorage.setItem("notes", JSON.stringify(updatedNotes))
+
     if (editingNoteId === id) {
       setEditingNoteId(null)
     }
@@ -500,8 +539,8 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
 
   return (
     <>
-      {/* 右侧图标栏 - 固定在右侧，从顶部栏下方开始 */}
-      <div className="w-14 bg-background border-l flex flex-col items-center py-4 h-[calc(100vh-4rem)] fixed right-0 top-16 z-30">
+      {/* 右侧图标栏 - 固定在右侧，从顶部栏下方开始，没有空白 */}
+      <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
         <div className="flex flex-col items-center space-y-8 flex-1">
           {/* Mini Calendar Button - 现在是第一个按钮 */}
           <Button

@@ -22,6 +22,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
   const formatTime = (hour: number) => {
+    // 使用24小时制格式化时间
     return `${hour.toString().padStart(2, "0")}:00`
   }
 
@@ -29,7 +30,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
+      hour12: false, // 使用24小时制
       timeZone: timezone,
     }
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
@@ -95,7 +96,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
 
   // 改进的事件布局算法，处理重叠事件
   const layoutEvents = (events: CalendarEvent[]) => {
-    if (events.length === 0) return []
+    if (!events || events.length === 0) return []
 
     // 获取当天的事件时间
     const eventsWithTimes = events
@@ -314,11 +315,11 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             let positionLabel = ""
             if (isPartial) {
               if (position === "start") {
-                positionLabel = " (继续...)"
+                positionLabel = language === "zh" ? " (继续...)" : " (continues...)"
               } else if (position === "end") {
-                positionLabel = " (...结束)"
+                positionLabel = language === "zh" ? " (...结束)" : " (...ends)"
               } else if (position === "middle") {
-                positionLabel = " (...继续...)"
+                positionLabel = language === "zh" ? " (...继续...)" : " (...continues...)"
               }
             }
 
@@ -357,12 +358,23 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             )
           })}
 
-          <div
-            className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
-            style={{
-              top: `${new Date().getHours() * 60 + new Date().getMinutes()}px`,
-            }}
-          />
+          {(() => {
+            // 获取当前本地时间
+            const now = new Date()
+            const currentHours = now.getHours()
+            const currentMinutes = now.getMinutes()
+            // 计算像素位置
+            const topPosition = currentHours * 60 + currentMinutes
+
+            return (
+              <div
+                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
+                style={{
+                  top: `${topPosition}px`,
+                }}
+              />
+            )
+          })()}
         </div>
       </div>
     </div>

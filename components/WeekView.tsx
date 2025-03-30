@@ -42,6 +42,7 @@ export default function WeekView({
   const today = new Date() // 获取今天的日期
 
   const formatTime = (hour: number) => {
+    // 使用24小时制格式化时间
     return `${hour.toString().padStart(2, "0")}:00`
   }
 
@@ -49,7 +50,7 @@ export default function WeekView({
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
+      hour12: false, // 使用24小时制
       timeZone: timezone,
     }
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
@@ -119,7 +120,7 @@ export default function WeekView({
 
   // 改进的事件布局算法，处理重叠事件
   const layoutEventsForDay = (dayEvents: CalendarEvent[], day: Date) => {
-    if (dayEvents.length === 0) return []
+    if (!dayEvents || dayEvents.length === 0) return []
 
     // 获取当天的事件时间
     const eventsWithTimes = dayEvents
@@ -365,14 +366,24 @@ export default function WeekView({
                 )
               })}
 
-              {isSameDay(day, new Date()) && (
-                <div
-                  className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
-                  style={{
-                    top: `${new Date().getHours() * 60 + new Date().getMinutes()}px`,
-                  }}
-                />
-              )}
+              {isSameDay(day, new Date()) &&
+                (() => {
+                  // 获取当前本地时间
+                  const now = new Date()
+                  const currentHours = now.getHours()
+                  const currentMinutes = now.getMinutes()
+                  // 计算像素位置
+                  const topPosition = currentHours * 60 + currentMinutes
+
+                  return (
+                    <div
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-10"
+                      style={{
+                        top: `${topPosition}px`,
+                      }}
+                    />
+                  )
+                })()}
             </div>
           )
         })}
