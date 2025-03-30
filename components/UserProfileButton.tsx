@@ -15,14 +15,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { backupData, restoreData, validatePassword } from "@/lib/backup-utils"
+import { restoreData, validatePassword } from "@/lib/backup-utils"
 import { useCalendarContext } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events, categories, setEvents, setCategories } = useCalendarContext()
+  const { events, calendars, setEvents, setCalendars } = useCalendarContext()
 
   const [isBackupOpen, setIsBackupOpen] = useState(false)
   const [isRestoreOpen, setIsRestoreOpen] = useState(false)
@@ -33,15 +33,33 @@ export default function UserProfileButton() {
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
-    const contacts = JSON.parse(localStorage.getItem("contacts") || "[]")
-    const notes = JSON.parse(localStorage.getItem("notes") || "[]")
-    return { contacts, notes }
+    try {
+      console.log("Getting data from localStorage")
+      const contacts = JSON.parse(localStorage.getItem("contacts") || "[]")
+      const notes = JSON.parse(localStorage.getItem("notes") || "[]")
+      console.log(`Found ${contacts.length} contacts and ${notes.length} notes`)
+      return { contacts, notes }
+    } catch (error) {
+      console.error("Error getting data from localStorage:", error)
+      return { contacts: [], notes: [] }
+    }
   }
 
   // 将数据保存到localStorage
   const saveLocalData = (data: { contacts: any[]; notes: any[] }) => {
-    localStorage.setItem("contacts", JSON.stringify(data.contacts))
-    localStorage.setItem("notes", JSON.stringify(data.notes))
+    try {
+      console.log(`Saving ${data.contacts.length} contacts and ${data.notes.length} notes to localStorage`)
+      localStorage.setItem("contacts", JSON.stringify(data.contacts))
+      localStorage.setItem("notes", JSON.stringify(data.notes))
+      console.log("Data saved to localStorage")
+    } catch (error) {
+      console.error("Error saving data to localStorage:", error)
+      toast({
+        variant: "destructive",
+        title: language === "zh" ? "保存本地数据失败" : "Failed to save local data",
+        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
+      })
+    }
   }
 
   // 处理备份
@@ -63,22 +81,31 @@ export default function UserProfileButton() {
     }
 
     setIsLoading(true)
+    setPasswordError("")
 
     try {
+      console.log("Backup: Starting backup process")
+
       // 获取所有数据
       const { contacts, notes } = getLocalData()
-      const data = {
+
+      // 准备备份数据
+      const backupData = {
         events,
-        categories,
+        calendars,
         contacts,
         notes,
         timestamp: new Date().toISOString(),
       }
 
-      // 备份数据
-      const result = await backupData(password, data)
+      console.log(`Backup: Prepared data with ${events.length} events, ${calendars.length} calendars`)
+
+      // 备份到Vercel Blob
+      console.log("Backup: Calling backupData function")
+      const result = await backupData(password, backupData)
 
       if (result.success) {
+        console.log("Backup: Backup successful")
         toast({
           title: language === "zh" ? "备份成功" : "Backup Successful",
           description:
@@ -88,11 +115,8 @@ export default function UserProfileButton() {
         })
         setIsBackupOpen(false)
       } else {
-        toast({
-          variant: "destructive",
-          title: language === "zh" ? "备份失败" : "Backup Failed",
-          description: result.error || (language === "zh" ? "未知错误" : "Unknown error"),
-        })
+        console.error("Backup: Backup failed", result.error)
+        throw new Error(result.error || (language === "zh" ? "备份失败" : "Backup failed"))
       }
     } catch (error) {
       console.error("Backup error:", error)
@@ -105,7 +129,6 @@ export default function UserProfileButton() {
       setIsLoading(false)
       setPassword("")
       setConfirmPassword("")
-      setPasswordError("")
     }
   }
 
@@ -117,33 +140,48 @@ export default function UserProfileButton() {
     }
 
     setIsLoading(true)
+    setPasswordError("")
 
     try {
-      // 恢复数据
+      console.log("Restore: Starting restore process")
+
+      // 从Vercel Blob恢复数据
+      console.log("Restore: Calling restoreData function")
       const result = await restoreData(password)
 
       if (result.success && result.data) {
-        // 更新日程和分类
-        setEvents(result.data.events || [])
-        setCategories(result.data.categories || [])
+        console.log("Restore: Restore successful, processing data")
 
-        // 更新联系人和笔记
+        // 恢复数据到应用
+        const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = result.data
+
+        // 更新日历事件和分类
+        if (restoredEvents) {
+          console.log(`Restore: Restoring ${restoredEvents.length} events`)
+          setEvents(restoredEvents)
+        }
+
+        if (restoredCalendars) {
+          console.log(`Restore: Restoring ${restoredCalendars.length} calendars`)
+          setCalendars(restoredCalendars)
+        }
+
+        // 更新localStorage中的联系人和笔记
+        console.log("Restore: Restoring contacts and notes to localStorage")
         saveLocalData({
-          contacts: result.data.contacts || [],
-          notes: result.data.notes || [],
+          contacts: contacts || [],
+          notes: notes || [],
         })
 
+        console.log("Restore: All data restored successfully")
         toast({
           title: language === "zh" ? "恢复成功" : "Restore Successful",
           description: language === "zh" ? "您的数据已成功恢复。" : "Your data has been restored successfully.",
         })
         setIsRestoreOpen(false)
       } else {
-        toast({
-          variant: "destructive",
-          title: language === "zh" ? "恢复失败" : "Restore Failed",
-          description: result.error || (language === "zh" ? "未找到备份数据" : "Backup not found"),
-        })
+        console.error("Restore: Restore failed", result.error)
+        throw new Error(result.error || (language === "zh" ? "未找到备份数据" : "No backup found"))
       }
     } catch (error) {
       console.error("Restore error:", error)
@@ -155,7 +193,6 @@ export default function UserProfileButton() {
     } finally {
       setIsLoading(false)
       setPassword("")
-      setPasswordError("")
     }
   }
 
