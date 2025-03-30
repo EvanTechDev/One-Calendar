@@ -84,7 +84,7 @@ export default function Sidebar({
     <div className="w-80 border-r bg-background overflow-y-auto">
       <div className="p-4">
         <div className="flex items-center mb-4">
-          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2" />
+          <Calendar2 className="h-6 w-6 text-[#0066ff] mr-2" />
           <h1 className="text-lg font-semibold">{t.calendar}</h1>
         </div>
 
