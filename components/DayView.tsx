@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
@@ -268,6 +268,23 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     return () => clearTimeout(timer)
   }, [date])
 
+  // Add a state variable and useEffect for auto-updating the time indicator
+  // Add this near the top of the component, after other state variables:
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Add this useEffect to update the time every minute
+  useEffect(() => {
+    // Update time immediately
+    setCurrentTime(new Date())
+
+    // Set up interval to update time every minute
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000) // 60000 ms = 1 minute
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
@@ -359,11 +376,21 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           })}
 
           {(() => {
-            // 获取当前本地时间
-            const now = new Date()
-            const currentHours = now.getHours()
-            const currentMinutes = now.getMinutes()
-            // 计算像素位置
+            // Format the time string in the selected timezone
+            const timeOptions: Intl.DateTimeFormatOptions = {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: timezone,
+            }
+
+            // Get the hours and minutes in the selected timezone
+            const timeString = new Intl.DateTimeFormat("en-US", timeOptions).format(currentTime)
+            const [hoursStr, minutesStr] = timeString.split(":")
+            const currentHours = Number.parseInt(hoursStr, 10)
+            const currentMinutes = Number.parseInt(minutesStr, 10)
+
+            // Calculate pixel position
             const topPosition = currentHours * 60 + currentMinutes
 
             return (
