@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -60,7 +60,8 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "ics": "latest",
-    "@vercel/blob": "latest"
+    "@vercel/blob": "latest",
+    "framer-motion": "^12.6.2"
   },
   "devDependencies": {
     "@types/node": "^22",

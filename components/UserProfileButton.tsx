@@ -55,27 +55,33 @@ export default function UserProfileButton() {
       console.log("Getting data from localStorage")
       const contactsStr = localStorage.getItem("contacts")
       const notesStr = localStorage.getItem("notes")
+      const sharedEventsStr = localStorage.getItem("shared-events") // 添加获取分享事件列表
 
       const contacts = contactsStr ? JSON.parse(contactsStr) : []
       const notes = notesStr ? JSON.parse(notesStr) : []
+      const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : [] // 解析分享事件列表
 
-      console.log(`Found ${contacts.length} contacts and ${notes.length} notes`)
-      return { contacts, notes }
+      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, and ${sharedEvents.length} shared events`)
+      return { contacts, notes, sharedEvents } // 返回包含分享事件的数据
     } catch (error) {
       console.error("Error getting data from localStorage:", error)
-      return { contacts: [], notes: [] }
+      return { contacts: [], notes: [], sharedEvents: [] } // 包含空的分享事件列表
     }
   }
 
   // 将数据保存到localStorage
-  const saveLocalData = (data: { contacts?: any[]; notes?: any[] }) => {
+  const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[] }) => {
     try {
       const contacts = data.contacts || []
       const notes = data.notes || []
+      const sharedEvents = data.sharedEvents || [] // 获取分享事件列表
 
-      console.log(`Saving ${contacts.length} contacts and ${notes.length} notes to localStorage`)
+      console.log(
+        `Saving ${contacts.length} contacts, ${notes.length} notes, and ${sharedEvents.length} shared events to localStorage`,
+      )
       localStorage.setItem("contacts", JSON.stringify(contacts))
       localStorage.setItem("notes", JSON.stringify(notes))
+      localStorage.setItem("shared-events", JSON.stringify(sharedEvents)) // 保存分享事件列表
       console.log("Data saved to localStorage")
     } catch (error) {
       console.error("Error saving data to localStorage:", error)
@@ -112,7 +118,7 @@ export default function UserProfileButton() {
       console.log("Backup: Starting backup process")
 
       // 获取所有数据
-      const { contacts, notes } = getLocalData()
+      const { contacts, notes, sharedEvents } = getLocalData() // 获取包含分享事件的数据
 
       // 准备备份数据
       const backupData = {
@@ -120,11 +126,12 @@ export default function UserProfileButton() {
         calendars: calendars || [],
         contacts,
         notes,
+        sharedEvents, // 添加分享事件到备份数据
         timestamp: new Date().toISOString(),
       }
 
       console.log(
-        `Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars`,
+        `Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, and ${backupData.sharedEvents.length} shared events`,
       )
 
       // 从密码生成唯一ID
@@ -247,7 +254,7 @@ export default function UserProfileButton() {
       console.log("Restore: Successfully parsed data")
 
       // Restore data to application
-      const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = restoredData
+      const { events: restoredEvents, calendars: restoredCalendars, contacts, notes, sharedEvents } = restoredData
 
       // Update calendar events and categories based on replaceExistingData checkbox
       if (Array.isArray(restoredEvents)) {
@@ -278,12 +285,13 @@ export default function UserProfileButton() {
         console.warn("Restore: No valid calendars data found")
       }
 
-      // Update contacts and notes in localStorage based on replaceExistingData checkbox
-      console.log("Restore: Restoring contacts and notes to localStorage")
+      // Update contacts, notes, and shared events in localStorage based on replaceExistingData checkbox
+      console.log("Restore: Restoring contacts, notes, and shared events to localStorage")
       if (replaceExistingData) {
         saveLocalData({
           contacts: Array.isArray(contacts) ? contacts : [],
           notes: Array.isArray(notes) ? notes : [],
+          sharedEvents: Array.isArray(sharedEvents) ? sharedEvents : [], // 恢复分享事件列表
         })
       } else {
         // Merge with existing data
@@ -299,9 +307,16 @@ export default function UserProfileButton() {
         const existingNoteIds = existingData.notes.map((note) => note.id)
         const newNotes = Array.isArray(notes) ? notes.filter((note) => !existingNoteIds.includes(note.id)) : []
 
+        // Merge shared events, avoiding duplicates by ID
+        const existingSharedEventIds = existingData.sharedEvents.map((event) => event.id)
+        const newSharedEvents = Array.isArray(sharedEvents)
+          ? sharedEvents.filter((event) => !existingSharedEventIds.includes(event.id))
+          : []
+
         saveLocalData({
           contacts: [...existingData.contacts, ...newContacts],
           notes: [...existingData.notes, ...newNotes],
+          sharedEvents: [...existingData.sharedEvents, ...newSharedEvents], // 合并分享事件列表
         })
       }
 
@@ -371,7 +386,7 @@ export default function UserProfileButton() {
       console.log("Auto-Backup: Starting backup process")
 
       // Get all data
-      const { contacts, notes } = getLocalData()
+      const { contacts, notes, sharedEvents } = getLocalData() // 获取包含分享事件的数据
 
       // Prepare backup data
       const backupData = {
@@ -379,11 +394,12 @@ export default function UserProfileButton() {
         calendars: calendars || [],
         contacts,
         notes,
+        sharedEvents, // 添加分享事件到自动备份数据
         timestamp: new Date().toISOString(),
       }
 
       console.log(
-        `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars`,
+        `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, and ${backupData.sharedEvents.length} shared events`,
       )
 
       // Directly use fetch to call API
