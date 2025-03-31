@@ -172,9 +172,9 @@ export default function SharedEventPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-grey-800">
         <div className="relative">
-          <div className="absolute inset-0 flex items-center justify-center">
+          {/*<div className="absolute inset-0 flex items-center justify-center">
             <div className="h-16 w-16 rounded-full border-4 border-blue-200 dark:border-blue-800 opacity-75"></div>
-          </div>
+          </div>*/}
           <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
         </div>
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
