@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2 } from "lucide-react"
+import { useState, useRef } from "react"
+import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { zhCN, enUS } from "date-fns/locale"
 import { format } from "date-fns"
@@ -44,6 +44,9 @@ export default function EventPreview({
   const [nickname, setNickname] = useState("")
   const [shareLink, setShareLink] = useState("")
   const [isSharing, setIsSharing] = useState(false)
+  
+  // 添加一个 ref 来防止事件冒泡
+  const dialogContentRef = useRef<HTMLDivElement>(null)
 
   // If event is null or not open, don't render anything
   if (!event || !open) {
@@ -175,6 +178,11 @@ export default function EventPreview({
     }
     setShareDialogOpen(open)
   }
+  
+  // 阻止事件冒泡的处理函数
+  const handleDialogClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
 
   return (
     <div
@@ -299,7 +307,7 @@ export default function EventPreview({
       </div>
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "分享事件" : "Share Event"}</DialogTitle>
           </DialogHeader>
@@ -313,6 +321,7 @@ export default function EventPreview({
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder={language === "zh" ? "输入您的昵称" : "Enter your nickname"}
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <p className="text-sm text-muted-foreground">
                   {language === "zh"
@@ -322,10 +331,22 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => handleShareDialogChange(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShareDialogChange(false);
+                  }}
+                >
                   {language === "zh" ? "取消" : "Cancel"}
                 </Button>
-                <Button onClick={handleShare} disabled={!nickname || isSharing}>
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShare();
+                  }} 
+                  disabled={!nickname || isSharing}
+                >
                   {isSharing ? (
                     <span className="flex items-center">
                       <svg
@@ -361,8 +382,24 @@ export default function EventPreview({
               <div className="space-y-2">
                 <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
                 <div className="flex items-center space-x-2">
-                  <Input id="share-link" value={shareLink} readOnly className="flex-1" />
-                  <Button variant="outline" size="sm" onClick={copyShareLink}>
+                  <Input 
+                    id="share-link" 
+                    value={shareLink} 
+                    readOnly 
+                    className="flex-1" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyShareLink();
+                    }}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyShareLink();
+                    }}
+                  >
                     {language === "zh" ? "复制" : "Copy"}
                   </Button>
                 </div>
@@ -374,7 +411,14 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button onClick={() => handleShareDialogChange(false)}>{language === "zh" ? "完成" : "Done"}</Button>
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShareDialogChange(false);
+                  }}
+                >
+                  {language === "zh" ? "完成" : "Done"}
+                </Button>
               </DialogFooter>
             </div>
           )}
@@ -383,4 +427,3 @@ export default function EventPreview({
     </div>
   )
 }
-
