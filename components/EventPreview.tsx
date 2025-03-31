@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown } from "lucide-react"
+import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { zhCN, enUS } from "date-fns/locale"
 import { format } from "date-fns"
@@ -10,6 +10,10 @@ import type { Language } from "@/lib/i18n"
 import { translations } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { useCalendar } from "@/contexts/CalendarContext"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/use-toast"
 
 interface EventPreviewProps {
   event: CalendarEvent | null
@@ -36,6 +40,10 @@ export default function EventPreview({
   const t = translations[language]
   const locale = language === "zh" ? zhCN : enUS
   const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [nickname, setNickname] = useState("")
+  const [shareLink, setShareLink] = useState("")
+  const [isSharing, setIsSharing] = useState(false)
 
   // If event is null or not open, don't render anything
   if (!event || !open) {
@@ -84,6 +92,81 @@ export default function EventPreview({
     setParticipantsOpen(!participantsOpen)
   }
 
+  const handleShare = async () => {
+    if (!event || !nickname) return
+
+    try {
+      setIsSharing(true)
+
+      // Generate a unique share ID
+      const shareId = Date.now().toString() + Math.random().toString(36).substring(2, 9)
+
+      // Create the shared event data
+      const sharedEvent = {
+        ...event,
+        sharedBy: nickname,
+      }
+
+      // Send to API
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: shareId,
+          data: sharedEvent,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to share event")
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Generate the share link
+        const shareLink = `${window.location.origin}/share/${shareId}`
+        setShareLink(shareLink)
+
+        // Store the share in localStorage for management
+        const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]")
+        storedShares.push({
+          id: shareId,
+          eventId: event.id,
+          eventTitle: event.title,
+          sharedBy: nickname,
+          shareDate: new Date().toISOString(),
+          shareLink,
+        })
+        localStorage.setItem("shared-events", JSON.stringify(storedShares))
+      } else {
+        throw new Error("Failed to share event")
+      }
+    } catch (error) {
+      console.error("Error sharing event:", error)
+      toast({
+        title: language === "zh" ? "分享失败" : "Share Failed",
+        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  // Add a function to copy share link
+  const copyShareLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink)
+      toast({
+        title: language === "zh" ? "链接已复制" : "Link Copied",
+        description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
+      })
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -99,6 +182,9 @@ export default function EventPreview({
           <div className="flex space-x-2 ml-auto">
             <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
               <Edit2 className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(true)} className="h-8 w-8">
+              <Share2 className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8">
               <Trash2 className="h-5 w-5" />
@@ -202,6 +288,89 @@ export default function EventPreview({
           )}
         </div>
       </div>
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "分享事件" : "Share Event"}</DialogTitle>
+          </DialogHeader>
+
+          {!shareLink ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="nickname">{language === "zh" ? "昵称" : "Nickname"}</Label>
+                <Input
+                  id="nickname"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder={language === "zh" ? "输入您的昵称" : "Enter your nickname"}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {language === "zh"
+                    ? "您的昵称将显示为此事件的分享者。"
+                    : "Your nickname will be displayed as the sharer of this event."}
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShareDialogOpen(false)}>
+                  {language === "zh" ? "取消" : "Cancel"}
+                </Button>
+                <Button onClick={handleShare} disabled={!nickname || isSharing}>
+                  {isSharing ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {language === "zh" ? "分享中..." : "Sharing..."}
+                    </span>
+                  ) : (
+                    <>{language === "zh" ? "分享" : "Share"}</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
+                <div className="flex items-center space-x-2">
+                  <Input id="share-link" value={shareLink} readOnly className="flex-1" />
+                  <Button variant="outline" size="sm" onClick={copyShareLink}>
+                    {language === "zh" ? "复制" : "Copy"}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {language === "zh"
+                    ? "任何拥有此链接的人都可以查看此事件。"
+                    : "Anyone with this link can view this event."}
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button onClick={() => setShareDialogOpen(false)}>{language === "zh" ? "完成" : "Done"}</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
