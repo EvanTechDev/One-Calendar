@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
@@ -40,6 +40,52 @@ export default function WeekView({
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const today = new Date() // 获取今天的日期
+
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Add this useEffect to update the time every minute
+  const hasScrolledRef = useRef(false)
+
+  // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
+  useEffect(() => {
+    // 只在组件挂载时执行一次滚动
+    if (!hasScrolledRef.current && scrollContainerRef.current) {
+      const now = new Date()
+      const currentHour = now.getHours()
+
+      // 找到对应当前小时的DOM元素
+      const hourElements = scrollContainerRef.current.querySelectorAll(".h-\\[60px\\]")
+      if (hourElements.length > 0 && currentHour < hourElements.length) {
+        // 获取当前小时的元素
+        const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
+
+        if (currentHourElement) {
+          // 滚动到当前小时的位置，并向上偏移100px使其在视图中间偏上
+          scrollContainerRef.current.scrollTo({
+            top: (currentHourElement as HTMLElement).offsetTop - 100,
+            behavior: "auto",
+          })
+
+          // 标记已经滚动过
+          hasScrolledRef.current = true
+        }
+      }
+    }
+  }, [date, weekDays])
+
+  // 修改时间更新逻辑，只更新时间线位置，不改变滚动位置
+  useEffect(() => {
+    // 立即更新时间
+    setCurrentTime(new Date())
+
+    // 设置定时器每分钟更新时间
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+      // 不再调用滚动函数
+    }, 60000) // 60000 ms = 1 分钟
+
+    return () => clearInterval(interval)
+  }, [])
 
   const formatTime = (hour: number) => {
     // 使用24小时制格式化时间
@@ -259,33 +305,7 @@ export default function WeekView({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // 添加自动滚动到当前时间的效果
-  useEffect(() => {
-    // 使用setTimeout确保DOM已完全渲染
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        const now = new Date()
-        const currentHour = now.getHours()
-
-        // 找到对应当前小时的DOM元素
-        const hourElements = scrollContainerRef.current.querySelectorAll(".h-\\[60px\\]")
-        if (hourElements.length > 0 && currentHour < hourElements.length) {
-          // 获取当前小时的元素 (注意这里的索引计算)
-          const hourElementsPerDay = 24 // 每天24小时
-          const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
-
-          if (currentHourElement) {
-            // 滚动到当前小时的位置，并向上偏移100px使其在视图中间偏上
-            scrollContainerRef.current.scrollTo({
-              top: (currentHourElement as HTMLElement).offsetTop - 100,
-              behavior: "auto",
-            })
-          }
-        }
-      }
-    }, 100) // 短暂延迟确保DOM已渲染
-
-    return () => clearTimeout(timer)
-  }, [date, weekDays]) // 当日期或周视图变化时重新执行
+  // 添加自动滚动到当前时间的效果
 
   return (
     <div className="flex flex-col h-full">
@@ -366,12 +386,22 @@ export default function WeekView({
                 )
               })}
 
-              {isSameDay(day, new Date()) &&
+              {isSameDay(day, today) &&
                 (() => {
-                  // 获取当前本地时间
-                  const now = new Date()
-                  const currentHours = now.getHours()
-                  const currentMinutes = now.getMinutes()
+                  // 获取当前时区的时间
+                  const timeOptions: Intl.DateTimeFormatOptions = {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                    timeZone: timezone,
+                  }
+
+                  // 获取小时和分钟
+                  const timeString = new Intl.DateTimeFormat("en-US", timeOptions).format(currentTime)
+                  const [hoursStr, minutesStr] = timeString.split(":")
+                  const currentHours = Number.parseInt(hoursStr, 10)
+                  const currentMinutes = Number.parseInt(minutesStr, 10)
+
                   // 计算像素位置
                   const topPosition = currentHours * 60 + currentMinutes
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react" // 添加useEffect
+import { useState, useEffect } from "react"
 import TimeAnalyticsComponent from "./TimeAnalytics"
 import ImportExport from "./ImportExport"
 import AnalyticsGuide from "./AnalyticsGuide"
@@ -8,6 +8,7 @@ import type { CalendarEvent } from "./Calendar"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
+import ShareManagement from "./ShareManagement"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
@@ -60,6 +61,7 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
           onImportEvents={onImportEvents}
           key={`import-export-${language}-${forceUpdate}`}
         />
+        <ShareManagement key={`share-management-${language}-${forceUpdate}`} />
       </div>
     </div>
   )

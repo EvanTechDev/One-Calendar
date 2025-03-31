@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { User, Upload, Download, X, Check } from "lucide-react"
+import { useState, useEffect } from "react"
+import { User, Upload, Download, X, Check, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/use-toast"
 import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -30,6 +31,23 @@ export default function UserProfileButton() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [passwordError, setPasswordError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // First, add new state variables for the replace data checkbox and auto-backup dialog
+  const [replaceExistingData, setReplaceExistingData] = useState(true)
+  const [showAutoBackupDialog, setShowAutoBackupDialog] = useState(false)
+  const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
+  const [currentBackupId, setCurrentBackupId] = useState<string | null>(null)
+
+  // Add useEffect to load auto-backup state from localStorage
+  useEffect(() => {
+    const storedAutoBackup = localStorage.getItem("auto-backup-enabled")
+    const storedBackupId = localStorage.getItem("auto-backup-id")
+
+    if (storedAutoBackup === "true" && storedBackupId) {
+      setIsAutoBackupEnabled(true)
+      setCurrentBackupId(storedBackupId)
+    }
+  }, [])
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -164,7 +182,7 @@ export default function UserProfileButton() {
     }
   }
 
-  // 处理恢复
+  // Modify the handleRestore function to check the replaceExistingData checkbox
   const handleRestore = async () => {
     if (!password) {
       setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password")
@@ -177,11 +195,11 @@ export default function UserProfileButton() {
     try {
       console.log("Restore: Starting restore process")
 
-      // 从密码生成唯一ID
+      // From password generate unique ID
       const backupId = generateIdFromPassword(password)
       console.log(`Restore: Generated backup ID: ${backupId}`)
 
-      // 直接使用fetch调用API
+      // Directly use fetch to call API
       console.log("Restore: Fetching data from API")
       const response = await fetch(`/api/blob?id=${backupId}`, {
         method: "GET",
@@ -212,10 +230,10 @@ export default function UserProfileButton() {
         throw new Error(language === "zh" ? "未找到备份数据" : "No backup data found")
       }
 
-      // 解析数据
+      // Parse data
       let restoredData
       try {
-        // 检查数据是否已经是对象
+        // Check if data is already an object
         if (typeof result.data === "object") {
           restoredData = result.data
         } else {
@@ -228,37 +246,77 @@ export default function UserProfileButton() {
 
       console.log("Restore: Successfully parsed data")
 
-      // 恢复数据到应用
+      // Restore data to application
       const { events: restoredEvents, calendars: restoredCalendars, contacts, notes } = restoredData
 
-      // 更新日历事件和分类
+      // Update calendar events and categories based on replaceExistingData checkbox
       if (Array.isArray(restoredEvents)) {
         console.log(`Restore: Restoring ${restoredEvents.length} events`)
-        setEvents(restoredEvents)
+        if (replaceExistingData) {
+          setEvents(restoredEvents)
+        } else {
+          // Merge with existing events, avoiding duplicates by ID
+          const existingIds = events.map((event) => event.id)
+          const newEvents = restoredEvents.filter((event) => !existingIds.includes(event.id))
+          setEvents([...events, ...newEvents])
+        }
       } else {
         console.warn("Restore: No valid events data found")
       }
 
       if (Array.isArray(restoredCalendars)) {
         console.log(`Restore: Restoring ${restoredCalendars.length} calendars`)
-        setCalendars(restoredCalendars)
+        if (replaceExistingData) {
+          setCalendars(restoredCalendars)
+        } else {
+          // Merge with existing calendars, avoiding duplicates by ID
+          const existingIds = calendars.map((cal) => cal.id)
+          const newCalendars = restoredCalendars.filter((cal) => !existingIds.includes(cal.id))
+          setCalendars([...calendars, ...newCalendars])
+        }
       } else {
         console.warn("Restore: No valid calendars data found")
       }
 
-      // 更新localStorage中的联系人和笔记
+      // Update contacts and notes in localStorage based on replaceExistingData checkbox
       console.log("Restore: Restoring contacts and notes to localStorage")
-      saveLocalData({
-        contacts: Array.isArray(contacts) ? contacts : [],
-        notes: Array.isArray(notes) ? notes : [],
-      })
+      if (replaceExistingData) {
+        saveLocalData({
+          contacts: Array.isArray(contacts) ? contacts : [],
+          notes: Array.isArray(notes) ? notes : [],
+        })
+      } else {
+        // Merge with existing data
+        const existingData = getLocalData()
+
+        // Merge contacts, avoiding duplicates by ID
+        const existingContactIds = existingData.contacts.map((contact) => contact.id)
+        const newContacts = Array.isArray(contacts)
+          ? contacts.filter((contact) => !existingContactIds.includes(contact.id))
+          : []
+
+        // Merge notes, avoiding duplicates by ID
+        const existingNoteIds = existingData.notes.map((note) => note.id)
+        const newNotes = Array.isArray(notes) ? notes.filter((note) => !existingNoteIds.includes(note.id)) : []
+
+        saveLocalData({
+          contacts: [...existingData.contacts, ...newContacts],
+          notes: [...existingData.notes, ...newNotes],
+        })
+      }
 
       console.log("Restore: All data restored successfully")
       toast({
         title: language === "zh" ? "恢复成功" : "Restore Successful",
         description: language === "zh" ? "您的数据已成功恢复。" : "Your data has been restored successfully.",
       })
+
       setIsRestoreOpen(false)
+
+      // Show auto-backup dialog after successful restore
+      setShowAutoBackupDialog(true)
+      // Save the backup ID for potential auto-backup
+      setCurrentBackupId(backupId)
     } catch (error) {
       console.error("Restore error:", error)
       toast({
@@ -271,6 +329,93 @@ export default function UserProfileButton() {
       setPassword("")
     }
   }
+
+  // Add a function to enable auto-backup
+  const enableAutoBackup = () => {
+    if (currentBackupId) {
+      setIsAutoBackupEnabled(true)
+      localStorage.setItem("auto-backup-enabled", "true")
+      localStorage.setItem("auto-backup-id", currentBackupId)
+
+      toast({
+        title: language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled",
+        description:
+          language === "zh"
+            ? "您的数据将在每次更改时自动备份。"
+            : "Your data will be automatically backed up whenever changes are made.",
+      })
+
+      setShowAutoBackupDialog(false)
+    }
+  }
+
+  // Add a function to disable auto-backup (logout)
+  const disableAutoBackup = () => {
+    setIsAutoBackupEnabled(false)
+    localStorage.removeItem("auto-backup-enabled")
+    localStorage.removeItem("auto-backup-id")
+    setCurrentBackupId(null)
+
+    toast({
+      title: language === "zh" ? "自动备份已禁用" : "Auto-Backup Disabled",
+      description:
+        language === "zh" ? "您的数据将不再自动备份。" : "Your data will no longer be automatically backed up.",
+    })
+  }
+
+  // Add a function to perform auto-backup
+  const performAutoBackup = async () => {
+    if (!isAutoBackupEnabled || !currentBackupId) return
+
+    try {
+      console.log("Auto-Backup: Starting backup process")
+
+      // Get all data
+      const { contacts, notes } = getLocalData()
+
+      // Prepare backup data
+      const backupData = {
+        events: events || [],
+        calendars: calendars || [],
+        contacts,
+        notes,
+        timestamp: new Date().toISOString(),
+      }
+
+      console.log(
+        `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars`,
+      )
+
+      // Directly use fetch to call API
+      console.log("Auto-Backup: Sending data to API")
+      const response = await fetch("/api/blob", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: currentBackupId,
+          data: backupData,
+        }),
+      })
+
+      if (!response.ok) {
+        console.error(`Auto-Backup: API returned status ${response.status}`)
+        return
+      }
+
+      console.log("Auto-Backup: Backup successful")
+    } catch (error) {
+      console.error("Auto-Backup error:", error)
+    }
+  }
+
+  // Add useEffect to watch for data changes and trigger auto-backup
+  useEffect(() => {
+    if (isAutoBackupEnabled && events.length > 0) {
+      performAutoBackup()
+    }
+  }, [events, calendars, isAutoBackupEnabled])
 
   return (
     <>
@@ -290,6 +435,12 @@ export default function UserProfileButton() {
             <Download className="mr-2 h-4 w-4" />
             {language === "zh" ? "导入数据" : "Restore Data"}
           </DropdownMenuItem>
+          {isAutoBackupEnabled && (
+            <DropdownMenuItem onClick={disableAutoBackup}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {language === "zh" ? "退出登录" : "Logout"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -401,6 +552,23 @@ export default function UserProfileButton() {
                 ? "警告：恢复数据将覆盖您当前的所有数据。此操作无法撤销。"
                 : "Warning: Restoring data will overwrite all your current data. This action cannot be undone."}
             </p>
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="replace-data"
+                checked={replaceExistingData}
+                onCheckedChange={(checked) => setReplaceExistingData(checked as boolean)}
+              />
+              <Label htmlFor="replace-data">{language === "zh" ? "替换现有数据？" : "Replace existing data?"}</Label>
+            </div>
+            <p className="text-xs text-muted-foreground ml-6">
+              {replaceExistingData
+                ? language === "zh"
+                  ? "这将删除您当前的所有数据，并替换为备份数据。"
+                  : "This will delete all your current data and replace it with the backup data."
+                : language === "zh"
+                  ? "这将保留您当前的数据，并添加备份中的新数据。"
+                  : "This will keep your current data and add new data from the backup."}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRestoreOpen(false)} disabled={isLoading}>
@@ -439,6 +607,31 @@ export default function UserProfileButton() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "启用自动备份？" : "Enable Auto-Backup?"}</DialogTitle>
+            <DialogDescription>
+              {language === "zh"
+                ? "是否希望在每次更改数据时，自动使用此密码备份您的数据？"
+                : "Would you like to automatically backup your data with this password whenever changes are made?"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {language === "zh"
+                ? "启用后，您的数据将在每次更改时自动备份到云端，您可以随时使用相同的密码恢复数据。"
+                : "When enabled, your data will be automatically backed up to the cloud whenever changes are made. You can restore your data at any time using the same password."}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAutoBackupDialog(false)}>
+              {language === "zh" ? "取消" : "Cancel"}
+            </Button>
+            <Button onClick={enableAutoBackup}>{language === "zh" ? "启用自动备份" : "Enable Auto-Backup"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
