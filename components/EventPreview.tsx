@@ -167,6 +167,15 @@ export default function EventPreview({
     }
   }
 
+  const handleShareDialogChange = (open: boolean) => {
+    // 当对话框关闭时，重置分享状态
+    if (!open) {
+      setShareLink("")
+      setNickname("")
+    }
+    setShareDialogOpen(open)
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -183,7 +192,7 @@ export default function EventPreview({
             <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
               <Edit2 className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(true)} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => handleShareDialogChange(true)} className="h-8 w-8">
               <Share2 className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8">
@@ -289,7 +298,7 @@ export default function EventPreview({
         </div>
       </div>
       {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+      <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "分享事件" : "Share Event"}</DialogTitle>
@@ -313,7 +322,7 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShareDialogOpen(false)}>
+                <Button variant="outline" onClick={() => handleShareDialogChange(false)}>
                   {language === "zh" ? "取消" : "Cancel"}
                 </Button>
                 <Button onClick={handleShare} disabled={!nickname || isSharing}>
@@ -365,7 +374,7 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button onClick={() => setShareDialogOpen(false)}>{language === "zh" ? "完成" : "Done"}</Button>
+                <Button onClick={() => handleShareDialogChange(false)}>{language === "zh" ? "完成" : "Done"}</Button>
               </DialogFooter>
             </div>
           )}
