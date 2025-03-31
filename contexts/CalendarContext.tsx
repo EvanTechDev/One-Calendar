@@ -34,6 +34,7 @@ interface CalendarContextType {
   addCategory: (category: CalendarCategory) => void
   removeCategory: (id: string) => void
   updateCategory: (id: string, category: Partial<CalendarCategory>) => void
+  addEvent: (newEvent: CalendarEvent) => void
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined)
@@ -72,6 +73,20 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     setCalendars(calendars.map((cal) => (cal.id === id ? { ...cal, ...category } : cal)))
   }
 
+  const addEvent = (newEvent: CalendarEvent) => {
+    setEvents((prevEvents) => {
+      // 检查事件是否已存在
+      const eventExists = prevEvents.some((event) => event.id === newEvent.id)
+
+      // 如果已存在，替换它；否则添加新事件
+      if (eventExists) {
+        return prevEvents.map((event) => (event.id === newEvent.id ? newEvent : event))
+      } else {
+        return [...prevEvents, newEvent]
+      }
+    })
+  }
+
   return (
     <CalendarContext.Provider
       value={{
@@ -82,6 +97,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
         addCategory,
         removeCategory,
         updateCategory,
+        addEvent,
       }}
     >
       {children}
