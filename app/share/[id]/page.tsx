@@ -1,14 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
-import { MapPin, Users, Calendar, Bell, AlignLeft } from "lucide-react"
+import { MapPin, Users, Calendar, Bell, AlignLeft, Plus, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/lib/i18n"
 import { translations } from "@/lib/i18n"
+import { Button } from "@/components/ui/button"
+import { useCalendar } from "@/contexts/CalendarContext"
 
 interface SharedEvent {
   id: string
@@ -27,12 +29,15 @@ interface SharedEvent {
 
 export default function SharedEventPage() {
   const params = useParams()
+  const router = useRouter()
   const { toast } = useToast()
   const [language] = useLanguage()
   const t = translations[language]
   const [event, setEvent] = useState<SharedEvent | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdding, setIsAdding] = useState(false)
+  const { calendars, addEvent } = useCalendar()
 
   useEffect(() => {
     const fetchSharedEvent = async () => {
@@ -92,10 +97,65 @@ export default function SharedEventPage() {
     return format(date, "yyyy-MM-dd HH:mm", { locale: language === "zh" ? zhCN : enUS })
   }
 
+  // 添加事件到日历
+  const handleAddToCalendar = async () => {
+    if (!event) return
+
+    try {
+      setIsAdding(true)
+
+      // 如果没有日历，使用默认日历或创建一个新的
+      let targetCalendarId = event.calendarId
+
+      // 检查日历是否存在
+      const calendarExists = calendars.some((cal) => cal.id === targetCalendarId)
+
+      // 如果不存在，使用第一个可用的日历或默认日历
+      if (!calendarExists) {
+        if (calendars.length > 0) {
+          targetCalendarId = calendars[0].id
+        } else {
+          // 如果没有日历，使用默认日历ID
+          targetCalendarId = "default"
+        }
+      }
+
+      // 创建新的事件对象
+      const newEvent = {
+        ...event,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // 生成新的ID
+        calendarId: targetCalendarId,
+      }
+
+      // 添加到日历
+      addEvent(newEvent)
+
+      toast({
+        title: language === "zh" ? "添加成功" : "Added Successfully",
+        description: language === "zh" ? "事件已添加到您的日历" : "Event has been added to your calendar",
+      })
+
+      // 可选：添加成功后跳转到日历页面
+      setTimeout(() => {
+        router.push("/")
+      }, 1500)
+    } catch (error) {
+      console.error("Error adding event to calendar:", error)
+      toast({
+        title: language === "zh" ? "添加失败" : "Add Failed",
+        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+        <p className="mt-4 text-gray-600">{language === "zh" ? "加载中..." : "Loading..."}</p>
       </div>
     )
   }
@@ -171,13 +231,28 @@ export default function SharedEventPage() {
 
           {/* Description */}
           {event.description && (
-            <div className="flex items-start mb-4">
+            <div className="flex items-start mb-6">
               <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-gray-500" />
               <div>
                 <p className="whitespace-pre-wrap">{event.description}</p>
               </div>
             </div>
           )}
+
+          {/* Add to Calendar Button */}
+          <Button className="w-full" onClick={handleAddToCalendar} disabled={isAdding}>
+            {isAdding ? (
+              <span className="flex items-center justify-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === "zh" ? "添加中..." : "Adding..."}
+              </span>
+            ) : (
+              <span className="flex items-center justify-center">
+                <Plus className="mr-2 h-4 w-4" />
+                {language === "zh" ? "添加到我的日历" : "Add to My Calendar"}
+              </span>
+            )}
+          </Button>
         </div>
       </div>
     </div>
