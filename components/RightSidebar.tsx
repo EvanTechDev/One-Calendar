@@ -7,12 +7,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar } from "lucide-react"
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
+import BookmarkPanel from "./BookmarkPanel"
 
 // 通讯录类型定义
 interface Contact {
@@ -67,6 +68,8 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
   const [notes, setNotes] = useState<Note[]>([])
   const [contactSearch, setContactSearch] = useState("")
   const [noteSearch, setNoteSearch] = useState("")
+  // Add a new state for the bookmark panel
+  const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
 
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
@@ -563,6 +566,22 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
             variant="ghost"
             size="icon"
             className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            onClick={() => setBookmarkPanelOpen(true)}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center bg-amber-500",
+                bookmarkPanelOpen && "ring-2 ring-primary",
+              )}
+            >
+              <Bookmark className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
             onClick={() => setContactsOpen(true)}
           >
             <div
@@ -731,6 +750,8 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
         selectedDate={selectedDate}
         onDateSelect={handleDateSelect}
       />
+      {/* Add the BookmarkPanel component at the end of the return statement, before the closing fragment */}
+      <BookmarkPanel open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
     </>
   )
 }

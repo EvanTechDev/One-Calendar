@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2 } from 'lucide-react'
+import type React from "react"
+
+import { useState, useRef, useEffect } from "react"
+import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { zhCN, enUS } from "date-fns/locale"
 import { format } from "date-fns"
@@ -44,9 +46,26 @@ export default function EventPreview({
   const [nickname, setNickname] = useState("")
   const [shareLink, setShareLink] = useState("")
   const [isSharing, setIsSharing] = useState(false)
-  
+  const [isBookmarked, setIsBookmarked] = useState(false)
+
   // 添加一个 ref 来防止事件冒泡
   const dialogContentRef = useRef<HTMLDivElement>(null)
+
+  const [bookmarks, setBookmarks] = useState<any[]>([])
+
+  useEffect(() => {
+    // Get bookmarks from localStorage
+    const storedBookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
+    setBookmarks(storedBookmarks)
+  }, [])
+
+  useEffect(() => {
+    if (event) {
+      // Check if current event is bookmarked
+      const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id)
+      setIsBookmarked(isCurrentEventBookmarked)
+    }
+  }, [event, bookmarks])
 
   // If event is null or not open, don't render anything
   if (!event || !open) {
@@ -93,6 +112,44 @@ export default function EventPreview({
   // Toggle participants section
   const toggleParticipants = () => {
     setParticipantsOpen(!participantsOpen)
+  }
+
+  const toggleBookmark = () => {
+    if (!event) return
+
+    // Get current bookmarks
+    // const bookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
+
+    if (isBookmarked) {
+      // Remove from bookmarks
+      const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id)
+      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
+      setBookmarks(updatedBookmarks)
+      setIsBookmarked(false)
+      toast({
+        title: language === "zh" ? "已取消收藏" : "Removed from bookmarks",
+        description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
+      })
+    } else {
+      // Add to bookmarks
+      const bookmarkData = {
+        id: event.id,
+        title: event.title,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        color: event.color,
+        location: event.location,
+        bookmarkedAt: new Date().toISOString(),
+      }
+      const updatedBookmarks = [...bookmarks, bookmarkData]
+      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
+      setBookmarks(updatedBookmarks)
+      setIsBookmarked(true)
+      toast({
+        title: language === "zh" ? "已收藏" : "Bookmarked",
+        description: language === "zh" ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
+      })
+    }
   }
 
   const handleShare = async () => {
@@ -178,11 +235,11 @@ export default function EventPreview({
     }
     setShareDialogOpen(open)
   }
-  
+
   // 阻止事件冒泡的处理函数
   const handleDialogClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+    e.stopPropagation()
+  }
 
   return (
     <div
@@ -202,6 +259,9 @@ export default function EventPreview({
             </Button>
             <Button variant="ghost" size="icon" onClick={() => handleShareDialogChange(true)} className="h-8 w-8">
               <Share2 className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
+              <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
             </Button>
             <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8">
               <Trash2 className="h-5 w-5" />
@@ -331,20 +391,20 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShareDialogChange(false);
+                    e.stopPropagation()
+                    handleShareDialogChange(false)
                   }}
                 >
                   {language === "zh" ? "取消" : "Cancel"}
                 </Button>
-                <Button 
+                <Button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShare();
-                  }} 
+                    e.stopPropagation()
+                    handleShare()
+                  }}
                   disabled={!nickname || isSharing}
                 >
                   {isSharing ? (
@@ -382,22 +442,22 @@ export default function EventPreview({
               <div className="space-y-2">
                 <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
                 <div className="flex items-center space-x-2">
-                  <Input 
-                    id="share-link" 
-                    value={shareLink} 
-                    readOnly 
-                    className="flex-1" 
+                  <Input
+                    id="share-link"
+                    value={shareLink}
+                    readOnly
+                    className="flex-1"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      copyShareLink();
+                      e.stopPropagation()
+                      copyShareLink()
                     }}
                   />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      copyShareLink();
+                      e.stopPropagation()
+                      copyShareLink()
                     }}
                   >
                     {language === "zh" ? "复制" : "Copy"}
@@ -411,10 +471,10 @@ export default function EventPreview({
               </div>
 
               <DialogFooter>
-                <Button 
+                <Button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShareDialogChange(false);
+                    e.stopPropagation()
+                    handleShareDialogChange(false)
                   }}
                 >
                   {language === "zh" ? "完成" : "Done"}
@@ -427,3 +487,4 @@ export default function EventPreview({
     </div>
   )
 }
+

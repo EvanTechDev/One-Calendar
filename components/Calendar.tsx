@@ -452,7 +452,7 @@ export default function Calendar() {
       </div>
 
       {/* 右侧边栏 - 现在从顶部栏下方开始 */}
-      <RightSidebar onViewChange={handleViewChange} />
+      <RightSidebar onViewChange={handleViewChange} onEventClick={handleEventClick} />
 
       {/* 保持原有的对话框和其他组件不变 */}
       <EventPreview

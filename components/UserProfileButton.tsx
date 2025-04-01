@@ -55,33 +55,39 @@ export default function UserProfileButton() {
       console.log("Getting data from localStorage")
       const contactsStr = localStorage.getItem("contacts")
       const notesStr = localStorage.getItem("notes")
-      const sharedEventsStr = localStorage.getItem("shared-events") // 添加获取分享事件列表
+      const sharedEventsStr = localStorage.getItem("shared-events")
+      const bookmarksStr = localStorage.getItem("bookmarked-events") // Add this line
 
       const contacts = contactsStr ? JSON.parse(contactsStr) : []
       const notes = notesStr ? JSON.parse(notesStr) : []
-      const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : [] // 解析分享事件列表
+      const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : []
+      const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : [] // Add this line
 
-      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, and ${sharedEvents.length} shared events`)
-      return { contacts, notes, sharedEvents } // 返回包含分享事件的数据
+      console.log(
+        `Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks`,
+      )
+      return { contacts, notes, sharedEvents, bookmarks } // Include bookmarks in the returned data
     } catch (error) {
       console.error("Error getting data from localStorage:", error)
-      return { contacts: [], notes: [], sharedEvents: [] } // 包含空的分享事件列表
+      return { contacts: [], notes: [], sharedEvents: [], bookmarks: [] } // Include empty bookmarks array
     }
   }
 
   // 将数据保存到localStorage
-  const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[] }) => {
+  const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[] }) => {
     try {
       const contacts = data.contacts || []
       const notes = data.notes || []
-      const sharedEvents = data.sharedEvents || [] // 获取分享事件列表
+      const sharedEvents = data.sharedEvents || []
+      const bookmarks = data.bookmarks || [] // Add this line
 
       console.log(
-        `Saving ${contacts.length} contacts, ${notes.length} notes, and ${sharedEvents.length} shared events to localStorage`,
+        `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks to localStorage`,
       )
       localStorage.setItem("contacts", JSON.stringify(contacts))
       localStorage.setItem("notes", JSON.stringify(notes))
-      localStorage.setItem("shared-events", JSON.stringify(sharedEvents)) // 保存分享事件列表
+      localStorage.setItem("shared-events", JSON.stringify(sharedEvents))
+      localStorage.setItem("bookmarked-events", JSON.stringify(bookmarks)) // Add this line
       console.log("Data saved to localStorage")
     } catch (error) {
       console.error("Error saving data to localStorage:", error)
@@ -118,7 +124,7 @@ export default function UserProfileButton() {
       console.log("Backup: Starting backup process")
 
       // 获取所有数据
-      const { contacts, notes, sharedEvents } = getLocalData() // 获取包含分享事件的数据
+      const { contacts, notes, sharedEvents, bookmarks } = getLocalData() // 获取包含分享事件的数据
 
       // 准备备份数据
       const backupData = {
@@ -126,12 +132,13 @@ export default function UserProfileButton() {
         calendars: calendars || [],
         contacts,
         notes,
-        sharedEvents, // 添加分享事件到备份数据
+        sharedEvents,
+        bookmarks, // Add this line
         timestamp: new Date().toISOString(),
       }
 
       console.log(
-        `Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, and ${backupData.sharedEvents.length} shared events`,
+        `Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, ${backupData.sharedEvents.length} shared events, and ${backupData.bookmarks.length} bookmarks`,
       )
 
       // 从密码生成唯一ID
@@ -254,7 +261,14 @@ export default function UserProfileButton() {
       console.log("Restore: Successfully parsed data")
 
       // Restore data to application
-      const { events: restoredEvents, calendars: restoredCalendars, contacts, notes, sharedEvents } = restoredData
+      const {
+        events: restoredEvents,
+        calendars: restoredCalendars,
+        contacts,
+        notes,
+        sharedEvents,
+        bookmarks,
+      } = restoredData
 
       // Update calendar events and categories based on replaceExistingData checkbox
       if (Array.isArray(restoredEvents)) {
@@ -291,7 +305,8 @@ export default function UserProfileButton() {
         saveLocalData({
           contacts: Array.isArray(contacts) ? contacts : [],
           notes: Array.isArray(notes) ? notes : [],
-          sharedEvents: Array.isArray(sharedEvents) ? sharedEvents : [], // 恢复分享事件列表
+          sharedEvents: Array.isArray(sharedEvents) ? sharedEvents : [],
+          bookmarks: Array.isArray(restoredData.bookmarks) ? restoredData.bookmarks : [], // Add this line
         })
       } else {
         // Merge with existing data
@@ -313,10 +328,17 @@ export default function UserProfileButton() {
           ? sharedEvents.filter((event) => !existingSharedEventIds.includes(event.id))
           : []
 
+        // Merge bookmarks, avoiding duplicates by ID
+        const existingBookmarkIds = existingData.bookmarks.map((bookmark) => bookmark.id)
+        const newBookmarks = Array.isArray(restoredData.bookmarks)
+          ? restoredData.bookmarks.filter((bookmark) => !existingBookmarkIds.includes(bookmark.id))
+          : []
+
         saveLocalData({
           contacts: [...existingData.contacts, ...newContacts],
           notes: [...existingData.notes, ...newNotes],
-          sharedEvents: [...existingData.sharedEvents, ...newSharedEvents], // 合并分享事件列表
+          sharedEvents: [...existingData.sharedEvents, ...newSharedEvents],
+          bookmarks: [...existingData.bookmarks, ...newBookmarks], // Add this line
         })
       }
 
@@ -386,7 +408,7 @@ export default function UserProfileButton() {
       console.log("Auto-Backup: Starting backup process")
 
       // Get all data
-      const { contacts, notes, sharedEvents } = getLocalData() // 获取包含分享事件的数据
+      const { contacts, notes, sharedEvents, bookmarks } = getLocalData() // 获取包含分享事件的数据
 
       // Prepare backup data
       const backupData = {
@@ -394,12 +416,13 @@ export default function UserProfileButton() {
         calendars: calendars || [],
         contacts,
         notes,
-        sharedEvents, // 添加分享事件到自动备份数据
+        sharedEvents,
+        bookmarks, // Add this line
         timestamp: new Date().toISOString(),
       }
 
       console.log(
-        `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, and ${backupData.sharedEvents.length} shared events`,
+        `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, ${backupData.sharedEvents.length} shared events, and ${backupData.bookmarks.length} bookmarks`,
       )
 
       // Directly use fetch to call API
