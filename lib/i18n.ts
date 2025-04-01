@@ -220,6 +220,16 @@ export const translations = {
     sharedBy: "Shared by",
     noShares: "No shared events",
     shareDeleted: "Share deleted successfully",
+    bookmarks: "Bookmarks",
+    bookmarked: "Bookmarked",
+    bookmark: "Bookmark",
+    unbookmark: "Remove Bookmark",
+    bookmarkAdded: "Event bookmarked",
+    bookmarkRemoved: "Bookmark removed",
+    noBookmarks: "You haven't bookmarked any events yet",
+    searchBookmarks: "Search bookmarks...",
+    noMatchingBookmarks: "No matching bookmarks found",
+    manageBookmarks: "Manage Bookmarks",
   },
   zh: {
     calendar: "One Calendar",
@@ -425,6 +435,16 @@ export const translations = {
     sharedBy: "分享者",
     noShares: "没有分享的事件",
     shareDeleted: "分享已成功删除",
+    bookmarks: "收藏夹",
+    bookmarked: "已收藏",
+    bookmark: "收藏",
+    unbookmark: "取消收藏",
+    bookmarkAdded: "事件已收藏",
+    bookmarkRemoved: "已取消收藏",
+    noBookmarks: "您还没有收藏任何事件",
+    searchBookmarks: "搜索收藏...",
+    noMatchingBookmarks: "没有找到匹配的收藏",
+    manageBookmarks: "管理收藏",
   },
 }
 
@@ -482,7 +502,6 @@ export function useLanguage(): [Language, (lang: Language) => void] {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("preferred-language", lang)
-    // 触发一个自定义事件，通知其他组件语言已更改
     window.dispatchEvent(new Event("languagechange"))
   }
 
