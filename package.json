@@ -62,7 +62,8 @@
     "ics": "latest",
     "@vercel/blob": "latest",
     "framer-motion": "^12.6.2",
-    "@vercel/analytics": "latest"
+    "@vercel/analytics": "latest",
+    "@vercel/speed-insights": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
