@@ -6,7 +6,8 @@ export type Language = "en" | "zh"
 
 export const translations = {
   en: {
-    calendar: "One Calendar",
+    oneCalendar: "One Calendar",
+    calendar: "Calendar",
     createEvent: "Create Event",
     myCalendars: "My Calendars",
     addNewCalendar: "Add New Calendar",
@@ -232,7 +233,8 @@ export const translations = {
     manageBookmarks: "Manage Bookmarks",
   },
   zh: {
-    calendar: "One Calendar",
+    oneCalendar: "One Calendar",
+    calendar: "Calendar",
     createEvent: "创建日程",
     myCalendars: "我的日历",
     addNewCalendar: "添加新日历",
