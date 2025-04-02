@@ -234,7 +234,7 @@ export const translations = {
   },
   zh: {
     oneCalendar: "One Calendar",
-    calendar: "Calendar",
+    calendar: "日历",
     createEvent: "创建日程",
     myCalendars: "我的日历",
     addNewCalendar: "添加新日历",
