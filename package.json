@@ -61,7 +61,8 @@
     "@types/react-dom": "latest",
     "ics": "latest",
     "@vercel/blob": "latest",
-    "framer-motion": "^12.6.2"
+    "framer-motion": "^12.6.2",
+    "@vercel/analytics": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
