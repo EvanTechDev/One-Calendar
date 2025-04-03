@@ -22,6 +22,7 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
+import { showSuggestionToast } from "@/utils/suggestions"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -282,6 +283,27 @@ export default function Calendar() {
       }
     }
   }, [])
+
+  // 添加在检查通知的 useEffect 之后
+  useEffect(() => {
+    // 首次加载时尝试显示建议
+    const timer = setTimeout(() => {
+      showSuggestionToast(language)
+    }, 5000) // 页面加载5秒后显示
+
+    // 设置周期性检查
+    const interval = setInterval(
+      () => {
+        showSuggestionToast(language)
+      },
+      30 * 60 * 1000,
+    ) // 每30分钟检查一次
+
+    return () => {
+      clearTimeout(timer)
+      clearInterval(interval)
+    }
+  }, [language]) // 当语言变化时重新运行
 
   useEffect(() => {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
