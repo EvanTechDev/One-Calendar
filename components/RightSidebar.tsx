@@ -13,7 +13,9 @@ import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
-import BookmarkPanel from "./BookmarkPanel"
+// 替换原来的导入
+// import BookmarkPanel from "./BookmarkPanel"
+import BookmarkSheet from "./BookmarkSheet"
 
 // 通讯录类型定义
 interface Contact {
@@ -751,7 +753,7 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
         onDateSelect={handleDateSelect}
       />
       {/* Add the BookmarkPanel component at the end of the return statement, before the closing fragment */}
-      <BookmarkPanel open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
+      <BookmarkSheet open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
     </>
   )
 }
