@@ -485,7 +485,6 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     const storedLanguage = readLanguageFromStorage()
     setLanguageState(storedLanguage)
 
-    // 创建一个事件监听器，当localStorage变化时触发
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "preferred-language") {
         const newLanguage = e.newValue as Language
