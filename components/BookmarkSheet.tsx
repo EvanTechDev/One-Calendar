@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
@@ -14,8 +13,9 @@ import { toast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
-interface BookmarkPanelProps {
+interface BookmarkSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEventClick: (event: any) => void
@@ -31,7 +31,7 @@ interface BookmarkedEvent {
   bookmarkedAt: string
 }
 
-export default function BookmarkPanel({ open, onOpenChange, onEventClick }: BookmarkPanelProps) {
+export default function BookmarkSheet({ open, onOpenChange, onEventClick }: BookmarkSheetProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
@@ -78,7 +78,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
 
   // Handle event click
   const handleEventClick = (event: BookmarkedEvent) => {
-    // Close the bookmark panel
+    // Close the bookmark sheet
     onOpenChange(false)
 
     // Find the full event in the calendar events
@@ -93,14 +93,14 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="sm:max-w-md">
+        <SheetHeader className="flex items-center mb-4">
+          <SheetTitle className="flex items-center">
             <Bookmark className="mr-2 h-5 w-5" />
             {language === "zh" ? "收藏夹" : "Bookmarks"}
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <div className="relative mb-4">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -113,7 +113,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
           />
         </div>
 
-        <ScrollArea className="h-[50vh] pr-4">
+        <ScrollArea className="h-[calc(100vh-160px)] pr-4">
           {filteredBookmarks.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
               <Bookmark className="h-10 w-10 mb-2 opacity-20" />
@@ -152,8 +152,8 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
             </div>
           )}
         </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }
 
