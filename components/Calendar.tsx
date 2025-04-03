@@ -1,10 +1,11 @@
-"use client"
+```typescriptreact file="components/Calendar.tsx"
+[v0-no-op-code-block-prefix]"use client"
 
 import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -22,7 +23,7 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
-import { showSuggestionToast } from "@/utils/suggestions"
+import { SuggestionService } from "./SuggestionService"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -284,27 +285,6 @@ export default function Calendar() {
     }
   }, [])
 
-  // 添加在检查通知的 useEffect 之后
-  useEffect(() => {
-    // 首次加载时尝试显示建议
-    const timer = setTimeout(() => {
-      showSuggestionToast(language)
-    }, 5000) // 页面加载5秒后显示
-
-    // 设置周期性检查
-    const interval = setInterval(
-      () => {
-        showSuggestionToast(language)
-      },
-      30 * 60 * 1000,
-    ) // 每30分钟检查一次
-
-    return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-    }
-  }, [language]) // 当语言变化时重新运行
-
   useEffect(() => {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
     return () => {
@@ -508,6 +488,7 @@ export default function Calendar() {
       <Suspense fallback={null}>
         <EventUrlHandler />
       </Suspense>
+      <SuggestionService />
     </div>
   )
 }
