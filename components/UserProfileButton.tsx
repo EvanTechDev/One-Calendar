@@ -179,6 +179,11 @@ export default function UserProfileButton() {
         })
 
         setIsBackupOpen(false)
+
+        // 将当前备份ID保存起来用于可能的自动备份
+        setCurrentBackupId(backupId)
+        // 显示自动备份对话框
+        setShowAutoBackupDialog(true)
       } else {
         throw new Error(result.error || (language === "zh" ? "备份失败" : "Backup failed"))
       }
@@ -350,9 +355,7 @@ export default function UserProfileButton() {
 
       setIsRestoreOpen(false)
 
-      // Show auto-backup dialog after successful restore
-      setShowAutoBackupDialog(true)
-      // Save the backup ID for potential auto-backup
+      // 只保存备份ID，但不显示自动备份对话框
       setCurrentBackupId(backupId)
     } catch (error) {
       console.error("Restore error:", error)
