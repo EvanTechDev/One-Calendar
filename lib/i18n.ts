@@ -1,12 +1,9 @@
-"use client"
-
 import { useEffect, useState } from "react"
 
 export type Language = "en" | "zh"
 
 export const translations = {
   en: {
-    oneCalendar: "One Calendar",
     calendar: "Calendar",
     createEvent: "Create Event",
     myCalendars: "My Calendars",
@@ -226,14 +223,17 @@ export const translations = {
     bookmark: "Bookmark",
     unbookmark: "Remove Bookmark",
     bookmarkAdded: "Event bookmarked",
-    bookmarkRemoved: "Bookmark removed",
+    bookmarkRemoved: "Bookmark Removed",
     noBookmarks: "You haven't bookmarked any events yet",
     searchBookmarks: "Search bookmarks...",
     noMatchingBookmarks: "No matching bookmarks found",
     manageBookmarks: "Manage Bookmarks",
+    eventRemovedFromBookmarks: "Event has been removed from your bookmarks",
+    tip: "Tip",
+    dontShowAgain: "Don't show again",
   },
   zh: {
-    oneCalendar: "One Calendar",
+    // Keep existing Chinese translations
     calendar: "日历",
     createEvent: "创建日程",
     myCalendars: "我的日历",
@@ -442,11 +442,14 @@ export const translations = {
     bookmark: "收藏",
     unbookmark: "取消收藏",
     bookmarkAdded: "事件已收藏",
-    bookmarkRemoved: "已取消收藏",
+    bookmarkRemoved: "已移除收藏",
     noBookmarks: "您还没有收藏任何事件",
     searchBookmarks: "搜索收藏...",
     noMatchingBookmarks: "没有找到匹配的收藏",
     manageBookmarks: "管理收藏",
+    eventRemovedFromBookmarks: "事件已从收藏夹中移除",
+    tip: "小贴士",
+    dontShowAgain: "不再显示",
   },
 }
 
@@ -485,6 +488,7 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     const storedLanguage = readLanguageFromStorage()
     setLanguageState(storedLanguage)
 
+    // 创建一个事件监听器，当localStorage变化时触发
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "preferred-language") {
         const newLanguage = e.newValue as Language
@@ -503,6 +507,7 @@ export function useLanguage(): [Language, (lang: Language) => void] {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("preferred-language", lang)
+    // 触发一个自定义事件，通知其他组件语言已更改
     window.dispatchEvent(new Event("languagechange"))
   }
 
