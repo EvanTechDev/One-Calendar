@@ -61,8 +61,7 @@ export default function UserProfileButton() {
       const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : []
       const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : [] // Add this line
 
-      console.log(
-        \`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks`,
+      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks`,
 )
 return { contacts, notes, sharedEvents, bookmarks } // Include bookmarks in the returned data
 } catch (error)
