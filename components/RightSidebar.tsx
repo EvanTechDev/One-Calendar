@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,15 +5,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark } from "lucide-react"
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
-// 替换原来的导入
-// import BookmarkPanel from "./BookmarkPanel"
-import BookmarkSheet from "./BookmarkSheet"
+import BookmarkPanel from "./BookmarkPanel"
 
 // 通讯录类型定义
 interface Contact {
@@ -57,7 +53,12 @@ const colorOptions = [
 // 联系人视图类型
 type ContactView = "list" | "detail" | "edit"
 
-export default function RightSidebar({ onViewChange }: { onViewChange?: (view: string) => void }) {
+interface RightSidebarProps {
+  onViewChange?: (view: string) => void
+  onEventClick: (event: any) => void
+}
+
+export default function RightSidebar({ onViewChange, onEventClick }: RightSidebarProps) {
   const [language] = useLanguage()
   const t = translations[language]
 
@@ -753,7 +754,7 @@ export default function RightSidebar({ onViewChange }: { onViewChange?: (view: s
         onDateSelect={handleDateSelect}
       />
       {/* Add the BookmarkPanel component at the end of the return statement, before the closing fragment */}
-      <BookmarkSheet open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
+      <BookmarkPanel open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
     </>
   )
 }
