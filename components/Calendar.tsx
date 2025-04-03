@@ -1,6 +1,3 @@
-```typescriptreact file="components/Calendar.tsx"
-[v0-no-op-code-block-prefix]"use client"
-
 import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
