@@ -6,7 +6,8 @@ export type Language = "en" | "zh"
 
 export const translations = {
   en: {
-    calendar: "One Calendar",
+    oneCalendar: "One Calendar",
+    calendar: "Calendar",
     createEvent: "Create Event",
     myCalendars: "My Calendars",
     addNewCalendar: "Add New Calendar",
@@ -232,7 +233,8 @@ export const translations = {
     manageBookmarks: "Manage Bookmarks",
   },
   zh: {
-    calendar: "One Calendar",
+    oneCalendar: "One Calendar",
+    calendar: "日历",
     createEvent: "创建日程",
     myCalendars: "我的日历",
     addNewCalendar: "添加新日历",
@@ -483,7 +485,6 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     const storedLanguage = readLanguageFromStorage()
     setLanguageState(storedLanguage)
 
-    // 创建一个事件监听器，当localStorage变化时触发
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "preferred-language") {
         const newLanguage = e.newValue as Language

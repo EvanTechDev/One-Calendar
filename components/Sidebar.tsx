@@ -37,7 +37,7 @@ export default function Sidebar({
   language = "zh",
   selectedDate,
 }: SidebarProps) {
-  // 使�� Context 中的日历分类数据
+
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -85,7 +85,7 @@ export default function Sidebar({
       <div className="p-4">
         <div className="flex items-center mb-4">
           <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2" />
-          <h1 className="text-lg font-semibold">{t.calendar}</h1>
+          <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
         </div>
 
         <Button
