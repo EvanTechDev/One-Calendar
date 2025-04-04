@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -22,6 +22,7 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
+import { SuggestionService } from "./SuggestionService"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -486,6 +487,7 @@ export default function Calendar() {
       <Suspense fallback={null}>
         <EventUrlHandler />
       </Suspense>
+      <SuggestionService />
     </div>
   )
 }
