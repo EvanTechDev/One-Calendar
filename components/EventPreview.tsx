@@ -3,7 +3,20 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Edit2, Trash2, X, MapPin, Users, Calendar, Bell, AlignLeft, ChevronDown, Share2, Bookmark } from "lucide-react"
+import {
+  Edit2,
+  Trash2,
+  X,
+  MapPin,
+  Users,
+  Calendar,
+  Bell,
+  AlignLeft,
+  ChevronDown,
+  Share2,
+  Bookmark,
+  Download,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { zhCN, enUS } from "date-fns/locale"
 import { format } from "date-fns"
@@ -16,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
+import QRCode from "qrcode"
 
 interface EventPreviewProps {
   event: CalendarEvent | null
@@ -47,6 +61,7 @@ export default function EventPreview({
   const [shareLink, setShareLink] = useState("")
   const [isSharing, setIsSharing] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
+  const [qrCodeDataURL, setQRCodeDataURL] = useState<string>("")
 
   // 添加一个 ref 来防止事件冒泡
   const dialogContentRef = useRef<HTMLDivElement>(null)
@@ -190,6 +205,21 @@ export default function EventPreview({
         const shareLink = `${window.location.origin}/share/${shareId}`
         setShareLink(shareLink)
 
+        // Generate QR code
+        try {
+          const qrURL = await QRCode.toDataURL(shareLink, {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#ffffff",
+            },
+          })
+          setQRCodeDataURL(qrURL)
+        } catch (qrError) {
+          console.error("Error generating QR code:", qrError)
+        }
+
         // Store the share in localStorage for management
         const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]")
         storedShares.push({
@@ -227,11 +257,48 @@ export default function EventPreview({
     }
   }
 
+  // Generate QR code from share link
+  const generateQRCode = async () => {
+    if (shareLink) {
+      try {
+        const url = await QRCode.toDataURL(shareLink, {
+          width: 300,
+          margin: 2,
+          color: {
+            dark: "#000000",
+            light: "#ffffff",
+          },
+        })
+        setQRCodeDataURL(url)
+      } catch (error) {
+        console.error("Error generating QR code:", error)
+      }
+    }
+  }
+
+  // Function to download QR code image
+  const downloadQRCode = () => {
+    if (qrCodeDataURL) {
+      const link = document.createElement("a")
+      link.href = qrCodeDataURL
+      link.download = `${event?.title || "event"}-qrcode.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: language === "zh" ? "二维码已下载" : "QR Code Downloaded",
+        description: language === "zh" ? "已保存到您的设备" : "Saved to your device",
+      })
+    }
+  }
+
   const handleShareDialogChange = (open: boolean) => {
     // 当对话框关闭时，重置分享状态
     if (!open) {
       setShareLink("")
       setNickname("")
+      setQRCodeDataURL("")
     }
     setShareDialogOpen(open)
   }
@@ -439,35 +506,65 @@ export default function EventPreview({
             </div>
           ) : (
             <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="share-link"
-                    value={shareLink}
-                    readOnly
-                    className="flex-1"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      copyShareLink()
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      copyShareLink()
-                    }}
-                  >
-                    {language === "zh" ? "复制" : "Copy"}
-                  </Button>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="share-link"
+                      value={shareLink}
+                      readOnly
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        copyShareLink()
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        copyShareLink()
+                      }}
+                    >
+                      {language === "zh" ? "复制" : "Copy"}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "zh"
+                      ? "任何拥有此链接的人都可以查看此事件。"
+                      : "Anyone with this link can view this event."}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {language === "zh"
-                    ? "任何拥有此链接的人都可以查看此事件。"
-                    : "Anyone with this link can view this event."}
-                </p>
+
+                {qrCodeDataURL && (
+                  <div className="mt-4 flex flex-col items-center">
+                    <Label className="mb-2">{language === "zh" ? "二维码" : "QR Code"}</Label>
+                    <div className="border p-3 rounded bg-white mb-2">
+                      <img
+                        src={qrCodeDataURL || "/placeholder.svg"}
+                        alt="QR Code"
+                        className="w-full max-w-[200px] mx-auto"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        downloadQRCode()
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {language === "zh" ? "下载二维码" : "Download QR Code"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      {language === "zh" ? "扫描此二维码可立即查看日程" : "Scan this QR code to view the event"}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>

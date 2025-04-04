@@ -63,7 +63,8 @@
     "@vercel/blob": "latest",
     "framer-motion": "^12.6.2",
     "@vercel/analytics": "latest",
-    "@vercel/speed-insights": "latest"
+    "@vercel/speed-insights": "latest",
+    "qrcode": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

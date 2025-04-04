@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 
 export type Language = "en" | "zh"
@@ -5,6 +7,7 @@ export type Language = "en" | "zh"
 export const translations = {
   en: {
     calendar: "Calendar",
+    oneCalendar: "One Calendar",
     createEvent: "Create Event",
     myCalendars: "My Calendars",
     addNewCalendar: "Add New Calendar",
@@ -231,10 +234,15 @@ export const translations = {
     eventRemovedFromBookmarks: "Event has been removed from your bookmarks",
     tip: "Tip",
     dontShowAgain: "Don't show again",
+    qrCode: "QR Code",
+    downloadQRCode: "Download QR Code",
+    qrCodeDownloaded: "QR Code Downloaded",
+    savedToDevice: "Saved to your device",
+    scanQRCodeToView: "Scan this QR code to view the event",
   },
   zh: {
-    // Keep existing Chinese translations
     calendar: "日历",
+    oneCalendar: "One Calendar",
     createEvent: "创建日程",
     myCalendars: "我的日历",
     addNewCalendar: "添加新日历",
@@ -450,6 +458,11 @@ export const translations = {
     eventRemovedFromBookmarks: "事件已从收藏夹中移除",
     tip: "小贴士",
     dontShowAgain: "不再显示",
+    qrCode: "二维码",
+    downloadQRCode: "下载二维码",
+    qrCodeDownloaded: "二维码已下载",
+    savedToDevice: "已保存到您的设备",
+    scanQRCodeToView: "扫描此二维码可立即查看日程",
   },
 }
 
