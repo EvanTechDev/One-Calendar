@@ -10,4 +10,7 @@ interface CalendarEvent {
   notification: number
   description?: string
   color: string
+  calendarId: string
 }
+
+export type { CalendarEvent }
