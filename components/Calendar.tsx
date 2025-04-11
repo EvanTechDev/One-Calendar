@@ -219,14 +219,6 @@ export default function Calendar() {
     setSelectedEvent(null) // 重置选中的事件
   }
 
-  const handleCreateFromSuggestion = (event: Omit<CalendarEvent, "id">) => {
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: Math.random().toString(36).substring(7),
-    }
-    setEvents((prevEvents) => [...prevEvents, newEvent])
-  }
-
   const handleImportEvents = (importedEvents: Omit<CalendarEvent, "id">[]) => {
     const newEvents = importedEvents.map((event) => ({
       ...event,
@@ -486,7 +478,6 @@ export default function Calendar() {
       <Suspense fallback={null}>
         <EventUrlHandler />
       </Suspense>
-      <SuggestionService />
     </div>
   )
 }
