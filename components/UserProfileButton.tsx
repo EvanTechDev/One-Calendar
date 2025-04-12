@@ -712,23 +712,38 @@ return (
       </Dialog>
       
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
-        <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{language === "zh" ? "启用自动备份？" : "Enable Auto-Backup?"}</DialogTitle>
-          <DialogDescription>
-            {language === "zh" ? `将以您的账户ID (${clerkUserId?.slice(0, 8)}...)自动备份数据` : `Data will be backed up with your account ID (${clerkUserId?.slice(0, 8)}...)`}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button onClick={() => {
-            enableAutoBackup();
-            performAutoBackup();
-          }}>
-            {language === "zh" ? "启用" : "Enable"}
-          </Button>
-        </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>{language === "zh" ? "自动备份设置" : "Auto-Backup Settings"}</DialogTitle>
+      <DialogDescription>
+        {language === "zh" 
+          ? `当前状态: ${isAutoBackupEnabled ? "已启用" : "已禁用"} (用户ID: ${clerkUserId?.slice(0, 8)}...)`
+          : `Status: ${isAutoBackupEnabled ? "Enabled" : "Disabled"} (User ID: ${clerkUserId?.slice(0, 8)}...)`}
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter className="gap-2">
+      {isAutoBackupEnabled && (
+        <Button 
+          variant="destructive" 
+          onClick={() => {
+            disableAutoBackup();
+            setShowAutoBackupDialog(false);
+          }}
+        >
+          {language === "zh" ? "禁用" : "Disable"}
+        </Button>
+      )}
+      <Button 
+        onClick={() => {
+          enableAutoBackup();
+          performAutoBackup();
+        }}
+      >
+        {language === "zh" ? "启用" : "Enable"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </>
   )
 }
