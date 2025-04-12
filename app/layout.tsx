@@ -30,10 +30,10 @@ export default function RootLayout({
         <CalendarProvider>
           {children}
           <Toaster />
-          <Analytics />
           <SpeedInsights />
         </CalendarProvider> 
       </ClerkProvider>
+      <Analytics />
       </body>
     </html>
   )
