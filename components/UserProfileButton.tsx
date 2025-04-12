@@ -17,7 +17,6 @@ import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
-import { SignIn, SignUp } from "@clerk/nextjs"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -36,8 +35,6 @@ export default function UserProfileButton() {
   const [showAutoBackupDialog, setShowAutoBackupDialog] = useState(false)
   const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
   const [currentBackupId, setCurrentBackupId] = useState<string | null>(null)
-  const [showAuthDialog, setShowAuthDialog] = useState(false)
-  const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in")
 
   // Add useEffect to load auto-backup state from localStorage
   useEffect(() => {
@@ -470,12 +467,6 @@ return (
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => {
-            setAuthMode("sign-in")
-            setShowAuthDialog(true)
-          }}>
-            {language === "zh" ? "登录" : "Login"}
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsBackupOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
             {language === "zh" ? "备份数据" : "Backup Data"}
@@ -685,56 +676,5 @@ return (
         </DialogContent>
       </Dialog>
     </>
-    <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-  <DialogContent className="max-w-md p-4">
-    <DialogHeader>
-      <DialogTitle>{authMode === "sign-in" ? "Login" : "Sign Up"}</DialogTitle>
-      <DialogDescription>
-        {authMode === "sign-in"
-          ? "Welcome back! Please login to continue."
-          : "Create an account to start using the calendar."}
-      </DialogDescription>
-    </DialogHeader>
-    <div className="py-4">
-      {authMode === "sign-in" ? (
-        <SignIn
-          appearance={{ elements: { formButtonPrimary: "bg-primary" } }}
-          afterSignInUrl="/"
-          redirectUrl="/"
-        />
-      ) : (
-        <SignUp
-          appearance={{ elements: { formButtonPrimary: "bg-primary" } }}
-          afterSignUpUrl="/"
-          redirectUrl="/"
-        />
-      )}
-    </div>
-    <div className="text-sm text-center">
-      {authMode === "sign-in" ? (
-        <>
-          Don't have an account?{" "}
-          <button
-            onClick={() => setAuthMode("sign-up")}
-            className="text-blue-600 hover:underline"
-          >
-            Sign up
-          </button>
-        </>
-      ) : (
-        <>
-          Already have an account?{" "}
-          <button
-            onClick={() => setAuthMode("sign-in")}
-            className="text-blue-600 hover:underline"
-          >
-            Log in
-          </button>
-        </>
-      )}
-    </div>
-  </DialogContent>
-</Dialog>
   )
 }
-
