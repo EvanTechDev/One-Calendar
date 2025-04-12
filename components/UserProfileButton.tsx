@@ -18,6 +18,7 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
+import Link from "next"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -671,23 +672,34 @@ return (
         </DialogContent>
       </Dialog>
       
-<Dialog open={isSignInOpen} onOpenChange={setIsSignInOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>{language === "zh" ? "登录" : "Sign In"}</DialogTitle>
-    </DialogHeader>
-    <SignIn />
-  </DialogContent>
-</Dialog>
-
-<Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>{language === "zh" ? "注册" : "Sign Up"}</DialogTitle>
-    </DialogHeader>
-      <SignUp />
-  </DialogContent>
-</Dialog>
+<DropdownMenuContent align="end">
+  {isSignedIn ? (
+    <>
+      <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
+        {language === "zh" ? "自动备份设置" : "Auto Backup"}
+      </DropdownMenuItem>
+      <SignOutButton signOutCallback={handleSignOut}>
+        <DropdownMenuItem>
+          <LogOut className="mr-2 h-4 w-4" />
+          {language === "zh" ? "退出登录" : "Sign Out"}
+        </DropdownMenuItem>
+      </SignOutButton>
+    </>
+  ) : (
+    <>
+      <DropdownMenuItem asChild>
+        <Link href="/sign-in">
+          {language === "zh" ? "登录" : "Sign In"}
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link href="/sign-up">
+          {language === "zh" ? "注册" : "Sign Up"}
+        </Link>
+      </DropdownMenuItem>
+    </>
+  )}
+</DropdownMenuContent>
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
         <DialogContent>
           <DialogHeader>
