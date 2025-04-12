@@ -32,7 +32,6 @@ export default function UserProfileButton() {
   const [passwordError, setPasswordError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // First, add new state variables for the replace data checkbox and auto-backup dialog
   const [replaceExistingData, setReplaceExistingData] = useState(true)
   const [showAutoBackupDialog, setShowAutoBackupDialog] = useState(false)
   const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
@@ -45,6 +44,8 @@ export default function UserProfileButton() {
   const router = useRouter()
   const [syncInterval, setSyncInterval] = useState<NodeJS.Timeout | null>(null);
   const [restoreInterval, setRestoreInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [lastRestoreTime, setLastRestoreTime] = useState<Date | null>(null);
 
   const handleLogin = () => {
     router.push("/sign-in")
@@ -496,23 +497,21 @@ useEffect(() => {
   }
 }, [events, calendars, isAutoBackupEnabled])
 
-const restoreUserData = async () => {
-  if (!clerkUserId) return;
-
+const restoreUserData = async (silent = true) => {
+  if (!clerkUserId || isRestoring) return;
+  
+  setIsRestoring(true);
   try {
     const response = await fetch(`/api/blob?id=${clerkUserId}`);
-    if (!response.ok) {
-      console.log("没有找到备份数据");
-      return;
-    }
+    if (!response.ok) throw new Error("Backup not found");
 
     const result = await response.json();
     if (result.success && result.data) {
-      const restoredData = typeof result.data === "string" 
+      const restoredData = typeof result.data === 'string' 
         ? JSON.parse(result.data) 
         : result.data;
-      
-      // 恢复数据到本地存储
+
+      // 智能合并数据（保留您原有的合并逻辑）
       saveLocalData({
         contacts: restoredData.contacts || [],
         notes: restoredData.notes || [],
@@ -520,46 +519,53 @@ const restoreUserData = async () => {
         bookmarks: restoredData.bookmarks || []
       });
 
-      // 恢复日历数据
       if (Array.isArray(restoredData.events)) {
-        setEvents(restoredData.events);
-      }
-      if (Array.isArray(restoredData.calendars)) {
-        setCalendars(restoredData.calendars);
+        setEvents(prev => {
+          const existingIds = new Set(prev.map(e => e.id));
+          const newEvents = restoredData.events.filter((e: any) => !existingIds.has(e.id));
+          return [...prev, ...newEvents];
+        });
       }
 
-      console.log("自动恢复数据成功");
+      setLastRestoreTime(new Date());
+      
+      if (!silent) {
+        toast({
+          title: language === "zh" ? "数据恢复成功" : "Data Restored",
+          description: language === "zh" 
+            ? `已同步最新备份 (${new Date().toLocaleTimeString()})`
+            : `Synced latest backup (${new Date().toLocaleTimeString()})`
+        });
+      }
     }
   } catch (error) {
-    console.error("自动恢复失败:", error);
+    console.error("恢复失败:", error);
+    if (!silent) {
+      toast({
+        variant: "destructive",
+        title: language === "zh" ? "恢复失败" : "Restore Failed",
+        description: error instanceof Error 
+          ? error.message 
+          : language === "zh" ? "无法获取备份数据" : "Failed to fetch backup"
+      });
+    }
+  } finally {
+    setIsRestoring(false);
   }
 };
-
 // 修改后的用户登录状态 useEffect
 useEffect(() => {
-  if (isLoaded && isSignedIn && user) {
-    setClerkUserId(user.id);
-    
-    // 立即执行一次恢复
-    restoreUserData();
-    
-    // 设置30秒自动恢复定时器
-    const interval = setInterval(() => {
-      restoreUserData();
-    }, 30000);
-    
-    setRestoreInterval(interval);
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  } else {
-    setClerkUserId(null);
-    if (restoreInterval) {
-      clearInterval(restoreInterval);
-      setRestoreInterval(null);
-    }
-  }
+  if (!isLoaded || !isSignedIn || !user) return;
+
+  setClerkUserId(user.id);
+  
+  restoreUserData(true); 
+  
+  const interval = setInterval(() => {
+    restoreUserData(true);
+  }, 30000);
+
+  return () => clearInterval(interval);
 }, [isLoaded, isSignedIn, user]);
 
 
@@ -602,6 +608,13 @@ return (
                  className="cursor-pointer"
               >
                 {language === "zh" ? "自动备份设置" : "Auto Backup"}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                 onClick={() => restoreUserData(false)}
+                 className="cursor-pointer"
+              >
+                 <RefreshCw className="mr-2 h-4 w-4" />
+                 {language === "zh" ? "同步" : "Sync"}
               </DropdownMenuItem>
               <SignOutButton signOutCallback={handleSignOut}>
                 <DropdownMenuItem className="cursor-pointer">
