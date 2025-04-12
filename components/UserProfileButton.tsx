@@ -17,6 +17,7 @@ import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useUser, SignInButton, SignUpButton, SignOutButton } from "@clerk/nextjs";
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -36,6 +37,10 @@ export default function UserProfileButton() {
   const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
   const [currentBackupId, setCurrentBackupId] = useState<string | null>(null)
 
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+
   // Add useEffect to load auto-backup state from localStorage
   useEffect(() => {
     const storedAutoBackup = localStorage.getItem("auto-backup-enabled")
@@ -46,6 +51,13 @@ export default function UserProfileButton() {
       setCurrentBackupId(storedBackupId)
     }
   }, [])
+
+  const handleSignOut = () => {
+  toast({
+    title: language === "zh" ? "已登出" : "Signed Out",
+    description: language === "zh" ? "您已成功退出登录" : "You have been signed out",
+  });
+};
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -467,21 +479,29 @@ return (
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsBackupOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            {language === "zh" ? "备份数据" : "Backup Data"}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsRestoreOpen(true)}>
-            <Download className="mr-2 h-4 w-4" />
-            {language === "zh" ? "导入数据" : "Restore Data"}
-          </DropdownMenuItem>
-          {isAutoBackupEnabled && (
-            <DropdownMenuItem onClick={disableAutoBackup}>
-              <LogOut className="mr-2 h-4 w-4" />
-              {language === "zh" ? "退出登录" : "Logout"}
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
+  {isSignedIn ? (
+    <>
+      <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
+        {language === "zh" ? "自动备份设置" : "Auto Backup"}
+      </DropdownMenuItem>
+      <SignOutButton signOutCallback={handleSignOut}>
+        <DropdownMenuItem>
+          <LogOut className="mr-2 h-4 w-4" />
+          {language === "zh" ? "退出登录" : "Sign Out"}
+        </DropdownMenuItem>
+      </SignOutButton>
+    </>
+  ) : (
+    <>
+      <DropdownMenuItem onClick={() => setIsSignInOpen(true)}>
+        {language === "zh" ? "登录" : "Sign In"}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setIsSignUpOpen(true)}>
+        {language === "zh" ? "注册" : "Sign Up"}
+      </DropdownMenuItem>
+    </>
+  )}
+          </DropdownMenuContent>
       </DropdownMenu>
 
       {/* 备份对话框 */}
@@ -650,6 +670,32 @@ return (
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+<Dialog open={isSignInOpen} onOpenChange={setIsSignInOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>{language === "zh" ? "登录" : "Sign In"}</DialogTitle>
+    </DialogHeader>
+    <SignInButton mode="modal" afterSignInUrl="/">
+      <Button className="w-full">
+        {language === "zh" ? "使用 Clerk 登录" : "Sign In with Clerk"}
+      </Button>
+    </SignInButton>
+  </DialogContent>
+</Dialog>
+
+<Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>{language === "zh" ? "注册" : "Sign Up"}</DialogTitle>
+    </DialogHeader>
+    <SignUpButton mode="modal" afterSignUpUrl="/">
+      <Button className="w-full">
+        {language === "zh" ? "使用 Clerk 注册" : "Sign Up with Clerk"}
+      </Button>
+    </SignUpButton>
+  </DialogContent>
+</Dialog>
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
         <DialogContent>
           <DialogHeader>
