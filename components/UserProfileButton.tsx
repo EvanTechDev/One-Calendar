@@ -481,7 +481,7 @@ useEffect(() => {
 
 return (
     <>
-      <DropdownMenu>
+      {/*<DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <User className="h-5 w-5" />
@@ -512,7 +512,7 @@ return (
     </>
   )}
           </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu>*/}
 
       {/* 备份对话框 */}
       <Dialog open={isBackupOpen} onOpenChange={setIsBackupOpen}>
