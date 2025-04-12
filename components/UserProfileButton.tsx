@@ -18,6 +18,7 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
+import Link from "next/link"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -686,19 +687,21 @@ return (
     </>
   ) : (
     <>
-      <DropdownMenuItem asChild>
-        <a href="/sign-in" className="w-full">
+      <DropdownMenuItem>
+        <Link href="/sign-in" className="w-full">
           {language === "zh" ? "登录" : "Sign In"}
-        </a>
+        </Link>
       </DropdownMenuItem>
-      <DropdownMenuItem asChild>
-        <a href="/sign-up" className="w-full">
+      <DropdownMenuItem>
+        <Link href="/sign-up" className="w-full">
           {language === "zh" ? "注册" : "Sign Up"}
-        </a>
+        </Link>
       </DropdownMenuItem>
     </>
   )}
 </DropdownMenuContent>
+
+
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
         <DialogContent>
           <DialogHeader>
