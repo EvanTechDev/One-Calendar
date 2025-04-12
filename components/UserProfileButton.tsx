@@ -41,7 +41,7 @@ export default function UserProfileButton() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
-  const router = useRoute()
+  const router = useRouter()
 
   const handleLogin = () => {
     router.push("/sign-in")
