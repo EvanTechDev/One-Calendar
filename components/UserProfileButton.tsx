@@ -72,20 +72,30 @@ useEffect(() => {
 
 // 监听用户登录状态变化
 useEffect(() => {
-  if (isLoaded) {
-    if (isSignedIn && user) {
-      setClerkUserId(user.id);
-      // 检查是否有之前的备份ID，如果有则显示自动备份对话框
-      const backupId = localStorage.getItem("auto-backup-id");
-      if (backupId) {
-        setCurrentBackupId(backupId);
-        setShowAutoBackupDialog(true);
+  if (isLoaded && isSignedIn && user) {
+    setClerkUserId(user.id);
+    
+    // 立即恢复数据
+    restoreUserData();
+    
+    const interval = setInterval(() => {
+      if (isAutoBackupEnabled) {
+        performAutoBackup();
       }
-    } else {
-      setClerkUserId(null);
-    }
+      restoreUserData();
+    }, 60000); // 1分钟
+    
+    setSyncInterval(interval);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  } else {
+    setClerkUserId(null);
+    if (syncInterval) clearInterval(syncInterval);
   }
 }, [isLoaded, isSignedIn, user]);
+
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -435,17 +445,22 @@ const enableAutoBackup = () => {
 
 // Add a function to disable auto-backup (logout)
 const disableAutoBackup = () => {
-  setIsAutoBackupEnabled(false)
-  localStorage.removeItem("auto-backup-enabled")
-  localStorage.removeItem("auto-backup-id")
-  setCurrentBackupId(null)
+  setIsAutoBackupEnabled(false);
+  localStorage.removeItem("auto-backup-enabled");
+  localStorage.removeItem("auto-backup-id");
+  
+  if (syncInterval) {
+    clearInterval(syncInterval);
+    setSyncInterval(null);
+  }
 
   toast({
     title: language === "zh" ? "自动备份已禁用" : "Auto-Backup Disabled",
-    description:
-      language === "zh" ? "您的数据将不再自动备份。" : "Your data will no longer be automatically backed up.",
-  })
-}
+    description: language === "zh" 
+      ? "您的数据将不再自动备份" 
+      : "Your data will no longer be automatically backed up"
+  });
+};
 
 // Add a function to perform auto-backup
 const performAutoBackup = async () => {
@@ -499,6 +514,45 @@ useEffect(() => {
     performAutoBackup()
   }
 }, [events, calendars, isAutoBackupEnabled])
+
+const restoreUserData = async () => {
+  if (!clerkUserId) return;
+
+  try {
+    const response = await fetch(`/api/blob?id=${clerkUserId}`);
+    if (!response.ok) throw new Error("No backup found");
+
+    const result = await response.json();
+    if (result.success && result.data) {
+      const restoredData = typeof result.data === "string" ? JSON.parse(result.data) : result.data;
+      
+      // 恢复数据到本地存储
+      saveLocalData({
+        contacts: restoredData.contacts || [],
+        notes: restoredData.notes || [],
+        sharedEvents: restoredData.sharedEvents || [],
+        bookmarks: restoredData.bookmarks || []
+      });
+
+      // 恢复日历数据
+      if (Array.isArray(restoredData.events)) {
+        setEvents(restoredData.events);
+      }
+      if (Array.isArray(restoredData.calendars)) {
+        setCalendars(restoredData.calendars);
+      }
+
+      toast({
+        title: language === "zh" ? "数据恢复成功" : "Data Restored",
+        description: language === "zh" 
+          ? "已从云端恢复您之前的数据" 
+          : "Your previous data has been restored from cloud"
+      });
+    }
+  } catch (error) {
+    console.log("No existing backup found or error restoring:", error);
+  }
+};
 
 return (
     <>
