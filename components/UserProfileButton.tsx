@@ -676,11 +676,7 @@ return (
     <DialogHeader>
       <DialogTitle>{language === "zh" ? "登录" : "Sign In"}</DialogTitle>
     </DialogHeader>
-    <SignInButton mode="modal" afterSignInUrl="/">
-      <Button className="w-full">
-        {language === "zh" ? "使用 Clerk 登录" : "Sign In with Clerk"}
-      </Button>
-    </SignInButton>
+    <SignIn />
   </DialogContent>
 </Dialog>
 
@@ -689,11 +685,7 @@ return (
     <DialogHeader>
       <DialogTitle>{language === "zh" ? "注册" : "Sign Up"}</DialogTitle>
     </DialogHeader>
-    <SignUpButton mode="modal" afterSignUpUrl="/">
-      <Button className="w-full">
-        {language === "zh" ? "使用 Clerk 注册" : "Sign Up with Clerk"}
-      </Button>
-    </SignUpButton>
+      <SignUp />
   </DialogContent>
 </Dialog>
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
