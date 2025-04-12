@@ -10,8 +10,6 @@ import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-// Update the timezone options to use GMT format and add new settings for default view and keyboard shortcuts
-
 // First, add the defaultView and enableShortcuts props to the SettingsProps interface
 interface SettingsProps {
   language: Language
