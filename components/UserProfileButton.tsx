@@ -44,6 +44,7 @@ export default function UserProfileButton() {
   const [clerkUserId, setClerkUserId] = useState<string | null>(null);
   const router = useRouter()
   const [syncInterval, setSyncInterval] = useState<NodeJS.Timeout | null>(null);
+  const [restoreInterval, setRestoreInterval] = useState<NodeJS.Timeout | null>(null);
 
   const handleLogin = () => {
     router.push("/sign-in")
@@ -500,11 +501,16 @@ const restoreUserData = async () => {
 
   try {
     const response = await fetch(`/api/blob?id=${clerkUserId}`);
-    if (!response.ok) throw new Error("No backup found");
+    if (!response.ok) {
+      console.log("没有找到备份数据");
+      return;
+    }
 
     const result = await response.json();
     if (result.success && result.data) {
-      const restoredData = typeof result.data === "string" ? JSON.parse(result.data) : result.data;
+      const restoredData = typeof result.data === "string" 
+        ? JSON.parse(result.data) 
+        : result.data;
       
       // 恢复数据到本地存储
       saveLocalData({
@@ -522,39 +528,36 @@ const restoreUserData = async () => {
         setCalendars(restoredData.calendars);
       }
 
-      toast({
-        title: language === "zh" ? "数据恢复成功" : "Data Restored",
-        description: language === "zh" 
-          ? "已从云端恢复您之前的数据" 
-          : "Your previous data has been restored from cloud"
-      });
+      console.log("自动恢复数据成功");
     }
   } catch (error) {
-    console.log("No existing backup found or error restoring:", error);
+    console.error("自动恢复失败:", error);
   }
 };
 
 // 修改后的用户登录状态 useEffect
 useEffect(() => {
-  if (isLoaded) {
-    if (isSignedIn && user) {
-      setClerkUserId(user.id);
+  if (isLoaded && isSignedIn && user) {
+    setClerkUserId(user.id);
+    
+    // 立即执行一次恢复
+    restoreUserData();
+    
+    // 设置30秒自动恢复定时器
+    const interval = setInterval(() => {
       restoreUserData();
-      
-      // 设置定时器
-      const interval = setInterval(() => {
-        if (isAutoBackupEnabled) performAutoBackup();
-        restoreUserData();
-      }, 60000);
-      
-      setSyncInterval(interval);
-      
-      return () => {
-        if (interval) clearInterval(interval);
-      };
-    } else {
-      setClerkUserId(null);
-      if (syncInterval) clearInterval(syncInterval);
+    }, 30000);
+    
+    setRestoreInterval(interval);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  } else {
+    setClerkUserId(null);
+    if (restoreInterval) {
+      clearInterval(restoreInterval);
+      setRestoreInterval(null);
     }
   }
 }, [isLoaded, isSignedIn, user]);
@@ -567,6 +570,14 @@ useEffect(() => {
     }
   };
 }, [syncInterval]);
+
+useEffect(() => {
+  return () => {
+    if (restoreInterval) {
+      clearInterval(restoreInterval);
+    }
+  };
+}, [restoreInterval]);
 
 useEffect(() => {
   const isEnabled = localStorage.getItem("auto-backup-enabled") === "true";
