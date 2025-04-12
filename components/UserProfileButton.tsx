@@ -43,6 +43,7 @@ export default function UserProfileButton() {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
   const [clerkUserId, setClerkUserId] = useState<string | null>(null);
   const router = useRouter()
+  const [syncInterval, setSyncInterval] = useState<NodeJS.Timeout | null>(null);
 
   const handleLogin = () => {
     router.push("/sign-in")
@@ -568,6 +569,14 @@ useEffect(() => {
     if (syncInterval) clearInterval(syncInterval);
   }
 }, [isLoaded, isSignedIn, user]);
+
+useEffect(() => {
+  return () => {
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
+  };
+}, [syncInterval]);
 
 return (
     <>
