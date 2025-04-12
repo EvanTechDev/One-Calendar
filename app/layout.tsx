@@ -7,7 +7,7 @@ import { CalendarProvider } from "@/contexts/CalendarContext"
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
-import { zhCN, enUS } from '@clerk/localizations'
+import { enUS } from '@clerk/localizations'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}> 
       <ClerkProvider 
-        localization={language === 'zh' ? zhCN : enUS}
+        localization={enUS}
       >
         <CalendarProvider>
           {children}
