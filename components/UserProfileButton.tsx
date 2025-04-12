@@ -688,14 +688,14 @@ return (
   ) : (
     <>
       <DropdownMenuItem asChild>
-        <Link href="/sign-in">
+        <a href="/sign-in" className="w-full">
           {language === "zh" ? "登录" : "Sign In"}
-        </Link>
+        </a>
       </DropdownMenuItem>
       <DropdownMenuItem asChild>
-        <Link href="/sign-up">
+        <a href="/sign-up" className="w-full">
           {language === "zh" ? "注册" : "Sign Up"}
-        </Link>
+        </a>
       </DropdownMenuItem>
     </>
   )}
