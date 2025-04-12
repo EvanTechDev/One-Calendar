@@ -76,11 +76,9 @@ useEffect(() => {
   if (isLoaded) {
     if (isSignedIn && user) {
       setClerkUserId(user.id);
-      // 检查是否有之前的备份ID，如果有则显示自动备份对话框
       const backupId = localStorage.getItem("auto-backup-id");
       if (backupId) {
         setCurrentBackupId(backupId);
-        setShowAutoBackupDialog(true);
       }
     } else {
       setClerkUserId(null);
