@@ -18,7 +18,7 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
-import { useRoute } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -41,7 +41,7 @@ export default function UserProfileButton() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
-  const route = useRoute()
+  const router = useRoute()
 
   const handleLogin = () => {
     router.push("/sign-in")
