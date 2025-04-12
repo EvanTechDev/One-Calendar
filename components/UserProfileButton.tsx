@@ -52,6 +52,13 @@ export default function UserProfileButton() {
     router.push("/sign-up")
   }
 
+  const handleSignOut = () => {
+    toast({
+      title: language === "zh" ? "已登出" : "Signed Out",
+      description: language === "zh" ? "您已成功退出登录" : "You have been signed out",
+    });
+  };
+
   // 监听用户登录状态变化
 useEffect(() => {
   if (isAutoBackupEnabled && clerkUserId) {
