@@ -471,7 +471,7 @@ const performAutoBackup = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: `backups/${clerkUserId}`,
+        id: `${clerkUserId}`,
         data: backupData,
       }),
     });
