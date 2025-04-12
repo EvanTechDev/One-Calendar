@@ -613,7 +613,6 @@ return (
                  onClick={() => restoreUserData(false)}
                  className="cursor-pointer"
               >
-                 <RefreshCw className="mr-2 h-4 w-4" />
                  {language === "zh" ? "同步" : "Sync"}
               </DropdownMenuItem>
               <SignOutButton signOutCallback={handleSignOut}>
