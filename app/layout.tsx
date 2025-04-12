@@ -12,7 +12,7 @@ import { enUS } from '@clerk/localizations'
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "One Calendar | Customize your day at your fingertips and save as much time as you want",
+  title: "One Calendar | Get organized and make the most of your time",
   description: "One Calendar is a calendar web app that uses React + Vercel/blob for storage. It has rich features, such as: address book, notes, bookmarks, to-do lists and analysis features!",
 }
 
