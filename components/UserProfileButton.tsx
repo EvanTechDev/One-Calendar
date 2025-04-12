@@ -18,7 +18,7 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
-import Link from "next/link"
+import { useRoute } from "next/navigation"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -40,7 +40,16 @@ export default function UserProfileButton() {
 
   const { isLoaded, isSignedIn, user } = useUser();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
+  const route = useRoute()
+
+  const handleLogin = () => {
+    router.push("/sign-in")
+  }
+
+  const handleSignUp = () => {
+    router.push("/sign-up")
+  }
 
   // Add useEffect to load auto-backup state from localStorage
   useEffect(() => {
@@ -687,15 +696,11 @@ return (
           </>
         ) : (
           <>
-            <DropdownMenuItem>
-              <Link href="/sign-in" className="w-full">
+            <DropdownMenuItem onClick={handleLogin}>
                 {language === "zh" ? "登录" : "Sign In"}
-              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link href="/sign-up" className="w-full">
+            <DropdownMenuItem onClick={handleSignUp}>
                 {language === "zh" ? "注册" : "Sign Up"}
-              </Link>
             </DropdownMenuItem>
           </>
         )}
