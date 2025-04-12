@@ -18,7 +18,6 @@ import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
-import Link from "next"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
