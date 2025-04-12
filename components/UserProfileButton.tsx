@@ -462,7 +462,6 @@ useEffect(() => {
 }, [events, calendars, isAutoBackupEnabled])
 
 return (
-    <>
       <DropdownMenu>
   <DropdownMenuTrigger asChild>
     <Button variant="ghost" size="icon" className="rounded-full">
@@ -505,7 +504,7 @@ return (
     )}
   </DropdownMenuContent>
 </DropdownMenu>
-      {/* 备份对话框 */}
+
       <Dialog open={isBackupOpen} onOpenChange={setIsBackupOpen}>
         <DialogContent>
           <DialogHeader>
