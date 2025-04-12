@@ -481,39 +481,48 @@ useEffect(() => {
 
 return (
     <>
-      {/*<DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <User className="h-5 w-5" />
-            <span className="sr-only">{language === "zh" ? "用户资料" : "User Profile"}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-  {isSignedIn ? (
-    <>
-      <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
-        {language === "zh" ? "自动备份设置" : "Auto Backup"}
-      </DropdownMenuItem>
-      <SignOutButton signOutCallback={handleSignOut}>
-        <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          {language === "zh" ? "退出登录" : "Sign Out"}
+      <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon" className="rounded-full">
+      <User className="h-5 w-5" />
+      <span className="sr-only">{language === "zh" ? "用户资料" : "User Profile"}</span>
+    </Button>
+  </DropdownMenuTrigger>
+  
+  <DropdownMenuContent align="end">
+    {isSignedIn ? (
+      <>
+        <DropdownMenuItem 
+          onClick={() => setShowAutoBackupDialog(true)}
+          className="cursor-pointer"
+        >
+          {language === "zh" ? "自动备份设置" : "Auto Backup"}
         </DropdownMenuItem>
-      </SignOutButton>
-    </>
-  ) : (
-    <>
-      <DropdownMenuItem onClick={() => setIsSignInOpen(true)}>
-        {language === "zh" ? "登录" : "Sign In"}
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setIsSignUpOpen(true)}>
-        {language === "zh" ? "注册" : "Sign Up"}
-      </DropdownMenuItem>
-    </>
-  )}
-          </DropdownMenuContent>
-      </DropdownMenu>*/}
-
+        <SignOutButton signOutCallback={handleSignOut}>
+          <DropdownMenuItem className="cursor-pointer">
+            <LogOut className="mr-2 h-4 w-4" />
+            {language === "zh" ? "退出登录" : "Sign Out"}
+          </DropdownMenuItem>
+        </SignOutButton>
+      </>
+    ) : (
+      <>
+        <DropdownMenuItem 
+          onClick={handleLogin}
+          className="cursor-pointer"
+        >
+          {language === "zh" ? "登录" : "Sign In"}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleSignUp}
+          className="cursor-pointer"
+        >
+          {language === "zh" ? "注册" : "Sign Up"}
+        </DropdownMenuItem>
+      </>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
       {/* 备份对话框 */}
       <Dialog open={isBackupOpen} onOpenChange={setIsBackupOpen}>
         <DialogContent>
@@ -681,32 +690,6 @@ return (
         </DialogContent>
       </Dialog>
       
-      <DropdownMenuContent align="end">
-        {isSignedIn ? (
-          <>
-            <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
-              {language === "zh" ? "自动备份设置" : "Auto Backup"}
-            </DropdownMenuItem>
-            <SignOutButton signOutCallback={handleSignOut}>
-              <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4" />
-                {language === "zh" ? "退出登录" : "Sign Out"}
-              </DropdownMenuItem>
-            </SignOutButton>
-          </>
-        ) : (
-          <>
-            <DropdownMenuItem onClick={handleLogin}>
-                {language === "zh" ? "登录" : "Sign In"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleSignUp}>
-                {language === "zh" ? "注册" : "Sign Up"}
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-
-
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
         <DialogContent>
           <DialogHeader>
