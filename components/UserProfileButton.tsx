@@ -41,6 +41,7 @@ export default function UserProfileButton() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
+  const [clerkUserId, setClerkUserId] = useState<string | null>(null);
   const router = useRouter()
 
   const handleLogin = () => {
@@ -51,23 +52,16 @@ export default function UserProfileButton() {
     router.push("/sign-up")
   }
 
-  // Add useEffect to load auto-backup state from localStorage
-  useEffect(() => {
-    const storedAutoBackup = localStorage.getItem("auto-backup-enabled")
-    const storedBackupId = localStorage.getItem("auto-backup-id")
-
-    if (storedAutoBackup === "true" && storedBackupId) {
-      setIsAutoBackupEnabled(true)
-      setCurrentBackupId(storedBackupId)
-    }
-  }, [])
-
-  const handleSignOut = () => {
-  toast({
-    title: language === "zh" ? "已登出" : "Signed Out",
-    description: language === "zh" ? "您已成功退出登录" : "You have been signed out",
-  });
-};
+  // 监听用户登录状态变化
+useEffect(() => {
+  if (isAutoBackupEnabled && clerkUserId) {
+    const timer = setTimeout(() => {
+      performAutoBackup();
+    }, 1000); // 防抖1秒
+    
+    return () => clearTimeout(timer);
+  }
+}, [events, calendars, isAutoBackupEnabled, clerkUserId]);
 
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
@@ -425,52 +419,33 @@ const disableAutoBackup = () => {
 
 // Add a function to perform auto-backup
 const performAutoBackup = async () => {
-  if (!isAutoBackupEnabled || !currentBackupId) return
-
+  if (!isAutoBackupEnabled || !clerkUserId) return;
   try {
-    console.log("Auto-Backup: Starting backup process")
-
-    // Get all data
-    const { contacts, notes, sharedEvents, bookmarks } = getLocalData() // 获取包含分享事件的数据
-
-    // Prepare backup data
+    const { contacts, notes, sharedEvents, bookmarks } = getLocalData();
     const backupData = {
       events: events || [],
       calendars: calendars || [],
       contacts,
       notes,
       sharedEvents,
-      bookmarks, // Add this line
+      bookmarks,
       timestamp: new Date().toISOString(),
-    }
+    };
 
-    console.log(
-      `Auto-Backup: Prepared data with ${backupData.events.length} events, ${backupData.calendars.length} calendars, ${backupData.sharedEvents.length} shared events, and ${backupData.bookmarks.length} bookmarks`,
-    )
-
-    // Directly use fetch to call API
-    console.log("Auto-Backup: Sending data to API")
     const response = await fetch("/api/blob", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: currentBackupId,
-        data: backupData,
+        id: backups/${clerkUserId}, // 新路径格式
+        data: backupData
       }),
-    })
+    });
 
-    if (!response.ok) {
-      console.error(`Auto-Backup: API returned status ${response.status}`)
-      return
-    }
-
-    console.log("Auto-Backup: Backup successful")
+    if (!response.ok) throw new Error("Backup failed");
   } catch (error) {
-    console.error("Auto-Backup error:", error)
-  }
+    console.error("Auto-Backup error:", error);
 }
+};
 
 // Add useEffect to watch for data changes and trigger auto-backup
 useEffect(() => {
@@ -691,29 +666,20 @@ return (
       </Dialog>
       
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{language === "zh" ? "启用自动备份？" : "Enable Auto-Backup?"}</DialogTitle>
-            <DialogDescription>
-              {language === "zh"
-                ? "是否希望在每次更改数据时，自动使用此密码备份您的数据？"
-                : "Would you like to automatically backup your data with this password whenever changes are made?"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              {language === "zh"
-                ? "启用后，您的数据将在每次更改时自动备份到云端，您可以随时使用相同的密码恢复数据。"
-                : "When enabled, your data will be automatically backed up to the cloud whenever changes are made. You can restore your data at any time using the same password."}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAutoBackupDialog(false)}>
-              {language === "zh" ? "取消" : "Cancel"}
-            </Button>
-            <Button onClick={enableAutoBackup}>{language === "zh" ? "启用自动备份" : "Enable Auto-Backup"}</Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogHeader>
+          <DialogTitle>{language === "zh" ? "启用自动备份？" : "Enable Auto-Backup?"}</DialogTitle>
+          <DialogDescription>
+            {language === "zh" ? `将以您的账户ID (${clerkUserId?.slice(0, 8)}...)自动备份数据` : `Data will be backed up with your account ID (${clerkUserId?.slice(0, 8)}...)`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => {
+            enableAutoBackup();
+            performAutoBackup();
+          }}>
+            {language === "zh" ? "启用" : "Enable"}
+          </Button>
+        </DialogFooter>
       </Dialog>
     </>
   )
