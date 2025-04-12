@@ -65,7 +65,8 @@
     "@vercel/analytics": "latest",
     "@vercel/speed-insights": "latest",
     "qrcode": "latest",
-    "@clerk/nextjs": "latest"
+    "@clerk/nextjs": "latest",
+    "@clerk/localizations": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
