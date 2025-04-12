@@ -70,6 +70,23 @@ useEffect(() => {
   }
 }, [events, calendars, isAutoBackupEnabled, clerkUserId]);
 
+// 监听用户登录状态变化
+useEffect(() => {
+  if (isLoaded) {
+    if (isSignedIn && user) {
+      setClerkUserId(user.id);
+      // 检查是否有之前的备份ID，如果有则显示自动备份对话框
+      const backupId = localStorage.getItem("auto-backup-id");
+      if (backupId) {
+        setCurrentBackupId(backupId);
+        setShowAutoBackupDialog(true);
+      }
+    } else {
+      setClerkUserId(null);
+    }
+  }
+}, [isLoaded, isSignedIn, user]);
+
   // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
     try {
