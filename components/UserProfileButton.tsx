@@ -672,6 +672,7 @@ return (
         </DialogContent>
       </Dialog>
       
+     <>
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
         <DialogHeader>
           <DialogTitle>{language === "zh" ? "启用自动备份？" : "Enable Auto-Backup?"}</DialogTitle>
