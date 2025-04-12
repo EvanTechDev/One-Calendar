@@ -536,29 +536,16 @@ const restoreUserData = async () => {
   }
 };
 
+// 修改后的用户登录状态 useEffect
 useEffect(() => {
   if (isLoaded) {
     if (isSignedIn && user) {
       setClerkUserId(user.id);
-      
-      // 检查自动备份状态
-      const isAutoBackupEnabled = localStorage.getItem("auto-backup-enabled") === "true";
-      const backupId = localStorage.getItem("auto-backup-id");
-      
-      // 只有在自动备份未启用且存在备份ID时才显示对话框
-      if (!isAutoBackupEnabled && backupId) {
-        setCurrentBackupId(backupId);
-        setShowAutoBackupDialog(true);
-      }
-      
-      // 立即恢复数据
       restoreUserData();
       
-      // 设置定时器（无论自动备份是否启用都设置，因为可能手动启用）
+      // 设置定时器
       const interval = setInterval(() => {
-        if (isAutoBackupEnabled) {
-          performAutoBackup();
-        }
+        if (isAutoBackupEnabled) performAutoBackup();
         restoreUserData();
       }, 60000);
       
@@ -569,13 +556,11 @@ useEffect(() => {
       };
     } else {
       setClerkUserId(null);
-      if (syncInterval) {
-        clearInterval(syncInterval);
-        setSyncInterval(null);
-      }
+      if (syncInterval) clearInterval(syncInterval);
     }
   }
 }, [isLoaded, isSignedIn, user]);
+
 
 useEffect(() => {
   return () => {
