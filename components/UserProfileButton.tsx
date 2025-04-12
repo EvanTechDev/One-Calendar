@@ -423,14 +423,6 @@ const enableAutoBackup = () => {
     });
     setShowAutoBackupDialog(false);
     performAutoBackup();
-  } else {
-    toast({
-      variant: "destructive",
-      title: language === "zh" ? "无法启用自动备份" : "Auto-Backup Failed",
-      description: language === "zh" 
-        ? "未检测到用户ID，请重新登录。" 
-        : "No user ID detected. Please sign in again.",
-    });
   }
 };
 
@@ -546,27 +538,38 @@ const restoreUserData = async () => {
 };
 
 useEffect(() => {
-  if (isLoaded && isSignedIn && user) {
-    setClerkUserId(user.id);
-    
-    // 立即恢复数据
-    restoreUserData();
-    
-    const interval = setInterval(() => {
-      if (isAutoBackupEnabled) {
-        performAutoBackup();
+  if (isLoaded) {
+    if (isSignedIn && user) {
+      setClerkUserId(user.id);
+      
+      // 只有在自动备份未启用时才显示对话框
+      const isAutoBackupEnabled = localStorage.getItem("auto-backup-enabled") === "true";
+      if (!isAutoBackupEnabled) {
+        const backupId = localStorage.getItem("auto-backup-id");
+        if (backupId) {
+          setCurrentBackupId(backupId);
+          setShowAutoBackupDialog(true);
+        }
       }
+      
+      // 恢复数据
       restoreUserData();
-    }, 60000); // 1分钟
-    
-    setSyncInterval(interval);
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  } else {
-    setClerkUserId(null);
-    if (syncInterval) clearInterval(syncInterval);
+      
+      // 设置定时器
+      const interval = setInterval(() => {
+        if (isAutoBackupEnabled) performAutoBackup();
+        restoreUserData();
+      }, 60000);
+      
+      setSyncInterval(interval);
+      
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    } else {
+      setClerkUserId(null);
+      if (syncInterval) clearInterval(syncInterval);
+    }
   }
 }, [isLoaded, isSignedIn, user]);
 
