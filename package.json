@@ -64,7 +64,8 @@
     "framer-motion": "^12.6.2",
     "@vercel/analytics": "latest",
     "@vercel/speed-insights": "latest",
-    "qrcode": "latest"
+    "qrcode": "latest",
+    "@clerk/nextjs": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
