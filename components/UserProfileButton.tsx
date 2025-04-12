@@ -413,7 +413,7 @@ const handleRestore = async () => {
 const enableAutoBackup = () => {
   if (clerkUserId) {
     setIsAutoBackupEnabled(true);
-    localStorage.setItem("auto-backup-enabled", "true");
+    localStorage.setItem("auto-backup-enabled", "true"); // 明确设置为 "true"
     localStorage.setItem("auto-backup-id", clerkUserId);
     toast({
       title: language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled",
@@ -421,15 +421,14 @@ const enableAutoBackup = () => {
         ? "您的数据将在每次更改时自动备份。" 
         : "Your data will be automatically backed up on changes.",
     });
-    setShowAutoBackupDialog(false);
-    performAutoBackup();
+    setShowAutoBackupDialog(false); // 确保关闭对话框
+    performAutoBackup(); // 立即执行一次备份
   }
 };
 
-// Add a function to disable auto-backup (logout)
 const disableAutoBackup = () => {
   setIsAutoBackupEnabled(false);
-  localStorage.removeItem("auto-backup-enabled");
+  localStorage.removeItem("auto-backup-enabled"); // 完全移除而不是设为 false
   localStorage.removeItem("auto-backup-id");
   
   if (syncInterval) {
@@ -542,22 +541,24 @@ useEffect(() => {
     if (isSignedIn && user) {
       setClerkUserId(user.id);
       
-      // 只有在自动备份未启用时才显示对话框
+      // 检查自动备份状态
       const isAutoBackupEnabled = localStorage.getItem("auto-backup-enabled") === "true";
-      if (!isAutoBackupEnabled) {
-        const backupId = localStorage.getItem("auto-backup-id");
-        if (backupId) {
-          setCurrentBackupId(backupId);
-          setShowAutoBackupDialog(true);
-        }
+      const backupId = localStorage.getItem("auto-backup-id");
+      
+      // 只有在自动备份未启用且存在备份ID时才显示对话框
+      if (!isAutoBackupEnabled && backupId) {
+        setCurrentBackupId(backupId);
+        setShowAutoBackupDialog(true);
       }
       
-      // 恢复数据
+      // 立即恢复数据
       restoreUserData();
       
-      // 设置定时器
+      // 设置定时器（无论自动备份是否启用都设置，因为可能手动启用）
       const interval = setInterval(() => {
-        if (isAutoBackupEnabled) performAutoBackup();
+        if (isAutoBackupEnabled) {
+          performAutoBackup();
+        }
         restoreUserData();
       }, 60000);
       
@@ -568,7 +569,10 @@ useEffect(() => {
       };
     } else {
       setClerkUserId(null);
-      if (syncInterval) clearInterval(syncInterval);
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        setSyncInterval(null);
+      }
     }
   }
 }, [isLoaded, isSignedIn, user]);
@@ -580,6 +584,11 @@ useEffect(() => {
     }
   };
 }, [syncInterval]);
+
+useEffect(() => {
+  const isEnabled = localStorage.getItem("auto-backup-enabled") === "true";
+  setIsAutoBackupEnabled(isEnabled);
+}, []);
 
 return (
     <>
