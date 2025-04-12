@@ -672,34 +672,34 @@ return (
         </DialogContent>
       </Dialog>
       
-<DropdownMenuContent align="end">
-  {isSignedIn ? (
-    <>
-      <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
-        {language === "zh" ? "自动备份设置" : "Auto Backup"}
-      </DropdownMenuItem>
-      <SignOutButton signOutCallback={handleSignOut}>
-        <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          {language === "zh" ? "退出登录" : "Sign Out"}
-        </DropdownMenuItem>
-      </SignOutButton>
-    </>
-  ) : (
-    <>
-      <DropdownMenuItem>
-        <Link href="/sign-in" className="w-full">
-          {language === "zh" ? "登录" : "Sign In"}
-        </Link>
-      </DropdownMenuItem>
-      <DropdownMenuItem>
-        <Link href="/sign-up" className="w-full">
-          {language === "zh" ? "注册" : "Sign Up"}
-        </Link>
-      </DropdownMenuItem>
-    </>
-  )}
-</DropdownMenuContent>
+      <DropdownMenuContent align="end">
+        {isSignedIn ? (
+          <>
+            <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
+              {language === "zh" ? "自动备份设置" : "Auto Backup"}
+            </DropdownMenuItem>
+            <SignOutButton signOutCallback={handleSignOut}>
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                {language === "zh" ? "退出登录" : "Sign Out"}
+              </DropdownMenuItem>
+            </SignOutButton>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem>
+              <Link href="/sign-in" className="w-full">
+                {language === "zh" ? "登录" : "Sign In"}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href="/sign-up" className="w-full">
+                {language === "zh" ? "注册" : "Sign Up"}
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
 
 
       <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
