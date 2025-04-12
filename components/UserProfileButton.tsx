@@ -410,22 +410,28 @@ const handleRestore = async () => {
 
 // Add a function to enable auto-backup
 const enableAutoBackup = () => {
-  if (currentBackupId) {
-    setIsAutoBackupEnabled(true)
-    localStorage.setItem("auto-backup-enabled", "true")
-    localStorage.setItem("auto-backup-id", currentBackupId)
-
+  if (clerkUserId) {
+    setIsAutoBackupEnabled(true);
+    localStorage.setItem("auto-backup-enabled", "true");
+    localStorage.setItem("auto-backup-id", clerkUserId);
     toast({
       title: language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled",
-      description:
-        language === "zh"
-          ? "您的数据将在每次更改时自动备份。"
-          : "Your data will be automatically backed up whenever changes are made.",
-    })
-
-    setShowAutoBackupDialog(false)
+      description: language === "zh" 
+        ? "您的数据将在每次更改时自动备份。" 
+        : "Your data will be automatically backed up on changes.",
+    });
+    setShowAutoBackupDialog(false);
+    performAutoBackup();
+  } else {
+    toast({
+      variant: "destructive",
+      title: language === "zh" ? "无法启用自动备份" : "Auto-Backup Failed",
+      description: language === "zh" 
+        ? "未检测到用户ID，请重新登录。" 
+        : "No user ID detected. Please sign in again.",
+    });
   }
-}
+};
 
 // Add a function to disable auto-backup (logout)
 const disableAutoBackup = () => {
@@ -443,8 +449,13 @@ const disableAutoBackup = () => {
 
 // Add a function to perform auto-backup
 const performAutoBackup = async () => {
-  if (!isAutoBackupEnabled || !clerkUserId) return;
+  if (!isAutoBackupEnabled || !clerkUserId) {
+    console.log("Auto-backup skipped: disabled or no user ID");
+    return;
+  }
+
   try {
+    console.log("Starting auto-backup...");
     const { contacts, notes, sharedEvents, bookmarks } = getLocalData();
     const backupData = {
       events: events || [],
@@ -460,15 +471,26 @@ const performAutoBackup = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: `backups/${clerkUserId}`, // 新路径格式
-        data: backupData
+        id: `backups/${clerkUserId}`,
+        data: backupData,
       }),
     });
 
-    if (!response.ok) throw new Error("Backup failed");
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    console.log("Auto-backup successful!");
   } catch (error) {
-    console.error("Auto-Backup error:", error);
-}
+    console.error("Auto-backup failed:", error);
+    toast({
+      variant: "destructive",
+      title: language === "zh" ? "自动备份失败" : "Auto-Backup Failed",
+      description: error instanceof Error 
+        ? error.message 
+        : language === "zh" ? "未知错误" : "Unknown error",
+    });
+  }
 };
 
 // Add useEffect to watch for data changes and trigger auto-backup
