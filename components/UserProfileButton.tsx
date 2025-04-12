@@ -436,7 +436,7 @@ const performAutoBackup = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: backups/${clerkUserId}, // 新路径格式
+        id: `backups/${clerkUserId}`, // 新路径格式
         data: backupData
       }),
     });
