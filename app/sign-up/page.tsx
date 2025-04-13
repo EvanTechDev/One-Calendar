@@ -11,6 +11,7 @@ export default function LoginPage() {
           One Calendar
         </a>
         <SignUpForm />
+      </div>
     </div>
   )
 }
