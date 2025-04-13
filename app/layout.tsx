@@ -26,8 +26,8 @@ export default function RootLayout({
       <body className={inter.className}> 
       <ClerkProvider 
         localization={enUS}
-        afterSignInUrl="/"
-        afterSignUpUrl="/"
+        fallbackRedirectUrl="/"
+        forceRedirectUrl="/"
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
       >
