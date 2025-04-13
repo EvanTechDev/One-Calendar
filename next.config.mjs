@@ -19,8 +19,8 @@ const nextConfig = {
   /*exportTrailingSlash: true */
   experimental: {
     webpackBuildWorker: true,
-    /*parallelServerBuildTraces: true,
-    parallelServerCompiles: true,*/
+    /*parallelServerBuildTraces: true,*/
+    parallelServerCompiles: true,
   },
 }
 
