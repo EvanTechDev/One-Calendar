@@ -12,10 +12,10 @@ export default function ResetPasswordPage() {
         </a>
         <ResetPasswordForm />
       </div>
-      <div className="fixed inset-0 overflow-hidden">
-        <div className="absolute -left-20 -top-40 h-96 w-96 rounded-full bg-blue-500 opacity-30 blur-[100px]" />
-        <div className="absolute -right-20 -bottom-40 h-96 w-96 rounded-full bg-purple-500 opacity-30 blur-[100px]" />
-        <div className="absolute right-1/4 top-1/3 h-64 w-64 rounded-full bg-indigo-500 opacity-20 blur-[80px]" />
+      <div className="fixed -z-10 inset-0 overflow-hidden">
+        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-500 opacity-20 blur-[80px]" />
+        <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-500 opacity-25 blur-[100px]" />
+        <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-500 opacity-20 blur-[90px]" />
       </div>
     </div>
   )
