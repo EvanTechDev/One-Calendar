@@ -813,7 +813,7 @@ return (
       <DialogTitle>{language === "zh" ? "自动备份设置" : "Auto-Backup Settings"}</DialogTitle>
       <DialogDescription>
         {language === "zh" 
-          ? `当前状态: ${isAutoBackupEnabled ? "已启用" : "已禁用"} (用户ID: ${clerkUserId?})`
+          ? `当前状态: ${isAutoBackupEnabled ? "已启用" : "已禁用"} (用户ID: ${clerkUserId})`
           : `Status: ${isAutoBackupEnabled ? "Enabled" : "Disabled"} (User ID: ${clerkUserId})`}
       </DialogDescription>
     </DialogHeader>
