@@ -16,12 +16,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
+  exportTrailingSlash: true
+  /*experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-  },
-  exportTrailingSlash: true,
+  },*/
 }
 
 mergeConfig(nextConfig, userConfig)
