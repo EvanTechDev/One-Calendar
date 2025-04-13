@@ -12,6 +12,7 @@ import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
+import { useRoute } from "next/navigation"
 
 // 通讯录类型定义
 interface Contact {
@@ -621,6 +622,17 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-600">
               <BarChart2 className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            onClick={() => router.push("https://techart.featurebase.app")}
+          >
+            <div className="w-10 h-10 rounder-full flex items-center justify-center bg-teal-500">
+              <MessageSquare className="h-5 w-5 text-primary-foreground" />
             </div>
           </Button>
         </div>
