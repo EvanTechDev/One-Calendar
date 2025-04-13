@@ -4,7 +4,7 @@ import { SignUpForm } from "@/components/SignUpForm"
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="fixed -z-10 inset-0 overflow-hidden">
         <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-500 opacity-20 blur-[80px]" />
         <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-500 opacity-25 blur-[100px]" />
