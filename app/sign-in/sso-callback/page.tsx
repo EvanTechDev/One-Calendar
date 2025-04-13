@@ -1,7 +1,7 @@
 'use client';
 
 import { AuthenticateWithRedirectCallback, useClerk } from '@clerk/nextjs';
-import { useEffect } from 'React';
+import { useEffect } from 'react';
 
 export default function SSOSignInCallback() {
   const { setSession } = useClerk();
