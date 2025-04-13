@@ -2,7 +2,7 @@ let userConfig = undefined
 try {
   userConfig = await import('./next.config')
 } catch (e) {
-  // ignore error
+
 }
 
 /** @type {import('next').NextConfig} */
