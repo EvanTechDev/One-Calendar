@@ -209,9 +209,6 @@ export default function Sidebar({
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setManageCategoriesOpen(false)}>{t.cancel || "关闭"}</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
