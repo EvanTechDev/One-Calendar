@@ -21,7 +21,7 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  trailingSlash: true,
+  exportTrailingSlash: true,
 }
 
 mergeConfig(nextConfig, userConfig)
