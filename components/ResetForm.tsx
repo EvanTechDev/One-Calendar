@@ -60,7 +60,7 @@ export function ResetPasswordForm({
 
       if (result?.status === "complete") {
         setStep("success");
-        setTimeout(() => router.push("/sign-in"), 2000);
+        setTimeout(() => router.push("/"), 2000);
       }
     } catch (err: any) {
       setError(err.errors[0].longMessage || "Password reset failed. Please try again.");
@@ -157,13 +157,13 @@ export function ResetPasswordForm({
               <div className="text-center text-sm">
                 {step === "request" ? (
                   <>
-                    Remember your password?{" "}
+                    You have reset your password and are logged in
                     <button
                       type="button"
-                      onClick={() => router.push("/sign-in")}
+                      onClick={() => router.push("/")}
                       className="underline underline-offset-4 hover:text-primary"
                     >
-                      Sign in
+                      Back to home
                     </button>
                   </>
                 ) : (
@@ -181,8 +181,8 @@ export function ResetPasswordForm({
         </CardContent>
       </Card>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a>{" "}
-        and <a href="/privacy">Privacy Policy</a>.
+        By continuing, you agree to our <a href="https://xyehr.cn/legal/terms-of-use">Terms of Service</a>{" "}
+        and <a href="https://xyehr.cn/legal/privacy-policy">Privacy Policy</a>.
       </div>
     </div>
   );
