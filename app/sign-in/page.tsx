@@ -12,7 +12,7 @@ export default function LoginPage() {
       </div>
 
       {/* 内容卡片 */}
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6 rounded-xl bg-white/80 p-8 shadow-lg backdrop-blur-sm">
+      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center gap-2 self-center font-medium text-gray-800">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
