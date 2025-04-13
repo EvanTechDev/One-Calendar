@@ -16,8 +16,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  exportTrailingSlash: true
-  /*experimental: {
+  /*exportTrailingSlash: true
+  experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
