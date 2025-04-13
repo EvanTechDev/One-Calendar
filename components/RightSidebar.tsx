@@ -12,7 +12,7 @@ import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
-import { useRoute } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 // 通讯录类型定义
 interface Contact {
