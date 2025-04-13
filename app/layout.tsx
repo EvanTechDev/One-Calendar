@@ -26,8 +26,8 @@ export default function RootLayout({
       <body className={inter.className}> 
       <ClerkProvider 
         localization={enUS}
-        fallbackRedirectUrl="/"
-        forceRedirectUrl="/"
+        fallbackRedirectUrl="https://calendar.xyehr.cn"
+        forceRedirectUrl="https://calendar.xyehr.cn"
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
       >
