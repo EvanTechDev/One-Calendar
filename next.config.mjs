@@ -7,11 +7,6 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbo: {
-    loaders: {
-      '.ts,.tsx': ['ts-loader'],
-    },
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -27,7 +22,6 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
     adjustFontFallbacks: true,
-    turbo: true,
   },
 }
 
