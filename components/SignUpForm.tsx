@@ -136,7 +136,7 @@ export function SignUpForm({
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
           <CardDescription>
-            Continue with Microsoft,Google, GitHub acoount
+            Continue with Microsoft, Google, GitHub acoount
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -244,7 +244,7 @@ export function SignUpForm({
                 <button
                   type="button"
                   onClick={() => router.push("/sign-in")}
-                  className="underline underline-offset-4 bg-[#0066ff] hover:bg-[#0047cc]"
+                  className="underline underline-offset-4"
                 >
                   Sign in
                 </button>
