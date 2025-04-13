@@ -26,6 +26,10 @@ export default function RootLayout({
       <body className={inter.className}> 
       <ClerkProvider 
         localization={enUS}
+        afterSignInUrl="/"
+        afterSignUpUrl="/"
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
       >
         <CalendarProvider>
           {children}
