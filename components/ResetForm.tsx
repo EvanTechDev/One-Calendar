@@ -161,7 +161,7 @@ export function ResetPasswordForm({
                     <button
                       type="button"
                       onClick={() => router.push("/sign-in")}
-                      className="underline underline-offset-4 bg-[#0066ff] hover:bg-[#0047cc]"
+                      className="underline underline-offset-4"
                     >
                       Login
                     </button>
