@@ -74,6 +74,8 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [noteSearch, setNoteSearch] = useState("")
   // Add a new state for the bookmark panel
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
+  const router = useRouter();
+
 
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
