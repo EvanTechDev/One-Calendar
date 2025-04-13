@@ -51,7 +51,7 @@ export function LoginForm({
   const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
     signIn.authenticateWithRedirect({
       strategy,
-      redirectUrl: "/",
+      redirectUrl: "/sign-in/sso-callback",
       redirectUrlComplete: "/",
     });
   };
