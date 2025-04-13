@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { CalendarProvider } from "@/contexts/CalendarContext"
@@ -8,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
+import { GeistSans } from "geist/font/sans"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}> 
+      <body className={GeistSans.className}> 
       <ClerkProvider 
         localization={enUS}
         fallbackRedirectUrl="/"
