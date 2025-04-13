@@ -7,7 +7,7 @@ export default function SignUpPage() {
         <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">Sign Up</h1>
         <SignUp
           signInUrl="/sign-in"
-          afterSignUpUrl="/"
+          redirectUrl="/"
           appearance={{
             elements: {
               rootBox: "mx-auto",
