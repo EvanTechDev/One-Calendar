@@ -39,7 +39,7 @@ export function LoginForm({
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/"); // Redirect after successful login
+        router.push("/");
       }
     } catch (err: any) {
       setError(err.errors[0].longMessage || "Login failed. Please try again.");
@@ -51,8 +51,8 @@ export function LoginForm({
   const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
     signIn.authenticateWithRedirect({
       strategy,
-      redirectUrl: "/sso-callback",
-      redirectUrlComplete: "/", // Redirect after successful OAuth login
+      redirectUrl: "/",
+      redirectUrlComplete: "/",
     });
   };
 
@@ -89,12 +89,32 @@ export function LoginForm({
                   type="button"
                   onClick={() => handleOAuthLogin("oauth_google")}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                    <path
-                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                      fill="currentColor"
-                    />
-                  </svg>
+                  <svg width="800px" height="800px" viewBox="-0.5 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    
+    <title>Google-color</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+
+</defs>
+    <g id="Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Color-" transform="translate(-401.000000, -860.000000)">
+            <g id="Google" transform="translate(401.000000, 860.000000)">
+                <path d="M9.82727273,24 C9.82727273,22.4757333 10.0804318,21.0144 10.5322727,19.6437333 L2.62345455,13.6042667 C1.08206818,16.7338667 0.213636364,20.2602667 0.213636364,24 C0.213636364,27.7365333 1.081,31.2608 2.62025,34.3882667 L10.5247955,28.3370667 C10.0772273,26.9728 9.82727273,25.5168 9.82727273,24" id="Fill-1" fill="#FBBC05">
+
+</path>
+                <path d="M23.7136364,10.1333333 C27.025,10.1333333 30.0159091,11.3066667 32.3659091,13.2266667 L39.2022727,6.4 C35.0363636,2.77333333 29.6954545,0.533333333 23.7136364,0.533333333 C14.4268636,0.533333333 6.44540909,5.84426667 2.62345455,13.6042667 L10.5322727,19.6437333 C12.3545909,14.112 17.5491591,10.1333333 23.7136364,10.1333333" id="Fill-2" fill="#EB4335">
+
+</path>
+                <path d="M23.7136364,37.8666667 C17.5491591,37.8666667 12.3545909,33.888 10.5322727,28.3562667 L2.62345455,34.3946667 C6.44540909,42.1557333 14.4268636,47.4666667 23.7136364,47.4666667 C29.4455,47.4666667 34.9177955,45.4314667 39.0249545,41.6181333 L31.5177727,35.8144 C29.3995682,37.1488 26.7323182,37.8666667 23.7136364,37.8666667" id="Fill-3" fill="#34A853">
+
+</path>
+                <path d="M46.1454545,24 C46.1454545,22.6133333 45.9318182,21.12 45.6113636,19.7333333 L23.7136364,19.7333333 L23.7136364,28.8 L36.3181818,28.8 C35.6879545,31.8912 33.9724545,34.2677333 31.5177727,35.8144 L39.0249545,41.6181333 C43.3393409,37.6138667 46.1454545,31.6490667 46.1454545,24" id="Fill-4" fill="#4285F4">
+
+</path>
+            </g>
+        </g>
+    </g>
+</svg>
                   <span className="ml-2">Login with Google</span>
                 </Button>
                 <Button
@@ -150,7 +170,7 @@ export function LoginForm({
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-[#0066ff]" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Login"}
                 </Button>
               </div>
