@@ -9,7 +9,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
 
-const inter = Inter({ subsets: ["latin"] })
+// const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "One Calendar | Get organized and make the most of your time",
