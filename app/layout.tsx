@@ -8,8 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
-
-// const inter = Inter
+import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: "One Calendar | Get organized and make the most of your time",
@@ -22,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={GeistSans.className}> 
       <ClerkProvider 
         localization={enUS}
@@ -31,11 +30,18 @@ export default function RootLayout({
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
       >
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
         <CalendarProvider>
           {children}
           <Toaster />
           <SpeedInsights />
         </CalendarProvider> 
+        </ThemeProvider>>
       </ClerkProvider>
       <Analytics />
       </body>
