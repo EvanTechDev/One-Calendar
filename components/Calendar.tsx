@@ -337,14 +337,14 @@ export default function Calendar() {
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
-                <SelectTrigger className="w-[80px]">
+                <Button variant="outline" size="sm">
                   <SelectValue />
-                </SelectTrigger>
+                </Button>
                 <SelectContent>
-                  <SelectItem className="w-[80px]" value="day">{t.day}</SelectItem>
-                  <SelectItem className="w-[80px]" value="week">{t.week}</SelectItem>
-                  <SelectItem className="w-[80px]" value="month">{t.month}</SelectItem>
-                  <SelectItem className="w-[80px]" value="analytics">{t.analytics}</SelectItem>
+                  <SelectItem value="day">{t.day}</SelectItem>
+                  <SelectItem value="week">{t.week}</SelectItem>
+                  <SelectItem value="month">{t.month}</SelectItem>
+                  <SelectItem value="analytics">{t.analytics}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
