@@ -13,7 +13,7 @@ import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
-import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
+import { checkPendingNotifications, clearAllNotificationTimers, useNotificationPermission, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
@@ -43,7 +43,7 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
-  // 保持所有现有状态和函数不变
+  useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
