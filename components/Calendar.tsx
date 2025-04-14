@@ -285,7 +285,6 @@ export default function Calendar() {
     }
   }, [])
 
-  // 修改return部分，将RightSidebar集成到布局中，并调整主内容区域的宽度
   return (
     <div className="flex h-screen bg-background">
       {/* <div className="w-80 border-r bg-background"> */}
@@ -338,7 +337,7 @@ export default function Calendar() {
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
