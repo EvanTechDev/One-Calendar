@@ -548,10 +548,10 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
 
   return (
     <>
-      {/* 右侧图标栏 - 固定在右侧，从顶部栏下方开始，没有空白 */}
+      {/* 右侧图标栏 - 固定在右侧 */}
       <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
-        <div className="flex flex-col items-center space-y-6 flex-1">
-          {/* Mini Calendar Button - 现在是第一个按钮 */}
+        <div className="flex flex-col items-center space-y-4 flex-1">
+          {/* Mini Calendar Button */}
           <Button
             variant="ghost"
             size="icon"
