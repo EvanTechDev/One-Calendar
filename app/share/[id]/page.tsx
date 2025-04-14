@@ -213,6 +213,12 @@ export default function SharedEventPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-800 p-4">
+      <div className="fixed -z-10 inset-0 overflow-hidden">
+        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
+        <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
+        <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -220,10 +226,10 @@ export default function SharedEventPage() {
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden max-w-md w-full"
       >
         {/* 顶部彩色条 */}
-        <div className={cn("h-2 w-full", event.color)}></div>
+        <div className={cn("w-2", event.color)}></div>
 
         {/* 事件标题和分享者信息 */}
-        <div className="p-6">
+        <div className="p-6 flex-1">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">{event.title}</h1>
