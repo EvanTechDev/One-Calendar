@@ -302,7 +302,7 @@ export default function Calendar() {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
-      <div className={cn("flex-1 flex flex-col transition-all duration-300 ease-in-out", isSidebarCollapsed ? "ml-0" : "ml-80")}>
+      <div className="flex-1 flex flex-col min-w-0">
         {" "}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <Button 
