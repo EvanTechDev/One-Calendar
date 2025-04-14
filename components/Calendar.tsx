@@ -23,7 +23,7 @@ import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
 import { cn } from "@/lib/utils"
-import ModeTogglr from "./ModeToggle"
+import ModeToggle from "./ModeToggle"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
