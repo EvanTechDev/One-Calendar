@@ -559,7 +559,7 @@ useEffect(() => {
 
   setClerkUserId(user.id);
   
-  restoreUserData(true); 
+  restoreUserData(false); 
   
   const interval = setInterval(() => {
     restoreUserData(true);
