@@ -186,7 +186,7 @@ export default function SharedEventPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden max-w-md w-full"
+        className="flex bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden max-w-md w-full"
       >
         {/* 左侧彩色条 */}
         <div className={cn("w-2", event.color)} />
