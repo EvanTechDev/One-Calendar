@@ -81,7 +81,7 @@ useEffect(() => {
       const backupId = localStorage.getItem("auto-backup-id");
       if (backupId) {
         // setCurrentBackupId(backupId);
-        console.log(backuoId)
+        console.log(backupId)
       }
     } else {
       setClerkUserId(null);
