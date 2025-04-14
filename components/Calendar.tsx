@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -43,6 +43,7 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
@@ -296,6 +297,8 @@ export default function Calendar() {
           onViewChange={handleViewChange}
           language={language}
           selectedDate={sidebarDate}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
       </div>
 
@@ -304,6 +307,12 @@ export default function Calendar() {
         {" "}
         {/* 添加右侧padding为14，与右侧边栏宽度相同 */}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
+          <button 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="fixed left-4 top-4 z-50 p-2 bg-gray-200 rounded-md"
+        >
+            <PanelLeft />
+        </button>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
               {t.today || "今天"}
