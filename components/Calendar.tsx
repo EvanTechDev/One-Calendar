@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, Moon, Sun } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -22,6 +22,7 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
+import { useTheme } from "next-themes"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -43,6 +44,7 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
+  const { setTheme } = useTheme()
   useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
@@ -393,8 +395,27 @@ export default function Calendar() {
               enableShortcuts={enableShortcuts}
               setEnableShortcuts={setEnableShortcuts}
             />
-            {/* 添加用户头像按钮 */}
             <UserProfileButton />
+            <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
