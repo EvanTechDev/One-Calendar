@@ -286,7 +286,7 @@ export default function Calendar() {
   // 修改return部分，将RightSidebar集成到布局中，并调整主内容区域的宽度
   return (
     <div className="flex h-screen bg-background">
-      {/*<div className="w-80 border-r bg-background">*/}
+      {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
           onCreateEvent={() => {
             setSelectedEvent(null) // 确保是创建新事件
@@ -304,9 +304,9 @@ export default function Calendar() {
 
       {/* 调整主内容区域，减少宽度以适应右侧边栏 */}
       <div className={cn(
-      "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-      isSidebarCollapsed ? "ml-0" : "ml-80"
-    )}>
+        "flex-1 flex flex-col transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "ml-0" : "ml-80"
+      )}>
         {" "}
         {/* 添加右侧padding为14，与右侧边栏宽度相同 */}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
