@@ -302,20 +302,18 @@ export default function Calendar() {
         />
       </div>
 
-      {/* 调整主内容区域，减少宽度以适应右侧边栏 */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
         isSidebarCollapsed ? "ml-0" : "ml-80"
       )}>
         {" "}
-        {/* 添加右侧padding为14，与右侧边栏宽度相同 */}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
-          <button 
+          <Button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="fixed left-4 top-4 z-50 p-2 bg-gray-200 rounded-md"
         >
             <PanelLeft />
-        </button>
+          </Button>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
               {t.today || "今天"}
@@ -390,7 +388,6 @@ export default function Calendar() {
                 </div>
               )}
             </div>
-            {/* 将Settings组件放回顶部栏 */}
             <Settings
               language={language}
               setLanguage={setLanguage}
