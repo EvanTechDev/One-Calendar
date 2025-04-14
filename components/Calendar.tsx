@@ -22,7 +22,6 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
-import ModeToggle from "./ModeToggle"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -395,7 +394,6 @@ export default function Calendar() {
               setEnableShortcuts={setEnableShortcuts}
             />
             <UserProfileButton />
-            <ModeToggle />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
