@@ -47,43 +47,25 @@ export default function SharedEventPage() {
       try {
         setLoading(true)
         const shareId = params.id
-
         if (!shareId) {
           setError("No share ID provided")
           return
         }
 
         const response = await fetch(`/api/share?id=${shareId}`)
-
         if (!response.ok) {
-          if (response.status === 404) {
-            setError("Shared event not found")
-          } else {
-            setError("Failed to load shared event")
-          }
+          setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event")
           return
         }
 
         const result = await response.json()
-
         if (!result.success || !result.data) {
           setError("Invalid share data")
           return
         }
 
-        // Parse the shared event data
-        let eventData
-        try {
-          if (typeof result.data === "object") {
-            eventData = result.data
-          } else {
-            eventData = JSON.parse(result.data)
-          }
-          setEvent(eventData)
-        } catch (parseError) {
-          console.error("Error parsing shared event:", parseError)
-          setError("Invalid event data format")
-        }
+        const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data)
+        setEvent(eventData)
       } catch (error) {
         console.error("Error fetching shared event:", error)
         setError("Failed to load shared event")
@@ -100,39 +82,27 @@ export default function SharedEventPage() {
     return format(date, "yyyy-MM-dd HH:mm", { locale: language === "zh" ? zhCN : enUS })
   }
 
-  // 添加事件到日历
   const handleAddToCalendar = async () => {
     if (!event) return
 
     try {
       setIsAdding(true)
 
-      // 如果没有日历，使用默认日历或创建一个新的
       let targetCalendarId = event.calendarId
-
-      // 检查日历是否存在
       const calendarExists = calendars.some((cal) => cal.id === targetCalendarId)
 
-      // 如果不存在，使用第一个可用的日历或默认日历
       if (!calendarExists) {
-        if (calendars.length > 0) {
-          targetCalendarId = calendars[0].id
-        } else {
-          // 如果没有日历，使用默认日历ID
-          targetCalendarId = "default"
-        }
+        targetCalendarId = calendars[0]?.id ?? "default"
       }
 
-      // 创建新的事件对象
       const newEvent = {
         ...event,
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // 生成新的ID
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
         calendarId: targetCalendarId,
       }
 
-      // 添加到日历
       setEvents([...events, newEvent])
 
       toast({
@@ -140,12 +110,8 @@ export default function SharedEventPage() {
         description: language === "zh" ? "事件已添加到您的日历" : "Event has been added to your calendar",
       })
 
-      // 可选：添加成功后跳转到日历页面
-      setTimeout(() => {
-        router.push("/")
-      }, 1500)
+      setTimeout(() => router.push("/"), 1500)
     } catch (error) {
-      console.error("Error adding event to calendar:", error)
       toast({
         title: language === "zh" ? "添加失败" : "Add Failed",
         description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
@@ -156,7 +122,6 @@ export default function SharedEventPage() {
     }
   }
 
-  // 复制链接
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -164,16 +129,13 @@ export default function SharedEventPage() {
       title: language === "zh" ? "链接已复制" : "Link Copied",
       description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
     })
-
     setTimeout(() => setCopied(false), 2000)
   }
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-grey-800">
-        <div className="relative">
-          <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
-        </div>
+        <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
           {language === "zh" ? "加载中..." : "Loading..."}
         </p>
@@ -199,7 +161,6 @@ export default function SharedEventPage() {
     )
   }
 
-  // 计算事件持续时间
   const startDate = new Date(event.startDate)
   const endDate = new Date(event.endDate)
   const durationMs = endDate.getTime() - startDate.getTime()
@@ -212,23 +173,25 @@ export default function SharedEventPage() {
       : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-800 p-4">
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-800 p-4">
+      {/* 背景气泡模糊层 */}
       <div className="fixed -z-10 inset-0 overflow-hidden">
         <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
         <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
         <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
       </div>
 
+      {/* 卡片 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden max-w-md w-full"
+        className="flex bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden max-w-md w-full"
       >
-        {/* 顶部彩色条 */}
-        <div className={cn("w-2", event.color)}></div>
+        {/* 左侧彩色条 */}
+        <div className={cn("w-2", event.color)} />
 
-        {/* 事件标题和分享者信息 */}
+        {/* 内容区域 */}
         <div className="p-6 flex-1">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -244,7 +207,7 @@ export default function SharedEventPage() {
             </Badge>
           </div>
 
-          {/* 日期和时间 - 使用卡片样式 */}
+          {/* 日期时间 */}
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
             <div className="flex items-start">
               <Calendar className="h-5 w-5 mr-3 mt-0.5 text-blue-500" />
@@ -257,9 +220,8 @@ export default function SharedEventPage() {
             </div>
           </div>
 
-          {/* 事件详情 */}
+          {/* 详情部分 */}
           <div className="space-y-5">
-            {/* 位置 */}
             {event.location && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -268,14 +230,11 @@ export default function SharedEventPage() {
                 className="flex items-start"
               >
                 <MapPin className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">{event.location}</p>
-                </div>
+                <p className="text-gray-700 dark:text-gray-200">{event.location}</p>
               </motion.div>
             )}
 
-            {/* 参与者 */}
-            {event.participants && event.participants.length > 0 && (
+            {event.participants?.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -283,13 +242,10 @@ export default function SharedEventPage() {
                 className="flex items-start"
               >
                 <Users className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">{event.participants.join(", ")}</p>
-                </div>
+                <p className="text-gray-700 dark:text-gray-200">{event.participants.join(", ")}</p>
               </motion.div>
             )}
 
-            {/* 提醒 */}
             {event.notification > 0 && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -298,15 +254,12 @@ export default function SharedEventPage() {
                 className="flex items-start"
               >
                 <Bell className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">
-                    {language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}
-                  </p>
-                </div>
+                <p className="text-gray-700 dark:text-gray-200">
+                  {language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}
+                </p>
               </motion.div>
             )}
 
-            {/* 描述 */}
             {event.description && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -315,9 +268,7 @@ export default function SharedEventPage() {
                 className="flex items-start"
               >
                 <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{event.description}</p>
-                </div>
+                <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{event.description}</p>
               </motion.div>
             )}
           </div>
@@ -345,12 +296,8 @@ export default function SharedEventPage() {
             <Button variant="outline" className="w-full" onClick={copyLink}>
               <ExternalLink className="mr-2 h-4 w-4" />
               {copied
-                ? language === "zh"
-                  ? "已复制!"
-                  : "Copied!"
-                : language === "zh"
-                  ? "复制分享链接"
-                  : "Copy Share Link"}
+                ? language === "zh" ? "已复制!" : "Copied!"
+                : language === "zh" ? "复制分享链接" : "Copy Share Link"}
             </Button>
           </div>
         </div>
@@ -362,4 +309,3 @@ export default function SharedEventPage() {
     </div>
   )
 }
-
