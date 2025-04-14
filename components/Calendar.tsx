@@ -300,7 +300,6 @@ export default function Calendar() {
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
-      </div>
 
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
