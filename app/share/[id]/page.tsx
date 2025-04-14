@@ -173,7 +173,7 @@ export default function SharedEventPage() {
       : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-800 p-4">
+    <div className="relative flex flex-col items-center justify-center min-h-screen p-4">
       {/* 背景气泡模糊层 */}
       <div className="fixed -z-10 inset-0 overflow-hidden">
         <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
@@ -276,7 +276,7 @@ export default function SharedEventPage() {
           {/* 操作按钮 */}
           <div className="mt-8 space-y-3">
             <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-[#0066ff] hover:bg-[#0042cc] text-white"
               onClick={handleAddToCalendar}
               disabled={isAdding}
             >
