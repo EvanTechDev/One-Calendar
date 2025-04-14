@@ -341,10 +341,12 @@ export default function Calendar() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">{t.day}</SelectItem>
-                  <SelectItem value="week">{t.week}</SelectItem>
-                  <SelectItem value="month">{t.month}</SelectItem>
-                  <SelectItem value="analytics">{t.analytics}</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="day">{t.day}</SelectItem>
+                    <SelectItem value="week">{t.week}</SelectItem>
+                    <SelectItem value="month">{t.month}</SelectItem>
+                    <SelectItem value="analytics">{t.analytics}</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
