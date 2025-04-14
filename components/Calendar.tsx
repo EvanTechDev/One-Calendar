@@ -305,13 +305,12 @@ export default function Calendar() {
       <div className="flex-1 flex flex-col min-w-0">
         {" "}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
-          <Button 
+          <div className="flex items-center space-x-4">
+            <Button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="fixed left-4 top-4 z-50 p-2 bg-gray-200 rounded-md"
         >
             <PanelLeft />
           </Button>
-          <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
               {t.today || "今天"}
             </Button>
