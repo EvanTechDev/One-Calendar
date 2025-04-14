@@ -22,8 +22,7 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
-import { cn } from "@lib/utils"
-
+import { cn } from "@/lib/utils"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
