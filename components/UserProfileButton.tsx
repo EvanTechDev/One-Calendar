@@ -80,7 +80,8 @@ useEffect(() => {
       setClerkUserId(user.id);
       const backupId = localStorage.getItem("auto-backup-id");
       if (backupId) {
-        setCurrentBackupId(backupId);
+        // setCurrentBackupId(backupId);
+        console.log(backupId)
       }
     } else {
       setClerkUserId(null);
@@ -393,9 +394,7 @@ const handleRestore = async () => {
 
     setIsRestoreOpen(false)
 
-    // 删除以下两行
-    // setShowAutoBackupDialog(true)
-    // setCurrentBackupId(backupId)
+    
   } catch (error) {
     console.error("Restore error:", error)
     toast({
@@ -559,7 +558,7 @@ useEffect(() => {
 
   setClerkUserId(user.id);
   
-  restoreUserData(true); 
+  restoreUserData(false); 
   
   const interval = setInterval(() => {
     restoreUserData(true);

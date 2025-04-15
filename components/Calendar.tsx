@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, Suspense } from "react"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "./Sidebar"
 import DayView from "./DayView"
@@ -13,7 +13,7 @@ import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
-import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
+import { checkPendingNotifications, clearAllNotificationTimers, useNotificationPermission, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
@@ -22,6 +22,8 @@ import RightSidebar from "./RightSidebar"
 import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
+import { cn } from "@/lib/utils"
+import ModeToggle from "./ModeToggle"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -43,7 +45,8 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
-  // 保持所有现有状态和函数不变
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -178,12 +181,10 @@ export default function Calendar() {
   // 修改：根据语言设置不同的日期格式
   const formatDateDisplay = (date: Date) => {
     if (language === "en") {
-      // 英文格式：只显示月和年，不显示日
       const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
       return date.toLocaleDateString(language, options)
     } else {
-      // 中文格式：保持原样，显示年月日
-      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
       return date.toLocaleDateString(language, options)
     }
   }
@@ -282,10 +283,9 @@ export default function Calendar() {
     }
   }, [])
 
-  // 修改return部分，将RightSidebar集成到布局中，并调整主内容区域的宽度
   return (
     <div className="flex h-screen bg-background">
-      <div className="w-80 border-r bg-background">
+      {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
           onCreateEvent={() => {
             setSelectedEvent(null) // 确保是创建新事件
@@ -296,15 +296,21 @@ export default function Calendar() {
           onViewChange={handleViewChange}
           language={language}
           selectedDate={sidebarDate}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
-      </div>
 
-      {/* 调整主内容区域，减少宽度以适应右侧边栏 */}
-      <div className="flex-1 flex flex-col pr-14">
+      <div className="flex-1 flex flex-col min-w-0 pr-14">
         {" "}
-        {/* 添加右侧padding为14，与右侧边栏宽度相同 */}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              size="sm"
+            >
+              <PanelLeft />
+            </Button>
             <Button variant="outline" size="sm" onClick={handleTodayClick}>
               {t.today || "今天"}
             </Button>
@@ -329,14 +335,16 @@ export default function Calendar() {
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">{t.day}</SelectItem>
-                  <SelectItem value="week">{t.week}</SelectItem>
-                  <SelectItem value="month">{t.month}</SelectItem>
-                  <SelectItem value="analytics">{t.analytics}</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="day">{t.day}</SelectItem>
+                    <SelectItem value="week">{t.week}</SelectItem>
+                    <SelectItem value="month">{t.month}</SelectItem>
+                    <SelectItem value="analytics">{t.analytics}</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
@@ -378,7 +386,6 @@ export default function Calendar() {
                 </div>
               )}
             </div>
-            {/* 将Settings组件放回顶部栏 */}
             <Settings
               language={language}
               setLanguage={setLanguage}
@@ -393,8 +400,8 @@ export default function Calendar() {
               enableShortcuts={enableShortcuts}
               setEnableShortcuts={setEnableShortcuts}
             />
-            {/* 添加用户头像按钮 */}
             <UserProfileButton />
+            <ModeToggle />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>

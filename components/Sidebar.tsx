@@ -18,7 +18,9 @@ interface SidebarProps {
   onDateSelect: (date: Date) => void
   onViewChange?: (view: string) => void
   language?: Language
-  selectedDate?: Date // 添加selectedDate属性
+  selectedDate?: Date
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
 export type Language = "en" | "zh"
@@ -36,6 +38,8 @@ export default function Sidebar({
   onViewChange,
   language = "zh",
   selectedDate,
+  isCollapsed = false,
+  onToggleCollapse,
 }: SidebarProps) {
 
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
@@ -81,7 +85,10 @@ export default function Sidebar({
   }
 
   return (
-    <div className="w-80 border-r bg-background overflow-y-auto">
+    <div className={cn(
+      "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
+      isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-80 opacity-100"
+    )}>
       <div className="p-4">
         <div className="flex items-center mb-4">
           <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2" />
