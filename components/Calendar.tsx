@@ -181,12 +181,10 @@ export default function Calendar() {
   // 修改：根据语言设置不同的日期格式
   const formatDateDisplay = (date: Date) => {
     if (language === "en") {
-      // 英文格式：只显示月和年，不显示日
       const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
       return date.toLocaleDateString(language, options)
     } else {
-      // 中文格式：保持原样，显示年月日
-      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
       return date.toLocaleDateString(language, options)
     }
   }
