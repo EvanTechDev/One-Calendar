@@ -314,7 +314,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           {hours.map((hour) => (
             <div
               key={hour}
-              className="h-[60px] border-t border-gray-200"
+              className="h-[60px] border-t border-gray-200 dark:border-gray-500"
               onClick={(e) => handleTimeSlotClick(hour, e)}
             />
           ))}
