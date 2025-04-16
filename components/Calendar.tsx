@@ -46,7 +46,6 @@ export type Language = "en" | "zh"
 
 export default function Calendar() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
@@ -403,13 +402,6 @@ export default function Calendar() {
             />
             <UserProfileButton />
             <ModeToggle />
-            <Button 
-              variant="outline"
-              onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-              size="sm"
-            >
-              <PanelLeft />
-            </Button>
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
