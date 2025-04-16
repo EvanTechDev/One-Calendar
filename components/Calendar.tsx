@@ -402,6 +402,13 @@ export default function Calendar() {
             />
             <UserProfileButton />
             <ModeToggle />
+            <Button 
+              variant="outline"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              size="sm"
+            >
+              <PanelLeft />
+            </Button>
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
