@@ -2,7 +2,13 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
