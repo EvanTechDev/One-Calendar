@@ -664,19 +664,7 @@ return (
       </DropdownMenu>
 
 {isUserProfileOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
-      <button
-        onClick={() => setIsUserProfileOpen(false)}
-        className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-accent transition-colors"
-      >
-        <X className="h-5 w-5" />
-      </button>
-      <div className="p-4">
         <UserProfile path="/user-profile" />
-      </div>
-    </div>
-  </div>
 )}
 
       <Dialog open={isBackupOpen} onOpenChange={setIsBackupOpen}>
