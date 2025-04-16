@@ -17,8 +17,9 @@ import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/contexts/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs";
+import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -592,12 +593,25 @@ useEffect(() => {
 return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild>
+        {isSignedIn && user?.imageUrl ? (
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Image
+              src={user.imageUrl}
+              alt="User avatar"
+              width={32}
+              height={32}
+              className="rounded-full"
+              referrerPolicy="no-referrer"
+            />
+          </Button>
+        ) : (
           <Button variant="ghost" size="icon" className="rounded-full">
             <User className="h-5 w-5" />
             <span className="sr-only">{language === "zh" ? "用户资料" : "User Profile"}</span>
           </Button>
-        </DropdownMenuTrigger>
+        )}
+      </DropdownMenuTrigger>
   
         <DropdownMenuContent align="end">
           {isSignedIn ? (
