@@ -46,6 +46,7 @@ export type Language = "en" | "zh"
 
 export default function Calendar() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
@@ -404,7 +405,7 @@ export default function Calendar() {
             <ModeToggle />
             <Button 
               variant="outline"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
               size="sm"
             >
               <PanelLeft />
