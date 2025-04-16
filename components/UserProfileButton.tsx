@@ -668,7 +668,7 @@ return (
     <div className="relative w-full max-w-4xl h-[90vh] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
       <button
         onClick={() => setIsUserProfileOpen(false)}
-        className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-accent transition-colors"
+        className="absolute top-4 right-4 z-10 p-2 rounded-full color-[#000000]"
       >
         <X className="h-5 w-5" />
       </button>
