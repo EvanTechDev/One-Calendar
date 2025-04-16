@@ -23,6 +23,10 @@ interface WeekViewProps {
   language: Language
   firstDayOfWeek: number
   timezone: string
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 interface CalendarEvent {
@@ -402,29 +406,23 @@ export default function WeekView({
   </ContextMenuTrigger>
 
   <ContextMenuContent className="w-40">
-    <ContextMenuItem onClick={() => handleEventEdit(true)}>
-      <Edit2 className="mr-2 h-4 w-4" />
-      {menuLabels.edit}
-    </ContextMenuItem>
-    <ContextMenuItem onClick={() => handleShareDialogChange(true)}>
-      <Share2 className="mr-2 h-4 w-4" />
-      {menuLabels.share}
-    </ContextMenuItem>
-    <ContextMenuItem onClick={() => toggleBookmark(true)}>
-      <Bookmark className="mr-2 h-4 w-4" />
-      {menuLabels.bookmark}
-    </ContextMenuItem>
-    <ContextMenuItem onClick={() => {
-          if (previewEvent) {
-            handleEventDelete(previewEvent.id)
-            setPreviewOpen(false)
-          }
-        }} className="text-red-600">
-      <Trash2 className="mr-2 h-4 w-4" />
-      {menuLabels.delete}
-    </ContextMenuItem>
-  </ContextMenuContent>
-</ContextMenu>
+  <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+    <Edit3 className="mr-2 h-4 w-4" />
+    {menuLabels.edit}
+  </ContextMenuItem>
+  <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+    <Share2 className="mr-2 h-4 w-4" />
+    {menuLabels.share}
+  </ContextMenuItem>
+  <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+    <Bookmark className="mr-2 h-4 w-4" />
+    {menuLabels.bookmark}
+  </ContextMenuItem>
+  <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+    <Trash2 className="mr-2 h-4 w-4" />
+    {menuLabels.delete}
+  </ContextMenuItem>
+</ContextMenuContent>
                 )
               })}
 
