@@ -45,6 +45,7 @@ export interface CalendarEvent {
 export type Language = "en" | "zh"
 
 export default function Calendar() {
+  const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   useNotificationPermission()
   const [date, setDate] = useState(new Date())
@@ -280,6 +281,7 @@ const toggleBookmark = (event: CalendarEvent) => {
 const handleShare = (event: CalendarEvent) => {
   setPreviewEvent(event)
   setPreviewOpen(true)
+  setOpenShareImmediately(true)
 }
 
 
