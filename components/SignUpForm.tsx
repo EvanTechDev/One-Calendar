@@ -235,7 +235,7 @@ export function SignUpForm({
                   />
                 </div>
                 {error && <div className="text-sm text-red-500">{error}</div>}
-                <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc]" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </div>
