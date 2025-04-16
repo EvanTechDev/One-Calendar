@@ -664,17 +664,36 @@ return (
       </DropdownMenu>
 
       {isUserProfileOpen && (
-  /* <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-    <div className="relative bg-background rounded-lg max-w-md w-full p-6">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="relative bg-background rounded-lg w-full max-w-2xl mx-4 overflow-auto max-h-[90vh]">
       <button 
         onClick={() => setIsUserProfileOpen(false)}
-        className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent"
+        className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent z-10"
       >
         <X className="h-5 w-5" />
-      </button>*/
-      <UserProfile />
-    /* </div>
-  </div> */
+      </button>
+      <div className="p-4">
+        <UserProfile 
+          appearance={{
+            elements: {
+              rootBox: {
+                width: "100%",
+                margin: "0 auto",
+              },
+              card: {
+                width: "100%",
+                maxWidth: "100%",
+                boxShadow: "none",
+              },
+              scrollBox: {
+                padding: "0",
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+  </div>
 )}
 
       <Dialog open={isBackupOpen} onOpenChange={setIsBackupOpen}>
