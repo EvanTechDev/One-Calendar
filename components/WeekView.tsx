@@ -2,7 +2,13 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -16,6 +22,10 @@ interface WeekViewProps {
   language: Language
   firstDayOfWeek: number
   timezone: string
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 interface CalendarEvent {
@@ -34,6 +44,10 @@ export default function WeekView({
   language,
   firstDayOfWeek,
   timezone,
+  onEditEvent,
+  onDeleteEvent,
+  onShareEvent,
+  onBookmarkEvent,
 }: WeekViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
@@ -45,6 +59,14 @@ export default function WeekView({
 
   // Add this useEffect to update the time every minute
   const hasScrolledRef = useRef(false)
+
+  const menuLabels = {
+  edit: language === "zh" ? "修改" : "Edit",
+  share: language === "zh" ? "分享" : "Share",
+  bookmark: language === "zh" ? "书签" : "Bookmark",
+  delete: language === "zh" ? "删除" : "Delete",
+}
+
 
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
   useEffect(() => {
@@ -341,7 +363,7 @@ export default function WeekView({
               {hours.map((hour) => (
                 <div
                   key={hour}
-                  className="h-[60px] border-t border-gray-200 dark:border-gray-500"
+                  className="h-[60px] border-t border-gray-200"
                   onClick={(e) => handleTimeSlotClick(day, hour, e)}
                 />
               ))}
@@ -360,29 +382,52 @@ export default function WeekView({
                 const left = `calc(${column} * ${width})`
 
                 return (
-                  <div
-                    key={`${event.id}-${day.toISOString().split("T")[0]}`}
-                    className={cn("absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
-                    style={{
-                      top: `${startMinutes}px`,
-                      height: `${height}px`,
-                      opacity: 0.9,
-                      width,
-                      left,
-                      zIndex: column + 1, // 确保后面的事件在上层
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onEventClick(event)
-                    }}
-                  >
-                    <div className="font-medium text-white truncate">{event.title}</div>
-                    {height >= 40 && ( // 只在高度足够时显示时间
-                      <div className="text-xs text-white/90 truncate">
-                        {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
-                      </div>
-                    )}
-                  </div>
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div
+                          key={`${event.id}-${day.toISOString().split("T")[0]}`}
+                          className={cn("absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                          style={{
+                            top: `${startMinutes}px`,
+                            height: `${height}px`,
+                            opacity: 0.9,
+                            width,
+                            left,
+                            zIndex: column + 1,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEventClick(event)
+                          }}
+                        >
+                          <div className="font-medium text-white truncate">{event.title}</div>
+                          {height >= 40 && (
+                            <div className="text-xs text-white/90 truncate">
+                              {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
+                            </div>
+                          )}
+                        </div>
+                      </ContextMenuTrigger>
+    
+                    <ContextMenuContent className="w-40">
+                      <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        {menuLabels.edit}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        {menuLabels.share}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+                        <Bookmark className="mr-2 h-4 w-4" />
+                        {menuLabels.bookmark}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {menuLabels.delete}
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 )
               })}
 
@@ -421,4 +466,3 @@ export default function WeekView({
     </div>
   )
 }
-

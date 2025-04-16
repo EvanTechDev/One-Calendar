@@ -57,11 +57,9 @@ type ContactView = "list" | "detail" | "edit"
 interface RightSidebarProps {
   onViewChange?: (view: string) => void
   onEventClick: (event: any) => void
-  isCollapsed?: boolean
-  onToggleCollapse?: () => void
 }
 
-export default function RightSidebar({ onViewChange, onEventClick, isCollapsed = false, onToggleCollapse, }: RightSidebarProps) {
+export default function RightSidebar({ onViewChange, onEventClick }: RightSidebarProps) {
   const [language] = useLanguage()
   const t = translations[language]
 

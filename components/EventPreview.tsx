@@ -40,6 +40,7 @@ interface EventPreviewProps {
   onDuplicate: () => void
   language: Language
   timezone: string
+  openShareImmediately?: boolean
 }
 
 export default function EventPreview({
@@ -51,6 +52,7 @@ export default function EventPreview({
   onDuplicate,
   language,
   timezone,
+  openShareImmediately,
 }: EventPreviewProps) {
   const { calendars } = useCalendar()
   const t = translations[language]
@@ -67,6 +69,13 @@ export default function EventPreview({
   const dialogContentRef = useRef<HTMLDivElement>(null)
 
   const [bookmarks, setBookmarks] = useState<any[]>([])
+
+  useEffect(() => {
+  if (open && openShareImmediately) {
+    setShareDialogOpen(true)
+  }
+}, [open, openShareImmediately])
+
 
   useEffect(() => {
     // Get bookmarks from localStorage
