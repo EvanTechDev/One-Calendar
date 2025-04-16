@@ -146,7 +146,7 @@ export function ResetPasswordForm({
                 <div className="text-sm text-red-500">{error}</div>
               )}
 
-              <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc]" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" disabled={isLoading}>
                 {isLoading 
                   ? "Processing..." 
                   : step === "request" 
@@ -157,7 +157,7 @@ export function ResetPasswordForm({
               <div className="text-center text-sm">
                 {step === "request" ? (
                   <>
-                    Have an account?
+                    Have an account?{" "}
                     <button
                       type="button"
                       onClick={() => router.push("/sign-in")}
