@@ -14,7 +14,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Edit2, Share2, Bookmark, Trash2 } from "lucide-react"
-import EventPreview from "./EventPreview"
+import Calendar from "./Calendar"
 
 interface WeekViewProps {
   date: Date
