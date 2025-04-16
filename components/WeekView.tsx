@@ -409,6 +409,7 @@ export default function WeekView({
                         {menuLabels.delete}
                       </ContextMenuItem>
                     </ContextMenuContent>
+                  </ContextMenu>
                 )
               })}
 
