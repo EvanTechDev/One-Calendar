@@ -44,6 +44,10 @@ export default function WeekView({
   language,
   firstDayOfWeek,
   timezone,
+  onEditEvent,
+  onDeleteEvent,
+  onShareEvent,
+  onBookmarkEvent,
 }: WeekViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
