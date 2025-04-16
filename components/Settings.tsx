@@ -9,8 +9,8 @@ import { translations, type Language } from "@/lib/i18n"
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useTheme } from "next-themes"
 
-// First, add the defaultView and enableShortcuts props to the SettingsProps interface
 interface SettingsProps {
   language: Language
   setLanguage: (lang: Language) => void
@@ -41,6 +41,7 @@ export default function Settings({
   enableShortcuts,
   setEnableShortcuts,
 }: SettingsProps) {
+  const { setTheme } = useTheme()
   const t = translations[language]
 
   // Replace the timezones array with GMT formatted timezones
@@ -95,6 +96,20 @@ export default function Settings({
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
+              <Select value={theme}>
+                <SelectTrigger id="theme">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light" onClick={() => setTheme("light")}>{language === "zh" ? "亮色" : "Light"}</SelectItem>
+                  <SelectItem value="dark" onClick={() => setTheme("dark")}>{language === "zh" ? "暗色" : "Dark"}</SelectItem>
+                  <SelectItem value="system" onClick={() => setTheme("system")}>{language === "zh" ? "系统" : "System"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="language">{t.language}</Label>
               <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
