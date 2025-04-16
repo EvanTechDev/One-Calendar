@@ -664,32 +664,38 @@ return (
       </DropdownMenu>
 
       {isUserProfileOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-    <div className="relative bg-background rounded-lg w-full max-w-2xl mx-4 overflow-auto max-h-[90vh]">
-      <button 
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="relative w-full max-w-4xl bg-background rounded-lg overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
+      <button
         onClick={() => setIsUserProfileOpen(false)}
-        className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent z-10"
+        className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-accent transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
-      <div className="p-4">
-        <UserProfile 
+      <div className="flex-1 overflow-auto p-1"> {/* 这里添加 p-1 修复白边问题 */}
+        <UserProfile
           appearance={{
             elements: {
-              rootBox: {
-                width: "100%",
-                margin: "0 auto",
-              },
-              card: {
-                width: "100%",
-                maxWidth: "100%",
-                boxShadow: "none",
-              },
-              scrollBox: {
-                padding: "0",
-              }
+              rootBox: "w-full h-full",
+              card: "w-full h-full shadow-none border-none rounded-none",
+              scrollBox: "p-0",
+              navbar: "border-none",
+              navbarButtons: "hidden", // 隐藏顶部导航按钮
+              headerTitle: "text-lg font-semibold",
+              headerSubtitle: "text-sm text-muted-foreground",
+              profileSection: "px-4",
+              formButtonPrimary: "bg-primary hover:bg-primary/90",
+              formFieldInput: "border-input",
+            },
+            variables: {
+              colorBackground: "hsl(var(--background))",
+              colorText: "hsl(var(--foreground))",
+              colorTextSecondary: "hsl(var(--muted-foreground))",
+              colorInputBackground: "hsl(var(--background))",
+              colorAlphaShade: "hsl(var(--primary))",
             }
           }}
+          path="/user-profile"
         />
       </div>
     </div>
