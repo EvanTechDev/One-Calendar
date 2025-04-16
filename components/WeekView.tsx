@@ -14,6 +14,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Edit2, Share2, Bookmark, Trash2 } from "lucide-react"
+import EventPreview from "./EventPreview"
 import Calendar from "./Calendar"
 
 interface WeekViewProps {
@@ -404,7 +405,7 @@ export default function WeekView({
   </ContextMenuTrigger>
 
   <ContextMenuContent className="w-40">
-    <ContextMenuItem onClick={onEdit}>
+    <ContextMenuItem onClick={() => handleEventEdit(true)}>
       <Edit2 className="mr-2 h-4 w-4" />
       {menuLabels.edit}
     </ContextMenuItem>
@@ -412,11 +413,16 @@ export default function WeekView({
       <Share2 className="mr-2 h-4 w-4" />
       {menuLabels.share}
     </ContextMenuItem>
-    <ContextMenuItem onClick={toggleBookmark}>
+    <ContextMenuItem onClick={() => toggleBookmark(true)}>
       <Bookmark className="mr-2 h-4 w-4" />
       {menuLabels.bookmark}
     </ContextMenuItem>
-    <ContextMenuItem onClick={onDelete} className="text-red-600">
+    <ContextMenuItem onClick={() => {
+          if (previewEvent) {
+            handleEventDelete(previewEvent.id)
+            setPreviewOpen(false)
+          }
+        }} className="text-red-600">
       <Trash2 className="mr-2 h-4 w-4" />
       {menuLabels.delete}
     </ContextMenuItem>
