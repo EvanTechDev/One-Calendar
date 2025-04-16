@@ -100,7 +100,7 @@ export default function Settings({
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
               <Select>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Theme" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light" onClick={() => setTheme("light")}>{language === "zh" ? "亮色" : "Light"}</SelectItem>
