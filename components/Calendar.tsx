@@ -281,7 +281,6 @@ const toggleBookmark = (event: CalendarEvent) => {
 const handleShare = (event: CalendarEvent) => {
   setPreviewEvent(event)
   setPreviewOpen(true)
-  setOpenShareImmediately(true)
 }
 
 
@@ -456,7 +455,10 @@ const handleShare = (event: CalendarEvent) => {
               timezone={timezone}
               onEditEvent={handleEventEdit}
               onDeleteEvent={(event) => handleEventDelete(event.id)}
-              onShareEvent={handleShare}
+              onShareEvent={(event) => {
+                setPreviewEvent(event)
+                setPreviewOpen(true)
+                setOpenShareImmediately(true)}
               onBookmarkEvent={toggleBookmark}
             />
           )}
@@ -491,7 +493,10 @@ const handleShare = (event: CalendarEvent) => {
       <EventPreview
         event={previewEvent}
         open={previewOpen}
-        onOpenChange={setPreviewOpen}
+        onOpenChange={(open) => {
+          setPreviewOpen(open)
+          if (!open) setOpenShareImmediately(false)
+        }}
         onEdit={handleEventEdit}
         onDelete={() => {
           if (previewEvent) {
@@ -502,6 +507,7 @@ const handleShare = (event: CalendarEvent) => {
         onDuplicate={handleEventDuplicate}
         language={language}
         timezone={timezone}
+        openShareImmediately={openShareImmediately}
       />
 
       <EventDialog
