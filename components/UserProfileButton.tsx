@@ -673,7 +673,7 @@ return (
         <X className="h-5 w-5" />
       </button>
       <div className="flex-1 overflow-auto p-4">
-        <UserProfile path="/user-profile" />
+        <UserProfile />
       </div>
     </div>
   </div>
