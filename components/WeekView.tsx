@@ -60,45 +60,6 @@ export default function WeekView({
   delete: language === "zh" ? "删除" : "Delete",
   }
 
-    const toggleBookmark = () => {
-    if (!event) return
-
-    // Get current bookmarks
-    // const bookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
-
-    if (isBookmarked) {
-      // Remove from bookmarks
-      const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id)
-      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
-      setBookmarks(updatedBookmarks)
-      setIsBookmarked(false)
-      toast({
-        title: language === "zh" ? "已取消收藏" : "Removed from bookmarks",
-        description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
-      })
-    } else {
-      // Add to bookmarks
-      const bookmarkData = {
-        id: event.id,
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        color: event.color,
-        location: event.location,
-        bookmarkedAt: new Date().toISOString(),
-      }
-      const updatedBookmarks = [...bookmarks, bookmarkData]
-      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
-      setBookmarks(updatedBookmarks)
-      setIsBookmarked(true)
-      toast({
-        title: language === "zh" ? "已收藏" : "Bookmarked",
-        description: language === "zh" ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
-      })
-    }
-  }
-
-
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
   useEffect(() => {
     // 只在组件挂载时执行一次滚动
