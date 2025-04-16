@@ -458,7 +458,6 @@ export default function WeekView({
           )
         })}
       </div>
-    </div>
   )
 }
 
