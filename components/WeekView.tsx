@@ -56,6 +56,14 @@ export default function WeekView({
   // Add this useEffect to update the time every minute
   const hasScrolledRef = useRef(false)
 
+  const menuLabels = {
+  edit: language === "zh" ? "修改" : "Edit",
+  share: language === "zh" ? "分享" : "Share",
+  bookmark: language === "zh" ? "书签" : "Bookmark",
+  delete: language === "zh" ? "删除" : "Delete",
+}
+
+
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
   useEffect(() => {
     // 只在组件挂载时执行一次滚动
