@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { UserProfile, useClerk } from "@clerk/nextjs";
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
@@ -47,6 +48,8 @@ export default function UserProfileButton() {
   const [restoreInterval, setRestoreInterval] = useState<NodeJS.Timeout | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [lastRestoreTime, setLastRestoreTime] = useState<Date | null>(null);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const { openUserProfile } = useClerk();
 
   const handleLogin = () => {
     router.push("/sign-in")
@@ -617,6 +620,12 @@ return (
           {isSignedIn ? (
             <>
               <DropdownMenuItem 
+                onClick={() => setIsUserProfileOpen(true)}
+                className="cursor-pointer"
+              >
+                {language === "zh" ? "个人资料" : "Profile"}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
                  onClick={() => setShowAutoBackupDialog(true)}
                  className="cursor-pointer"
               >
@@ -626,7 +635,7 @@ return (
                  onClick={() => restoreUserData(false)}
                  className="cursor-pointer"
               >
-                 {language === "zh" ? "同步" : "Sync"}
+                 {language === "zh" ? "同步数据" : "Sync data"}
               </DropdownMenuItem>
               <SignOutButton signOutCallback={handleSignOut}>
                 <DropdownMenuItem className="cursor-pointer">
@@ -854,5 +863,21 @@ return (
   </DialogContent>
 </Dialog>
     </>
+
+   {isUserProfileOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="relative bg-background rounded-lg max-w-md w-full p-6">
+      <button 
+        onClick={() => setIsUserProfileOpen(false)}
+        className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <UserProfile appearance={{
+        variables: {
+        colorPrimary: '#0066ff'}} />
+    </div>
+  </div>
+)}
   )
 }
