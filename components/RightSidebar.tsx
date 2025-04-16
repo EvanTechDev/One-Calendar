@@ -639,7 +639,6 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           </Button>
         </div>
       </div>
-      </div>
 
       {/* 通讯录面板 - 使用Sheet组件 */}
       <Sheet
