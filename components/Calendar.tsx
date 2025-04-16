@@ -255,6 +255,34 @@ export default function Calendar() {
     setEventDialogOpen(true)
   }
 
+  // 收藏（书签）功能
+const toggleBookmark = (event: CalendarEvent) => {
+  const bookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
+
+  const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
+  if (isBookmarked) {
+    const updated = bookmarks.filter((b: any) => b.id !== event.id)
+    localStorage.setItem("bookmarked-events", JSON.stringify(updated))
+  } else {
+    const bookmarkData = {
+      id: event.id,
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      color: event.color,
+      location: event.location,
+      bookmarkedAt: new Date().toISOString(),
+    }
+    localStorage.setItem("bookmarked-events", JSON.stringify([...bookmarks, bookmarkData]))
+  }
+}
+
+const handleShare = (event: CalendarEvent) => {
+  setPreviewEvent(event)
+  setPreviewOpen(true)
+}
+
+
   const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
 
   useEffect(() => {
@@ -424,6 +452,10 @@ export default function Calendar() {
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               timezone={timezone}
+              onEditEvent={handleEventEdit}
+              onDeleteEvent={(event) => handleEventDelete(event.id)}
+              onShareEvent={handleShare}
+              onBookmarkEvent={toggleBookmark}
             />
           )}
           {view === "month" && (
