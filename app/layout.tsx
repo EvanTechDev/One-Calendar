@@ -41,7 +41,7 @@ export default function RootLayout({
           <Toaster />
           <SpeedInsights />
         </CalendarProvider> 
-        </ThemeProvider>>
+        </ThemeProvider>
       </ClerkProvider>
       <Analytics />
       </body>
