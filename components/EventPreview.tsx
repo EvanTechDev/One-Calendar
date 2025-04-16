@@ -69,6 +69,13 @@ export default function EventPreview({
   const [bookmarks, setBookmarks] = useState<any[]>([])
 
   useEffect(() => {
+  if (open && openShareImmediately) {
+    setShareDialogOpen(true)
+  }
+}, [open, openShareImmediately])
+
+
+  useEffect(() => {
     // Get bookmarks from localStorage
     const storedBookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
     setBookmarks(storedBookmarks)
