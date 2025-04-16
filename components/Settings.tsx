@@ -98,8 +98,8 @@ export default function Settings({
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
-              <Select value={theme}>
-                <SelectTrigger id="theme">
+              <Select>
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
