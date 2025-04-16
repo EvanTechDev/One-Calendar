@@ -57,11 +57,9 @@ type ContactView = "list" | "detail" | "edit"
 interface RightSidebarProps {
   onViewChange?: (view: string) => void
   onEventClick: (event: any) => void
-  isCollapsed?: boolean
-  onToggleCollapse?: () => void
 }
 
-export default function RightSidebar({ onViewChange, onEventClick, isCollapsed = false, onToggleCollapse, }: RightSidebarProps) {
+export default function RightSidebar({ onViewChange, onEventClick }: RightSidebarProps) {
   const [language] = useLanguage()
   const t = translations[language]
 
@@ -551,10 +549,6 @@ export default function RightSidebar({ onViewChange, onEventClick, isCollapsed =
   return (
     <>
       {/* 右侧图标栏 - 固定在右侧 */}
-      <div className={cn(
-      "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-14 opacity-100"
-    )}>
       <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
         <div className="flex flex-col items-center space-y-4 flex-1">
           {/* Mini Calendar Button */}
