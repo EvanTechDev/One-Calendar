@@ -458,7 +458,7 @@ const handleShare = (event: CalendarEvent) => {
               onShareEvent={(event) => {
                 setPreviewEvent(event)
                 setPreviewOpen(true)
-                setOpenShareImmediately(true)}
+                setOpenShareImmediately(true)}}
               onBookmarkEvent={toggleBookmark}
             />
           )}
