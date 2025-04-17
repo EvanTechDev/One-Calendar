@@ -23,7 +23,7 @@ import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
 import { cn } from "@/lib/utils"
-import LocalButton from "./Local"
+import LocationButton from "./Local"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -430,7 +430,7 @@ const handleShare = (event: CalendarEvent) => {
               setEnableShortcuts={setEnableShortcuts}
             />
             <UserProfileButton />
-            <LocalButton />
+            <LocationButton />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
