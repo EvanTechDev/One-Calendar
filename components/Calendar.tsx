@@ -385,7 +385,7 @@ const handleShare = (event: CalendarEvent) => {
                 placeholder={t.searchEvents}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 w-40"
+                className="pl-9 pr-4 py-2 w-32"
               />
               {searchTerm && (
                 <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
