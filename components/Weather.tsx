@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface WeatherData {
@@ -36,7 +34,7 @@ export default function Weather() {
     }
   };
 
-  const handleGetLocation = () => {
+  useEffect(() => {
     if (!navigator.geolocation) {
       setError('浏览器不支持地理位置功能');
       return;
@@ -55,18 +53,12 @@ export default function Weather() {
         setError(`获取位置失败: ${err.message}`);
       }
     );
-  };
+  }, []);
 
   return (
     <div className="flex flex-col items-start gap-2">
-      {!weather && (
-        <Button onClick={handleGetLocation} disabled={loading} size="icon" variant="outline">
-          <MapPin className="w-5 h-5" />
-        </Button>
-      )}
-
       {weather && (
-        <Button variant="outline" className="flex items-center gap-2 mt-2 px-4 py-2">
+        <div variant="outline" className="flex items-center gap-2 mt-2 px-4 py-2 w-auto">
           <Image
             src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
             alt={weather.description}
@@ -76,7 +68,7 @@ export default function Weather() {
           <span>
             {Math.round(weather.temp)}°C
           </span>
-        </Button>
+        </div>
       )}
 
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
