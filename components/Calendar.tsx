@@ -23,6 +23,7 @@ import AnalyticsView from "./AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
 import { cn } from "@/lib/utils"
+import Weather from "./Weather"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -360,6 +361,8 @@ const handleShare = (event: CalendarEvent) => {
             )}
           </div>
 
+          <Weather />
+
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
@@ -383,7 +386,7 @@ const handleShare = (event: CalendarEvent) => {
                 placeholder={t.searchEvents}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 w-48"
+                className="pl-9 pr-4 py-2 w-40"
               />
               {searchTerm && (
                 <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
