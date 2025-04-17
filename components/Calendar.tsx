@@ -357,10 +357,11 @@ const handleShare = (event: CalendarEvent) => {
                   </Button>
                 </div>
                 <span className="text-lg">{formatDateDisplay(date)}</span>
-                <Weather />
               </>
             )}
           </div>
+
+          <Weather />
 
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
