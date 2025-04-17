@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
 interface WeatherData {
@@ -58,17 +59,15 @@ export default function Weather() {
   return (
     <div className="flex flex-col items-start gap-2">
       {weather && (
-        <div variant="outline" className="flex items-center gap-2 mt-2 px-4 py-2 w-auto">
-          <Image
+        <Button variant="outline" className="flex items-center gap-2 mt-2 px-4 py-2 w-auto"> 
+         <Image
             src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
             alt={weather.description}
             width={32}
             height={32}
           />
-          <span>
-            {Math.round(weather.temp)}°C
-          </span>
-        </div>
+          <span>{Math.round(weather.temp)}°C</span>
+        </Button>
       )}
 
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
