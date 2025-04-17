@@ -59,7 +59,7 @@ export default function Weather() {
   return (
     <div className="flex flex-col items-start gap-2">
       {weather && (
-        <Button variant="outline" className="flex items-center gap-2 px-4 py-2 w-[85px]"> 
+        <Button variant="outline" className="flex items-center gap-2 px-4 py-2 w-[92px]"> 
          <Image
             src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
             alt={weather.description}
