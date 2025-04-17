@@ -59,12 +59,14 @@ export default function Weather() {
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <Button onClick={handleGetLocation} disabled={loading} size="icon" variant="ghost">
-        <MapPin className="w-5 h-5" />
-      </Button>
+      {!weather && (
+        <Button onClick={handleGetLocation} disabled={loading} size="icon" variant="outline">
+          <MapPin className="w-5 h-5" />
+        </Button>
+      )}
 
       {weather && (
-        <Button variant="ghost" className="flex items-center gap-2 mt-2 px-4 py-2">
+        <Button variant="outline" className="flex items-center gap-2 mt-2 px-4 py-2">
           <Image
             src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
             alt={weather.description}
@@ -72,7 +74,7 @@ export default function Weather() {
             height={32}
           />
           <span>
-            {Math.round(weather.temp)}°C · {weather.description}
+            {Math.round(weather.temp)}°C
           </span>
         </Button>
       )}
