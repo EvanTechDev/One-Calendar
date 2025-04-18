@@ -400,6 +400,7 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
+                         <div className={cn("w-2", bg-blue-600)} />
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
                             <div className="text-xs text-white/90 truncate">
