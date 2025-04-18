@@ -72,7 +72,7 @@ export default function WeekView({
   if (!match) return "bg-gray-600" // fallback
 
   const [_, baseColor, shade] = match
-  let newShade = parseInt(shade, 10) + 300
+  let newShade = parseInt(shade, 10) + 400
   if (newShade > 900) newShade = 900
 
   return `bg-${baseColor}-${newShade}`
@@ -397,7 +397,7 @@ export default function WeekView({
                       <ContextMenuTrigger asChild>
                         <div
                           key={`${event.id}-${day.toISOString().split("T")[0]}`}
-                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden bg-opacity-80", event.color)}
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
@@ -411,7 +411,7 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
-                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md bg-opacity-80", getDarkerColorClass(event.color))} />
+                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md bg-opacity-100", getDarkerColorClass(event.color))} />
                           <div className="pl-1.5">
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
