@@ -22,6 +22,10 @@ interface DayViewProps {
   onTimeSlotClick: (date: Date) => void
   language: Language
   timezone: string
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 export default function DayView({ date, events, onEventClick, onTimeSlotClick, language, timezone }: DayViewProps) {
@@ -381,7 +385,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
                    <ContextMenu>
                       <ContextMenuTrigger asChild>
                         <div
-                          key={`${event.id}-${day.toISOString().split("T")[0]}`}
+                          key={`${event.id}-${date.toISOString().split("T")[0]}`}
                           className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
                           style={{
                             top: `${startMinutes}px`,
