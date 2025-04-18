@@ -69,15 +69,15 @@ export default function WeekView({
 
   function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
-    'bg-blue-900': '#1A2C7A',
-    'bg-yellow-900': '#9A4106',
-    'bg-red-900': '#7F1414',
-    'bg-green-900': '#053C31',
-    'bg-purple-900': '#6519A2',
-    'bg-pink-900': '#7D1038',
-    'bg-indigo-900': '#252380',
-    'bg-orange-900': '#7C290F',
-    'bg-teal-900': '#0F3C3A',
+    'bg-blue-500': '#1A2C7A',
+    'bg-yellow-500': '#9A4106',
+    'bg-red-500': '#7F1414',
+    'bg-green-500': '#053C31',
+    'bg-purple-500': '#6519A2',
+    'bg-pink-500': '#7D1038',
+    'bg-indigo-500': '#252380',
+    'bg-orange-500': '#7C290F',
+    'bg-teal-500': '#0F3C3A',
   }
 
   console.log(`Mapping ${color} to: ${colorMapping[color]}`); 
