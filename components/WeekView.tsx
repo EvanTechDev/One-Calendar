@@ -69,19 +69,20 @@ export default function WeekView({
 
   function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
-    'bg-blue-900': 'bg-[#1A2C7A]',
-    'bg-yellow-900': 'bg-[#9A4106]',
-    'bg-red-900': 'bg-[#7F1414]',
-    'bg-green-900': 'bg-[#053C31]', 
-    'bg-purple-900': 'bg-[#6519A2]', 
-    'bg-pink-900': 'bg-[#7D1038]',  
-    'bg-indigo-900': 'bg-[#252380]',  
-    'bg-orange-900': 'bg-[#7C290F]',  
-    'bg-teal-900': 'bg-[#0F3C3A]', 
+    'bg-blue-900': '#1A2C7A',
+    'bg-yellow-900': '#9A4106',
+    'bg-red-900': '#7F1414',
+    'bg-green-900': '#053C31',
+    'bg-purple-900': '#6519A2',
+    'bg-pink-900': '#7D1038',
+    'bg-indigo-900': '#252380',
+    'bg-orange-900': '#7C290F',
+    'bg-teal-900': '#0F3C3A',
   }
 
-  return colorMapping[color] || '#1E1E1E'
-}
+  console.log(`Mapping ${color} to: ${colorMapping[color]}`); 
+  return colorMapping[color] || '#1E1E1E';
+  }
 
 
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
