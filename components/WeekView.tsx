@@ -416,7 +416,7 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
-                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md", getDarkerColorClass(event.color))} />
+                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
                           <div className="pl-1.5">
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
