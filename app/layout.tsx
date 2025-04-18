@@ -11,8 +11,22 @@ import { GeistSans } from "geist/font/sans"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "One Calendar | Get organized and make the most of your time",
-  description: "One Calendar is a calendar web app that uses React + Vercel/blob for storage. It has rich features, such as: address book, notes, bookmarks, to-do lists and analysis features!",
+  title: "One Calendar",
+  description: "Get organized and make the most of your time.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://calendar.xyehr.cn"),
+  openGraph: {
+    title: "One Calendar",
+    description: "Get organized and make the most of your time.",
+    url: "/",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Preview",
+      },
+    ],
+  },
 }
 
 export default function RootLayout({
