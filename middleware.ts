@@ -1,22 +1,17 @@
-import { clerkMiddleware, getAuth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server"
 
-const customMiddleware = (request: NextRequest) => {
-  const { userId } = getAuth(request);
-  const { pathname } = request.nextUrl;
-
-  const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up";
-
-  if (userId && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  return clerkMiddleware()(request);
-};
-
-export default customMiddleware;
+export default clerkMiddleware({
+  publicRoutes: [
+    "/",
+    "/sign-in",
+    "/sign-up",
+    "/api/blob",
+    "/api/blob/list",
+    "/api/blob/cleanup",
+    "/api/share",
+  ],
+})
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
-};
+}
