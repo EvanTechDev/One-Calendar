@@ -37,27 +37,38 @@ export default function MonthView({ date, events, onEventClick, language, firstD
           </div>
         ))
       })()}
-      {monthDays.map((day) => (
-        <div
-          key={day.toString()}
-          className={cn("min-h-[100px] p-2 border rounded-lg", isSameMonth(day, date) ? "bg-background" : "bg-muted")}
-        >
-          <div className="font-medium text-sm">{format(day, "d")}</div>
-          <div className="space-y-1">
-            {events
-              .filter((event) => isSameDay(new Date(event.startDate), day))
-              .map((event) => (
-                <div
-                  key={event.id}
-                  className={cn("text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
-                  onClick={() => onEventClick(event)}
-                >
-                  {event.title}
-                </div>
-              ))}
+      {monthDays.map((day) => {
+  const dayEvents = events.filter((event) => isSameDay(new Date(event.startDate), day))
+  const visibleEvents = dayEvents.slice(0, 3)
+  const remainingCount = dayEvents.length - visibleEvents.length
+
+  return (
+    <div
+      key={day.toString()}
+      className={cn("min-h-[100px] p-2 border rounded-lg", isSameMonth(day, date) ? "bg-background" : "bg-muted")}
+    >
+      <div className="font-medium text-sm">{format(day, "d")}</div>
+      <div className="space-y-1">
+        {visibleEvents.map((event) => (
+          <div
+            key={event.id}
+            className={cn("text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
+            onClick={() => onEventClick(event)}
+          >
+            {event.title}
           </div>
-        </div>
-      ))}
+        ))}
+        {remainingCount > 0 && (
+          <div className="text-xs text-muted-foreground">
+            {language === "zh"
+              ? `还有 ${remainingCount} 个事件`
+              : `${remainingCount} more event${remainingCount > 1 ? "s" : ""}`}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+})}
     </div>
   )
 }
