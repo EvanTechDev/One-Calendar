@@ -22,10 +22,6 @@ interface DayViewProps {
   onTimeSlotClick: (date: Date) => void
   language: Language
   timezone: string
-  onEditEvent?: (event: CalendarEvent) => void
-  onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
-  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 export default function DayView({ date, events, onEventClick, onTimeSlotClick, language, timezone }: DayViewProps) {
@@ -45,13 +41,6 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     }
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
   }
-
-  const menuLabels = {
-  edit: language === "zh" ? "修改" : "Edit",
-  share: language === "zh" ? "分享" : "Share",
-  bookmark: language === "zh" ? "书签" : "Bookmark",
-  delete: language === "zh" ? "删除" : "Delete",
-}
 
   function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
@@ -382,8 +371,6 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             const left = `calc(${column} * ${width})`
 
             return (
-                   <ContextMenu>
-                      <ContextMenuTrigger asChild>
                         <div
                           key={`${event.id}-${date.toISOString().split("T")[0]}`}
                           className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
@@ -410,27 +397,6 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
                           )}
                           </div>
                         </div>
-                      </ContextMenuTrigger>
-    
-                    <ContextMenuContent className="w-40">
-                      <ContextMenuItem onClick={() => onEditEvent?.(event)}>
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        {menuLabels.edit}
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => onShareEvent?.(event)}>
-                        <Share2 className="mr-2 h-4 w-4" />
-                        {menuLabels.share}
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
-                        <Bookmark className="mr-2 h-4 w-4" />
-                        {menuLabels.bookmark}
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {menuLabels.delete}
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
             )
     })}
 
