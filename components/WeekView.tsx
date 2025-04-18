@@ -67,12 +67,17 @@ export default function WeekView({
   delete: language === "zh" ? "删除" : "Delete",
 }
 
-  function getDarkerColorClass(color: string): string {
-  return color.replace(/(\d{3})/, (match) => {
-    const level = parseInt(match, 10)
-    return Math.min(level + 200, 900).toString()
-  })
-  }
+  function getDarkerColorClass(color: string) {
+  const match = color.match(/bg-(\w+)-(\d+)/)
+  if (!match) return "bg-gray-600" // fallback
+
+  const [_, baseColor, shade] = match
+  let newShade = parseInt(shade, 10) + 300
+  if (newShade > 900) newShade = 900
+
+  return `bg-${baseColor}-${newShade}`
+}
+
 
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
   useEffect(() => {
