@@ -374,7 +374,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             const left = `calc(${column} * ${width})`
 
             return (
-              <ContextMenu>
+                   <ContextMenu>
                       <ContextMenuTrigger asChild>
                         <div
                           key={`${event.id}-${day.toISOString().split("T")[0]}`}
@@ -424,7 +424,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
                     </ContextMenuContent>
                   </ContextMenu>
             )
-          })}
+          }
 
           {(() => {
             // 检查当前日期是否是今天
@@ -464,5 +464,4 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
       </div>
     </div>
   )
-}
-
+  }
