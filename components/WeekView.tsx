@@ -80,7 +80,6 @@ export default function WeekView({
     'bg-teal-500': '#3C8D8D',
   }
 
-  console.log(`Mapping ${color} to: ${colorMapping[color]}`); 
   return colorMapping[color] || '#3A3A3A';
   }
 
