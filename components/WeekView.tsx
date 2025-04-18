@@ -67,6 +67,12 @@ export default function WeekView({
   delete: language === "zh" ? "删除" : "Delete",
 }
 
+  function getDarkerColorClass(color: string): string {
+  return color.replace(/(\d{3})/, (match) => {
+    const level = parseInt(match, 10)
+    return Math.min(level + 200, 900).toString()
+  })
+  }
 
   // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
   useEffect(() => {
@@ -400,8 +406,8 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
-                         <div className={cn("absolute left-0 top-0 w-2 h-full bg-blue-600 rounded-l-md")} />
-                          <div className="pl-2">
+                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md", getDarkerColorClass(event.color))} />
+                          <div className="pl-1.5">
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
                             <div className="text-xs text-white/90 truncate">
