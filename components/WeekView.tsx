@@ -68,14 +68,19 @@ export default function WeekView({
 }
 
   function getDarkerColorClass(color: string) {
-  const match = color.match(/bg-(\w+)-(\d+)/)
-  if (!match) return "bg-gray-600" // fallback
+  const colorMapping: Record<string, string> = {
+    'bg-blue-900': 'bg-[#1A2C7A]',
+    'bg-yellow-900': 'bg-[#9A4106]',
+    'bg-red-900': 'bg-[#7F1414]',
+    'bg-green-900': 'bg-[#053C31]', 
+    'bg-purple-900': 'bg-[#6519A2]', 
+    'bg-pink-900': 'bg-[#7D1038]',  
+    'bg-indigo-900': 'bg-[#252380]',  
+    'bg-orange-900': 'bg-[#7C290F]',  
+    'bg-teal-900': 'bg-[#0F3C3A]', 
+  }
 
-  const [_, baseColor, shade] = match
-  let newShade = parseInt(shade, 10) + 400
-  if (newShade > 900) newShade = 900
-
-  return `bg-${baseColor}-${newShade}`
+  return colorMapping[color] || '#1E1E1E'
 }
 
 
@@ -397,7 +402,7 @@ export default function WeekView({
                       <ContextMenuTrigger asChild>
                         <div
                           key={`${event.id}-${day.toISOString().split("T")[0]}`}
-                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden bg-opacity-80", event.color)}
+                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
@@ -411,7 +416,7 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
-                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md bg-opacity-100", getDarkerColorClass(event.color))} />
+                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md", getDarkerColorClass(event.color))} />
                           <div className="pl-1.5">
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
