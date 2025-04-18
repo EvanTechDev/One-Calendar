@@ -2,7 +2,13 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -34,6 +40,26 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
       timeZone: timezone,
     }
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
+  }
+
+  const menuLabels = {
+  edit: language === "zh" ? "修改" : "Edit",
+  share: language === "zh" ? "分享" : "Share",
+  bookmark: language === "zh" ? "书签" : "Bookmark",
+  delete: language === "zh" ? "删除" : "Delete",
+}
+
+  function getDarkerColorClass(color: string) {
+  const colorMapping: Record<string, string> = {
+    'bg-blue-500': '#3C74C4',
+    'bg-yellow-500': '#C39248',
+    'bg-red-500': '#C14D4D',
+    'bg-green-500': '#3C996C',
+    'bg-purple-500': '#A44DB3',
+    'bg-pink-500': '#C14D84',
+    'bg-indigo-500': '#3D63B3',
+    'bg-orange-500': '#C27048',
+    'bg-teal-500': '#3C8D8D',
   }
 
   // 检查事件是否跨天
@@ -348,33 +374,55 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             const left = `calc(${column} * ${width})`
 
             return (
-              <div
-                key={event.id}
-                className={cn("absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
-                style={{
-                  top: `${startMinutes}px`,
-                  height: `${height}px`,
-                  opacity: 0.9,
-                  width,
-                  left,
-                  zIndex: column + 1, // 确保后面的事件在上层
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEventClick(event)
-                }}
-              >
-                <div className="font-medium text-white truncate">
-                  {event.title}
-                  {positionLabel}
-                </div>
-                {height >= 40 && ( // 只在高度足够时显示时间
-                  <div className="text-xs text-white/90 truncate">
-                    {formatDateWithTimezone(new Date(event.startDate))} -{" "}
-                    {formatDateWithTimezone(new Date(event.endDate))}
-                  </div>
-                )}
-              </div>
+              <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div
+                          key={`${event.id}-${day.toISOString().split("T")[0]}`}
+                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                          style={{
+                            top: `${startMinutes}px`,
+                            height: `${height}px`,
+                            opacity: 0.9,
+                            width,
+                            left,
+                            zIndex: column + 1,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEventClick(event)
+                          }}
+                        >
+                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
+                          <div className="pl-1.5">
+                          <div className="font-medium text-white truncate">{event.title}</div>
+                          {height >= 40 && (
+                            <div className="text-xs text-white/90 truncate">
+                              {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
+                            </div>
+                          )}
+                          </div>
+                        </div>
+                      </ContextMenuTrigger>
+    
+                    <ContextMenuContent className="w-40">
+                      <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        {menuLabels.edit}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        {menuLabels.share}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+                        <Bookmark className="mr-2 h-4 w-4" />
+                        {menuLabels.bookmark}
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {menuLabels.delete}
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
             )
           })}
 
