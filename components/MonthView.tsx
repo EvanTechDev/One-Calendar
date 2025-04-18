@@ -15,6 +15,22 @@ interface MonthViewProps {
   timezone: string
 }
 
+function getDarkerColorClass(color: string) {
+  const colorMapping: Record<string, string> = {
+    'bg-blue-500': '#3C74C4',
+    'bg-yellow-500': '#C39248',
+    'bg-red-500': '#C14D4D',
+    'bg-green-500': '#3C996C',
+    'bg-purple-500': '#A44DB3',
+    'bg-pink-500': '#C14D84',
+    'bg-indigo-500': '#3D63B3',
+    'bg-orange-500': '#C27048',
+    'bg-teal-500': '#3C8D8D',
+  }
+
+  return colorMapping[color] || '#3A3A3A';
+  }
+
 export default function MonthView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: MonthViewProps) {
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
@@ -55,6 +71,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
             className={cn("text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
             onClick={() => onEventClick(event)}
           >
+            <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
             {event.title}
           </div>
         ))}
