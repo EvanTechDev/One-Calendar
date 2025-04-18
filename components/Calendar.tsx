@@ -361,9 +361,8 @@ const handleShare = (event: CalendarEvent) => {
             )}
           </div>
 
-          <Weather />
-
           <div className="flex items-center space-x-2">
+            <Weather />
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
