@@ -61,6 +61,10 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     'bg-orange-500': '#C27048',
     'bg-teal-500': '#3C8D8D',
   }
+  
+  console.log(`Mapping ${color} to: ${colorMapping[color]}`); 
+  return colorMapping[color] || '#3A3A3A';
+  }
 
   // 检查事件是否跨天
   const isMultiDayEvent = (start: Date, end: Date) => {
@@ -424,7 +428,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
                     </ContextMenuContent>
                   </ContextMenu>
             )
-          }
+    })}
 
           {(() => {
             // 检查当前日期是否是今天
