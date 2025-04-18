@@ -75,7 +75,7 @@ export default function WeekView({
     'bg-green-500': '#3C996C',
     'bg-purple-500': '#A44DB3',
     'bg-pink-500': '#C14D84',
-    'bg-indigo-500': '#4F78C0',
+    'bg-indigo-500': '#3D63B3',
     'bg-orange-500': '#C27048',
     'bg-teal-500': '#3C8D8D',
   }
