@@ -386,7 +386,7 @@ export default function WeekView({
                       <ContextMenuTrigger asChild>
                         <div
                           key={`${event.id}-${day.toISOString().split("T")[0]}`}
-                          className={cn("absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden flex", event.color)}
+                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
@@ -400,13 +400,15 @@ export default function WeekView({
                             onEventClick(event)
                           }}
                         >
-                         <div className={cn("w-1 h-full bg-blue-600 rounded-l-md")} />
+                         <div className={cn("absolute left-0 top-0 w-2 h-full bg-blue-600 rounded-l-md")} />
+                          <div className="pl-3">
                           <div className="font-medium text-white truncate">{event.title}</div>
                           {height >= 40 && (
                             <div className="text-xs text-white/90 truncate">
                               {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
                             </div>
                           )}
+                          </div>
                         </div>
                       </ContextMenuTrigger>
     
