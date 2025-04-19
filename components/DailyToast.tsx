@@ -5,16 +5,14 @@ import { toast } from "@/components/ui/use-toast"
 
 export default function DailyToast() {
   useEffect(() => {
+    console.log("DailyToast mounted")
     const todayToast = localStorage.getItem("today-toast")
     const language = navigator.language.startsWith("zh") ? "zh" : "en"
 
     if (!todayToast) {
       toast({
-        title: language === "zh" ? "欢迎回来！" : "Welcome back!",
-        description:
-          language === "zh"
-            ? "祝你今天工作顺利 ☀️"
-            : "Hope you have a productive day ☀️",
+        title: "Welcome back!",
+        description: "Hope you have a productive day ☀️",
       })
 
       localStorage.setItem("today-toast", "true")
