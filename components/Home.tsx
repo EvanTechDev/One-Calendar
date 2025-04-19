@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
@@ -9,19 +9,24 @@ import Image from "next/image"
 
 export default function LandingPage() {
   const router = useRouter()
-  const { isSignedIn } = useUser()
+  const { isLoaded, isSignedIn } = useUser()
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
-    if (hasSkippedLanding || isSignedIn) {
+    if (hasSkippedLanding || (isLoaded && isSignedIn)) {
       router.replace("/app")
+    } else if (isLoaded) {
+      setShouldRender(true)
     }
-  }, [isSignedIn, router])
+  }, [isLoaded, isSignedIn, router])
 
   const handleGetStarted = () => {
     localStorage.setItem("skip-landing", "true")
     router.push("/app")
   }
+
+  if (!shouldRender) return null
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-black">
@@ -37,8 +42,10 @@ export default function LandingPage() {
         </div>
         <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full">
           <Image
-            src="/Banner.jpg"
+            src="/preview.png"
             alt="One Calendar Preview"
+            width={1200}
+            height={700}
             layout="responsive"
             objectFit="cover"
           />
