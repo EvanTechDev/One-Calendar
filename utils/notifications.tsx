@@ -291,9 +291,14 @@ function showToastNotification(
     action: (
       <ToastAction
         altText="查看"
-        onClick={() => {
-          window.focus()
-          window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: eventId } }))
+        onClick={async () => {
+          try {
+            window.focus()
+            window.dispatchEvent(new CustomEvent("view-event", { detail: { eventId: eventId } }))
+            console.log(`Toast action clicked for event ${eventId}`)
+          } catch (error) {
+            console.error("处理 ToastAction 时发生错误:", error)
+          }
         }}
       >
         查看
