@@ -13,7 +13,7 @@ import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
-import { startNotificationWatcher, stopNotificationWatcher } from "@/utils/notifications"
+import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
@@ -62,7 +62,8 @@ export default function Calendar() {
     "notification-sound",
     "telegram",
   )
-
+  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
@@ -285,11 +286,23 @@ const handleShare = (event: CalendarEvent) => {
   const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
 
   useEffect(() => {
-  startNotificationWatcher()
-  return () => {
-    stopNotificationWatcher()
-  }
-}, [])
+    if (!notificationsInitializedRef.current) {
+      checkPendingNotifications()
+      notificationsInitializedRef.current = true
+    }
+
+    if (!notificationIntervalRef.current) {
+      notificationIntervalRef.current = setInterval(() => {
+        checkPendingNotifications()
+      }, 60000)
+    }
+
+    return () => {
+      if (notificationIntervalRef.current) {
+        clearInterval(notificationIntervalRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
@@ -514,4 +527,3 @@ const handleShare = (event: CalendarEvent) => {
     </div>
   )
 }
-
