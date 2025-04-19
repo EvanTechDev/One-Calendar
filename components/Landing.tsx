@@ -29,19 +29,23 @@ export default function LandingPage() {
   if (!shouldRender) return null
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-black">
+    <div className="flex flex-col min-h-screen text-black">
+      <div className="fixed -z-10 inset-0 overflow-hidden">
+        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
+        <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
+        <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
+      </div>
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center py-24 px-4 relative">
-        <div className="absolute inset-0 bg-black opacity-40 backdrop-blur-lg rounded-2xl" /> {/* Backdrop Blur */}
-        <h1 className="text-5xl font-bold tracking-tight mb-2 z-10">One Calendar</h1>
-        <p className="text-lg text-gray-200 max-w-xl mb-4 z-10"> {/* Text color changed for better contrast */}
+      <section className="flex flex-col items-center justify-center text-center py-24 px-4"> {/* Reduced padding */}
+        <h1 className="text-5xl font-bold tracking-tight mb-2">One Calendar</h1> {/* Reduced bottom margin */}
+        <p className="text-lg text-gray-600 max-w-xl mb-4"> {/* Reduced bottom margin */}
           All your events in one place, beautifully organized.
         </p>
-        <div className="flex gap-4 mb-6 z-10">
+        <div className="flex gap-4 mb-6"> {/* Reduced bottom margin */}
           <Button onClick={handleGetStarted} className="px-6">Get Started</Button>
           <Button variant="outline" onClick={() => router.push("/sign-in")} className="px-6">Login</Button>
         </div>
-        <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full z-10">
+        <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full">
           <Image
             src="/Banner.jpg"
             alt="One Calendar Preview"
@@ -52,7 +56,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto py-16 px-6">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto py-16 px-6"> {/* Reduced top padding */}
         <Feature icon={<CloudIcon className="h-6 w-6 text-blue-500" />} title="Cloud Sync" description="Access your events from anywhere with secure cloud storage." />
         <Feature icon={<Share2Icon className="h-6 w-6 text-green-500" />} title="Easy Sharing" description="Collaborate and share your schedule with ease." />
         <Feature icon={<BarChart3Icon className="h-6 w-6 text-purple-500" />} title="Analytics" description="Gain insights with smart event tracking and summaries." />
