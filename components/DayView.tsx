@@ -54,8 +54,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     'bg-orange-500': '#C27048',
     'bg-teal-500': '#3C8D8D',
   }
-  
-  console.log(`Mapping ${color} to: ${colorMapping[color]}`); 
+
   return colorMapping[color] || '#3A3A3A';
   }
 
