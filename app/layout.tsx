@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "${process.env.NEXT_PUBLIC_BASE_URL}/og.png",
+        url: "https://calendar.xyehr.cn/og.png",
         width: 1200,
         height: 630,
         alt: "PreviewImage",
