@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { GithubIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -41,7 +43,7 @@ export default function LandingPage() {
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
           <div className="flex gap-4">
             <a href="/about" className="hover:underline">About</a>
-            <a href="https://github.com/your-repo" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
+            <a href="https://github.com/Dev-Huang1/One-Calendar" targe="blank" rel="noopener" className="flex items-center gap-1 hover:underline">
               <GithubIcon className="w-4 h-4" /> GitHub
             </a>
           </div>
