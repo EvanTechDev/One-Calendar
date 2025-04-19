@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "./UserProfileButton"
 import { cn } from "@/lib/utils"
 import Weather from "./Weather"
+import TodayToast from "./TodayToast"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -524,6 +525,8 @@ const handleShare = (event: CalendarEvent) => {
       <Suspense fallback={null}>
         <EventUrlHandler />
       </Suspense>
+
+      <TodayToast />
     </div>
   )
 }
