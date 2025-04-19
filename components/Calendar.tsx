@@ -13,7 +13,7 @@ import MonthView from "./MonthView"
 import EventDialog from "./EventDialog"
 import Settings from "./Settings"
 import { translations, useLanguage } from "@/lib/i18n"
-import { checkPendingNotifications, clearAllNotificationTimers, useNotificationPermission, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
+import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import EventPreview from "./EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/contexts/CalendarContext"
@@ -47,7 +47,6 @@ export type Language = "en" | "zh"
 export default function Calendar() {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  useNotificationPermission()
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
