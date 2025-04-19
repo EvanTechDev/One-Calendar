@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { toast } from "@/components/ui/use-toast"
 
-export default function Calendar() {
+export default function TodayToast() {
   useEffect(() => {
     const todayToast = localStorage.getItem("today-toast")
     const language = navigator.language.startsWith("zh") ? "zh" : "en"
