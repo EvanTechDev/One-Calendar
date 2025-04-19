@@ -19,10 +19,24 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "https://calendar.xyehr.cn/og.png",
+        url: "/og.png",
         width: 1200,
         height: 630,
         alt: "PreviewImage",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@One__Cal",
+    title: "One Calendar",
+    description: "All your events in one place, beautifully organized.",
+    images: [
+      {
+        url: `/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "Preview",
       },
     ],
   },
