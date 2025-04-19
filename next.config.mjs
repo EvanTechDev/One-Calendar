@@ -18,9 +18,9 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: true,
-    /*parallelServerBuildTraces: true,*/
+    /* parallelServerBuildTraces: true,*/
     parallelServerCompiles: true,
-    adjustFontFallbacks: true,
+    /* adjustFontFallbacks: true, */
   },
 }
 
