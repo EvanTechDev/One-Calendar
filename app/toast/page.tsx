@@ -1,12 +1,13 @@
+"use client"
+
 import { useToast } from "@/components/ui/use-toast"
 
 export default function ToastTestPage() {
-  const context = useToast()
-  console.log("useToast context", context) // 👈 打印一下
+  const { toast } = useToast()
 
   return (
     <div>
-      <button onClick={() => context.toast({ title: "测试", description: "是否正常" })}>
+      <button onClick={() => toast({ title: "测试", description: "是否正常" })}>
         弹 toast
       </button>
     </div>
