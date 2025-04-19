@@ -1,34 +1,32 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "@/components/ui/use-toast"
 
-export default function DailyToast() {
+export function DailyToast() {
+  const [ready, setReady] = useState(false)
+
   useEffect(() => {
-    console.log("DailyToast mounted")
-    const todayToast = localStorage.getItem("today-toast")
-    const language = navigator.language.startsWith("zh") ? "zh" : "en"
-
-    if (!todayToast) {
-      toast({
-        title: "Welcome back!",
-        description: "Hope you have a productive day ☀️",
-      })
-
-      localStorage.setItem("today-toast", "true")
-    }
-
-    const now = new Date()
-    const nextMidnight = new Date()
-    nextMidnight.setHours(24, 0, 0, 0)
-    const timeout = nextMidnight.getTime() - now.getTime()
-
-    const timer = setTimeout(() => {
-      localStorage.removeItem("today-toast")
-    }, timeout)
-
+    const timer = setTimeout(() => setReady(true), 0)
     return () => clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    if (!ready) return
+
+    const today = new Date().toISOString().split("T")[0]
+    const toastShown = localStorage.getItem("today-toast")
+
+    if (toastShown !== today) {
+      const isZh = navigator.language.startsWith("zh")
+      toast({
+        title: isZh ? "📅 欢迎回来！" : "📅 Welcome back!",
+        description: isZh ? "查看你今天的日程吧。" : "Check your schedule for today.",
+      })
+
+      localStorage.setItem("today-toast", today)
+    }
+  }, [ready])
 
   return null
 }
