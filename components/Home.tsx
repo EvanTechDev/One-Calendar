@@ -1,12 +1,27 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { GithubIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 export default function LandingPage() {
   const router = useRouter()
+  const { isSignedIn } = useUser()
+
+  useEffect(() => {
+    const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
+    if (hasSkippedLanding || isSignedIn) {
+      router.replace("/app")
+    }
+  }, [isSignedIn, router])
+
+  const handleGetStarted = () => {
+    localStorage.setItem("skip-landing", "true")
+    router.push("/app")
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-black">
@@ -17,12 +32,12 @@ export default function LandingPage() {
           All your events in one place, beautifully organized.
         </p>
         <div className="flex gap-4 mb-8">
-          <Button onClick={() => router.push("/app")} className="px-6">Get Started</Button>
+          <Button onClick={handleGetStarted} className="px-6">Get Started</Button>
           <Button variant="outline" onClick={() => router.push("/sign-in")} className="px-6">Login</Button>
         </div>
         <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full">
           <Image
-            src="/Banner.png"
+            src="/Banner.jpg"
             alt="One Calendar Preview"
             layout="responsive"
             objectFit="cover"
@@ -43,7 +58,7 @@ export default function LandingPage() {
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
           <div className="flex gap-4">
             <a href="/about" className="hover:underline">About</a>
-            <a href="https://github.com/Dev-Huang1/One-Calendar" targe="blank" rel="noopener" className="flex items-center gap-1 hover:underline">
+            <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
               <GithubIcon className="w-4 h-4" /> GitHub
             </a>
           </div>
