@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "1.8.0",
+  "version": "1.8.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
