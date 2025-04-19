@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/og.png",
+        url: "https://calendar.xyehr.cn/og.png",
         width: 1200,
         height: 630,
         alt: "PreviewImage",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: "All your events in one place, beautifully organized.",
     images: [
       {
-        url: `/og.png`,
+        url: `https://calendar.xyehr.cn/og.png`,
         width: 1200,
         height: 630,
         alt: "Preview",
