@@ -31,12 +31,12 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white text-black">
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center py-32 px-4">
-        <h1 className="text-5xl font-bold tracking-tight mb-4">One Calendar</h1>
-        <p className="text-lg text-gray-600 max-w-xl mb-6">
+      <section className="flex flex-col items-center justify-center text-center py-24 px-4"> {/* Reduced padding */}
+        <h1 className="text-5xl font-bold tracking-tight mb-2">One Calendar</h1> {/* Reduced bottom margin */}
+        <p className="text-lg text-gray-600 max-w-xl mb-4"> {/* Reduced bottom margin */}
           All your events in one place, beautifully organized.
         </p>
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-6"> {/* Reduced bottom margin */}
           <Button onClick={handleGetStarted} className="px-6">Get Started</Button>
           <Button variant="outline" onClick={() => router.push("/sign-in")} className="px-6">Login</Button>
         </div>
@@ -51,7 +51,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto py-20 px-6">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto py-16 px-6"> {/* Reduced top padding */}
         <Feature icon={<CloudIcon className="h-6 w-6 text-blue-500" />} title="Cloud Sync" description="Access your events from anywhere with secure cloud storage." />
         <Feature icon={<Share2Icon className="h-6 w-6 text-green-500" />} title="Easy Sharing" description="Collaborate and share your schedule with ease." />
         <Feature icon={<BarChart3Icon className="h-6 w-6 text-purple-500" />} title="Analytics" description="Gain insights with smart event tracking and summaries." />
