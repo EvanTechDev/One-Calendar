@@ -62,7 +62,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto space-y-4">
           <h2 className="text-xl font-medium">{t.contact}</h2>
           <p className="text-gray-600">{t.cta}</p>
-          <div className="flex gap-4 pt-4">
+          <div className="flex justify-center gap-4 pt-4">
             <Link
               href="https://github.com/Dev-Huang1/One-Calendar"
               target="_blank"
