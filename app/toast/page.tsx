@@ -1,4 +1,3 @@
-// pages/test-toast.tsx 或 app/test-toast/page.tsx
 "use client"
 import { toast } from "@/components/ui/use-toast"
 
