@@ -68,7 +68,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
         {visibleEvents.map((event) => (
           <div
             key={event.id}
-            className={cn("text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
+            className={cn("relative text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
             onClick={() => onEventClick(event)}
           >
             <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
