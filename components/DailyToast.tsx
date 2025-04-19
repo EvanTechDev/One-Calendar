@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "@/components/ui/use-toast"
 
-export function DailyToast() {
+export default function DailyToast() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
