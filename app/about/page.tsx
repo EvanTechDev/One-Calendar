@@ -63,7 +63,7 @@ export default function AboutPage() {
         </div>
       </main>
 
-      <section className="text-center px-6 py-16 bg-gray-100">
+      <section className="text-center px-6 py-16">
         <div className="max-w-3xl mx-auto space-y-4">
           <h2 className="text-xl font-medium">{t.contact}</h2>
           <p className="text-gray-600">{t.cta}</p>
