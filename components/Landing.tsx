@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
-import { GithubIcon } from "lucide-react"
+import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon } from "lucide-react"
 import Image from "next/image"
 
 export default function LandingPage() {
@@ -42,10 +42,8 @@ export default function LandingPage() {
         </div>
         <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full">
           <Image
-            src="/preview.png"
+            src="/Banner.jpg"
             alt="One Calendar Preview"
-            width={1200}
-            height={700}
             layout="responsive"
             objectFit="cover"
           />
@@ -54,9 +52,12 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto py-20 px-6">
-        <Feature title="Unified View" description="Combine all your calendars seamlessly in one place." />
-        <Feature title="Smart Reminders" description="Get intelligent notifications so you never miss what's important." />
-        <Feature title="Effortless Sharing" description="Share your schedule with friends and teams in one click." />
+        <Feature icon={<CloudIcon className="h-6 w-6 text-blue-500" />} title="Cloud Sync" description="Access your events from anywhere with secure cloud storage." />
+        <Feature icon={<Share2Icon className="h-6 w-6 text-green-500" />} title="Easy Sharing" description="Collaborate and share your schedule with ease." />
+        <Feature icon={<BarChart3Icon className="h-6 w-6 text-purple-500" />} title="Analytics" description="Gain insights with smart event tracking and summaries." />
+        <Feature icon={<SunIcon className="h-6 w-6 text-yellow-500" />} title="Weather Integration" description="See real-time weather in your calendar view." />
+        <Feature icon={<KeyboardIcon className="h-6 w-6 text-red-500" />} title="Keyboard Shortcuts" description="Navigate quickly using customizable shortcuts." />
+        <Feature icon={<ImportIcon className="h-6 w-6 text-pink-500" />} title="Import & Export" description="Easily move data in and out of One Calendar." />
       </section>
 
       {/* Footer */}
@@ -75,10 +76,11 @@ export default function LandingPage() {
   )
 }
 
-function Feature({ title, description }: { title: string; description: string }) {
+function Feature({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="space-y-2">
-      <h3 className="text-xl font-semibold">{title}</h3>
+    <div className="flex flex-col items-start p-6 border rounded-2xl shadow-sm bg-white hover:shadow-md transition">
+      <div className="mb-4">{icon}</div>
+      <h3 className="text-xl font-semibold mb-1">{title}</h3>
       <p className="text-gray-600 text-sm">{description}</p>
     </div>
   )
