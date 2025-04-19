@@ -45,7 +45,7 @@ export default function AboutPage() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black">
+    <div className="min-h-screen flex flex-col text-black">
       <main className="max-w-3xl mx-auto px-6 py-24">
         <div className="fixed -z-10 inset-0 overflow-hidden">
           <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
