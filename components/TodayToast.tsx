@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 
 const getLocale = () => {
