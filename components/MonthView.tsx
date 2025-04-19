@@ -72,7 +72,9 @@ export default function MonthView({ date, events, onEventClick, language, firstD
             onClick={() => onEventClick(event)}
           >
             <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
-            {event.title}
+            <div className="pl-1.5">
+              {event.title}
+            </div>
           </div>
         ))}
         {remainingCount > 0 && (
