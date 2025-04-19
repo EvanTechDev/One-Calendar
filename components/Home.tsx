@@ -1,16 +1,31 @@
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { GithubIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function LandingPage() {
+  const router = useRouter()
+
   return (
     <div className="flex flex-col min-h-screen bg-white text-black">
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center text-center py-32 px-4">
         <h1 className="text-5xl font-bold tracking-tight mb-4">One Calendar</h1>
         <p className="text-lg text-gray-600 max-w-xl mb-6">
-          All your events in one place, beautifully organized. Join the waitlist to get early access.
+          All your events in one place, beautifully organized.
         </p>
+        <div className="flex gap-4 mb-8">
+          <Button onClick={() => router.push("/app")} className="px-6">Get Started</Button>
+          <Button variant="outline" onClick={() => router.push("/sign-in")} className="px-6">Login</Button>
+        </div>
+        <div className="rounded-2xl overflow-hidden shadow-lg max-w-3xl w-full">
+          <Image
+            src="/Banner.png"
+            alt="One Calendar Preview"
+            layout="responsive"
+            objectFit="cover"
+          />
+        </div>
       </section>
 
       {/* Features Section */}
