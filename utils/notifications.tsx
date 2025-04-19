@@ -281,6 +281,10 @@ function showToastNotification(
   soundType: string,
   location?: string,
 ) {
+  const { toast } = useToast()
+
+  console.log("toast function:", toast)
+
   toast({
     title: title,
     description: description,
@@ -294,6 +298,6 @@ function showToastNotification(
       >
         查看
       </ToastAction>
-    ),
+    ) as React.ReactNode
   })
 }
