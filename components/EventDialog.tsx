@@ -66,9 +66,6 @@ export default function EventDialog({
   const [color, setColor] = useState(colorOptions[0].value)
   const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
 
-  // 添加调试日志
-  console.log("EventDialog render - event:", event, "initialDate:", initialDate)
-
   const t = translations[language]
 
   // 每次对话框打开时重置表单
