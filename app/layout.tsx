@@ -12,7 +12,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: "One Calendar",
-  description: "Get organized and make the most of your time.",
+  description: "All your events in one place, beautifully organized.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://calendar.xyehr.cn"),
   openGraph: {
     title: "One Calendar",
