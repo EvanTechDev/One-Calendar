@@ -25,6 +25,7 @@ import UserProfileButton from "./UserProfileButton"
 import { cn } from "@/lib/utils"
 import Weather from "./Weather"
 import DailyToast from "./DailyToast"
+import QuickStartGuide from "./QuickStartGuide"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
