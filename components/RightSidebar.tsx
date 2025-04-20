@@ -569,7 +569,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <CalendarDaysIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <CalendarDaysIcon className="h-5 w-5 dark:text-white" />
             </div>
           </Button>
 
