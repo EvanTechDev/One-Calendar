@@ -560,7 +560,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setMiniCalendarOpen(true)}
           >
             <div
@@ -576,7 +576,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setBookmarkPanelOpen(true)}
           >
             <div
@@ -592,7 +592,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setContactsOpen(true)}
           >
             <div
@@ -608,7 +608,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setNotesOpen(true)}
           >
             <div
@@ -624,7 +624,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-600">
@@ -635,7 +635,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 hover:bg-accent w-12 h-12 flex items-center justify-center"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => router.push("https://techart.featurebase.app")}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-teal-500">
