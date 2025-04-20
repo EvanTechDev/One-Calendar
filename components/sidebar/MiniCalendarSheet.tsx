@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/lib/i18n"
-import type { CalendarEvent } from "./Calendar"
+import type { CalendarEvent } from "../Calendar"
 import { useCalendar } from "@/contexts/CalendarContext"
 
 interface MiniCalendarSheetProps {
