@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { zhCN, enUS } from "date-fns/locale"
 import { format } from "date-fns"
-import type { CalendarEvent } from "./Calendar"
+import type { CalendarEvent } from "../Calendar"
 import type { Language } from "@/lib/i18n"
 import { translations } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
