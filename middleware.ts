@@ -5,7 +5,6 @@ export default clerkMiddleware({
     "/",
     "/sign-in",
     "/sign-up",
-    "/api/blob",
     "/api/blob/list",
     "/api/blob/cleanup",
     "/api/share",
