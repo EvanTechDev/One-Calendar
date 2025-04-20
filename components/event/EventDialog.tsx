@@ -14,7 +14,7 @@ import { format } from "date-fns"
 import type { CalendarEvent } from "../Calendar"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
-import { useCalendar } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/components/context/CalendarContext"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },
