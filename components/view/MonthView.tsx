@@ -2,7 +2,7 @@
 
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns"
 import { cn } from "@/lib/utils"
-import type { CalendarEvent } from "./Calendar"
+import type { CalendarEvent } from "../Calendar"
 
 type Language = "en" | "zh"
 
