@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const supabase = createClient(
   process.env.SUPABASE_URL, 
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_KEY
 );
 
 const BACKUP_BUCKET = 'backups';
