@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
 import { useRouter } from "next/navigation"
-import { CalendarIcon } from "./icons/CalendarIcon"
 
 // 通讯录类型定义
 interface Contact {
@@ -565,7 +564,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <CalendarIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <Calendar className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
 
