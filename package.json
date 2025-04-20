@@ -62,6 +62,7 @@
     "ics": "latest",
     "@vercel/blob": "latest",
     "framer-motion": "^12.7.4",
+    "motion": "latest"
     "@vercel/analytics": "latest",
     "@vercel/speed-insights": "latest",
     "qrcode": "latest",
