@@ -1,4 +1,3 @@
-import { put, list, del } from "@vercel/blob";
 import { createClient } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -18,14 +17,18 @@ export async function POST(request: NextRequest) {
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     const buffer = Buffer.from(dataString, "utf-8");  // 使用 Buffer 处理数据
 
+    // 如果提供了 Supabase Key 和 Supabase URL
     if (supabaseKey && supabaseUrl) {
       const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: existing, error: listError } = await supabase.storage.from("backups").list("", { search: id });
-      
-      if (listError) console.error("Supabase list error", listError);
 
+      // 检查是否已经存在备份文件
+      const { data: existing, error: listError } = await supabase.storage.from("backups").list("", { search: id });
+      if (listError) {
+        return NextResponse.json({ error: `Supabase list error: ${listError.message}` }, { status: 500 });
+      }
+
+      // 如果存在，删除已有文件
       if (existing && existing.length > 0) {
-        // 删除已经存在的备份文件
         for (const file of existing) {
           await supabase.storage.from("backups").remove([file.name]);
         }
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
       // 上传备份文件到 Supabase
       const upload = await supabase.storage.from("backups").upload(`${id}.json`, buffer, {
         contentType: "application/json",
-        upsert: true,
+        upsert: true, // 允许文件覆盖
       });
 
       if (upload.error) {
@@ -53,39 +56,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 如果不使用 Supabase，使用 Vercel Blob 存储
-    const existingBlobs = await list();
-    const allBlobs = existingBlobs?.blobs ?? [];
-
-    const matchingBlobs = allBlobs.filter(blob => {
-      const pathname = blob.pathname;
-      return pathname.startsWith(`${BACKUP_PATH}/${id}`) || 
-             pathname.includes(`/${id}_`) ||
-             pathname === `${id}.json`;
-    });
-
-    // 删除匹配的旧文件
-    for (const blob of matchingBlobs) {
-      if (blob?.url) await del(blob.url);
-    }
-
-    // 上传备份到 Vercel Blob
-    const result = await put(`${BACKUP_PATH}/${id}.json`, buffer, {
-      access: "public",
-      contentType: "application/json",
-    });
-
-    const actualUrl = result.url;
-    const actualFilename = actualUrl.split("/").pop() ?? "";
-
-    return NextResponse.json({ 
-      success: true, 
-      url: result.url,
-      path: `${BACKUP_PATH}/${id}.json`,
-      actualFilename,
-      id,
-      message: "Backup created with Vercel Blob.",
-    });
+    return NextResponse.json({ error: "Missing Supabase URL or Key" }, { status: 400 });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
@@ -122,44 +93,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: text });
     }
 
-    // 如果使用 Vercel Blob 存储
-    const allBlobs = await list();
-    const matchingBlobs = allBlobs.blobs.filter(blob => {
-      const pathname = blob.pathname;
-      return pathname.includes(`/${id}`) || pathname.includes(`/${id}_`);
-    });
-
-    if (matchingBlobs.length > 0) {
-      const blobUrl = matchingBlobs[0].url;
-      const response = await fetch(blobUrl);
-      if (!response.ok) {
-        return NextResponse.json({ error: "Failed to fetch backup content" }, { status: 500 });
-      }
-      const data = await response.text();
-      return NextResponse.json({ success: true, data });
-    }
-
-    // 如果在 Vercel Blob 中找不到备份，尝试不同的 URL
-    const possibleUrls = [
-      `https://public.blob.vercel-storage.com/${BACKUP_PATH}/${id}.json`,
-      `https://public.blob.vercel-storage.com/${id}.json`,
-      `https://public.blob.vercel-storage.com/backups/${id}.json`
-    ];
-
-    for (const url of possibleUrls) {
-      try {
-        const directResponse = await fetch(url);
-        if (directResponse.ok) {
-          const directData = await directResponse.text();
-          return NextResponse.json({ success: true, data: directData });
-        }
-      } catch (err) {
-        console.error("Error fetching direct URL:", err);
-      }
-    }
-
-    return NextResponse.json({ error: "Backup not found", id }, { status: 404 });
+    return NextResponse.json({ error: "Missing Supabase URL or Key" }, { status: 400 });
   } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
