@@ -1,107 +1,84 @@
-import { createClient } from "@supabase/supabase-js";
-import { type NextRequest, NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
-const BACKUP_PATH = "backups";
+// 从环境变量中获取 Supabase 的 URL 和密钥
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_KEY!;
 
-// POST 请求 - 上传备份
-export async function POST(request: NextRequest) {
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 处理上传备份的 POST 请求
+async function handleUpload(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
+
   try {
-    const body = await request.json();  // 解析 JSON 请求体
+    // 解析上传的文件
+    const file = req.body.file;
 
-    const { id, data, supabaseKey, supabaseUrl } = body;
-
-    if (!id || !data) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const buffer = Buffer.from(dataString, "utf-8");  // 使用 Buffer 处理数据
+    // 上传文件到 Supabase Storage
+    const { data, error } = await supabase
+      .storage
+      .from('backups') // 存储桶名称
+      .upload(`backup-${Date.now()}.json`, file);
 
-    // 如果提供了 Supabase Key 和 Supabase URL
-    if (supabaseKey && supabaseUrl) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // 检查是否已经存在备份文件
-      const { data: existing, error: listError } = await supabase.storage.from("backups").list("", { search: id });
-      if (listError) {
-        return NextResponse.json({ error: `Supabase list error: ${listError.message}` }, { status: 500 });
-      }
-
-      // 如果存在，删除已有文件
-      if (existing && existing.length > 0) {
-        for (const file of existing) {
-          await supabase.storage.from("backups").remove([file.name]);
-        }
-      }
-
-      // 上传备份文件到 Supabase
-      const upload = await supabase.storage.from("backups").upload(`${id}.json`, buffer, {
-        contentType: "application/json",
-        upsert: true, // 允许文件覆盖
-      });
-
-      if (upload.error) {
-        return NextResponse.json({ error: upload.error.message }, { status: 500 });
-      }
-
-      const url = `${supabaseUrl}/storage/v1/object/public/backups/${id}.json`;
-
-      return NextResponse.json({
-        success: true,
-        url,
-        path: `${id}.json`,
-        actualFilename: `${id}.json`,
-        id,
-        message: "Backup created with Supabase.",
-      });
+    if (error) {
+      throw new Error('Upload failed: ' + error.message);
     }
 
-    return NextResponse.json({ error: "Missing Supabase URL or Key" }, { status: 400 });
+    return res.status(200).json({ message: 'Backup uploaded successfully', data });
   } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    console.error('Error uploading backup:', error);
+    return res.status(500).json({ message: 'Error uploading backup', error: error.message });
   }
 }
 
-// GET 请求 - 下载备份
-export async function GET(request: NextRequest) {
+// 处理获取备份文件的 GET 请求
+async function handleGetBackup(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
+
+  const { fileName } = req.query;
+
+  if (!fileName || typeof fileName !== 'string') {
+    return res.status(400).json({ message: 'No file name provided' });
+  }
+
   try {
-    const id = request.nextUrl.searchParams.get("id");
-    const supabaseKey = request.nextUrl.searchParams.get("supabaseKey");
-    const supabaseUrl = request.nextUrl.searchParams.get("supabaseUrl");
+    // 从 Supabase Storage 下载指定的备份文件
+    const { data, error } = await supabase
+      .storage
+      .from('backups')
+      .download(fileName);
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
+    if (error) {
+      throw new Error('Download failed: ' + error.message);
     }
 
-    if (supabaseKey && supabaseUrl) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: file, error } = await supabase.storage.from("backups").download(`${id}.json`);
+    // 解析文件内容 (假设备份文件是 JSON 格式)
+    const text = await data.text();
+    const backupData = JSON.parse(text);
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
-      }
-
-      const text = await file.text();
-
-      return NextResponse.json({ success: true, data: text });
-    }
-
-    return NextResponse.json({ error: "Missing Supabase URL or Key" }, { status: 400 });
+    return res.status(200).json({ message: 'Backup restored successfully', data: backupData });
   } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    console.error('Error restoring backup:', error);
+    return res.status(500).json({ message: 'Error restoring backup', error: error.message });
+  }
+}
+
+// 主 API 路由处理函数
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    return await handleUpload(req, res);
+  } else if (req.method === 'GET') {
+    return await handleGetBackup(req, res);
+  } else {
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 }
