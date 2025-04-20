@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { translations } from "@/lib/i18n"
 import { useLanguage } from "@/hooks/useLanguage"
 import {
@@ -25,7 +24,7 @@ import {
 
 export default function QuickStartGuide() {
   const [open, setOpen] = useState(false)
-  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-quick-start-guide", true)
+  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-quick-start-guide", false)
   const [activeTab, setActiveTab] = useState("basics")
   const [language] = useLanguage()
   const t = translations[language]
@@ -102,27 +101,11 @@ export default function QuickStartGuide() {
         <DialogFooter className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => {
-              const tabs = ["basics", "import-export"]
-              const currentIndex = tabs.indexOf(activeTab)
-              if (currentIndex > 0) {
-                setActiveTab(tabs[currentIndex - 1])
-              }
-            }}
             disabled={activeTab === "basics"}
           >
             {t.previousStep}
           </Button>
-          <Button
-            onClick={() => {
-              const tabs = ["basics", "import-export"]
-              const currentIndex = tabs.indexOf(activeTab)
-              if (currentIndex < tabs.length - 1) {
-                setActiveTab(tabs[currentIndex + 1])
-              } else {
-                handleClose()
-              }
-            }}
+          <Button>
           >
             {activeTab === "import-export" ? t.startUsing : t.nextStep}
           </Button>
