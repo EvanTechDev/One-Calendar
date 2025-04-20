@@ -12,7 +12,7 @@ import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import type { CalendarEvent } from "./Calendar"
+import type { CalendarEvent } from "../Calendar"
 import type { Language } from "@/lib/i18n"
 
 interface DayViewProps {
