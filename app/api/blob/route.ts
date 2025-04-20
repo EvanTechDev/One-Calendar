@@ -1,84 +1,150 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { type NextRequest, NextResponse } from "next/server";
 
-// 从环境变量中获取 Supabase 的 URL 和密钥
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_KEY!;
+const supabase = createClient(
+  process.env.SUPABASE_URL, 
+  process.env.SUPABASE_SERVICE_KEY
+);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const BACKUP_BUCKET = 'backups';
 
-// 处理上传备份的 POST 请求
-async function handleUpload(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    // 解析上传的文件
-    const file = req.body.file;
+    console.log("Backup API: Received POST request");
 
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    const body = await request.json();
+    const { id, data } = body;
+
+    if (!id || !data) {
+      console.error("Backup API: Missing required fields", { id: !!id, data: !!data });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // 上传文件到 Supabase Storage
-    const { data, error } = await supabase
-      .storage
-      .from('backups') // 存储桶名称
-      .upload(`backup-${Date.now()}.json`, file);
+    console.log(`Backup API: Preparing to store backup for ID: ${id}`);
 
-    if (error) {
-      throw new Error('Upload failed: ' + error.message);
+    const dataString = typeof data === "string" ? data : JSON.stringify(data);
+    const filePath = `${BACKUP_BUCKET}/${id}.json`;
+
+    try {
+      console.log(`Backup API: Checking for existing backups with ID: ${id}`);
+      
+      // 删除现有备份
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from(BACKUP_BUCKET)
+        .list('', { prefix: `${id}` });
+
+      if (listError) {
+        console.error("Backup API: Error listing existing backups", listError);
+      }
+
+      if (existingFiles && existingFiles.length > 0) {
+        console.log(`Backup API: Found ${existingFiles.length} existing backups with same ID`);
+        
+        // 删除所有匹配的文件
+        for (const file of existingFiles) {
+          console.log(`Backup API: Deleting old backup: ${file.name}`);
+          const { error: deleteError } = await supabase.storage
+            .from(BACKUP_BUCKET)
+            .remove([file.name]);
+          if (deleteError) {
+            console.error("Backup API: Error deleting old backup", deleteError);
+          }
+        }
+        console.log(`Backup API: Successfully deleted ${existingFiles.length} old backups`);
+      } else {
+        console.log(`Backup API: No existing backups found with ID: ${id}`);
+      }
+    } catch (deleteError) {
+      console.error("Backup API: Error deleting old backups:", deleteError);
     }
 
-    return res.status(200).json({ message: 'Backup uploaded successfully', data });
+    // 上传新的备份文件
+    const { error: uploadError } = await supabase.storage
+      .from(BACKUP_BUCKET)
+      .upload(filePath, Buffer.from(dataString), {
+        contentType: "application/json",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Backup API: Error uploading new backup", uploadError);
+      return NextResponse.json({ error: "Failed to upload backup" }, { status: 500 });
+    }
+
+    console.log(`Backup API: Backup successfully stored at: ${filePath}`);
+
+    return NextResponse.json({
+      success: true,
+      url: `${process.env.SUPABASE_STORAGE_URL}/${BACKUP_BUCKET}/${filePath}`,
+      path: filePath,
+      id: id,
+      message: "Backup created successfully. Any previous backups with the same ID were replaced."
+    });
   } catch (error) {
-    console.error('Error uploading backup:', error);
-    return res.status(500).json({ message: 'Error uploading backup', error: error.message });
+    console.error("Backup API error:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
-// 处理获取备份文件的 GET 请求
-async function handleGetBackup(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const { fileName } = req.query;
-
-  if (!fileName || typeof fileName !== 'string') {
-    return res.status(400).json({ message: 'No file name provided' });
-  }
-
+export async function GET(request: NextRequest) {
   try {
-    // 从 Supabase Storage 下载指定的备份文件
-    const { data, error } = await supabase
-      .storage
-      .from('backups')
-      .download(fileName);
+    console.log("Restore API: Received GET request");
 
-    if (error) {
-      throw new Error('Download failed: ' + error.message);
+    const id = request.nextUrl.searchParams.get("id");
+
+    if (!id) {
+      console.error("Restore API: Missing backup ID");
+      return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
-    // 解析文件内容 (假设备份文件是 JSON 格式)
-    const text = await data.text();
-    const backupData = JSON.parse(text);
+    const { data: blobs, error: listError } = await supabase.storage
+      .from(BACKUP_BUCKET)
+      .list('', { prefix: id });
 
-    return res.status(200).json({ message: 'Backup restored successfully', data: backupData });
+    if (listError) {
+      console.error("Restore API: Error listing backups", listError);
+      return NextResponse.json({ error: "Error listing backups" }, { status: 500 });
+    }
+
+    if (blobs && blobs.length > 0) {
+      const file = blobs[0];
+      const { signedURL, error: urlError } = await supabase.storage
+        .from(BACKUP_BUCKET)
+        .createSignedUrl(file.name, 60); // Signed URL for 1 minute
+
+      if (urlError) {
+        console.error("Restore API: Error creating signed URL", urlError);
+        return NextResponse.json({ error: "Failed to generate signed URL" }, { status: 500 });
+      }
+
+      const response = await fetch(signedURL);
+      if (!response.ok) {
+        console.error("Restore API: Failed to fetch backup content", response.status);
+        return NextResponse.json({ error: "Failed to fetch backup content" }, { status: 500 });
+      }
+
+      const data = await response.text();
+      console.log("Restore API: Successfully retrieved backup data");
+
+      return NextResponse.json({ success: true, data });
+    } else {
+      console.error("Restore API: Backup not found for ID:", id);
+      return NextResponse.json({ error: "Backup not found" }, { status: 404 });
+    }
   } catch (error) {
-    console.error('Error restoring backup:', error);
-    return res.status(500).json({ message: 'Error restoring backup', error: error.message });
-  }
-}
-
-// 主 API 路由处理函数
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    return await handleUpload(req, res);
-  } else if (req.method === 'GET') {
-    return await handleGetBackup(req, res);
-  } else {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+    console.error("Restore API error:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
