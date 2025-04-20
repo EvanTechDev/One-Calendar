@@ -107,4 +107,3 @@ const MessageSquareIcon = forwardRef<
 MessageSquareIcon.displayName = 'MessageSquareIcon';
 
 export { MessageSquareIcon };
-+
