@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
-import { useCalendar } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/components/context/CalendarContext"
 import { CalendarIcon } from "lucide-react"
 
 interface SidebarProps {
