@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { useLanguage } from "@/lib/i18n"
 import { translations } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
-import { useCalendar } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/components/context/CalendarContext"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 
