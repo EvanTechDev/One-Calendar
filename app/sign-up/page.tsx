@@ -1,6 +1,6 @@
 import { Calendar } from "lucide-react"
 
-import { SignUpForm } from "@/components/SignUpForm"
+import { SignUpForm } from "@/components/account/SignUpForm"
 
 export default function LoginPage() {
   return (
