@@ -13,6 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
 import { useRouter } from "next/navigation"
+import { BookTextIcon } from "./icon/Book"
+import { CalendarDaysIcon } from "./icon/CalendarDays"
+import { ChartNoAxesColumnIncreasingIcon } from "./icon/Chart"
+import { MessageSquareIcon } from "./icon/Message"
+import { UsersIcon } from "./icon/Users"
 
 // 通讯录类型定义
 interface Contact {
@@ -564,7 +569,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <Calendar className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <CalendarDaysIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
 
@@ -596,7 +601,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
-              <User className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <UsersIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
 
@@ -612,7 +617,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 notesOpen && "ring-2 ring-primary",
               )}
             >
-              <BookText className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <BookTextIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
 
@@ -623,7 +628,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-600">
-              <BarChart2 className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <ChartNoAxesColumnIncreasingIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
           
@@ -634,7 +639,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={() => router.push("https://techart.featurebase.app")}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-teal-500">
-              <MessageSquare className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <MessageSquareIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
             </div>
           </Button>
         </div>
