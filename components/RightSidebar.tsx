@@ -569,7 +569,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <CalendarDaysIcon className="h-5 w-5 dark:text-white" />
+              <CalendarDaysIcon className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -585,7 +585,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
-              <Bookmark className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <Bookmark className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -601,7 +601,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
-              <UsersIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <UsersIcon className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -617,7 +617,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 notesOpen && "ring-2 ring-primary",
               )}
             >
-              <BookTextIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <BookTextIcon className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -628,7 +628,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-600">
-              <ChartNoAxesColumnIncreasingIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <ChartNoAxesColumnIncreasingIcon className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
           
@@ -639,7 +639,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={() => router.push("https://techart.featurebase.app")}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-teal-500">
-              <MessageSquareIcon className="h-5 w-5 text-primary-foreground dark:text-white" />
+              <MessageSquareIcon className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
         </div>
