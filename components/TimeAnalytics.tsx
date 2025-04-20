@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { analyzeTimeUsage, type TimeAnalytics } from "@/utils/time-analytics"
+import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { Button } from "@/components/ui/button"
