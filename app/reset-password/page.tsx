@@ -1,6 +1,6 @@
 import { Calendar } from "lucide-react"
 
-import { ResetPasswordForm } from "@/components/ResetForm";
+import { ResetPasswordForm } from "@/components/account/ResetForm";
 
 export default function ResetPasswordPage() {
   return (
