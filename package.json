@@ -61,7 +61,7 @@
     "@types/react-dom": "latest",
     "ics": "latest",
     "@vercel/blob": "latest",
-    "framer-motion": "^12.6.2",
+    "framer-motion": "^12.7.4",
     "@vercel/analytics": "latest",
     "@vercel/speed-insights": "latest",
     "qrcode": "latest",
