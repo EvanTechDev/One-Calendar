@@ -4,31 +4,35 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const BACKUP_PATH = "backups";
 
+// POST 请求 - 上传备份
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { id, data, vercelBlobKey, supabaseKey, supabaseUrl } = body;
+    const body = await request.json();  // 解析 JSON 请求体
+
+    const { id, data, supabaseKey, supabaseUrl } = body;
 
     if (!id || !data) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const blob = new Blob([dataString], { type: "application/json" });
-    const filePath = `${BACKUP_PATH}/${id}.json`;
+    const buffer = Buffer.from(dataString, "utf-8");  // 使用 Buffer 处理数据
 
     if (supabaseKey && supabaseUrl) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const { data: existing, error: listError } = await supabase.storage.from("backups").list("", { search: id });
+      
       if (listError) console.error("Supabase list error", listError);
 
       if (existing && existing.length > 0) {
+        // 删除已经存在的备份文件
         for (const file of existing) {
           await supabase.storage.from("backups").remove([file.name]);
         }
       }
 
-      const upload = await supabase.storage.from("backups").upload(`${id}.json`, blob, {
+      // 上传备份文件到 Supabase
+      const upload = await supabase.storage.from("backups").upload(`${id}.json`, buffer, {
         contentType: "application/json",
         upsert: true,
       });
@@ -49,6 +53,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // 如果不使用 Supabase，使用 Vercel Blob 存储
     const existingBlobs = await list();
     const allBlobs = existingBlobs?.blobs ?? [];
 
@@ -59,11 +64,13 @@ export async function POST(request: NextRequest) {
              pathname === `${id}.json`;
     });
 
+    // 删除匹配的旧文件
     for (const blob of matchingBlobs) {
       if (blob?.url) await del(blob.url);
     }
 
-    const result = await put(filePath, blob, {
+    // 上传备份到 Vercel Blob
+    const result = await put(`${BACKUP_PATH}/${id}.json`, buffer, {
       access: "public",
       contentType: "application/json",
     });
@@ -74,12 +81,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       url: result.url,
-      path: filePath,
+      path: `${BACKUP_PATH}/${id}.json`,
       actualFilename,
       id,
       message: "Backup created with Vercel Blob.",
     });
   } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -90,6 +98,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// GET 请求 - 下载备份
 export async function GET(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get("id");
@@ -113,6 +122,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: text });
     }
 
+    // 如果使用 Vercel Blob 存储
     const allBlobs = await list();
     const matchingBlobs = allBlobs.blobs.filter(blob => {
       const pathname = blob.pathname;
@@ -129,6 +139,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data });
     }
 
+    // 如果在 Vercel Blob 中找不到备份，尝试不同的 URL
     const possibleUrls = [
       `https://public.blob.vercel-storage.com/${BACKUP_PATH}/${id}.json`,
       `https://public.blob.vercel-storage.com/${id}.json`,
@@ -142,7 +153,9 @@ export async function GET(request: NextRequest) {
           const directData = await directResponse.text();
           return NextResponse.json({ success: true, data: directData });
         }
-      } catch {}
+      } catch (err) {
+        console.error("Error fetching direct URL:", err);
+      }
     }
 
     return NextResponse.json({ error: "Backup not found", id }, { status: 404 });
