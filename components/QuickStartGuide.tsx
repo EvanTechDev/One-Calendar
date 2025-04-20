@@ -65,14 +65,7 @@ export default function QuickStartGuide() {
           <DialogDescription>{t.powerfulCalendarApp}</DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="basics">{t.basicFeatures}</TabsTrigger>
-            <TabsTrigger value="import-export">{t.importExportFeatures}</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="basics" className="space-y-8">
-            {/* Feature Grid */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Feature
                 icon={<CloudIcon className="h-6 w-6 text-blue-500" />}
@@ -105,43 +98,6 @@ export default function QuickStartGuide() {
                 description="Easily move data in and out of One Calendar."
               />
             </section>
-
-            {/* Basic Usage Guide */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">{t.createEventGuide}</h3>
-                <p className="text-sm text-muted-foreground">{t.createEventDesc}</p>
-              </div>
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">{t.switchViewGuide}</h3>
-                <p className="text-sm text-muted-foreground">{t.switchViewDesc}</p>
-              </div>
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">{t.manageCalendarCategoriesGuide}</h3>
-                <p className="text-sm text-muted-foreground">{t.manageCalendarCategoriesDesc}</p>
-              </div>
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">{t.setReminderGuide}</h3>
-                <p className="text-sm text-muted-foreground">{t.setReminderDesc}</p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="import-export" className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <h3 className="font-medium mb-2">{t.importExportGuide}</h3>
-              <p className="text-sm text-muted-foreground">{t.importExportDesc}</p>
-              <div className="mt-2">
-                <h4 className="text-sm font-medium">{t.mainFeatures}:</h4>
-                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-1">
-                  <li>{t.importExportFeaturesList1}</li>
-                  <li>{t.importExportFeaturesList2}</li>
-                  <li>{t.importExportFeaturesList3}</li>
-                </ul>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
 
         <DialogFooter className="flex justify-between">
           <Button
