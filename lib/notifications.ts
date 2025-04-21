@@ -49,12 +49,12 @@ const showToast = (event: any) => {
   });
 };
 
-// 每隔一分钟检查一次通知
+
 export const startNotificationChecking = () => {
   if (!notificationInterval) {
     notificationInterval = setInterval(() => {
       checkPendingNotifications();
-    }, 60000);
+    }, 30000);
   }
 };
 
