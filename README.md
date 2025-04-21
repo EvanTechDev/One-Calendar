@@ -1,137 +1,97 @@
-![Banner](https://calendar.xyehr.cn/Banner.jpg)
+<div align="center">
+  <img src="public/icon.svg" width="72">
+</div>
 
-# One Calendar 📅
+# One Calendar
 
-A beautifully simple yet **powerful** open-source calendar app for your digital life.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Dev-Huang1/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,OPENWEATHER_API_KEY,BLOB_READ_WRITE_TOKEN&project-name=one-calendar&repo-name=one-calendar)
+
+A beautifully minimal open-source calendar app to plan your week and life.
 
 ## What is One Calendar?
 
-**One Calendar** is a modern calendar web app built with **Next.js**, **Tailwind**, and **shadcn/ui**—deployed on **Vercel** and powered by **Vercel/blob** for storage, and real-time sync. and **clerk** for authentication.
+**One Calendar** is a privacy-first, weekly-focused, open-source calendar app, designed to help individuals and teams plan, focus, and stay in sync.
 
-It’s not just a calendar: it’s your **life dashboard**. Featuring bookmarks, notes, to-do lists, address book, and event insights, One Calendar is the all-in-one app that respects your time, your data, and your flow.
+> Without *One Calendar*, your schedule is scattered. With it, your week feels intentional.
 
 ## Why One Calendar?
 
-We believe productivity tools should be:
+Most calendar tools are cluttered, over-engineered, or locked behind paywalls. One Calendar aims to be:
 
-✅ **Minimal, yet Feature-rich** – Clean interface with powerful tools under the hood  
-🔧 **Customizable** – Tailor your calendar, themes, and interactions  
-🧠 **Smart** – Analyze patterns, track habits, and boost focus  
-🌐 **Integrated** – Works with Telegram and more
+- 🧠 **Simple and Intuitive** – Weekly view first, with minimal distractions.
+- 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
+- 🔐 **Private & Local** – Your data is yours. Export, backup, and control.
+- ☁️ **Cloud Sync** – Optional sync via Supabase and Vercel Blob.
+- 🌐 **Multi-Account Google Sync** – Easily sync with Google Calendar.
+- 🌍 **International** – Automatically adapts to your language (English / 中文).
+- 🧱 **Customizable** – Tailor themes, default view, and integrations.
 
-## Our Mission
+## Tech Stack
 
-We’re building a calendar that puts **you** in control:
+- **Frontend**: Next.js 14, Tailwind CSS, shadcn/ui, TypeScript
+- **Auth**: Clerk
+- **Storage**: LocalStorage, Vercel Blob
+- **Weather**: OpenWeather API
 
-1. **Focus** – Your events, your pace, no clutter   
-2. **Modular Design** – Pick and use only the modules you need  
-3. **Open Collaboration** – Built by the community, for the community
+## Preview
 
----
+![Home](public/Home.jpg)
+![App](/public/Banner.jpg)
 
-## ✨ Features at a Glance
-
-- 🗓️ **Weekly & Monthly Views** with drag-n-drop events
-- 📌 **Context Menus** for events (Edit / Delete / Bookmark / Share)
-- 📝 **Daily Notes** linked to dates
-- ✅ **To-do Lists** with local persistence
-- 📚 **Bookmarks** and external links
-- 📊 **Event Analytics** for personal insight
-- 📒 **Address Book** with profile popups
-- 🧠 **Auto Toast Reminders** powered by local storage and reset logic
-- 🌍 **Multi-language Support** (English & 简体中文)
-
----
-
-## 🛤 Roadmap
-
-We’re just getting started. Here’s what’s coming soon:
-
-[Roadmap](https://techart.featurebase.app)
-
----
-
-## Getting Started
-
-### Prerequisites
-
-Ensure you have the following installed:
-
-- [Bun](https://bun.sh) (instead of Node.js)
-
-### 1. Install & Setup
+## Quick Start
 
 ```bash
+# Clone the repo
+git clone https://github.com/Dev-Huang1/One-Calendar.git
+cd One-Calendar
+
+# Install dependencies
 bun install
-cp .env.example .env
+
+# Start the app
 bun run dev
 ```
 
-> App runs at `http://localhost:3000`
+Then visit `http://localhost:3000`
 
-> Configure environment variables in `.env.example`
+## Environment Variables
 
----
+Copy `.env.example` to `.env.local` and fill in:
 
-## 🤝 Contribute
-
-We love contributors!
-
-### 1. Fork & Clone
-
-```bash
-git clone https://github.com/Dev-Huang1/One-Calendar
-cd One-calendar
-bun install
+```env
+NEXT_PUBLIC_BASE_URL=your_url
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret
+OPENWEATHER_API_KEY=your-open-weather-api-key
+BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 ```
 
-### 2. Create Feature Branch
+## Star History
 
-```bash
-git checkout -b feature/your-feature
-```
+[![Star History Chart](https://api.star-history.com/svg?repos=Dev-Huang1/One-Calendar&type=Date)](https://www.star-history.com/#Dev-Huang1/One-Calendar&Date)
 
-### 3. Pull Requests
+## The Team
 
-- Clear titles and descriptions
-- Link to issues when possible
-- Follow project conventions
-- We’ll review and give feedback!
+Brought to you by a small team of makers who love clean tools and open-source.
 
----
+Check out our [contributors](https://github.com/Dev-Huang1/One-Calendar/app/graphs/contributors) ❤️
 
-## 🐞 Issues
+## Acknowledgements
 
-- Found a bug? [Open an issue](https://github.com/Dev-Huang1/One-Calendar/issues/new)
-- Want to request a feature? Let us know!
+This project wouldn't be possible without these awesome services:
 
----
+<div style="display: flex; justify-content: center;">
+  <a href="https://vercel.com" style="text-decoration: none;">
+    <img src="https://github.com/user-attachments/assets/5107d47f-7ce9-425a-8e24-77c322205bd4" alt="Vercel" width="96"/>
+  </a>
+  <a href="https://clerk.com" style="text-decoration: none;">
+    <img src="https://github.com/user-attachments/assets/6f9fa5d7-e0c2-4c14-aef9-e39bd0465e23" alt="Clerk" width="96"/>
+  </a>
+  <a href="https://openweathermap.org" style="text-decoration: none;">
+    <img src="https://github.com/user-attachments/assets/d07ed7a1-c374-45f5-90fd-17c3de2a9098" alt="OpenWeather API" width="96"/>
+  </a>
+</div>
 
-## 📄 License
+## License
 
-One Calendar is open-source under the [GPL 3.0 License](./LICENSE).
-
-You can:
-
-✅ Use it  
-✅ Modify it  
-✅ Share it  
-✅ Self-host it
-
-Just don’t forget to keep the original license intact.
-
----
-
-## 📢 Join the Movement
-
-If you believe productivity apps should be **open** and **human-centered**, come build with us!
-
-- Star this repo ⭐  
-- Share feedback ✉️  
-- Build features or improve docs 🛠  
-- Or just use it and tell your friends! 🙌
-
----
-
-🧡 **One Calendar – A Calendar That Works For You**
-
+[GPL 3.0 Licensed](./LICENSE). Copyright © Tech-Art-Studio 2025.
