@@ -74,7 +74,7 @@ BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 
 Brought to you by a small team of makers who love clean tools and open-source.
 
-Check out our [contributors](https://github.com/Dev-Huang1/One-Calendar/app/graphs/contributors) ❤️
+Check out our [contributors](https://github.com/Dev-Huang1/One-Calendar/graphs/contributors) ❤️
 
 ## Acknowledgements
 
