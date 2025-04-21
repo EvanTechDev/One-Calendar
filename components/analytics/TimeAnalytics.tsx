@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CalendarEvent } from "./Calendar"
-import type { CalendarCategory } from "./Sidebar"
+import type { CalendarEvent } from "../Calendar"
+import type { CalendarCategory } from "../Sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface TimeAnalyticsProps {

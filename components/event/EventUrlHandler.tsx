@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { addDays } from "date-fns"
-import { useCalendar } from "@/contexts/CalendarContext"
+import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { toast } from "@/components/ui/use-toast"
 
