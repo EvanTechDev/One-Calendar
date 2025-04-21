@@ -17,10 +17,9 @@ import { validatePassword, generateIdFromPassword } from "@/lib/backup-utils"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useUser, SignIn, SignUp, SignOutButton } from "@clerk/nextjs"
+import { useUser, SignIn, SignUp, SignOutButton, UserProfile, useClerk } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { UserProfile, useClerk } from "@clerk/nextjs";
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
