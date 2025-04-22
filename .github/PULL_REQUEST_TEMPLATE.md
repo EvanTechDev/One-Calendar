@@ -57,14 +57,11 @@ For changes involving authentication, data handling, or permissions:
 
 - [ ] No sensitive data is exposed
 - [ ] Authentication and permission checks are in place
-- [ ] Input validation is implemented
-- [ ] Rate limiting or throttling considered (if applicable)
 
 ---
 
 ## Checklist
 
-- [ ] I have read the [CONTRIBUTING](https://github.com/Dev-Huang1/One-Calendar/.github/CONTRIBUTING.md) document
 - [ ] My code follows the project’s style guidelines
 - [ ] I have performed a self-review of my code
 - [ ] I have commented my code, especially in hard-to-understand areas
