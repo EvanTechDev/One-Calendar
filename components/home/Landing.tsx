@@ -29,12 +29,14 @@ export default function LandingPage() {
   if (!shouldRender) return null
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <div className="fixed -z-10 inset-0 overflow-hidden">
         <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
         <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
         <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
       </div>
+
+    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-black dark:text-white">
+      
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center text-center py-24 px-4">
         <h1 className="text-5xl font-bold tracking-tight mb-2">One Calendar</h1>
