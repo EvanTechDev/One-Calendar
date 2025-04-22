@@ -56,7 +56,7 @@ export default function AboutPage() {
         <div className="space-y-5 text-left">
           <h2 className="text-2xl font-semibold">{t.heading}</h2>
           {t.paragraphs.map((p, i) => (
-            <p key={i} className="text-lg text-gray-700 leading-relaxed">
+            <p key={i} className="text-lg text-gray-700 leading-relaxed dark:text-white">
               {p}
             </p>
           ))}
@@ -66,7 +66,7 @@ export default function AboutPage() {
       <section className="text-center px-6 py-16">
         <div className="max-w-3xl mx-auto space-y-4">
           <h2 className="text-xl font-medium">{t.contact}</h2>
-          <p className="text-gray-600">{t.cta}</p>
+          <p className="text-gray-600 dark:text-white">{t.cta}</p>
           <div className="flex justify-center gap-4 pt-4">
             <Link
               href="https://github.com/Dev-Huang1/One-Calendar"
