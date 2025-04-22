@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { translations } from "@/lib/i18n"
 import { useLanguage } from "@/hooks/useLanguage"
@@ -98,18 +97,6 @@ export default function QuickStartGuide() {
               />
             </section>
 
-        <DialogFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            disabled={activeTab === "basics"}
-          >
-            {t.previousStep}
-          </Button>
-          <Button>
-          >
-            {activeTab === "import-export" ? t.startUsing : t.nextStep}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

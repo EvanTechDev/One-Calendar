@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import fs from 'fs';
 import path from 'path';
 
-const baseUrl = 'https://calendar.xyehr.cn';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://calendar.xyehr.cn';
 
 export const revalidate = 86400; // Revalidate once per day
 
@@ -29,6 +29,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/about`,
       lastModified: getFileModDate('app/about/page.tsx'),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: getFileModDate('app/privacy/page.tsx'),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: getFileModDate('app/terms/page.tsx'),
       changeFrequency: 'monthly',
       priority: 0.8,
     },

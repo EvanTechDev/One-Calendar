@@ -45,7 +45,7 @@ export default function AboutPage() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen flex flex-col text-black">
+    <div className="min-h-screen flex flex-col text-black dark:text-white">
       <main className="max-w-3xl mx-auto px-6 py-24">
         <div className="fixed -z-10 inset-0 overflow-hidden">
           <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
@@ -56,7 +56,7 @@ export default function AboutPage() {
         <div className="space-y-5 text-left">
           <h2 className="text-2xl font-semibold">{t.heading}</h2>
           {t.paragraphs.map((p, i) => (
-            <p key={i} className="text-lg text-gray-700 leading-relaxed">
+            <p key={i} className="text-lg text-gray-700 leading-relaxed dark:text-white">
               {p}
             </p>
           ))}
@@ -66,7 +66,7 @@ export default function AboutPage() {
       <section className="text-center px-6 py-16">
         <div className="max-w-3xl mx-auto space-y-4">
           <h2 className="text-xl font-medium">{t.contact}</h2>
-          <p className="text-gray-600">{t.cta}</p>
+          <p className="text-gray-600 dark:text-white">{t.cta}</p>
           <div className="flex justify-center gap-4 pt-4">
             <Link
               href="https://github.com/Dev-Huang1/One-Calendar"
@@ -87,16 +87,17 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link href="/" className="hover:underline">
-              {lang === "zh" ? "首页" : "Home"}
-            </Link>
-            <Link
-              href="https://github.com/Dev-Huang1/One-Calendar"
-              target="_blank"
-              className="flex items-center gap-1 hover:underline"
-            >
-              <GithubIcon className="w-4 h-4" /> GitHub
-            </Link>
+            <a href="/about" className="hover:underline">About</a>
+            <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="/terms" className="hover:underline">Terms</a>
+            <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
+              <GithubIcon className="w-4 h-4" />
+            </a>
+            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:underline">
+            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
+              <path d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
+            </svg>
+            </a>
           </div>
         </div>
       </footer>

@@ -110,7 +110,7 @@ export default function Settings({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            {/*<div className="space-y-2">
               <Label htmlFor="language">{t.language}</Label>
               <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
                 <SelectTrigger id="language">
@@ -121,7 +121,7 @@ export default function Settings({
                   <SelectItem value="zh">中文</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div>*/}
 
             <div className="space-y-2">
               <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
