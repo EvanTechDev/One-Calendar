@@ -214,7 +214,7 @@ export default function PrivacyPolicy() {
             <div key={i} className="space-y-4">
               <h2 className="text-2xl font-semibold">{section.heading}</h2>
               {section.content.map((item, j) => (
-                <p key={j} className="text-lg text-gray-700 leading-relaxed">
+                <p key={j} className="text-lg text-gray-700 leading-relaxed dark:text-white">
                   {item}
                 </p>
               ))}
