@@ -87,16 +87,16 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link href="/" className="hover:underline">
-              {lang === "zh" ? "首页" : "Home"}
-            </Link>
-            <Link
-              href="https://github.com/Dev-Huang1/One-Calendar"
-              target="_blank"
-              className="flex items-center gap-1 hover:underline"
-            >
-              <GithubIcon className="w-4 h-4" /> GitHub
-            </Link>
+            <a href="/about" className="hover:underline">About</a>
+            <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
+              <GithubIcon className="w-4 h-4" />
+            </a>
+            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:underline">
+            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
+              <path d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
+            </svg>
+            </a>
           </div>
         </div>
       </footer>
