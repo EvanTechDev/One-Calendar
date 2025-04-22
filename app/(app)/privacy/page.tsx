@@ -25,7 +25,8 @@ export default function PrivacyPolicy() {
             "Account Information: When you sign up using Clerk authentication (via GitHub, Google, or Microsoft), we collect your email address, name, and profile information provided by these services to create and manage your account.",
             "Calendar Data: Events, schedules, and related data you input into One Calendar are stored to provide our scheduling and collaboration features.",
             "Usage Data: We collect information about how you interact with our services, such as pages visited, features used, and device information (e.g., browser type, IP address).",
-            "Files Uploaded: Any files you upload to One Calendar, stored via Vercel Blob, are used solely to enhance your experience, such as attaching documents to events."
+            "Files Uploaded: Any files you upload to One Calendar, stored via Vercel Blob, are used solely to enhance your experience, such as attaching documents to events.",
+            "Location Data: We will request to collect your location data to get the weather in your area. This is optional and you can refuse it, but the weather component may not work properly."
           ]
         },
         {
@@ -114,7 +115,8 @@ export default function PrivacyPolicy() {
             "账户信息：当您通过 Clerk 认证（GitHub、Google 或 Microsoft）注册时，我们会收集这些服务提供的电子邮件地址、姓名和个人资料信息，以创建和管理您的账户。",
             "日历数据：您在 One Calendar 中输入的事件、日程和其他相关数据将被存储，以提供我们的日程安排和协作功能。",
             "使用数据：我们会收集您与我们服务交互的信息，例如访问的页面、使用的功能以及设备信息（例如浏览器类型、IP 地址）。",
-            "上传的文件：您通过 Vercel Blob 上传的任何文件仅用于增强您的使用体验，例如将文档附加到事件中。"
+            "上传的文件：您通过 Vercel Blob 上传的任何文件仅用于增强您的使用体验，例如将文档附加到事件中。",
+            "地点数据：我们会请求收集您的地点数据来获取您地区的天气，当然这是可选的，您可以拒绝它，不过天气组件可能不会正常工作。"
           ]
         },
         {
@@ -246,6 +248,7 @@ export default function PrivacyPolicy() {
           <div className="flex gap-4">
             <a href="/about" className="hover:underline">About</a>
             <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="/terms" className="hover:underline">Terms</a>
             <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
               <GithubIcon className="w-4 h-4" />
             </a>
