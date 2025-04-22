@@ -264,6 +264,7 @@ export default function TermsOfService() {
           <div className="flex gap-4">
             <a href="/about" className="hover:underline">About</a>
             <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="/terms" className="hover:underline">Terms</a>
             <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
               <GithubIcon className="w-4 h-4" />
             </a>
