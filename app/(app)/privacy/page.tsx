@@ -22,10 +22,10 @@ export default function PrivacyPolicy() {
         {
           heading: "1. Information We Collect",
           content: [
-            "**Account Information**: When you sign up using Clerk authentication (via GitHub, Google, or Microsoft), we collect your email address, name, and profile information provided by these services to create and manage your account.",
-            "**Calendar Data**: Events, schedules, and related data you input into One Calendar are stored to provide our scheduling and collaboration features.",
-            "**Usage Data**: We collect information about how you interact with our services, such as pages visited, features used, and device information (e.g., browser type, IP address).",
-            "**Files Uploaded**: Any files you upload to One Calendar, stored via Vercel Blob, are used solely to enhance your experience, such as attaching documents to events."
+            "Account Information: When you sign up using Clerk authentication (via GitHub, Google, or Microsoft), we collect your email address, name, and profile information provided by these services to create and manage your account.",
+            "Calendar Data: Events, schedules, and related data you input into One Calendar are stored to provide our scheduling and collaboration features.",
+            "Usage Data: We collect information about how you interact with our services, such as pages visited, features used, and device information (e.g., browser type, IP address).",
+            "Files Uploaded: Any files you upload to One Calendar, stored via Vercel Blob, are used solely to enhance your experience, such as attaching documents to events."
           ]
         },
         {
@@ -49,8 +49,8 @@ export default function PrivacyPolicy() {
         {
           heading: "4. Third-Party Services",
           content: [
-            "**Clerk Authentication**: We use Clerk to manage user authentication. When you log in via GitHub, Google, or Microsoft, Clerk processes your credentials and shares limited profile information with us. Please review Clerk’s Privacy Policy for details.",
-            "**Vercel Blob**: Files you upload are stored using Vercel Blob. Vercel’s Privacy Policy governs their handling of your data.",
+            "Clerk Authentication: We use Clerk to manage user authentication. When you log in via GitHub, Google, or Microsoft, Clerk processes your credentials and shares limited profile information with us. Please review Clerk’s Privacy Policy for details.",
+            "Vercel Blob: Files you upload are stored using Vercel Blob. Vercel’s Privacy Policy governs their handling of your data.",
             "We do not share your data with other third parties except as necessary to provide our services or as required by law."
           ]
         },
@@ -111,10 +111,10 @@ export default function PrivacyPolicy() {
         {
           heading: "1. 我们收集的信息",
           content: [
-            "**账户信息**：当您通过 Clerk 认证（GitHub、Google 或 Microsoft）注册时，我们会收集这些服务提供的电子邮件地址、姓名和个人资料信息，以创建和管理您的账户。",
-            "**日历数据**：您在 One Calendar 中输入的事件、日程和其他相关数据将被存储，以提供我们的日程安排和协作功能。",
-            "**使用数据**：我们会收集您与我们服务交互的信息，例如访问的页面、使用的功能以及设备信息（例如浏览器类型、IP 地址）。",
-            "**上传的文件**：您通过 Vercel Blob 上传的任何文件仅用于增强您的使用体验，例如将文档附加到事件中。"
+            "账户信息：当您通过 Clerk 认证（GitHub、Google 或 Microsoft）注册时，我们会收集这些服务提供的电子邮件地址、姓名和个人资料信息，以创建和管理您的账户。",
+            "日历数据：您在 One Calendar 中输入的事件、日程和其他相关数据将被存储，以提供我们的日程安排和协作功能。",
+            "使用数据：我们会收集您与我们服务交互的信息，例如访问的页面、使用的功能以及设备信息（例如浏览器类型、IP 地址）。",
+            "上传的文件：您通过 Vercel Blob 上传的任何文件仅用于增强您的使用体验，例如将文档附加到事件中。"
           ]
         },
         {
@@ -138,8 +138,8 @@ export default function PrivacyPolicy() {
         {
           heading: "4. 第三方服务",
           content: [
-            "**Clerk 认证**：我们使用 Clerk 管理用户认证。当您通过 GitHub、Google 或 Microsoft 登录时，Clerk 会处理您的凭据并与我们共享有限的个人资料信息。请参阅 Clerk 的隐私政策以了解详情。",
-            "**Vercel Blob**：您上传的文件通过 Vercel Blob 存储。Vercel 的隐私政策规定了他们对您数据的处理方式。",
+            "Clerk 认证：我们使用 Clerk 管理用户认证。当您通过 GitHub、Google 或 Microsoft 登录时，Clerk 会处理您的凭据并与我们共享有限的个人资料信息。请参阅 Clerk 的隐私政策以了解详情。",
+            "Vercel Blob：您上传的文件通过 Vercel Blob 存储。Vercel 的隐私政策规定了他们对您数据的处理方式。",
             "除非为了提供我们的服务或法律要求，我们不会与其他第三方共享您的数据。"
           ]
         },
