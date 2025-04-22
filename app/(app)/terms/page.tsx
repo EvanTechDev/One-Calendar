@@ -213,7 +213,7 @@ export default function TermsOfService() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen flex flex-col text-black">
+    <div className="min-h-screen flex flex-col text-black dark:text-white">
       <main className="max-w-3xl mx-auto px-6 py-24">
         <div className="fixed -z-10 inset-0 overflow-hidden">
           <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
@@ -221,16 +221,16 @@ export default function TermsOfService() {
           <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
         </div>
         <h1 className="text-4xl font-bold text-center mb-12">{t.title}</h1>
-        <p className="text-sm text-gray-500 text-center mb-8">{t.lastUpdated}</p>
+        <p className="text-sm text-gray-500 text-center mb-8 dark:text-white">{t.lastUpdated}</p>
         <div className="space-y-8 text-left">
-          <p className="text-lg text-gray-700 leading-relaxed">{t.intro}</p>
+          <p className="text-lg text-gray-700 leading-relaxed dark:text-white">{t.intro}</p>
           {t.sections.map((section, i) => (
             <div key={i} className="space-y-4">
               <h2 className="text-2xl font-semibold">{section.heading}</h2>
               {section.content.map((item, j) => (
                 <p
                   key={j}
-                  className="text-lg text-gray-700 leading-relaxed"
+                  className="text-lg text-gray-700 leading-relaxed dark:text-white"
                   dangerouslySetInnerHTML={{ __html: item }}
                 />
               ))}
@@ -251,7 +251,7 @@ export default function TermsOfService() {
               <GithubIcon className="w-4 h-4" />
               {t.github}
             </Link>
-            <Link href="/" className="text-sm text-gray-500 underline hover:text-black">
+            <Link href="/" className="text-sm text-gray-500 underline hover:text-black dark:text-white">
               {t.home}
             </Link>
           </div>
