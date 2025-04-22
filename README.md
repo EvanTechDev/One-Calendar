@@ -33,6 +33,8 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Storage**: LocalStorage, Vercel Blob
 - **Weather**: OpenWeather API
 
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,vercel,openweather)
+
 ## Preview
 
 ![Home](public/Home.jpg)
