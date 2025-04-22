@@ -21,8 +21,8 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - 🧠 **Simple and Intuitive** – Weekly view first, with minimal distractions.
 - 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
 - 🔐 **Private & Local** – Your data is yours. Export, backup, and control.
-- ☁️ **Cloud Sync** – Optional sync via Supabase and Vercel Blob.
-- 🌐 **Multi-Account Google Sync** – Easily sync with Google Calendar.
+- ☁️ **Cloud Sync** – Optional sync via Vercel Blob.
+- 🌐 **Clerk-Account** – Easily login with third-party.
 - 🌍 **International** – Automatically adapts to your language (English / 中文).
 - 🧱 **Customizable** – Tailor themes, default view, and integrations.
 
