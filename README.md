@@ -96,4 +96,4 @@ This project wouldn't be possible without these awesome services:
 
 ## License
 
-[GPL 3.0 Licensed](./LICENSE). Copyright © Tech-Art-Studio 2025.
+[GPL 3.0 Licensed](./LICENSE). Copyright © One Calendar 2025.
