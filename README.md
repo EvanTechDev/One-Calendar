@@ -61,10 +61,16 @@ Then visit `http://localhost:3000`
 Copy `.env.example` to `.env.local` and fill in:
 
 ```env
-NEXT_PUBLIC_BASE_URL=your_url
+NEXT_PUBLIC_BASE_URL=your-url
+
+# We use a custom form to log in, so we don't support devlop clerk API key. You need to get the Production API key
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret
+
+# Weather API
 OPENWEATHER_API_KEY=your-open-weather-api-key
+
+# Vercel blob token
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 ```
 
