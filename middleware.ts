@@ -14,7 +14,7 @@ export default clerkMiddleware((auth, req) => {
 }, {
   publicRoutes: [
     "/", "/sign-in", "/sign-up", "/app", "/about", "/privacy", "/terms",
-    "/api/blob", "/api/blob/list", "/api/blob/cleanup", "/api/share",
+    "/api/blob", "/api/blob/list", "/api/blob/cleanup", "/api/share", "/api/weather"
   ],
 })
 
