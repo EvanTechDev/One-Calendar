@@ -492,10 +492,17 @@ export default function EventPreview({
           </DialogHeader>
           {!shareLink ? (
             <div className="space-y-4 py-2">
+              {/* 显示当前用户信息，无需输入昵称 */}
               <div className="space-y-2">
-                <Label>
-                  {language === "zh" ? “分享" : "Share"}
+                <Label htmlFor="shared-by">
+                  {language === "zh" ? "分享" : "Share"}
                 </Label>
+                {/*<Input
+                  id="shared-by"
+                  value={user ? (user.username || user.firstName) : ""}
+                  readOnly
+                  onClick={(e) => e.stopPropagation()}
+                />*/}
                 <p className="text-sm text-muted-foreground">
                   {language === "zh"
                     ? "您将以当前登录身份进行事件分享。"
