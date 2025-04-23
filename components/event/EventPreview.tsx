@@ -493,7 +493,7 @@ export default function EventPreview({
           {!shareLink ? (
             <div className="space-y-4 py-2">
               {/* 显示当前用户信息，无需输入昵称 */}
-              <div className="space-y-2">
+              {/*<div className="space-y-2">
                 <Label htmlFor="shared-by">
                   {language === "zh" ? "分享者" : "Shared by"}
                 </Label>
@@ -508,7 +508,7 @@ export default function EventPreview({
                     ? "您将以当前登录身份进行事件分享。"
                     : "You will share this event as your current logged-in identity."}
                 </p>
-              </div>
+              </div>*/}
 
               <DialogFooter>
                 <Button
