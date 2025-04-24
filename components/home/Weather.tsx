@@ -69,8 +69,6 @@ export default function Weather() {
           <span>{Math.round(weather.temp)}°C</span>
         </Button>
       )}
-
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
     </div>
   );
 }
