@@ -7,7 +7,7 @@ At Tech-Art, we take security seriously. If you discover a security vulnerabilit
 ### How to Report
 
 - **Please use GitHub issues or Email to report security vulnerabilities**
-- **Email:** Send an email to [www@xyehr.cn](mailto:www@xyehr.cn) with the details of the vulnerability.
+- **Email:** Send an email to [www@xyehr.cn](mailto:evan.huang000@proton.me) with the details of the vulnerability.
 
 ### Responsible Disclosure
 
