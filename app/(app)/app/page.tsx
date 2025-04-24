@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react";
 import Calendar from "@/components/Calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
