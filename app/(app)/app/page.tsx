@@ -1,3 +1,4 @@
+import * as React from 'react'
 import Calendar from "@/components/Calendar"
 import { useIsMobile } from "@/hooks/use-mobile"
 
