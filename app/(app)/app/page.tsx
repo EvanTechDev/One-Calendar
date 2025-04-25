@@ -19,17 +19,9 @@ export default function Home() {
     setIsChinese(lang.startsWith("zh"));
   }, []);
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f2f4f8 0%, #e8ecff 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {isMobile ? (
+  if (isMobile) {
+    return (
+      <div>
         <div
           style={{
             background: "#fff",
@@ -57,9 +49,9 @@ export default function Home() {
               : "Please open this page on a computer for best experience"}
           </p>
         </div>
-      ) : (
-        <Calendar />
-      )}
-    </div>
-  );
+      </div>
+    )
+  }
+
+  return <Calendar />;
 }
