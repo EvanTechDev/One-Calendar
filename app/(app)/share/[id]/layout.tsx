@@ -5,7 +5,7 @@ export async function generateMetadata(
   { params }: { params: { id: string } }
 ): Promise<Metadata> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://calendar.xyehr.cn"
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
     const res = await fetch(`${baseUrl}/api/share?id=${params.id}`, {
       cache: "no-store",
     })
