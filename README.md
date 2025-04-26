@@ -40,7 +40,16 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 ![Home](public/Home.jpg)
 ![App](/public/Banner.jpg)
 
-## Quick Start
+## Getting Started
+
+### Prerequisites
+
+Required Versions:
+
+- [NodeJS](https://nodejs.org) (v18 or higher)
+- [Bun](https://bun.dev) (v1.2 or higher)
+
+### Quick Start
 
 ```bash
 # Clone the repo
@@ -56,14 +65,14 @@ bun run dev
 
 Then visit `http://localhost:3000`
 
-## Environment Variables
+### Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in:
+Copy `.env.example` to `.env` and fill in:
 
 ```env
 NEXT_PUBLIC_BASE_URL=your-url
 
-# We use a custom form to log in, so we don't support devlop clerk API key. You need to get the Production API key
+# Clerk API key
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret
 
@@ -76,7 +85,9 @@ BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 
 ## Roadmap
 
-[Roadmap & Feedback](https://techart.featurebase.app)
+You can report a bug or request a new feature on our feedback website
+
+[Roadmap & Feedback](https://feedback.xyehr.cn)
 
 ## Star History
 
