@@ -47,7 +47,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 Required Versions:
 
 - [NodeJS](https://nodejs.org) (v18 or higher)
-- [Bun](https://bun.dev) (v1.2 or higher)
+- [Bun](https://bun.sh) (v1.2 or higher)
 
 ### Quick Start
 
