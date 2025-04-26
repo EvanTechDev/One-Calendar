@@ -23,7 +23,7 @@ import {
 
 export default function QuickStartGuide() {
   const [open, setOpen] = useState(false)
-  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-quick-start-guide", false)
+  const [hasSeenGuide, setHasSeenGuide] = useLocalStorage("has-seen-quick-start-guide", true)
   const [activeTab, setActiveTab] = useState("basics")
   const [language] = useLanguage()
   const t = translations[language]
