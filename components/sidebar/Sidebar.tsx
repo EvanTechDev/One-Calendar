@@ -87,7 +87,7 @@ export default function Sidebar({
   return (
     <div className={cn(
       "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-70 opacity-100"
+      isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-55 opacity-100"
     )}>
       <div className="p-4">
         <div className="flex items-center mb-4">
@@ -102,7 +102,7 @@ export default function Sidebar({
           {t.createEvent}
         </Button>
 
-        <div className="mt-4 transform origin-[0_0]">
+        <div className="mt-4">
           <Calendar
             mode="single"
             selected={localSelectedDate}
