@@ -56,87 +56,78 @@ export default function AIChatSheet({
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  e.preventDefault();
+  if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: input,
-      role: 'user',
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    content: input,
+    role: 'user',
+    timestamp: new Date()
+  };
+
+  setMessages(prev => [...prev, userMessage]);
+  setInput("");
+  setIsLoading(true);
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: input }
+        ]
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'AI service failed');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const aiMessageId = Date.now().toString();
+    let aiMessageContent = "";
+
+    setMessages(prev => [...prev, {
+      id: aiMessageId,
+      content: "",
+      role: 'assistant',
       timestamp: new Date()
+    }]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const textChunk = new TextDecoder().decode(value);
+      aiMessageContent += textChunk;
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { ...msg, content: aiMessageContent } 
+          : msg
+      ));
     }
-
-    setMessages(prev => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
-
-    try {
-      const apiMessages = [
-        { role: 'system' as const, content: systemPrompt },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user' as const, content: input }
-      ]
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: apiMessages }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          errorData.error || errorData.message || 'Failed to fetch response'
-        )
-      }
-
-      const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('Response body is empty')
-      }
-
-      const aiMessageId = Date.now().toString()
-      let aiMessageContent = ""
-
-      setMessages(prev => [...prev, {
-        id: aiMessageId,
-        content: "",
-        role: 'assistant',
-        timestamp: new Date()
-      }])
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const textChunk = new TextDecoder().decode(value)
-        aiMessageContent += textChunk
-
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiMessageId 
-            ? { ...msg, content: aiMessageContent } 
-            : msg
-        ))
-      }
-    } catch (error: any) {
-      console.error('Full error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      })
-      
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        content: `Error: ${error.message || 'Service unavailable'}`,
-        role: 'assistant',
-        timestamp: new Date()
-      }])
-    } finally {
-      setIsLoading(false)
-    }
+  } catch (error: any) {
+    console.error('Chat Error:', error);
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      content: `Error: ${error.message || 'AI service unavailable'}`,
+      role: 'assistant',
+      timestamp: new Date()
+    }]);
+  } finally {
+    setIsLoading(false);
   }
+};
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
