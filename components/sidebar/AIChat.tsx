@@ -56,79 +56,79 @@ export default function AIChatSheet({
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  e.preventDefault();
+  if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: input,
-      role: 'user',
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    content: input,
+    role: 'user',
+    timestamp: new Date()
+  };
+
+  setMessages(prev => [...prev, userMessage]);
+  setInput("");
+  setIsLoading(true);
+
+  try {
+    const apiMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user' as const, content: input }
+    ];
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ messages: apiMessages }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch response');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No reader available');
+    }
+
+    const aiMessageId = Date.now().toString();
+    let aiMessageContent = "";
+
+    setMessages(prev => [...prev, {
+      id: aiMessageId,
+      content: "",
+      role: 'assistant',
       timestamp: new Date()
+    }]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const textChunk = new TextDecoder().decode(value);
+      aiMessageContent += textChunk;
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { ...msg, content: aiMessageContent } 
+          : msg
+      ));
     }
-
-    setMessages(prev => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
-
-    try {
-      const apiMessages = [
-        { role: 'system', content: systemPrompt },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: input }
-      ]
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: apiMessages }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch response')
-      }
-
-      const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('No reader available')
-      }
-
-      const aiMessageId = Date.now().toString() + '-ai'
-      let aiMessageContent = ""
-
-      setMessages(prev => [...prev, {
-        id: aiMessageId,
-        content: "",
-        role: 'assistant',
-        timestamp: new Date()
-      }])
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const text = new TextDecoder().decode(value)
-        aiMessageContent += text
-
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiMessageId 
-            ? { ...msg, content: aiMessageContent } 
-            : msg
-        ))
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      setMessages(prev => [...prev, {
-        id: Date.now().toString() + '-error',
-        content: t?.aiError || 'Sorry, an error occurred. Please try again.',
-        role: 'assistant',
-        timestamp: new Date()
-      }])
-    } finally {
-      setIsLoading(false)
-    }
+  } catch (error) {
+    console.error('Error:', error);
+    setMessages(prev => [...prev, {
+      id: Date.now().toString() + '-error',
+      content: t?.aiError || 'Sorry, an error occurred. Please try again.',
+      role: 'assistant',
+      timestamp: new Date()
+    }]);
+  } finally {
+    setIsLoading(false);
   }
+};
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
