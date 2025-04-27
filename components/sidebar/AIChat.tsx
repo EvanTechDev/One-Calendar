@@ -85,13 +85,10 @@ export default function AIChatSheet({
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to get response');
-    }
+    if (!response.ok) throw new Error('API请求失败');
 
     const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    if (!reader) throw new Error('无法读取响应流');
 
     const aiMessageId = Date.now().toString();
     let aiMessageContent = "";
@@ -103,27 +100,35 @@ export default function AIChatSheet({
       timestamp: new Date()
     }]);
 
-    while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
+    // 强力标签移除函数
+    const removeThinkTags = (text: string) => {
+      return text
+        .replace(/<think>.*?<\/think>/gs, '')
+        .replace(/<reasoning>.*?<\/reasoning>/gs, '')
+        .replace(/<[^>]*>?/g, ''); // 移除所有HTML标签（如果需要）
+    };
 
-  let textChunk = new TextDecoder().decode(value);
-  textChunk = textChunk.replace(/<think>.*?<\/think>/gs, '');
-  
-  if (textChunk) {
-    aiMessageContent += textChunk;
-    setMessages(prev => prev.map(msg => 
-      msg.id === aiMessageId 
-        ? { ...msg, content: aiMessageContent } 
-        : msg
-    ));
-  }
-}
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      let textChunk = new TextDecoder().decode(value);
+      textChunk = removeThinkTags(textChunk); // 客户端过滤
+      
+      if (textChunk.trim()) {
+        aiMessageContent += textChunk;
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessageId 
+            ? { ...msg, content: aiMessageContent } 
+            : msg
+        ));
+      }
+    }
+
   } catch (error: any) {
-    console.error('Chat Error:', error);
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
-      content: `Error: ${error.message || 'Service unavailable'}`,
+      content: `错误: ${error.message}`,
       role: 'assistant',
       timestamp: new Date()
     }]);
