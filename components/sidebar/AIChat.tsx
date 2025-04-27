@@ -86,12 +86,15 @@ export default function AIChatSheet({
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch response');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || errorData.message || 'Failed to fetch response'
+      );
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('No reader available');
+      throw new Error('Response body is empty');
     }
 
     const aiMessageId = Date.now().toString();
@@ -117,11 +120,11 @@ export default function AIChatSheet({
           : msg
       ));
     }
-  } catch (error) {
-    console.error('Error:', error);
+  } catch (error: any) {
+    console.error('Chat Error:', error);
     setMessages(prev => [...prev, {
-      id: Date.now().toString() + '-error',
-      content: t?.aiError || 'Sorry, an error occurred. Please try again.',
+      id: Date.now().toString(),
+      content: `Error: ${error.message || 'Failed to get response'}`,
       role: 'assistant',
       timestamp: new Date()
     }]);
