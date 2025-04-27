@@ -104,18 +104,21 @@ export default function AIChatSheet({
     }]);
 
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+  const { done, value } = await reader.read();
+  if (done) break;
 
-      const textChunk = new TextDecoder().decode(value);
-      aiMessageContent += textChunk;
-
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiMessageId 
-          ? { ...msg, content: aiMessageContent } 
-          : msg
-      ));
-    }
+  let textChunk = new TextDecoder().decode(value);
+  textChunk = textChunk.replace(/<think>.*?<\/think>/gs, '');
+  
+  if (textChunk) {
+    aiMessageContent += textChunk;
+    setMessages(prev => prev.map(msg => 
+      msg.id === aiMessageId 
+        ? { ...msg, content: aiMessageContent } 
+        : msg
+    ));
+  }
+}
   } catch (error: any) {
     console.error('Chat Error:', error);
     setMessages(prev => [...prev, {
