@@ -24,7 +24,9 @@ export async function POST(req: Request) {
       model: "qwen-qwq-32b",
       temperature: 0.6,
       max_tokens: 1024,
-      stream: true
+      stream: true,
+      stop: ["<think>", "</think>"],
+      response_format: { type: "text" }
     });
 
     const stream = new ReadableStream({
