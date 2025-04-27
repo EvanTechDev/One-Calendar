@@ -1,5 +1,6 @@
 import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
+import { createStreamableValue } from 'ai/rsc';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
@@ -18,7 +19,13 @@ export async function POST(req: Request) {
       apiKey: process.env.GROQ_API_KEY,
     });
 
-    return new Response(result.toAIStream());
+    const stream = createStreamableValue(result.textStream);
+    
+    return new Response(stream.value, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
 
   } catch (error: any) {
     console.error('AI Service Error:', error);
