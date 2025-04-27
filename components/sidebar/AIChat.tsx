@@ -87,7 +87,7 @@ export default function AIChatSheet({
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'AI service failed');
+      throw new Error(errorData.message || 'Failed to get response');
     }
 
     const reader = response.body?.getReader();
@@ -120,7 +120,7 @@ export default function AIChatSheet({
     console.error('Chat Error:', error);
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
-      content: `Error: ${error.message || 'AI service unavailable'}`,
+      content: `Error: ${error.message || 'Service unavailable'}`,
       role: 'assistant',
       timestamp: new Date()
     }]);
