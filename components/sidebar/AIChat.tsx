@@ -100,12 +100,11 @@ export default function AIChatSheet({
       timestamp: new Date()
     }]);
 
-    // 强力标签移除函数
     const removeThinkTags = (text: string) => {
       return text
-        .replace(/<think>.*?<\/think>/gs, '')
+        .replace(/<think>[\s\S]*?<\/think>/g, '');
         .replace(/<reasoning>.*?<\/reasoning>/gs, '')
-        .replace(/<[^>]*>?/g, ''); // 移除所有HTML标签（如果需要）
+        .replace(/<[^>]*>?/g, '');
     };
 
     while (true) {
@@ -113,7 +112,7 @@ export default function AIChatSheet({
       if (done) break;
 
       let textChunk = new TextDecoder().decode(value);
-      textChunk = removeThinkTags(textChunk); // 客户端过滤
+      textChunk = removeThinkTags(textChunk);
       
       if (textChunk.trim()) {
         aiMessageContent += textChunk;
