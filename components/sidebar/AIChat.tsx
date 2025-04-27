@@ -143,11 +143,8 @@ export default function AIChatSheet({
           >
             <div className="flex flex-col gap-4 py-4">
               {!isSignedIn ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <div className="flex flex-col items-center justify-center gap-4 py-12">
                   <p>Please sign in to use the AI assistant</p>
-                  <Button onClick={() => router.push('/sign-in')}>
-                    Sign In
-                  </Button>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
