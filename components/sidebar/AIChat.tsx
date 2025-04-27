@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { SendHorizonal } from "lucide-react"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 
 interface Message {
   id: string
