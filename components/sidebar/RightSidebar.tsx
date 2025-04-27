@@ -641,7 +641,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500",
                 chatOpen && "ring-2 ring-primary",
               )}
             >
