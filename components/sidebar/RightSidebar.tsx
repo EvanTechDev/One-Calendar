@@ -645,7 +645,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 chatOpen && "ring-2 ring-primary",
               )}
             >
-              <MessageCircle className="h-5 w-5 text-white dark:text-white" />
+              <MessageSquare className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
         }
