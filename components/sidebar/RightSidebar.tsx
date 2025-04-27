@@ -12,6 +12,7 @@ import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
+import AIChatSheet from "./AIChat"
 import { useRouter } from "next/navigation"
 
 // 通讯录类型定义
@@ -72,6 +73,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [notes, setNotes] = useState<Note[]>([])
   const [contactSearch, setContactSearch] = useState("")
   const [noteSearch, setNoteSearch] = useState("")
+  const [chatOpen, setChatOpen] = useState(false)
   // Add a new state for the bookmark panel
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const router = useRouter();
@@ -627,16 +629,28 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
           
+          <AIChatSheet 
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        trigger={
           <Button
             variant="ghost"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
-            onClick={() => router.push("https://techart.featurebase.app")}
+            onClick={() => setChatOpen(true)}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-teal-500">
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500",
+                chatOpen && "ring-2 ring-primary",
+              )}
+            >
               <MessageSquare className="h-5 w-5 text-white dark:text-white" />
             </div>
           </Button>
+        }
+        systemPrompt="你是一个日历 app 的 ai 助手，用户向你只能向你提问关于日历以及一些日程、时间等的问题，其他问题一律无视。"
+      />
         </div>
       </div>
 
