@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
-import { SendHorizonal } from "lucide-react"
+import { SendHorizonal, MessageCircle } from "lucide-react"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
@@ -28,7 +28,7 @@ export default function AIChatSheet({
   open, 
   onOpenChange, 
   trigger,
-  systemPrompt = "You are a helpful AI assistant. Respond to the user in a friendly and informative manner."
+  systemPrompt = "You are a helpful AI assistant."
 }: AIChatSheetProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -56,79 +56,87 @@ export default function AIChatSheet({
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!input.trim() || isLoading) return;
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
 
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    content: input,
-    role: 'user',
-    timestamp: new Date()
-  };
-
-  setMessages(prev => [...prev, userMessage]);
-  setInput("");
-  setIsLoading(true);
-
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ messages: apiMessages }),
-    });
-
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Error details:', errorData);
-      throw new Error(
-        errorData.error?.message || 
-        errorData.error ||
-        `Server responded with ${response.status}`
-      );
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('Response body is empty');
-    }
-
-    const aiMessageId = Date.now().toString();
-    let aiMessageContent = "";
-
-    setMessages(prev => [...prev, {
-      id: aiMessageId,
-      content: "",
-      role: 'assistant',
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      role: 'user',
       timestamp: new Date()
-    }]);
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const textChunk = new TextDecoder().decode(value);
-      aiMessageContent += textChunk;
-
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiMessageId 
-          ? { ...msg, content: aiMessageContent } 
-          : msg
-      ));
     }
-  } catch (error: any) {
-    console.error('Full error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-  } finally {
-    setIsLoading(false);
+
+    setMessages(prev => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+
+    try {
+      const apiMessages = [
+        { role: 'system' as const, content: systemPrompt },
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: input }
+      ]
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: apiMessages }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.error || errorData.message || 'Failed to fetch response'
+        )
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Response body is empty')
+      }
+
+      const aiMessageId = Date.now().toString()
+      let aiMessageContent = ""
+
+      setMessages(prev => [...prev, {
+        id: aiMessageId,
+        content: "",
+        role: 'assistant',
+        timestamp: new Date()
+      }])
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const textChunk = new TextDecoder().decode(value)
+        aiMessageContent += textChunk
+
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessageId 
+            ? { ...msg, content: aiMessageContent } 
+            : msg
+        ))
+      }
+    } catch (error: any) {
+      console.error('Full error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+      
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        content: `Error: ${error.message || 'Service unavailable'}`,
+        role: 'assistant',
+        timestamp: new Date()
+      }])
+    } finally {
+      setIsLoading(false)
+    }
   }
-};
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
