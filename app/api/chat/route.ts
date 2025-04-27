@@ -2,38 +2,40 @@ import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// export const runtime = 'edge';
 
 export async function POST(req: Request) {
+  console.log('Groq API Key:', process.env.GROQ_API_KEY ? 'exists' : 'missing');
+  
+  if (!process.env.GROQ_API_KEY) {
+    return NextResponse.json(
+      { error: 'Server misconfiguration: GROQ_API_KEY is required' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { messages } = await req.json();
-    
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Invalid messages format' },
-        { status: 400 }
-      );
-    }
+    console.log('Received messages:', JSON.stringify(messages, null, 2));
 
     const result = await streamText({
       model: groq('deepseek-r1-distill-llama-70b'),
       messages,
-      system: messages.find(m => m.role === 'system')?.content || 'You are a helpful AI assistant.',
+      apiKey: process.env.GROQ_API_KEY,
     });
 
     const stream = result.toAIStream();
+    console.log('Stream created successfully');
+
+    return new Response(stream);
     
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    });
   } catch (error: any) {
-    console.error('API Error:', error);
+    console.error('Full error:', error);
     return NextResponse.json(
       { 
-        error: 'Internal Server Error',
-        details: error.message 
+        error: 'AI Service Error',
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     );
