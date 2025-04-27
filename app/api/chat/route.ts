@@ -5,23 +5,36 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  
   try {
+    const { messages } = await req.json();
+    
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json(
+        { error: 'Invalid messages format' },
+        { status: 400 }
+      );
+    }
+
     const result = await streamText({
       model: groq('deepseek-r1-distill-llama-70b'),
       messages,
+      system: messages.find(m => m.role === 'system')?.content || 'You are a helpful AI assistant.',
     });
 
-    return new Response(result.toAIStream(), {
+    const stream = result.toAIStream();
+    
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain',
       },
     });
-  } catch (error) {
-    console.error('Error streaming text:', error);
+  } catch (error: any) {
+    console.error('API Error:', error);
     return NextResponse.json(
-      { error: 'Error processing your request' },
+      { 
+        error: 'Internal Server Error',
+        details: error.message 
+      },
       { status: 500 }
     );
   }
