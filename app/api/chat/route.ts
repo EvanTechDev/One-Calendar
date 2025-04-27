@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages,
-      model: "mixtral-8x7b-32768",
+      model: "qwen-qwq-32b",
       temperature: 0.7,
       max_tokens: 1024,
       stream: true
@@ -33,7 +33,6 @@ export async function POST(req: Request) {
         
         for await (const chunk of chatCompletion) {
           let content = chunk.choices[0]?.delta?.content || '';
-          // 过滤<think>标签
           content = removeThinkTags(content);
           if (content) {
             controller.enqueue(encoder.encode(content));
