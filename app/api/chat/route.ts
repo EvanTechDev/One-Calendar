@@ -3,6 +3,10 @@ import { Groq } from 'groq-sdk';
 
 export const runtime = 'edge';
 
+const removeThinkTags = (text: string) => {
+  return text.replace(/<think>.*?<\/think>/gs, '');
+};
+
 export async function POST(req: Request) {
   try {
     if (!process.env.GROQ_API_KEY) {
@@ -17,8 +21,8 @@ export async function POST(req: Request) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages,
-      model: "qwen-qwq-32b",
-      temperature: 0.6,
+      model: "mixtral-8x7b-32768",
+      temperature: 0.7,
       max_tokens: 1024,
       stream: true
     });
@@ -28,27 +32,26 @@ export async function POST(req: Request) {
         const encoder = new TextEncoder();
         
         for await (const chunk of chatCompletion) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          controller.enqueue(encoder.encode(content));
+          let content = chunk.choices[0]?.delta?.content || '';
+          // 过滤<think>标签
+          content = removeThinkTags(content);
+          if (content) {
+            controller.enqueue(encoder.encode(content));
+          }
         }
         
         controller.close();
       }
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    });
+    return new Response(stream);
 
   } catch (error: any) {
     console.error('Groq API Error:', error);
     return NextResponse.json(
       {
         error: 'Groq API Error',
-        message: error.message,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        message: error.message
       },
       { status: 500 }
     );
