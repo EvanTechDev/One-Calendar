@@ -102,7 +102,7 @@ export default function AIChatSheet({
 
     const removeThinkTags = (text: string) => {
       return text
-        .replace(/<think>[\s\S]*?<\/think>/g, '');
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
         .replace(/<reasoning>.*?<\/reasoning>/gs, '')
         .replace(/<[^>]*>?/g, '');
     };
