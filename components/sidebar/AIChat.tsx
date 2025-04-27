@@ -71,12 +71,6 @@ export default function AIChatSheet({
   setIsLoading(true);
 
   try {
-    const apiMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages.map(m => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: input }
-    ];
-
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
@@ -85,10 +79,15 @@ export default function AIChatSheet({
       body: JSON.stringify({ messages: apiMessages }),
     });
 
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Error details:', errorData);
       throw new Error(
-        errorData.error || errorData.message || 'Failed to fetch response'
+        errorData.error?.message || 
+        errorData.error ||
+        `Server responded with ${response.status}`
       );
     }
 
@@ -121,14 +120,11 @@ export default function AIChatSheet({
       ));
     }
   } catch (error: any) {
-    console.error('Chat Error:', error);
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      content: `Error: ${error.message || 'Failed to get response'}`,
-      role: 'assistant',
-      timestamp: new Date()
-    }]);
-  } finally {
+    console.error('Full error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    }); finally {
     setIsLoading(false);
   }
 };
