@@ -143,7 +143,7 @@ export default function AIChatSheet({
           >
             <div className="flex flex-col gap-4 py-4">
               {!isSignedIn ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-12">
+                <div className="flex flex-col items-center justify-center gap-4 mt-8">
                   <p>Please sign in to use the AI assistant</p>
                 </div>
               ) : messages.length === 0 ? (
