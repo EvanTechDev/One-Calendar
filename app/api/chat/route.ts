@@ -4,7 +4,7 @@ import { Groq } from 'groq-sdk';
 export const runtime = 'edge';
 
 const removeThinkTags = (text: string) => {
-  return text.replace(/<think>.*?<\/think>/gs, '/* $1 */');
+  return text.replace(/<think>.*?<\/think>/gs, '').replace(/<thinking>(.*?)<\/thinking>/gs, '').replace(/<reasoning>(.*?)<\/reasoning>/gs, ''); 
 };
 
 export async function POST(req: Request) {
