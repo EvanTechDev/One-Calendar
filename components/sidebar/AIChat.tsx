@@ -124,7 +124,8 @@ export default function AIChatSheet({
       message: error.message,
       stack: error.stack,
       name: error.name
-    }); finally {
+    });
+  } finally {
     setIsLoading(false);
   }
 };
