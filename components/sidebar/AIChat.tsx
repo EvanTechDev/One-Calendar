@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useAuth } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
-import { SendHorizonal, MessageCircle } from "lucide-react"
-import { useLanguage } from "@/hooks/useLanguage"
-import { translations } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { SendHorizonal } from "lucide-react"
 
 interface Message {
   id: string
@@ -30,8 +29,8 @@ export default function AIChatSheet({
   trigger,
   systemPrompt = "You are a helpful AI assistant."
 }: AIChatSheetProps) {
-  const [language] = useLanguage()
-  const t = translations[language]
+  const { isSignedIn } = useAuth()
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -56,92 +55,85 @@ export default function AIChatSheet({
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!input.trim() || isLoading) return;
+    e.preventDefault()
+    if (!input.trim() || isLoading || !isSignedIn) return
 
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    content: input,
-    role: 'user',
-    timestamp: new Date()
-  };
-
-  setMessages(prev => [...prev, userMessage]);
-  setInput("");
-  setIsLoading(true);
-
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.map(m => ({ role: m.role, content: m.content })),
-          { role: 'user', content: input }
-        ]
-      }),
-    });
-
-    if (!response.ok) throw new Error('API请求失败');
-
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('无法读取响应流');
-
-    const aiMessageId = Date.now().toString();
-    let aiMessageContent = "";
-
-    setMessages(prev => [...prev, {
-      id: aiMessageId,
-      content: "",
-      role: 'assistant',
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      role: 'user',
       timestamp: new Date()
-    }]);
+    }
 
-    const removeThinkTags = (text: string) => {
-      return text
-        .replace(/<think>[\s\S]*?<\/think>/g, '')
-        .replace(/<reasoning>.*?<\/reasoning>/gs, '')
-        .replace(/<[^>]*>?/g, '');
-    };
+    setMessages(prev => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: input }
+          ]
+        }),
+      })
 
-      let textChunk = new TextDecoder().decode(value);
-      textChunk = removeThinkTags(textChunk);
-      
-      if (textChunk.trim()) {
-        aiMessageContent += textChunk;
+      if (!response.ok) {
+        throw new Error('Failed to fetch response')
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No reader available')
+      }
+
+      const aiMessageId = Date.now().toString()
+      let aiMessageContent = ""
+
+      setMessages(prev => [...prev, {
+        id: aiMessageId,
+        content: "",
+        role: 'assistant',
+        timestamp: new Date()
+      }])
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const textChunk = new TextDecoder().decode(value)
+        aiMessageContent += textChunk
+
         setMessages(prev => prev.map(msg => 
           msg.id === aiMessageId 
             ? { ...msg, content: aiMessageContent } 
             : msg
-        ));
+        ))
       }
+    } catch (error: any) {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        content: `Error: ${error.message || 'Request failed'}`,
+        role: 'assistant',
+        timestamp: new Date()
+      }])
+    } finally {
+      setIsLoading(false)
     }
-
-  } catch (error: any) {
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      content: `错误: ${error.message}`,
-      role: 'assistant',
-      timestamp: new Date()
-    }]);
-  } finally {
-    setIsLoading(false);
   }
-};
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>{t?.aiAssistant || 'AI Assistant'}</SheetTitle>
+          <SheetTitle>AI Assistant</SheetTitle>
         </SheetHeader>
         
         <div className="flex-1 overflow-hidden">
@@ -150,9 +142,16 @@ export default function AIChatSheet({
             className="h-full w-full pr-4"
           >
             <div className="flex flex-col gap-4 py-4">
-              {messages.length === 0 ? (
+              {!isSignedIn ? (
+                <div className="flex flex-col items-center justify-center gap-4 py-8">
+                  <p>Please sign in to use the AI assistant</p>
+                  <Button onClick={() => router.push('/sign-in')}>
+                    Sign In
+                  </Button>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
-                  {t?.aiWelcomeMessage || 'How can I help you today?'}
+                  How can I help you today?
                 </div>
               ) : (
                 messages.map((message) => (
@@ -194,24 +193,37 @@ export default function AIChatSheet({
           </ScrollArea>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 pt-4">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t?.aiInputPlaceholder || 'Type your message...'}
-            className="flex-1"
-            disabled={isLoading}
-          />
+        {isSignedIn ? (
+          <form onSubmit={handleSubmit} className="flex gap-2 pt-4">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button 
+              type="submit" 
+              size="icon"
+              disabled={!input.trim() || isLoading}
+            >
+              <SendHorizonal className="h-4 w-4" />
+            </Button>
+          </form>
+        ) : (
           <Button 
-            type="submit" 
-            size="icon"
-            disabled={!input.trim() || isLoading}
+            className="mt-4" 
+            onClick={() => router.push('/sign-in')}
           >
-            <SendHorizonal className="h-4 w-4" />
+            Sign In to Chat
           </Button>
-        </form>
+        )}
       </SheetContent>
     </Sheet>
   )
+}
+
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(' ')
 }
