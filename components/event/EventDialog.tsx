@@ -184,7 +184,6 @@ export default function EventDialog({
             title,
             startDate: format(startDate, "yyyy-MM-dd'T'HH:mm"),
             endDate: format(endDate, "yyyy-MM-dd'T'HH:mm"),
-            color,
             location,
             participants,
             description
@@ -200,10 +199,6 @@ export default function EventDialog({
         if (title) setTitle(title)
         if (startDate) setStartDate(new Date(startDate))
         if (endDate) setEndDate(new Date(endDate))
-        if (aiColor) {
-          const isValidColor = colorOptions.some(opt => opt.value === aiColor)
-          setColor(isValidColor ? aiColor : colorOptions[0].value)
-        }
         if (location) setLocation(location)
         if (participants) setParticipants(participants)
         if (description) setDescription(description)
