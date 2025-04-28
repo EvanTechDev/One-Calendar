@@ -24,17 +24,10 @@ const SYSTEM_PROMPT = `
 }
 
 只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location，
-颜色有这几个：
-bg-blue-500
-bg-green-500
-bg-yellow-500
-bg-red-500
-bg-purple-500
-bg-pink-500
-bg-indigo-500
-bg-orange-500
-bg-teal-500
-如果用户要求的颜色这里没有，那么就选择一个相似的
+可用颜色选项:
+${colorOptions.map(opt => `- ${opt.label}: ${opt.value}`).join('\n')}
+
+当前系统时间: ${new Date(currentTime).toLocaleString()}
 `
 
 export async function POST(req: Request) {
@@ -48,10 +41,6 @@ export async function POST(req: Request) {
 
     const completion = await groq.chat.completions.create({
       messages: [
-        { 
-          role: 'system', 
-          content: SYSTEM_PROMPT(currentTime)
-        },
         { 
           role: 'user', 
           content: `当前值: ${JSON.stringify(currentValues)}\n用户提示: ${prompt}` 
