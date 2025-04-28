@@ -195,26 +195,12 @@ export default function Sidebar({
                 ))}
               </div>
             </div>
+            <DialogFooter>
             <Button onClick={addCategory} disabled={!newCategoryName}>
               <Plus className="mr-2 h-4 w-4" />
               {t.addCategory}
             </Button>
-            <div className="space-y-2 mt-4">
-              <Label>{t.existingCategories}</Label>
-              <div className="space-y-2">
-                {calendars.map((category) => (
-                  <div key={category.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                    <div className="flex items-center">
-                      <div className={cn("w-4 h-4 rounded-full mr-2", category.color)} />
-                      <span>{category.name}</span>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeCategory(category.id)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
