@@ -3,6 +3,18 @@ import { Groq } from 'groq-sdk'
 
 export const runtime = 'edge'
 
+const colorOptions = [
+  { value: "bg-blue-500", label: "Blue" },
+  { value: "bg-green-500", label: "Green" },
+  { value: "bg-yellow-500", label: "Yellow" },
+  { value: "bg-red-500", label: "Red" },
+  { value: "bg-purple-500", label: "Purple" },
+  { value: "bg-pink-500", label: "Pink" },
+  { value: "bg-indigo-500", label: "Indigo" },
+  { value: "bg-orange-500", label: "Orange" },
+  { value: "bg-teal-500", label: "Teal" },
+]
+
 const SYSTEM_PROMPT = `
 你是一个智能日程助手，专门帮助用户创建和优化日历事件。请根据用户提示生成合适的日程安排。
 
