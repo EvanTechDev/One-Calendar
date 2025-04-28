@@ -42,6 +42,10 @@ export async function POST(req: Request) {
     const completion = await groq.chat.completions.create({
       messages: [
         { 
+          role: 'system', 
+          content: SYSTEM_PROMPT(currentTime, colorOptions) 
+        },
+        { 
           role: 'user', 
           content: `当前值: ${JSON.stringify(currentValues)}\n用户提示: ${prompt}` 
         }
