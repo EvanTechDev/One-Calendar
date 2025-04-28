@@ -163,7 +163,7 @@ export default function AIChatSheet({
                       className={cn(
                         "max-w-[80%] rounded-lg px-4 py-2",
                         message.role === 'user'
-                          ? 'bg-[#e6f0ff] text-[#003366]'
+                          ? 'bg-[#a8d4ff] text-[#004080]'
                           : 'bg-secondary text-secondary-foreground'
                       )}
                     >
