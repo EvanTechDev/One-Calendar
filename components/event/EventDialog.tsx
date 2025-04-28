@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -10,11 +8,13 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import type { CalendarEvent } from "../Calendar"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
+import { ArrowRight } from "lucide-react"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },
@@ -51,9 +51,7 @@ export default function EventDialog({
   language,
   timezone,
 }: EventDialogProps) {
-  // 使用 Context 中的日历分类数据
   const { calendars } = useCalendar()
-
   const [title, setTitle] = useState("")
   const [isAllDay, setIsAllDay] = useState(false)
   const [startDate, setStartDate] = useState(initialDate)
@@ -65,24 +63,21 @@ export default function EventDialog({
   const [description, setDescription] = useState("")
   const [color, setColor] = useState(colorOptions[0].value)
   const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [isAiLoading, setIsAiLoading] = useState(false)
 
   const t = translations[language]
 
-  // 每次对话框打开时重置表单
   useEffect(() => {
     if (open) {
       if (event) {
-        // 编辑现有事件
         setTitle(event.title)
         setIsAllDay(event.isAllDay)
         setStartDate(new Date(event.startDate))
         setEndDate(new Date(event.endDate))
         setLocation(event.location || "")
         setParticipants(event.participants.join(", "))
-
-        // 修复notification undefined问题
         if (event.notification !== undefined) {
-          // 处理通知时间
           if (
             event.notification > 0 &&
             event.notification !== 5 &&
@@ -96,20 +91,15 @@ export default function EventDialog({
             setNotification(event.notification.toString())
           }
         } else {
-          // 如果notification未定义，设置默认值
           setNotification("0")
         }
-
         setDescription(event.description || "")
         setColor(event.color)
         setSelectedCalendar(event.calendarId || (calendars.length > 0 ? calendars[0]?.id : ""))
       } else {
-        // 创建新事件
         resetForm()
-
-        // 如果有初始日期，使用它设置开始和结束时间
         if (initialDate) {
-          const endTime = new Date(initialDate.getTime() + 30 * 60000) // 30分钟后结束
+          const endTime = new Date(initialDate.getTime() + 30 * 60000)
           setStartDate(initialDate)
           setEndDate(endTime)
         }
@@ -135,7 +125,6 @@ export default function EventDialog({
 
   const handleStartDateChange = (newStartDate: Date) => {
     setStartDate(newStartDate)
-    // 修改为30分钟后结束
     const newEndDate = new Date(newStartDate.getTime() + 30 * 60000)
     if (newEndDate > endDate) {
       setEndDate(newEndDate)
@@ -144,21 +133,15 @@ export default function EventDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted")
-
-    // Determine the actual notification time in minutes
     let notificationMinutes = Number.parseInt(notification)
     if (notification === "custom") {
       notificationMinutes = Number.parseInt(customNotificationTime)
     }
 
-    // Ensure we have valid dates
     const validStartDate = startDate instanceof Date && !isNaN(startDate.getTime()) ? startDate : new Date()
-
     const validEndDate =
       endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : new Date(validStartDate.getTime() + 30 * 60000)
 
-    // Create the event data object
     const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
       title: title.trim() || (language === "zh" ? "未命名事件" : "Untitled Event"),
@@ -177,24 +160,103 @@ export default function EventDialog({
       calendarId: selectedCalendar || (calendars.length > 0 ? calendars[0]?.id : "1"),
     }
 
-    // Call the appropriate handler based on whether we're editing or creating
     if (event) {
-      console.log("Updating event:", eventData)
       onEventUpdate(eventData)
     } else {
-      console.log("Adding new event:", eventData)
       onEventAdd(eventData)
     }
-
-    // Close the dialog
     onOpenChange(false)
+  }
+
+  const handleAiSubmit = async () => {
+    if (!aiPrompt.trim()) return
+    setIsAiLoading(true)
+    
+    try {
+      const response = await fetch('/api/chat/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          currentValues: {
+            title,
+            startDate: format(startDate, "yyyy-MM-dd'T'HH:mm"),
+            endDate: format(endDate, "yyyy-MM-dd'T'HH:mm"),
+            location,
+            participants,
+            description
+          }
+        }),
+      })
+
+      if (!response.ok) throw new Error('error')
+      
+      const result = await response.json()
+      if (result.data) {
+        const { title, startDate, endDate, location, participants, description } = result.data
+        if (title) setTitle(title)
+        if (startDate) setStartDate(new Date(startDate))
+        if (endDate) setEndDate(new Date(endDate))
+        if (location) setLocation(location)
+        if (participants) setParticipants(participants)
+        if (description) setDescription(description)
+      }
+    } catch (error) {
+      console.error('error:', error)
+    } finally {
+      setIsAiLoading(false)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
+            <div className="flex space-x-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <span className="text-sm bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                      AI
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4" align="end">
+                  <div className="space-y-2">
+                    <Label htmlFor="ai-prompt">AI提示词</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="ai-prompt"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="例如：下周一上午10点的团队会议"
+                        className="flex-1"
+                      />
+                      <Button
+                        size="icon"
+                        onClick={handleAiSubmit}
+                        disabled={isAiLoading || !aiPrompt.trim()}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                onClick={() => onOpenChange(false)}
+              >
+                ×
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pb-6">
           <div>
