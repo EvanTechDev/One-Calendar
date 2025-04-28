@@ -184,6 +184,7 @@ export default function EventDialog({
             title,
             startDate: format(startDate, "yyyy-MM-dd'T'HH:mm"),
             endDate: format(endDate, "yyyy-MM-dd'T'HH:mm"),
+            color,
             location,
             participants,
             description
