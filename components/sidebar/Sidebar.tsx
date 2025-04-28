@@ -158,7 +158,7 @@ export default function Sidebar({
       <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t.manageCategories}</DialogTitle>
+            <DialogTitle>{t.createCategories}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
