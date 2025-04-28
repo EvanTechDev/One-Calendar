@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
@@ -47,12 +47,12 @@ export default function Sidebar({
   const [newCategoryName, setNewCategoryName] = useState("")
   const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500")
   const [showAddCategory, setShowAddCategory] = useState(false)
-  // 使用传入的selectedDate，如果没有则使用当前日期
   const [localSelectedDate, setLocalSelectedDate] = useState<Date | undefined>(selectedDate || new Date())
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const t = translations[language || "zh"]
 
-  // 当外部selectedDate变化时，更新本地状态
   if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
     setLocalSelectedDate(selectedDate)
   }
@@ -70,18 +70,27 @@ export default function Sidebar({
       setNewCategoryColor("bg-blue-500")
       setShowAddCategory(false)
       toast({
-        title: "分类已添加",
-        description: `已成功添加"${newCategoryName}"分类`,
+        title: t.categoryAdded || "分类已添加",
+        description: `${t.categoryAddedDesc || "已成功添加"} "${newCategoryName}" ${t.category || "分类"}`,
       })
     }
   }
 
-  const removeCategory = (id: string) => {
-    removeCategoryFromContext(id)
-    toast({
-      title: "分类已删除",
-      description: "已成功删除分类",
-    })
+  const handleDeleteClick = (id: string) => {
+    setCategoryToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (categoryToDelete) {
+      removeCategoryFromContext(categoryToDelete)
+      toast({
+        title: t.categoryDeleted || "分类已删除",
+        description: t.categoryDeletedDesc || "已成功删除分类",
+      })
+    }
+    setDeleteDialogOpen(false)
+    setCategoryToDelete(null)
   }
 
   return (
@@ -125,7 +134,7 @@ export default function Sidebar({
                 <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
                 <span className="text-sm">{calendar.name}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => removeCategory(calendar.id)}>
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -155,6 +164,26 @@ export default function Sidebar({
           )}
         </div>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.deleteConfirmation || "Delete confirmation"}</DialogTitle>
+            <DialogDescription>
+              {t.deleteConfirmationDesc || "Are you sure you want to delete this category? This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              {t.cancel || "Cancel"}
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              {t.delete || "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -207,4 +236,3 @@ export default function Sidebar({
     </div>
   )
 }
-
