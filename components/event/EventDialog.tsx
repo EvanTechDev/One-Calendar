@@ -188,7 +188,8 @@ export default function EventDialog({
             location,
             participants,
             description
-          }
+          },
+          colorOptions
         }),
       })
 
@@ -200,7 +201,10 @@ export default function EventDialog({
         if (title) setTitle(title)
         if (startDate) setStartDate(new Date(startDate))
         if (endDate) setEndDate(new Date(endDate))
-        if (color) setColor(color)
+        if (aiColor) {
+          const isValidColor = colorOptions.some(opt => opt.value === aiColor)
+          setColor(isValidColor ? aiColor : colorOptions[0].value)
+        }
         if (location) setLocation(location)
         if (participants) setParticipants(participants)
         if (description) setDescription(description)
