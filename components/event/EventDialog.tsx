@@ -200,6 +200,7 @@ export default function EventDialog({
         if (title) setTitle(title)
         if (startDate) setStartDate(new Date(startDate))
         if (endDate) setEndDate(new Date(endDate))
+        if (color) setColor(color)
         if (location) setLocation(location)
         if (participants) setParticipants(participants)
         if (description) setDescription(description)
