@@ -167,7 +167,7 @@ export default function Sidebar({
                 id="category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="输入分类名称"
+                placeholder="Name"
               />
             </div>
             <div className="space-y-2">
