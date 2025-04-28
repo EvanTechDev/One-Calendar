@@ -15,7 +15,8 @@ const colorOptions = [
   { value: "bg-teal-500", label: "Teal" },
 ]
 
-const SYSTEM_PROMPT = `
+function SystemPrompt(currentTime: number) {
+  return `
 你是一个智能日程助手，专门帮助用户创建和优化日历事件。请根据用户提示生成合适的日程安排。
 
 输出要求：
@@ -41,6 +42,7 @@ ${colorOptions.map(opt => `- ${opt.label}: ${opt.value}`).join('\n')}
 
 当前系统时间: ${new Date(currentTime).toLocaleString()}
 `
+}
 
 export async function POST(req: Request) {
   try {
@@ -51,11 +53,13 @@ export async function POST(req: Request) {
     const { prompt, currentValues } = await req.json()
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
+    const currentTime = Date.now()
+    
     const completion = await groq.chat.completions.create({
       messages: [
         { 
           role: 'system', 
-          content: SYSTEM_PROMPT(currentTime, colorOptions) 
+          content: SystemPrompt(currentTime)
         },
         { 
           role: 'user', 
