@@ -189,7 +189,6 @@ export default function EventDialog({
             participants,
             description
           },
-          colorOptions
         }),
       })
 
