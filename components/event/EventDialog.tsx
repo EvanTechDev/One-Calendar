@@ -227,13 +227,13 @@ export default function EventDialog({
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4" align="end">
                   <div className="space-y-2">
-                    <Label htmlFor="ai-prompt">AI提示词</Label>
+                    <Label htmlFor="ai-prompt">AI Prompt</Label>
                     <div className="flex gap-2">
                       <Input
                         id="ai-prompt"
                         value={aiPrompt}
                         onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="例如：下周一上午10点的团队会议"
+                        placeholder="Example: Team meeting next Monday at 10am"
                         className="flex-1"
                       />
                       <Button
@@ -247,14 +247,6 @@ export default function EventDialog({
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                onClick={() => onOpenChange(false)}
-              >
-                ×
-              </Button>
             </div>
           </div>
         </DialogHeader>
