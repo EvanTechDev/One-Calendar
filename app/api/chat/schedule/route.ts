@@ -17,12 +17,24 @@ const SYSTEM_PROMPT = `
   "title": "团队会议",
   "startDate": "2025-04-29T10:00:00",
   "endDate": "2025-04-29T11:00:00",
+  "color": "bg-blue-500",
   "location": "会议室A",
   "participants": "张三,李四",
   "description": "讨论项目进度"
 }
 
-只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location
+只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location，
+颜色有这几个：
+bg-blue-500
+bg-green-500
+bg-yellow-500
+bg-red-500
+bg-purple-500
+bg-pink-500
+bg-indigo-500
+bg-orange-500
+bg-teal-500
+如果用户要求的颜色这里没有，那么就选择一个相似的
 `
 
 export async function POST(req: Request) {
