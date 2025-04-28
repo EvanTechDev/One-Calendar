@@ -562,7 +562,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]",
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
@@ -578,7 +578,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]",
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
@@ -594,7 +594,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]",
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
@@ -610,7 +610,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]",
                 notesOpen && "ring-2 ring-primary",
               )}
             >
@@ -624,7 +624,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]">
               <BarChart2 className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
@@ -641,7 +641,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-[#0066ff]",
                 chatOpen && "ring-2 ring-primary",
               )}
             >
