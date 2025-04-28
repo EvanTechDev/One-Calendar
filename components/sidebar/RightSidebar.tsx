@@ -562,11 +562,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <Calendar className="h-5 w-5 text-[#0066ff]" />
+              <Calendar className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
 
@@ -578,11 +578,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
-              <Bookmark className="h-5 w-5 text-[#0066ff]" />
+              <Bookmark className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
 
@@ -594,11 +594,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
-              <User className="h-5 w-5 text-[#0066ff]" />
+              <User className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
 
@@ -610,11 +610,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
                 notesOpen && "ring-2 ring-primary",
               )}
             >
-              <BookText className="h-5 w-5 text-[#0066ff]" />
+              <BookText className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
 
@@ -624,8 +624,8 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white">
-              <BarChart2 className="h-5 w-5 text-[#0066ff]" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]">
+              <BarChart2 className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
           
@@ -641,11 +641,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border-2 border-black dark:border-white",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-black border border-[#0066ff]",
                 chatOpen && "ring-2 ring-primary",
               )}
             >
-              <MessageSquare className="h-5 w-5 text-[#0066ff]" />
+              <MessageSquare className="h-6 w-6 text-[#0066ff]" />
             </div>
           </Button>
         }
