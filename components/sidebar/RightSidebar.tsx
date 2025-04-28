@@ -566,7 +566,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <Calendar className="h-6 w-6 text-white dark:text-black" />
+              <Calendar className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -582,7 +582,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
-              <Bookmark className="h-6 w-6 text-white dark:text-black" />
+              <Bookmark className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -598,7 +598,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
-              <User className="h-6 w-6 text-white dark:text-black" />
+              <User className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -614,7 +614,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 notesOpen && "ring-2 ring-primary",
               )}
             >
-              <BookText className="h-6 w-6 text-white dark:text-black" />
+              <BookText className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -625,7 +625,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500">
-              <BarChart2 className="h-6 w-6 text-white dark:text-black" />
+              <BarChart2 className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
           
@@ -645,7 +645,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 chatOpen && "ring-2 ring-primary",
               )}
             >
-              <MessageSquare className="h-6 w-6 text-white dark:text-black" />
+              <MessageSquare className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
         }
