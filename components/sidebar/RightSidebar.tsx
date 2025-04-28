@@ -589,12 +589,12 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center bg-blue-500"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setContactsOpen(true)}
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500",
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
@@ -610,7 +610,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center  bg-indigo-500 bg-teal-500",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500",
                 notesOpen && "ring-2 ring-primary",
               )}
             >
