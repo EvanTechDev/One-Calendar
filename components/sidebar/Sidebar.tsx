@@ -53,6 +53,15 @@ export default function Sidebar({
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const t = translations[language || "zh"]
 
+  const deleteText = {
+    title: language === "zh" ? "确认删除" : "Delete confirmation",
+    description: language === "zh" ? "您确定要删除此分类吗？此操作无法撤销。" : "Are you sure you want to delete this category? This action cannot be undone.",
+    cancel: language === "zh" ? "取消" : "Cancel",
+    delete: language === "zh" ? "删除" : "Delete",
+    toastSuccess: language === "zh" ? "分类已删除" : "Category deleted",
+    toastDescription: language === "zh" ? "已成功删除分类" : "Category has been deleted successfully"
+  }
+  
   if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
     setLocalSelectedDate(selectedDate)
   }
@@ -82,16 +91,16 @@ export default function Sidebar({
   }
 
   const confirmDelete = () => {
-    if (categoryToDelete) {
-      removeCategoryFromContext(categoryToDelete)
-      toast({
-        title: t.categoryDeleted || "分类已删除",
-        description: t.categoryDeletedDesc || "已成功删除分类",
-      })
-    }
-    setDeleteDialogOpen(false)
-    setCategoryToDelete(null)
+  if (categoryToDelete) {
+    removeCategoryFromContext(categoryToDelete)
+    toast({
+      title: deleteText.toastSuccess,
+      description: deleteText.toastDescription,
+    })
   }
+  setDeleteDialogOpen(false)
+  setCategoryToDelete(null)
+}
 
   return (
     <div className={cn(
@@ -168,17 +177,17 @@ export default function Sidebar({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t.deleteConfirmation || "Delete confirmation"}</DialogTitle>
+            <DialogTitle>{deleteText.title}</DialogTitle>
             <DialogDescription>
-              {t.deleteConfirmationDesc || "Are you sure you want to delete this category? This action cannot be undone."}
+              {deleteText.description}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              {t.cancel || "Cancel"}
+              {deleteText.cancel}
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              {t.delete || "Delete"}
+              {deleteText.delete}
             </Button>
           </DialogFooter>
         </DialogContent>
