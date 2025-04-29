@@ -173,7 +173,7 @@ export default function EventDialog({
     setIsAiLoading(true)
     
     try {
-      const response = await fetch('/api/chat/schedule', {
+      const response = await fetch('/api/ai/schedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,11 +188,11 @@ export default function EventDialog({
             participants,
             description
           },
-          currentTime: new Date().toISOString()
+          currentTime: new Date()
         }),
       })
 
-      if (!response.ok) throw new Error('error')
+      if (!response.ok) throw new Error('AI请求失败')
       
       const result = await response.json()
       if (result.data) {
@@ -205,7 +205,7 @@ export default function EventDialog({
         if (description) setDescription(description)
       }
     } catch (error) {
-      console.error('error:', error)
+      console.error('AI错误:', error)
     } finally {
       setIsAiLoading(false)
     }
