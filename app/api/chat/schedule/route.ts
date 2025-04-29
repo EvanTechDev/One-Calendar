@@ -3,7 +3,7 @@ import { Groq } from 'groq-sdk'
 
 export const runtime = 'edge'
 
-const SYSTEM_PROMPT = (currentTime: string) => `
+const SYSTEM_PROMPT = `
 你是一个智能日程助手，专门帮助用户创建和优化日历事件。请根据用户提示生成合适的日程安排。
 
 输出要求：
@@ -17,7 +17,6 @@ const SYSTEM_PROMPT = (currentTime: string) => `
   "title": "团队会议",
   "startDate": "2025-04-29T10:00:00",
   "endDate": "2025-04-29T11:00:00",
-  "color": "bg-blue-500",
   "location": "会议室A",
   "participants": "张三,李四",
   "description": "讨论项目进度"
@@ -26,7 +25,7 @@ const SYSTEM_PROMPT = (currentTime: string) => `
 只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location，
 可用颜色选项:
 
-当前系统时间: ${new Date(currentTime).toLocaleString()}
+当前系统时间: ${new Date()}
 `
 
 export async function POST(req: Request) {
@@ -35,12 +34,12 @@ export async function POST(req: Request) {
       throw new Error('GROQ_API_KEY未配置')
     }
 
-    const { prompt, currentValues, currentTime } = await req.json()
+    const { prompt, currentValues } = await req.json()
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
     const completion = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT(currentTime) },
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `当前值: ${JSON.stringify(currentValues)}\n用户提示: ${prompt}` }
       ],
       model: 'llama-3.3-70b-versatile',
