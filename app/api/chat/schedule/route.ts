@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       throw new Error('GROQ_API_KEY未配置')
     }
 
-    const { prompt, currentValues } = await req.json()
+    const { prompt, currentValues, currentTime } = await req.json()
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
     const completion = await groq.chat.completions.create({
