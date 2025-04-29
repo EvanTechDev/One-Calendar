@@ -188,7 +188,6 @@ export default function EventDialog({
             participants,
             description
           },
-          currentTime: new Date()
         }),
       })
 
