@@ -22,10 +22,7 @@ const SYSTEM_PROMPT = `
   "description": "讨论项目进度"
 }
 
-只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location，
-可用颜色选项:
-
-当前系统时间: ${new Date()}
+只有 title、日期 是必填的，其他都是可选项，你需要依据用户的要求要生成，但是比如说没有 location，那 location 就返回一个空字符串而不是不输出 location
 `
 
 export async function POST(req: Request) {
