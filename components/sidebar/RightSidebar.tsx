@@ -649,7 +649,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
         }
-        systemPrompt="你是一个日历 app 的 ai 助手，用户向你只能向你提问关于日历以及一些日程、时间等的问题，其他问题一律无视。以及禁止使用 markdown 输出，只能输出纯文本，当然可用 emoji，但是少量使用"
+        systemPrompt="你是一个日历 app 的 ai 助手，用户向你只能向你提问关于日历以及一些日程、时间等的问题，其他问题一律无视。以及禁止使用 markdown 输出，只能输出纯文本，当然可用 emoji，但是少量使用。你需要分析用户输入的语言并使用用户发送的语言回复，这里的中文提示词只是告诉你，并不是代表使用中文回答"
       />
         </div>
       </div>
