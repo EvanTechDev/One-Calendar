@@ -173,7 +173,7 @@ export default function EventDialog({
     setIsAiLoading(true)
     
     try {
-      const response = await fetch('/api/ai/schedule', {
+      const response = await fetch('/api/chat/schedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
