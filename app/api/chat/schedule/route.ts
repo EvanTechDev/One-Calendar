@@ -3,7 +3,7 @@ import { Groq } from 'groq-sdk'
 
 export const runtime = 'edge'
 
-const SYSTEM_PROMPT = `
+const SYSTEM_PROMPT = (currentTime: string) => `
 你是一个智能日程助手，专门帮助用户创建和优化日历事件。请根据用户提示生成合适的日程安排。
 
 输出要求：
