@@ -566,7 +566,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <Calendar className="h-6 w-6 text-white dark:text-black" />
+              <Calendar className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -582,7 +582,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
-              <Bookmark className="h-6 w-6 text-white dark:text-black" />
+              <Bookmark className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -598,7 +598,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 contactsOpen && "ring-2 ring-primary",
               )}
             >
-              <User className="h-6 w-6 text-white dark:text-black" />
+              <User className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -614,7 +614,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 notesOpen && "ring-2 ring-primary",
               )}
             >
-              <BookText className="h-6 w-6 text-white dark:text-black" />
+              <BookText className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
 
@@ -625,7 +625,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500">
-              <BarChart2 className="h-6 w-6 text-white dark:text-black" />
+              <BarChart2 className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
           
@@ -645,11 +645,11 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
                 chatOpen && "ring-2 ring-primary",
               )}
             >
-              <MessageSquare className="h-6 w-6 text-white dark:text-black" />
+              <MessageSquare className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
         }
-        systemPrompt="你是一个日历 app 的 ai 助手，用户向你只能向你提问关于日历以及一些日程、时间等的问题，其他问题一律无视。以及禁止使用 markdown 输出，只能输出纯文本，当然可用 emoji，但是少量使用"
+        systemPrompt="你是一个日历 app 的 ai 助手，用户向你只能向你提问关于日历以及一些日程、时间等的问题，其他问题一律无视。以及禁止使用 markdown 输出，只能输出纯文本，当然可用 emoji，但是少量使用。你需要分析用户输入的语言并使用用户发送的语言回复，这里的中文提示词只是告诉你，并不是代表使用中文回答"
       />
         </div>
       </div>
