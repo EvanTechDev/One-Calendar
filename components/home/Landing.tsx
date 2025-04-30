@@ -69,8 +69,7 @@ export default function LandingPage() {
               <span className="ml-1 inline-block w-1 h-1 bg-gray-700 dark:bg-white/70 rounded-full"></span>
             </a>
           </nav>
-          <div className="flex-1"></div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ml-25">
             <Button
               variant="ghost"
               className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10"
