@@ -34,7 +34,7 @@ export default function LandingPage() {
   if (!shouldRender) return null
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
+    <div className="flex flex-col min-h-screen dark:bg-black text-gray-900 dark:text-white">
       {/* Background Pattern */}
       <div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:bg-black">
@@ -60,7 +60,7 @@ export default function LandingPage() {
         <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-4 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
-            <span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>
+            {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
           </div>
           <nav className="hidden md:flex items-center gap-6 px-3">
             <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
@@ -91,14 +91,14 @@ export default function LandingPage() {
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8">
-            <span className="text-sm text-gray-700 dark:text-white/70">See what's new from One Calendar</span>
+            <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
             <ExternalLinkIcon className="ml-2 h-4 w-4 text-gray-700 dark:text-white/70" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#02E8FF] to-[#0066ff]">
             AI Powered Calendar,<br />Built to Save You Time
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6">
-            One Calendar is an AI native calendar client that manages your schedule.
+            One Calendar is an AI native calendar that manages your schedule.
           </p>
           <div className="flex justify-center mb-16">
             <Button
@@ -294,11 +294,11 @@ export default function LandingPage() {
       
       {/* CTA Section - Improved Background */}
       <section className="py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100" />
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100 dark:bg-black" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to transform your scheduling?</h2>
-            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 dark:text-black">Ready to transform your scheduling?</h2>
+            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto dark:text-black">
               Join thousands of users who've streamlined their calendar management with One Calendar.
             </p>
             <Button
