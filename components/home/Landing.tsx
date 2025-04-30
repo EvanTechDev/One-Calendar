@@ -88,13 +88,13 @@ export default function LandingPage() {
       </header>
       
       {/* Hero Section */}
-      <section className="py-32 px-4">
+      <section className="py-24 px-4">
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8">
             <span className="text-sm text-gray-700 dark:text-white/70">See what's new from One Calendar</span>
             <ExternalLinkIcon className="ml-2 h-4 w-4 text-gray-700 dark:text-white/70" />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-[#0066ff]">
+          <h1 className="text-3xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#02E8FF] to-[#0066ff]">
             AI Powered Calendar,<br />Built to Save You Time
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-12">
@@ -103,7 +103,7 @@ export default function LandingPage() {
           <div className="flex justify-center mb-16">
             <Button
               onClick={handleGetStarted}
-              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl px-8 py-6 text-lg"
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl px-4 py-3 text-lg"
             >
               Get Started
             </Button>
