@@ -57,7 +57,7 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-130 max-w-4xl flex items-center gap-8 rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
+        <div className="w-130 max-w-4xl flex items-center rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
@@ -294,7 +294,7 @@ export default function LandingPage() {
       
       {/* CTA Section - Improved Background */}
       <section className="py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100 dark:bg-black" />
+        <div className="absolute inset-0" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 dark:text-white">Ready to transform your scheduling?</h2>
