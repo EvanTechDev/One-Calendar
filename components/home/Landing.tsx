@@ -297,8 +297,8 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100 dark:bg-black" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 dark:text-black">Ready to transform your scheduling?</h2>
-            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto dark:text-black">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 dark:text-white">Ready to transform your scheduling?</h2>
+            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
               Join thousands of users who've streamlined their calendar management with One Calendar.
             </p>
             <Button
