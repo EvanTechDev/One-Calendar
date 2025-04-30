@@ -49,12 +49,6 @@ export default function LandingPage() {
         </div>
       </div>
       
-      {/* Gradient background effects */}
-      <div className="fixed -z-10 inset-0 overflow-hidden">
-        <div className="absolute left-1/4 top-1/4 h-[300px] w-[300px] rounded-full bg-blue-300 dark:bg-blue-600 opacity-15 dark:opacity-20 blur-[100px]" />
-        <div className="absolute right-1/3 bottom-1/3 h-[400px] w-[400px] rounded-full bg-purple-300 dark:bg-purple-600 opacity-15 dark:opacity-20 blur-[120px]" />
-      </div>
-      
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
         <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
