@@ -69,7 +69,7 @@ export default function LandingPage() {
               <span className="ml-1 inline-block w-1 h-1 bg-gray-700 dark:bg-white/70 rounded-full"></span>
             </a>
           </nav>
-          <div className="w-25“></div>
+          <div className="flex-1"></div>
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
