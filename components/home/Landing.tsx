@@ -57,7 +57,7 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-130 max-w-4xl absolute items-center justify-between rounded-xl px-4 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
+        <div className="w-130 max-w-4xl absolute items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
