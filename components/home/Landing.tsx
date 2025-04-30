@@ -67,7 +67,6 @@ export default function LandingPage() {
             <div className="relative group">
         <a href="#" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white flex items-center">
           Resources
-          <span className="ml-1 inline-block w-1 h-1 bg-gray-700 dark:bg-white/70 rounded-full"></span>
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             className="h-4 w-4 ml-1 text-gray-500 dark:text-gray-400 transition-transform duration-200 group-hover:rotate-180" 
