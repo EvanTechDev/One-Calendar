@@ -62,13 +62,14 @@ export default function LandingPage() {
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
           </div>
-          <nav className="hidden md:flex items-center gap-6 px-3 mr-25">
+          <nav className="hidden md:flex items-center gap-6 px-3">
             <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
             <a href="/resources" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white flex items-center">
               Resources
               <span className="ml-1 inline-block w-1 h-1 bg-gray-700 dark:bg-white/70 rounded-full"></span>
             </a>
           </nav>
+          <div className="w-25“ />
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -297,16 +298,15 @@ export default function LandingPage() {
         <div className="absolute inset-0" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 dark:text-white">Ready to transform your scheduling?</h2>
+            <h2 className="text-3xl md:text-4xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
             <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
               Join thousands of users who've streamlined their calendar management with One Calendar.
             </p>
             <Button
               onClick={handleGetStarted}
-              size="lg"
-              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl px-8 py-6 text-lg"
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
             >
-              Get Started Now
+              Get Started
             </Button>
           </div>
         </div>
