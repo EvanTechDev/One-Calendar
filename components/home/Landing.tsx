@@ -1,4 +1,5 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -16,7 +17,6 @@ export default function LandingPage() {
   const { isLoaded, isSignedIn } = useUser()
   const [shouldRender, setShouldRender] = useState(false)
   const [activeFeature, setActiveFeature] = useState("cloud")
-  const [darkMode, setDarkMode] = useState(true)
 
   useEffect(() => {
     const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
@@ -32,13 +32,7 @@ export default function LandingPage() {
     router.push("/app")
   }
 
-  const toggleTheme = () => {
-    setDarkMode(!darkMode)
-  }
-
   if (!shouldRender) return null
-
-  const themeClass = darkMode ? "dark" : "light"
 
   return (
     <div className={`flex flex-col min-h-screen ${themeClass}`}>
@@ -63,7 +57,7 @@ export default function LandingPage() {
         <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
           <div className={`w-auto max-w-4xl flex items-center justify-between rounded-full px-4 py-2 ${darkMode ? 'bg-white/10 backdrop-blur-md border border-white/20' : 'bg-black/5 backdrop-blur-md border border-black/10'}`}>
             <div className="flex items-center gap-2 py-2 px-3">
-              <Image src="/icons.svg" alt="One Calendar" width={24} height={24} />
+              <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
               <span className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>One Calendar</span>
             </div>
             
@@ -76,12 +70,6 @@ export default function LandingPage() {
             </nav>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <SunIcon className={`h-4 w-4 ${darkMode ? 'text-white/70' : 'text-gray-700'}`} />
-                <Switch checked={darkMode} onCheckedChange={toggleTheme} />
-                <MoonIcon className={`h-4 w-4 ${darkMode ? 'text-white/70' : 'text-gray-700'}`} />
-              </div>
-              
               <Button 
                 variant="ghost" 
                 className={`${darkMode ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
@@ -177,29 +165,8 @@ export default function LandingPage() {
                   <p className={`${darkMode ? 'text-white/70' : 'text-gray-700'} mb-6`}>
                     Access your events from anywhere with secure cloud storage. Your calendar stays in sync across all your devices.
                   </p>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <div className={`flex-shrink-0 h-5 w-5 rounded-full ${darkMode ? 'bg-blue-500/20' : 'bg-blue-100'} flex items-center justify-center mr-3 mt-1`}>
-                        <span className={`${darkMode ? 'text-blue-300' : 'text-blue-700'} text-xs`}>✓</span>
-                      </div>
-                      <span className={darkMode ? 'text-white/70' : 'text-gray-700'}>Real-time synchronization</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className={`flex-shrink-0 h-5 w-5 rounded-full ${darkMode ? 'bg-blue-500/20' : 'bg-blue-100'} flex items-center justify-center mr-3 mt-1`}>
-                        <span className={`${darkMode ? 'text-blue-300' : 'text-blue-700'} text-xs`}>✓</span>
-                      </div>
-                      <span className={darkMode ? 'text-white/70' : 'text-gray-700'}>End-to-end encryption</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className={`flex-shrink-0 h-5 w-5 rounded-full ${darkMode ? 'bg-blue-500/20' : 'bg-blue-100'} flex items-center justify-center mr-3 mt-1`}>
-                        <span className={`${darkMode ? 'text-blue-300' : 'text-blue-700'} text-xs`}>✓</span>
-                      </div>
-                      <span className={darkMode ? 'text-white/70' : 'text-gray-700'}>Multi-device support</span>
-                    </li>
-                  </ul>
                 </TabsContent>
                 
-                {/* More TabsContent sections... */}
                 <TabsContent value="sharing" className="mt-0">
                   <Badge className={`mb-4 ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-700'} hover:bg-green-500/30 border-none`}>Collaboration</Badge>
                   <h2 className="text-3xl font-bold mb-4">Easy Sharing</h2>
