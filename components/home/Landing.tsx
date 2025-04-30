@@ -94,10 +94,10 @@ export default function LandingPage() {
             <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
             <ExternalLinkIcon className="ml-2 h-4 w-4 text-gray-700 dark:text-white/70" />
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#02E8FF] to-[#0066ff]">
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#02E8FF] to-[#0066ff]">
             AI Powered Calendar,<br />Built to Save You Time
           </h1>
-          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6">
+          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-medium">
             One Calendar is an AI native calendar that manages your schedule.
           </p>
           <div className="flex justify-center mb-16">
