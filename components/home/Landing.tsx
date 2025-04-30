@@ -57,7 +57,7 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-auto max-w-4xl flex items-center justify-between rounded-full px-4 py-2 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
+        <div className="w-100 max-w-4xl flex items-center justify-between rounded-full px-4 py-2 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             <span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>
@@ -94,7 +94,7 @@ export default function LandingPage() {
             <span className="text-sm text-gray-700 dark:text-white/70">See what's new from One Calendar</span>
             <ExternalLinkIcon className="ml-2 h-4 w-4 text-gray-700 dark:text-white/70" />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-black to-blue-700 dark:from-white dark:to-blue-500">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-[#0066ff]">
             AI Powered Calendar,<br />Built to Save You Time
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-12">
@@ -294,7 +294,7 @@ export default function LandingPage() {
       
       {/* CTA Section - Improved Background */}
       <section className="py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/30 dark:to-blue-800/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-blue-100" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to transform your scheduling?</h2>
