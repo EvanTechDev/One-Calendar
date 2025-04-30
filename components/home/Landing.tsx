@@ -57,19 +57,18 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-auto max-w-4xl flex items-center rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
+        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
           </div>
-          <nav className="hidden md:flex items-center gap-6 px-3">
+          <nav className="hidden md:flex items-center gap-6 px-3 mr-8">
             <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
             <a href="/resources" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white flex items-center">
               Resources
-              <span className="ml-1 inline-block w-1 h-1 bg-gray-700 dark:bg-white/70 rounded-full"></span>
             </a>
           </nav>
-          <div className="flex items-center gap-4 ml-25">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10"
@@ -156,7 +155,7 @@ export default function LandingPage() {
               <TabsContent value="cloud" className="mt-0">
                 <Badge className="mb-4 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-500/30 border-none">Cloud Technology</Badge>
                 <h2 className="text-3xl font-bold mb-4">Cloud Sync</h2>
-                <p className="text-gray-700 dark:text-white/70 mb-6">
+                <p className="text-gray-700 dark:text-white/70">
                   Access your events from anywhere with secure cloud storage. Your calendar stays in sync across all your devices.
                 </p>
               </TabsContent>
