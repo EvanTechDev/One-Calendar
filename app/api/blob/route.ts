@@ -32,7 +32,7 @@ async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
 }
 
 // 处理 POST 请求
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, data } = body;
@@ -74,22 +74,6 @@ export async function POST(request: NextRequest) {
       folderId,
       message: "Backup created successfully."
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// 处理 GET 请求
-export async function GET(request: NextRequest) {
-  try {
-    // test
-    return NextResponse.json({ message: "GET request received" });
   } catch (error) {
     return NextResponse.json(
       {
