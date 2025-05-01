@@ -22,11 +22,15 @@ export async function POST(request: NextRequest) {
 
     const fileName = `${id}.json`;
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const fileBlob = new Blob([dataString], { type: "application/json" });
+    const fileBuffer = Buffer.from(dataString, "utf-8");
 
-    // 查找或创建 Backups 文件夹
+    console.log("Preparing to upload:", { fileName, size: fileBuffer.length });
+
+    // 获取/创建 Backups 文件夹
     let folderId: string;
     const folders = await drive.request("drive/folders", {});
+    console.log("Existing folders:", folders);
+
     const existing = folders.find((f: any) => f.name === BACKUP_FOLDER_NAME);
 
     if (existing) {
@@ -38,29 +42,17 @@ export async function POST(request: NextRequest) {
       folderId = created.id;
     }
 
-    // 删除已有的同名备份文件（如果存在）
+    // 删除旧文件
     const files = await drive.request("drive/files", { folderId });
     const toDelete = files.find((f: any) => f.name === fileName);
     if (toDelete) {
+      console.log("Deleting existing file:", toDelete.id);
       await drive.request("drive/files/delete", { fileId: toDelete.id });
     }
 
     // 上传新文件
-    const formData = new FormData();
-    formData.append("file", fileBlob, fileName);
-    formData.append("folderId", folderId);
-
-    const uploadResult = await fetch(`${MISSKEY_INSTANCE}/api/drive/files/create`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${MISSKEY_TOKEN}`,
-      },
-      body: formData,
-    }).then((res) => {
-      if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
-      return res.json();
-    });
-
+    const uploadResult = await drive.uploadFile(fileBuffer, fileName, folderId);
+    console.log("Upload result:", uploadResult);
 
     return NextResponse.json({
       success: true,
@@ -71,6 +63,7 @@ export async function POST(request: NextRequest) {
       message: "Backup created successfully."
     });
   } catch (error) {
+    console.error("API error:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
