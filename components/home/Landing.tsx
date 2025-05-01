@@ -125,15 +125,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative overflow-hidden shadow-[0_0_15px_rgba(0,255,255,0.5),0_0_25px_rgba(0,150,255,0.3)]">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 opacity-20 blur-xl"></div>
-            <span className="text-sm text-gray-700 dark:text-white/70 relative z-10">AI Powered</span>
+          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/80 dark:bg-black/90 backdrop-blur-sm mb-8 relative group">
+            <div className="absolute -inset-[1.5px] bg-gradient-to-r from-indigo-500 via-purple-500 via-pink-500 via-red-500 via-yellow-500 via-green-500 to-blue-500 rounded-full opacity-75 blur-[2px] group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
+            <span className="text-sm text-white/90 dark:text-white/90 relative z-10">AI Powered</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative"
-            style={{
-              background: 'linear-gradient(145deg, #e6e6e6 0%, #999999 50%, #666666 100%)',
-              WebkitBackgroundClip: 'text',
-              textShadow: '1px 1px 2px rgba(255, 255, 255, 0.1), -1px -1px 2px rgba(0, 0, 0, 0.4)'
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative text-black dark:text-white"
            }}>
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
