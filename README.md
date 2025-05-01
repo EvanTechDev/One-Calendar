@@ -54,6 +54,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Auth**: Clerk
 - **Storage**: LocalStorage, Vercel Blob
 - **Weather**: OpenWeather API
+- **AI**: Groq API
 
 ![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,vercel,openweather,bun,groq)
 
@@ -112,13 +113,13 @@ You can report a bug or request a new feature on our feedback website
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Dev-Huang1/One-Calendar&type=Date)](https://www.star-history.com/#Dev-Huang1/One-Calendar&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
 
 ## The Team
 
 Brought to you by a small team of makers who love clean tools and open-source.
 
-Check out our [contributors](https://github.com/Dev-Huang1/One-Calendar/graphs/contributors) ❤️
+Check out our [contributors](https://github.com/EvanTechDev/One-Calendar/graphs/contributors) ❤️
 
 ## Acknowledgements
 
