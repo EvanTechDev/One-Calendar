@@ -125,38 +125,15 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center py-1 px-3 rounded-full border border-transparent bg-black/80 dark:bg-black/90 backdrop-blur-sm mb-8 relative"
+          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
      style={{
-       boxShadow: "0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff8800",
-       background: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.9))",
-       position: "relative",
-       overflow: "hidden"
+       boxShadow: "0 0 6px #ff00ff, 0 0 10px #00ffff",
+       borderImage: "linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #ff00ff) 1",
+       borderImageSlice: "1"
      }}>
-  {/* Colorful border overlay */}
-  <div className="absolute inset-0 rounded-full border border-transparent"
-       style={{
-         background: "linear-gradient(90deg, #ff00ff, #00ffff, #ffcc00, #ff00ff)",
-         backgroundSize: "400% 100%",
-         maskImage: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-         maskComposite: "exclude",
-         WebkitMaskComposite: "xor",
-         maskClip: "padding-box, border-box",
-         padding: "1px",
-         animation: "borderAnimation 3s linear infinite",
-       }}></div>
-  
-  {/* Content */}
-  <span className="text-sm text-white/90 dark:text-white/90 relative z-10">AI Powered</span>
-  
-  {/* Inline animation */}
-  <style jsx>{`
-    @keyframes borderAnimation {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-  `}</style>
+  <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
 </div>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative text-black dark:text-white">
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-medium">
