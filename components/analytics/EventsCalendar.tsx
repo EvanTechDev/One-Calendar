@@ -118,6 +118,9 @@ const EventsCalendar: React.FC = () => {
     const cellGap = 3;   // 3px
     const cellWithGap = cellSize + cellGap;
     
+    // 月份标签向右偏移量（像素）
+    const monthLabelOffset = 4; // 向右偏移4像素
+    
     return (
       <div className="relative">
         <div className="flex items-center mb-6">
@@ -141,7 +144,7 @@ const EventsCalendar: React.FC = () => {
                 <div 
                   key={`month-${i}`} 
                   className="text-xs text-gray-500 absolute"
-                  style={{ left: `${month.weekIndex * cellWithGap}px` }}
+                  style={{ left: `${month.weekIndex * cellWithGap + monthLabelOffset}px` }}
                 >
                   {month.label}
                 </div>
