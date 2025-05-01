@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -343,6 +344,59 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Accordion Section */}
+<section className="py-16 px-4 relative overflow-hidden">
+  <div className="max-w-3xl mx-auto">
+    <h2 className="text-3xl font-medium mb-10 text-center dark:text-white">FAQ</h2>
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="item-1" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">What's One Calendar?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          One Calendar is an AI-driven calendar app designed to simplify your schedule and manage your time with smart features and a user-friendly interface.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-2" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">How do I import my existing calendar?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          One Calendar supports importing data from Apple Calendar, Outlook and Google Calendar. Just download your calendar ics file in their settings and go to One Calendar's analysis page to import it.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-3" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">How do I share my schedule with others?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          With our sharing feature, you can easily share specific events with family, friends or colleagues. Let others import events, etc.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-4" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">What analytical features does One Calendar provide?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          Our analytics can help you understand how you spend your time, provide insights into your most productive day and most productive hours, and identify patterns that can improve efficiency. These insights can help you plan and optimize your schedule more intelligently.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-5" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">Is there a free plan available?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          Of course! One Calendar supports free use, our product is free and ad-free. Suitable for any user, we also provide support, you can contact us to get it.
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  </div>
+</section>
       
       {/* Original Footer */}
       <footer className="mt-auto py-8 border-t border-black/10 dark:border-white/10 text-gray-600 dark:text-white/70 text-sm px-6">
