@@ -1,4 +1,5 @@
-import axios from "axios";
+import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
 
 const MISSKEY_INSTANCE = process.env.MISSKEY_URL!;
 const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN!;
@@ -12,12 +13,11 @@ async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
     formData.append("file", fileBlob, fileName);
     formData.append("folderId", folderId);
 
-    // 构造请求头，加入 Misskey 的认证信息
     const headers = {
       "Authorization": `Bearer ${MISSKEY_TOKEN}`,
+      "Content-Type": "multipart/form-data",
     };
 
-    // 发送 POST 请求
     const response = await axios.post(
       `${MISSKEY_INSTANCE}/api/drive/files/create`,
       formData,
@@ -31,8 +31,8 @@ async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
   }
 }
 
-// 在你的 API 中使用
-async function handleUpload(request: NextRequest) {
+// 处理 POST 请求
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, data } = body;
@@ -74,6 +74,22 @@ async function handleUpload(request: NextRequest) {
       folderId,
       message: "Backup created successfully."
     });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// 处理 GET 请求
+export async function GET(request: NextRequest) {
+  try {
+    // test
+    return NextResponse.json({ message: "GET request received" });
   } catch (error) {
     return NextResponse.json(
       {
