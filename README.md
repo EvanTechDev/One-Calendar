@@ -45,7 +45,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 
 - **Frontend**: Next.js 14, Tailwind CSS, shadcn/ui, TypeScript
 - **Auth**: Clerk
-- **Storage**: LocalStorage, Vercel Blob
+- **Storage**: LocalStorage, Vercel Blob, Misskey Drive
 - **Weather**: OpenWeather API
 - **AI**: Groq API
 
@@ -95,6 +95,10 @@ CLERK_SECRET_KEY=your-clerk-secret
 # Optional
 GROQ_API_KEY=your-groq-api
 OPENWEATHER_API_KEY=your-open-weather-api-key
+
+# Optional, choose between Misskey and Vercel blob
+MISSKEY_URL=https://misskey.io
+MISSKEY_TOKEN=your-misskey-token
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 ```
 
