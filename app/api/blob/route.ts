@@ -1,13 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-let calendarFolderId: string | null = null;
-const userFolderCache: { [userId: string]: string } = {};
-
 async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string): Promise<string> {
-  if (calendarFolderId) {
-    return calendarFolderId;
-  }
-
   const listFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
     headers: {
@@ -27,8 +20,7 @@ async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string): P
   const calendarFolder = folders.find((folder: any) => folder.name === 'calendar');
 
   if (calendarFolder) {
-    calendarFolderId = calendarFolder.id;
-    return calendarFolderId;
+    return calendarFolder.id;
   }
 
   const createFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
@@ -47,64 +39,21 @@ async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string): P
   }
 
   const newFolder = await createFolderResponse.json();
-  calendarFolderId = newFolder.id;
-  return calendarFolderId;
-}
-
-async function ensureUserFolder(misskeyUrl: string, misskeyToken: string, userId: string, parentFolderId: string): Promise<string> {
-  if (userFolderCache[userId]) {
-    return userFolderCache[userId];
-  }
-
-  const userFolderName = `${userId}`;
-
-  const listFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      i: misskeyToken,
-      parentId: parentFolderId,
-      limit: 100,
-    }),
-  });
-
-  if (!listFoldersResponse.ok) {
-    throw new Error(`Failed to list user folders: ${listFoldersResponse.statusText}`);
-  }
-
-  const folders = await listFoldersResponse.json();
-  const userFolder = folders.find((folder: any) => folder.name === userFolderName);
-
-  if (userFolder) {
-    userFolderCache[userId] = userFolder.id;
-    return userFolder.id;
-  }
-
-  const createFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      i: misskeyToken,
-      name: userFolderName,
-      parentId: parentFolderId,
-    }),
-  });
-
-  if (!createFolderResponse.ok) {
-    throw new Error(`Failed to create user folder: ${createFolderResponse.statusText}`);
-  }
-
-  const newFolder = await createFolderResponse.json();
-  userFolderCache[userId] = newFolder.id;
   return newFolder.id;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 });
+    }
+    const misskeyToken = authHeader.split(' ')[1];
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    if (!MISSKEY_URL) {
+      throw new Error("MISSKEY_URL is not set");
+    }
+
     const body = await request.json();
     const { id, data } = body;
 
@@ -112,24 +61,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const userId = request.headers.get('x-user-id');
-    if (!userId) {
-      return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
-    }
-
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     const blob = new Blob([dataString], { type: "application/json" });
     const fileName = `${id}.json`;
 
-    const MISSKEY_URL = process.env.MISSKEY_URL;
-    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
-    }
-
-    const parentFolderId = await ensureCalendarFolder(MISSKEY_URL, MISSKEY_TOKEN);
-    const userFolderId = await ensureUserFolder(MISSKEY_URL, MISSKEY_TOKEN, userId, parentFolderId);
+    const folderId = await ensureCalendarFolder(MISSKEY_URL, misskeyToken);
 
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
@@ -137,8 +73,8 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: userFolderId,
+        i: misskeyToken,
+        folderId: folderId,
         name: fileName,
         limit: 10,
       }),
@@ -157,16 +93,16 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          i: MISSKEY_TOKEN,
+          i: misskeyToken,
           fileId: file.id,
         }),
       });
     }
 
     const formData = new FormData();
-    formData.append('i', MISSKEY_TOKEN);
+    formData.append('i', misskeyToken);
     formData.append('file', blob, fileName);
-    formData.append('folderId', userFolderId);
+    formData.append('folderId', folderId);
 
     const uploadResponse = await fetch(`${MISSKEY_URL}/api/drive/files/create`, {
       method: 'POST',
@@ -198,28 +134,25 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 });
+    }
+    const misskeyToken = authHeader.split(' ')[1];
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    if (!MISSKEY_URL) {
+      throw new Error("MISSKEY_URL is not set");
+    }
+
     const id = request.nextUrl.searchParams.get("id");
 
     if (!id) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
-    const userId = request.headers.get('x-user-id');
-    if (!userId) {
-      return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
-    }
-
     const fileName = `${id}.json`;
 
-    const MISSKEY_URL = process.env.MISSKEY_URL;
-    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
-    }
-
-    const parentFolderId = await ensureCalendarFolder(MISSKEY_URL, MISSKEY_TOKEN);
-    const userFolderId = await ensureUserFolder(MISSKEY_URL, MISSKEY_TOKEN, userId, parentFolderId);
+    const folderId = await ensureCalendarFolder(MISSKEY_URL, misskeyToken);
 
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
@@ -227,8 +160,8 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: userFolderId,
+        i: misskeyToken,
+        folderId: folderId,
         name: fileName,
         limit: 1,
       }),
