@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import QRCode from "qrcode";
-import { useUser } from "@clerk/clerk-nextjs";
+import { useUser } from "@clerk/nextjs";
 
 interface EventPreviewProps {
   event: CalendarEvent | null;
