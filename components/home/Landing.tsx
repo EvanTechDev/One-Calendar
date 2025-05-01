@@ -125,10 +125,37 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/80 dark:bg-black/90 backdrop-blur-sm mb-8 relative group">
-            <div className="absolute -inset-[1.5px] bg-gradient-to-r from-indigo-500 via-purple-500 via-pink-500 via-red-500 via-yellow-500 via-green-500 to-blue-500 rounded-full opacity-75 blur-[2px] group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
-            <span className="text-sm text-white/90 dark:text-white/90 relative z-10">AI Powered</span>
-          </div>
+          <div className="inline-flex items-center py-1 px-3 rounded-full border border-transparent bg-black/80 dark:bg-black/90 backdrop-blur-sm mb-8 relative"
+     style={{
+       boxShadow: "0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff8800",
+       background: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.9))",
+       position: "relative",
+       overflow: "hidden"
+     }}>
+  {/* Colorful border overlay */}
+  <div className="absolute inset-0 rounded-full border border-transparent"
+       style={{
+         background: "linear-gradient(90deg, #ff00ff, #00ffff, #ffcc00, #ff00ff)",
+         backgroundSize: "400% 100%",
+         maskImage: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+         maskComposite: "exclude",
+         WebkitMaskComposite: "xor",
+         maskClip: "padding-box, border-box",
+         padding: "1px",
+         animation: "borderAnimation 3s linear infinite",
+       }}></div>
+  
+  {/* Content */}
+  <span className="text-sm text-white/90 dark:text-white/90 relative z-10">AI Powered</span>
+  
+  {/* Inline animation */}
+  <style jsx>{`
+    @keyframes borderAnimation {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+  `}</style>
+</div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative text-black dark:text-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
