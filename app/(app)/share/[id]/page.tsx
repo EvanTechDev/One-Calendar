@@ -52,7 +52,7 @@ export default function SharedEventPage() {
           return
         }
 
-        const response = await fetch(`/api/share/misskey?id=${shareId}`)
+        const response = await fetch(`/api/share?id=${shareId}`)
         if (!response.ok) {
           setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event")
           return
@@ -134,7 +134,7 @@ export default function SharedEventPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0" style={{
