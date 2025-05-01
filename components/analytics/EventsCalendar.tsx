@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { format, startOfWeek, addDays, startOfYear, endOfYear, eachDayOfInterval, isSameDay, parseISO, getMonth } from 'date-fns';
+import { format, startOfWeek, addDays, startOfYear, endOfYear, eachDayOfInterval, isSameDay, parseISO, getDay } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -27,7 +27,6 @@ const EventsCalendar: React.FC = () => {
       const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
       setEvents(parsedEvents);
       
-      // 计算所有有事件的年份
       const years = new Set<number>();
       parsedEvents.forEach(event => {
         const startYear = new Date(event.startDate).getFullYear();
@@ -39,11 +38,9 @@ const EventsCalendar: React.FC = () => {
       
       const sortedYears = Array.from(years).sort();
       setAvailableYears(sortedYears);
-      
-      // 如果有事件年份，默认选择最近的年份
+
       if (sortedYears.length > 0) {
         const currentYear = new Date().getFullYear();
-        // 找到当前年份或者最近的年份
         const closestYear = sortedYears.reduce((prev, curr) => 
           Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
         );
@@ -51,12 +48,6 @@ const EventsCalendar: React.FC = () => {
       }
     }
   }, []);
-
-  const getDaysInYear = (year: number) => {
-    const start = startOfYear(new Date(year, 0, 1));
-    const end = endOfYear(new Date(year, 0, 1));
-    return eachDayOfInterval({ start, end });
-  };
 
   const getEventCountForDay = (day: Date) => {
     return events.filter(event => {
@@ -83,66 +74,50 @@ const EventsCalendar: React.FC = () => {
     if (availableYears.length === 0) {
       return <div className="text-gray-500">No events found</div>;
     }
+    
+    const startDate = startOfYear(new Date(selectedYear, 0, 1));
+    const endDate = endOfYear(new Date(selectedYear, 11, 31));
+    
+    const calendarStart = startOfWeek(startDate);
 
-    const days = getDaysInYear(selectedYear);
-    const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1));
-    const firstDayOfGrid = startOfWeek(firstDayOfYear);
-    
-    const weeks = Math.ceil(days.length / 7) + 1;
-    
-    // 添加月份标签但不分隔
+    const calendarDays = [];
+    let currentDate = calendarStart;
+
+    const endCalendarDate = addDays(endDate, 6 - getDay(endDate));
+
     const monthLabels = [];
-    for (let i = 0; i < 12; i++) {
-      const month = new Date(selectedYear, i, 1);
-      const offset = Math.floor((new Date(selectedYear, i, 1).getTime() - firstDayOfGrid.getTime()) / (24 * 60 * 60 * 1000) / 7);
-      monthLabels.push(
-        <div 
-          key={`month-${i}`} 
-          className="text-xs text-gray-500" 
-          style={{ gridColumn: offset + 1, gridRow: 1 }}
-        >
-          {format(month, 'MMM')}
-        </div>
-      );
-    }
-    
-    const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-      <div key={`weekday-${i}`} className="text-xs text-gray-500 h-3 flex items-center justify-end pr-2">
-        {i % 2 === 0 ? day : ''}
-      </div>
-    ));
-    
-    const cells = [];
-    for (let i = 0; i < weeks; i++) {
-      for (let j = 0; j < 7; j++) {
-        const date = addDays(firstDayOfGrid, i * 7 + j);
-        const isCurrentYear = date.getFullYear() === selectedYear;
-        
-        if (isCurrentYear) {
-          const eventCount = getEventCountForDay(date);
-          const colorClass = getColorIntensity(eventCount);
-          
-          // 检查是否是月份的第一天
-          const isFirstDayOfMonth = date.getDate() === 1;
-          
-          cells.push(
-            <div 
-              key={`cell-${i}-${j}`}
-              className={`w-3 h-3 rounded-sm ${colorClass} cursor-pointer transition-colors duration-200 hover:ring-1 hover:ring-gray-400`}
-              title={`${format(date, 'yyyy-MM-dd')}: ${eventCount} events`}
-              style={{ gridColumn: i + 1, gridRow: j + 2 }}
-            />
-          );
-        } else {
-          cells.push(
-            <div 
-              key={`cell-${i}-${j}`}
-              className="w-3 h-3"
-              style={{ gridColumn: i + 1, gridRow: j + 2 }}
-            />
-          );
+    let currentMonth = -1;
+
+    const totalWeeks = Math.ceil((endCalendarDate.getTime() - calendarStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+    const weeks = [];
+    for (let weekIndex = 0; weekIndex < totalWeeks; weekIndex++) {
+      const weekDays = [];
+      
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        if (currentDate.getDate() === 1 || (weekIndex === 0 && dayIndex === 0 && currentDate.getMonth() !== currentMonth)) {
+          currentMonth = currentDate.getMonth();
+          monthLabels.push({
+            month: format(currentDate, 'MMM'),
+            weekIndex: weekIndex
+          });
         }
+        
+        const isCurrentYear = currentDate.getFullYear() === selectedYear;
+        const eventCount = isCurrentYear ? getEventCountForDay(currentDate) : 0;
+        const colorClass = isCurrentYear ? getColorIntensity(eventCount) : '';
+        
+        weekDays.push({
+          date: new Date(currentDate),
+          isCurrentYear,
+          eventCount,
+          colorClass
+        });
+        
+        currentDate = addDays(currentDate, 1);
       }
+      
+      weeks.push(weekDays);
     }
     
     return (
@@ -161,13 +136,43 @@ const EventsCalendar: React.FC = () => {
         </div>
         
         <div className="overflow-x-auto pb-2">
-          <div className="flex" style={{ minWidth: 'fit-content' }}>
-            <div className="flex flex-col justify-around mt-6">
-              {weekdayLabels}
+          <div className="flex min-w-max">
+            <div className="flex flex-col justify-around mt-8 pr-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                <div key={`weekday-${i}`} className="text-xs text-gray-500 h-3 flex items-center justify-end">
+                  {i % 2 === 0 ? day : ''}
+                </div>
+              ))}
             </div>
-            <div className="grid grid-flow-col gap-1 auto-cols-max ml-2 relative">
-              {monthLabels}
-              {cells}
+            
+            <div>
+              <div className="flex h-6 items-end mb-2">
+                {monthLabels.map((label, i) => (
+                  <div 
+                    key={`month-${i}`} 
+                    className="text-xs text-gray-500"
+                    style={{ 
+                      marginLeft: i === 0 ? 0 : `${(label.weekIndex - monthLabels[i-1].weekIndex - 1) * 16}px`
+                    }}
+                  >
+                    {label.month}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex">
+                {weeks.map((week, weekIndex) => (
+                  <div key={`week-${weekIndex}`} className="flex flex-col">
+                    {week.map((day, dayIndex) => (
+                      <div 
+                        key={`day-${weekIndex}-${dayIndex}`} 
+                        className={`w-3 h-3 mb-1 rounded-sm ${day.isCurrentYear ? day.colorClass : 'opacity-0'} cursor-pointer transition-colors duration-200 hover:ring-1 hover:ring-gray-400`}
+                        title={day.isCurrentYear ? `${format(day.date, 'yyyy-MM-dd')}: ${day.eventCount} events` : ''}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
