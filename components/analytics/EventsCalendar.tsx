@@ -18,12 +18,34 @@ interface CalendarEvent {
 
 const EventsCalendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   
   useEffect(() => {
     const storedEvents = localStorage.getItem('calendar-events');
     if (storedEvents) {
-      setEvents(JSON.parse(storedEvents));
+      const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
+      setEvents(parsedEvents);
+      
+      const years = new Set<number>();
+      parsedEvents.forEach(event => {
+        const startYear = new Date(event.startDate).getFullYear();
+        const endYear = new Date(event.endDate).getFullYear();
+        for (let year = startYear; year <= endYear; year++) {
+          years.add(year);
+        }
+      });
+      
+      const sortedYears = Array.from(years).sort();
+      setAvailableYears(sortedYears);
+      
+      if (sortedYears.length > 0) {
+        const currentYear = new Date().getFullYear();
+        const closestYear = sortedYears.reduce((prev, curr) => 
+          Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
+        );
+        setSelectedYear(closestYear);
+      }
     }
   }, []);
 
@@ -55,18 +77,20 @@ const EventsCalendar: React.FC = () => {
   };
 
   const renderCalendarGrid = () => {
-    const days = getDaysInYear(year);
-    const firstDayOfYear = startOfYear(new Date(year, 0, 1));
+    if (availableYears.length === 0) {
+      return <div className="text-gray-500">No events found</div>;
+    }
+
+    const days = getDaysInYear(selectedYear);
+    const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1));
     const firstDayOfGrid = startOfWeek(firstDayOfYear);
     
     const weeks = Math.ceil(days.length / 7) + 1;
     
-    const rows = [];
-    
     const monthLabels = [];
     for (let i = 0; i < 12; i++) {
-      const month = new Date(year, i, 1);
-      const offset = Math.floor((new Date(year, i, 1).getTime() - firstDayOfGrid.getTime()) / (24 * 60 * 60 * 1000) / 7);
+      const month = new Date(selectedYear, i, 1);
+      const offset = Math.floor((new Date(selectedYear, i, 1).getTime() - firstDayOfGrid.getTime()) / (24 * 60 * 60 * 1000) / 7);
       monthLabels.push(
         <div 
           key={`month-${i}`} 
@@ -88,7 +112,7 @@ const EventsCalendar: React.FC = () => {
     for (let i = 0; i < weeks; i++) {
       for (let j = 0; j < 7; j++) {
         const date = addDays(firstDayOfGrid, i * 7 + j);
-        const isCurrentYear = date.getFullYear() === year;
+        const isCurrentYear = date.getFullYear() === selectedYear;
         
         if (isCurrentYear) {
           const eventCount = getEventCountForDay(date);
@@ -117,28 +141,27 @@ const EventsCalendar: React.FC = () => {
     return (
       <div className="relative">
         <div className="flex items-center mb-4">
-          <h2 className="text-lg font-semibold mr-4">{year} Contribution Calendar</h2>
-          <button 
-            onClick={() => setYear(year - 1)}
-            className="px-2 py-1 bg-gray-200 rounded-md mr-2 text-sm hover:bg-gray-300"
+          <h2 className="text-lg font-semibold mr-4">Events Calendar</h2>
+          <select 
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-2 py-1 bg-gray-100 rounded-md text-sm border border-gray-300"
           >
-            Prev
-          </button>
-          <button 
-            onClick={() => setYear(year + 1)}
-            className="px-2 py-1 bg-gray-200 rounded-md text-sm hover:bg-gray-300"
-          >
-            Next
-          </button>
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
         
-        <div className="flex">
-          <div className="flex flex-col justify-around mt-6">
-            {weekdayLabels}
-          </div>
-          <div className="grid grid-flow-col gap-1 auto-cols-max ml-2 relative">
-            {monthLabels}
-            {cells}
+        <div className="overflow-x-auto pb-2">
+          <div className="flex" style={{ minWidth: 'fit-content' }}>
+            <div className="flex flex-col justify-around mt-6">
+              {weekdayLabels}
+            </div>
+            <div className="grid grid-flow-col gap-x-0 gap-y-1 auto-cols-max ml-2 relative">
+              {monthLabels}
+              {cells}
+            </div>
           </div>
         </div>
         
