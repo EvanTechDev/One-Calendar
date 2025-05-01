@@ -134,6 +134,7 @@ export default function SharedEventPage() {
 
   if (loading) {
     return (
+      <div>
       <div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0" style={{
