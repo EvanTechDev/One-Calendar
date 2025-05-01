@@ -215,11 +215,18 @@ export default function TermsOfService() {
   return (
     <div className="min-h-screen flex flex-col text-black dark:text-white">
       <main className="max-w-3xl mx-auto px-6 py-24">
-        <div className="fixed -z-10 inset-0 overflow-hidden">
-          <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
-          <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
-          <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
+        <div className="fixed -z-10 inset-0">
+        <div className="absolute inset-0 bg-white dark:bg-black">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+          <div className="absolute inset-0 dark:block hidden" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
         </div>
+      </div>
         <h1 className="text-4xl font-bold text-center mb-12">{t.title}</h1>
         <p className="text-sm text-gray-500 text-center mb-8 dark:text-white">{t.lastUpdated}</p>
         <div className="space-y-8 text-left">
@@ -265,7 +272,7 @@ export default function TermsOfService() {
             <a href="/about" className="hover:underline">About</a>
             <a href="/privacy" className="hover:underline">Privacy</a>
             <a href="/terms" className="hover:underline">Terms</a>
-            <a href="https://github.com/Dev-Huang1/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
+            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline">
               <GithubIcon className="w-4 h-4" />
             </a>
             <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:underline">

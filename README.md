@@ -40,7 +40,7 @@ A beautifully minimal open-source calendar app to plan your week and life.
 
 Most calendar tools are cluttered, over-engineered, or locked behind paywalls. One Calendar aims to be:
 
-- 🧠 **Simple and Intuitive** – Weekly view first, with minimal distractions.
+- 🧠 **AI Powered** – AI-first app that streamlines your scheduling.
 - 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
 - 🔐 **Private & Local** – Your data is yours. Export, backup, and control.
 - ☁️ **Cloud Sync** – Optional sync via Vercel Blob.
@@ -94,14 +94,13 @@ Copy `.env.example` to `.env` and fill in:
 ```env
 NEXT_PUBLIC_BASE_URL=your-url
 
-# Clerk API key
+# Clerk API key （Require）
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret
 
-# Weather API
+# Optional
+GROQ_API_KEY=your-groq-api
 OPENWEATHER_API_KEY=your-open-weather-api-key
-
-# Vercel blob token
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 ```
 
