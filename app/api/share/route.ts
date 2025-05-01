@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-// Global variable to cache shares folder ID (for single instance)
 let sharesFolderId: string | null = null;
 
 async function ensureSharesFolder(misskeyUrl: string, misskeyToken: string): Promise<string> {
@@ -8,7 +7,6 @@ async function ensureSharesFolder(misskeyUrl: string, misskeyToken: string): Pro
     return sharesFolderId;
   }
 
-  // List folders to find 'shares'
   const listFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
     headers: {
@@ -32,7 +30,6 @@ async function ensureSharesFolder(misskeyUrl: string, misskeyToken: string): Pro
     return sharesFolderId;
   }
 
-  // Create 'shares' folder
   const createFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
     method: 'POST',
     headers: {
@@ -73,10 +70,8 @@ export async function POST(request: NextRequest) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
 
-    // Ensure shares folder exists
     const folderId = await ensureSharesFolder(MISSKEY_URL, MISSKEY_TOKEN);
 
-    // List existing files with the same name in shares folder
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -96,7 +91,6 @@ export async function POST(request: NextRequest) {
 
     const files = await listResponse.json();
 
-    // Delete each file
     for (const file of files) {
       await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
         method: 'POST',
@@ -110,7 +104,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Upload new file
     const formData = new FormData();
     formData.append('i', MISSKEY_TOKEN);
     formData.append('file', blob, fileName);
@@ -162,10 +155,29 @@ export async function GET(request: NextRequest) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
 
-    // Ensure shares folder exists
     const folderId = await ensureSharesFolder(MISSKEY_URL, MISSKEY_TOKEN);
 
-    // List files with the name in shares folder
+    const folderShowResponse = await fetch(`${MISSKEY_URL}/api/drive/folders/show`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: folderId,
+      }),
+    });
+
+    if (!folderShowResponse.ok) {
+      throw new Error(`Failed to show folder: ${folderShowResponse.statusText}`);
+    }
+
+    const folderInfo = await folderShowResponse.json();
+
+    if (folderInfo.name !== 'shares') {
+      throw new Error("Shares folder not found");
+    }
+
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -189,11 +201,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Share not found" }, { status: 404 });
     }
 
-    const file = files[0];
-    const fileUrl = file.url;
+    const fileId = files[0].id;
 
-    // Fetch the file content
-    const contentResponse = await fetch(fileUrl);
+    const fileShowResponse = await fetch(`${MISSKEY_URL}/api/drive/files/show`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        fileId: fileId,
+      }),
+    });
+
+    if (!fileShowResponse.ok) {
+      throw new Error(`Failed to show file: ${fileShowResponse.statusText}`);
+    }
+
+    const fileInfo = await fileShowResponse.json();
+
+    if (fileInfo.folderId !== folderId || fileInfo.name !== fileName) {
+      throw new Error("File does not match");
+    }
+
+    const contentResponse = await fetch(fileInfo.url);
 
     if (!contentResponse.ok) {
       throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
@@ -231,10 +262,8 @@ export async function DELETE(request: NextRequest) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
 
-    // Ensure shares folder exists
     const folderId = await ensureSharesFolder(MISSKEY_URL, MISSKEY_TOKEN);
 
-    // List files with the name in shares folder
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -254,7 +283,6 @@ export async function DELETE(request: NextRequest) {
 
     const files = await listResponse.json();
 
-    // Delete each file
     for (const file of files) {
       await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
         method: 'POST',
