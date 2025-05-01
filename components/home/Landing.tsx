@@ -329,62 +329,77 @@ export default function LandingPage() {
       {/* Powered By Section - Improved */}
 <section className="py-16 px-4 border-t border-black/10 dark:border-white/10">
   <div className="max-w-4xl mx-auto">
-    <h3 className="text-lg font-medium text-center mb-10 dark:text-white">技术支持</h3>
+    <h2 className="text-3xl font-medium text-center mb-10 dark:text-white">Technical support</h3>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-10 items-center justify-items-center">
       {/* Vercel */}
       <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity flex flex-col items-center">
-        <svg width="80" height="21" viewBox="0 0 80 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:hidden">
-          <path d="M40.0046 0.5H79.9954V20.2H40.0046V0.5Z" fill="white"/>
-          <path d="M0 0.5H39.9954V20.2H0V0.5Z" fill="white"/>
-          <path d="M37.5314 15.5244L24.2923 0.5H50.771L37.5314 15.5244Z" fill="black"/>
-        </svg>
-        <svg width="80" height="21" viewBox="0 0 80 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="hidden dark:block">
-          <path d="M37.5314 15.5244L24.2923 0.5H50.771L37.5314 15.5244Z" fill="white"/>
-        </svg>
+        <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" id="vercel">
+<style>
+#vercel {
+    rect {fill: #15191C}
+    path {fill: #F4F2ED}
+
+    @media (prefers-color-scheme: light) {
+        rect {fill: #F4F2ED}
+        path {fill: #15191C}
+    }
+}
+</style>
+<rect width="256" height="256" rx="25" fill="#15191C"/>
+<path d="M208 198.333H48L128 58L208 198.333Z" fill="#F4F2ED"/>
+</svg>
         <span className="mt-3 text-base font-medium text-gray-800 dark:text-gray-200">Vercel</span>
       </a>
       
       {/* Clerk */}
       <a href="https://clerk.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity flex flex-col items-center">
-        <svg width="60" height="60" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:hidden">
-          <path d="M46.5037 18.9358C46.5037 25.5038 41.1667 30.8408 34.5987 30.8408V40.3408C46.6517 40.3408 56.0037 30.9888 56.0037 18.9358H46.5037Z" fill="black"/>
-          <path d="M34.5987 40.3408C34.5987 46.9088 39.9357 52.2458 46.5037 52.2458V61.7458C34.4507 61.7458 24.9987 52.3938 24.9987 40.3408H34.5987Z" fill="black"/>
-        </svg>
-        <svg width="60" height="60" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="hidden dark:block">
-          <path d="M46.5037 18.9358C46.5037 25.5038 41.1667 30.8408 34.5987 30.8408V40.3408C46.6517 40.3408 56.0037 30.9888 56.0037 18.9358H46.5037Z" fill="white"/>
-          <path d="M34.5987 40.3408C34.5987 46.9088 39.9357 52.2458 46.5037 52.2458V61.7458C34.4507 61.7458 24.9987 52.3938 24.9987 40.3408H34.5987Z" fill="white"/>
-        </svg>
+        <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" id="clerk">
+<style>
+#clerk {
+    rect {fill: #15191C}
+
+    @media (prefers-color-scheme: light) {
+        rect {fill: #F4F2ED}
+    }
+}
+</style>
+<rect width="256" height="256" rx="25" fill="#15191C"/>
+<path d="M138.21 153.901C152.398 153.901 163.9 142.398 163.9 128.21C163.9 114.022 152.398 102.519 138.21 102.519C124.021 102.519 112.519 114.022 112.519 128.21C112.519 142.398 124.021 153.901 138.21 153.901Z" fill="#6C47FF"/>
+<path d="M183.903 59.8575C186.471 61.5778 186.69 65.1965 184.505 67.3823L165.73 86.1567C164.034 87.8535 161.401 88.1215 159.266 87.0275C152.95 83.7921 145.793 81.9668 138.21 81.9668C112.671 81.9668 91.9668 102.671 91.9668 128.21C91.9668 135.793 93.7921 142.95 97.0275 149.266C98.1215 151.401 97.8535 154.034 96.1567 155.73L77.3823 174.505C75.1965 176.69 71.5778 176.471 69.8575 173.903C61.1049 160.836 56 145.119 56 128.21C56 82.8066 92.8066 46 138.21 46C155.119 46 170.836 51.1049 183.903 59.8575Z" fill="#BAB1FF"/>
+<path d="M184.505 189.038C186.691 191.223 186.471 194.842 183.903 196.562C170.836 205.315 155.119 210.42 138.21 210.42C121.301 210.42 105.584 205.315 92.517 196.562C89.9488 194.842 89.7293 191.223 91.9151 189.038L110.689 170.263C112.386 168.566 115.019 168.298 117.154 169.392C123.47 172.628 130.627 174.453 138.21 174.453C145.793 174.453 152.95 172.628 159.266 169.392C161.401 168.298 164.034 168.566 165.731 170.263L184.505 189.038Z" fill="#6C47FF"/>
+</svg>
         <span className="mt-3 text-base font-medium text-gray-800 dark:text-gray-200">Clerk</span>
       </a>
 
       {/* Groq */}
       <a href="https://groq.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity flex flex-col items-center">
-        <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:hidden">
-          <path d="M50.84 32.004H69.488V49.352H50.84V32.004Z" fill="black"/>
-          <path d="M50.84 50.652H69.488V69.3H50.84V50.652Z" fill="black"/>
-          <path d="M50.84 70.599H69.488V87.948H50.84V70.599Z" fill="black"/>
-        </svg>
-        <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="hidden dark:block">
-          <path d="M50.84 32.004H69.488V49.352H50.84V32.004Z" fill="white"/>
-          <path d="M50.84 50.652H69.488V69.3H50.84V50.652Z" fill="white"/>
-          <path d="M50.84 70.599H69.488V87.948H50.84V70.599Z" fill="white"/>
-        </svg>
+        <?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26.3 26.3"><defs><style>.cls-1{fill:#f05237;}.cls-2{fill:#fff;}</style></defs><g id="Layer_2" data-name="Layer 2"><g id="Content"><circle class="cls-1" cx="13.15" cy="13.15" r="13.15"/><path class="cls-2" d="M13.17,6.88a4.43,4.43,0,0,0,0,8.85h1.45V14.07H13.17a2.77,2.77,0,1,1,2.77-2.76v4.07a2.74,2.74,0,0,1-4.67,2L10.1,18.51a4.37,4.37,0,0,0,3.07,1.29h.06a4.42,4.42,0,0,0,4.36-4.4V11.2a4.43,4.43,0,0,0-4.42-4.32"/></g></g></svg>
         <span className="mt-3 text-base font-medium text-gray-800 dark:text-gray-200">Groq</span>
       </a>
 
       {/* OpenWeather */}
       <a href="https://openweathermap.org" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity flex flex-col items-center">
-        <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="60" cy="60" r="25" fill="#F37021"/>
-          <path d="M60 25V35" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M60 85V95" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M35 60L25 60" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M95 60L85 60" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M42.5 42.5L35 35" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M85 35L77.5 42.5" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M77.5 77.5L85 85" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M35 85L42.5 77.5" stroke="#F37021" strokeWidth="5" strokeLinecap="round"/>
-        </svg>
+        <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" id="openweather">
+<style>
+#openweather {
+    rect {fill: #15191C}
+
+    @media (prefers-color-scheme: light) {
+        rect {fill: #F4F2ED}
+    }
+}
+</style>
+<rect width="256" height="256" rx="25" fill="#15191C"/>
+<path d="M196.295 138.936C194.345 138.857 192.378 138.936 190.411 138.936C182.417 138.936 182.417 138.936 182.593 130.822C182.935 121.437 181.243 112.089 177.634 103.419C174.024 94.7475 168.582 86.9579 161.68 80.5831V80.5032L160.241 79.2253C153.053 72.9251 144.569 68.276 135.387 65.6054C126.205 62.9349 116.549 62.3077 107.099 63.7682C97.6487 65.2287 88.6336 68.7412 80.6886 74.0585C72.7436 79.3758 66.0619 86.3686 61.114 94.5445L61.002 94.7202C60.6663 95.2953 60.3145 95.8703 59.9948 96.4454C53.6274 107.696 50.7608 120.587 51.7608 133.473C51.8887 135.614 53.3596 138.777 49.0108 139.08C45.2536 139.336 42.4396 141.205 43.0951 145.47C43.7507 149.735 47.0283 150.262 50.6896 150.262C56.3654 150.15 62.0573 150.262 67.7331 150.262C71.3785 150.262 74.0005 151.732 74.1284 155.582C74.2404 159.064 72.018 160.997 68.5805 161.045C64.3116 161.045 61.5297 163.009 61.8654 167.306C62.2012 171.604 65.7186 172.099 69.3479 172.003C79.5325 171.923 89.717 171.907 99.9176 172.003C103.675 172.003 106.457 173.6 106.233 177.961C106.025 181.939 103.451 183.201 99.8376 183.185C93.5702 183.185 87.3028 183.185 81.0194 183.185C77.0383 183.185 73.1372 183.392 73.1212 188.616C73.1052 193.839 77.0543 194.015 81.0194 193.999C102.188 193.999 123.356 193.999 144.509 193.999C153.718 193.999 162.927 193.999 172.137 193.999C175.878 193.999 178.98 193.312 179.092 188.856C179.22 184.063 175.894 183.105 171.993 183.201C170.394 183.201 168.795 183.201 167.292 183.201H139.073C135.38 183.201 132.933 181.603 132.822 177.77C132.71 173.936 135.252 172.274 138.833 172.019C140 171.923 141.183 172.019 142.351 172.019C145.932 172.019 149.273 171.619 149.561 167.099C149.881 162.307 146.683 161.172 142.718 161.156C139.105 160.965 137.01 158.856 137.01 155.661C137.01 152.035 139.393 150.07 143.214 150.182C145.564 150.182 147.93 150.182 150.281 150.182C165.566 150.182 180.85 150.182 196.135 150.182C199.988 150.182 202.754 148.968 202.882 144.671C203.01 140.374 199.972 139.096 196.295 138.936Z" fill="#EB6D4A"/>
+<path d="M194.017 171.89C196.994 171.89 199.408 169.478 199.408 166.504C199.408 163.53 196.994 161.118 194.017 161.118C191.04 161.118 188.627 163.53 188.627 166.504C188.627 169.478 191.04 171.89 194.017 171.89Z" fill="#EB6D4A"/>
+<path d="M207.61 171.89C210.587 171.89 213 169.478 213 166.504C213 163.53 210.587 161.118 207.61 161.118C204.633 161.118 202.219 163.53 202.219 166.504C202.219 169.478 204.633 171.89 207.61 171.89Z" fill="#EB6D4A"/>
+<path d="M207.946 161.118H193.466V171.89H207.946V161.118Z" fill="#EB6D4A"/>
+<path d="M162.257 171.89C165.234 171.89 167.647 169.478 167.647 166.504C167.647 163.53 165.234 161.118 162.257 161.118C159.28 161.118 156.866 163.53 156.866 166.504C156.866 169.478 159.28 171.89 162.257 171.89Z" fill="#EB6D4A"/>
+<path d="M175.849 171.89C178.826 171.89 181.24 169.478 181.24 166.504C181.24 163.53 178.826 161.118 175.849 161.118C172.872 161.118 170.459 163.53 170.459 166.504C170.459 169.478 172.872 171.89 175.849 171.89Z" fill="#EB6D4A"/>
+<path d="M176.185 161.118H161.705V171.89H176.185V161.118Z" fill="#EB6D4A"/>
+</svg>
         <span className="mt-3 text-base font-medium text-gray-800 dark:text-gray-200">OpenWeather</span>
       </a>
     </div>
