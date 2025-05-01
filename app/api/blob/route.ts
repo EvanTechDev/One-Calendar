@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     const blob = new Blob([dataString], { type: "application/json" });
-    const fileName = `backup_${id}.json`;
+    const fileName = `calendar/${id}.json`;
 
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
 
-    // Find existing files with the same name
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -39,7 +38,6 @@ export async function POST(request: NextRequest) {
 
     const files = await listResponse.json();
 
-    // Delete each file
     for (const file of files) {
       await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
         method: 'POST',
@@ -94,7 +92,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
-    const fileName = `backup_${id}.json`;
+    const fileName = `calendar/${id}.json`;
 
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
@@ -129,7 +127,6 @@ export async function GET(request: NextRequest) {
     const file = files[0];
     const fileUrl = file.url;
 
-    // Fetch the file content
     const contentResponse = await fetch(fileUrl);
 
     if (!contentResponse.ok) {
