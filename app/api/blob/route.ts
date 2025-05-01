@@ -50,7 +50,17 @@ export async function POST(request: NextRequest) {
     formData.append("file", fileBlob, fileName);
     formData.append("folderId", folderId);
 
-    const uploadResult = await drive.request("drive/files/create", formData);
+    const uploadResult = await fetch(`${MISSKEY_INSTANCE}/api/drive/files/create`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${MISSKEY_TOKEN}`,
+      },
+      body: formData,
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
+      return res.json();
+    });
+
 
     return NextResponse.json({
       success: true,
