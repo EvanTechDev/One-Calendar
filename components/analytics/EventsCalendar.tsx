@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { format, startOfWeek, addDays, startOfYear, endOfYear, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, startOfYear, endOfYear, eachDayOfInterval, isSameDay, parseISO, getMonth } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -27,6 +27,7 @@ const EventsCalendar: React.FC = () => {
       const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
       setEvents(parsedEvents);
       
+      // 计算所有有事件的年份
       const years = new Set<number>();
       parsedEvents.forEach(event => {
         const startYear = new Date(event.startDate).getFullYear();
@@ -39,8 +40,10 @@ const EventsCalendar: React.FC = () => {
       const sortedYears = Array.from(years).sort();
       setAvailableYears(sortedYears);
       
+      // 如果有事件年份，默认选择最近的年份
       if (sortedYears.length > 0) {
         const currentYear = new Date().getFullYear();
+        // 找到当前年份或者最近的年份
         const closestYear = sortedYears.reduce((prev, curr) => 
           Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
         );
@@ -87,6 +90,7 @@ const EventsCalendar: React.FC = () => {
     
     const weeks = Math.ceil(days.length / 7) + 1;
     
+    // 添加月份标签但不分隔
     const monthLabels = [];
     for (let i = 0; i < 12; i++) {
       const month = new Date(selectedYear, i, 1);
@@ -117,6 +121,9 @@ const EventsCalendar: React.FC = () => {
         if (isCurrentYear) {
           const eventCount = getEventCountForDay(date);
           const colorClass = getColorIntensity(eventCount);
+          
+          // 检查是否是月份的第一天
+          const isFirstDayOfMonth = date.getDate() === 1;
           
           cells.push(
             <div 
@@ -158,7 +165,7 @@ const EventsCalendar: React.FC = () => {
             <div className="flex flex-col justify-around mt-6">
               {weekdayLabels}
             </div>
-            <div className="grid grid-flow-col gap-x-0 gap-y-1 auto-cols-max ml-2 relative">
+            <div className="grid grid-flow-col gap-1 auto-cols-max ml-2 relative">
               {monthLabels}
               {cells}
             </div>
