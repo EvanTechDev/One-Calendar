@@ -52,7 +52,7 @@ export default function SharedEventPage() {
           return
         }
 
-        const response = await fetch(`/api/share?id=${shareId}`)
+        const response = await fetch(`/api/share/misskey?id=${shareId}`)
         if (!response.ok) {
           setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event")
           return
@@ -134,11 +134,17 @@ export default function SharedEventPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="fixed -z-10 inset-0 overflow-hidden">
-        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-blue-400 opacity-20 blur-[80px]" />
-        <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-purple-400 opacity-25 blur-[100px]" />
-        <div className="absolute right-1/4 bottom-1/3 h-[250px] w-[250px] rounded-full bg-indigo-400 opacity-20 blur-[90px]" />
+      <div className="fixed -z-10 inset-0">
+        <div className="absolute inset-0 bg-white dark:bg-black">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+          <div className="absolute inset-0 dark:block hidden" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+        </div>
       </div>
         <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
