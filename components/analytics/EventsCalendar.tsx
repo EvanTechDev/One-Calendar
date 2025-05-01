@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { format, startOfWeek, addDays, startOfYear, endOfYear, eachDayOfInterval, isSameDay, parseISO, getDay } from 'date-fns';
+import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -27,6 +27,7 @@ const EventsCalendar: React.FC = () => {
       const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
       setEvents(parsedEvents);
       
+      // 计算所有有事件的年份
       const years = new Set<number>();
       parsedEvents.forEach(event => {
         const startYear = new Date(event.startDate).getFullYear();
@@ -38,9 +39,11 @@ const EventsCalendar: React.FC = () => {
       
       const sortedYears = Array.from(years).sort();
       setAvailableYears(sortedYears);
-
+      
+      // 如果有事件年份，默认选择最近的年份
       if (sortedYears.length > 0) {
         const currentYear = new Date().getFullYear();
+        // 找到当前年份或者最近的年份
         const closestYear = sortedYears.reduce((prev, curr) => 
           Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
         );
@@ -74,55 +77,50 @@ const EventsCalendar: React.FC = () => {
     if (availableYears.length === 0) {
       return <div className="text-gray-500">No events found</div>;
     }
+
+    // 创建日历的数据
+    const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1));
+    const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31));
     
-    const startDate = startOfYear(new Date(selectedYear, 0, 1));
-    const endDate = endOfYear(new Date(selectedYear, 11, 31));
+    // 确保日历从周日开始
+    const startDay = startOfWeek(firstDayOfYear);
+    // 确保日历到周六结束
+    const endDay = addDays(lastDayOfYear, 6 - getDay(lastDayOfYear));
     
-    const calendarStart = startOfWeek(startDate);
-
-    const calendarDays = [];
-    let currentDate = calendarStart;
-
-    const endCalendarDate = addDays(endDate, 6 - getDay(endDate));
-
-    const monthLabels = [];
-    let currentMonth = -1;
-
-    const totalWeeks = Math.ceil((endCalendarDate.getTime() - calendarStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-
-    const weeks = [];
-    for (let weekIndex = 0; weekIndex < totalWeeks; weekIndex++) {
-      const weekDays = [];
-      
-      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-        if (currentDate.getDate() === 1 || (weekIndex === 0 && dayIndex === 0 && currentDate.getMonth() !== currentMonth)) {
-          currentMonth = currentDate.getMonth();
-          monthLabels.push({
-            month: format(currentDate, 'MMM'),
-            weekIndex: weekIndex
-          });
-        }
-        
-        const isCurrentYear = currentDate.getFullYear() === selectedYear;
-        const eventCount = isCurrentYear ? getEventCountForDay(currentDate) : 0;
-        const colorClass = isCurrentYear ? getColorIntensity(eventCount) : '';
-        
-        weekDays.push({
-          date: new Date(currentDate),
-          isCurrentYear,
-          eventCount,
-          colorClass
-        });
-        
-        currentDate = addDays(currentDate, 1);
-      }
-      
-      weeks.push(weekDays);
+    // 计算总天数
+    const totalDays = differenceInDays(endDay, startDay) + 1;
+    // 计算总周数
+    const totalWeeks = Math.ceil(totalDays / 7);
+    
+    // 生成所有日期
+    const allDates = [];
+    for (let i = 0; i < totalDays; i++) {
+      allDates.push(addDays(startDay, i));
     }
+    
+    // 计算每个月的第一天及其位置
+    const monthLabels = [];
+    for (let month = 0; month < 12; month++) {
+      const firstDayOfMonth = new Date(selectedYear, month, 1);
+      // 如果这个月的第一天在日历范围内
+      if (firstDayOfMonth >= startDay && firstDayOfMonth <= endDay) {
+        const dayIndex = differenceInDays(firstDayOfMonth, startDay);
+        const weekIndex = Math.floor(dayIndex / 7);
+        monthLabels.push({
+          label: format(firstDayOfMonth, 'MMM'),
+          weekIndex: weekIndex
+        });
+      }
+    }
+
+    // 计算每个日期块的尺寸和间距
+    const cellSize = 15; // 15px
+    const cellGap = 3;   // 3px
+    const cellWithGap = cellSize + cellGap;
     
     return (
       <div className="relative">
-        <div className="flex items-center mb-4">
+        <div className="flex items-center mb-6">
           <h2 className="text-lg font-semibold mr-4">Events Calendar</h2>
           <select 
             value={selectedYear}
@@ -135,41 +133,61 @@ const EventsCalendar: React.FC = () => {
           </select>
         </div>
         
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max">
-            <div className="flex flex-col justify-around mt-8 pr-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                <div key={`weekday-${i}`} className="text-xs text-gray-500 h-3 flex items-center justify-end">
-                  {i % 2 === 0 ? day : ''}
+        <div className="overflow-x-auto pb-4">
+          <div style={{ position: 'relative', paddingTop: '20px', minWidth: `${totalWeeks * cellWithGap}px` }}>
+            {/* 月份标签 */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+              {monthLabels.map((month, i) => (
+                <div 
+                  key={`month-${i}`} 
+                  className="text-xs text-gray-500 absolute"
+                  style={{ left: `${month.weekIndex * cellWithGap}px` }}
+                >
+                  {month.label}
                 </div>
               ))}
             </div>
             
-            <div>
-              <div className="flex h-6 items-end mb-2">
-                {monthLabels.map((label, i) => (
+            {/* 星期标签和日历网格 */}
+            <div className="flex">
+              {/* 星期标签 */}
+              <div className="flex flex-col pr-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
                   <div 
-                    key={`month-${i}`} 
-                    className="text-xs text-gray-500"
-                    style={{ 
-                      marginLeft: i === 0 ? 0 : `${(label.weekIndex - monthLabels[i-1].weekIndex - 1) * 16}px`
-                    }}
+                    key={`day-${i}`} 
+                    className="text-xs text-gray-500 flex items-center justify-end"
+                    style={{ height: `${cellSize}px`, marginBottom: `${cellGap}px` }}
                   >
-                    {label.month}
+                    {i % 2 === 0 ? day : ''}
                   </div>
                 ))}
               </div>
-
-              <div className="flex">
-                {weeks.map((week, weekIndex) => (
-                  <div key={`week-${weekIndex}`} className="flex flex-col">
-                    {week.map((day, dayIndex) => (
-                      <div 
-                        key={`day-${weekIndex}-${dayIndex}`} 
-                        className={`w-3 h-3 mb-1 rounded-sm ${day.isCurrentYear ? day.colorClass : 'opacity-0'} cursor-pointer transition-colors duration-200 hover:ring-1 hover:ring-gray-400`}
-                        title={day.isCurrentYear ? `${format(day.date, 'yyyy-MM-dd')}: ${day.eventCount} events` : ''}
-                      />
-                    ))}
+              
+              {/* 日历网格 */}
+              <div style={{ display: 'flex' }}>
+                {Array.from({ length: totalWeeks }).map((_, weekIndex) => (
+                  <div key={`week-${weekIndex}`} style={{ marginRight: `${cellGap}px` }}>
+                    {Array.from({ length: 7 }).map((_, dayIndex) => {
+                      const dateIndex = weekIndex * 7 + dayIndex;
+                      const date = allDates[dateIndex];
+                      const isCurrentYear = date.getFullYear() === selectedYear;
+                      
+                      const eventCount = isCurrentYear ? getEventCountForDay(date) : 0;
+                      const colorClass = getColorIntensity(eventCount);
+                      
+                      return (
+                        <div 
+                          key={`cell-${weekIndex}-${dayIndex}`}
+                          className={`rounded-sm ${isCurrentYear ? colorClass : 'bg-transparent'} cursor-pointer hover:ring-1 hover:ring-gray-400 transition-colors duration-200`}
+                          style={{ 
+                            width: `${cellSize}px`, 
+                            height: `${cellSize}px`, 
+                            marginBottom: `${cellGap}px` 
+                          }}
+                          title={isCurrentYear ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} events` : ''}
+                        />
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -177,7 +195,7 @@ const EventsCalendar: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center mt-4 text-xs text-gray-600">
+        <div className="flex items-center mt-2 text-xs text-gray-600">
           <span className="mr-2">Less</span>
           <div className="flex gap-1">
             <div className="w-3 h-3 rounded-sm bg-gray-100"></div>
