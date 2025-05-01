@@ -6,7 +6,10 @@ const BACKUP_FOLDER_NAME = "Backups";
 const MISSKEY_URL = process.env.MISSKEY_URL!;
 const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN!;
 
-const drive = new api({ origin: MISSKEY_URL, credential: MISSKEY_TOKEN });
+const drive = new api.APIClient({
+  origin: MISSKEY_URL,
+  credential: MISSKEY_TOKEN,
+});
 
 export async function POST(request: NextRequest) {
   try {
