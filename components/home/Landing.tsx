@@ -129,8 +129,7 @@ export default function LandingPage() {
             <div className="absolute -inset-[1.5px] bg-gradient-to-r from-indigo-500 via-purple-500 via-pink-500 via-red-500 via-yellow-500 via-green-500 to-blue-500 rounded-full opacity-75 blur-[2px] group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
             <span className="text-sm text-white/90 dark:text-white/90 relative z-10">AI Powered</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative text-black dark:text-white"
-           }}>
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative text-black dark:text-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-medium">
