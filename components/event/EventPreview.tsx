@@ -34,9 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import QRCode from "qrcode";
-
-// 引入 Clerk 的 useUser 钩子
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-nextjs";
 
 interface EventPreviewProps {
   event: CalendarEvent | null;
@@ -223,7 +221,7 @@ export default function EventPreview({
         sharedBy: clerkUsername,
       };
 
-      const response = await fetch("/api/share", {
+      const response = await fetch("/api/share/misskey", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
