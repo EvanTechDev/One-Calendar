@@ -50,25 +50,6 @@ async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string): P
   return newFolder.id;
 }
 
-async function getCurrentUserId(misskeyUrl: string, misskeyToken: string): Promise<string> {
-  const response = await fetch(`${misskeyUrl}/api/i`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      i: misskeyToken,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get user ID: ${response.statusText}`);
-  }
-
-  const user = await response.json();
-  return user.id;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const MISSKEY_URL = process.env.MISSKEY_URL;
@@ -85,7 +66,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields: 'id' and 'data' are required" }, { status: 400 });
     }
 
-    const currentUserId = await getCurrentUserId(MISSKEY_URL, MISSKEY_TOKEN);
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     const blob = new Blob([dataString], { type: "application/json" });
     const fileName = `${id}.json`;
@@ -112,18 +92,16 @@ export async function POST(request: NextRequest) {
     const files = await listResponse.json();
 
     for (const file of files) {
-      if (file.userId === currentUserId) {
-        await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            i: MISSKEY_TOKEN,
-            fileId: file.id,
-          }),
-        });
-      }
+      await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          i: MISSKEY_TOKEN,
+          fileId: file.id,
+        }),
+      });
     }
 
     const formData = new FormData();
@@ -174,7 +152,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
 
-    const currentUserId = await getCurrentUserId(MISSKEY_URL, MISSKEY_TOKEN);
     const fileName = `${id}.json`;
 
     const folderId = await ensureCalendarFolder(MISSKEY_URL, MISSKEY_TOKEN);
@@ -198,13 +175,11 @@ export async function GET(request: NextRequest) {
 
     const files = await listResponse.json();
 
-    const userFiles = files.filter((file: any) => file.userId === currentUserId);
-
-    if (userFiles.length === 0) {
+    if (files.length === 0) {
       return NextResponse.json({ error: "Backup not found" }, { status: 404 });
     }
 
-    const latestFile = userFiles.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    const latestFile = files.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
     const fileUrl = latestFile.url;
 
     const contentResponse = await fetch(fileUrl);
