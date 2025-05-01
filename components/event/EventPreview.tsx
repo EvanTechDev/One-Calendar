@@ -221,7 +221,7 @@ export default function EventPreview({
         sharedBy: clerkUsername,
       };
 
-      const response = await fetch("/api/share/misskey", {
+      const response = await fetch("/api/share", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
