@@ -68,7 +68,7 @@
     "ai": "latest",
     "@ai-sdk/groq": "^1.2.8",
     "groq-sdk": "latest",
-    "misskey-js": "latest"
+    "axios": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
