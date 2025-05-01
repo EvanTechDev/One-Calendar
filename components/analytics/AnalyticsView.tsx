@@ -9,7 +9,7 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
 import ShareManagement from "./ShareManagement"
-import EventsCalednar from "./EventsCalendar"
+import EventsCalendar from "./EventsCalendar"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
