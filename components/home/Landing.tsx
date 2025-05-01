@@ -408,42 +408,21 @@ export default function LandingPage() {
 </section>
       
       {/* Original Footer */}
-      <footer className="bg-white py-12 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <span className="text-xl font-bold text-blue-600">One Calendar</span>
-              <p className="mt-4 text-gray-500 text-sm">
-                All your events in one place, beautifully organized.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-gray-900 font-medium mb-4">Company</h3>
-              <ul className="space-y-3 text-gray-500 text-sm">
-                <li><a href="/about" className="hover:text-blue-600">About</a></li>
-                <li><a href="https://github.com/EvanTechDev/One-Calendar/pull" className="hover:text-blue-600">Join us</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-gray-900 font-medium mb-4">Legal</h3>
-              <ul className="space-y-3 text-gray-500 text-sm">
-                <li><a href="/privacy" className="hover:text-blue-600">Privacy</a></li>
-                <li><a href="/terms" className="hover:text-blue-600">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-500">&copy; 2025 One Calendar. All rights reserved.</p>
-            <div className="flex gap-4">
-              <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="text-gray-400 hover:text-gray-600">
-                <GithubIcon className="w-5 h-5" />
-              </a>
-              <a href="https://x.com/One__Cal" target="_blank" rel="noopener" className="text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 32 32">
-                  <path d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
-                </svg>
-              </a>
-            </div>
+      <footer className="mt-auto py-8 border-t border-white/10 text-sm text-white/70 px-6">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <p>&copy; 2025 One Calendar. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="/about" className="hover:text-white">About</a>
+            <a href="/privacy" className="hover:text-white">Privacy</a>
+            <a href="/terms" className="hover:text-white">Terms</a>
+            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:text-white">
+              <GithubIcon className="w-4 h-4" />
+            </a>
+            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
+                <path d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
+              </svg>
+            </a>
           </div>
         </div>
       </footer>
