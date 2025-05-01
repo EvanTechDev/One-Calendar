@@ -33,8 +33,8 @@ async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    console.log("Request body:", body);
+    const text = await request.text();
+    const body = JSON.parse(text);
     const { id, data } = body;
 
     if (!id || !data) {
