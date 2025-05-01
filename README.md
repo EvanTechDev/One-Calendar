@@ -49,7 +49,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Weather**: OpenWeather API
 - **AI**: Groq API
 
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,vercel,openweather,bun,groq)
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun)
 
 ## Preview
 
