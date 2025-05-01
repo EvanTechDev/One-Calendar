@@ -9,6 +9,16 @@ export async function POST(req: Request) {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
+    const origin = req.headers.get('origin') || '';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+    
+    if (origin !== baseUrl) {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Invalid origin' },
+        { status: 403 }
+      );
+    }
+
     const groq = new Groq({
       apiKey: process.env.GROQ_API_KEY
     });
@@ -26,12 +36,12 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        
+
         for await (const chunk of chatCompletion) {
           const content = chunk.choices[0]?.delta?.content || '';
           controller.enqueue(encoder.encode(content));
         }
-        
+
         controller.close();
       }
     });
