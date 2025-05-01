@@ -133,7 +133,7 @@ export default function LandingPage() {
        backgroundClip: "padding-box, border-box",
        position: "relative"
      }}>
-  <span className="text-sm text-black dark:text-white/70">AI Powered</span>
+  <span className="text-sm text-black">AI Powered</span>
 </div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
