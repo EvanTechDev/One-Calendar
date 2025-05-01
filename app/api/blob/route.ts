@@ -1,17 +1,39 @@
-import { api } from "misskey-js";
-import { type NextRequest, NextResponse } from "next/server";
+import axios from "axios";
+
+const MISSKEY_INSTANCE = process.env.MISSKEY_URL!;
+const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN!;
 
 const BACKUP_FOLDER_NAME = "Backups";
 
-const MISSKEY_URL = process.env.MISSKEY_URL!;
-const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN!;
+// 发送文件上传请求的函数
+async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
+  try {
+    const formData = new FormData();
+    formData.append("file", fileBlob, fileName);
+    formData.append("folderId", folderId);
 
-const drive = new api.APIClient({
-  origin: MISSKEY_URL,
-  credential: MISSKEY_TOKEN,
-});
+    // 构造请求头，加入 Misskey 的认证信息
+    const headers = {
+      "Authorization": `Bearer ${MISSKEY_TOKEN}`,
+      "Content-Type": "multipart/form-data",
+    };
 
-export async function POST(request: NextRequest) {
+    // 发送 POST 请求
+    const response = await axios.post(
+      `${MISSKEY_INSTANCE}/api/drive/files/create`,
+      formData,
+      { headers }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("File upload failed:", error);
+    throw error;
+  }
+}
+
+// 在你的 API 中使用
+async function handleUpload(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, data } = body;
@@ -22,37 +44,28 @@ export async function POST(request: NextRequest) {
 
     const fileName = `${id}.json`;
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const fileBuffer = Buffer.from(dataString, "utf-8");
+    const fileBlob = new Blob([dataString], { type: "application/json" });
 
-    console.log("Preparing to upload:", { fileName, size: fileBuffer.length });
-
-    // 获取/创建 Backups 文件夹
+    // 查找或创建 Backups 文件夹
     let folderId: string;
-    const folders = await drive.request("drive/folders", {});
-    console.log("Existing folders:", folders);
-
-    const existing = folders.find((f: any) => f.name === BACKUP_FOLDER_NAME);
+    const folders = await axios.get(`${MISSKEY_INSTANCE}/api/drive/folders`, {
+      headers: { "Authorization": `Bearer ${MISSKEY_TOKEN}` }
+    });
+    const existing = folders.data.find((f: any) => f.name === BACKUP_FOLDER_NAME);
 
     if (existing) {
       folderId = existing.id;
     } else {
-      const created = await drive.request("drive/folders/create", {
+      const created = await axios.post(`${MISSKEY_INSTANCE}/api/drive/folders/create`, {
         name: BACKUP_FOLDER_NAME
+      }, {
+        headers: { "Authorization": `Bearer ${MISSKEY_TOKEN}` }
       });
-      folderId = created.id;
-    }
-
-    // 删除旧文件
-    const files = await drive.request("drive/files", { folderId });
-    const toDelete = files.find((f: any) => f.name === fileName);
-    if (toDelete) {
-      console.log("Deleting existing file:", toDelete.id);
-      await drive.request("drive/files/delete", { fileId: toDelete.id });
+      folderId = created.data.id;
     }
 
     // 上传新文件
-    const uploadResult = await drive.uploadFile(fileBuffer, fileName, folderId);
-    console.log("Upload result:", uploadResult);
+    const uploadResult = await uploadFile(fileBlob, fileName, folderId);
 
     return NextResponse.json({
       success: true,
@@ -62,49 +75,6 @@ export async function POST(request: NextRequest) {
       folderId,
       message: "Backup created successfully."
     });
-  } catch (error) {
-    console.error("API error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const id = request.nextUrl.searchParams.get("id");
-    if (!id) {
-      return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
-    }
-
-    const fileName = `${id}.json`;
-
-    // 查找 Backups 文件夹
-    const folders = await drive.request("drive/folders", {});
-    const folder = folders.find((f: any) => f.name === BACKUP_FOLDER_NAME);
-    if (!folder) {
-      return NextResponse.json({ error: "Backup folder not found" }, { status: 404 });
-    }
-
-    // 查找指定文件
-    const files = await drive.request("drive/files", { folderId: folder.id });
-    const match = files.find((f: any) => f.name === fileName);
-    if (!match) {
-      return NextResponse.json({ error: "Backup not found" }, { status: 404 });
-    }
-
-    // 获取文件内容
-    const response = await fetch(match.url);
-    if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch backup content" }, { status: 500 });
-    }
-    const content = await response.text();
-
-    return NextResponse.json({ success: true, data: content });
   } catch (error) {
     return NextResponse.json(
       {
