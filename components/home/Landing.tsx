@@ -57,7 +57,7 @@ export default function LandingPage() {
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
           </div>
-          <nav className="hidden md:flex items-center gap-6 px-3 mr-30">
+          <nav className="hidden md:flex items-center gap-6 px-3 mr-32">
             <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
             <div className="relative group">
         <a href="#" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white flex items-center">
