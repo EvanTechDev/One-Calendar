@@ -128,13 +128,12 @@ export default function LandingPage() {
           <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
      style={{
        border: "1px solid transparent",
-       backgroundImage: "linear-gradient(#000005, #000005), linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #00ff00)",
+       backgroundImage: "linear-gradient(#ffffff, #ffffff), linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #00ff00)",
        backgroundOrigin: "border-box",
        backgroundClip: "padding-box, border-box",
-       boxShadow: "0 0 6px #ff00ff, 0 0 10px #00ffff",
        position: "relative"
      }}>
-  <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
+  <span className="text-sm text-black dark:text-white/70">AI Powered</span>
 </div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
