@@ -125,11 +125,17 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8">
-            <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
+          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative overflow-hidden shadow-[0_0_15px_rgba(0,255,255,0.5),0_0_25px_rgba(0,150,255,0.3)]">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 opacity-20 blur-xl"></div>
+            <span className="text-sm text-gray-700 dark:text-white/70 relative z-10">AI Powered</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent bg-black">{/*bg-gradient-to-r from-[#02E8FF] to-[#0066ff]*/}
-            Time-Saving AI Calendar,<br />Designed for Efficiency
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative"
+            style={{
+              background: 'linear-gradient(145deg, #e6e6e6 0%, #999999 50%, #666666 100%)',
+              WebkitBackgroundClip: 'text',
+              textShadow: '1px 1px 2px rgba(255, 255, 255, 0.1), -1px -1px 2px rgba(0, 0, 0, 0.4)'
+           }}>
+             Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-medium">
             One Calendar is an AI-first app that streamlines your scheduling.
