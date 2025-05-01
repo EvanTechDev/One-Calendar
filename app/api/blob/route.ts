@@ -15,7 +15,6 @@ async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
     // 构造请求头，加入 Misskey 的认证信息
     const headers = {
       "Authorization": `Bearer ${MISSKEY_TOKEN}`,
-      "Content-Type": "multipart/form-data",
     };
 
     // 发送 POST 请求
