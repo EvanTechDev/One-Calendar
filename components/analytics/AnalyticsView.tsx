@@ -9,6 +9,7 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
 import ShareManagement from "./ShareManagement"
+import EventsCalednar from "./EventsCalendar"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
@@ -56,6 +57,7 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
       <AnalyticsGuide />
       <TimeAnalyticsComponent events={events} calendars={calendars} key={`time-analytics-${language}-${forceUpdate}`} />
       <div className="grid grid-cols-1 gap-8">
+        <EventsCalendar />
         <ImportExport
           events={events}
           onImportEvents={onImportEvents}
