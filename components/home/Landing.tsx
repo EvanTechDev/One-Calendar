@@ -125,11 +125,14 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center py-1 px-3 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
+          <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
      style={{
+       border: "1px solid transparent",
+       backgroundImage: "linear-gradient(#000005, #000005), linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #00ff00)",
+       backgroundOrigin: "border-box",
+       backgroundClip: "padding-box, border-box",
        boxShadow: "0 0 6px #ff00ff, 0 0 10px #00ffff",
-       borderImage: "linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #ff00ff) 1",
-       borderImageSlice: "1"
+       position: "relative"
      }}>
   <span className="text-sm text-gray-700 dark:text-white/70">AI Powered</span>
 </div>
