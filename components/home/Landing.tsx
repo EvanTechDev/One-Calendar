@@ -408,17 +408,17 @@ export default function LandingPage() {
 </section>
       
       {/* Original Footer */}
-      <footer className="mt-auto py-8 border-t border-white/10 text-sm text-white/70 px-6">
+      <footer className="mt-auto py-8 border-t border-black/10 dark:border-white/10 text-gray-600 dark:text-white/70 text-sm px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
           <div className="flex gap-4">
-            <a href="/about" className="hover:text-white">About</a>
-            <a href="/privacy" className="hover:text-white">Privacy</a>
-            <a href="/terms" className="hover:text-white">Terms</a>
-            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:text-white">
+            <a href="/about" className="hover:text-gray-900 dark:hover:text-white">About</a>
+            <a href="/privacy" className="hover:text-gray-900 dark:hover:text-white">Privacy</a>
+            <a href="/terms" className="hover:text-gray-900 dark:hover:text-white">Terms</a>
+            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
               <GithubIcon className="w-4 h-4" />
             </a>
-            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:text-white">
+            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
                 <path d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
               </svg>
