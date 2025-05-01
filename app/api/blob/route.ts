@@ -46,7 +46,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 上传新文件
-    const uploadResult = await drive.uploadFile(fileBlob, fileName, folderId);
+    const formData = new FormData();
+    formData.append("file", fileBlob, fileName);
+    formData.append("folderId", folderId);
+
+    const uploadResult = await drive.request("drive/files/create", formData);
 
     return NextResponse.json({
       success: true,
