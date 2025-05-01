@@ -1,6 +1,7 @@
 {
   "name": "one-calendar",
   "version": "1.8.5",
+  "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -36,7 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
-    "date-fns": "latest",
+    "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
