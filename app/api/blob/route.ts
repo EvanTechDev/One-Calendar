@@ -74,12 +74,11 @@ export async function GET(request: NextRequest) {
       folderId,
       message: "Backup created successfully."
     });
-  } catch (error, body) {
+  } catch (error) {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
-        body: body,
       },
       { status: 500 }
     );
