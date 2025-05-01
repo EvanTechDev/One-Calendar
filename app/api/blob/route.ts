@@ -1,84 +1,149 @@
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
-
-const MISSKEY_INSTANCE = process.env.MISSKEY_URL!;
-const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN!;
-
-const BACKUP_FOLDER_NAME = "Backups";
-
-// 发送文件上传请求的函数
-async function uploadFile(fileBlob: Blob, fileName: string, folderId: string) {
-  try {
-    const formData = new FormData();
-    formData.append("file", fileBlob, fileName);
-    formData.append("folderId", folderId);
-
-    const headers = {
-      "Authorization": `Bearer ${MISSKEY_TOKEN}`,
-      "Content-Type": "multipart/form-data",
-    };
-
-    const response = await axios.post(
-      `${MISSKEY_INSTANCE}/api/drive/files/create`,
-      formData,
-      { headers }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error("File upload failed:", error);
-    throw error;
-  }
-}
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const text = await request.text();
-    const body = JSON.parse(text);
+    const body = await request.json();
     const { id, data } = body;
 
     if (!id || !data) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const fileName = `${id}.json`;
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const fileBlob = new Blob([dataString], { type: "application/json" });
+    const blob = new Blob([dataString], { type: "application/json" });
+    const fileName = `backup_${id}.json`;
 
-    // 查找或创建 Backups 文件夹
-    let folderId: string;
-    const folders = await axios.get(`${MISSKEY_INSTANCE}/api/drive/folders`, {
-      headers: { "Authorization": `Bearer ${MISSKEY_TOKEN}` }
-    });
-    const existing = folders.data.find((f: any) => f.name === BACKUP_FOLDER_NAME);
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
 
-    if (existing) {
-      folderId = existing.id;
-    } else {
-      const created = await axios.post(`${MISSKEY_INSTANCE}/api/drive/folders/create`, {
-        name: BACKUP_FOLDER_NAME
-      }, {
-        headers: { "Authorization": `Bearer ${MISSKEY_TOKEN}` }
-      });
-      folderId = created.data.id;
+    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
+      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
 
-    // 上传新文件
-    const uploadResult = await uploadFile(fileBlob, fileName, folderId);
+    // Find existing files with the same name
+    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        name: fileName,
+        limit: 10,
+      }),
+    });
+
+    if (!listResponse.ok) {
+      throw new Error(`Failed to list files: ${listResponse.statusText}`);
+    }
+
+    const files = await listResponse.json();
+
+    // Delete each file
+    for (const file of files) {
+      await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          i: MISSKEY_TOKEN,
+          fileId: file.id,
+        }),
+      });
+    }
+
+    // Upload new file
+    const formData = new FormData();
+    formData.append('i', MISSKEY_TOKEN);
+    formData.append('file', blob, fileName);
+
+    const uploadResponse = await fetch(`${MISSKEY_URL}/api/drive/files/create`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
+    }
+
+    const uploadedFile = await uploadResponse.json();
 
     return NextResponse.json({
       success: true,
-      id,
-      url: uploadResult.url,
-      name: uploadResult.name,
-      folderId,
-      message: "Backup created successfully."
+      url: uploadedFile.url,
+      id: id,
+      message: "Backup created successfully. Any previous backups with the same ID were replaced."
     });
   } catch (error) {
+    console.error("Backup API error:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const id = request.nextUrl.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
+    }
+
+    const fileName = `backup_${id}.json`;
+
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
+
+    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
+      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    }
+
+    // Find the file with the name
+    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        name: fileName,
+        limit: 1,
+      }),
+    });
+
+    if (!listResponse.ok) {
+      throw new Error(`Failed to list files: ${listResponse.statusText}`);
+    }
+
+    const files = await listResponse.json();
+
+    if (files.length === 0) {
+      return NextResponse.json({ error: "Backup not found" }, { status: 404 });
+    }
+
+    const file = files[0];
+    const fileUrl = file.url;
+
+    // Fetch the file content
+    const contentResponse = await fetch(fileUrl);
+
+    if (!contentResponse.ok) {
+      throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
+    }
+
+    const data = await contentResponse.text();
+
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    console.error("Restore API error:", error);
+    return NextResponse.json(
+      {
+        error: error.message,
       },
       { status: 500 }
     );
