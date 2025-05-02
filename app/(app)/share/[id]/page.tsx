@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 
 interface SharedEvent {
   id: string
