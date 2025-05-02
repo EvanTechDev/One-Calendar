@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 async function ensureShareFolderStructure(misskeyUrl: string, misskeyToken: string, shareId: string): Promise<string> {
+  
   const mainFolderName = "shares";
   
   const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
@@ -82,6 +83,53 @@ async function ensureShareFolderStructure(misskeyUrl: string, misskeyToken: stri
   }
   
   return shareFolder.id;
+}
+
+async function getMainSharesFolderId(misskeyUrl: string, misskeyToken: string): Promise<string | null> {
+  const mainFolderName = "shares";
+  
+  const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      i: misskeyToken,
+      limit: 100,
+    }),
+  });
+  
+  if (!listMainFoldersResponse.ok) {
+    throw new Error(`Failed to list folders: ${listMainFoldersResponse.statusText}`);
+  }
+  
+  const mainFolders = await listMainFoldersResponse.json();
+  const mainSharesFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
+  
+  return mainSharesFolder ? mainSharesFolder.id : null;
+}
+
+async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFolderId: string, shareId: string): Promise<string | null> {
+  const listShareFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      i: misskeyToken,
+      folderId: mainFolderId,
+      limit: 100,
+    }),
+  });
+  
+  if (!listShareFoldersResponse.ok) {
+    throw new Error(`Failed to list share folders: ${listShareFoldersResponse.statusText}`);
+  }
+  
+  const shareFolders = await listShareFoldersResponse.json();
+  const shareFolder = shareFolders.find((folder: any) => folder.name === shareId);
+  
+  return shareFolder ? shareFolder.id : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -225,15 +273,28 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
     }
     
-    const fileName = "data.json";
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
     if (!MISSKEY_URL || !MISSKEY_TOKEN) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
     
-    const folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
-    
+    const mainFolderId = await getMainSharesFolderId(MISSKEY_URL, MISSKEY_TOKEN);
+    if (!mainFolderId) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `No shares folder found, nothing to delete.` 
+      });
+    }
+
+    const shareFolderId = await getShareFolderId(MISSKEY_URL, MISSKEY_TOKEN, mainFolderId, id);
+    if (!shareFolderId) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `No share found with ID: ${id}, nothing to delete.` 
+      });
+    }
+
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -241,28 +302,37 @@ export async function DELETE(request: NextRequest) {
       },
       body: JSON.stringify({
         i: MISSKEY_TOKEN,
-        folderId: folderId,
-        name: fileName,
+        folderId: shareFolderId,
         limit: 100,
       }),
     });
-    if (!listResponse.ok) {
-      throw new Error(`Failed to list files: ${listResponse.statusText}`);
-    }
     
-    const files = await listResponse.json();
-    for (const file of files) {
-      await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          i: MISSKEY_TOKEN,
-          fileId: file.id,
-        }),
-      });
+    if (listResponse.ok) {
+      const files = await listResponse.json();
+      for (const file of files) {
+        await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            i: MISSKEY_TOKEN,
+            fileId: file.id,
+          }),
+        });
+      }
     }
+
+    await fetch(`${MISSKEY_URL}/api/drive/folders/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: shareFolderId,
+      }),
+    });
     
     return NextResponse.json({
       success: true,
