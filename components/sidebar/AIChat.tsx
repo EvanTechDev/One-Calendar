@@ -149,6 +149,8 @@ export default function AIChatSheet({
               ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   How can I help you today?
+                  By using AI services, you agree to our <a herf="/privacy"></a>privacy policy</a>.
+                  Your chat messages with AI will be sent to Groq for processing
                 </div>
               ) : (
                 messages.map((message) => (
