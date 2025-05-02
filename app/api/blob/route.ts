@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string, userId: string): Promise<string> {
-  const folderName = `calendar_${userId}`;
+async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: string, userId: string): Promise<string> {
+
+  const mainFolderName = "calendar";
   
-  const listFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+  const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -13,33 +14,75 @@ async function ensureCalendarFolder(misskeyUrl: string, misskeyToken: string, us
       limit: 100,
     }),
   });
-  if (!listFoldersResponse.ok) {
-    throw new Error(`Failed to list folders: ${listFoldersResponse.statusText}`);
+  
+  if (!listMainFoldersResponse.ok) {
+    throw new Error(`Failed to list folders: ${listMainFoldersResponse.statusText}`);
   }
   
-  const folders = await listFoldersResponse.json();
-  const calendarFolder = folders.find((folder: any) => folder.name === folderName);
+  const mainFolders = await listMainFoldersResponse.json();
+  let mainCalendarFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
   
-  if (calendarFolder) {
-    return calendarFolder.id;
+  if (!mainCalendarFolder) {
+    const createMainFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: misskeyToken,
+        name: mainFolderName,
+      }),
+    });
+    
+    if (!createMainFolderResponse.ok) {
+      throw new Error(`Failed to create main calendar folder: ${createMainFolderResponse.statusText}`);
+    }
+    
+    mainCalendarFolder = await createMainFolderResponse.json();
   }
+
+  const userFolderName = userId;
   
-  const createFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
+  const listUserFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       i: misskeyToken,
-      name: folderName,
+      folderId: mainCalendarFolder.id,
+      limit: 100,
     }),
   });
-  if (!createFolderResponse.ok) {
-    throw new Error(`Failed to create calendar folder: ${createFolderResponse.statusText}`);
+  
+  if (!listUserFoldersResponse.ok) {
+    throw new Error(`Failed to list user folders: ${listUserFoldersResponse.statusText}`);
   }
   
-  const newFolder = await createFolderResponse.json();
-  return newFolder.id;
+  const userFolders = await listUserFoldersResponse.json();
+  let userFolder = userFolders.find((folder: any) => folder.name === userFolderName);
+  
+  if (!userFolder) {
+    const createUserFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: misskeyToken,
+        name: userFolderName,
+        parentId: mainCalendarFolder.id,
+      }),
+    });
+    
+    if (!createUserFolderResponse.ok) {
+      throw new Error(`Failed to create user folder: ${createUserFolderResponse.statusText}`);
+    }
+    
+    userFolder = await createUserFolderResponse.json();
+  }
+  
+  return userFolder.id;
 }
 
 export async function POST(request: NextRequest) {
@@ -56,8 +99,8 @@ export async function POST(request: NextRequest) {
     }
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     const blob = new Blob([dataString], { type: "application/json" });
-    const fileName = `${id}.json`;
-    const folderId = await ensureCalendarFolder(MISSKEY_URL, MISSKEY_TOKEN, id);
+    const fileName = "data.json";
+    const folderId = await ensureCalendarFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
@@ -126,8 +169,8 @@ export async function GET(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "Missing backup ID" }, { status: 400 });
     }
-    const fileName = `${id}.json`;
-    const folderId = await ensureCalendarFolder(MISSKEY_URL, MISSKEY_TOKEN, id);
+    const fileName = "data.json";
+    const folderId = await ensureCalendarFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
