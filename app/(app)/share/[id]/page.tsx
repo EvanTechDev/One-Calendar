@@ -211,127 +211,129 @@ export default function SharedEventPage() {
         </div>
       </div>
 
-      {/* 卡片 */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden max-w-md w-full"
-      >
-        {/* 左侧彩色条 */}
-        <div className={cn("w-2", event.color)} />
-
-        {/* 内容区域 */}
-        <div className="p-6 flex-1">
-          <div className="flex justify-between items-start mb-4">
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+>
+  <Card className="max-w-md w-full overflow-hidden">
+    <div className="relative">
+      {/* 左侧彩色条 */}
+      <div className={cn("absolute left-0 top-0 h-full w-1", event.color)} />
+      
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <CardTitle className="text-2xl font-bold mb-1">{event.title}</CardTitle>
+            <CardDescription>
+              {language === "zh" ? "分享者：" : "Shared by: "}
+              <span className="font-medium">{event.sharedBy}</span>
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>{durationText}</span>
+          </Badge>
+        </div>
+        
+        {/* 日期时间 */}
+        <Card className="bg-muted mb-6">
+          <CardContent className="p-4 flex items-start">
+            <Calendar className="h-5 w-5 mr-3 mt-0.5 text-primary" />
             <div>
-              <h1 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">{event.title}</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {language === "zh" ? "分享者：" : "Shared by: "}
-                <span className="font-medium">{event.sharedBy}</span>
+              <p className="font-medium">{formatDateWithTimezone(event.startDate)}</p>
+              <p className="text-muted-foreground">
+                {language === "zh" ? "至" : "to"} {formatDateWithTimezone(event.endDate)}
               </p>
             </div>
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <span>{durationText}</span>
-            </Badge>
-          </div>
-
-          {/* 日期时间 */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-            <div className="flex items-start">
-              <Calendar className="h-5 w-5 mr-3 mt-0.5 text-blue-500" />
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">{formatDateWithTimezone(event.startDate)}</p>
-                <p className="text-gray-500 dark:text-gray-400">
-                  {language === "zh" ? "至" : "to"} {formatDateWithTimezone(event.endDate)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 详情部分 */}
-          <div className="space-y-5">
-            {event.location && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="flex items-start"
-              >
-                <MapPin className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <p className="text-gray-700 dark:text-gray-200">{event.location}</p>
-              </motion.div>
-            )}
-
-            {event.participants?.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="flex items-start"
-              >
-                <Users className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <p className="text-gray-700 dark:text-gray-200">{event.participants.join(", ")}</p>
-              </motion.div>
-            )}
-
-            {event.notification > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
-                className="flex items-start"
-              >
-                <Bell className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <p className="text-gray-700 dark:text-gray-200">
-                  {language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}
-                </p>
-              </motion.div>
-            )}
-
-            {event.description && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-                className="flex items-start"
-              >
-                <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-gray-400" />
-                <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{event.description}</p>
-              </motion.div>
-            )}
-          </div>
-
-          {/* 操作按钮 */}
-          <div className="mt-8 space-y-3">
-            <Button
-              className="w-full bg-[#0066ff] hover:bg-[#0042cc] text-white"
-              onClick={handleAddToCalendar}
-              disabled={isAdding}
+          </CardContent>
+        </Card>
+        
+        {/* 详情部分 */}
+        <div className="space-y-5">
+          {event.location && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="flex items-start"
             >
-              {isAdding ? (
-                <span className="flex items-center justify-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {language === "zh" ? "添加中..." : "Adding..."}
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <CalendarPlus className="mr-2 h-5 w-5" />
-                  {language === "zh" ? "添加到我的日历" : "Add to My Calendar"}
-                </span>
-              )}
-            </Button>
-
-            <Button variant="outline" className="w-full" onClick={copyLink}>
-              <ExternalLink className="mr-2 h-4 w-4" />
-              {copied
-                ? language === "zh" ? "已复制!" : "Copied!"
-                : language === "zh" ? "复制分享链接" : "Copy Share Link"}
-            </Button>
-          </div>
+              <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <p>{event.location}</p>
+            </motion.div>
+          )}
+          
+          {event.participants?.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="flex items-start"
+            >
+              <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <p>{event.participants.join(", ")}</p>
+            </motion.div>
+          )}
+          
+          {event.notification > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              className="flex items-start"
+            >
+              <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <p>
+                {language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}
+              </p>
+            </motion.div>
+          )}
+          
+          {event.description && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+              className="flex items-start"
+            >
+              <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <p className="whitespace-pre-wrap">{event.description}</p>
+            </motion.div>
+          )}
         </div>
-      </motion.div>
+        
+        {/* 操作按钮 */}
+        <div className="mt-8 space-y-3">
+          <Button
+            className="w-full"
+            variant="default"
+            onClick={handleAddToCalendar}
+            disabled={isAdding}
+          >
+            {isAdding ? (
+              <span className="flex items-center justify-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === "zh" ? "添加中..." : "Adding..."}
+              </span>
+            ) : (
+              <span className="flex items-center justify-center">
+                <CalendarPlus className="mr-2 h-5 w-5" />
+                {language === "zh" ? "添加到我的日历" : "Add to My Calendar"}
+              </span>
+            )}
+          </Button>
+          
+          <Button variant="outline" className="w-full" onClick={copyLink}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            {copied
+              ? language === "zh" ? "已复制!" : "Copied!"
+              : language === "zh" ? "复制分享链接" : "Copy Share Link"}
+          </Button>
+        </div>
+      </CardContent>
+    </div>
+  </Card>
+</motion.div>
 
       <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
         {language === "zh" ? "由 One Calendar 提供支持" : "Powered by One Calendar"}
