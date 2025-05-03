@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { User, Upload, Download, X, Check, LogOut } from 'lucide-react'
+import { User, Upload, Download, X, Check, LogOut, CircleUser, FolderSync, CloudUpload } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -346,19 +346,22 @@ return (
                 onClick={() => setIsUserProfileOpen(true)}
                 className="cursor-pointer"
               >
+                <CircleUser className="mr-2 h-4 w-4" />
                 {language === "zh" ? "个人资料" : "Profile"}
               </DropdownMenuItem>
               <DropdownMenuItem 
                  onClick={() => setShowAutoBackupDialog(true)}
                  className="cursor-pointer"
               >
-                {language === "zh" ? "自动备份设置" : "Auto Backup"}
+                <CloudUpload className="mr-2 h-4 w-4" />
+                {language === "zh" ? "自动备份" : "Auto Backup"}
               </DropdownMenuItem>
               <DropdownMenuItem 
                  onClick={() => restoreUserData(false)}
                  className="cursor-pointer"
               >
-                 {language === "zh" ? "同步数据" : "Sync data"}
+                <FolderSync className="mr-2 h-4 w-4" />
+                {language === "zh" ? "同步数据" : "Sync data"}
               </DropdownMenuItem>
               <SignOutButton signOutCallback={handleSignOut}>
                 <DropdownMenuItem className="cursor-pointer">
