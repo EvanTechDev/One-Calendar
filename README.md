@@ -69,7 +69,7 @@ Required Versions:
 
 ```bash
 # Clone the repo
-git clone https://github.com/Dev-Huang1/One-Calendar.git
+git clone https://github.com/EvanTechDev/One-Calendar.git
 cd One-Calendar
 
 # Install dependencies
