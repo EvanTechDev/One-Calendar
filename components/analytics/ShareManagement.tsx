@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { toast } from "@/components/ui/sonner"
+import { toast } from "sonner"
 import { Trash2, Copy, ExternalLink } from "lucide-react"
 import { format } from "date-fns"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -50,8 +50,7 @@ export default function ShareManagement() {
   // Copy share link to clipboard
   const copyShareLink = (shareLink: string) => {
     navigator.clipboard.writeText(shareLink)
-    toast({
-      title: language === "zh" ? "链接已复制" : "Link Copied",
+    toast(language === "zh" ? "链接已复制" : "Link Copied", {
       description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
     })
   }
@@ -88,14 +87,12 @@ export default function ShareManagement() {
       localStorage.setItem("shared-events", JSON.stringify(updatedShares))
       setSharedEvents(updatedShares)
 
-      toast({
-        title: language === "zh" ? "分享已删除" : "Share Deleted",
+      toast(language === "zh" ? "分享已删除" : "Share Deleted", {
         description: language === "zh" ? "分享已成功删除" : "Share has been successfully deleted",
       })
     } catch (error) {
       console.error("Error deleting share:", error)
-      toast({
-        title: language === "zh" ? "删除失败" : "Delete Failed",
+      toast(language === "zh" ? "删除失败" : "Delete Failed", {
         description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
         variant: "destructive",
       })
