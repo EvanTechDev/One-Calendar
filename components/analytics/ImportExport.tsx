@@ -151,7 +151,7 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       if (importedEvents.length === 0) {
-        toast(title: t.importWarning, {
+        toast(t.importWarning, {
           description: t.importWarning,
           variant: "destructive",
         })
@@ -183,7 +183,7 @@ ${rawContent.substring(0, 500)}...`)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.unknownError || "Unknown error"
-      toast(title: t.importError.replace("{error}", errorMessage), {
+      toast(t.importError.replace("{error}", errorMessage), {
         description: errorMessage,
         variant: "destructive",
       })
