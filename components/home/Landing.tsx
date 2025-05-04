@@ -133,12 +133,12 @@ export default function LandingPage() {
        backgroundClip: "padding-box, border-box",
        position: "relative"
      }}>
-  <span className="text-sm text-black font-light">AI Powered</span>
+  <span className="text-sm text-black">AI Powered</span>
 </div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
-          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-light">
+          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6">
             One Calendar is an AI-first app that streamlines your scheduling.
           </p>
           <div className="flex justify-center mb-16">
@@ -155,7 +155,14 @@ export default function LandingPage() {
               alt="One Calendar Preview"
               width={1200}
               height={675}
-              className="w-full object-cover"
+              className="w-full object-cover dark:hidden"
+            />
+            <Image
+              src="/Banner-dark.jpg"
+              alt="One Calendar Preview - Dark"
+              width={1200}
+              height={675}
+              className="w-full object-cover hidden dark:block"
             />
           </div>
         </div>
