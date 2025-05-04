@@ -92,15 +92,13 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         downloadFile(csvContent, "calendar-export.csv", "text/csv")
       }
 
-      toast({
-        title: t.exportSuccess.replace("{count}", filteredEvents.length.toString()),
+      toast(t.exportSuccess.replace("{count}", filteredEvents.length.toString()), {
         description: `${filteredEvents.length} ${t.events || "events"}`,
       })
 
       setExportDialogOpen(false)
     } catch (error) {
-      toast({
-        title: t.exportError,
+      toast(t.exportError, {
         description: t.exportError,
         variant: "destructive",
       })
@@ -153,8 +151,7 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       if (importedEvents.length === 0) {
-        toast({
-          title: t.importWarning,
+        toast(title: t.importWarning, {
           description: t.importWarning,
           variant: "destructive",
         })
@@ -186,8 +183,7 @@ ${rawContent.substring(0, 500)}...`)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.unknownError || "Unknown error"
-      toast({
-        title: t.importError.replace("{error}", errorMessage),
+      toast(title: t.importError.replace("{error}", errorMessage), {
         description: errorMessage,
         variant: "destructive",
       })
