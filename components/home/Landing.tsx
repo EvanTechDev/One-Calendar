@@ -53,7 +53,7 @@ export default function LandingPage() {
       </div>*/}
       
       <PixelatedBackground
-        className="absolute -top-32 left-1/2 -z-10 h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover opacity-5"
+        className="fixed -top-32 left-1/2 -z-10 h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover opacity-5"
         style={{ mixBlendMode: 'screen' }}
       />
       
