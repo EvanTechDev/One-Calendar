@@ -59,7 +59,7 @@ export default function LandingPage() {
         linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
       `,
-      backgroundSize: '24px 24px'
+      backgroundSize: '52px 52px'
     }} />
 
     <div className="absolute inset-0 dark:block hidden" style={{
@@ -67,7 +67,7 @@ export default function LandingPage() {
         linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px)
       `,
-      backgroundSize: '24px 24px'
+      backgroundSize: '52px 52px'
     }} />
   </div>
 </div>
