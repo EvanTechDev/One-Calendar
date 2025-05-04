@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon } from "lucide-react"
 import Image from "next/image"
-// import { PixelatedBackground } from "./PixelatedBG"
+import { PixelatedBackground } from "./PixelatedBG"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -52,25 +52,10 @@ export default function LandingPage() {
         </div>
       </div>*/}
       
-      <div className="fixed -z-10 inset-0">
-  <div className="absolute inset-0 bg-white dark:bg-black">
-    <div className="absolute inset-0" style={{
-      backgroundImage: `
-        linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
-      `,
-      backgroundSize: '52px 52px'
-    }} />
-
-    <div className="absolute inset-0 dark:block hidden" style={{
-      backgroundImage: `
-        linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px)
-      `,
-      backgroundSize: '52px 52px'
-    }} />
-  </div>
-</div>
+      <PixelatedBackground
+        className="absolute -top-32 left-1/2 -z-10 h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover opacity-5"
+        style={{ mixBlendMode: 'screen' }}
+      />
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
