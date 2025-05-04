@@ -12,7 +12,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -58,8 +58,7 @@ export default function UserProfileButton() {
   }
 
   const handleSignOut = () => {
-    toast({
-      title: language === "zh" ? "已登出" : "Signed Out",
+    toast(language === "zh" ? "已登出" : "Signed Out", {
       description: language === "zh" ? "您已成功退出登录" : "You have been signed out",
     });
   };
@@ -133,9 +132,8 @@ const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: a
     console.log("Data saved to localStorage")
   } catch (error) {
     console.error("Error saving data to localStorage:", error)
-    toast({
+    toast(language === "zh" ? "保存本地数据失败" : "Failed to save local data", {
       variant: "destructive",
-      title: language === "zh" ? "保存本地数据失败" : "Failed to save local data",
       description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
     })
   }
@@ -148,20 +146,19 @@ const enableAutoBackup = () => {
     setIsAutoBackupEnabled(true);
     localStorage.setItem("auto-backup-enabled", "true"); // 明确设置为 "true"
     localStorage.setItem("auto-backup-id", clerkUserId);
-    toast({
-      title: language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled",
+    toast(anguage === "zh" ? "自动备份已启用" : "Auto-Backup Enabled", {
       description: language === "zh" 
         ? "您的数据将在每次更改时自动备份。" 
         : "Your data will be automatically backed up on changes.",
     });
-    setShowAutoBackupDialog(false); // 确保关闭对话框
-    performAutoBackup(); // 立即执行一次备份
+    setShowAutoBackupDialog(false);
+    performAutoBackup();
   }
 };
 
 const disableAutoBackup = () => {
   setIsAutoBackupEnabled(false);
-  localStorage.removeItem("auto-backup-enabled"); // 完全移除而不是设为 false
+  localStorage.removeItem("auto-backup-enabled");
   localStorage.removeItem("auto-backup-id");
   
   if (syncInterval) {
@@ -169,8 +166,7 @@ const disableAutoBackup = () => {
     setSyncInterval(null);
   }
 
-  toast({
-    title: language === "zh" ? "自动备份已禁用" : "Auto-Backup Disabled",
+  toast(language === "zh" ? "自动备份已禁用" : "Auto-Backup Disabled", {
     description: language === "zh" 
       ? "您的数据将不再自动备份" 
       : "Your data will no longer be automatically backed up"
@@ -256,8 +252,7 @@ const restoreUserData = async (silent = true) => {
       setLastRestoreTime(new Date());
       
       if (!silent) {
-        toast({
-          title: language === "zh" ? "数据恢复成功" : "Data Restored",
+        toast(language === "zh" ? "数据恢复成功" : "Data Restored", {
           description: language === "zh" 
             ? `已同步最新备份 (${new Date().toLocaleTimeString()})`
             : `Synced latest backup (${new Date().toLocaleTimeString()})`
@@ -267,9 +262,8 @@ const restoreUserData = async (silent = true) => {
   } catch (error) {
     console.error("恢复失败:", error);
     if (!silent) {
-      toast({
+      toast(language === "zh" ? "恢复失败" : "Restore Failed", {
         variant: "destructive",
-        title: language === "zh" ? "恢复失败" : "Restore Failed",
         description: error instanceof Error 
           ? error.message 
           : language === "zh" ? "无法获取备份数据" : "Failed to fetch backup"
