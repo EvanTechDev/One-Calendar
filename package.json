@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
@@ -68,7 +68,8 @@
     "ai": "latest",
     "@ai-sdk/groq": "^1.2.8",
     "groq-sdk": "latest",
-    "axios": "latest"
+    "axios": "latest",
+    "sonner": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
