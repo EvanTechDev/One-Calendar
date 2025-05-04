@@ -59,7 +59,7 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-sm border border-black/10 dark:border-white/20">
+        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
@@ -132,6 +132,9 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
+            <div className="hidden dark:block absolute inset-0 pointer-events-none">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[30rem] bg-gradient-radial from-white/10 via-white/5 to-transparent blur-2xl opacity-60"></div>
+  </div>
           <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
      style={{
        border: "1px solid transparent",
@@ -346,25 +349,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      
-      {/* CTA Section - Improved Background */}
-      <section className="py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0" />
-        <div className="max-w-5xl mx-auto relative z-10">
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
-            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
-              Join thousands of users who've streamlined their calendar management with One Calendar.
-            </p>
-            <Button
-              onClick={handleGetStarted}
-              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
-            >
-              Get Started
-            </Button>
-          </div>
-        </div>
-      </section>
 
       {/* FAQ Accordion Section */}
 <section className="py-16 px-4 relative overflow-hidden">
@@ -427,6 +411,25 @@ export default function LandingPage() {
     </Accordion>
   </div>
 </section>
+      
+      {/* CTA Section - Improved Background */}
+      <section className="py-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0" />
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
+            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
+              Join thousands of users who've streamlined their calendar management with One Calendar.
+            </p>
+            <Button
+              onClick={handleGetStarted}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </section>
       
       {/* Original Footer */}
       <footer className="mt-auto py-8 border-t border-black/10 dark:border-white/10 text-gray-600 dark:text-white/70 text-sm px-6">
