@@ -134,7 +134,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center">
   <div className="hidden dark:block absolute inset-0 pointer-events-none">
     <div 
-      className="absolute top-0 left-1/2 -translate-x-1/2 w-[12rem] h-[22rem]" 
+      className="absolute top-0 left-1/2 -translate-x-1/2 w-[36rem] h-[22rem]" 
       style={{
         background: "linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.05) 70%, transparent 100%)",
         filter: "blur(8px)"
