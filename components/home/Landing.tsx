@@ -133,7 +133,13 @@ export default function LandingPage() {
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
             <div className="hidden dark:block absolute inset-0 pointer-events-none">
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[30rem] bg-gradient-radial from-white/10 via-white/5 to-transparent blur-2xl opacity-60"></div>
+    <div 
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[40rem]" 
+      style={{
+        background: "radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 40%, transparent 70%)",
+        filter: "blur(30px)"
+      }}
+    ></div>
   </div>
           <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
      style={{
