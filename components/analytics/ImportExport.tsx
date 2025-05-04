@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/sonner"
 import { Download, Upload, CalendarIcon, ExternalLink, AlertCircle } from "lucide-react"
 import type { CalendarEvent } from "../Calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { translations, useLanguage } from "@/lib/i18n" // 使用useLanguage而不是useLocalStorage
+import { translations, useLanguage } from "@/lib/i18n"
 
 interface ImportExportProps {
   events: CalendarEvent[]
@@ -163,9 +163,9 @@ ${rawContent.substring(0, 500)}...`)
 
       onImportEvents(importedEvents)
 
-      toast({ t.importSuccess.replace("{count}", importedEvents.length.toString()),
+      toast(t.importSuccess.replace("{count}", importedEvents.length.toString()), {
         description: `${importedEvents.length} ${t.events || "events"}`,
-      })
+      });
 
       if (!debugMode) {
         setImportDialogOpen(false)
