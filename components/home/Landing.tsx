@@ -52,7 +52,7 @@ export default function LandingPage() {
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
-        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/20">
+        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 backdrop-blur-sm border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
             {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
@@ -133,12 +133,12 @@ export default function LandingPage() {
        backgroundClip: "padding-box, border-box",
        position: "relative"
      }}>
-  <span className="text-sm text-black">AI Powered</span>
+  <span className="text-sm text-black font-light">AI Powered</span>
 </div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
              Time-Saving AI Calendar,<br />Designed for Efficiency
           </h1>
-          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-medium">
+          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6 font-light">
             One Calendar is an AI-first app that streamlines your scheduling.
           </p>
           <div className="flex justify-center mb-16">
@@ -338,7 +338,7 @@ export default function LandingPage() {
         <div className="absolute inset-0" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
+            <h2 className="text-4xl md:text-5xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
             <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
               Join thousands of users who've streamlined their calendar management with One Calendar.
             </p>
