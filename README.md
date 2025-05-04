@@ -184,5 +184,6 @@ This project wouldn't be possible without these awesome services:
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
 
-Some components are adapted from external sources under the MIT License, including parts of the [Zero Email](https://github.com/Mail-0/Zero) project.  
-These components retain their original license terms. See relevant files for copyright.
+> [!NOTE]\
+> Some components are adapted from external sources under the MIT License, including parts of the [Zero Email](https://github.com/Mail-0/Zero) project.  
+> These components retain their original license terms. See relevant files for copyright.
