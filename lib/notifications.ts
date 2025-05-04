@@ -1,5 +1,4 @@
-import { toast } from "@/components/ui/use-toast";
-import { ToastAction } from "@/components/ui/toast";
+import { toast } from "sonner";
 
 let notificationInterval: NodeJS.Timeout | null = null;
 
@@ -42,9 +41,8 @@ const triggerNotification = (event: any) => {
 
 // 显示 Toast 通知
 const showToast = (event: any) => {
-  toast({
-    title: `事件提醒：${event.title}`,
-    description: event.description || "没有描述内容",
+  toast(`${event.title}`, {
+    description: event.description || "No content",
     duration: 4000,
   });
 };
