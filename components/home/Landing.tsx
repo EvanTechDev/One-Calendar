@@ -1,4 +1,5 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -11,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon } from "lucide-react"
 import Image from "next/image"
+import { PixelatedBackground } from "./PixelatedBG"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -37,7 +39,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen text-gray-900 dark:text-white">
       {/* Background Pattern */}
-      <div className="fixed -z-10 inset-0">
+      {/*<div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
@@ -48,7 +50,12 @@ export default function LandingPage() {
             backgroundSize: '24px 24px'
           }} />
         </div>
-      </div>
+      </div>*/}
+      
+      <PixelatedBackground
+        className="absolute -top-32 left-1/2 -z-10 h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover opacity-5"
+        style={{ mixBlendMode: 'screen' }}
+      />
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
