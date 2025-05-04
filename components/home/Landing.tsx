@@ -132,11 +132,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
-  <div className="hidden dark:block absolute inset-0 pointer-events-none">
+<div className="hidden dark:block absolute inset-0 pointer-events-none">
     <div 
-      className="absolute top-0 left-1/2 -translate-x-1/2 w-[30rem] h-[20rem]" 
+      className="absolute top-0 left-1/2 -translate-x-1/2 w-[30rem] h-[25rem]" 
       style={{
-        background: "conic-gradient(from -90deg at 50% 0%, transparent 75deg, rgba(255,255,255,0.08) 90deg, rgba(255,255,255,0.1) 180deg, rgba(255,255,255,0.08) 270deg, transparent 285deg)",
+        background: "conic-gradient(from -90deg at 50% 0%, transparent 75deg, rgba(255,255,255,0.12) 90deg, rgba(255,255,255,0.08) 105deg, transparent 120deg)",
         filter: "blur(15px)"
       }}
     ></div>
