@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Plus, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { translations } from "@/lib/i18n"
@@ -78,8 +78,7 @@ export default function Sidebar({
       setNewCategoryName("")
       setNewCategoryColor("bg-blue-500")
       setShowAddCategory(false)
-      toast({
-        title: t.categoryAdded || "分类已添加",
+      toast(t.categoryAdded || "分类已添加", {
         description: `${t.categoryAddedDesc || "已成功添加"} "${newCategoryName}" ${t.category || "分类"}`,
       })
     }
@@ -93,8 +92,7 @@ export default function Sidebar({
   const confirmDelete = () => {
   if (categoryToDelete) {
     removeCategoryFromContext(categoryToDelete)
-    toast({
-      title: deleteText.toastSuccess,
+    toast(deleteText.toastSuccess, {
       description: deleteText.toastDescription,
     })
   }
