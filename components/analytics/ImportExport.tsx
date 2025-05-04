@@ -163,8 +163,7 @@ ${rawContent.substring(0, 500)}...`)
 
       onImportEvents(importedEvents)
 
-      toast({
-        title: t.importSuccess.replace("{count}", importedEvents.length.toString()),
+      toast({ t.importSuccess.replace("{count}", importedEvents.length.toString()),
         description: `${importedEvents.length} ${t.events || "events"}`,
       })
 
