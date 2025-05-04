@@ -39,8 +39,8 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen text-gray-900 dark:text-white">
       {/* Background Pattern */}
-      {/*<div className="fixed -z-10 inset-0">
-        <div className="absolute inset-0 bg-white dark:bg-black">
+      <div className="fixed -z-10 inset-0">
+        <div className="absolute inset-0 bg-white dark:hidden">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
             backgroundSize: '24px 24px'
@@ -50,7 +50,7 @@ export default function LandingPage() {
             backgroundSize: '24px 24px'
           }} />
         </div>
-      </div>*/}
+      </div>
       
       <PixelatedBackground
         className="absolute -top-32 left-1/2 -z-10 h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover opacity-5"
