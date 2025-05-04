@@ -24,26 +24,9 @@
  * SOFTWARE.
  */
 
-import { useEffect, useState } from 'react';
+import type { SVGProps } from 'react';
 
 export function PixelatedBackground(props: SVGProps<SVGSVGElement>) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches);
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
-
   return (
     <svg
       width="1440"
@@ -52,10 +35,6 @@ export function PixelatedBackground(props: SVGProps<SVGSVGElement>) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
-      style={{
-        opacity: isDarkMode ? 0.7 : 0.5,
-        mixBlendMode: isDarkMode ? 'multiply' : 'screen',
-      }}
       {...props}
     >
       <title>Pixelated Background</title>
