@@ -69,7 +69,7 @@
     "@ai-sdk/groq": "^1.2.8",
     "groq-sdk": "latest",
     "axios": "latest",
-    "sonner": "1.7.4"
+    "sonner": "2.0.3"
   },
   "devDependencies": {
     "@types/node": "^22",
