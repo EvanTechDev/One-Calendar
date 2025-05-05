@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils"
 import Weather from "@/components/home/Weather"
 import DailyToast from "@/components/home/DailyToast"
 import QuickStartGuide from "@/components/home/QuickStartGuide"
+import { toast } from "sonner"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -70,6 +71,14 @@ export default function Calendar() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
 
+  const updateEvent = (updatedEvent) => {
+    setEvents(prevEvents => 
+      prevEvents.map(event => 
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+    )
+  }
+  
   // 新增：快速创建事件的初始时间
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(null)
 
@@ -461,6 +470,15 @@ const handleShare = (event: CalendarEvent) => {
                 setPreviewOpen(true)
                 setOpenShareImmediately(true)}}
               onBookmarkEvent={toggleBookmark}
+              onEventDrop={(event, newStartDate, newEndDate) => {
+                const updatedEvent = {
+                  ...event,
+                  startDate: newStartDate,
+                  endDate: newEndDate
+                }
+
+                updateEvent(updatedEvent)
+              }}
             />
           )}
           {view === "month" && (
