@@ -34,6 +34,8 @@ interface CalendarEvent {
   endDate: string | Date
   title: string
   color: string
+  // 添加全天事件标志
+  isAllDay?: boolean
 }
 
 export default function WeekView({
@@ -53,7 +55,7 @@ export default function WeekView({
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const today = new Date() // 获取今天的日期
+  const today = new Date()
 
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -61,29 +63,29 @@ export default function WeekView({
   const hasScrolledRef = useRef(false)
 
   const menuLabels = {
-  edit: language === "zh" ? "修改" : "Edit",
-  share: language === "zh" ? "分享" : "Share",
-  bookmark: language === "zh" ? "书签" : "Bookmark",
-  delete: language === "zh" ? "删除" : "Delete",
-}
+    edit: language === "zh" ? "修改" : "Edit",
+    share: language === "zh" ? "分享" : "Share",
+    bookmark: language === "zh" ? "书签" : "Bookmark",
+    delete: language === "zh" ? "删除" : "Delete",
+  }
 
   function getDarkerColorClass(color: string) {
-  const colorMapping: Record<string, string> = {
-    'bg-blue-500': '#3C74C4',
-    'bg-yellow-500': '#C39248',
-    'bg-red-500': '#C14D4D',
-    'bg-green-500': '#3C996C',
-    'bg-purple-500': '#A44DB3',
-    'bg-pink-500': '#C14D84',
-    'bg-indigo-500': '#3D63B3',
-    'bg-orange-500': '#C27048',
-    'bg-teal-500': '#3C8D8D',
+    const colorMapping: Record<string, string> = {
+      'bg-blue-500': '#3C74C4',
+      'bg-yellow-500': '#C39248',
+      'bg-red-500': '#C14D4D',
+      'bg-green-500': '#3C996C',
+      'bg-purple-500': '#A44DB3',
+      'bg-pink-500': '#C14D84',
+      'bg-indigo-500': '#3D63B3',
+      'bg-orange-500': '#C27048',
+      'bg-teal-500': '#3C8D8D',
+    }
+
+    return colorMapping[color] || '#3A3A3A';
   }
 
-  return colorMapping[color] || '#3A3A3A';
-  }
-
-  // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
+  // 修改自动滚动到当前时间的效果,只在组件挂载时执行一次
   useEffect(() => {
     // 只在组件挂载时执行一次滚动
     if (!hasScrolledRef.current && scrollContainerRef.current) {
@@ -97,7 +99,7 @@ export default function WeekView({
         const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
 
         if (currentHourElement) {
-          // 滚动到当前小时的位置，并向上偏移100px使其在视图中间偏上
+          // 滚动到当前小时的位置,并向上偏移100px使其在视图中间偏上
           scrollContainerRef.current.scrollTo({
             top: (currentHourElement as HTMLElement).offsetTop - 100,
             behavior: "auto",
@@ -110,7 +112,7 @@ export default function WeekView({
     }
   }, [date, weekDays])
 
-  // 修改时间更新逻辑，只更新时间线位置，不改变滚动位置
+  // 修改时间更新逻辑,只更新时间线位置,不改变滚动位置
   useEffect(() => {
     // 立即更新时间
     setCurrentTime(new Date())
@@ -139,6 +141,23 @@ export default function WeekView({
     return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
   }
 
+  // 判断事件是否为全天事件
+  const isAllDayEvent = (event: CalendarEvent) => {
+    if (event.isAllDay) return true
+    
+    const start = new Date(event.startDate)
+    const end = new Date(event.endDate)
+    
+    // 检查是否为00:00-23:59的事件
+    const isFullDay = 
+      start.getHours() === 0 && 
+      start.getMinutes() === 0 && 
+      ((end.getHours() === 23 && end.getMinutes() === 59) || 
+       (end.getHours() === 0 && end.getMinutes() === 0 && end.getDate() !== start.getDate()))
+    
+    return isFullDay
+  }
+
   // 安全地检查事件是否跨越多天
   const isMultiDayEvent = (start: Date, end: Date) => {
     if (!start || !end) return false
@@ -158,7 +177,7 @@ export default function WeekView({
     // 如果事件在当天开始
     if (isSameDay(start, day)) return true
 
-    // 如果是多天事件，检查当天是否在事件范围内
+    // 如果是多天事件,检查当天是否在事件范围内
     if (isMultiDayEvent(start, end)) {
       return isWithinInterval(day, { start, end })
     }
@@ -181,13 +200,13 @@ export default function WeekView({
     let dayEnd = end
 
     if (isMultiDay) {
-      // 如果不是事件的开始日，从当天0点开始
+      // 如果不是事件的开始日,从当天0点开始
       if (!isSameDay(start, day)) {
         dayStart = new Date(day)
         dayStart.setHours(0, 0, 0, 0)
       }
 
-      // 如果不是事件的结束日，到当天24点结束
+      // 如果不是事件的结束日,到当天24点结束
       if (!isSameDay(end, day)) {
         dayEnd = new Date(day)
         dayEnd.setHours(23, 59, 59, 999)
@@ -201,7 +220,23 @@ export default function WeekView({
     }
   }
 
-  // 改进的事件布局算法，处理重叠事件
+  // 将事件分为全天事件和正常事件
+  const separateEvents = (dayEvents: CalendarEvent[], day: Date) => {
+    const allDayEvents: CalendarEvent[] = []
+    const regularEvents: CalendarEvent[] = []
+
+    dayEvents.forEach(event => {
+      if (isAllDayEvent(event)) {
+        allDayEvents.push(event)
+      } else {
+        regularEvents.push(event)
+      }
+    })
+
+    return { allDayEvents, regularEvents }
+  }
+
+  // 改进的事件布局算法,处理重叠事件
   const layoutEventsForDay = (dayEvents: CalendarEvent[], day: Date) => {
     if (!dayEvents || dayEvents.length === 0) return []
 
@@ -222,7 +257,7 @@ export default function WeekView({
     // 按开始时间排序
     eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
 
-    // 创建时间段数组，每个时间段包含在该时间段内活跃的事件
+    // 创建时间段数组,每个时间段包含在该时间段内活跃的事件
     type TimePoint = { time: number; isStart: boolean; eventIndex: number }
     const timePoints: TimePoint[] = []
 
@@ -237,7 +272,7 @@ export default function WeekView({
 
     // 按时间排序
     timePoints.sort((a, b) => {
-      // 如果时间相同，结束时间点排在开始时间点之前
+      // 如果时间相同,结束时间点排在开始时间点之前
       if (a.time === b.time) {
         return a.isStart ? 1 : -1
       }
@@ -289,7 +324,7 @@ export default function WeekView({
         activeEvents.delete(point.eventIndex)
       }
 
-      // 如果是最后一个时间点或下一个时间点与当前不同，处理当前时间段
+      // 如果是最后一个时间点或下一个时间点与当前不同,处理当前时间段
       if (i === timePoints.length - 1 || timePoints[i + 1].time !== point.time) {
         // 计算当前活跃事件的布局
         const totalColumns =
@@ -320,7 +355,7 @@ export default function WeekView({
     return eventLayouts
   }
 
-  // 处理时间格子点击，根据点击位置确定更精确的时间
+  // 处理时间格子点击,根据点击位置确定更精确的时间
   const handleTimeSlotClick = (day: Date, hour: number, event: React.MouseEvent<HTMLDivElement>) => {
     // 获取点击位置在时间格子内的相对位置
     const rect = event.currentTarget.getBoundingClientRect()
@@ -328,10 +363,10 @@ export default function WeekView({
     const cellHeight = rect.height
 
     // 根据点击位置确定分钟数
-    // 如果点击在格子的上半部分，分钟为0，否则为30
+    // 如果点击在格子的上半部分,分钟为0,否则为30
     const minutes = relativeY < cellHeight / 2 ? 0 : 30
 
-    // 创建一个新的日期对象，设置为指定日期的指定小时和分钟
+    // 创建一个新的日期对象,设置为指定日期的指定小时和分钟
     const clickTime = new Date(day)
     clickTime.setHours(hour, minutes, 0, 0)
 
@@ -341,27 +376,97 @@ export default function WeekView({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // 添加自动滚动到当前时间的效果
-  // 添加自动滚动到当前时间的效果
+  // 渲染全天事件的函数
+  const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
+    // 简单布局算法，堆叠全天事件
+    return allDayEvents.map((event, index) => (
+      <ContextMenu key={`allday-${event.id}-${day.toISOString().split("T")[0]}`}>
+        <ContextMenuTrigger asChild>
+          <div
+            className={cn("relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden", event.color)}
+            style={{
+              height: "24px",  // 固定高度
+              marginTop: index * 26 + "px", // 堆叠事件
+              opacity: 0.9,
+              zIndex: 10 + index,
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEventClick(event)
+            }}
+          >
+            <div 
+              className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+              style={{ backgroundColor: getDarkerColorClass(event.color) }} 
+            />
+            <div className="pl-1.5 truncate text-white">
+              {event.title}
+            </div>
+          </div>
+        </ContextMenuTrigger>
+
+        <ContextMenuContent className="w-40">
+          <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+            <Edit3 className="mr-2 h-4 w-4" />
+            {menuLabels.edit}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+            <Share2 className="mr-2 h-4 w-4" />
+            {menuLabels.share}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+            <Bookmark className="mr-2 h-4 w-4" />
+            {menuLabels.bookmark}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+            <Trash2 className="mr-2 h-4 w-4" />
+            {menuLabels.delete}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    ))
+  }
 
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_repeat(7,1fr)] divide-x relative z-30 bg-background">
         <div className="sticky top-0 z-30 bg-background" />
-        {weekDays.map((day) => (
-          <div key={day.toString()} className="sticky top-0 z-30 bg-background p-2 text-center">
-            <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
-            {/* 如果是今天，使用蓝色高亮显示日期 */}
-            <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>{format(day, "d")}</div>
-          </div>
-        ))}
+        {weekDays.map((day) => {
+          // 获取当天的事件
+          const dayEvents = events.filter((event) => shouldShowEventOnDay(event, day))
+          // 分离全天事件和普通事件
+          const { allDayEvents } = separateEvents(dayEvents, day)
+          
+          // 计算全天事件区域的高度
+          const allDayEventsHeight = allDayEvents.length > 0 ? allDayEvents.length * 26 : 0
+          
+          return (
+            <div key={day.toString()} className="sticky top-0 z-30 bg-background">
+              <div className="p-2 text-center">
+                <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
+                {/* 如果是今天,使用蓝色高亮显示日期 */}
+                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>
+                  {format(day, "d")}
+                </div>
+              </div>
+              
+              {/* 全天事件区域 */}
+              <div 
+                className="relative" 
+                style={{ minHeight: allDayEvents.length > 0 ? allDayEventsHeight + "px" : "0px" }}
+              >
+                {renderAllDayEvents(day, allDayEvents)}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
-              {/* 修复时间标签位置，特别是0:00的显示问题 */}
+              {/* 修复时间标签位置,特别是0:00的显示问题 */}
               <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
@@ -370,8 +475,10 @@ export default function WeekView({
         {weekDays.map((day) => {
           // 获取当天的事件
           const dayEvents = events.filter((event) => shouldShowEventOnDay(event, day))
+          // 分离全天事件和普通事件
+          const { regularEvents } = separateEvents(dayEvents, day)
           // 对事件进行布局
-          const eventLayouts = layoutEventsForDay(dayEvents, day)
+          const eventLayouts = layoutEventsForDay(regularEvents, day)
 
           return (
             <div key={day.toString()} className="relative border-l">
@@ -388,20 +495,19 @@ export default function WeekView({
                 const endMinutes = end.getHours() * 60 + end.getMinutes()
                 const duration = endMinutes - startMinutes
 
-                // 设置最小高度，确保短事件也能显示文本
+                // 设置最小高度,确保短事件也能显示文本
                 const minHeight = 20 // 最小高度为20px
                 const height = Math.max(duration, minHeight)
 
-                // 计算事件宽度和位置，处理重叠
+                // 计算事件宽度和位置,处理重叠
                 const width = `calc((100% - 4px) / ${totalColumns})`
                 const left = `calc(${column} * ${width})`
 
                 return (
-                    <ContextMenu>
+                    <ContextMenu key={`${event.id}-${day.toISOString().split("T")[0]}`}>
                       <ContextMenuTrigger asChild>
                         <div
-                          key={`${event.id}-${day.toISOString().split("T")[0]}`}
-                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                          className={cn("relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
