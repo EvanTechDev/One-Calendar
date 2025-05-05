@@ -452,6 +452,15 @@ const handleShare = (event: CalendarEvent) => {
               onTimeSlotClick={handleTimeSlotClick}
               language={language}
               timezone={timezone}
+              onEventDrop={(event, newStartDate, newEndDate) => {
+                const updatedEvent = {
+                  ...event,
+                  startDate: newStartDate,
+                  endDate: newEndDate
+                }
+
+                updateEvent(updatedEvent)
+              }}
             />
           )}
           {view === "week" && (
