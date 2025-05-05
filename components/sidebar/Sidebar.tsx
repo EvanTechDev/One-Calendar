@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronDown, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -41,7 +41,6 @@ export default function Sidebar({
   isCollapsed = false,
   onToggleCollapse,
 }: SidebarProps) {
-
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -90,15 +89,15 @@ export default function Sidebar({
   }
 
   const confirmDelete = () => {
-  if (categoryToDelete) {
-    removeCategoryFromContext(categoryToDelete)
-    toast(deleteText.toastSuccess, {
-      description: deleteText.toastDescription,
-    })
+    if (categoryToDelete) {
+      removeCategoryFromContext(categoryToDelete)
+      toast(deleteText.toastSuccess, {
+        description: deleteText.toastDescription,
+      })
+    }
+    setDeleteDialogOpen(false)
+    setCategoryToDelete(null)
   }
-  setDeleteDialogOpen(false)
-  setCategoryToDelete(null)
-}
 
   return (
     <div className={cn(
@@ -130,116 +129,112 @@ export default function Sidebar({
           />
         </div>
 
-       <div className={cn(
-  "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-  isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-72 opacity-100"
-)}>
-  <div className="mt-8 space-y-4">
-    <div className="flex items-center justify-between">
-      <span className="text-sm font-medium">{t.myCalendars}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setShowAddCategory(!showAddCategory)}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
-    </div>
-    {calendars.map((calendar) => (
-      <div key={calendar.id} className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
-          <span className="text-sm">{calendar.name}</span>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    ))}
-    {showAddCategory && (
-      <div className="flex items-center space-x-2">
-        <Input
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-          placeholder={t.categoryName || "新日历名称"}
-          className="text-sm"
-        />
-        <Button size="sm" onClick={addCategory}>
-          {t.addCategory || "添加"}
-        </Button>
-      </div>
-    )}
-  </div>
-</div>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{deleteText.title}</DialogTitle>
-            <DialogDescription>
-              {deleteText.description}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              {deleteText.cancel}
+        <div className="mt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{t.myCalendars}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAddCategory(!showAddCategory)}
+            >
+              <Plus className="h-4 w-4" />
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              {deleteText.delete}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t.createCategories}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">{t.categoryName}</Label>
+          </div>
+          {calendars.map((calendar) => (
+            <div key={calendar.id} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
+                <span className="text-sm">{calendar.name}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {showAddCategory && (
+            <div className="flex items-center space-x-2">
               <Input
-                id="category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Name"
+                placeholder={t.categoryName || "新日历名称"}
+                className="text-sm"
               />
+              <Button size="sm" onClick={addCategory}>
+                {t.addCategory || "添加"}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label>{t.color}</Label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "blue-500",
-                  "green-500",
-                  "purple-500",
-                  "yellow-500",
-                  "red-500",
-                  "pink-500",
-                  "indigo-500",
-                  "orange-500",
-                  "teal-500",
-                ].map((color) => (
-                  <div
-                    key={color}
-                    className={cn(
-                      `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
-                      newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
-                    )}
-                    onClick={() => setNewCategoryColor(`bg-${color}`)}
-                  />
-                ))}
-              </div>
-            </div>
+          )}
+        </div>
+
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{deleteText.title}</DialogTitle>
+              <DialogDescription>
+                {deleteText.description}
+              </DialogDescription>
+            </DialogHeader>
             <DialogFooter>
-            <Button onClick={addCategory} disabled={!newCategoryName}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t.addCategory}
-            </Button>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                {deleteText.cancel}
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                {deleteText.delete}
+              </Button>
             </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t.createCategories}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="category-name">{t.categoryName}</Label>
+                <Input
+                  id="category-name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t.color}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "blue-500",
+                    "green-500",
+                    "purple-500",
+                    "yellow-500",
+                    "red-500",
+                    "pink-500",
+                    "indigo-500",
+                    "orange-500",
+                    "teal-500",
+                  ].map((color) => (
+                    <div
+                      key={color}
+                      className={cn(
+                        `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
+                        newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
+                      )}
+                      onClick={() => setNewCategoryColor(`bg-${color}`)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={addCategory} disabled={!newCategoryName}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t.addCategory}
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }
