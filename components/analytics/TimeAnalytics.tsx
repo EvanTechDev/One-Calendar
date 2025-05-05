@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
-import type { CalendarCategory } from "../Sidebar"
+import type { CalendarCategory } from "@/components/sidebar/Sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface TimeAnalyticsProps {
@@ -21,8 +21,6 @@ interface TimeAnalyticsProps {
 }
 
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
-  // 使用相同的存储键"calendar-categories"
-  const [timeCategories, setTimeCategories] = useLocalStorage<CalendarCategory[]>("calendar-categories", calendars)
   const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null)
   const [newCategory, setNewCategory] = useState<Partial<CalendarCategory>>({
     name: "",
@@ -137,75 +135,6 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       <CardHeader>
         <CardTitle>{t.timeAnalytics}</CardTitle>
         <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
-        <div className="flex justify-end">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                {t.manageCategories}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{t.manageCategories}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category-name">{t.categoryName}</Label>
-                  <Input
-                    id="category-name"
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t.color}</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      "blue-500",
-                      "green-500",
-                      "purple-500",
-                      "yellow-500",
-                      "red-500",
-                      "pink-500",
-                      "indigo-500",
-                      "orange-500",
-                      "teal-500",
-                    ].map((color) => (
-                      <div
-                        key={color}
-                        className={cn(
-                          `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
-                          newCategory.color === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
-                        )}
-                        onClick={() => setNewCategory({ ...newCategory, color: `bg-${color}` })}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <Button onClick={handleAddCategory} disabled={!newCategory.name}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t.addCategory}
-                </Button>
-                <div className="space-y-2 mt-4">
-                  <Label>{t.existingCategories}</Label>
-                  <div className="space-y-2">
-                    {timeCategories.map((category) => (
-                      <div key={category.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <div className="flex items-center">
-                          <div className={cn("w-4 h-4 rounded-full mr-2", category.color)} />
-                          <span>{category.name}</span>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => handleRemoveCategory(category.id)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
