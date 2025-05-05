@@ -382,6 +382,7 @@ export default function WeekView({
 
   // 渲染全天事件的函数
   const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
+    const eventSpacing = 3;
     return allDayEvents.map((event, index) => (
       <ContextMenu key={`allday-${event.id}-${day.toISOString().split("T")[0]}`}>
         <ContextMenuTrigger asChild>
@@ -389,7 +390,7 @@ export default function WeekView({
             className={cn("relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden", event.color)}
             style={{
               height: "20px",
-              top: index * 20 + "px", // 堆叠事件但没有间隔
+              top: index * (20 + eventSpacing) + "px",
               position: "absolute",
               left: "0",
               right: "0",
