@@ -3,9 +3,6 @@ import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseI
 import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon, GlobeIcon } from "lucide-react";
-import { useTheme } from "next-themes";
 
 interface CalendarEvent {
   id: string;
@@ -30,8 +27,6 @@ interface Translations {
   noEvents: string;
   less: string;
   more: string;
-  toggleTheme: string;
-  toggleLanguage: string;
   weekdays: string[];
 }
 
@@ -42,8 +37,6 @@ const translations: Record<Language, Translations> = {
     noEvents: 'No events found',
     less: 'Less',
     more: 'More',
-    toggleTheme: 'Toggle theme',
-    toggleLanguage: 'Switch to Chinese',
     weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   },
   zh: {
@@ -52,8 +45,6 @@ const translations: Record<Language, Translations> = {
     noEvents: '未找到事件',
     less: '较少',
     more: '较多',
-    toggleTheme: '切换主题',
-    toggleLanguage: '切换为英文',
     weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   }
 };
@@ -62,8 +53,21 @@ const EventsCalendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [language, setLanguage] = useState<Language>('zh'); // 默认使用中文
-  const { theme, setTheme } = useTheme();
+  const [language, setLanguage] = useState<Language>('zh'); // 默认中文，稍后会根据系统语言更新
+  
+  // 检测系统语言并设置组件语言
+  useEffect(() => {
+    const detectLanguage = () => {
+      const browserLang = navigator.language.toLowerCase();
+      if (browserLang.startsWith('zh')) {
+        setLanguage('zh');
+      } else {
+        setLanguage('en');
+      }
+    };
+
+    detectLanguage();
+  }, []);
   
   const t = translations[language];
   
@@ -119,14 +123,6 @@ const EventsCalendar: React.FC = () => {
     return 'bg-emerald-700 dark:bg-emerald-500';
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'zh' : 'en');
-  };
-
   const formatMonthLabel = (date: Date) => {
     if (language === 'zh') {
       return format(date, 'MMM', { locale: zhCN }).replace('月', '');
@@ -180,47 +176,25 @@ const EventsCalendar: React.FC = () => {
     const cellWithGap = cellSize + cellGap;
     
     // 月份标签向右偏移量(像素)
-    const monthLabelOffset = 46; // 向右偏移4像素
+    const monthLabelOffset = 4; // 向右偏移4像素
     
     return (
       <div className="relative">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold">{t.eventsCalendar}</h2>
-            <Select 
-              value={selectedYear.toString()}
-              onValueChange={(value) => setSelectedYear(Number(value))}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder={t.selectYear} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleLanguage}
-              title={t.toggleLanguage}
-            >
-              <GlobeIcon className="h-[1.2rem] w-[1.2rem]" />
-              <span className="sr-only">{t.toggleLanguage}</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleTheme}
-              title={t.toggleTheme}
-            >
-              {theme === 'dark' ? <SunIcon className="h-[1.2rem] w-[1.2rem]" /> : <MoonIcon className="h-[1.2rem] w-[1.2rem]" />}
-              <span className="sr-only">{t.toggleTheme}</span>
-            </Button>
-          </div>
+        <div className="flex items-center mb-6">
+          <h2 className="text-lg font-semibold mr-4">{t.eventsCalendar}</h2>
+          <Select 
+            value={selectedYear.toString()}
+            onValueChange={(value) => setSelectedYear(Number(value))}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder={t.selectYear} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="overflow-x-auto pb-4">
