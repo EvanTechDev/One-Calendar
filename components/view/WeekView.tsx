@@ -142,13 +142,12 @@ export default function WeekView({
   }
 
   // 判断事件是否为全天事件
-  const isAllDayEvent = (event: CalendarEvent) => {
+   const isAllDayEvent = (event: CalendarEvent) => {
     if (event.isAllDay) return true
     
     const start = new Date(event.startDate)
     const end = new Date(event.endDate)
-    
-    // 检查是否为00:00-23:59的事件
+
     const isFullDay = 
       start.getHours() === 0 && 
       start.getMinutes() === 0 && 
@@ -174,17 +173,22 @@ export default function WeekView({
     const start = new Date(event.startDate)
     const end = new Date(event.endDate)
 
+    // 如果是全天事件且跨天（00:00-次日00:00），只在开始当天显示
+    if (isAllDayEvent(event) && isMultiDayEvent(start, end)) {
+      return isSameDay(start, day)
+    }
+
     // 如果事件在当天开始
     if (isSameDay(start, day)) return true
 
-    // 如果是多天事件,检查当天是否在事件范围内
-    if (isMultiDayEvent(start, end)) {
+    // 如果是多天事件（且不是全天事件），检查当天是否在事件范围内
+    if (isMultiDayEvent(start, end) && !isAllDayEvent(event)) {
       return isWithinInterval(day, { start, end })
     }
 
     return false
   }
-
+  
   // 计算事件在特定日期的开始和结束时间
   const getEventTimesForDay = (event: CalendarEvent, day: Date) => {
     const start = new Date(event.startDate)
@@ -378,15 +382,17 @@ export default function WeekView({
 
   // 渲染全天事件的函数
   const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
-    // 简单布局算法，堆叠全天事件
     return allDayEvents.map((event, index) => (
       <ContextMenu key={`allday-${event.id}-${day.toISOString().split("T")[0]}`}>
         <ContextMenuTrigger asChild>
           <div
             className={cn("relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden", event.color)}
             style={{
-              height: "24px",  // 固定高度
-              marginTop: index * 26 + "px", // 堆叠事件
+              height: "20px",
+              top: index * 20 + "px", // 堆叠事件但没有间隔
+              position: "absolute",
+              left: "0",
+              right: "0",
               opacity: 0.9,
               zIndex: 10 + index,
             }}
@@ -437,8 +443,8 @@ export default function WeekView({
           // 分离全天事件和普通事件
           const { allDayEvents } = separateEvents(dayEvents, day)
           
-          // 计算全天事件区域的高度
-          const allDayEventsHeight = allDayEvents.length > 0 ? allDayEvents.length * 26 : 0
+          // 计算全天事件区域的高度，没有间隔
+          const allDayEventsHeight = allDayEvents.length > 0 ? allDayEvents.length * 20 : 0
           
           return (
             <div key={day.toString()} className="sticky top-0 z-30 bg-background">
@@ -453,7 +459,7 @@ export default function WeekView({
               {/* 全天事件区域 */}
               <div 
                 className="relative" 
-                style={{ minHeight: allDayEvents.length > 0 ? allDayEventsHeight + "px" : "0px" }}
+                style={{ height: allDayEvents.length > 0 ? allDayEventsHeight + "px" : "0px" }}
               >
                 {renderAllDayEvents(day, allDayEvents)}
               </div>
