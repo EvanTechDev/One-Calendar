@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import QRCode from "qrcode";
 import { useUser } from "@clerk/nextjs";
 
@@ -82,8 +82,7 @@ export default function EventPreview({
     if (open && openShareImmediately) {
       // 若用户未登录则提示先登录，不打开分享对话框
       if (!isSignedIn) {
-        toast({
-          title: language === "zh" ? "请先登录" : "Please sign in",
+        toast(language === "zh" ? "请先登录" : "Please sign in", {
           description: language === "zh" ? "登录后才能使用分享功能" : "Sign in required to use share function",
           variant: "destructive",
         });
@@ -163,8 +162,7 @@ export default function EventPreview({
       localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
-      toast({
-        title: language === "zh" ? "已取消收藏" : "Removed from bookmarks",
+      toast(language === "zh" ? "已取消收藏" : "Removed from bookmarks", {
         description:
           language === "zh"
             ? "事件已从收藏夹中移除"
@@ -184,8 +182,7 @@ export default function EventPreview({
       localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
-      toast({
-        title: language === "zh" ? "已收藏" : "Bookmarked",
+      toast(language === "zh" ? "已收藏" : "Bookmarked", {
         description:
           language === "zh"
             ? "事件已添加到收藏夹"
@@ -199,8 +196,7 @@ export default function EventPreview({
     if (!event) return;
     if (!user) {
       // 未登录则不允许分享
-      toast({
-        title: language === "zh" ? "请先登录" : "Please sign in",
+      toast(language === "zh" ? "请先登录" : "Please sign in", {
         description: language === "zh" ? "分享功能仅对登录用户开放" : "Share function available to signed-in users only",
         variant: "destructive",
       });
@@ -274,8 +270,7 @@ export default function EventPreview({
       }
     } catch (error) {
       console.error("Error sharing event:", error);
-      toast({
-        title: language === "zh" ? "分享失败" : "Share Failed",
+      toast(language === "zh" ? "分享失败" : "Share Failed", {
         description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
         variant: "destructive",
       });
@@ -288,8 +283,7 @@ export default function EventPreview({
   const copyShareLink = () => {
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
-      toast({
-        title: language === "zh" ? "链接已复制" : "Link Copied",
+      toast(language === "zh" ? "链接已复制" : "Link Copied", {
         description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
       });
     }
@@ -323,8 +317,7 @@ export default function EventPreview({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast({
-        title: language === "zh" ? "二维码已下载" : "QR Code Downloaded",
+      toast(language === "zh" ? "二维码已下载" : "QR Code Downloaded", {
         description: language === "zh" ? "已保存到您的设备" : "Saved to your device",
       });
     }
@@ -367,8 +360,7 @@ export default function EventPreview({
                 e.stopPropagation();
                 // 未登录时不允许打开分享对话框
                 if (!isSignedIn) {
-                  toast({
-                    title: language === "zh" ? "请先登录" : "Please sign in",
+                  toast(language === "zh" ? "请先登录" : "Please sign in", {
                     description: language === "zh" ? "登录后才能使用分享功能" : "Sign in required to use share function",
                     variant: "destructive",
                   });

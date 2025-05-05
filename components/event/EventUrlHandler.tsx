@@ -15,7 +15,7 @@ import {
 import { addDays } from "date-fns"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 interface EventFromUrl {
   title: string
@@ -236,8 +236,7 @@ export default function EventUrlHandler() {
     setCalendarEvents([...calendarEvents, ...newCalendarEvents])
 
     // 显示成功消息
-    toast({
-      title: language === "en" ? "Events Added" : "已添加日程",
+    toast(language === "en" ? "Events Added" : "已添加日程", {
       description:
         language === "en"
           ? `Successfully added ${newCalendarEvents.length} events`

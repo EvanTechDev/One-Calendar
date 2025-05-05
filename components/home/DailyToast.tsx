@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 export default function DailyToast() {
   const [ready, setReady] = useState(false)
@@ -19,8 +19,7 @@ export default function DailyToast() {
 
     if (toastShown !== today) {
       const isZh = navigator.language.startsWith("zh")
-      toast({
-        title: isZh ? "📅 欢迎回来！" : "📅 Welcome back!",
+      toast(isZh ? "📅 欢迎回来！" : "📅 Welcome back!", {
         description: isZh ? "查看你今天的日程吧。" : "Check your schedule for today.",
       })
 

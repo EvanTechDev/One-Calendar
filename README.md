@@ -17,9 +17,9 @@
 A beautifully minimal open-source calendar app to plan your week and life.
 
 
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/Dev-Huang1/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,OPENWEATHER_API_KEY,BLOB_READ_WRITE_TOKEN&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
-<a href="https://app.netlify.com/start/deploy?repository=https://github.com/Dev-Huang1/One-Calendar" style="display: inline-block;"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" style="height: 32px;"></a>
-<a href="https://railway.app/new/template?template=https://github.com/Dev-Huang1/One-Calendar&envs=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,OPENWEATHER_API_KEY,BLOB_READ_WRITE_TOKEN&optionalEnvs=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,OPENWEATHER_API_KEY,BLOB_READ_WRITE_TOKEN&projectName=one-calendar" style="display: inline-block;"><img src="https://railway.app/button.svg" alt="Deploy on Railway" style="height: 32px;"></a>
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,OPENWEATHER_API_KEY,BLOB_READ_WRITE_TOKEN&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
+<a href="https://app.netlify.com/start/deploy?repository=https://github.com/EvanTechDev/One-Calendar" style="display: inline-block;"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" style="height: 32px;"></a>
+
 
 </div>
 

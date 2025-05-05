@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Download, Upload, CalendarIcon, ExternalLink, AlertCircle } from "lucide-react"
 import type { CalendarEvent } from "../Calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { translations, useLanguage } from "@/lib/i18n" // 使用useLanguage而不是useLocalStorage
+import { translations, useLanguage } from "@/lib/i18n"
 
 interface ImportExportProps {
   events: CalendarEvent[]
@@ -92,15 +92,13 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         downloadFile(csvContent, "calendar-export.csv", "text/csv")
       }
 
-      toast({
-        title: t.exportSuccess.replace("{count}", filteredEvents.length.toString()),
+      toast(t.exportSuccess.replace("{count}", filteredEvents.length.toString()), {
         description: `${filteredEvents.length} ${t.events || "events"}`,
       })
 
       setExportDialogOpen(false)
     } catch (error) {
-      toast({
-        title: t.exportError,
+      toast(t.exportError, {
         description: t.exportError,
         variant: "destructive",
       })
@@ -153,8 +151,7 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       if (importedEvents.length === 0) {
-        toast({
-          title: t.importWarning,
+        toast(t.importWarning, {
           description: t.importWarning,
           variant: "destructive",
         })
@@ -163,10 +160,9 @@ ${rawContent.substring(0, 500)}...`)
 
       onImportEvents(importedEvents)
 
-      toast({
-        title: t.importSuccess.replace("{count}", importedEvents.length.toString()),
+      toast(t.importSuccess.replace("{count}", importedEvents.length.toString()), {
         description: `${importedEvents.length} ${t.events || "events"}`,
-      })
+      });
 
       if (!debugMode) {
         setImportDialogOpen(false)
@@ -187,8 +183,7 @@ ${rawContent.substring(0, 500)}...`)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.unknownError || "Unknown error"
-      toast({
-        title: t.importError.replace("{error}", errorMessage),
+      toast(t.importError.replace("{error}", errorMessage), {
         description: errorMessage,
         variant: "destructive",
       })

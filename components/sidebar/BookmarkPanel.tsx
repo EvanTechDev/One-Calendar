@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Bookmark, Search, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
@@ -70,8 +70,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
     const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
     localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
     setBookmarks(updatedBookmarks)
-    toast({
-      title: language === "zh" ? "已移除收藏" : "Bookmark Removed",
+    toast(language === "zh" ? "已移除收藏" : "Bookmark Removed", {
       description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
     })
   }
