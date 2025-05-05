@@ -9,7 +9,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
-import { format, isSameDay, isWithinInterval, endOfDay, startOfDay } from "date-fns"
+import { format, isSameDay, isWithinInterval, endOfDay, startOfDay, add } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
@@ -22,10 +22,46 @@ interface DayViewProps {
   onTimeSlotClick: (date: Date) => void
   language: Language
   timezone: string
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
+  onEventDrop?: (event: CalendarEvent, newStartDate: Date, newEndDate: Date) => void // 新增拖拽事件处理函数
 }
 
-export default function DayView({ date, events, onEventClick, onTimeSlotClick, language, timezone }: DayViewProps) {
+export default function DayView({ 
+  date, 
+  events, 
+  onEventClick, 
+  onTimeSlotClick, 
+  language, 
+  timezone,
+  onEditEvent,
+  onDeleteEvent,
+  onShareEvent,
+  onBookmarkEvent,
+  onEventDrop
+}: DayViewProps) {
   const hours = Array.from({ length: 24 }, (_, i) => i)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const hasScrolledRef = useRef(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  
+  // 拖拽相关状态
+  const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
+  const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null)
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
+  const [dragPreview, setDragPreview] = useState<{ hour: number; minute: number } | null>(null)
+  const [dragEventDuration, setDragEventDuration] = useState<number>(0) // 事件持续时间（分钟）
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isDraggingRef = useRef(false)
+
+  const menuLabels = {
+    edit: language === "zh" ? "修改" : "Edit",
+    share: language === "zh" ? "分享" : "Share",
+    bookmark: language === "zh" ? "书签" : "Bookmark",
+    delete: language === "zh" ? "删除" : "Delete",
+  }
 
   const formatTime = (hour: number) => {
     // 使用24小时制格式化时间
@@ -43,19 +79,36 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
   }
 
   function getDarkerColorClass(color: string) {
-  const colorMapping: Record<string, string> = {
-    'bg-blue-500': '#3C74C4',
-    'bg-yellow-500': '#C39248',
-    'bg-red-500': '#C14D4D',
-    'bg-green-500': '#3C996C',
-    'bg-purple-500': '#A44DB3',
-    'bg-pink-500': '#C14D84',
-    'bg-indigo-500': '#3D63B3',
-    'bg-orange-500': '#C27048',
-    'bg-teal-500': '#3C8D8D',
+    const colorMapping: Record<string, string> = {
+      'bg-blue-500': '#3C74C4',
+      'bg-yellow-500': '#C39248',
+      'bg-red-500': '#C14D4D',
+      'bg-green-500': '#3C996C',
+      'bg-purple-500': '#A44DB3',
+      'bg-pink-500': '#C14D84',
+      'bg-indigo-500': '#3D63B3',
+      'bg-orange-500': '#C27048',
+      'bg-teal-500': '#3C8D8D',
+    }
+
+    return colorMapping[color] || '#3A3A3A';
   }
 
-  return colorMapping[color] || '#3A3A3A';
+  // 判断事件是否为全天事件
+  const isAllDayEvent = (event: CalendarEvent) => {
+    if (event.isAllDay) return true
+    
+    const start = new Date(event.startDate)
+    const end = new Date(event.endDate)
+    
+    // 检查是否为00:00-23:59的事件或跨夜事件(00:00-次日00:00)
+    const isFullDay = 
+      start.getHours() === 0 && 
+      start.getMinutes() === 0 && 
+      ((end.getHours() === 23 && end.getMinutes() === 59) || 
+       (end.getHours() === 0 && end.getMinutes() === 0 && end.getDate() !== start.getDate()))
+    
+    return isFullDay
   }
 
   // 检查事件是否跨天
@@ -67,93 +120,142 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     )
   }
 
-  // 计算事件在当天的开始和结束时间
-  const getEventTimesForDay = (event: CalendarEvent, currentDate: Date) => {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
+  // 将事件分为全天事件和正常事件
+  const separateEvents = (dayEvents: CalendarEvent[]) => {
+    const allDayEvents: CalendarEvent[] = []
+    const regularEvents: CalendarEvent[] = []
 
-    // 如果事件不在当天，返回null
-    if (
-      !isSameDay(start, currentDate) &&
-      !isSameDay(end, currentDate) &&
-      !isWithinInterval(currentDate, { start, end })
-    ) {
-      return null
-    }
+    dayEvents.forEach(event => {
+      if (isAllDayEvent(event)) {
+        allDayEvents.push(event)
+      } else {
+        regularEvents.push(event)
+      }
+    })
 
-    // 如果是跨天事件
-    if (isMultiDayEvent(start, end)) {
-      // 如果当天是开始日期
-      if (isSameDay(start, currentDate)) {
-        return {
-          start,
-          end: endOfDay(currentDate),
-          isPartial: true,
-          position: "start",
-        }
-      }
-      // 如果当天是结束日期
-      else if (isSameDay(end, currentDate)) {
-        return {
-          start: startOfDay(currentDate),
-          end,
-          isPartial: true,
-          position: "end",
-        }
-      }
-      // 如果当天在事件中间
-      else {
-        return {
-          start: startOfDay(currentDate),
-          end: endOfDay(currentDate),
-          isPartial: true,
-          position: "middle",
-        }
-      }
-    }
-
-    // 如果不是跨天事件
-    return { start, end, isPartial: false, position: "full" }
+    return { allDayEvents, regularEvents }
   }
 
-  // 改进的事件布局算法，处理重叠事件
+  // 修改自动滚动到当前时间的效果,只在组件挂载时执行一次
+  useEffect(() => {
+    // 只在组件挂载时执行一次滚动
+    if (!hasScrolledRef.current && scrollContainerRef.current) {
+      const now = new Date()
+      const currentHour = now.getHours()
+
+      // 找到对应当前小时的DOM元素
+      const hourElements = scrollContainerRef.current.querySelectorAll(".h-\\[60px\\]")
+      if (hourElements.length > 0 && currentHour < hourElements.length) {
+        // 获取当前小时的元素
+        const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
+
+        if (currentHourElement) {
+          // 滚动到当前小时的位置,并向上偏移100px使其在视图中间偏上
+          scrollContainerRef.current.scrollTo({
+            top: (currentHourElement as HTMLElement).offsetTop - 100,
+            behavior: "auto",
+          })
+
+          // 标记已经滚动过
+          hasScrolledRef.current = true
+        }
+      }
+    }
+  }, [date])
+
+  // 修改时间更新逻辑,只更新时间线位置,不改变滚动位置
+  useEffect(() => {
+    // 立即更新时间
+    setCurrentTime(new Date())
+
+    // 设置定时器每分钟更新时间
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+      // 不再调用滚动函数
+    }, 60000) // 60000 ms = 1 分钟
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // 添加全局mouseup/mousemove监听器来处理拖拽
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (draggingEvent && isDraggingRef.current && dragStartPosition && scrollContainerRef.current) {
+        // 计算鼠标相对于日历容器的位置
+        const containerRect = scrollContainerRef.current.getBoundingClientRect();
+        
+        // 计算小时和分钟
+        const relativeY = e.clientY - containerRect.top + scrollContainerRef.current.scrollTop;
+        const hour = Math.floor(relativeY / 60);
+        const minute = Math.floor((relativeY % 60) / 15) * 15; // 按15分钟取整
+        
+        setDragPreview({
+          hour: hour,
+          minute: minute
+        });
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (draggingEvent && isDraggingRef.current && dragPreview && onEventDrop) {
+        // 计算新的开始和结束时间
+        const newStartDate = new Date(date);
+        newStartDate.setHours(dragPreview.hour, dragPreview.minute, 0, 0);
+        
+        // 计算新的结束时间 (保持事件持续时间不变)
+        const newEndDate = add(newStartDate, { minutes: dragEventDuration });
+        
+        // 调用回调函数更新事件
+        onEventDrop(draggingEvent, newStartDate, newEndDate);
+      }
+      
+      // 清除拖拽状态
+      isDraggingRef.current = false;
+      setDraggingEvent(null);
+      setDragStartPosition(null);
+      setDragOffset(null);
+      setDragPreview(null);
+    };
+    
+    // 如果正在拖拽，添加全局事件监听器
+    if (draggingEvent) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingEvent, dragStartPosition, dragPreview, onEventDrop, date, dragEventDuration]);
+
+  // 获取当天的事件布局
   const layoutEvents = (events: CalendarEvent[]) => {
     if (!events || events.length === 0) return []
 
-    // 获取当天的事件时间
-    const eventsWithTimes = events
-      .map((event) => {
-        const times = getEventTimesForDay(event, date)
-        if (!times || !times.start || !times.end) return null
-        return { event, ...times }
-      })
-      .filter(Boolean) as Array<{
-      event: CalendarEvent
-      start: Date
-      end: Date
-      isPartial: boolean
-      position: string
-    }>
-
     // 按开始时间排序
-    eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
+    const sortedEvents = [...events].sort((a, b) => {
+      const startA = new Date(a.startDate).getTime()
+      const startB = new Date(b.startDate).getTime()
+      return startA - startB
+    })
 
-    // 创建时间段数组，每个时间段包含在该时间段内活跃的事件
+    // 创建时间段数组,每个时间段包含在该时间段内活跃的事件
     type TimePoint = { time: number; isStart: boolean; eventIndex: number }
     const timePoints: TimePoint[] = []
 
     // 添加所有事件的开始和结束时间点
-    eventsWithTimes.forEach((eventWithTime, index) => {
-      const startTime = eventWithTime.start.getTime()
-      const endTime = eventWithTime.end.getTime()
-
-      timePoints.push({ time: startTime, isStart: true, eventIndex: index })
-      timePoints.push({ time: endTime, isStart: false, eventIndex: index })
+    sortedEvents.forEach((event, index) => {
+      const start = new Date(event.startDate)
+      const end = new Date(event.endDate)
+      
+      timePoints.push({ time: start.getTime(), isStart: true, eventIndex: index })
+      timePoints.push({ time: end.getTime(), isStart: false, eventIndex: index })
     })
 
     // 按时间排序
     timePoints.sort((a, b) => {
-      // 如果时间相同，结束时间点排在开始时间点之前
+      // 如果时间相同,结束时间点排在开始时间点之前
       if (a.time === b.time) {
         return a.isStart ? 1 : -1
       }
@@ -163,12 +265,8 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     // 处理每个时间段
     const eventLayouts: Array<{
       event: CalendarEvent
-      start: Date
-      end: Date
       column: number
       totalColumns: number
-      isPartial: boolean
-      position: string
     }> = []
 
     // 当前活跃的事件
@@ -206,7 +304,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
         activeEvents.delete(point.eventIndex)
       }
 
-      // 如果是最后一个时间点或下一个时间点与当前不同，处理当前时间段
+      // 如果是最后一个时间点或下一个时间点与当前不同,处理当前时间段
       if (i === timePoints.length - 1 || timePoints[i + 1].time !== point.time) {
         // 计算当前活跃事件的布局
         const totalColumns =
@@ -215,7 +313,7 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
         // 更新所有活跃事件的总列数
         activeEvents.forEach((eventIndex) => {
           const column = eventToColumn.get(eventIndex)!
-          const { event, start, end, isPartial, position } = eventsWithTimes[eventIndex]
+          const event = sortedEvents[eventIndex]
 
           // 检查是否已经添加过这个事件
           const existingLayout = eventLayouts.find((layout) => layout.event.id === event.id)
@@ -223,12 +321,8 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           if (!existingLayout) {
             eventLayouts.push({
               event,
-              start,
-              end,
               column,
               totalColumns: Math.max(totalColumns, 1),
-              isPartial,
-              position,
             })
           }
         })
@@ -238,10 +332,36 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     return eventLayouts
   }
 
-  // 获取当天的事件布局
-  const eventLayouts = layoutEvents(events)
+  // 处理事件拖拽开始
+  const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 使用定时器模拟长按效果，约300毫秒
+    longPressTimeoutRef.current = setTimeout(() => {
+      const start = new Date(event.startDate);
+      const end = new Date(event.endDate);
+      
+      // 计算事件持续时间（分钟）
+      const durationMs = end.getTime() - start.getTime();
+      const durationMinutes = Math.round(durationMs / (1000 * 60));
+      
+      setDraggingEvent(event);
+      setDragStartPosition({ x: e.clientX, y: e.clientY });
+      setDragEventDuration(durationMinutes);
+      isDraggingRef.current = true;
+    }, 300);
+  };
+  
+  // 处理事件拖拽结束
+  const handleEventDragEnd = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  };
 
-  // 处理时间格子点击，根据点击位置确定更精确的时间
+  // 处理时间格子点击,根据点击位置确定更精确的时间
   const handleTimeSlotClick = (hour: number, event: React.MouseEvent<HTMLDivElement>) => {
     // 获取点击位置在时间格子内的相对位置
     const rect = event.currentTarget.getBoundingClientRect()
@@ -249,10 +369,10 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     const cellHeight = rect.height
 
     // 根据点击位置确定分钟数
-    // 如果点击在格子的上半部分，分钟为0，否则为30
+    // 如果点击在格子的上半部分,分钟为0,否则为30
     const minutes = relativeY < cellHeight / 2 ? 0 : 30
 
-    // 创建一个新的日期对象，设置为当前日期的指定小时和分钟
+    // 创建一个新的日期对象,设置为当前日期的指定小时和分钟
     const clickTime = new Date(date)
     clickTime.setHours(hour, minutes, 0, 0)
 
@@ -260,55 +380,137 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
     onTimeSlotClick(clickTime)
   }
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  // 渲染全天事件的函数
+  const renderAllDayEvents = (allDayEvents: CalendarEvent[]) => {
+    // 设置事件之间的间隔大小
+    const eventSpacing = 3;
+    
+    return allDayEvents.map((event, index) => (
+      <ContextMenu key={`allday-${event.id}`}>
+        <ContextMenuTrigger asChild>
+          <div
+            className={cn("relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden", event.color)}
+            style={{
+              height: "20px",
+              top: index * (20 + eventSpacing) + "px",
+              position: "absolute",
+              left: "0",
+              right: "0",
+              opacity: 0.9,
+              zIndex: 10 + index,
+            }}
+            onMouseDown={(e) => handleEventDragStart(event, e)}
+            onMouseUp={handleEventDragEnd}
+            onMouseLeave={handleEventDragEnd}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!isDraggingRef.current) {
+                onEventClick(event)
+              }
+            }}
+          >
+            <div 
+              className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+              style={{ backgroundColor: getDarkerColorClass(event.color) }} 
+            />
+            <div className="pl-1.5 truncate text-white">
+              {event.title}
+            </div>
+          </div>
+        </ContextMenuTrigger>
 
-  // 添加一个 ref 来跟踪是否已经初始滚动
-  const hasScrolledRef = useRef(false)
+        <ContextMenuContent className="w-40">
+          <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+            <Edit3 className="mr-2 h-4 w-4" />
+            {menuLabels.edit}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+            <Share2 className="mr-2 h-4 w-4" />
+            {menuLabels.share}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+            <Bookmark className="mr-2 h-4 w-4" />
+            {menuLabels.bookmark}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+            <Trash2 className="mr-2 h-4 w-4" />
+            {menuLabels.delete}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    ))
+  }
 
-  // 修改自动滚动到当前时间的效果，只在组件挂载时执行一次
-  useEffect(() => {
-    // 只在组件挂载时执行一次滚动
-    if (!hasScrolledRef.current && scrollContainerRef.current) {
-      const now = new Date()
-      const currentHour = now.getHours()
+  // 渲染拖拽预览
+  const renderDragPreview = () => {
+    if (!dragPreview || !draggingEvent) return null;
+    
+    const startMinutes = dragPreview.hour * 60 + dragPreview.minute;
+    const endMinutes = startMinutes + dragEventDuration;
+    
+    return (
+      <div
+        className={cn("absolute rounded-lg p-2 text-sm overflow-hidden", draggingEvent.color)}
+        style={{
+          top: `${startMinutes}px`,
+          height: `${dragEventDuration}px`,
+          opacity: 0.6,
+          width: `calc(100% - 4px)`,
+          left: '2px',
+          zIndex: 100,
+          border: '2px dashed white',
+          pointerEvents: 'none',
+        }}
+      >
+        <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+          style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }} 
+        />
+        <div className="pl-1.5">
+          <div className="font-medium text-white truncate">{draggingEvent.title}</div>
+          {dragEventDuration >= 40 && (
+            <div className="text-xs text-white/90 truncate">
+              {formatTime(dragPreview.hour)}:{dragPreview.minute.toString().padStart(2, '0')} - {formatTime(Math.floor(endMinutes / 60))}:{(endMinutes % 60).toString().padStart(2, '0')}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
-      // 找到对应当前小时的DOM元素
-      const hourElements = scrollContainerRef.current.querySelectorAll(".h-\\[60px\\]")
-      if (hourElements.length > 0 && currentHour < hourElements.length) {
-        // 获取当前小时的元素
-        const currentHourElement = hourElements[currentHour + 1] // +1 是因为第一行是时间标签
-
-        if (currentHourElement) {
-          // 滚动到当前小时的位置，并向上偏移100px使其在视图中间偏上
-          scrollContainerRef.current.scrollTo({
-            top: (currentHourElement as HTMLElement).offsetTop - 100,
-            behavior: "auto",
-          })
-
-          // 标记已经滚动过
-          hasScrolledRef.current = true
-        }
+  // 获取当前日期的事件
+  const dayEvents = events.filter(event => {
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    
+    // 非全天事件使用原有逻辑检查
+    if (!isAllDayEvent(event)) {
+      if (isSameDay(start, date)) return true;
+      
+      if (isMultiDayEvent(start, end)) {
+        return isWithinInterval(date, { start, end });
       }
+      
+      return false;
     }
-  }, [date])
 
-  // Add a state variable and useEffect for auto-updating the time indicator
-  // Add this near the top of the component, after other state variables:
-  const [currentTime, setCurrentTime] = useState(new Date())
-
-  // 修改时间更新逻辑，只更新时间线位置，不改变滚动位置
-  useEffect(() => {
-    // 立即更新时间
-    setCurrentTime(new Date())
-
-    // 设置定时器每分钟更新时间
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-      // 不再调用滚动函数
-    }, 60000) // 60000 ms = 1 分钟
-
-    return () => clearInterval(interval)
-  }, [])
+    if (isMultiDayEvent(start, end)) {
+      return isSameDay(start, date);
+    }
+    
+    return isSameDay(start, date);
+  });
+  
+  // 分离全天事件和普通事件
+  const { allDayEvents, regularEvents } = separateEvents(dayEvents);
+  
+  // 计算全天事件区域的高度
+  const eventSpacing = 2; // 保持与renderAllDayEvents函数中相同的值
+  const allDayEventsHeight = allDayEvents.length > 0 
+    ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing 
+    : 0;
+  
+  // 对普通事件进行布局
+  const eventLayouts = layoutEvents(regularEvents);
 
   return (
     <div className="flex flex-col h-full">
@@ -319,14 +521,21 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           </div>
           <div className="text-3xl font-semibold text-blue-600">{format(date, "d")}</div>
         </div>
-        <div className="p-2">{timezone}</div>
+        <div className="p-2">
+          {/* 全天事件区域 */}
+          <div 
+            className="relative" 
+            style={{ height: allDayEventsHeight + "px" }}
+          >
+            {renderAllDayEvents(allDayEvents)}
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 grid grid-cols-[100px_1fr] overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
-              {/* 修复时间标签位置，特别是0:00的显示问题 */}
               <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
@@ -341,7 +550,10 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             />
           ))}
 
-          {eventLayouts.map(({ event, start, end, column, totalColumns, isPartial, position }) => {
+          {eventLayouts.map(({ event, column, totalColumns }) => {
+            const start = new Date(event.startDate);
+            const end = new Date(event.endDate);
+            
             const startMinutes = start.getHours() * 60 + start.getMinutes()
             const endMinutes = end.getHours() * 60 + end.getMinutes()
             const duration = endMinutes - startMinutes
@@ -350,54 +562,73 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
             const maxEndMinutes = 24 * 60 // 最大到午夜
             const displayDuration = Math.min(duration, maxEndMinutes - startMinutes)
 
-            // 设置最小高度，确保短事件也能显示文本
+            // 设置最小高度,确保短事件也能显示文本
             const minHeight = 20 // 最小高度为20px
             const height = Math.max(displayDuration, minHeight)
 
-            let positionLabel = ""
-            if (isPartial) {
-              if (position === "start") {
-                positionLabel = language === "zh" ? " (继续...)" : " (continues...)"
-              } else if (position === "end") {
-                positionLabel = language === "zh" ? " (...结束)" : " (...ends)"
-              } else if (position === "middle") {
-                positionLabel = language === "zh" ? " (...继续...)" : " (...continues...)"
-              }
-            }
-
-            // 计算事件宽度和位置，处理重叠
+            // 计算事件宽度和位置,处理重叠
             const width = `calc((100% - 8px) / ${totalColumns})`
             const left = `calc(${column} * ${width})`
 
             return (
-                        <div
-                          key={`${event.id}-${date.toISOString().split("T")[0]}`}
-                          className={cn("relative", "absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
-                          style={{
-                            top: `${startMinutes}px`,
-                            height: `${height}px`,
-                            opacity: 0.9,
-                            width,
-                            left,
-                            zIndex: column + 1,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onEventClick(event)
-                          }}
-                        >
-                         <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
-                          <div className="pl-1.5">
-                          <div className="font-medium text-white truncate">{event.title}</div>
-                          {height >= 40 && (
-                            <div className="text-xs text-white/90 truncate">
-                              {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
-                            </div>
-                          )}
-                          </div>
-                        </div>
+              <ContextMenu key={event.id}>
+                <ContextMenuTrigger asChild>
+                  <div
+                    className={cn("relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                    style={{
+                      top: `${startMinutes}px`,
+                      height: `${height}px`,
+                      opacity: 0.9,
+                      width,
+                      left,
+                      zIndex: column + 1,
+                    }}
+                    onMouseDown={(e) => handleEventDragStart(event, e)}
+                    onMouseUp={handleEventDragEnd}
+                    onMouseLeave={handleEventDragEnd}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!isDraggingRef.current) {
+                        onEventClick(event)
+                      }
+                    }}
+                  >
+                   <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
+                    <div className="pl-1.5">
+                    <div className="font-medium text-white truncate">{event.title}</div>
+                    {height >= 40 && (
+                      <div className="text-xs text-white/90 truncate">
+                        {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
+                      </div>
+                    )}
+                    </div>
+                  </div>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent className="w-40">
+                  <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    {menuLabels.edit}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    {menuLabels.share}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    {menuLabels.bookmark}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => onDeleteEvent?.(event)} className="text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {menuLabels.delete}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             )
-    })}
+          })}
+
+          {/* 拖拽预览 */}
+          {dragPreview && renderDragPreview()}
 
           {(() => {
             // 检查当前日期是否是今天
@@ -435,6 +666,19 @@ export default function DayView({ date, events, onEventClick, onTimeSlotClick, l
           })()}
         </div>
       </div>
+
+      {draggingEvent && (
+        <div 
+          className="fixed px-2 py-1 bg-black text-white rounded-md text-xs z-50 pointer-events-none"
+          style={{
+            left: dragOffset ? dragStartPosition!.x + dragOffset.x + 10 : dragStartPosition!.x + 10,
+            top: dragOffset ? dragStartPosition!.y + dragOffset.y + 10 : dragStartPosition!.y + 10,
+            opacity: 0.8,
+          }}
+        >
+          {language === "zh" ? "拖动到新位置" : "Drag to new position"}
+        </div>
+      )}
     </div>
   )
-  }
+}
