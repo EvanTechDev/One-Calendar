@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, GlobeIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface CalendarEvent {
@@ -21,11 +22,50 @@ interface CalendarEvent {
   recurrence: string;
 }
 
+type Language = 'en' | 'zh';
+
+interface Translations {
+  eventsCalendar: string;
+  selectYear: string;
+  noEvents: string;
+  less: string;
+  more: string;
+  toggleTheme: string;
+  toggleLanguage: string;
+  weekdays: string[];
+}
+
+const translations: Record<Language, Translations> = {
+  en: {
+    eventsCalendar: 'Events Calendar',
+    selectYear: 'Select year',
+    noEvents: 'No events found',
+    less: 'Less',
+    more: 'More',
+    toggleTheme: 'Toggle theme',
+    toggleLanguage: 'Switch to Chinese',
+    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  },
+  zh: {
+    eventsCalendar: '事件日历',
+    selectYear: '选择年份',
+    noEvents: '未找到事件',
+    less: '较少',
+    more: '较多',
+    toggleTheme: '切换主题',
+    toggleLanguage: '切换为英文',
+    weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  }
+};
+
 const EventsCalendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [language, setLanguage] = useState<Language>('zh'); // 默认使用中文
   const { theme, setTheme } = useTheme();
+  
+  const t = translations[language];
   
   useEffect(() => {
     const storedEvents = localStorage.getItem('calendar-events');
@@ -79,9 +119,24 @@ const EventsCalendar: React.FC = () => {
     return 'bg-emerald-700 dark:bg-emerald-500';
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'zh' : 'en');
+  };
+
+  const formatMonthLabel = (date: Date) => {
+    if (language === 'zh') {
+      return format(date, 'MMM', { locale: zhCN }).replace('月', '');
+    }
+    return format(date, 'MMM');
+  };
+
   const renderCalendarGrid = () => {
     if (availableYears.length === 0) {
-      return <div className="text-gray-500 dark:text-gray-400">No events found</div>;
+      return <div className="text-gray-500 dark:text-gray-400">{t.noEvents}</div>;
     }
 
     // 创建日历的数据
@@ -113,7 +168,7 @@ const EventsCalendar: React.FC = () => {
         const dayIndex = differenceInDays(firstDayOfMonth, startDay);
         const weekIndex = Math.floor(dayIndex / 7);
         monthLabels.push({
-          label: format(firstDayOfMonth, 'MMM'),
+          label: formatMonthLabel(firstDayOfMonth),
           weekIndex: weekIndex
         });
       }
@@ -125,19 +180,19 @@ const EventsCalendar: React.FC = () => {
     const cellWithGap = cellSize + cellGap;
     
     // 月份标签向右偏移量(像素)
-    const monthLabelOffset = 32; // 向右偏移4像素
+    const monthLabelOffset = 46; // 向右偏移4像素
     
     return (
       <div className="relative">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold">Events Calendar</h2>
+            <h2 className="text-lg font-semibold">{t.eventsCalendar}</h2>
             <Select 
               value={selectedYear.toString()}
               onValueChange={(value) => setSelectedYear(Number(value))}
             >
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Select year" />
+                <SelectValue placeholder={t.selectYear} />
               </SelectTrigger>
               <SelectContent>
                 {availableYears.map(year => (
@@ -145,6 +200,26 @@ const EventsCalendar: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleLanguage}
+              title={t.toggleLanguage}
+            >
+              <GlobeIcon className="h-[1.2rem] w-[1.2rem]" />
+              <span className="sr-only">{t.toggleLanguage}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleTheme}
+              title={t.toggleTheme}
+            >
+              {theme === 'dark' ? <SunIcon className="h-[1.2rem] w-[1.2rem]" /> : <MoonIcon className="h-[1.2rem] w-[1.2rem]" />}
+              <span className="sr-only">{t.toggleTheme}</span>
+            </Button>
           </div>
         </div>
         
@@ -167,7 +242,7 @@ const EventsCalendar: React.FC = () => {
             <div className="flex">
               {/* 星期标签 */}
               <div className="flex flex-col pr-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                {t.weekdays.map((day, i) => (
                   <div 
                     key={`day-${i}`} 
                     className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-end"
@@ -199,7 +274,7 @@ const EventsCalendar: React.FC = () => {
                             height: `${cellSize}px`, 
                             marginBottom: `${cellGap}px` 
                           }}
-                          title={isCurrentYear ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} events` : ''}
+                          title={isCurrentYear ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${language === 'zh' ? '个事件' : 'events'}` : ''}
                         />
                       );
                     })}
@@ -211,7 +286,7 @@ const EventsCalendar: React.FC = () => {
         </div>
         
         <div className="flex items-center mt-2 text-xs text-gray-600 dark:text-gray-300">
-          <span className="mr-2">Less</span>
+          <span className="mr-2">{t.less}</span>
           <div className="flex gap-1">
             <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800"></div>
             <div className="w-3 h-3 rounded-sm bg-emerald-100 dark:bg-emerald-900"></div>
@@ -219,7 +294,7 @@ const EventsCalendar: React.FC = () => {
             <div className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-600"></div>
             <div className="w-3 h-3 rounded-sm bg-emerald-700 dark:bg-emerald-500"></div>
           </div>
-          <span className="ml-2">More</span>
+          <span className="ml-2">{t.more}</span>
         </div>
       </div>
     );
@@ -228,7 +303,7 @@ const EventsCalendar: React.FC = () => {
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-0">
-        <CardTitle className="sr-only">Events Calendar</CardTitle>
+        <CardTitle className="sr-only">{t.eventsCalendar}</CardTitle>
       </CardHeader>
       <CardContent>
         {renderCalendarGrid()}
