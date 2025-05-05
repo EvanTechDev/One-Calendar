@@ -28,6 +28,7 @@ interface Translations {
   less: string;
   more: string;
   weekdays: string[];
+  months: string[];
 }
 
 const translations: Record<Language, Translations> = {
@@ -37,7 +38,8 @@ const translations: Record<Language, Translations> = {
     noEvents: 'No events found',
     less: 'Less',
     more: 'More',
-    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   },
   zh: {
     eventsCalendar: '事件日历',
@@ -45,7 +47,8 @@ const translations: Record<Language, Translations> = {
     noEvents: '未找到事件',
     less: '较少',
     more: '较多',
-    weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    weekdays: ['日', '一', '二', '三', '四', '五', '六'],
+    months: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
   }
 };
 
@@ -124,10 +127,10 @@ const EventsCalendar: React.FC = () => {
   };
 
   const formatMonthLabel = (date: Date) => {
-    if (language === 'zh') {
-      return format(date, 'MMM', { locale: zhCN }).replace('月', '');
-    }
-    return format(date, 'MMM');
+    // 获取月份索引 (0-11)
+    const monthIndex = date.getMonth();
+    // 从翻译对象中获取对应语言的月份名称
+    return t.months[monthIndex];
   };
 
   const renderCalendarGrid = () => {
@@ -176,7 +179,7 @@ const EventsCalendar: React.FC = () => {
     const cellWithGap = cellSize + cellGap;
     
     // 月份标签向右偏移量(像素)
-    const monthLabelOffset = 4; // 向右偏移4像素
+    const monthLabelOffset = 48; // 向右偏移48像素
     
     return (
       <div className="relative">
