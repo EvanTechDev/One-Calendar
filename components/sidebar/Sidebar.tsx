@@ -130,41 +130,46 @@ export default function Sidebar({
           />
         </div>
 
-        <div className="mt-8 space-y-4">
-  <div className="flex items-center justify-between">
-    <span className="text-sm font-medium">{t.myCalendars}</span>
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => setShowAddCategory(!showAddCategory)}
-    >
-      <Plus className="h-4 w-4" />
-    </Button>
-  </div>
-  {calendars.map((calendar) => (
-    <div key={calendar.id} className="flex items-center justify-between">
-      <div className="flex items-center space-x-2">
-        <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
-        <span className="text-sm">{calendar.name}</span>
+       <div className={cn(
+  "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
+  isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-72 opacity-100"
+)}>
+  <div className="mt-8 space-y-4">
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium">{t.myCalendars}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setShowAddCategory(!showAddCategory)}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+    {calendars.map((calendar) => (
+      <div key={calendar.id} className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
+          <span className="text-sm">{calendar.name}</span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
+          <X className="h-4 w-4" />
+        </Button>
       </div>
-      <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
-        <X className="h-4 w-4" />
-      </Button>
-    </div>
-  ))}
-  {showAddCategory && (
-    <div className="flex items-center space-x-2">
-      <Input
-        value={newCategoryName}
-        onChange={(e) => setNewCategoryName(e.target.value)}
-        placeholder={t.categoryName || "新日历名称"}
-        className="text-sm"
-      />
-      <Button size="sm" onClick={addCategory}>
-        {t.addCategory || "添加"}
-      </Button>
-    </div>
-  )}
+    ))}
+    {showAddCategory && (
+      <div className="flex items-center space-x-2">
+        <Input
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          placeholder={t.categoryName || "新日历名称"}
+          className="text-sm"
+        />
+        <Button size="sm" onClick={addCategory}>
+          {t.addCategory || "添加"}
+        </Button>
+      </div>
+    )}
+  </div>
 </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
