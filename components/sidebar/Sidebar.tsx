@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Plus, X } from "lucide-react"
+import { Plus, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -41,6 +41,7 @@ export default function Sidebar({
   isCollapsed = false,
   onToggleCollapse,
 }: SidebarProps) {
+
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -89,15 +90,15 @@ export default function Sidebar({
   }
 
   const confirmDelete = () => {
-    if (categoryToDelete) {
-      removeCategoryFromContext(categoryToDelete)
-      toast(deleteText.toastSuccess, {
-        description: deleteText.toastDescription,
-      })
-    }
-    setDeleteDialogOpen(false)
-    setCategoryToDelete(null)
+  if (categoryToDelete) {
+    removeCategoryFromContext(categoryToDelete)
+    toast(deleteText.toastSuccess, {
+      description: deleteText.toastDescription,
+    })
   }
+  setDeleteDialogOpen(false)
+  setCategoryToDelete(null)
+}
 
   return (
     <div className={cn(
@@ -132,13 +133,7 @@ export default function Sidebar({
         <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t.myCalendars}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAddCategory(!showAddCategory)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <ChevronDown className="h-4 w-4" />
           </div>
           {calendars.map((calendar) => (
             <div key={calendar.id} className="flex items-center justify-between">
@@ -151,7 +146,7 @@ export default function Sidebar({
               </Button>
             </div>
           ))}
-          {showAddCategory && (
+          {showAddCategory ? (
             <div className="flex items-center space-x-2">
               <Input
                 value={newCategoryName}
@@ -163,78 +158,88 @@ export default function Sidebar({
                 {t.addCategory || "添加"}
               </Button>
             </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => setManageCategoriesOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addNewCalendar}
+            </Button>
           )}
         </div>
-
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{deleteText.title}</DialogTitle>
-              <DialogDescription>
-                {deleteText.description}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                {deleteText.cancel}
-              </Button>
-              <Button variant="destructive" onClick={confirmDelete}>
-                {deleteText.delete}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t.createCategories}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category-name">{t.categoryName}</Label>
-                <Input
-                  id="category-name"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t.color}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    "blue-500",
-                    "green-500",
-                    "purple-500",
-                    "yellow-500",
-                    "red-500",
-                    "pink-500",
-                    "indigo-500",
-                    "orange-500",
-                    "teal-500",
-                  ].map((color) => (
-                    <div
-                      key={color}
-                      className={cn(
-                        `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
-                        newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
-                      )}
-                      onClick={() => setNewCategoryColor(`bg-${color}`)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={addCategory} disabled={!newCategoryName}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t.addCategory}
-                </Button>
-              </DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{deleteText.title}</DialogTitle>
+            <DialogDescription>
+              {deleteText.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              {deleteText.cancel}
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              {deleteText.delete}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.createCategories}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">{t.categoryName}</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t.color}</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "blue-500",
+                  "green-500",
+                  "purple-500",
+                  "yellow-500",
+                  "red-500",
+                  "pink-500",
+                  "indigo-500",
+                  "orange-500",
+                  "teal-500",
+                ].map((color) => (
+                  <div
+                    key={color}
+                    className={cn(
+                      `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
+                      newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
+                    )}
+                    onClick={() => setNewCategoryColor(`bg-${color}`)}
+                  />
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+            <Button onClick={addCategory} disabled={!newCategoryName}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addCategory}
+            </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
