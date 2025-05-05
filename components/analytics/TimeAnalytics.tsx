@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
-import type { CalendarCategory } from "@/components/sidebar/Sidebar"
+import type { CalendarCategory } from "../Sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface TimeAnalyticsProps {
@@ -21,6 +21,7 @@ interface TimeAnalyticsProps {
 }
 
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
+  const [timeCategories, setTimeCategories] = useLocalStorage<CalendarCategory[]>("calendar-categories", calendars)
   const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null)
   const [newCategory, setNewCategory] = useState<Partial<CalendarCategory>>({
     name: "",
@@ -93,7 +94,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     return <div>{t.loading}</div>
   }
 
-  // 为饼图准备数据
+  // 为扇形统计图准备数据
   const pieData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
@@ -105,7 +106,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       }
     })
 
-  // 为柱状图准备数据
+  // 为条形统计图图准备数据
   const barData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
@@ -215,4 +216,3 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     </Card>
   )
 }
-
