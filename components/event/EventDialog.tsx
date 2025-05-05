@@ -9,12 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
-import type { CalendarEvent } from "../Calendar"
+import { Calendar } from "@/components/ui/calendar"
+import { format, parse, isValid, set, getHours, getMinutes } from "date-fns"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },
@@ -28,6 +28,18 @@ const colorOptions = [
   { value: "bg-teal-500", label: "Teal" },
 ]
 
+// 生成小时选项 (0-23)
+const hourOptions = Array.from({ length: 24 }, (_, i) => ({
+  value: i.toString().padStart(2, '0'),
+  label: i.toString().padStart(2, '0')
+}))
+
+// 生成分钟选项 (0, 5, 10, 15, ..., 55)
+const minuteOptions = Array.from({ length: 12 }, (_, i) => ({
+  value: (i * 5).toString().padStart(2, '0'),
+  label: (i * 5).toString().padStart(2, '0')
+}))
+
 interface EventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,6 +50,13 @@ interface EventDialogProps {
   event: CalendarEvent | null
   language: Language
   timezone: string
+}
+
+interface TimeInput {
+  hours: string;
+  minutes: string;
+  rawInput: string;
+  isCustomInput: boolean;
 }
 
 export default function EventDialog({
@@ -54,8 +73,33 @@ export default function EventDialog({
   const { calendars } = useCalendar()
   const [title, setTitle] = useState("")
   const [isAllDay, setIsAllDay] = useState(false)
+  
+  // 日期选择
   const [startDate, setStartDate] = useState(initialDate)
   const [endDate, setEndDate] = useState(initialDate)
+  
+  // 时间选择
+  const [startTime, setStartTime] = useState<TimeInput>({
+    hours: "00",
+    minutes: "00",
+    rawInput: "",
+    isCustomInput: false
+  })
+  const [endTime, setEndTime] = useState<TimeInput>({
+    hours: "00",
+    minutes: "30",
+    rawInput: "",
+    isCustomInput: false
+  })
+  
+  // 时间选择的弹出状态
+  const [startTimeOpen, setStartTimeOpen] = useState(false)
+  const [endTimeOpen, setEndTimeOpen] = useState(false)
+  
+  // 日期选择的弹出状态
+  const [startDateOpen, setStartDateOpen] = useState(false)
+  const [endDateOpen, setEndDateOpen] = useState(false)
+  
   const [location, setLocation] = useState("")
   const [participants, setParticipants] = useState("")
   const [notification, setNotification] = useState("0")
@@ -65,16 +109,117 @@ export default function EventDialog({
   const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
   const [aiPrompt, setAiPrompt] = useState("")
   const [isAiLoading, setIsAiLoading] = useState(false)
+  
+  // 时间格式错误状态
+  const [startTimeError, setStartTimeError] = useState(false)
+  const [endTimeError, setEndTimeError] = useState(false)
 
   const t = translations[language]
+
+  // 合并日期和时间
+  const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
+    if (timeInput.isCustomInput && timeInput.rawInput) {
+      // 尝试解析自定义输入的时间 (格式: HH:mm 或 H:m)
+      const timeParts = timeInput.rawInput.split(':');
+      if (timeParts.length === 2) {
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+        
+        if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+          return set(new Date(date), { hours, minutes, seconds: 0, milliseconds: 0 });
+        }
+      }
+      // 如果解析失败，回退到选择的时间
+      return set(new Date(date), { 
+        hours: parseInt(timeInput.hours, 10), 
+        minutes: parseInt(timeInput.minutes, 10),
+        seconds: 0, 
+        milliseconds: 0 
+      });
+    }
+    
+    // 使用选择的时间
+    return set(new Date(date), { 
+      hours: parseInt(timeInput.hours, 10), 
+      minutes: parseInt(timeInput.minutes, 10),
+      seconds: 0, 
+      milliseconds: 0 
+    });
+  };
+
+  // 获取完整的开始和结束日期时间
+  const getFullStartDate = () => combineDateTime(startDate, startTime);
+  const getFullEndDate = () => combineDateTime(endDate, endTime);
+
+  // 验证时间格式
+  const validateTimeFormat = (input: string): boolean => {
+    if (!input) return false;
+    
+    const timeParts = input.split(':');
+    if (timeParts.length !== 2) return false;
+    
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    
+    return !isNaN(hours) && !isNaN(minutes) && 
+           hours >= 0 && hours < 24 && 
+           minutes >= 0 && minutes < 60;
+  };
+
+  // 处理开始时间的自定义输入
+  const handleStartTimeInput = (input: string) => {
+    setStartTime(prev => ({
+      ...prev,
+      rawInput: input,
+      isCustomInput: true
+    }));
+    
+    if (input === "" || validateTimeFormat(input)) {
+      setStartTimeError(false);
+    } else {
+      setStartTimeError(true);
+    }
+  };
+
+  // 处理结束时间的自定义输入
+  const handleEndTimeInput = (input: string) => {
+    setEndTime(prev => ({
+      ...prev,
+      rawInput: input,
+      isCustomInput: true
+    }));
+    
+    if (input === "" || validateTimeFormat(input)) {
+      setEndTimeError(false);
+    } else {
+      setEndTimeError(true);
+    }
+  };
+
+  // 从日期对象中提取时间信息
+  const extractTimeFromDate = (date: Date): TimeInput => {
+    return {
+      hours: getHours(date).toString().padStart(2, '0'),
+      minutes: getMinutes(date).toString().padStart(2, '0'),
+      rawInput: format(date, 'HH:mm'),
+      isCustomInput: false
+    };
+  };
 
   useEffect(() => {
     if (open) {
       if (event) {
         setTitle(event.title)
         setIsAllDay(event.isAllDay)
-        setStartDate(new Date(event.startDate))
-        setEndDate(new Date(event.endDate))
+        
+        const startDateObj = new Date(event.startDate);
+        const endDateObj = new Date(event.endDate);
+        
+        setStartDate(startDateObj)
+        setEndDate(endDateObj)
+        setStartTime(extractTimeFromDate(startDateObj))
+        setEndTime(extractTimeFromDate(endDateObj))
+        
         setLocation(event.location || "")
         setParticipants(event.participants.join(", "))
         if (event.notification !== undefined) {
@@ -99,9 +244,27 @@ export default function EventDialog({
       } else {
         resetForm()
         if (initialDate) {
-          const endTime = new Date(initialDate.getTime() + 30 * 60000)
           setStartDate(initialDate)
-          setEndDate(endTime)
+          setEndDate(initialDate)
+          
+          const initialHour = getHours(initialDate);
+          const initialMinute = getMinutes(initialDate);
+          const endTime = new Date(initialDate);
+          endTime.setMinutes(initialMinute + 30);
+          
+          setStartTime({
+            hours: initialHour.toString().padStart(2, '0'),
+            minutes: initialMinute.toString().padStart(2, '0'),
+            rawInput: format(initialDate, 'HH:mm'),
+            isCustomInput: false
+          });
+          
+          setEndTime({
+            hours: getHours(endTime).toString().padStart(2, '0'),
+            minutes: getMinutes(endTime).toString().padStart(2, '0'),
+            rawInput: format(endTime, 'HH:mm'),
+            isCustomInput: false
+          });
         }
       }
     }
@@ -110,10 +273,13 @@ export default function EventDialog({
   const resetForm = () => {
     const now = new Date()
     const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000)
+    
     setTitle("")
     setIsAllDay(false)
     setStartDate(now)
-    setEndDate(thirtyMinutesLater)
+    setEndDate(now)
+    setStartTime(extractTimeFromDate(now))
+    setEndTime(extractTimeFromDate(thirtyMinutesLater))
     setLocation("")
     setParticipants("")
     setNotification("0")
@@ -121,33 +287,115 @@ export default function EventDialog({
     setDescription("")
     setColor(colorOptions[0].value)
     setSelectedCalendar(calendars.length > 0 ? calendars[0]?.id : "")
+    setStartTimeError(false)
+    setEndTimeError(false)
   }
 
-  const handleStartDateChange = (newStartDate: Date) => {
-    setStartDate(newStartDate)
-    const newEndDate = new Date(newStartDate.getTime() + 30 * 60000)
-    if (newEndDate > endDate) {
-      setEndDate(newEndDate)
+  // 更新开始日期时，如果结束日期早于开始日期，更新结束日期
+  const handleStartDateChange = (newDate: Date | undefined) => {
+    if (!newDate) return;
+    
+    setStartDate(newDate);
+    
+    // 获取完整的日期时间
+    const fullNewStartDate = combineDateTime(newDate, startTime);
+    const fullCurrentEndDate = getFullEndDate();
+    
+    // 如果结束日期早于开始日期，则更新结束日期
+    if (fullCurrentEndDate < fullNewStartDate) {
+      const newEndDate = new Date(fullNewStartDate);
+      newEndDate.setMinutes(newEndDate.getMinutes() + 30);
+      
+      setEndDate(newDate);
+      setEndTime(extractTimeFromDate(newEndDate));
     }
-  }
+  };
+
+  // 更新开始时间时，更新结束时间
+  const handleStartTimeChange = (hours: string, minutes: string) => {
+    setStartTime({
+      hours,
+      minutes,
+      rawInput: `${hours}:${minutes}`,
+      isCustomInput: false
+    });
+    
+    // 获取新的开始时间
+    const newStartDate = set(new Date(startDate), {
+      hours: parseInt(hours),
+      minutes: parseInt(minutes),
+      seconds: 0,
+      milliseconds: 0
+    });
+    
+    // 获取当前结束时间
+    const currentEndDate = getFullEndDate();
+    
+    // 如果结束时间早于或等于开始时间，则调整结束时间为开始时间+30分钟
+    if (currentEndDate <= newStartDate) {
+      const newEndDate = new Date(newStartDate);
+      newEndDate.setMinutes(newStartDate.getMinutes() + 30);
+      
+      setEndTime(extractTimeFromDate(newEndDate));
+      
+      // 如果开始时间和结束时间是不同的日期，则更新结束日期
+      if (endDate.getDate() !== startDate.getDate() || 
+          endDate.getMonth() !== startDate.getMonth() || 
+          endDate.getFullYear() !== startDate.getFullYear()) {
+        setEndDate(startDate);
+      }
+    }
+  };
+
+  // 预处理提交前的数据验证
+  const validateForm = (): boolean => {
+    // 验证开始时间格式
+    if (startTime.isCustomInput && !validateTimeFormat(startTime.rawInput)) {
+      setStartTimeError(true);
+      return false;
+    }
+    
+    // 验证结束时间格式
+    if (endTime.isCustomInput && !validateTimeFormat(endTime.rawInput)) {
+      setEndTimeError(true);
+      return false;
+    }
+    
+    // 验证结束时间不早于开始时间
+    const fullStartDate = getFullStartDate();
+    const fullEndDate = getFullEndDate();
+    
+    if (fullEndDate < fullStartDate) {
+      setEndTimeError(true);
+      alert(t.endTimeError);
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    let notificationMinutes = Number.parseInt(notification)
+    e.preventDefault();
+    
+    // 验证表单数据
+    if (!validateForm()) {
+      return;
+    }
+    
+    let notificationMinutes = Number.parseInt(notification);
     if (notification === "custom") {
-      notificationMinutes = Number.parseInt(customNotificationTime)
+      notificationMinutes = Number.parseInt(customNotificationTime);
     }
 
-    const validStartDate = startDate instanceof Date && !isNaN(startDate.getTime()) ? startDate : new Date()
-    const validEndDate =
-      endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : new Date(validStartDate.getTime() + 30 * 60000)
+    const fullStartDate = getFullStartDate();
+    const fullEndDate = getFullEndDate();
 
     const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
       title: title.trim() || (language === "zh" ? "未命名事件" : "Untitled Event"),
       isAllDay,
-      startDate: validStartDate,
-      endDate: validEndDate,
+      startDate: fullStartDate,
+      endDate: fullEndDate,
       recurrence: "none",
       location,
       participants: participants
@@ -182,8 +430,8 @@ export default function EventDialog({
           prompt: aiPrompt,
           currentValues: {
             title,
-            startDate: format(startDate, "yyyy-MM-dd'T'HH:mm"),
-            endDate: format(endDate, "yyyy-MM-dd'T'HH:mm"),
+            startDate: format(getFullStartDate(), "yyyy-MM-dd'T'HH:mm"),
+            endDate: format(getFullEndDate(), "yyyy-MM-dd'T'HH:mm"),
             location,
             participants,
             description
@@ -195,13 +443,25 @@ export default function EventDialog({
       
       const result = await response.json()
       if (result.data) {
-        const { title, startDate, endDate, location, participants, description } = result.data
-        if (title) setTitle(title)
-        if (startDate) setStartDate(new Date(startDate))
-        if (endDate) setEndDate(new Date(endDate))
-        if (location) setLocation(location)
-        if (participants) setParticipants(participants)
-        if (description) setDescription(description)
+        const { title: newTitle, startDate: newStart, endDate: newEnd, location: newLocation, participants: newParticipants, description: newDescription } = result.data
+        
+        if (newTitle) setTitle(newTitle)
+        
+        if (newStart) {
+          const startDateObj = new Date(newStart);
+          setStartDate(startDateObj);
+          setStartTime(extractTimeFromDate(startDateObj));
+        }
+        
+        if (newEnd) {
+          const endDateObj = new Date(newEnd);
+          setEndDate(endDateObj);
+          setEndTime(extractTimeFromDate(endDateObj));
+        }
+        
+        if (newLocation) setLocation(newLocation)
+        if (newParticipants) setParticipants(newParticipants)
+        if (newDescription) setDescription(newDescription)
       }
     } catch (error) {
       console.error('AI错误:', error)
@@ -209,6 +469,95 @@ export default function EventDialog({
       setIsAiLoading(false)
     }
   }
+
+  // 渲染时间选择UI
+  const renderTimeSelector = (
+    value: TimeInput, 
+    onChange: (hours: string, minutes: string) => void,
+    onCustomInput: (input: string) => void,
+    isOpen: boolean,
+    setOpen: (open: boolean) => void,
+    hasError: boolean
+  ) => {
+    const displayTime = value.isCustomInput 
+      ? value.rawInput 
+      : `${value.hours}:${value.minutes}`;
+    
+    return (
+      <Popover open={isOpen} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[130px] justify-start text-left font-normal",
+              hasError && "border-red-500 text-red-500",
+              !displayTime && "text-muted-foreground"
+            )}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            {displayTime || (language === "zh" ? "选择时间" : "Select time")}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="p-3 space-y-3">
+            <div className="flex items-center space-x-2">
+              <Select 
+                value={value.hours} 
+                onValueChange={(newHour) => onChange(newHour, value.minutes)}
+              >
+                <SelectTrigger className="w-[70px]">
+                  <SelectValue placeholder={language === "zh" ? "时" : "Hour"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {hourOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <span className="text-center">:</span>
+              
+              <Select 
+                value={value.minutes} 
+                onValueChange={(newMinute) => onChange(value.hours, newMinute)}
+              >
+                <SelectTrigger className="w-[70px]">
+                  <SelectValue placeholder={language === "zh" ? "分" : "Min"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {minuteOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="custom-time">
+                {language === "zh" ? "自定义时间 (HH:mm)" : "Custom time (HH:mm)"}
+              </Label>
+              <Input 
+                id="custom-time"
+                value={value.isCustomInput ? value.rawInput : ""}
+                onChange={(e) => onCustomInput(e.target.value)}
+                placeholder="14:30"
+                className={cn(hasError && "border-red-500")}
+              />
+              {hasError && (
+                <p className="text-xs text-red-500">
+                  {language === "zh" ? "请使用正确的格式 (HH:mm)" : "Please use the correct format (HH:mm)"}
+                </p>
+              )}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -272,8 +621,19 @@ export default function EventDialog({
                   const endOfDay = new Date(startDate)
                   endOfDay.setHours(23, 59, 59, 999)
 
-                  setStartDate(startOfDay)
-                  setEndDate(endOfDay)
+                  setStartTime({
+                    hours: "00",
+                    minutes: "00",
+                    rawInput: "00:00",
+                    isCustomInput: false
+                  })
+                  
+                  setEndTime({
+                    hours: "23",
+                    minutes: "59",
+                    rawInput: "23:59",
+                    isCustomInput: false
+                  })
                 }
               }}
             />
@@ -281,32 +641,119 @@ export default function EventDialog({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="start-date">{t.startTime}</Label>
-              <Input
-                id="start-date"
-                type="datetime-local"
-                value={format(startDate, "yyyy-MM-dd'T'HH:mm")}
-                onChange={(e) => handleStartDateChange(new Date(e.target.value))}
-                required
-              />
+            <div className="space-y-2">
+              <Label>{t.startTime}</Label>
+              <div className="flex flex-col space-y-2">
+                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(startDate, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          handleStartDateChange(date);
+                          setStartDateOpen(false);
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                {!isAllDay && (
+                  renderTimeSelector(
+                    startTime,
+                    handleStartTimeChange,
+                    handleStartTimeInput,
+                    startTimeOpen,
+                    setStartTimeOpen,
+                    startTimeError
+                  )
+                )}
+              </div>
             </div>
-            <div>
-              <Label htmlFor="end-date">{t.endTime}</Label>
-              <Input
-                id="end-date"
-                type="datetime-local"
-                value={format(endDate, "yyyy-MM-dd'T'HH:mm")}
-                onChange={(e) => {
-                  const newEndDate = new Date(e.target.value)
-                  if (newEndDate > startDate) {
-                    setEndDate(newEndDate)
-                  } else {
-                    alert(t.endTimeError)
-                  }
-                }}
-                required
-              />
+            
+            <div className="space-y-2">
+              <Label>{t.endTime}</Label>
+              <div className="flex flex-col space-y-2">
+                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(endDate, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setEndDate(date);
+                          setEndDateOpen(false);
+                          
+                          // 检查日期+时间是否有效
+                          const fullStartDate = getFullStartDate();
+                          const possibleEndDate = combineDateTime(date, endTime);
+                          
+                          if (possibleEndDate < fullStartDate) {
+                            setEndTimeError(true);
+                          } else {
+                            setEndTimeError(false);
+                          }
+                        }
+                      }}
+                      initialFocus
+                      disabled={(date) => date < startDate}
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                {!isAllDay && (
+                  renderTimeSelector(
+                    endTime,
+                    (hours, minutes) => {
+                      setEndTime({
+                        hours,
+                        minutes,
+                        rawInput: `${hours}:${minutes}`,
+                        isCustomInput: false
+                      });
+                      
+                      // 验证结束时间不早于开始时间
+                      const fullStartDate = getFullStartDate();
+                      const possibleEndDate = set(new Date(endDate), { 
+                        hours: parseInt(hours),
+                        minutes: parseInt(minutes),
+                        seconds: 0
+                      });
+                      
+                      setEndTimeError(possibleEndDate < fullStartDate);
+                    },
+                    handleEndTimeInput,
+                    endTimeOpen,
+                    setEndTimeOpen,
+                    endTimeError
+                  )
+                )}
+              </div>
+              {endTimeError && !isAllDay && (
+                <p className="text-xs text-red-500">
+                  {t.endTimeError}
+                </p>
+              )}
             </div>
           </div>
 
@@ -424,4 +871,3 @@ export default function EventDialog({
     </Dialog>
   )
 }
-
