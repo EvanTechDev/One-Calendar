@@ -217,7 +217,9 @@ export async function GET(request: NextRequest) {
     }
     const latestFile = files.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
     const fileUrl = latestFile.url;
-    const contentResponse = await fetch(fileUrl);
+    
+    const fileUrlWithToken = `${fileUrl}?i=${MISSKEY_TOKEN}`;
+    const contentResponse = await fetch(fileUrlWithToken);
     if (!contentResponse.ok) {
       throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
     }
