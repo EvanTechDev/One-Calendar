@@ -489,7 +489,7 @@ export default function EventDialog({
           <Button
             variant="outline"
             className={cn(
-              "w-[130px] justify-start text-left font-normal",
+              "w-auto justify-start text-left font-normal",
               hasError && "border-red-500 text-red-500",
               !displayTime && "text-muted-foreground"
             )}
