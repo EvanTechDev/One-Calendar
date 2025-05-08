@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createHash, createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
 async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: string, userId: string): Promise<string> {
+
   const mainFolderName = "calendar";
   
   const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
@@ -85,30 +85,6 @@ async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: s
   return userFolder.id;
 }
 
-function deriveKey(salt: string): { key: Buffer, iv: Buffer } {
-  const hash = createHash('sha512').update(salt).digest();
-  return {
-    key: hash.slice(0, 32),
-    iv: hash.slice(32, 48)
-  };
-}
-
-function encryptData(data: string, userId: string): string {
-  const { key, iv } = deriveKey(userId);
-  const cipher = createCipheriv('aes-256-cbc', key, iv);
-  let encrypted = cipher.update(data, 'utf8', 'base64');
-  encrypted += cipher.final('base64');
-  return encrypted;
-}
-
-function decryptData(encryptedData: string, userId: string): string {
-  const { key, iv } = deriveKey(userId);
-  const decipher = createDecipheriv('aes-256-cbc', key, iv);
-  let decrypted = decipher.update(encryptedData, 'base64', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const MISSKEY_URL = process.env.MISSKEY_URL;
@@ -122,8 +98,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields: 'id' and 'data' are required" }, { status: 400 });
     }
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const encryptedData = encryptData(dataString, id);
-    const blob = new Blob([encryptedData], { type: "application/json" });
+    const blob = new Blob([dataString], { type: "application/json" });
     const fileName = "data.json";
     const folderId = await ensureCalendarFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
@@ -217,15 +192,12 @@ export async function GET(request: NextRequest) {
     }
     const latestFile = files.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
     const fileUrl = latestFile.url;
-    
-    const fileUrlWithToken = `${fileUrl}?i=${MISSKEY_TOKEN}`;
-    const contentResponse = await fetch(fileUrlWithToken);
+    const contentResponse = await fetch(fileUrl);
     if (!contentResponse.ok) {
       throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
     }
-    const encryptedData = await contentResponse.text();
-    const decryptedData = decryptData(encryptedData, id);
-    return NextResponse.json({ success: true, data: decryptedData });
+    const data = await contentResponse.text();
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error("Restore API error:", error);
     return NextResponse.json(
