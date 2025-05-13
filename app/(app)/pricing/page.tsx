@@ -1,5 +1,5 @@
 import { PricingTable } from '@clerk/nextjs'
 
 export default function Page() {
-  return <PricingTable path="/pro" />
+  return <PricingTable isOrganization={false} />
 }
