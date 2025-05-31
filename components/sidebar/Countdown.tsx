@@ -19,9 +19,17 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Plus, ArrowLeft, Edit2, Trash2, Calendar, Clock } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { zhCN, enUS } from "date-fns/locale";
 
 interface Countdown {
   id: string;
@@ -38,14 +46,14 @@ interface CountdownToolProps {
 }
 
 const colorOptions = [
-  { value: "bg-red-500", label: "红色" },
-  { value: "bg-blue-500", label: "蓝色" },
-  { value: "bg-green-500", label: "绿色" },
-  { value: "bg-yellow-500", label: "黄色" },
-  { value: "bg-purple-500", label: "紫色" },
-  { value: "bg-pink-500", label: "粉色" },
-  { value: "bg-indigo-500", label: "靛蓝" },
-  { value: "bg-orange-500", label: "橙色" },
+  { value: "bg-red-500", label: "红色", labelEn: "Red" },
+  { value: "bg-blue-500", label: "蓝色", labelEn: "Blue" },
+  { value: "bg-green-500", label: "绿色", labelEn: "Green" },
+  { value: "bg-yellow-500", label: "黄色", labelEn: "Yellow" },
+  { value: "bg-purple-500", label: "紫色", labelEn: "Purple" },
+  { value: "bg-pink-500", label: "粉色", labelEn: "Pink" },
+  { value: "bg-indigo-500", label: "靛蓝", labelEn: "Indigo" },
+  { value: "bg-orange-500", label: "橙色", labelEn: "Orange" },
 ];
 
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
@@ -57,34 +65,34 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const [view, setView] = useState<"list" | "detail" | "edit">("list");
   const [language, setLanguage] = useState<"en" | "zh">("en");
   const [search, setSearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const userLanguage = navigator.language.startsWith("zh") ? "zh" : "en";
     setLanguage(userLanguage);
   }, []);
 
-  // 模拟数据存储
+  // 从 localStorage 加载数据
   useEffect(() => {
-    const sampleCountdowns: Countdown[] = [
-      {
-        id: "1",
-        name: language === "zh" ? "春节" : "Chinese New Year",
-        date: "2026-01-29",
-        repeat: "yearly",
-        description: language === "zh" ? "中国最重要的传统节日" : "Most important traditional Chinese festival",
-        color: "bg-red-500"
-      },
-      {
-        id: "2", 
-        name: language === "zh" ? "生日" : "Birthday",
-        date: "2025-08-15",
-        repeat: "yearly",
-        description: language === "zh" ? "我的生日" : "My birthday",
-        color: "bg-purple-500"
+    const savedCountdowns = localStorage.getItem('countdowns');
+    if (savedCountdowns) {
+      try {
+        const parsedCountdowns = JSON.parse(savedCountdowns);
+        setCountdowns(parsedCountdowns);
+      } catch (error) {
+        console.error('Error parsing saved countdowns:', error);
+        setCountdowns([]);
       }
-    ];
-    setCountdowns(sampleCountdowns);
-  }, [language]);
+    }
+  }, []);
+
+  // 保存数据到 localStorage
+  useEffect(() => {
+    if (countdowns.length >= 0) {
+      localStorage.setItem('countdowns', JSON.stringify(countdowns));
+    }
+  }, [countdowns]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -162,6 +170,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         countdownDetails: "Countdown Details",
         editCountdown: "Edit Countdown",
         addCountdown: "Add Countdown",
+        selectDate: "Select date",
       },
       zh: {
         title: "倒数日",
@@ -187,6 +196,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         countdownDetails: "倒数日详情",
         editCountdown: "编辑倒数日",
         addCountdown: "添加倒数日",
+        selectDate: "选择日期",
       },
     };
     const lang = translations[language];
@@ -202,6 +212,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     }[key]);
 
   const startAddCountdown = () => {
+    const today = new Date();
     setNewCountdown({
       name: "",
       date: getTodayDateString(),
@@ -209,6 +220,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       description: "",
       color: "bg-blue-500"
     });
+    setSelectedDate(today);
     setSelectedCountdown(null);
     setView("edit");
   };
@@ -220,6 +232,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const startEditCountdown = (countdown: Countdown) => {
     setNewCountdown(countdown);
+    setSelectedDate(new Date(countdown.date));
     setView("edit");
   };
 
@@ -229,12 +242,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   };
 
   const saveCountdown = () => {
-    if (!newCountdown.name || !newCountdown.date || !newCountdown.color) return;
+    if (!newCountdown.name || !selectedDate || !newCountdown.color) return;
     
     const countdown: Countdown = {
       id: selectedCountdown?.id || Date.now().toString(),
       name: newCountdown.name,
-      date: newCountdown.date,
+      date: selectedDate.toISOString().split('T')[0],
       repeat: newCountdown.repeat || "none",
       description: newCountdown.description || "",
       color: newCountdown.color
@@ -249,6 +262,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     setView("list");
     setSelectedCountdown(null);
     setNewCountdown({ color: "bg-blue-500" });
+    setSelectedDate(new Date());
   };
 
   const deleteCountdown = (id: string) => {
@@ -454,7 +468,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
                       <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
-                      {language === "zh" ? option.label : option.label}
+                      {language === "zh" ? option.label : option.labelEn}
                     </div>
                   </SelectItem>
                 ))}
@@ -463,14 +477,39 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date">{t("date")}*</Label>
-            <Input
-              id="date"
-              type="date"
-              value={newCountdown.date || ""}
-              onChange={(e) => setNewCountdown({ ...newCountdown, date: e.target.value })}
-              required
-            />
+            <Label>{t("date")}*</Label>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {selectedDate ? (
+                    format(selectedDate, "PPP", { 
+                      locale: language === "zh" ? zhCN : enUS 
+                    })
+                  ) : (
+                    <span>{t("selectDate")}</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setCalendarOpen(false);
+                  }}
+                  initialFocus
+                  locale={language === "zh" ? zhCN : enUS}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
@@ -526,7 +565,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           </Button>
           <Button 
             onClick={saveCountdown} 
-            disabled={!newCountdown.name || !newCountdown.date || !newCountdown.color}
+            disabled={!newCountdown.name || !selectedDate || !newCountdown.color}
           >
             {t("save")}
           </Button>
