@@ -20,7 +20,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface Countdown {
   id: string;
@@ -67,18 +67,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     setIsEditing(false);
   };
 
-  const editCountdown = (id: string) => {
-    const countdown = countdowns.find((c) => c.id === id);
-    if (countdown) {
-      setCurrentCountdown(countdown);
-      setIsEditing(true);
-    }
-  };
-
-  const deleteCountdown = (id: string) => {
-    saveCountdowns(countdowns.filter((c) => c.id !== id));
-  };
-
   const handleSave = () => {
     if (!currentCountdown?.name || !currentCountdown.date) return;
     if (isEditing) {
@@ -94,11 +82,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const calculateDaysLeft = (dateStr: string, repeat: Countdown["repeat"]) => {
     const today = new Date();
     const targetDate = parseISO(dateStr);
-    let nextDate = new Date(
-      today.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate()
-    );
+    let nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
     if (repeat === "weekly") {
       const targetDay = targetDate.getDay();
@@ -107,18 +91,10 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       nextDate = new Date(today);
       nextDate.setDate(today.getDate() + daysToAdd);
     } else if (repeat === "monthly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        targetDate.getDate()
-      );
+      nextDate = new Date(today.getFullYear(), today.getMonth(), targetDate.getDate());
       if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
     } else if (repeat === "yearly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate()
-      );
+      nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
       if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
     }
 
@@ -141,8 +117,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         },
         save: "Save",
         daysLeft: "days left",
-        edit: "Edit",
-        delete: "Delete",
         noEvents: "No events added yet",
       },
       zh: {
@@ -159,151 +133,131 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         },
         save: "保存",
         daysLeft: "天后",
-        edit: "编辑",
-        delete: "删除",
         noEvents: "尚未添加任何事件",
       },
     };
-    return translations[language][key] || key;
+    const lang = translations[language];
+    return lang?.[key] ?? key;
   };
+
+  const tRepeat = (key: Countdown["repeat"]) =>
+    ({
+      none: t("repeatOptions")["none"],
+      weekly: t("repeatOptions")["weekly"],
+      monthly: t("repeatOptions")["monthly"],
+      yearly: t("repeatOptions")["yearly"],
+    }[key]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md sm:w-full p-4">
         <SheetHeader>
-          <div className="flex items-center">
-            <SheetTitle className="font-semibold">{t("title")}</SheetTitle>
-          </div>
+          <SheetTitle>{t("title")}</SheetTitle>
         </SheetHeader>
 
         {currentCountdown ? (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name" className="text-sm">
-                {t("name")}
-              </Label>
+              <Label htmlFor="name">{t("name")}</Label>
               <Input
                 id="name"
                 value={currentCountdown.name}
                 onChange={(e) =>
-                  setCurrentCountdown({
-                    ...currentCountdown,
-                    name: e.target.value,
-                  })
+                  setCurrentCountdown({ ...currentCountdown, name: e.target.value })
                 }
               />
             </div>
 
             <div>
-              <Label htmlFor="date" className="text-sm">
-                {t("date")}
-              </Label>
+              <Label htmlFor="date">{t("date")}</Label>
               <Input
                 id="date"
                 type="date"
                 value={currentCountdown.date}
                 onChange={(e) =>
-                  setCurrentCountdown({
-                    ...currentCountdown,
-                    date: e.target.value,
-                  })
+                  setCurrentCountdown({ ...currentCountdown, date: e.target.value })
                 }
-                min={format(new Date(), "yyyy-MM-dd")}
               />
             </div>
 
             <div>
-              <Label htmlFor="repeat" className="text-sm">
-                {t("repeat")}
-              </Label>
+              <Label>{t("repeat")}</Label>
               <Select
                 value={currentCountdown.repeat}
                 onValueChange={(value: Countdown["repeat"]) =>
-                  setCurrentCountdown({
-                    ...currentCountdown,
-                    repeat: value,
-                  })
+                  setCurrentCountdown({ ...currentCountdown, repeat: value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t("repeat")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(t("repeatOptions")).map(([key, value) => (
+                  {["none", "weekly", "monthly", "yearly"].map((key) => (
                     <SelectItem key={key} value={key}>
-                      {value}
+                      {tRepeat(key as Countdown["repeat"])}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <SheetFooter className="mt-6">
+            <SheetFooter className="mt-4">
               <Button
                 onClick={handleSave}
                 className="w-full"
                 style={{ backgroundColor: "#0066ff", color: "white" }}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                {t(isEditing ? "save" : "add")}
+                {t("save")}
               </Button>
             </SheetFooter>
           </div>
         ) : (
-          <>
-            <div className="space-y-4">
-              <Input
-                placeholder={t("noEvents")}
-                value={contactsFilter}
-                onChange={(e) => setContactsFilter(e.target.value)}
-                className="w-full"
-              />
-            </div>
-
+          <div className="space-y-4">
             {countdowns.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 {t("noEvents")}
               </div>
             ) : (
               <div className="space-y-3">
-               {countdowns.map((countdown) => {
-                  const daysLeft = calculateDaysLeft(countdown.date, countdown.repeat);
+                {countdowns.map((c) => {
+                  const daysLeft = calculateDaysLeft(c.date, c.repeat);
                   const locale = language === "zh" ? zhCN : enUS;
-                  const formattedDate = format(parseISO(countdown.date), "MMM d, yyyy", { locale });
+                  const formattedDate = format(parseISO(c.date), "MMM d, yyyy", { locale });
                   const daysColor = daysLeft < 0 ? "text-red-500" : "text-[#0066ff]";
-                
                   return (
                     <div
-                      key={countdown.id}
+                      key={c.id}
                       className="flex justify-between items-start p-2 hover:bg-accent rounded-md cursor-pointer"
+                      onClick={() => {
+                        setCurrentCountdown(c);
+                        setIsEditing(true);
+                      }}
                     >
                       <div>
-                        <div className="font-medium">{countdown.name}</div>
+                        <div className="font-medium">{c.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {formattedDate} • {t("repeatOptions")?.[countdown.repeat]}
+                          {formattedDate} • {tRepeat(c.repeat)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-lg font-bold ${daysColor}`}>
-                          {Math.abs(daysLeft)} {t("daysLeft")}
-                        </div>
+                      <div className={`text-lg font-bold ${daysColor}`}>
+                        {Math.abs(daysLeft)} {t("daysLeft")}
                       </div>
                     </div>
                   );
                 })}
-                
+              </div>
+            )}
 
             <Button
-              className="mt-6 w-full"
               onClick={newCountdown}
-              variant="default"
+              className="w-full mt-4"
               style={{ backgroundColor: "#0066ff", color: "white" }}
-              size="sm"
             >
               <Plus className="mr-2 h-4 w-4" />
               {t("add")}
             </Button>
-          </>
+          </div>
         )}
       </SheetContent>
     </Sheet>
