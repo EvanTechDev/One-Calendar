@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare } from 'lucide-react'
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare, CalendarClock } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -606,22 +606,6 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
-            onClick={() => setNotesOpen(true)}
-          >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500",
-                notesOpen && "ring-2 ring-primary",
-              )}
-            >
-              <BookText className="h-6 w-6 text-white dark:text-white" />
-            </div>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
             className={cn(
               "rounded-full p-0 w-12 h-12 flex items-center justify-center",
               countdownOpen && "ring-2 ring-primary"
@@ -629,7 +613,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             onClick={() => setCountdownOpen(true)}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500">
-              <Plus className="h-6 w-6 text-white" />
+              <CalendarClock className="h-6 w-6 text-white" />
             </div>
           </Button>
 
