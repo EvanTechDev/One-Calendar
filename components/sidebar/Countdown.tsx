@@ -247,7 +247,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               <Button 
                 onClick={handleSave} 
                 className="w-full"
-                style={{ color: "#0066ff" }}
+                style="bg-[#0066ff] text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {t(isEditing ? "save" : "add")}
@@ -272,7 +272,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       { locale }
                     );
                     
-                    // 使用自定义颜色类
                     const daysColor = daysLeft < 0 ? "text-red-500" : "text-[#0066ff]";
                     
                     return (
@@ -284,7 +283,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           <div>
                             <h3 className="font-medium">{countdown.name}</h3>
                             <p className="text-sm text-gray-500">
-                              {formattedDate} • {t(`repeatOptions.${countdown.repeat}`)}
+                              {formattedDate}
                             </p>
                           </div>
                           <div className="text-right">
@@ -326,7 +325,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               className="mt-6 w-full"
               onClick={newCountdown}
               variant="default"
-              style={{ backgroundColor: "#0066ff", color: "white" }}
             >
               <Plus className="mr-2 h-4 w-4" />
               {t("add")}
