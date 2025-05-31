@@ -280,7 +280,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       <div>
                         <div className="font-medium">{countdown.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {formattedDate} • {t(`repeatOptions.${countdown.repeat}`}
+                          {formattedDate}
                         </div>
                       </div>
                       <div className="text-right">
