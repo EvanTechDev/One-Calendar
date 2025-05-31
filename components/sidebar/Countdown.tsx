@@ -176,7 +176,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg">
+      <SheetContent>
         <SheetHeader>
           <SheetTitle className="text-xl font-semibold mb-4">{t("title")}</SheetTitle>
         </SheetHeader>
