@@ -631,8 +631,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
 
-      <CountdownTool open={isOpen} onOpenChange={setIsOpen} />
-    </div>
+          <CountdownTool open={isOpen} onOpenChange={setIsOpen} />
 
           <Button
             variant="ghost"
