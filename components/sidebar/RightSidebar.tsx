@@ -14,6 +14,7 @@ import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
 import AIChatSheet from "./AIChat"
 import { useRouter } from "next/navigation"
+import { CountdownTool } from "./Countdown"
 
 // 通讯录类型定义
 interface Contact {
@@ -76,6 +77,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [chatOpen, setChatOpen] = useState(false)
   // Add a new state for the bookmark panel
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
+  const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
 
 
@@ -617,6 +619,27 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
               <BookText className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
+
+          <CountdownTool 
+            open={countdownOpen}
+            onOpenChange={setCountdownOpen}
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+                onClick={() => setCountdownOpen(true)}
+              >
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500", countdownOpen && "ring-2 ring-primary",
+                  )}
+                >
+                  <Plus className="h-6 w-6 text-white dark:text-white" />
+                </div>
+              </Button>
+            }
+          />
 
           <Button
             variant="ghost"
