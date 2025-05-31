@@ -20,7 +20,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash, CalendarDays } from "lucide-react";
+import { Plus, Edit, Trash } from "lucide-react";
 
 interface Countdown {
   id: string;
@@ -181,7 +181,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <SheetTitle>{t("title")}</SheetTitle>
         </SheetHeader>
         
-        {currentCountdown && (
+        {currentCountdown ? (
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -241,81 +241,77 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 </SelectContent>
               </Select>
             </div>
+            <SheetFooter>
+              <Button onClick={handleSave}>{t("save")}</Button>
+            </SheetFooter>
           </div>
-        )}
+        ) : (
+          <>
+            <div className="mt-8">
+              {countdowns.length === 0 ? (
+                <p className="text-gray-500">{t("noEvents")}</p>
+              ) : (
+                <div className="space-y-4">
+                  {countdowns.map((countdown) => {
+                    const daysLeft = calculateDaysLeft(countdown.date, countdown.repeat);
+                    const locale = language === "zh" ? zhCN : enUS;
+                    const formattedDate = format(
+                      parseISO(countdown.date),
+                      "MMM d, yyyy",
+                      { locale }
+                    );
 
-        <div className="mt-8">
-          {countdowns.length === 0 && !currentCountdown ? (
-            <p className="text-gray-500">{t("noEvents")}</p>
-          ) : (
-            <div className="space-y-4">
-              {countdowns.map((countdown) => {
-                const daysLeft = calculateDaysLeft(countdown.date, countdown.repeat);
-                const locale = language === "zh" ? zhCN : enUS;
-                const formattedDate = format(
-                  parseISO(countdown.date),
-                  "MMM d, yyyy",
-                  { locale }
-                );
-
-                return (
-                  <div
-                    key={countdown.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{countdown.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {formattedDate} • {t(`repeatOptions.${countdown.repeat}`)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className={`text-lg font-bold ${
-                            daysLeft < 0 ? "text-red-500" : "text-green-500"
-                          }`}
-                        >
-                          {Math.abs(daysLeft)} {t("daysLeft")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2 mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => editCountdown(countdown.id)}
+                    return (
+                      <div
+                        key={countdown.id}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                       >
-                        <Edit className="h-4 w-4 mr-2" /> {t("edit")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteCountdown(countdown.id)}
-                      >
-                        <Trash className="h-4 w-4 mr-2" /> {t("delete")}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{countdown.name}</h3>
+                            <p className="text-sm text-gray-500">
+                              {formattedDate} • {t(`repeatOptions.${countdown.repeat}`)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p
+                              className={`text-lg font-bold ${
+                                daysLeft < 0 ? "text-red-500" : "text-green-500"
+                              }`}
+                            >
+                              {Math.abs(daysLeft)} {t("daysLeft")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editCountdown(countdown.id)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" /> {t("edit")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteCountdown(countdown.id)}
+                          >
+                            <Trash className="h-4 w-4 mr-2" /> {t("delete")}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {!currentCountdown && (
-          <Button 
-            className="fixed bottom-8 right-8 rounded-full w-12 h-12 p-0"
-            onClick={newCountdown}
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        )}
-
-        {currentCountdown && (
-          <SheetFooter>
-            <Button onClick={handleSave}>{t("save")}</Button>
-          </SheetFooter>
+            <Button 
+              className="mt-4"
+              onClick={newCountdown}
+            >
+              <Plus className="mr-2 h-4 w-4" /> {t("add")}
+            </Button>
+          </>
         )}
       </SheetContent>
     </Sheet>
