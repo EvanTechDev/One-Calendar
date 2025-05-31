@@ -620,26 +620,19 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
 
-          <CountdownTool 
-            open={countdownOpen}
-            onOpenChange={setCountdownOpen}
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
-                onClick={() => setCountdownOpen(true)}
-              >
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500", countdownOpen && "ring-2 ring-primary",
-                  )}
-                >
-                  <Plus className="h-6 w-6 text-white dark:text-white" />
-                </div>
-              </Button>
-            }
-          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full p-0 w-12 h-12 flex items-center justify-center fixed bottom-8 right-8"
+            onClick={() => setIsOpen(true)}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+          </Button>
+
+      <CountdownTool open={isOpen} onOpenChange={setIsOpen} />
+    </div>
 
           <Button
             variant="ghost"
