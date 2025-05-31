@@ -186,7 +186,7 @@ const performAutoBackup = async () => {
 
   try {
     console.log("Starting auto-backup...");
-    const { contacts, notes, sharedEvents, bookmarks } = getLocalData();
+    const { contacts, notes, sharedEvents, bookmarks, countdowns } = getLocalData();
     const backupData = {
       events: events || [],
       calendars: calendars || [],
@@ -194,6 +194,7 @@ const performAutoBackup = async () => {
       notes,
       sharedEvents,
       bookmarks,
+      countdowns,
       timestamp: new Date().toISOString(),
     };
 
@@ -243,6 +244,7 @@ const restoreUserData = async (silent = true) => {
         notes: restoredData.notes || [],
         sharedEvents: restoredData.sharedEvents || [],
         bookmarks: restoredData.bookmarks || []
+        countdowns: restoredData.countdowns || []
       });
 
       if (Array.isArray(restoredData.events)) {
