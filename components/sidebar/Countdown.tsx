@@ -30,12 +30,32 @@ interface Countdown {
   repeat: "none" | "weekly" | "monthly" | "yearly";
 }
 
-export function CountdownTool() {
+interface CountdownToolProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
+}
+
+export function CountdownTool({ 
+  open: externalOpen, 
+  onOpenChange: externalOnOpenChange,
+  trigger
+}: CountdownToolProps) {
   const [countdowns, setCountdowns] = useState<Countdown[]>([]);
   const [currentCountdown, setCurrentCountdown] = useState<Countdown | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const isOpen = isControlled ? externalOpen : internalOpen;
   const [language, setLanguage] = useState<"en" | "zh">("en");
+  
+  const setIsOpen = (open: boolean) => {
+    if (!isControlled) {
+      setInternalOpen(open);
+    }
+    externalOnOpenChange?.(open);
+  };
+
 
   // 检测浏览器语言
   useEffect(() => {
@@ -187,11 +207,17 @@ export function CountdownTool() {
   return (
     <div className="p-4 max-w-md mx-auto">
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" onClick={newCountdown}>
-            <Plus className="mr-2 h-4 w-4" /> {t("add")}
-          </Button>
-        </SheetTrigger>
+        {trigger ? (
+          <SheetTrigger asChild>
+            {trigger}
+          </SheetTrigger>
+        ) : (
+          <SheetTrigger asChild>
+            <Button variant="outline" onClick={newCountdown}>
+              <Plus className="mr-2 h-4 w-4" /> {t("add")}
+            </Button>
+          </SheetTrigger>
+        )}
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
