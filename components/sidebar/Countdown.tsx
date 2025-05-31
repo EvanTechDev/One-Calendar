@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, ArrowLeft, Edit2, Trash2, Calendar, Clock } from "lucide-react";
+import { Plus, ArrowLeft, Edit2, Trash2, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -324,7 +324,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       <div className="flex-1">
                         <div className="font-medium">{countdown.name}</div>
                         <div className="text-sm text-muted-foreground flex items-center mt-1">
-                          <Calendar className="h-3 w-3 mr-1" />
+                          <CalendarIcon className="h-3 w-3 mr-1" />
                           {formattedDate} • {tRepeat(countdown.repeat)}
                         </div>
                       </div>
@@ -382,7 +382,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
+                <CalendarIcon className="h-4 w-4 mr-1" />
                 {t("date")}
               </h3>
               <p className="text-base">{formattedDate}</p>
@@ -487,7 +487,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     !selectedDate && "text-muted-foreground"
                   )}
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? (
                     format(selectedDate, "PPP", { 
                       locale: language === "zh" ? zhCN : enUS 
