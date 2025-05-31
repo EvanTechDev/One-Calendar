@@ -83,7 +83,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     if (!currentCountdown?.name || !currentCountdown.date) return;
     if (isEditing) {
       saveCountdowns(
-        countdowns.map((c) => (c.id === currentCountdown.id ? currentCountdown : c)
+        countdowns.map((c) => (c.id === currentCountdown.id ? currentCountdown : c))
       );
     } else {
       saveCountdowns([...countdowns, currentCountdown]);
