@@ -150,8 +150,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md sm:w-full p-4">
-        <SheetHeader>
+      <SheetContent className="sm:max-w-md p-4">
+        <SheetHeader className="mb-4">
           <SheetTitle>{t("title")}</SheetTitle>
         </SheetHeader>
 
