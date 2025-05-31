@@ -150,7 +150,7 @@ const enableAutoBackup = () => {
     setIsAutoBackupEnabled(true);
     localStorage.setItem("auto-backup-enabled", "true"); // 明确设置为 "true"
     localStorage.setItem("auto-backup-id", clerkUserId);
-    toast(anguage === "zh" ? "自动备份已启用" : "Auto-Backup Enabled", {
+    toast(language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled", {
       description: language === "zh" 
         ? "您的数据将在每次更改时自动备份。" 
         : "Your data will be automatically backed up on changes.",
@@ -243,7 +243,7 @@ const restoreUserData = async (silent = true) => {
         contacts: restoredData.contacts || [],
         notes: restoredData.notes || [],
         sharedEvents: restoredData.sharedEvents || [],
-        bookmarks: restoredData.bookmarks || []
+        bookmarks: restoredData.bookmarks || [],
         countdowns: restoredData.countdowns || []
       });
 
