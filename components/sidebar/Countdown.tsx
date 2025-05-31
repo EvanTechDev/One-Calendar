@@ -576,7 +576,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md p-0">
+      <SheetContent className="p-0">
         {view === "list" && renderCountdownListView()}
         {view === "detail" && renderCountdownDetailView()}
         {view === "edit" && renderCountdownEditView()}
