@@ -266,12 +266,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                {countdowns.map((countdown) => {
+               {countdowns.map((countdown) => {
                   const daysLeft = calculateDaysLeft(countdown.date, countdown.repeat);
                   const locale = language === "zh" ? zhCN : enUS;
                   const formattedDate = format(parseISO(countdown.date), "MMM d, yyyy", { locale });
                   const daysColor = daysLeft < 0 ? "text-red-500" : "text-[#0066ff]";
-
+                
                   return (
                     <div
                       key={countdown.id}
@@ -280,7 +280,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       <div>
                         <div className="font-medium">{countdown.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {formattedDate}
+                          {formattedDate} • {t("repeatOptions")?.[countdown.repeat]}
                         </div>
                       </div>
                       <div className="text-right">
@@ -291,8 +291,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     </div>
                   );
                 })}
-              </div>
-            )}
+                
 
             <Button
               className="mt-6 w-full"
