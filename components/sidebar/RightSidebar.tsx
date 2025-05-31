@@ -79,7 +79,6 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
-  const [countdownOpen, setCountdownOpen] = useState(false);
 
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
