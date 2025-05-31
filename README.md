@@ -166,8 +166,6 @@ Check out our [contributors](https://github.com/EvanTechDev/One-Calendar/graphs/
 
 BTC: `bc1qdhn6c7tlcaflzu3u5fva825l20k9eqnqag5xzj`
 
-MOB: `6tKKBDHJFcRhCvTx9wJeNH8gUUfXvPUBHnegCV8M3Qniy4UBDyRzQrHQnxGcGEebibG3Q62RxgKABe75kArpLkd8igwWw6BviTAcyp7DGgZ2LqMBWjSPEgypMSGpDjwqfD6L9PECUm4HZzRGCvMT3jL8rjev4thCqH16jrrVBnUt7VDrqZsoSDVViEAGitG9axZtekUQNK2vzgdYxPEQtnZ4ouYyPLaxPYmKHDW2XrQuA5`
-
 ## Acknowledgements
 
 This project wouldn't be possible without these awesome services:
