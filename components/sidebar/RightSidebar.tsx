@@ -79,7 +79,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const [countdownOpen, setCountdownOpen] = useState(false);
 
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
@@ -623,15 +623,18 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center fixed bottom-8 right-8"
-            onClick={() => setIsOpen(true)}
+            className={cn(
+              "rounded-full p-0 w-12 h-12 flex items-center justify-center",
+              countdownOpen && "ring-2 ring-primary"
+            )}
+            onClick={() => setCountdownOpen(true)}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500">
               <Plus className="h-6 w-6 text-white" />
             </div>
           </Button>
 
-          <CountdownTool open={isOpen} onOpenChange={setIsOpen} />
+          <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />
 
           <Button
             variant="ghost"
