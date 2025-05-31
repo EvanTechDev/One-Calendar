@@ -1,265 +1,123 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { format, differenceInDays, parseISO } from "date-fns";
-import { enUS, zhCN } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from 'react'
+import { format } from 'date-fns'
+import { Input } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { differenceInDays } from 'date-fns'
+import { toast } from 'sonner'
+import { useLocalStorage } from '@/lib/use-local-storage'
+import { Calendar } from 'lucide-react'
 
-interface Countdown {
-  id: string;
-  name: string;
-  date: string;
-  repeat: "none" | "weekly" | "monthly" | "yearly";
+interface CountdownItem {
+  id: string
+  title: string
+  date: string // yyyy-MM-dd
 }
 
-interface CountdownToolProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+const mockCountdowns: CountdownItem[] = [
+  { id: '1', title: '考试日', date: '2025-06-20' },
+  { id: '2', title: '旅行计划', date: '2025-07-15' },
+  { id: '3', title: '朋友生日', date: '2025-08-01' },
+]
 
-export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
-  const [countdowns, setCountdowns] = useState<Countdown[]>([]);
-  const [currentCountdown, setCurrentCountdown] = useState<Countdown | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [language, setLanguage] = useState<"en" | "zh">("en");
-
-  useEffect(() => {
-    const userLanguage = navigator.language.startsWith("zh") ? "zh" : "en";
-    setLanguage(userLanguage);
-  }, []);
+export default function CountdownPage() {
+  const [countdowns, setCountdowns] = useState<CountdownItem[]>(mockCountdowns)
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<CountdownItem | null>(null)
+  const [open, setOpen] = useState(false)
+  const [hasShownToastToday, setHasShownToastToday] = useLocalStorage('today-toast', false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("countdowns");
-    if (saved) {
-      setCountdowns(JSON.parse(saved));
+    const today = new Date().toDateString()
+    const lastShown = localStorage.getItem('today-toast-date')
+    if (!hasShownToastToday || lastShown !== today) {
+      toast('🎉 新的一天，加油！')
+      setHasShownToastToday(true)
+      localStorage.setItem('today-toast-date', today)
     }
-  }, []);
+  }, [hasShownToastToday, setHasShownToastToday])
 
-  const saveCountdowns = (data: Countdown[]) => {
-    setCountdowns(data);
-    localStorage.setItem("countdowns", JSON.stringify(data));
-  };
+  const filtered = countdowns.filter(item =>
+    item.title.toLowerCase().includes(search.toLowerCase())
+  )
 
-  const newCountdown = () => {
-    setCurrentCountdown({
-      id: Date.now().toString(),
-      name: "",
-      date: format(new Date(), "yyyy-MM-dd"),
-      repeat: "none",
-    });
-    setIsEditing(false);
-  };
+  const handleClick = (item: CountdownItem) => {
+    setSelected(item)
+    setOpen(true)
+  }
 
-  const handleSave = () => {
-    if (!currentCountdown?.name || !currentCountdown.date) return;
-    if (isEditing) {
-      saveCountdowns(
-        countdowns.map((c) => (c.id === currentCountdown.id ? currentCountdown : c))
-      );
-    } else {
-      saveCountdowns([...countdowns, currentCountdown]);
-    }
-    setCurrentCountdown(null);
-  };
+  const handleDelete = (id: string) => {
+    setCountdowns(prev => prev.filter(item => item.id !== id))
+    setOpen(false)
+    toast('已删除倒数日')
+  }
 
-  const calculateDaysLeft = (dateStr: string, repeat: Countdown["repeat"]) => {
-    const today = new Date();
-    const targetDate = parseISO(dateStr);
-    let nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  const handleEdit = (id: string) => {
+    // TODO: 添加编辑逻辑
+    toast('编辑功能尚未实现')
+  }
 
-    if (repeat === "weekly") {
-      const targetDay = targetDate.getDay();
-      const todayDay = today.getDay();
-      const daysToAdd = (targetDay - todayDay + 7) % 7;
-      nextDate = new Date(today);
-      nextDate.setDate(today.getDate() + daysToAdd);
-    } else if (repeat === "monthly") {
-      nextDate = new Date(today.getFullYear(), today.getMonth(), targetDate.getDate());
-      if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
-    } else if (repeat === "yearly") {
-      nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-      if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
-    }
-
-    return differenceInDays(nextDate, today);
-  };
-
-  const t = (key: string) => {
-    const translations = {
-      en: {
-        title: "Countdown",
-        add: "Add Countdown",
-        name: "Event Name",
-        date: "Date",
-        repeat: "Repeat",
-        repeatOptions: {
-          none: "None",
-          weekly: "Weekly",
-          monthly: "Monthly",
-          yearly: "Yearly",
-        },
-        save: "Save",
-        daysLeft: "days left",
-        noEvents: "No events added yet",
-      },
-      zh: {
-        title: "倒数日",
-        add: "添加倒数日",
-        name: "事件名称",
-        date: "日期",
-        repeat: "重复",
-        repeatOptions: {
-          none: "不重复",
-          weekly: "每周",
-          monthly: "每月",
-          yearly: "每年",
-        },
-        save: "保存",
-        daysLeft: "天后",
-        noEvents: "尚未添加任何事件",
-      },
-    };
-    const lang = translations[language];
-    return lang?.[key] ?? key;
-  };
-
-  const tRepeat = (key: Countdown["repeat"]) =>
-    ({
-      none: t("repeatOptions")["none"],
-      weekly: t("repeatOptions")["weekly"],
-      monthly: t("repeatOptions")["monthly"],
-      yearly: t("repeatOptions")["yearly"],
-    }[key]);
+  const daysLeft = (date: string) => {
+    const now = new Date()
+    const target = new Date(date)
+    return differenceInDays(target, now)
+  }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md p-4">
-        <SheetHeader className="mb-4">
-          <SheetTitle>{t("title")}</SheetTitle>
-        </SheetHeader>
+    <div className="p-4 space-y-4">
+      <Input
+        placeholder="搜索倒数日"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full"
+      />
 
-        {currentCountdown ? (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">{t("name")}</Label>
-              <Input
-                id="name"
-                value={currentCountdown.name}
-                onChange={(e) =>
-                  setCurrentCountdown({ ...currentCountdown, name: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="date">{t("date")}</Label>
-              <Input
-                id="date"
-                type="date"
-                value={currentCountdown.date}
-                onChange={(e) =>
-                  setCurrentCountdown({ ...currentCountdown, date: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <Label>{t("repeat")}</Label>
-              <Select
-                value={currentCountdown.repeat}
-                onValueChange={(value: Countdown["repeat"]) =>
-                  setCurrentCountdown({ ...currentCountdown, repeat: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("repeat")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {["none", "weekly", "monthly", "yearly"].map((key) => (
-                    <SelectItem key={key} value={key}>
-                      {tRepeat(key as Countdown["repeat"])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <SheetFooter className="mt-4">
-              <Button
-                onClick={handleSave}
-                className="w-full"
-                style={{ backgroundColor: "#0066ff", color: "white" }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {t("save")}
-              </Button>
-            </SheetFooter>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {countdowns.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                {t("noEvents")}
+      <div className="grid gap-3">
+        {filtered.map(item => (
+          <Card key={item.id} onClick={() => handleClick(item)} className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <div className="text-lg font-semibold flex items-center gap-1">
+                  <Calendar className="w-4 h-4 text-muted-foreground" /> {item.title}
+                </div>
+                <div className="text-sm text-muted-foreground">{item.date}</div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {countdowns.map((c) => {
-                  const daysLeft = calculateDaysLeft(c.date, c.repeat);
-                  const locale = language === "zh" ? zhCN : enUS;
-                  const formattedDate = format(parseISO(c.date), "MMM d, yyyy", { locale });
-                  const daysColor = daysLeft < 0 ? "text-red-500" : "text-[#0066ff]";
-                  return (
-                    <div
-                      key={c.id}
-                      className="flex justify-between items-start p-2 hover:bg-accent rounded-md cursor-pointer"
-                      onClick={() => {
-                        setCurrentCountdown(c);
-                        setIsEditing(true);
-                      }}
-                    >
-                      <div>
-                        <div className="font-medium">{c.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formattedDate} • {tRepeat(c.repeat)}
-                        </div>
-                      </div>
-                      <div className={`text-lg font-bold ${daysColor}`}>
-                        {Math.abs(daysLeft)} {t("daysLeft")}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="text-xl font-bold text-blue-600">
+                {daysLeft(item.date)} 天
               </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-[360px] sm:w-[400px]">
+          <SheetHeader>
+            <SheetTitle>{selected?.title}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {selected && (
+              <>
+                <div className="text-center text-6xl font-bold text-blue-600">
+                  {daysLeft(selected.date)} 天
+                </div>
+                <div className="text-center text-muted-foreground text-sm">
+                  {format(new Date(selected.date), 'yyyy-MM-dd')}
+                </div>
+                <div className="flex justify-around mt-6">
+                  <Button variant="outline" onClick={() => handleEdit(selected.id)}>编辑</Button>
+                  <Button variant="destructive" onClick={() => handleDelete(selected.id)}>
+                    删除
+                  </Button>
+                </div>
+              </>
             )}
-
-            <Button
-              onClick={newCountdown}
-              className="w-full mt-4"
-              style={{ backgroundColor: "#0066ff", color: "white" }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {t("add")}
-            </Button>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
 }
