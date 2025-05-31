@@ -97,38 +97,42 @@ useEffect(() => {
       const contactsStr = localStorage.getItem("contacts")
       const notesStr = localStorage.getItem("notes")
       const sharedEventsStr = localStorage.getItem("shared-events")
-      const bookmarksStr = localStorage.getItem("bookmarked-events") // Add this line
+      const bookmarksStr = localStorage.getItem("bookmarked-events")
+      const countdownsStr = localStorage.getItem("countdowns")
 
       const contacts = contactsStr ? JSON.parse(contactsStr) : []
       const notes = notesStr ? JSON.parse(notesStr) : []
       const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : []
-      const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : [] // Add this line
+      const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : []
+      const countdowns = countdownsStr? JSON.parse(countdownsStr) : []
 
-      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks`,
+      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns`,
 )
-return { contacts, notes, sharedEvents, bookmarks } // Include bookmarks in the returned data
+return { contacts, notes, sharedEvents, bookmarks, countdowns } // Include bookmarks in the returned data
 } catch (error)
 {
   console.error("Error getting data from localStorage:", error)
-  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [] } // Include empty bookmarks array
+  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [] } // Include empty bookmarks array
 }
 }
 
 // 将数据保存到localStorage
-const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[] }) => {
+const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[] }) => {
   try {
     const contacts = data.contacts || []
     const notes = data.notes || []
     const sharedEvents = data.sharedEvents || []
-    const bookmarks = data.bookmarks || [] // Add this line
+    const bookmarks = data.bookmarks || []
+    const countdowns = data.countdowns || []
 
     console.log(
-      `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks to localStorage`,
+      `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns to localStorage`,
     )
     localStorage.setItem("contacts", JSON.stringify(contacts))
     localStorage.setItem("notes", JSON.stringify(notes))
     localStorage.setItem("shared-events", JSON.stringify(sharedEvents))
-    localStorage.setItem("bookmarked-events", JSON.stringify(bookmarks)) // Add this line
+    localStorage.setItem("bookmarked-events", JSON.stringify(bookmarks))
+    localStorage.setItem("countdowns", JSON.stringify(countdowns))
     console.log("Data saved to localStorage")
   } catch (error) {
     console.error("Error saving data to localStorage:", error)
