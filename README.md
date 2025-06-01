@@ -29,6 +29,8 @@ A beautifully minimal open-source calendar app to plan your week and life.
 
 > Without *One Calendar*, your schedule is scattered. With it, your week feels intentional.
 
+<a herf="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></img></a>
+
 ## Why One Calendar?
 
 Most calendar tools are cluttered, over-engineered, or locked behind paywalls. One Calendar aims to be:
