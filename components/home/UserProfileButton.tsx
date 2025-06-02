@@ -202,7 +202,7 @@ const performAutoBackup = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: `${clerkUserId}`,
+        // id: `${clerkUserId}`,
         data: backupData,
       }),
     });
@@ -229,7 +229,7 @@ const restoreUserData = async (silent = true) => {
   
   setIsRestoring(true);
   try {
-    const response = await fetch(`/api/blob?id=${clerkUserId}`);
+    const response = await fetch(`/api/blob`); // ?id=${clerkUserId}
     if (!response.ok) throw new Error("Backup not found");
 
     const result = await response.json();
