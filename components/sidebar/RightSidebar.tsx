@@ -606,7 +606,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             }
             />
                                      
-          <Button
+          {/* <Button
             variant="ghost"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
@@ -620,7 +620,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             >
               <User className="h-6 w-6 text-white dark:text-white" />
             </div>
-          </Button>
+          </Button> */}
 
           <Button
             variant="ghost"
