@@ -212,6 +212,126 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
+    }
+    const userId = user.id;
+
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
+    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
+      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    }
+
+    const mainFolderName = "calendar";
+    
+    const listMainFoldersResponse = await fetch(`${MISSKEY_URL}/api/drive/folders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        limit: 100,
+      }),
+    });
+    
+    if (!listMainFoldersResponse.ok) {
+      throw new Error(`Failed to list folders: ${listMainFoldersResponse.statusText}`);
+    }
+    
+    const mainFolders = await listMainFoldersResponse.json();
+    const mainCalendarFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
+    
+    if (!mainCalendarFolder) {
+      return NextResponse.json({ error: "Calendar folder not found" }, { status: 404 });
+    }
+
+    const listUserFoldersResponse = await fetch(`${MISSKEY_URL}/api/drive/folders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: mainCalendarFolder.id,
+        limit: 100,
+      }),
+    });
+    
+    if (!listUserFoldersResponse.ok) {
+      throw new Error(`Failed to list user folders: ${listUserFoldersResponse.statusText}`);
+    }
+    
+    const userFolders = await listUserFoldersResponse.json();
+    const userFolder = userFolders.find((folder: any) => folder.name === userId);
+    
+    if (!userFolder) {
+      return NextResponse.json({ error: "User backup folder not found" }, { status: 404 });
+    }
+
+    const listFilesResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: userFolder.id,
+        limit: 100,
+      }),
+    });
+    
+    if (listFilesResponse.ok) {
+      const files = await listFilesResponse.json();
+      for (const file of files) {
+        await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            i: MISSKEY_TOKEN,
+            fileId: file.id,
+          }),
+        });
+      }
+    }
+
+    const deleteFolderResponse = await fetch(`${MISSKEY_URL}/api/drive/folders/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: userFolder.id,
+      }),
+    });
+    
+    if (!deleteFolderResponse.ok) {
+      throw new Error(`Failed to delete user folder: ${deleteFolderResponse.statusText}`);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "User backup folder and all files deleted successfully",
+      userId: userId
+    });
+  } catch (error) {
+    console.error("Delete API error:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
