@@ -290,10 +290,10 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <div className="text-6xl font-bold mb-2">
-                      {Math.round(weatherData.temperature)}°C
+                      {Math.round(weatherData.temperature)}℃
                     </div>
                     <p className="text-xl opacity-90">{weatherData.description}</p>
-                    <p className="text-sm opacity-75">Feels like {Math.round(weatherData.feelsLike)}°C</p>
+                    <p className="text-sm opacity-75">Feels like {Math.round(weatherData.feelsLike)}℃</p>
                   </div>
                   <div className="flex flex-col items-center">
                     {getWeatherIcon(weatherData.weatherCode, 80)}
@@ -332,10 +332,10 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-gray-800 dark:text-gray-100">
-                              {Math.round(forecast.temperature.max)}°C
+                              {Math.round(forecast.temperature.max)}℃
                               {forecast.temperature.min !== forecast.temperature.max && (
                                 <span className="text-gray-500 dark:text-gray-400 font-normal">
-                                  /{Math.round(forecast.temperature.min)}°C
+                                  /{Math.round(forecast.temperature.min)}℃
                                 </span>
                               )}
                             </p>
