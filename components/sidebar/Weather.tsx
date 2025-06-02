@@ -94,47 +94,101 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const code = weatherCode.toLowerCase();
     
     if (code.includes('clear') || code.includes('sunny')) {
-      return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
+      return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700';
     } else if (code.includes('cloud')) {
-      return 'bg-gradient-to-b from-gray-400 via-gray-300 to-gray-100';
+      return 'bg-gradient-to-b from-gray-400 via-gray-300 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600';
     } else if (code.includes('rain') || code.includes('drizzle')) {
-      return 'bg-gradient-to-b from-gray-600 via-gray-500 to-gray-400';
+      return 'bg-gradient-to-b from-gray-600 via-gray-500 to-gray-400 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700';
     } else if (code.includes('storm') || code.includes('thunder')) {
-      return 'bg-gradient-to-b from-gray-900 via-gray-700 to-gray-600';
+      return 'bg-gradient-to-b from-gray-900 via-gray-700 to-gray-600 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800';
     } else if (code.includes('snow')) {
-      return 'bg-gradient-to-b from-blue-200 via-blue-100 to-white';
+      return 'bg-gradient-to-b from-blue-200 via-blue-100 to-white dark:from-slate-700 dark:via-slate-600 dark:to-slate-500';
     } else if (code.includes('mist') || code.includes('fog')) {
-      return 'bg-gradient-to-b from-gray-300 via-gray-200 to-gray-100';
+      return 'bg-gradient-to-b from-gray-300 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-500';
     }
     
-    return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
+    return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700';
   };
 
-  const getWeatherIcon = (weatherCode: string, size: number = 48) => {
+  const getWeatherIcon = (weatherCode: string, size: number = 48, isInForecast: boolean = false) => {
     const code = weatherCode.toLowerCase();
-    const iconProps = { size, className: "text-white drop-shadow-lg" };
+    const baseIconProps = { size };
+    
+    // 主显示区域的图标 - 始终为白色以在渐变背景上清晰显示
+    const mainIconClass = "text-white drop-shadow-lg";
+    
+    // 预报区域的图标 - 亮色和暗色模式不同颜色
+    const forecastIconClass = "text-gray-700 dark:text-gray-200";
+    const sunClass = isInForecast ? "text-orange-500 dark:text-orange-400" : "text-yellow-300 drop-shadow-lg";
+    const lightningClass = isInForecast ? "text-purple-600 dark:text-purple-400" : "text-yellow-400 drop-shadow-lg";
+    const rainClass = isInForecast ? "text-blue-600 dark:text-blue-400" : mainIconClass;
+    const snowClass = isInForecast ? "text-blue-400 dark:text-blue-300" : "text-blue-200 drop-shadow-lg";
+    const moonClass = isInForecast ? "text-indigo-400 dark:text-indigo-300" : "text-blue-200 drop-shadow-lg";
     
     // 优先匹配更具体的天气条件
-    if (code.includes('storm') || code.includes('thunder') || code.includes('lightning')) {
-      return <Zap {...iconProps} className="text-yellow-400 drop-shadow-lg" />;
-    } else if (code.includes('rain') || code.includes('drizzle') || code.includes('shower') || code.includes('precipitation')) {
-      return <CloudRain {...iconProps} />;
-    } else if (code.includes('snow') || code.includes('sleet') || code.includes('blizzard')) {
-      return <CloudRain {...iconProps} className="text-blue-200 drop-shadow-lg" />;
-    } else if (code.includes('mist') || code.includes('fog') || code.includes('haze')) {
-      return <Wind {...iconProps} />;
-    } else if (code.includes('clear') || code.includes('sunny') || code.includes('fair')) {
-      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
-    } else if (code.includes('cloud') || code.includes('overcast') || code.includes('partly')) {
-      return <Cloud {...iconProps} />;
+    if (code.includes('tornado')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-red-600 dark:text-red-400" : "text-red-400 drop-shadow-lg"} />;
+    }
+    else if (code.includes('thunderstorm') || code.includes('thunder') || code.includes('lightning')) {
+      return <Zap {...baseIconProps} className={lightningClass} />;
+    }
+    else if (code.includes('hail')) {
+      return <CloudRain {...baseIconProps} className={isInForecast ? "text-gray-600 dark:text-gray-300" : "text-gray-300 drop-shadow-lg"} />;
+    }
+    else if (code.includes('extreme rain') || code.includes('very heavy rain') || code.includes('heavy rain')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('moderate rain') || code.includes('rain')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('light rain') || code.includes('drizzle')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('shower') || code.includes('precipitation')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('heavy snow') || code.includes('snow showers') || code.includes('blizzard')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('light snow') || code.includes('snow')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('sleet') || code.includes('freezing')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('heavy fog') || code.includes('fog')) {
+      return <Wind {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('mist') || code.includes('haze')) {
+      return <Wind {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('sandstorm') || code.includes('dust')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-yellow-700 dark:text-yellow-400" : "text-yellow-600 drop-shadow-lg"} />;
+    }
+    else if (code.includes('smoke')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-gray-600 dark:text-gray-300" : "text-gray-400 drop-shadow-lg"} />;
+    }
+    else if (code.includes('clear') || code.includes('sunny') || code.includes('fair')) {
+      return <Sun {...baseIconProps} className={sunClass} />;
+    }
+    else if (code.includes('overcast') || code.includes('broken clouds')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('scattered clouds') || code.includes('partly cloudy')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('few clouds') || code.includes('mostly clear')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('cloud')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
     }
     
-    // 默认根据时间显示太阳或月亮
     const hour = new Date().getHours();
     if (hour >= 6 && hour < 18) {
-      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
+      return <Sun {...baseIconProps} className={sunClass} />;
     } else {
-      return <Moon {...iconProps} className="text-blue-200 drop-shadow-lg" />;
+      return <Moon {...baseIconProps} className={moonClass} />;
     }
   };
 
@@ -248,11 +302,11 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                 
                 {/* 详细信息 */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
+                  <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
                     <p className="opacity-75">湿度</p>
                     <p className="text-lg font-semibold">{weatherData.humidity}%</p>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
+                  <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
                     <p className="opacity-75">风速</p>
                     <p className="text-lg font-semibold">{weatherData.windSpeed} km/h</p>
                   </div>
@@ -260,27 +314,27 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
               </div>
               
               {/* 未来天气预报 */}
-              <div className="bg-white p-4">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">未来天气</h3>
+              <div className="bg-white dark:bg-gray-900 p-4">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">未来天气</h3>
                 <div className="space-y-2">
                   {forecastData.map((forecast, index) => (
-                    <Card key={index} className="border-0 shadow-sm">
+                    <Card key={index} className="border-0 shadow-sm dark:bg-gray-800 dark:shadow-gray-700/20">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {getWeatherIcon(forecast.weatherCode, 24)}
+                            {getWeatherIcon(forecast.weatherCode, 24, true)}
                             <div>
-                              <p className="font-medium text-gray-800">
+                              <p className="font-medium text-gray-800 dark:text-gray-100">
                                 {forecast.time ? formatTime(forecast.date) : formatDate(forecast.date)}
                               </p>
-                              <p className="text-sm text-gray-600">{forecast.description}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{forecast.description}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-gray-800">
+                            <p className="font-semibold text-gray-800 dark:text-gray-100">
                               {Math.round(forecast.temperature.max)}°
                               {forecast.temperature.min !== forecast.temperature.max && (
-                                <span className="text-gray-500 font-normal">
+                                <span className="text-gray-500 dark:text-gray-400 font-normal">
                                   /{Math.round(forecast.temperature.min)}°
                                 </span>
                               )}
