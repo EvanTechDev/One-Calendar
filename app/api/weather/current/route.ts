@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=zh_cn`;
+    const acceptLanguage = request.headers.get('accept-language') || 'zh-cn';
+    const isEnglish = acceptLanguage.toLowerCase().includes('en');
+    const lang = isEnglish ? 'en' : 'zh_cn';
+    
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=${lang}`;
     
     const response = await fetch(url);
     
@@ -40,6 +44,7 @@ export async function GET(request: NextRequest) {
       humidity: data.main.humidity,
       windSpeed: Math.round(data.wind.speed * 3.6), // 转换为 km/h
       feelsLike: data.main.feels_like,
+      isEnglish,
     };
 
     return NextResponse.json(weatherData);
