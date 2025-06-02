@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string } {
   const algorithm = 'aes-256-cbc';
-
   const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
   const iv = crypto.randomBytes(16);
   
@@ -115,10 +114,11 @@ async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: s
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await currentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
     }
+    const userId = user.id;
 
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-
+    
     const { encryptedData, iv } = encryptData(dataString, userId);
     
     const encryptedPayload = {
@@ -213,10 +213,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await currentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
     }
+    const userId = user.id;
 
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
@@ -260,12 +261,12 @@ export async function GET(request: NextRequest) {
     const encryptedContent = await contentResponse.text();
     
     try {
-      const encryptedPayload = JSON.parse(encryptedContent);      
-
+      const encryptedPayload = JSON.parse(encryptedContent);
+      
       if (!encryptedPayload.encryptedData || !encryptedPayload.iv) {
         throw new Error("Invalid encrypted backup format");
       }
-
+      
       const decryptedData = decryptData(encryptedPayload.encryptedData, encryptedPayload.iv, userId);
       
       return NextResponse.json({ 
