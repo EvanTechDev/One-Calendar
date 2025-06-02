@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=zh_cn`;
+    const acceptLanguage = request.headers.get('accept-language') || 'zh-cn';
+    const isEnglish = acceptLanguage.toLowerCase().includes('en');
+    const lang = isEnglish ? 'en' : 'zh_cn';
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=${lang}`;
     
     const response = await fetch(url);
     
@@ -49,6 +52,7 @@ export async function GET(request: NextRequest) {
         },
         description: item.weather[0].description,
         weatherCode: item.weather[0].main,
+        isEnglish,
       });
     }
 
@@ -57,8 +61,7 @@ export async function GET(request: NextRequest) {
     data.list.forEach((item: any) => {
       const date = new Date(item.dt * 1000);
       const dateKey = date.toDateString();
-      
-      // 跳过今天的数据
+
       if (dateKey === now.toDateString()) {
         return;
       }
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
     dailyForecasts.forEach((dayData) => {
       const maxTemp = Math.max(...dayData.temperatures);
       const minTemp = Math.min(...dayData.temperatures);
-      
+
       const weatherCodeCounts = dayData.weatherCodes.reduce((acc: any, code: string) => {
         acc[code] = (acc[code] || 0) + 1;
         return acc;
@@ -108,6 +111,7 @@ export async function GET(request: NextRequest) {
         },
         description: mostCommonDescription,
         weatherCode: mostCommonWeatherCode,
+        isEnglish,
       });
     });
 
