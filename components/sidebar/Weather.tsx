@@ -1,49 +1,93 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Sun, CloudRain, Zap, Wind, Moon, MapPin, Loader2 } from "lucide-react";
+import { Cloud, Sun, CloudRain, CloudSnow, Wind, Eye, Droplets, Thermometer, MapPin, RefreshCw } from 'lucide-react';
 
+// 天气数据接口
 interface WeatherData {
-  location: string;
-  temperature: number;
-  description: string;
-  weatherCode: string;
-  humidity: number;
-  windSpeed: number;
-  feelsLike: number;
-}
-
-interface ForecastData {
   date: string;
+  time?: string;
   temperature: {
     max: number;
     min: number;
   };
   description: string;
   weatherCode: string;
-  time?: string;
+  isEnglish: boolean;
 }
 
-interface WeatherSheetProps {
-  trigger?: React.ReactNode;
+interface CurrentWeatherData {
+  location: string;
+  temperature: number;
+  description: string;
+  weatherCode: string;
+  humidity: number;
+  windSpeed: number;
+  visibility: number;
+  feelsLike: number;
 }
 
-const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [forecastData, setForecastData] = useState<ForecastData[]>([]);
-  const [loading, setLoading] = useState(false);
+const WeatherApp: React.FC = () => {
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData | null>(null);
+  const [forecast, setForecast] = useState<WeatherData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
 
-  const getLocation = (): Promise<{ lat: number; lon: number }> => {
+  // 获取天气图标
+  const getWeatherIcon = (weatherCode: string, size: number = 24) => {
+    const iconProps = { size, className: "text-white" };
+    
+    switch (weatherCode.toLowerCase()) {
+      case 'clear':
+        return <Sun {...iconProps} />;
+      case 'clouds':
+        return <Cloud {...iconProps} />;
+      case 'rain':
+      case 'drizzle':
+        return <CloudRain {...iconProps} />;
+      case 'snow':
+        return <CloudSnow {...iconProps} />;
+      case 'thunderstorm':
+        return <CloudRain {...iconProps} />;
+      default:
+        return <Cloud {...iconProps} />;
+    }
+  };
+
+  // 格式化日期
+  const formatDate = (dateString: string, isEnglish: boolean) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    
+    const dateKey = date.toDateString();
+    const nowKey = now.toDateString();
+    const tomorrowKey = tomorrow.toDateString();
+    
+    if (dateKey === nowKey) {
+      return isEnglish ? 'Today' : '今天';
+    } else if (dateKey === tomorrowKey) {
+      return isEnglish ? 'Tomorrow' : '明天';
+    } else {
+      return isEnglish 
+        ? date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        : date.toLocaleDateString('zh-CN', { weekday: 'short', month: 'numeric', day: 'numeric' });
+    }
+  };
+
+  // 格式化时间
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // 获取用户位置
+  const getCurrentLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('地理位置不被支持'));
+        reject(new Error('Geolocation is not supported by this browser.'));
+        return;
       }
-      
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           resolve({
@@ -52,245 +96,221 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
           });
         },
         (error) => {
-          reject(new Error('获取位置失败'));
+          reject(error);
         }
       );
     });
   };
 
-  const fetchWeatherData = async () => {
+  // 获取当前天气数据
+  const fetchCurrentWeather = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch current weather data');
+      }
+      const data = await response.json();
+      setCurrentWeather(data);
+    } catch (err) {
+      console.error('Error fetching current weather:', err);
+    }
+  };
+
+  // 获取天气预报数据
+  const fetchWeatherForecast = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch weather forecast data');
+      }
+      const data = await response.json();
+      setForecast(data);
+    } catch (err) {
+      console.error('Error fetching weather forecast:', err);
+      setError('无法获取天气数据');
+    }
+  };
+
+  // 加载天气数据
+  const loadWeatherData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const { lat, lon } = await getLocation();
-      
-      // 获取当前天气
-      const currentResponse = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
-      if (!currentResponse.ok) throw new Error('获取天气数据失败');
-      const currentData = await currentResponse.json();
-      
-      // 获取预报数据
-      const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
-      if (!forecastResponse.ok) throw new Error('获取预报数据失败');
-      const forecastData = await forecastResponse.json();
-      
-      setWeatherData(currentData);
-      setForecastData(forecastData);
+      const location = await getCurrentLocation();
+      await Promise.all([
+        fetchCurrentWeather(location.lat, location.lon),
+        fetchWeatherForecast(location.lat, location.lon)
+      ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取天气数据失败');
+      console.error('Error loading weather data:', err);
+      setError('无法获取位置信息或天气数据');
     } finally {
       setLoading(false);
     }
   };
 
+  // 初始化加载数据
   useEffect(() => {
-    if (isOpen && !weatherData) {
-      fetchWeatherData();
-    }
-  }, [isOpen, weatherData]);
+    loadWeatherData();
+  }, []);
 
-  const getWeatherBackground = (weatherCode: string) => {
-    const code = weatherCode.toLowerCase();
-    
-    if (code.includes('clear') || code.includes('sunny')) {
-      return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
-    } else if (code.includes('cloud')) {
-      return 'bg-gradient-to-b from-gray-400 via-gray-300 to-gray-100';
-    } else if (code.includes('rain') || code.includes('drizzle')) {
-      return 'bg-gradient-to-b from-gray-600 via-gray-500 to-gray-400';
-    } else if (code.includes('storm') || code.includes('thunder')) {
-      return 'bg-gradient-to-b from-gray-900 via-gray-700 to-gray-600';
-    } else if (code.includes('snow')) {
-      return 'bg-gradient-to-b from-blue-200 via-blue-100 to-white';
-    } else if (code.includes('mist') || code.includes('fog')) {
-      return 'bg-gradient-to-b from-gray-300 via-gray-200 to-gray-100';
-    }
-    
-    return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
-  };
+  // 分离小时预报和日预报
+  const hourlyForecast = forecast.filter(item => item.time);
+  const dailyForecast = forecast.filter(item => !item.time);
 
-  const getWeatherIcon = (weatherCode: string, size: number = 48) => {
-    const code = weatherCode.toLowerCase();
-    const iconProps = { size, className: "text-white drop-shadow-lg" };
-    
-    if (code.includes('clear') || code.includes('sunny')) {
-      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
-    } else if (code.includes('cloud')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('rain') || code.includes('drizzle')) {
-      return <CloudRain {...iconProps} />;
-    } else if (code.includes('storm') || code.includes('thunder')) {
-      return <Zap {...iconProps} className="text-yellow-400 drop-shadow-lg" />;
-    } else if (code.includes('snow')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('mist') || code.includes('fog')) {
-      return <Wind {...iconProps} />;
-    }
-    
-    return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
-  };
-
-  const WeatherAnimation = ({ weatherCode }: { weatherCode: string }) => {
-    const code = weatherCode.toLowerCase();
-    
-    if (code.includes('rain') || code.includes('drizzle')) {
-      const intensity = code.includes('heavy') ? 'heavy' : code.includes('light') ? 'light' : 'medium';
-      const raindrops = intensity === 'heavy' ? 50 : intensity === 'medium' ? 30 : 15;
-      
-      return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: raindrops }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-0.5 bg-blue-200 opacity-70 animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                height: `${Math.random() * 20 + 10}px`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${Math.random() * 0.5 + 0.5}s`,
-                transform: `translateY(-${Math.random() * 100 + 100}px)`,
-              }}
-            />
-          ))}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center">
+        <div className="text-center text-white">
+          <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-xl">正在获取天气数据...</p>
         </div>
-      );
-    }
-    
-    if (code.includes('storm') || code.includes('thunder')) {
-      return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-yellow-400 opacity-20 animate-pulse" 
-               style={{ animationDuration: '3s' }} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center">
+        <div className="text-center text-white">
+          <Cloud size={48} className="mx-auto mb-4" />
+          <p className="text-xl mb-4">{error}</p>
+          <button
+            onClick={loadWeatherData}
+            className="bg-white/20 hover:bg-white/30 px-6 py-2 rounded-lg transition-colors duration-200"
+          >
+            重新加载
+          </button>
         </div>
-      );
-    }
-    
-    return null;
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('zh-CN', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+      </div>
+    );
+  }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        {trigger || (
-          <Button variant="outline" className="gap-2">
-            <Cloud className="w-4 h-4" />
-            天气
-          </Button>
-        )}
-      </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:w-[500px] p-0">
-        <div className="h-full flex flex-col">
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-100">
-              <div className="text-center text-white">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>获取天气数据中...</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 text-white">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* 当前天气卡片 */}
+        {currentWeather && (
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <MapPin size={24} />
+                <h1 className="text-2xl font-bold">{currentWeather.location}</h1>
               </div>
-            </div>
-          ) : error ? (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-red-400 to-red-100">
-              <div className="text-center text-white">
-                <p className="mb-4">{error}</p>
-                <Button onClick={fetchWeatherData} variant="secondary">
-                  重试
-                </Button>
-              </div>
-            </div>
-          ) : weatherData ? (
-            <>
-              {/* 主要天气显示区域 */}
-              <div 
-                className={`relative flex-1 ${getWeatherBackground(weatherData.weatherCode)} p-6 text-white overflow-hidden`}
+              <button
+                onClick={loadWeatherData}
+                className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors duration-200"
               >
-                <WeatherAnimation weatherCode={weatherData.weatherCode} />
-                
-                {/* 位置信息 */}
-                <div className="flex items-center gap-2 mb-6">
-                  <MapPin className="w-5 h-5" />
-                  <span className="text-lg font-medium">{weatherData.location}</span>
+                <RefreshCw size={20} />
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <div className="text-6xl font-light mb-2">
+                  {Math.round(currentWeather.temperature)}°C
                 </div>
-                
-                {/* 主要温度和图标 */}
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="text-6xl font-bold mb-2">
-                      {Math.round(weatherData.temperature)}°
+                <div className="text-xl text-white/80 capitalize">
+                  {currentWeather.description}
+                </div>
+                <div className="text-lg text-white/60">
+                  体感温度 {Math.round(currentWeather.feelsLike)}°C
+                </div>
+              </div>
+              <div className="text-right">
+                {getWeatherIcon(currentWeather.weatherCode, 80)}
+              </div>
+            </div>
+
+            {/* 天气详情 */}
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white/10 rounded-2xl p-4 text-center">
+                <Droplets size={24} className="mx-auto mb-2 text-blue-200" />
+                <div className="text-2xl font-semibold">{currentWeather.humidity}%</div>
+                <div className="text-sm text-white/70">湿度</div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-4 text-center">
+                <Wind size={24} className="mx-auto mb-2 text-blue-200" />
+                <div className="text-2xl font-semibold">{currentWeather.windSpeed} m/s</div>
+                <div className="text-sm text-white/70">风速</div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-4 text-center">
+                <Eye size={24} className="mx-auto mb-2 text-blue-200" />
+                <div className="text-2xl font-semibold">{(currentWeather.visibility / 1000).toFixed(1)} km</div>
+                <div className="text-sm text-white/70">能见度</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 小时预报 */}
+        {hourlyForecast.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Thermometer size={24} />
+              24小时预报
+            </h2>
+            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 shadow-2xl">
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {hourlyForecast.map((item, index) => (
+                  <div key={index} className="flex-shrink-0 text-center min-w-[80px]">
+                    <div className="text-sm text-white/70 mb-2">
+                      {formatTime(item.time!)}
                     </div>
-                    <p className="text-xl opacity-90">{weatherData.description}</p>
-                    <p className="text-sm opacity-75">体感温度 {Math.round(weatherData.feelsLike)}°</p>
+                    <div className="mb-3">
+                      {getWeatherIcon(item.weatherCode, 32)}
+                    </div>
+                    <div className="text-lg font-semibold">
+                      {Math.round(item.temperature.max)}°
+                    </div>
+                    <div className="text-xs text-white/60 mt-1 capitalize">
+                      {item.description}
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center">
-                    {getWeatherIcon(weatherData.weatherCode, 80)}
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 未来天气预报 */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Cloud size={24} />
+            未来天气
+          </h2>
+          <div className="space-y-3">
+            {dailyForecast.map((day, index) => (
+              <div key={index} className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:bg-white/15 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-lg font-semibold min-w-[100px]">
+                      {formatDate(day.date, day.isEnglish)}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {getWeatherIcon(day.weatherCode, 28)}
+                      <span className="text-white/80 capitalize">{day.description}</span>
+                    </div>
                   </div>
-                </div>
-                
-                {/* 详细信息 */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                    <p className="opacity-75">湿度</p>
-                    <p className="text-lg font-semibold">{weatherData.humidity}%</p>
-                  </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                    <p className="opacity-75">风速</p>
-                    <p className="text-lg font-semibold">{weatherData.windSpeed} km/h</p>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-xl font-semibold">
+                        {Math.round(day.temperature.max)}°
+                      </div>
+                      <div className="text-sm text-white/60">
+                        最低 {Math.round(day.temperature.min)}°
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              {/* 未来天气预报 */}
-              <div className="bg-white p-4 max-h-64 overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">未来天气</h3>
-                <div className="space-y-2">
-                  {forecastData.map((forecast, index) => (
-                    <Card key={index} className="border-0 shadow-sm">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {getWeatherIcon(forecast.weatherCode, 24)}
-                            <div>
-                              <p className="font-medium text-gray-800">
-                                {forecast.time ? formatTime(forecast.date) : formatDate(forecast.date)}
-                              </p>
-                              <p className="text-sm text-gray-600">{forecast.description}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-800">
-                              {Math.round(forecast.temperature.max)}°
-                              {forecast.temperature.min !== forecast.temperature.max && (
-                                <span className="text-gray-500 font-normal">
-                                  /{Math.round(forecast.temperature.min)}°
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : null}
+            ))}
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
 };
 
-export default WeatherSheet;
+export default WeatherApp;
