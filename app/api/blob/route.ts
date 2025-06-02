@@ -18,7 +18,7 @@ function encryptData(data: string, userId: string): { encryptedData: string; iv:
 }
 
 function decryptData(encryptedData: string, iv: string, userId: string): string {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = 'aes-512-gcm';
   const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
   const ivBuffer = Buffer.from(iv, 'hex');
   
