@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { User, Upload, Download, X, Check, LogOut, CircleUser, FolderSync, CloudUpload } from 'lucide-react'
+import { User, Upload, Download, X, Check, LogOut, CircleUser, FolderSync, CloudUpload, Trash2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -279,6 +279,44 @@ const restoreUserData = async (silent = true) => {
     setIsRestoring(false);
   }
 };
+
+const deleteUserData = async (showConfirm: boolean = true) => {
+  try {
+    // 可选：显示确认对话框
+    if (showConfirm) {
+      const confirmed = window.confirm(
+        language === "zh" ? "确定要删除数据吗？" : "Are you sure you want to delete the data?"
+      );
+      if (!confirmed) return;
+    }
+
+    const response = await fetch('/api/blob', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      toast(language === "zh" ? "数据删除成功" : "Data Deleted", {
+          description: language === "zh" 
+            ? `已删除云端数据`
+            : `Deleted cloud data`
+        });
+    } else {
+      const errorData = await response.json();
+      console.error('Delete failed:', errorData);
+      toast(language === "zh" ? "数据删除失败" : "Data Delete Failed", {
+          description: language === "zh" 
+            ? `无法删除云端数据`
+            : `Can't delete cloud data`
+        });
+    }
+  } catch (error) {
+    console.error('Error deleting data:', error);
+  }
+};
+  
 // 修改后的用户登录状态 useEffect
 useEffect(() => {
   if (!isLoaded || !isSignedIn || !user) return;
@@ -362,6 +400,13 @@ return (
               >
                 <FolderSync className="mr-2 h-4 w-4" />
                 {language === "zh" ? "同步数据" : "Sync data"}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                 onClick={() => deleteUserData(false)}
+                 className="cursor-pointer"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {language === "zh" ? "删除数据" : "Delete data"}
               </DropdownMenuItem>
               <SignOutButton signOutCallback={handleSignOut}>
                 <DropdownMenuItem className="cursor-pointer">
