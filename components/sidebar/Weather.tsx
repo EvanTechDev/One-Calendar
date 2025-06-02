@@ -41,7 +41,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   const getLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('地理位置不被支持'));
+        reject(new Error('Geolocation is not supported'));
       }
       
       navigator.geolocation.getCurrentPosition(
@@ -52,7 +52,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
           });
         },
         (error) => {
-          reject(new Error('获取位置失败'));
+          reject(new Error('Failed to get location'));
         }
       );
     });
@@ -65,20 +65,20 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     try {
       const { lat, lon } = await getLocation();
       
-      // 获取当前天气
+      // Get current weather
       const currentResponse = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
-      if (!currentResponse.ok) throw new Error('获取天气数据失败');
+      if (!currentResponse.ok) throw new Error('Failed to fetch weather data');
       const currentData = await currentResponse.json();
       
-      // 获取预报数据
+      // Get forecast data
       const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
-      if (!forecastResponse.ok) throw new Error('获取预报数据失败');
+      if (!forecastResponse.ok) throw new Error('Failed to fetch forecast data');
       const forecastData = await forecastResponse.json();
       
       setWeatherData(currentData);
       setForecastData(forecastData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取天气数据失败');
+      setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
     } finally {
       setLoading(false);
     }
@@ -114,10 +114,10 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const code = weatherCode.toLowerCase();
     const baseIconProps = { size };
     
-    // 主显示区域的图标 - 始终为白色以在渐变背景上清晰显示
+    // Main display area icons - always white for clarity on gradient backgrounds
     const mainIconClass = "text-white drop-shadow-lg";
     
-    // 预报区域的图标 - 亮色和暗色模式不同颜色
+    // Forecast area icons - different colors for light and dark modes
     const forecastIconClass = "text-gray-700 dark:text-gray-200";
     const sunClass = isInForecast ? "text-orange-500 dark:text-orange-400" : "text-yellow-300 drop-shadow-lg";
     const lightningClass = isInForecast ? "text-purple-600 dark:text-purple-400" : "text-yellow-400 drop-shadow-lg";
@@ -125,7 +125,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const snowClass = isInForecast ? "text-blue-400 dark:text-blue-300" : "text-blue-200 drop-shadow-lg";
     const moonClass = isInForecast ? "text-indigo-400 dark:text-indigo-300" : "text-blue-200 drop-shadow-lg";
     
-    // 优先匹配更具体的天气条件
+    // Priority matching for more specific weather conditions
     if (code.includes('tornado')) {
       return <Wind {...baseIconProps} className={isInForecast ? "text-red-600 dark:text-red-400" : "text-red-400 drop-shadow-lg"} />;
     }
@@ -231,14 +231,14 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('zh-CN', { 
+    return new Date(dateString).toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', { 
+    return new Date(dateString).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     });
@@ -250,7 +250,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
         {trigger || (
           <Button variant="outline" className="gap-2">
             <Cloud className="w-4 h-4" />
-            天气
+            Weather
           </Button>
         )}
       </SheetTrigger>
@@ -260,7 +260,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
             <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-100">
               <div className="text-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>获取天气数据中...</p>
+                <p>Loading weather data...</p>
               </div>
             </div>
           ) : error ? (
@@ -268,54 +268,54 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
               <div className="text-center text-white">
                 <p className="mb-4">{error}</p>
                 <Button onClick={fetchWeatherData} variant="secondary">
-                  重试
+                  Retry
                 </Button>
               </div>
             </div>
           ) : weatherData ? (
             <div className="h-full overflow-y-auto">
-              {/* 主要天气显示区域 */}
+              {/* Main weather display area */}
               <div 
                 className={`relative ${getWeatherBackground(weatherData.weatherCode)} p-6 text-white overflow-hidden min-h-[400px]`}
               >
                 <WeatherAnimation weatherCode={weatherData.weatherCode} />
                 
-                {/* 位置信息 */}
+                {/* Location info */}
                 <div className="flex items-center gap-2 mb-6">
                   <MapPin className="w-5 h-5" />
                   <span className="text-lg font-medium">{weatherData.location}</span>
                 </div>
                 
-                {/* 主要温度和图标 */}
+                {/* Main temperature and icon */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <div className="text-6xl font-bold mb-2">
                       {Math.round(weatherData.temperature)}°
                     </div>
                     <p className="text-xl opacity-90">{weatherData.description}</p>
-                    <p className="text-sm opacity-75">体感温度 {Math.round(weatherData.feelsLike)}°</p>
+                    <p className="text-sm opacity-75">Feels like {Math.round(weatherData.feelsLike)}°</p>
                   </div>
                   <div className="flex flex-col items-center">
                     {getWeatherIcon(weatherData.weatherCode, 80)}
                   </div>
                 </div>
                 
-                {/* 详细信息 */}
+                {/* Detailed info */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
-                    <p className="opacity-75">湿度</p>
+                    <p className="opacity-75">Humidity</p>
                     <p className="text-lg font-semibold">{weatherData.humidity}%</p>
                   </div>
                   <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
-                    <p className="opacity-75">风速</p>
+                    <p className="opacity-75">Wind Speed</p>
                     <p className="text-lg font-semibold">{weatherData.windSpeed} km/h</p>
                   </div>
                 </div>
               </div>
               
-              {/* 未来天气预报 */}
+              {/* Future weather forecast */}
               <div className="bg-white dark:bg-gray-900 p-4">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">未来天气</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Weather Forecast</h3>
                 <div className="space-y-2">
                   {forecastData.map((forecast, index) => (
                     <Card key={index} className="border-0 shadow-sm dark:bg-gray-800 dark:shadow-gray-700/20">
