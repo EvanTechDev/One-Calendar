@@ -114,21 +114,28 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const code = weatherCode.toLowerCase();
     const iconProps = { size, className: "text-white drop-shadow-lg" };
     
-    if (code.includes('clear') || code.includes('sunny')) {
-      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
-    } else if (code.includes('cloud')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('rain') || code.includes('drizzle')) {
-      return <CloudRain {...iconProps} />;
-    } else if (code.includes('storm') || code.includes('thunder')) {
+    // 优先匹配更具体的天气条件
+    if (code.includes('storm') || code.includes('thunder') || code.includes('lightning')) {
       return <Zap {...iconProps} className="text-yellow-400 drop-shadow-lg" />;
-    } else if (code.includes('snow')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('mist') || code.includes('fog')) {
+    } else if (code.includes('rain') || code.includes('drizzle') || code.includes('shower') || code.includes('precipitation')) {
+      return <CloudRain {...iconProps} />;
+    } else if (code.includes('snow') || code.includes('sleet') || code.includes('blizzard')) {
+      return <CloudRain {...iconProps} className="text-blue-200 drop-shadow-lg" />;
+    } else if (code.includes('mist') || code.includes('fog') || code.includes('haze')) {
       return <Wind {...iconProps} />;
+    } else if (code.includes('clear') || code.includes('sunny') || code.includes('fair')) {
+      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
+    } else if (code.includes('cloud') || code.includes('overcast') || code.includes('partly')) {
+      return <Cloud {...iconProps} />;
     }
     
-    return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
+    // 默认根据时间显示太阳或月亮
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 18) {
+      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
+    } else {
+      return <Moon {...iconProps} className="text-blue-200 drop-shadow-lg" />;
+    }
   };
 
   const WeatherAnimation = ({ weatherCode }: { weatherCode: string }) => {
