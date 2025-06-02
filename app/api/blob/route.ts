@@ -3,8 +3,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string } {
+  const salt = process.env.SALT;
   const algorithm = 'aes-256-gcm';
-  const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
+  const key = crypto.scryptSync(userId, salt, 32);
   const iv = crypto.randomBytes(16);
   
   const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -18,8 +19,9 @@ function encryptData(data: string, userId: string): { encryptedData: string; iv:
 }
 
 function decryptData(encryptedData: string, iv: string, userId: string): string {
+  const salt = process.env.SALT;
   const algorithm = 'aes-256-gcm';
-  const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
+  const key = crypto.scryptSync(userId, salt, 32);
   const ivBuffer = Buffer.from(iv, 'hex');
   
   const decipher = crypto.createDecipheriv(algorithm, key, ivBuffer);
