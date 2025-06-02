@@ -3,7 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string } {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = 'aes-512-gcm';
   const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
   const iv = crypto.randomBytes(16);
   
