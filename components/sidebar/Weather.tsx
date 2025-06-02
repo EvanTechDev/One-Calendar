@@ -193,7 +193,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[80vh] p-0">
+      <SheetContent side="right" className="w-[400px] sm:w-[500px] p-0">
         <div className="h-full flex flex-col">
           {loading ? (
             <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-100">
