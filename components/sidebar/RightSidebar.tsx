@@ -15,6 +15,7 @@ import BookmarkPanel from "./BookmarkPanel"
 import AIChatSheet from "./AIChat"
 import { useRouter } from "next/navigation"
 import { CountdownTool } from "./Countdown"
+import WeatherSheet from './Weather';
 
 // 通讯录类型定义
 interface Contact {
@@ -587,6 +588,24 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
 
+          <WeatherSheet
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+              >
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 ring-2 ring-primary",
+                  )}
+                >
+                  <Sun className="h-6 w-6 text-white dark:text-white" />
+                </div>
+              </Button>
+            }
+            />
+                                     
           <Button
             variant="ghost"
             size="icon"
