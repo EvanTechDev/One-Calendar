@@ -597,7 +597,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
               >
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 ring-2 ring-primary",
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500",
                   )}
                 >
                   <Sun className="h-6 w-6 text-white dark:text-white" />
