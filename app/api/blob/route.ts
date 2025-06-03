@@ -2,27 +2,44 @@ import { type NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
 
-function encryptData(data: string, userId: string): { encryptedData: string; iv: string } {
-  const algorithm = 'aes-256-cbc';
-  const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
+function encryptData(data: string, userId: string): { encryptedData: string; iv: string; authTag: string } {
+  const salt = process.env.SALT;
+  if (!salt) {
+    throw new Error("SALT environment variable is not set");
+  }
+  
+  const algorithm = 'aes-256-gcm';
+  const key = crypto.scryptSync(userId, salt, 32);
   const iv = crypto.randomBytes(16);
   
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   
+  const authTag = cipher.getAuthTag();
+  
   return {
     encryptedData: encrypted,
-    iv: iv.toString('hex')
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex')
   };
 }
 
-function decryptData(encryptedData: string, iv: string, userId: string): string {
-  const algorithm = 'aes-256-cbc';
-  const key = crypto.scryptSync(userId, 'calendar-backup-salt', 32);
+function decryptData(encryptedData: string, iv: string, authTag: string, userId: string): string {
+  const salt = process.env.SALT;
+  if (!salt) {
+    throw new Error("SALT environment variable is not set");
+  }
+  
+  const algorithm = 'aes-256-gcm';
+  const key = crypto.scryptSync(userId, salt, 32);
   const ivBuffer = Buffer.from(iv, 'hex');
+  const authTagBuffer = Buffer.from(authTag, 'hex');
   
   const decipher = crypto.createDecipheriv(algorithm, key, ivBuffer);
+
+  decipher.setAuthTag(authTagBuffer);
+  
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   
@@ -135,11 +152,12 @@ export async function POST(request: NextRequest) {
 
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
     
-    const { encryptedData, iv } = encryptData(dataString, userId);
+    const { encryptedData, iv, authTag } = encryptData(dataString, userId);
     
     const encryptedPayload = {
       encryptedData,
       iv,
+      authTag,
       timestamp: new Date().toISOString()
     };
     
@@ -384,11 +402,23 @@ export async function GET(request: NextRequest) {
     try {
       const encryptedPayload = JSON.parse(encryptedContent);
       
+      // 检查加密载荷的完整性
       if (!encryptedPayload.encryptedData || !encryptedPayload.iv) {
-        throw new Error("Invalid encrypted backup format");
+        throw new Error("Invalid encrypted backup format: missing required fields");
       }
       
-      const decryptedData = decryptData(encryptedPayload.encryptedData, encryptedPayload.iv, userId);
+      // 处理向后兼容性：如果没有authTag，说明是旧版本的备份
+      if (!encryptedPayload.authTag) {
+        console.warn("Backup was created with old version without auth tag, attempting compatibility mode");
+        throw new Error("This backup was created with an older version and is no longer compatible. Please create a new backup.");
+      }
+      
+      const decryptedData = decryptData(
+        encryptedPayload.encryptedData, 
+        encryptedPayload.iv, 
+        encryptedPayload.authTag, 
+        userId
+      );
       
       return NextResponse.json({ 
         success: true, 
@@ -397,8 +427,23 @@ export async function GET(request: NextRequest) {
       });
     } catch (decryptError) {
       console.error("Decryption error:", decryptError);
+      
+      if (decryptError instanceof Error) {
+        if (decryptError.message.includes("bad decrypt") || decryptError.message.includes("wrong final block length")) {
+          return NextResponse.json(
+            { error: "Authentication failed: This backup may belong to a different user or the data has been tampered with." },
+            { status: 403 }
+          );
+        } else if (decryptError.message.includes("older version")) {
+          return NextResponse.json(
+            { error: decryptError.message },
+            { status: 409 }
+          );
+        }
+      }
+      
       return NextResponse.json(
-        { error: "Failed to decrypt backup data. This backup may belong to a different user or be corrupted." },
+        { error: "Failed to decrypt backup data. Please check if this backup belongs to your account." },
         { status: 403 }
       );
     }

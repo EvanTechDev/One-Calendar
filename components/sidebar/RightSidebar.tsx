@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare, CalendarClock } from 'lucide-react'
+import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare, CalendarClock, Sun } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -15,6 +15,7 @@ import BookmarkPanel from "./BookmarkPanel"
 import AIChatSheet from "./AIChat"
 import { useRouter } from "next/navigation"
 import { CountdownTool } from "./Countdown"
+import WeatherSheet from './Weather';
 
 // 通讯录类型定义
 interface Contact {
@@ -587,7 +588,25 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             </div>
           </Button>
 
-          <Button
+          <WeatherSheet
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+              >
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500",
+                  )}
+                >
+                  <Sun className="h-6 w-6 text-white dark:text-white" />
+                </div>
+              </Button>
+            }
+            />
+                                     
+          {/* <Button
             variant="ghost"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
@@ -601,7 +620,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             >
               <User className="h-6 w-6 text-white dark:text-white" />
             </div>
-          </Button>
+          </Button> */}
 
           <Button
             variant="ghost"

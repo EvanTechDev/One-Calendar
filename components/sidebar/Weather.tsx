@@ -41,7 +41,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   const getLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('地理位置不被支持'));
+        reject(new Error('Geolocation is not supported'));
       }
       
       navigator.geolocation.getCurrentPosition(
@@ -52,7 +52,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
           });
         },
         (error) => {
-          reject(new Error('获取位置失败'));
+          reject(new Error('Failed to get location'));
         }
       );
     });
@@ -65,20 +65,20 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     try {
       const { lat, lon } = await getLocation();
       
-      // 获取当前天气
+      // Get current weather
       const currentResponse = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
-      if (!currentResponse.ok) throw new Error('获取天气数据失败');
+      if (!currentResponse.ok) throw new Error('Failed to fetch weather data');
       const currentData = await currentResponse.json();
       
-      // 获取预报数据
+      // Get forecast data
       const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
-      if (!forecastResponse.ok) throw new Error('获取预报数据失败');
+      if (!forecastResponse.ok) throw new Error('Failed to fetch forecast data');
       const forecastData = await forecastResponse.json();
       
       setWeatherData(currentData);
       setForecastData(forecastData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取天气数据失败');
+      setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
     } finally {
       setLoading(false);
     }
@@ -94,41 +94,102 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const code = weatherCode.toLowerCase();
     
     if (code.includes('clear') || code.includes('sunny')) {
-      return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
+      return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700';
     } else if (code.includes('cloud')) {
-      return 'bg-gradient-to-b from-gray-400 via-gray-300 to-gray-100';
+      return 'bg-gradient-to-b from-gray-400 via-gray-300 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600';
     } else if (code.includes('rain') || code.includes('drizzle')) {
-      return 'bg-gradient-to-b from-gray-600 via-gray-500 to-gray-400';
+      return 'bg-gradient-to-b from-gray-600 via-gray-500 to-gray-400 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700';
     } else if (code.includes('storm') || code.includes('thunder')) {
-      return 'bg-gradient-to-b from-gray-900 via-gray-700 to-gray-600';
+      return 'bg-gradient-to-b from-gray-900 via-gray-700 to-gray-600 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800';
     } else if (code.includes('snow')) {
-      return 'bg-gradient-to-b from-blue-200 via-blue-100 to-white';
+      return 'bg-gradient-to-b from-blue-200 via-blue-100 to-white dark:from-slate-700 dark:via-slate-600 dark:to-slate-500';
     } else if (code.includes('mist') || code.includes('fog')) {
-      return 'bg-gradient-to-b from-gray-300 via-gray-200 to-gray-100';
+      return 'bg-gradient-to-b from-gray-300 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-500';
     }
     
-    return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100';
+    return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700';
   };
 
-  const getWeatherIcon = (weatherCode: string, size: number = 48) => {
+  const getWeatherIcon = (weatherCode: string, size: number = 48, isInForecast: boolean = false) => {
     const code = weatherCode.toLowerCase();
-    const iconProps = { size, className: "text-white drop-shadow-lg" };
+    const baseIconProps = { size };
     
-    if (code.includes('clear') || code.includes('sunny')) {
-      return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
-    } else if (code.includes('cloud')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('rain') || code.includes('drizzle')) {
-      return <CloudRain {...iconProps} />;
-    } else if (code.includes('storm') || code.includes('thunder')) {
-      return <Zap {...iconProps} className="text-yellow-400 drop-shadow-lg" />;
-    } else if (code.includes('snow')) {
-      return <Cloud {...iconProps} />;
-    } else if (code.includes('mist') || code.includes('fog')) {
-      return <Wind {...iconProps} />;
+    // Main display area icons - always white for clarity on gradient backgrounds
+    const mainIconClass = "text-white drop-shadow-lg";
+    
+    // Forecast area icons - different colors for light and dark modes
+    const forecastIconClass = "text-gray-700 dark:text-gray-200";
+    const sunClass = isInForecast ? "text-orange-500 dark:text-orange-400" : "text-yellow-300 drop-shadow-lg";
+    const lightningClass = isInForecast ? "text-purple-600 dark:text-purple-400" : "text-yellow-400 drop-shadow-lg";
+    const rainClass = isInForecast ? "text-blue-600 dark:text-blue-400" : mainIconClass;
+    const snowClass = isInForecast ? "text-blue-400 dark:text-blue-300" : "text-blue-200 drop-shadow-lg";
+    const moonClass = isInForecast ? "text-indigo-400 dark:text-indigo-300" : "text-blue-200 drop-shadow-lg";
+    
+    // Priority matching for more specific weather conditions
+    if (code.includes('tornado')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-red-600 dark:text-red-400" : "text-red-400 drop-shadow-lg"} />;
+    }
+    else if (code.includes('thunderstorm') || code.includes('thunder') || code.includes('lightning')) {
+      return <Zap {...baseIconProps} className={lightningClass} />;
+    }
+    else if (code.includes('hail')) {
+      return <CloudRain {...baseIconProps} className={isInForecast ? "text-gray-600 dark:text-gray-300" : "text-gray-300 drop-shadow-lg"} />;
+    }
+    else if (code.includes('extreme rain') || code.includes('very heavy rain') || code.includes('heavy rain')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('moderate rain') || code.includes('rain')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('light rain') || code.includes('drizzle')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('shower') || code.includes('precipitation')) {
+      return <CloudRain {...baseIconProps} className={rainClass} />;
+    }
+    else if (code.includes('heavy snow') || code.includes('snow showers') || code.includes('blizzard')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('light snow') || code.includes('snow')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('sleet') || code.includes('freezing')) {
+      return <CloudRain {...baseIconProps} className={snowClass} />;
+    }
+    else if (code.includes('heavy fog') || code.includes('fog')) {
+      return <Wind {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('mist') || code.includes('haze')) {
+      return <Wind {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('sandstorm') || code.includes('dust')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-yellow-700 dark:text-yellow-400" : "text-yellow-600 drop-shadow-lg"} />;
+    }
+    else if (code.includes('smoke')) {
+      return <Wind {...baseIconProps} className={isInForecast ? "text-gray-600 dark:text-gray-300" : "text-gray-400 drop-shadow-lg"} />;
+    }
+    else if (code.includes('clear') || code.includes('sunny') || code.includes('fair')) {
+      return <Sun {...baseIconProps} className={sunClass} />;
+    }
+    else if (code.includes('overcast') || code.includes('broken clouds')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('scattered clouds') || code.includes('partly cloudy')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('few clouds') || code.includes('mostly clear')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
+    }
+    else if (code.includes('cloud')) {
+      return <Cloud {...baseIconProps} className={isInForecast ? forecastIconClass : mainIconClass} />;
     }
     
-    return <Sun {...iconProps} className="text-yellow-300 drop-shadow-lg" />;
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 18) {
+      return <Sun {...baseIconProps} className={sunClass} />;
+    } else {
+      return <Moon {...baseIconProps} className={moonClass} />;
+    }
   };
 
   const WeatherAnimation = ({ weatherCode }: { weatherCode: string }) => {
@@ -170,14 +231,14 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('zh-CN', { 
+    return new Date(dateString).toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', { 
+    return new Date(dateString).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     });
@@ -189,17 +250,17 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
         {trigger || (
           <Button variant="outline" className="gap-2">
             <Cloud className="w-4 h-4" />
-            天气
+            Weather
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[80vh] p-0">
+      <SheetContent side="right" className="w-[400px] sm:w-[500px] p-0">
         <div className="h-full flex flex-col">
           {loading ? (
             <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-100">
               <div className="text-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>获取天气数据中...</p>
+                <p>Loading weather data...</p>
               </div>
             </div>
           ) : error ? (
@@ -207,74 +268,74 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
               <div className="text-center text-white">
                 <p className="mb-4">{error}</p>
                 <Button onClick={fetchWeatherData} variant="secondary">
-                  重试
+                  Retry
                 </Button>
               </div>
             </div>
           ) : weatherData ? (
-            <>
-              {/* 主要天气显示区域 */}
+            <div className="h-full overflow-y-auto">
+              {/* Main weather display area */}
               <div 
-                className={`relative flex-1 ${getWeatherBackground(weatherData.weatherCode)} p-6 text-white overflow-hidden`}
+                className={`relative ${getWeatherBackground(weatherData.weatherCode)} p-6 text-white overflow-hidden min-h-[400px]`}
               >
                 <WeatherAnimation weatherCode={weatherData.weatherCode} />
                 
-                {/* 位置信息 */}
+                {/* Location info */}
                 <div className="flex items-center gap-2 mb-6">
                   <MapPin className="w-5 h-5" />
                   <span className="text-lg font-medium">{weatherData.location}</span>
                 </div>
                 
-                {/* 主要温度和图标 */}
+                {/* Main temperature and icon */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <div className="text-6xl font-bold mb-2">
-                      {Math.round(weatherData.temperature)}°
+                      {Math.round(weatherData.temperature)}℃
                     </div>
                     <p className="text-xl opacity-90">{weatherData.description}</p>
-                    <p className="text-sm opacity-75">体感温度 {Math.round(weatherData.feelsLike)}°</p>
+                    <p className="text-sm opacity-75">Feels like {Math.round(weatherData.feelsLike)}℃</p>
                   </div>
                   <div className="flex flex-col items-center">
                     {getWeatherIcon(weatherData.weatherCode, 80)}
                   </div>
                 </div>
                 
-                {/* 详细信息 */}
+                {/* Detailed info */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                    <p className="opacity-75">湿度</p>
+                  <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="opacity-75">Humidity</p>
                     <p className="text-lg font-semibold">{weatherData.humidity}%</p>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                    <p className="opacity-75">风速</p>
+                  <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="opacity-75">Wind Speed</p>
                     <p className="text-lg font-semibold">{weatherData.windSpeed} km/h</p>
                   </div>
                 </div>
               </div>
               
-              {/* 未来天气预报 */}
-              <div className="bg-white p-4 max-h-64 overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">未来天气</h3>
+              {/* Future weather forecast */}
+              <div className="bg-white dark:bg-gray-900 p-4">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Weather Forecast</h3>
                 <div className="space-y-2">
                   {forecastData.map((forecast, index) => (
-                    <Card key={index} className="border-0 shadow-sm">
+                    <Card key={index} className="border-0 shadow-sm dark:bg-gray-800 dark:shadow-gray-700/20">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {getWeatherIcon(forecast.weatherCode, 24)}
+                            {getWeatherIcon(forecast.weatherCode, 24, true)}
                             <div>
-                              <p className="font-medium text-gray-800">
+                              <p className="font-medium text-gray-800 dark:text-gray-100">
                                 {forecast.time ? formatTime(forecast.date) : formatDate(forecast.date)}
                               </p>
-                              <p className="text-sm text-gray-600">{forecast.description}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{forecast.description}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-gray-800">
-                              {Math.round(forecast.temperature.max)}°
+                            <p className="font-semibold text-gray-800 dark:text-gray-100">
+                              {Math.round(forecast.temperature.max)}℃
                               {forecast.temperature.min !== forecast.temperature.max && (
-                                <span className="text-gray-500 font-normal">
-                                  /{Math.round(forecast.temperature.min)}°
+                                <span className="text-gray-500 dark:text-gray-400 font-normal">
+                                  /{Math.round(forecast.temperature.min)}℃
                                 </span>
                               )}
                             </p>
@@ -285,7 +346,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           ) : null}
         </div>
       </SheetContent>
