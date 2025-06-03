@@ -89,6 +89,7 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 NEXT_PUBLIC_BASE_URL=your-url
+SALT=backup-salt
 
 # Clerk API key （Require）
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
