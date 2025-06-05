@@ -89,7 +89,7 @@ export function LoginForm({
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  {/*const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isCaptchaVerified) {
       setError("Please complete the CAPTCHA verification.");
@@ -113,7 +113,7 @@ export function LoginForm({
     } finally {
       setIsLoading(false);
     }
-  };
+  }; */}
 
   const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
     if (!isCaptchaVerified) {
