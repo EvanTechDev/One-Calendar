@@ -12,8 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignIn } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export function LoginForm({
   className,
@@ -27,17 +28,27 @@ export function LoginForm({
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    if (signIn?.captcha) {
-      signIn.captcha.on("verified", () => {
+  const handleTurnstileVerify = async (token) => {
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
         setIsCaptchaVerified(true);
-      });
-      signIn.captcha.on("error", () => {
-        setError("CAPTCHA verification failed. Please try again.");
+        setError("");
+      } else {
         setIsCaptchaVerified(false);
-      });
+        setError("CAPTCHA verification failed. Please try again.");
+      }
+    } catch (err) {
+      setIsCaptchaVerified(false);
+      setError("Error verifying CAPTCHA. Please try again.");
     }
-  }, [signIn]);
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,8 +178,15 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={!isCaptchaVerified || isLoading}
                   />
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onSuccess={handleTurnstileVerify}
+                    onError={() => {
+                      setIsCaptchaVerified(false);
+                      setError("CAPTCHA initialization failed. Please try again.");
+                    }}
+                  />
                 </div>
-                <div id="clerk-captcha"></div>
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
