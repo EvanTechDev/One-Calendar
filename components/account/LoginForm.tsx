@@ -219,7 +219,7 @@ export function LoginForm({
                   />
                   <Turnstile
                     siteKey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
-                    onSuccess={handleTurnstileVerify}
+                    onSuccess={handleTurnstileSuccess}
                     onError={handleTurnstileError}
                     onError={() => {
                       setIsCaptchaCompleted(false);
