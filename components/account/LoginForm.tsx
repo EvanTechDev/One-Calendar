@@ -167,8 +167,8 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={!isCaptchaVerified || isLoading}
                   />
-                  <div id="clerk-captcha"></div>
                 </div>
+                <div id="clerk-captcha"></div>
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
