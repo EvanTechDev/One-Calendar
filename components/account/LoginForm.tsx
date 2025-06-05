@@ -217,17 +217,17 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={!isCaptchaCompleted || isLoading}
                   />
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
-                    onSuccess={handleTurnstileSuccess}
-                    onError={handleTurnstileError}
-                    onError={() => {
-                      setIsCaptchaCompleted(false);
-                      setError("CAPTCHA initialization failed. Please try again.");
-                    }}
-                    options={{ theme: "auto", size: "flexible" }}
-                  />
                 </div>
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
+                  onSuccess={handleTurnstileSuccess}
+                  onError={handleTurnstileError}
+                  onError={() => {
+                   setIsCaptchaCompleted(false);
+                   setError("CAPTCHA initialization failed. Please try again.");
+                  }}
+                  options={{ theme: "auto", size: "flexible" }}
+                />
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
