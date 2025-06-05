@@ -218,10 +218,11 @@ export function LoginForm({
                     disabled={!isCaptchaVerified || isLoading}
                   />
                   <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    siteKey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
                     onSuccess={handleTurnstileVerify}
+                    onError={handleTurnstileError}
                     onError={() => {
-                      setIsCaptchaVerified(false);
+                      setIsCaptchaCompleted(false);
                       setError("CAPTCHA initialization failed. Please try again.");
                     }}
                   />
