@@ -25,28 +25,67 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(false);
   const router = useRouter();
 
-  const handleTurnstileVerify = async (token) => {
-    try {
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const data = await response.json();
+  const handleTurnstileSuccess = (token) => {
+    setTurnstileToken(token);
+    setIsCaptchaCompleted(true);
+    setError("");
+  };
 
-      if (data.success) {
-        setIsCaptchaVerified(true);
-        setError("");
-      } else {
-        setIsCaptchaVerified(false);
-        setError("CAPTCHA verification failed. Please try again.");
+  const handleTurnstileError = () => {
+    setTurnstileToken("");
+    setIsCaptchaCompleted(false);
+    setError("CAPTCHA failed. Please try again.");
+  };
+
+  const verifyCaptcha = async (token) => {
+    const response = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const data = await response.json();
+    return data.success;
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isCaptchaCompleted || !turnstileToken) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const captchaValid = await verifyCaptcha(turnstileToken);
+      if (!captchaValid) {
+        setError("CAPTCHA verification failed. Please refresh and try again.");
+        setIsCaptchaCompleted(false);
+        setTurnstileToken("");
+        return;
       }
-    } catch (err) {
-      setIsCaptchaVerified(false);
-      setError("Error verifying CAPTCHA. Please try again.");
+
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
+      setIsCaptchaCompleted(false);
+      setTurnstileToken("");
+    } finally {
+      setIsLoading(false);
     }
   };
 
