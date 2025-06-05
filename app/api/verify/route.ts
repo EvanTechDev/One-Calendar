@@ -5,15 +5,19 @@ export default async function handler(req, res) {
   }
 
   const { token } = req.body;
-  const secretKey = process.env.TURNSTILE_SCERET_KEY;
+  const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
 
-  if (!token || !secretKey) {
-    console.error("Missing parameters:", { token: !!token, secretKey: !!secretKey });
-    return res.status(400).json({ error: "Missing token or secret key" });
+  if (!token) {
+    console.error("Missing token in request body");
+    return res.status(400).json({ error: "Missing CAPTCHA token" });
+  }
+  if (!secretKey) {
+    console.error("Missing CLOUDFLARE_TURNSTILE_SECRET_KEY in environment");
+    return res.status(400).json({ error: "Server configuration error: Missing secret key" });
   }
 
   try {
-    console.log("Sending verification request to Cloudflare for token:", token);
+    console.log("Verifying token:", token.slice(0, 10) + "...");
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
@@ -23,16 +27,19 @@ export default async function handler(req, res) {
       }
     );
     const data = await response.json();
-    console.log("Cloudflare response:", data);
+    console.log("Cloudflare response:", JSON.stringify(data, null, 2));
 
     if (data.success) {
       return res.status(200).json({ success: true });
     } else {
       console.error("Turnstile verification failed:", data["error-codes"]);
-      return res.status(400).json({ error: "Turnstile verification failed", details: data["error-codes"] });
+      return res.status(400).json({
+        error: "Turnstile verification failed",
+        details: data["error-codes"] || ["Unknown error"],
+      });
     }
   } catch (error) {
-    console.error("Server error during verification:", error);
+    console.error("Server error during verification:", error.message);
     return res.status(500).json({ error: "Server error during verification", details: error.message });
   }
 }
