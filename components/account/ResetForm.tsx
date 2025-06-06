@@ -134,7 +134,7 @@ export function ResetPasswordForm({
     );
   }
 
-  const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
