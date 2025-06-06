@@ -1,26 +1,28 @@
-export default async function handler(req, res) {
-  {/*if (req.method !== "POST") {
-    console.error("Invalid method:", req.method);
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method not allowed", method: req.method });
-  }*/}
+import { NextRequest } from 'next/server';
 
-  const { token, action } = req.body;
-  const secretKey = process.env.TURNSTILE_SECRET_KEY;
-
-  console.log("Request body:", { token: token ? token.slice(0, 10) + "..." : null, action });
-  console.log("TURNSTILE_SECRET_KEY:", secretKey ? "Set" : "Missing");
-
-  if (!token) {
-    console.error("Missing token in request body");
-    return res.status(400).json({ error: "Missing CAPTCHA token" });
-  }
-  if (!secretKey) {
-    console.error("Missing TURNSTILE_SECRET_KEY in environment");
-    return res.status(400).json({ error: "Server configuration error: Missing secret key" });
-  }
-
+export async function POST(request: NextRequest) {
   try {
+    const { token, action } = await request.json();
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+
+    console.log("Request body:", { token: token ? token.slice(0, 10) + "..." : null, action });
+    console.log("TURNSTILE_SECRET_KEY:", secretKey ? "Set" : "Missing");
+
+    if (!token) {
+      console.error("Missing token in request body");
+      return new Response(JSON.stringify({ error: "Missing CAPTCHA token" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (!secretKey) {
+      console.error("Missing TURNSTILE_SECRET_KEY in environment");
+      return new Response(JSON.stringify({ error: "Server configuration error: Missing secret key" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
@@ -35,7 +37,10 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error("Cloudflare API error:", response.status, response.statusText);
-      return res.status(500).json({ error: "Failed to verify with Cloudflare", status: response.status });
+      return new Response(JSON.stringify({ error: "Failed to verify with Cloudflare", status: response.status }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
@@ -43,20 +48,35 @@ export default async function handler(req, res) {
 
     if (data.success) {
       console.log("Verification successful for action:", action);
-      return res.status(200).json({ success: true });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     } else {
       console.error("Turnstile verification failed:", data["error-codes"]);
-      return res.status(400).json({
-        error: "Turnstile verification failed",
-        details: data["error-codes"] || ["Unknown error"],
-        cloudflareResponse: data,
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Turnstile verification failed",
+          details: data["error-codes"] || ["Unknown error"],
+          cloudflareResponse: data,
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
   } catch (error) {
     console.error("Server error during verification:", error.message, error.stack);
-    return res.status(500).json({
-      error: "Server error during verification",
-      details: error.message,
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Server error during verification",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
