@@ -5,14 +5,14 @@ export default async function handler(req, res) {
   }
 
   const { token } = req.body;
-  const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+  const secretKey = process.env.TURNSTILE_SECRET_KEY;
 
   if (!token) {
     console.error("Missing token in request body");
     return res.status(400).json({ error: "Missing CAPTCHA token" });
   }
   if (!secretKey) {
-    console.error("Missing CLOUDFLARE_TURNSTILE_SECRET_KEY in environment");
+    console.error("Missing TURNSTILE_SECRET_KEY in environment");
     return res.status(400).json({ error: "Server configuration error: Missing secret key" });
   }
 
