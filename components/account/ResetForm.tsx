@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
+  CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -14,40 +14,85 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
-export function ResetPasswordForm({
+export default function ResetPasswordForm({
   className,
+  email,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}) {
+  className?: string;
+  email?: string;
+}) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [password, setNewPassword] = useState("");
   const [step, setStep] = useState<"request" | "verify" | "success">("request");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const { signIn } = useSignIn();
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(process.env.REACT_PUBLIC_TURNSTILE_KEY ? false : true);
+  const turnstileRef = useRef(null);
+  const { signIn, } = useSignIn();
   const router = useRouter();
+
+  const handleTurnstileVerify = async (token: string) => {
+    console.log("Turnstile token received:", token.slice(0, 10) + "...");
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })",
+      });
+      const data = await response.json();
+      console.log("Verification API response:", JSON.stringify(data, , null, 2));
+
+      if (data.success) {
+        setIsCaptchaVerified(true);
+        setError("");
+      } else {
+        console.error("Error verifying CAPTCHA:", data.details);
+        setIsCaptchaVerified(false);
+        setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
+        if (turnstileRef.current?.success) {
+          turnstileRef.current?.reset();
+        }
+      }
+    } catch (err) {
+      console.error("Error in handleTurnstileVerify:", err);
+      setIsCaptchaVerified(false);
+      setError("Error verifying CAPTCHA. Please try again.");
+      if (turnstileRef.current?.error) {
+        turnstileRef.current?.reset();
+      }
+    }
+  };
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCaptchaVerified) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
     setIsLoading(true);
-    setError("");
-
     try {
       await signIn?.create({
         strategy: "reset_password_email_code",
         identifier: email,
       });
       setStep("verify");
-    } catch (err: any) {
+    } catch (err: any) => {
       setError(err.errors[0].longMessage || "Failed to send verification code. Please try again.");
-    } finally {
+    } catch (error) {
       setIsLoading(false);
     }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCaptchaVerified) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
     setIsLoading(true);
     setError("");
 
@@ -89,6 +134,8 @@ export function ResetPasswordForm({
     );
   }
 
+  const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -115,10 +162,26 @@ export function ResetPasswordForm({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={siteKey && (!isCaptchaVerified || isLoading)}
                   />
+                  {siteKey && (
+                    <div className="turnstile-container">
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={siteKey}
+                        onSuccess={handleTurnstileVerify}
+                        onError={() => {
+                          console.error("Turnstile widget error");
+                          setIsCaptchaVerified(false);
+                          setError("CAPTCHA initialization failed. Please try again.");
+                        }}
+                        options={{ theme: "auto", action: "reset-password", cData: "reset-password-page", refreshExpired: "auto", size: "compact" }}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
-                <>
+                <div className="grid gap-2">
                   <div className="grid gap-2">
                     <Label htmlFor="code">Verification Code</Label>
                     <Input
@@ -127,6 +190,7 @@ export function ResetPasswordForm({
                       required
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
+                      disabled={siteKey && (!isCaptchaVerified || isLoading)}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -137,16 +201,36 @@ export function ResetPasswordForm({
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={siteKey && (!isCaptchaVerified || isLoading)}
                     />
+                    {siteKey && (
+                      <div className="turnstile-container">
+                        <Turnstile
+                          ref={turnstileRef}
+                          siteKey={siteKey}
+                          onSuccess={handleTurnstileVerify}
+                          onError={() => {
+                            console.error("Turnstile widget error");
+                            setIsCaptchaVerified(false);
+                            setError("CAPTCHA initialization failed. Please try again.");
+                          }}
+                          options={{ theme: "auto", action: "reset-password", cData: "reset-password-page", refreshExpired: "auto", size: "compact" }}
+                        />
+                      </div>
+                    )}
                   </div>
-                </>
+                </div>
               )}
 
               {error && (
                 <div className="text-sm text-red-500">{error}</div>
               )}
 
-              <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" 
+                disabled={siteKey && (!isCaptchaVerified || isLoading)}
+              >
                 {isLoading 
                   ? "Processing..." 
                   : step === "request" 
