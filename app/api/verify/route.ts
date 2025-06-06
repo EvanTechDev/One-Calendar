@@ -1,7 +1,8 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     console.error("Invalid method:", req.method);
-    return res.status(405).json({ error: "Method not allowed" });
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ error: "Method not allowed", method: req.method });
   }
 
   const { token, action } = req.body;
@@ -31,6 +32,11 @@ export default async function handler(req, res) {
         }).toString(),
       }
     );
+
+    if (!response.ok) {
+      console.error("Cloudflare API error:", response.status, response.statusText);
+      return res.status(500).json({ error: "Failed to verify with Cloudflare", status: response.status });
+    }
 
     const data = await response.json();
     console.log("Cloudflare response:", JSON.stringify(data, null, 2));
