@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { token } = req.body;
+  const { token, action } = req.body;
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
 
   if (!token) {
@@ -17,13 +17,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("Verifying token:", token.slice(0, 10) + "...");
+    console.log("Verifying token:", token.slice(0, 10) + "...", "Action:", action || "none");
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`,
+        body: new URLSearchParams({
+          secret: secretKey,
+          response: token,
+        }).toString(),
       }
     );
     const data = await response.json();
