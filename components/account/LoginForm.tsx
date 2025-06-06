@@ -207,7 +207,8 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                   />
-                  {siteKey && (
+                </div>
+                {siteKey && (
                     <div className="turnstile-container">
                       <Turnstile
                         ref={turnstileRef}
@@ -222,7 +223,6 @@ export function LoginForm({
                       />
                     </div>
                   )}
-                </div>
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
