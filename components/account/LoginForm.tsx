@@ -218,7 +218,7 @@ export function LoginForm({
                           setIsCaptchaCompleted(false);
                           setError("CAPTCHA initialization failed. Please try again.");
                         }}
-                        options={{ theme: "auto", action: "login", cData: "login-page", refreshExpired: "auto", size: "compact" }}
+                        options={{ theme: "auto", action: "login", cData: "login-page", refreshExpired: "auto", size: "flexible" }}
                       />
                     </div>
                   )}
