@@ -209,27 +209,6 @@ export function ResetPasswordForm({
                       onChange={(e) => setNewPassword(e.target.value)}
                       disabled={siteKey && (!isCaptchaVerified || isLoading)}
                     />
-                    {siteKey && (
-                      <div className="turnstile-container">
-                        <Turnstile
-                          ref={turnstileRef}
-                          siteKey={siteKey}
-                          onSuccess={handleTurnstileVerify}
-                          onError={() => {
-                            console.error("Turnstile widget error");
-                            setIsCaptchaVerified(false);
-                            setError("CAPTCHA initialization failed. Please try again.");
-                          }}
-                          options={{
-                            theme: "auto",
-                            action: "reset-password",
-                            cData: "reset-password-page",
-                            refreshExpired: "auto",
-                            size: "flexible",
-                          }}
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
