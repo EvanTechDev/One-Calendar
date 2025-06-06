@@ -179,7 +179,7 @@ export function ResetPasswordForm({
                           action: "reset-password",
                           cData: "reset-password-page",
                           refreshExpired: "auto",
-                          size: "compact",
+                          size: "flexible",
                         }}
                       />
                     </div>
