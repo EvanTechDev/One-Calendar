@@ -1,9 +1,9 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  {/*if (req.method !== "POST") {
     console.error("Invalid method:", req.method);
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method not allowed", method: req.method });
-  }
+  }*/}
 
   const { token, action } = req.body;
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
