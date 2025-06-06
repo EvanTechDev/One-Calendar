@@ -37,7 +37,7 @@ export function LoginForm({
       const response = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, action: "login" }),
       });
       const data = await response.json();
       console.log("Verification API response:", JSON.stringify(data, null, 2));
@@ -235,7 +235,7 @@ export function LoginForm({
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                Don't have an account?{" "}
                 <a href="/sign-up" className="underline underline-offset-4">
                   Sign up
                 </a>
