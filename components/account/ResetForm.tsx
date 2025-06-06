@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardDescription,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -13,26 +13,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
-export default function ResetPasswordForm({
+export function ResetPasswordForm({
   className,
-  email,
   ...props
-}) {
-  className?: string;
-  email?: string;
-}) {
+}: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [password, setNewPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [step, setStep] = useState<"request" | "verify" | "success">("request");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isCaptchaVerified, setIsCaptchaVerified] = useState(process.env.REACT_PUBLIC_TURNSTILE_KEY ? false : true);
-  const turnstileRef = useRef(null);
-  const { signIn, } = useSignIn();
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
+  );
+  const turnstileRef = useRef<any>(null);
+  const { signIn } = useSignIn();
   const router = useRouter();
 
   const handleTurnstileVerify = async (token: string) => {
@@ -41,10 +39,10 @@ export default function ResetPasswordForm({
       const response = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token })",
+        body: JSON.stringify({ token }),
       });
       const data = await response.json();
-      console.log("Verification API response:", JSON.stringify(data, , null, 2));
+      console.log("Verification API response:", JSON.stringify(data, null, 2));
 
       if (data.success) {
         setIsCaptchaVerified(true);
@@ -53,16 +51,16 @@ export default function ResetPasswordForm({
         console.error("Error verifying CAPTCHA:", data.details);
         setIsCaptchaVerified(false);
         setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
-        if (turnstileRef.current?.success) {
-          turnstileRef.current?.reset();
+        if (turnstileRef.current) {
+          turnstileRef.current.reset();
         }
       }
     } catch (err) {
       console.error("Error in handleTurnstileVerify:", err);
       setIsCaptchaVerified(false);
       setError("Error verifying CAPTCHA. Please try again.");
-      if (turnstileRef.current?.error) {
-        turnstileRef.current?.reset();
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
       }
     }
   };
@@ -74,15 +72,16 @@ export default function ResetPasswordForm({
       return;
     }
     setIsLoading(true);
+    setError("");
     try {
       await signIn?.create({
         strategy: "reset_password_email_code",
         identifier: email,
       });
       setStep("verify");
-    } catch (err: any) => {
+    } catch (err: any) {
       setError(err.errors[0].longMessage || "Failed to send verification code. Please try again.");
-    } catch (error) {
+    } finally {
       setIsLoading(false);
     }
   };
@@ -134,7 +133,7 @@ export default function ResetPasswordForm({
     );
   }
 
-  const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -144,7 +143,7 @@ export default function ResetPasswordForm({
             {step === "request" ? "Reset Password" : "Enter Verification Code"}
           </CardTitle>
           <CardDescription>
-            {step === "request" 
+            {step === "request"
               ? "Enter your email to receive a verification code"
               : `We sent a code to ${email}`}
           </CardDescription>
@@ -175,7 +174,13 @@ export default function ResetPasswordForm({
                           setIsCaptchaVerified(false);
                           setError("CAPTCHA initialization failed. Please try again.");
                         }}
-                        options={{ theme: "auto", action: "reset-password", cData: "reset-password-page", refreshExpired: "auto", size: "compact" }}
+                        options={{
+                          theme: "auto",
+                          action: "reset-password",
+                          cData: "reset-password-page",
+                          refreshExpired: "auto",
+                          size: "compact",
+                        }}
                       />
                     </div>
                   )}
@@ -214,7 +219,13 @@ export default function ResetPasswordForm({
                             setIsCaptchaVerified(false);
                             setError("CAPTCHA initialization failed. Please try again.");
                           }}
-                          options={{ theme: "auto", action: "reset-password", cData: "reset-password-page", refreshExpired: "auto", size: "compact" }}
+                          options={{
+                            theme: "auto",
+                            action: "reset-password",
+                            cData: "reset-password-page",
+                            refreshExpired: "auto",
+                            size: "compact",
+                          }}
                         />
                       </div>
                     )}
@@ -226,16 +237,16 @@ export default function ResetPasswordForm({
                 <div className="text-sm text-red-500">{error}</div>
               )}
 
-              <Button 
-                type="submit" 
-                className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" 
+              <Button
+                type="submit"
+                className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
                 disabled={siteKey && (!isCaptchaVerified || isLoading)}
               >
-                {isLoading 
-                  ? "Processing..." 
-                  : step === "request" 
-                    ? "Send Code" 
-                    : "Reset Password"}
+                {isLoading
+                  ? "Processing..."
+                  : step === "request"
+                  ? "Send Code"
+                  : "Reset Password"}
               </Button>
 
               <div className="text-center text-sm">
