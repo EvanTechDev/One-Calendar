@@ -39,7 +39,7 @@ export function ResetPasswordForm({
       const response = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, action: "reset-password" }),
       });
       const data = await response.json();
       console.log("Verification API response:", JSON.stringify(data, null, 2));
@@ -48,7 +48,6 @@ export function ResetPasswordForm({
         setIsCaptchaVerified(true);
         setError("");
       } else {
-        console.error("Error verifying CAPTCHA:", data.details);
         setIsCaptchaVerified(false);
         setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
         if (turnstileRef.current) {
@@ -67,7 +66,8 @@ export function ResetPasswordForm({
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isCaptchaVerified) {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaVerified) {
       setError("Please complete the CAPTCHA verification.");
       return;
     }
@@ -88,7 +88,8 @@ export function ResetPasswordForm({
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isCaptchaVerified) {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaVerified) {
       setError("Please complete the CAPTCHA verification.");
       return;
     }
@@ -133,7 +134,7 @@ export function ResetPasswordForm({
     );
   }
 
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
