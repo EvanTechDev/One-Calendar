@@ -138,12 +138,11 @@ export default function LandingPage() {
   <span className="text-sm text-black">AI Powered</span>
 </div>
 <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
-<h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
   <span className="inline-flex items-center gap-2">
     <span className="flex justify-end min-w-0">
       <RotatingText
         texts={['Time-Saving', 'Smart', 'Productive', 'Effortless!']}
-        mainClassName="inline-block px-2 sm:px-2 md:px-3 bg-[#0066ff] text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg dark:text-black w-fit"
+        mainClassName="inline-block px-2 sm:px-2 md:px-3 bg-[#0066ff] text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg dark:w-fit"
         staggerFrom={"last"}
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
