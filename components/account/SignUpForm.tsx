@@ -11,12 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
-} from "@/components/ui/input-otp";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
@@ -42,7 +36,8 @@ export function SignUpForm({
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
   );
   const turnstileRef = useRef<any>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+
+  console.log("Site Key:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "Missing");
 
   const handleTurnstileSuccess = async (token: string) => {
     console.log("Turnstile token received:", token.slice(0, 10) + "...");
@@ -62,7 +57,7 @@ export function SignUpForm({
       let data;
       try {
         data = JSON.parse(text);
-      } catch (parseErr: any) {
+      } catch (parseErr) {
         console.error("JSON parse error:", parseErr.message, "Response text:", text);
         throw new Error("Invalid JSON response from server");
       }
@@ -80,7 +75,7 @@ export function SignUpForm({
           console.log("Turnstile widget reset");
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error in handleTurnstileSuccess:", err.message);
       setIsCaptchaCompleted(false);
       setError("Error verifying CAPTCHA. Please try again.");
@@ -112,11 +107,6 @@ export function SignUpForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    if (!signUp) {
-      console.error("signUp is not initialized");
-      setError("Authentication service is not available. Please try again later.");
-      return;
-    }
     signUp.authenticateWithRedirect({
       strategy,
       redirectUrl: "/sign-up/sso-callback",
@@ -124,18 +114,11 @@ export function SignUpForm({
     });
   };
 
-  const handleSubmit = async (e: React彼此
-
-System: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
       setError("Please complete the CAPTCHA verification.");
-      return;
-    }
-    if (!signUp) {
-      console.error("signUp is not initialized");
-      setError("Authentication service is not available. Please try again later.");
       return;
     }
     setIsLoading(true);
@@ -164,16 +147,10 @@ System: React.FormEvent) => {
         if (completeSignUp.status === "complete") {
           await setActive({ session: completeSignUp.createdSessionId });
           router.push("/");
-        } else {
-          setError("Invalid verification code. Please try again.");
-          setFormData({ ...formData, code: "" }); // Clear OTP on invalid code
         }
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.longMessage || "An error occurred. Please try again.");
-      if (step === "verification") {
-        setFormData({ ...formData, code: "" }); // Clear OTP on error
-      }
       if (siteKey && err.errors) {
         setIsCaptchaCompleted(false);
         if (turnstileRef.current) {
@@ -193,13 +170,6 @@ System: React.FormEvent) => {
     });
   };
 
-  const handleOTPChange = (value: string) => {
-    setFormData({ ...formData, code: value });
-    if (value.length === 6 && formRef.current && !isLoading && isCaptchaCompleted && signUp) {
-      formRef.current.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-    }
-  };
-
   if (step === "verification") {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -211,37 +181,22 @@ System: React.FormEvent) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
               <div className="grid gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="code" className="text-center">Verification Code</Label>
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={formData.code}
-                      onChange={handleOTPChange}
-                      disabled={isLoading || !signUp || (siteKey && !isCaptchaCompleted)}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
+                  <Label htmlFor="code">Verification Code</Label>
+                  <Input
+                    id="code"
+                    name="code"
+                    placeholder="123456"
+                    required
+                    value={formData.code}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
                 </div>
-                {error && <div className="text-sm text-red-500 text-center">{error}</div>}
-                <Button
-                  type="submit"
-                  className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={isLoading || !signUp || (siteKey && !isCaptchaCompleted)}
-                >
+                {error && <div className="text-sm text-red-500">{error}</div>}
+                <Button type="submit" className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white" disabled={isLoading}>
                   {isLoading ? "Verifying..." : "Verify Email"}
                 </Button>
                 <div className="text-center text-sm">
@@ -249,19 +204,14 @@ System: React.FormEvent) => {
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!signUp) {
-                        console.error("signUp is not initialized");
-                        setError("Authentication service is not available. Please try again later.");
-                        return;
-                      }
                       try {
-                        await signUp.prepareEmailAddressVerification();
-                      } catch (err: any) {
+                        await signUp?.prepareEmailAddressVerification();
+                      } catch (err) {
                         setError("Failed to resend code. Please try again.");
                       }
                     }}
                     className="underline underline-offset-4 hover:text-primary"
-                    disabled={isLoading || !signUp}
+                    disabled={isLoading}
                   >
                     Resend code
                   </button>
@@ -286,7 +236,7 @@ System: React.FormEvent) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="flex flex-col gap-4">
                 <Button
@@ -294,7 +244,7 @@ System: React.FormEvent) => {
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_microsoft")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="20" height="20">
                     <path fill="#f25022" d="M1 1h10v10H1z" />
@@ -309,7 +259,7 @@ System: React.FormEvent) => {
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_google")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -325,7 +275,7 @@ System: React.FormEvent) => {
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_github")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                     <path
@@ -354,7 +304,7 @@ System: React.FormEvent) => {
                       required
                       value={formData.firstName}
                       onChange={handleChange}
-                      disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                      disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -366,7 +316,7 @@ System: React.FormEvent) => {
                       required
                       value={formData.lastName}
                       onChange={handleChange}
-                      disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                      disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                     />
                   </div>
                 </div>
@@ -381,7 +331,7 @@ System: React.FormEvent) => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                    disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                   />
                 </div>
 
@@ -394,40 +344,39 @@ System: React.FormEvent) => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                    disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                   />
+                  {siteKey ? (
+                    <div className="turnstile-container">
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={siteKey}
+                        onSuccess={handleTurnstileSuccess}
+                        onError={() => {
+                          console.error("Turnstile widget error");
+                          setIsCaptchaCompleted(false);
+                          setError("CAPTCHA initialization failed. Please try again.");
+                        }}
+                        options={{
+                          theme: "auto",
+                          action: "sign-up",
+                          cData: "sign-up-page",
+                          refreshExpired: "auto",
+                          size: "flexible",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-yellow-500">CAPTCHA not configured: Missing site key</div>
+                  )}
                 </div>
 
-                {siteKey ? (
-                  <div className="turnstile-container">
-                    <Turnstile
-                      ref={turnstileRef}
-                      siteKey={siteKey}
-                      onSuccess={handleTurnstileSuccess}
-                      onError={() => {
-                        console.error("Turnstile widget error");
-                        setIsCaptchaCompleted(false);
-                        setError("CAPTCHA initialization failed. Please try again.");
-                      }}
-                      options={{
-                        theme: "auto",
-                        action: "sign-up",
-                        cData: "sign-up-page",
-                        refreshExpired: "auto",
-                        size: "flexible",
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-sm text-yellow-500 text-center">CAPTCHA not configured: Missing site key</div>
-                )}
-
-                {error && <div className="text-sm text-red-500 text-center">{error}</div>}
+                {error && <div className="text-sm text-red-500">{error}</div>}
 
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   {isLoading ? "Creating account..." : "Create account"}
                 </Button>
@@ -455,4 +404,4 @@ System: React.FormEvent) => {
       </div>
     </div>
   );
-}
+  }
