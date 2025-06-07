@@ -6,11 +6,11 @@
 <p>
 
 <a href="https://vercel.com/tech-art/one-calendar" target="_blank"><img src="https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?style=flat-square" alt="Vercel Project Status"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/blob/master/LICENSE" target="blank"><img src="https://img.shields.io/github/license/EvanTechDev/One-Calendar?style=flat-square" alt="license"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/fork" target="blank"><img src="https://img.shields.io/github/forks/EvanTechDev/One-Calendar?style=flat-square" alt="forks"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/stargazers" target="blank"><img src="https://img.shields.io/github/stars/EvanTechDev/One-Calendar?style=flat-square" alt="stars"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/issues" target="blank"><img src="https://img.shields.io/github/issues/EvanTechDev/One-Calendar?style=flat-square" alt="issues"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/pulls" target="blank"><img src="https://img.shields.io/github/issues-pr/EvanTechDev/One-Calendar?style=flat-square" alt="pull-requests"></a>
+<a href="https://github.com/EvanTechDev/One-Calendar/blob/master/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/EvanTechDev/One-Calendar?style=flat-square" alt="license"></a>
+<a href="https://github.com/EvanTechDev/One-Calendar/fork" target="_blank"><img src="https://img.shields.io/github/forks/EvanTechDev/One-Calendar?style=flat-square" alt="forks"></a>
+<a href="https://github.com/EvanTechDev/One-Calendar/stargazers" target="_blank"><img src="https://img.shields.io/github/stars/EvanTechDev/One-Calendar?style=flat-square" alt="stars"></a>
+<a href="https://github.com/EvanTechDev/One-Calendar/issues" target="_blank"><img src="https://img.shields.io/github/issues/EvanTechDev/One-Calendar?style=flat-square" alt="issues"></a>
+<a href="https://github.com/EvanTechDev/One-Calendar/pulls" target="_blank"><img src="https://img.shields.io/github/issues-pr/EvanTechDev/One-Calendar?style=flat-square" alt="pull-requests"></a>
 
 </p>
 
@@ -29,7 +29,7 @@ A beautifully minimal open-source calendar app to plan your week and life.
 
 > Without *One Calendar*, your schedule is scattered. With it, your week feels intentional.
 
-<a herf="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></img></a>
+<a href="https://producthunt.com/product/one-calendar" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></a>
 
 ## Why One Calendar?
 
@@ -102,6 +102,10 @@ OPENWEATHER_API_KEY=your-open-weather-api-key
 MISSKEY_URL=https://misskey.io
 MISSKEY_TOKEN=your-misskey-token
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+
+# Optional, Captcha
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=cloudflare-turnstile-site-key
+TURNSTILE_SECRET_KEY=cloudflare-turnstile-secret-key
 ```
 
 ### Enviroment Setup
