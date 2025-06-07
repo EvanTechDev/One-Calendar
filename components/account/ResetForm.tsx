@@ -11,6 +11,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { useState, useRef } from "react";
@@ -23,7 +28,8 @@ export function ResetPasswordForm({
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [step, setStep] = useState<"request" | "verify" | "success">("request");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<"request" | "verify" | "password" | "success">("request");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(
@@ -86,7 +92,7 @@ export function ResetPasswordForm({
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaVerified) {
@@ -95,17 +101,47 @@ export function ResetPasswordForm({
     }
     setIsLoading(true);
     setError("");
+    try {
+      const result = await signIn?.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+      });
+      if (result?.status === "needs_second_factor" || result?.status === "needs_new_password") {
+        setStep("password");
+      } else {
+        setError("Invalid verification code. Please try again.");
+      }
+    } catch (err: any) {
+      setError(err.errors[0].longMessage || "Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaVerified) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setIsLoading(true);
+    setError("");
     try {
       const result = await signIn?.attemptFirstFactor({
         strategy: "reset_password_email_code",
         code,
         password: newPassword,
       });
-
       if (result?.status === "complete") {
         setStep("success");
-        setTimeout(() => router.push("/"), 2000);
+        setTimeout(() => router.push("/sign-in"), 2000);
+      } else {
+        setError("Password reset failed. Please try again.");
       }
     } catch (err: any) {
       setError(err.errors[0].longMessage || "Password reset failed. Please try again.");
@@ -141,18 +177,32 @@ export function ResetPasswordForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">
-            {step === "request" ? "Reset Password" : "Enter Verification Code"}
+            {step === "request"
+              ? "Reset Password"
+              : step === "verify"
+              ? "Enter Verification Code"
+              : "Set New Password"}
           </CardTitle>
           <CardDescription>
             {step === "request"
               ? "Enter your email to receive a verification code"
-              : `We sent a code to ${email}`}
+              : step === "verify"
+              ? `We sent a code to ${email}`
+              : "Enter your new password"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={step === "request" ? handleRequestCode : handleResetPassword}>
+          <form
+            onSubmit={
+              step === "request"
+                ? handleRequestCode
+                : step === "verify"
+                ? handleVerifyCode
+                : handleResetPassword
+            }
+          >
             <div className="grid gap-6">
-              {step === "request" ? (
+              {step === "request" && (
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -186,19 +236,29 @@ export function ResetPasswordForm({
                     </div>
                   )}
                 </div>
-              ) : (
+              )}
+              {step === "verify" && (
                 <div className="grid gap-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="code">Verification Code</Label>
-                    <Input
-                      id="code"
-                      placeholder="123456"
-                      required
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      disabled={siteKey && (!isCaptchaVerified || isLoading)}
-                    />
-                  </div>
+                  <Label htmlFor="code">Verification Code</Label>
+                  <InputOTP
+                    maxLength={6}
+                    value={code}
+                    onChange={(value) => setCode(value)}
+                    disabled={siteKey && (!isCaptchaVerified || isLoading)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              )}
+              {step === "password" && (
+                <div className="grid gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input
@@ -207,6 +267,17 @@ export function ResetPasswordForm({
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={siteKey && (!isCaptchaVerified || isLoading)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={siteKey && (!isCaptchaVerified || isLoading)}
                     />
                   </div>
@@ -226,6 +297,8 @@ export function ResetPasswordForm({
                   ? "Processing..."
                   : step === "request"
                   ? "Send Code"
+                  : step === "verify"
+                  ? "Verify Code"
                   : "Reset Password"}
               </Button>
 
