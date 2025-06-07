@@ -111,9 +111,11 @@ export function ResetPasswordForm({
         setStep("password");
       } else {
         setError("Invalid verification code. Please try again.");
+        setCode(""); // Clear OTP input on invalid code
       }
     } catch (err: any) {
       setError(err.errors[0].longMessage || "Verification failed. Please try again.");
+      setCode(""); // Clear OTP input on error
     } finally {
       setIsLoading(false);
     }
@@ -293,7 +295,7 @@ export function ResetPasswordForm({
               )}
 
               {error && (
-                <div className="text-sm text-red-500">{error}</div>
+                <div className="text-sm text-red-500 text-center">{error}</div>
               )}
 
               <Button
