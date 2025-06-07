@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon } from "lucide-react"
 import Image from "next/image"
+import RotatingText from "@/components/ui/rotating-text"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -137,7 +138,18 @@ export default function LandingPage() {
   <span className="text-sm text-black">AI Powered</span>
 </div>
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
-             Time-Saving AI Calendar,<br />Designed for Efficiency
+             <RotatingText
+  texts={['Time-Saving', 'Smart', 'Productive', 'Effortless!']}
+  mainClassName="px-2 sm:px-2 md:px-3 bg-[#0066ff] text-white overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg dark:text-black"
+  staggerFrom={"last"}
+  initial={{ y: "100%" }}
+  animate={{ y: 0 }}
+  exit={{ y: "-120%" }}
+  staggerDuration={0.025}
+  splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
+  transition={{ type: "spring", damping: 30, stiffness: 400 }}
+  rotationInterval={1500}
+/> AI Calendar,<br />Designed for Efficiency
           </h1>
           <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6">
             One Calendar is an AI-first app that streamlines your scheduling.
