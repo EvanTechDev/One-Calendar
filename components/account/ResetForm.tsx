@@ -37,6 +37,7 @@ export function ResetPasswordForm({
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
   );
   const turnstileRef = useRef<any>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const { signIn } = useSignIn();
   const router = useRouter();
 
@@ -111,11 +112,11 @@ export function ResetPasswordForm({
         setStep("password");
       } else {
         setError("Invalid verification code. Please try again.");
-        setCode(""); // Clear OTP input on invalid code
+        setCode("");
       }
     } catch (err: any) {
       setError(err.errors[0].longMessage || "Verification failed. Please try again.");
-      setCode(""); // Clear OTP input on error
+      setCode("");
     } finally {
       setIsLoading(false);
     }
@@ -150,6 +151,13 @@ export function ResetPasswordForm({
       setError(err.errors[0].longMessage || "Password reset failed. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOTPChange = (value: string) => {
+    setCode(value);
+    if (value.length === 6 && formRef.current && !isLoading && isCaptchaVerified) {
+      formRef.current.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     }
   };
 
@@ -196,6 +204,7 @@ export function ResetPasswordForm({
         </CardHeader>
         <CardContent>
           <form
+            ref={formRef}
             onSubmit={
               step === "request"
                 ? handleRequestCode
@@ -249,7 +258,7 @@ export function ResetPasswordForm({
                     <InputOTP
                       maxLength={6}
                       value={code}
-                      onChange={(value) => setCode(value)}
+                      onChange={handleOTPChange}
                       disabled={siteKey && (!isCaptchaVerified || isLoading)}
                     >
                       <InputOTPGroup>
@@ -327,6 +336,7 @@ export function ResetPasswordForm({
                 ) : (
                   <button
                     type="button"
+                    two
                     onClick={() => setStep("request")}
                     className="underline underline-offset-4"
                   >
