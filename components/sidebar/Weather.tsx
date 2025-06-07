@@ -37,11 +37,89 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [devWeatherCode, setDevWeatherCode] = useState('clear');
+
+  // 检测用户语言
+  const isChineseLocale = () => {
+    const locale = navigator.language || navigator.languages?.[0] || 'en';
+    return locale.startsWith('zh');
+  };
+
+  const isChinese = isChineseLocale();
+
+  // 翻译文本
+  const t = (key: string) => {
+    const translations: Record<string, string> = {
+      'Weather': '天气',
+      'Loading weather data...': '正在加载天气数据...',
+      'Failed to get location': '无法获取位置信息',
+      'Failed to fetch weather data': '无法获取天气数据',
+      'Retry': '重试',
+      'Feels like': '体感温度',
+      'Humidity': '湿度',
+      'Wind Speed': '风速',
+      'Weather Forecast': '天气预报',
+      'Sunday': '星期日',
+      'Monday': '星期一',
+      'Tuesday': '星期二',
+      'Wednesday': '星期三',
+      'Thursday': '星期四',
+      'Friday': '星期五',
+      'Saturday': '星期六',
+      // 天气描述翻译
+      'clear': '晴朗',
+      'sunny': '晴天',
+      'partly cloudy': '多云',
+      'cloudy': '阴天',
+      'overcast': '阴霾',
+      'light rain': '小雨',
+      'moderate rain': '中雨',
+      'heavy rain': '大雨',
+      'thunderstorm': '雷雨',
+      'snow': '雪',
+      'light snow': '小雪',
+      'heavy snow': '大雪',
+      'fog': '雾',
+      'mist': '薄雾',
+      'drizzle': '毛毛雨',
+      'showers': '阵雨'
+    };
+    
+    if (!isChinese) return key;
+    return translations[key] || key;
+  };
+
+  useEffect(() => {
+    (window as any).weatherDevMode = {
+      enable: () => {
+        setIsDevMode(true);
+        console.log('Weather Dev Mode Enabled');
+      },
+      disable: () => {
+        setIsDevMode(false);
+        console.log('Weather Dev Mode Disabled');
+      },
+      setWeather: (weatherCode: string) => {
+        setDevWeatherCode(weatherCode);
+        console.log(`Weather set to: ${weatherCode}`);
+      },
+      availableWeathers: [
+        'clear', 'sunny', 'partly cloudy', 'cloudy', 'overcast',
+        'light rain', 'moderate rain', 'heavy rain', 'thunderstorm',
+        'snow', 'light snow', 'heavy snow', 'fog', 'mist', 'drizzle'
+      ]
+    };
+
+    return () => {
+      delete (window as any).weatherDevMode;
+    };
+  }, []);
 
   const getLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported'));
+        reject(new Error(t('Failed to get location')));
       }
       
       navigator.geolocation.getCurrentPosition(
@@ -52,7 +130,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
           });
         },
         (error) => {
-          reject(new Error('Failed to get location'));
+          reject(new Error(t('Failed to get location')));
         }
       );
     });
@@ -67,18 +145,28 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
       
       // Get current weather
       const currentResponse = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
-      if (!currentResponse.ok) throw new Error('Failed to fetch weather data');
+      if (!currentResponse.ok) throw new Error(t('Failed to fetch weather data'));
       const currentData = await currentResponse.json();
       
       // Get forecast data
       const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
-      if (!forecastResponse.ok) throw new Error('Failed to fetch forecast data');
+      if (!forecastResponse.ok) throw new Error(t('Failed to fetch weather data'));
       const forecastData = await forecastResponse.json();
+
+      const translatedCurrentData = {
+        ...currentData,
+        description: t(currentData.description.toLowerCase()) || currentData.description
+      };
       
-      setWeatherData(currentData);
-      setForecastData(forecastData);
+      const translatedForecastData = forecastData.map((item: ForecastData) => ({
+        ...item,
+        description: t(item.description.toLowerCase()) || item.description
+      }));
+      
+      setWeatherData(translatedCurrentData);
+      setForecastData(translatedForecastData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+      setError(err instanceof Error ? err.message : t('Failed to fetch weather data'));
     } finally {
       setLoading(false);
     }
@@ -91,7 +179,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   }, [isOpen, weatherData]);
 
   const getWeatherBackground = (weatherCode: string) => {
-    const code = weatherCode.toLowerCase();
+    const code = (isDevMode ? devWeatherCode : weatherCode).toLowerCase();
     
     if (code.includes('clear') || code.includes('sunny')) {
       return 'bg-gradient-to-b from-blue-400 via-blue-300 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700';
@@ -111,13 +199,13 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   };
 
   const getWeatherIcon = (weatherCode: string, size: number = 48, isInForecast: boolean = false) => {
-    const code = weatherCode.toLowerCase();
+    const code = (isDevMode && !isInForecast ? devWeatherCode : weatherCode).toLowerCase();
     const baseIconProps = { size };
     
-    // Main display area icons - always white for clarity on gradient backgrounds
+    // Main display area icons
     const mainIconClass = "text-white drop-shadow-lg";
     
-    // Forecast area icons - different colors for light and dark modes
+    // Forecast area icons
     const forecastIconClass = "text-gray-700 dark:text-gray-200";
     const sunClass = isInForecast ? "text-orange-500 dark:text-orange-400" : "text-yellow-300 drop-shadow-lg";
     const lightningClass = isInForecast ? "text-purple-600 dark:text-purple-400" : "text-yellow-400 drop-shadow-lg";
@@ -125,7 +213,6 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
     const snowClass = isInForecast ? "text-blue-400 dark:text-blue-300" : "text-blue-200 drop-shadow-lg";
     const moonClass = isInForecast ? "text-indigo-400 dark:text-indigo-300" : "text-blue-200 drop-shadow-lg";
     
-    // Priority matching for more specific weather conditions
     if (code.includes('tornado')) {
       return <Wind {...baseIconProps} className={isInForecast ? "text-red-600 dark:text-red-400" : "text-red-400 drop-shadow-lg"} />;
     }
@@ -193,7 +280,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   };
 
   const WeatherAnimation = ({ weatherCode }: { weatherCode: string }) => {
-    const code = weatherCode.toLowerCase();
+    const code = (isDevMode ? devWeatherCode : weatherCode).toLowerCase();
     
     if (code.includes('rain') || code.includes('drizzle')) {
       const intensity = code.includes('heavy') ? 'heavy' : code.includes('light') ? 'light' : 'medium';
@@ -231,17 +318,39 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', { 
+    const date = new Date(dateString);
+    if (isChinese) {
+      return date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
+      });
+    }
+    return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
+    const date = new Date(dateString);
+    if (isChinese) {
+      return date.toLocaleDateString('zh-CN', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+    return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  const getDayOfWeek = (dateString: string) => {
+    const date = new Date(dateString);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = days[date.getDay()];
+    return t(dayName);
   };
 
   return (
@@ -250,7 +359,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
         {trigger || (
           <Button variant="outline" className="gap-2">
             <Cloud className="w-4 h-4" />
-            Weather
+            {t('Weather')}
           </Button>
         )}
       </SheetTrigger>
@@ -260,7 +369,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
             <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-100">
               <div className="text-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>Loading weather data...</p>
+                <p>{t('Loading weather data...')}</p>
               </div>
             </div>
           ) : error ? (
@@ -268,7 +377,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
               <div className="text-center text-white">
                 <p className="mb-4">{error}</p>
                 <Button onClick={fetchWeatherData} variant="secondary">
-                  Retry
+                  {t('Retry')}
                 </Button>
               </div>
             </div>
@@ -279,6 +388,12 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                 className={`relative ${getWeatherBackground(weatherData.weatherCode)} p-6 text-white overflow-hidden min-h-[400px]`}
               >
                 <WeatherAnimation weatherCode={weatherData.weatherCode} />
+                
+                {isDevMode && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                    开发模式
+                  </div>
+                )}
                 
                 {/* Location info */}
                 <div className="flex items-center gap-2 mb-6">
@@ -293,7 +408,7 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                       {Math.round(weatherData.temperature)}℃
                     </div>
                     <p className="text-xl opacity-90">{weatherData.description}</p>
-                    <p className="text-sm opacity-75">Feels like {Math.round(weatherData.feelsLike)}℃</p>
+                    <p className="text-sm opacity-75">{t('Feels like')} {Math.round(weatherData.feelsLike)}℃</p>
                   </div>
                   <div className="flex flex-col items-center">
                     {getWeatherIcon(weatherData.weatherCode, 80)}
@@ -303,19 +418,19 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                 {/* Detailed info */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
-                    <p className="opacity-75">Humidity</p>
+                    <p className="opacity-75">{t('Humidity')}</p>
                     <p className="text-lg font-semibold">{weatherData.humidity}%</p>
                   </div>
                   <div className="bg-white bg-opacity-20 dark:bg-black dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm">
-                    <p className="opacity-75">Wind Speed</p>
-                    <p className="text-lg font-semibold">{weatherData.windSpeed} km/h</p>
+                    <p className="opacity-75">{t('Wind Speed')}</p>
+                    <p className="text-lg font-semibold">{weatherData.windSpeed} {isChinese ? '公里/小时' : 'km/h'}</p>
                   </div>
                 </div>
               </div>
               
               {/* Future weather forecast */}
               <div className="bg-white dark:bg-gray-900 p-4">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Weather Forecast</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">{t('Weather Forecast')}</h3>
                 <div className="space-y-2">
                   {forecastData.map((forecast, index) => (
                     <Card key={index} className="border-0 shadow-sm dark:bg-gray-800 dark:shadow-gray-700/20">
@@ -324,9 +439,16 @@ const WeatherSheet: React.FC<WeatherSheetProps> = ({ trigger }) => {
                           <div className="flex items-center gap-3">
                             {getWeatherIcon(forecast.weatherCode, 24, true)}
                             <div>
-                              <p className="font-medium text-gray-800 dark:text-gray-100">
-                                {forecast.time ? formatTime(forecast.date) : formatDate(forecast.date)}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-800 dark:text-gray-100">
+                                  {forecast.time ? formatTime(forecast.date) : formatDate(forecast.date)}
+                                </p>
+                                {!forecast.time && (
+                                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    {getDayOfWeek(forecast.date)}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-600 dark:text-gray-400">{forecast.description}</p>
                             </div>
                           </div>
