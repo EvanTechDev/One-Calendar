@@ -44,8 +44,6 @@ export function SignUpForm({
   const turnstileRef = useRef<any>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  console.log("Site Key:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "Missing");
-
   const handleTurnstileSuccess = async (token: string) => {
     console.log("Turnstile token received:", token.slice(0, 10) + "...");
     try {
@@ -126,7 +124,9 @@ export function SignUpForm({
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React彼此
+
+System: React.FormEvent) => {
     e.preventDefault();
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
@@ -214,9 +214,7 @@ export function SignUpForm({
             <form ref={formRef} onSubmit={handleSubmit}>
               <div className="grid gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="code" className="text-center">
-                    Verification Code
-                  </Label>
+                  <Label htmlFor="code" className="text-center">Verification Code</Label>
                   <div className="flex justify-center">
                     <InputOTP
                       maxLength={6}
@@ -384,7 +382,7 @@ export function SignUpForm({
                     value={formData.email}
                     onChange={handleChange}
                     disabled={siteKey && (!isCaptchaCompleted || isLoading || !signUp)}
-                    />
+                  />
                 </div>
 
                 <div className="grid gap-2">
@@ -400,7 +398,7 @@ export function SignUpForm({
                   />
                 </div>
 
-                {siteKey && (
+                {siteKey ? (
                   <div className="turnstile-container">
                     <Turnstile
                       ref={turnstileRef}
@@ -420,6 +418,8 @@ export function SignUpForm({
                       }}
                     />
                   </div>
+                ) : (
+                  <div className="text-sm text-yellow-500 text-center">CAPTCHA not configured: Missing site key</div>
                 )}
 
                 {error && <div className="text-sm text-red-500 text-center">{error}</div>}
