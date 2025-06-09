@@ -19,7 +19,7 @@ export default function Home() {
     setIsChinese(lang.startsWith("zh"));
   }, []);
 
-  if (isMobile) {
+  {/*if (isMobile) {
     return (
       <div>
         <div
@@ -51,7 +51,7 @@ export default function Home() {
         </div>
       </div>
     )
-  }
+  }*/}
 
   return <Calendar />;
 }
