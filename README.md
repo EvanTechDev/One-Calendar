@@ -88,10 +88,11 @@ Then visit `http://localhost:3000`
 Copy `.env.example` to `.env` and fill in:
 
 ```env
+# Required 
 NEXT_PUBLIC_BASE_URL=your-url
-SALT=backup-salt
+SALT=Backup-Salt
 
-# Clerk API key （Require）
+# Auth (Required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret
 
@@ -103,6 +104,10 @@ OPENWEATHER_API_KEY=your-open-weather-api-key
 MISSKEY_URL=https://misskey.io
 MISSKEY_TOKEN=your-misskey-token
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+
+# Optional, Cloudflare turnstile captcha
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
+TURNSTILE_SECRET_KEY=secret-key
 ```
 
 ### Enviroment Setup
