@@ -452,6 +452,13 @@ const handleShare = (event: CalendarEvent) => {
               onTimeSlotClick={handleTimeSlotClick}
               language={language}
               timezone={timezone}
+              onEditEvent={handleEventEdit}
+              onDeleteEvent={(event) => handleEventDelete(event.id)}
+              onShareEvent={(event) => {
+                setPreviewEvent(event)
+                setPreviewOpen(true)
+                setOpenShareImmediately(true)}}
+              onBookmarkEvent={toggleBookmark}
               onEventDrop={(event, newStartDate, newEndDate) => {
                 const updatedEvent = {
                   ...event,
