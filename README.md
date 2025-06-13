@@ -50,6 +50,8 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Storage**: LocalStorage, Vercel Blob, Misskey Drive
 - **Weather**: OpenWeather API
 - **AI**: Groq API
+- **Analytics**: Vercel Analytics
+- **Deploy**: Vercel
 
 ![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun)
 
