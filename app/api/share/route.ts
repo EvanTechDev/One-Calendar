@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import crypto from "crypto";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string; authTag: string } {
   const salt = process.env.BACKUP_SALT;
@@ -46,7 +46,6 @@ function decryptData(encryptedData: string, iv: string, authTag: string, userId:
 }
 
 async function ensureShareFolderStructure(misskeyUrl: string, misskeyToken: string, shareId: string): Promise<string> {
-  
   const mainFolderName = "shares";
   
   const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
@@ -179,34 +178,53 @@ async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFo
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("POST: Starting request processing");
-
-    const { userId } = await auth();
-    console.log("POST: User ID from auth:", userId);
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // 检查环境变量
+    if (!process.env.BACKUP_SALT || !process.env.MISSKEY_URL || !process.env.MISSKEY_TOKEN) {
+      return NextResponse.json(
+        { error: "Missing required environment variables" },
+        { status: 500 }
+      );
     }
 
-    console.log("POST: Parsing request body");
-    const body = await request.json();
+    // 获取认证信息
+    let userId: string;
+    try {
+      const authResult = await auth();
+      if (!authResult?.userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      userId = authResult.userId;
+    } catch (authError) {
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+    }
+
+    // 解析请求体
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+    }
+
     const { id, data } = body;
-    console.log("POST: Request body parsed - id:", id, "data type:", typeof data);
-    
     if (!id || !data) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields: id and data" }, { status: 400 });
     }
     
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    console.log("POST: Data string length:", dataString.length);
-
-    console.log("POST: Checking BACKUP_SALT exists:", !!process.env.BACKUP_SALT);
-    console.log("POST: Checking MISSKEY_URL exists:", !!process.env.MISSKEY_URL);
-    console.log("POST: Checking MISSKEY_TOKEN exists:", !!process.env.MISSKEY_TOKEN);
-
-    console.log("POST: Starting encryption");
-    const encryptionResult = encryptData(dataString, userId);
-    console.log("POST: Encryption completed");
-
+    
+    // 加密数据
+    let encryptionResult: { encryptedData: string; iv: string; authTag: string };
+    try {
+      encryptionResult = encryptData(dataString, userId);
+    } catch (encryptError) {
+      return NextResponse.json(
+        { error: "Encryption failed" },
+        { status: 500 }
+      );
+    }
+    
+    // 创建加密载荷
     const encryptedPayload = {
       encryptedData: encryptionResult.encryptedData,
       iv: encryptionResult.iv,
@@ -218,73 +236,87 @@ export async function POST(request: NextRequest) {
     
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    
+    // 确保文件夹结构存在
+    let folderId: string;
+    try {
+      folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
+    } catch (folderError) {
+      return NextResponse.json(
+        { error: "Failed to create folder structure" },
+        { status: 500 }
+      );
     }
     
-    const folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
-    
-    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: folderId,
-        name: fileName,
-        limit: 100,
-      }),
-    });
-    
-    if (!listResponse.ok) {
-      throw new Error(`Failed to list files: ${listResponse.statusText}`);
-    }
-    
-    const files = await listResponse.json();
-    for (const file of files) {
-      await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+    // 删除现有文件
+    try {
+      const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           i: MISSKEY_TOKEN,
-          fileId: file.id,
+          folderId: folderId,
+          name: fileName,
+          limit: 100,
         }),
       });
+      
+      if (listResponse.ok) {
+        const files = await listResponse.json();
+        for (const file of files) {
+          await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              i: MISSKEY_TOKEN,
+              fileId: file.id,
+            }),
+          });
+        }
+      }
+    } catch (deleteError) {
+      // 删除失败不影响上传，继续执行
     }
     
-    const formData = new FormData();
-    formData.append('i', MISSKEY_TOKEN);
-    formData.append('file', blob, fileName);
-    formData.append('folderId', folderId);
-    
-    const uploadResponse = await fetch(`${MISSKEY_URL}/api/drive/files/create`, {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
+    // 上传新文件
+    try {
+      const formData = new FormData();
+      formData.append('i', MISSKEY_TOKEN);
+      formData.append('file', blob, fileName);
+      formData.append('folderId', folderId);
+      
+      const uploadResponse = await fetch(`${MISSKEY_URL}/api/drive/files/create`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+      
+      const uploadedFile = await uploadResponse.json();
+      
+      return NextResponse.json({
+        success: true,
+        url: uploadedFile.url,
+        path: `shares/${id}/data.json`,
+        id: id,
+        message: "Share created successfully.",
+      });
+    } catch (uploadError) {
+      return NextResponse.json(
+        { error: "Failed to upload file" },
+        { status: 500 }
+      );
     }
     
-    const uploadedFile = await uploadResponse.json();
-    return NextResponse.json({
-      success: true,
-      url: uploadedFile.url,
-      path: `shares/${id}/data.json`,
-      id: id,
-      message: "Share created successfully.",
-    });
-    } catch (error) {
-    console.error("POST: Share API error:", error);
-    console.error("POST: Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+  } catch (error) {
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        details: error instanceof Error ? error.stack : undefined
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -292,9 +324,24 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // 检查环境变量
+    if (!process.env.BACKUP_SALT || !process.env.MISSKEY_URL || !process.env.MISSKEY_TOKEN) {
+      return NextResponse.json(
+        { error: "Missing required environment variables" },
+        { status: 500 }
+      );
+    }
+
+    // 获取认证信息
+    let userId: string;
+    try {
+      const authResult = await auth();
+      if (!authResult?.userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      userId = authResult.userId;
+    } catch (authError) {
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
 
     const id = request.nextUrl.searchParams.get("id");
@@ -305,9 +352,6 @@ export async function GET(request: NextRequest) {
     const fileName = "data.json";
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
-    }
     
     const folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
     
@@ -343,7 +387,6 @@ export async function GET(request: NextRequest) {
     
     try {
       const encryptedPayload = JSON.parse(encryptedContent);
-
       const decryptedData = decryptData(
         encryptedPayload.encryptedData,
         encryptedPayload.iv,
@@ -353,15 +396,11 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({ success: true, data: decryptedData });
     } catch (decryptError) {
-      console.error("Decryption error:", decryptError);
       return NextResponse.json({ error: "Failed to decrypt data" }, { status: 500 });
     }
   } catch (error) {
-    console.error("Share API error:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -369,12 +408,31 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // 检查环境变量
+    if (!process.env.MISSKEY_URL || !process.env.MISSKEY_TOKEN) {
+      return NextResponse.json(
+        { error: "Missing required environment variables" },
+        { status: 500 }
+      );
     }
 
-    const body = await request.json();
+    // 获取认证信息
+    try {
+      const authResult = await auth();
+      if (!authResult?.userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } catch (authError) {
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+    }
+
     const { id } = body;
     if (!id) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
@@ -382,9 +440,6 @@ export async function DELETE(request: NextRequest) {
     
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
-    }
     
     const mainFolderId = await getMainSharesFolderId(MISSKEY_URL, MISSKEY_TOKEN);
     if (!mainFolderId) {
@@ -446,11 +501,8 @@ export async function DELETE(request: NextRequest) {
       message: `Successfully deleted share with ID: ${id}`,
     });
   } catch (error) {
-    console.error("Share API error:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
