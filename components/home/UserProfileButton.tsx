@@ -264,7 +264,7 @@ const restoreUserData = async (silent = true) => {
         countdowns: restoredData.countdowns || [],
         defaultview: restoredData.defaultview || [],
         shortcuts: restoredData.shortcuts || [],
-        firstday: restoreData.firstday || []
+        firstday: restoredData.firstday || []
       });
 
       if (Array.isArray(restoredData.events)) {
