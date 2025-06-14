@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string; authTag: string } {
   const salt = process.env.BACKUP_SALT;
@@ -179,7 +179,8 @@ async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFo
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    // Get user ID from Clerk
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -277,7 +278,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -328,7 +329,7 @@ export async function GET(request: NextRequest) {
     
     try {
       const encryptedPayload = JSON.parse(encryptedContent);
-
+      
       const decryptedData = decryptData(
         encryptedPayload.encryptedData,
         encryptedPayload.iv,
@@ -354,7 +355,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
