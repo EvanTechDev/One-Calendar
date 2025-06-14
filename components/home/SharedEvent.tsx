@@ -223,7 +223,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                   {language === "zh" ? "可能的原因：" : "Possible reasons:"}
                 </p>
                 <ul className="text-sm text-muted-foreground space-y-1 text-left">
-                  <li>• {language === "zh" ? "分享链接已过期" : "Share link has expired"}</li>
                   <li>• {language === "zh" ? "事件已被删除" : "Event has been deleted"}</li>
                   <li>• {language === "zh" ? "链接输入错误" : "Link entered incorrectly"}</li>
                 </ul>
