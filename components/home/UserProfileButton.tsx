@@ -75,7 +75,7 @@ useEffect(() => {
 }, [events, calendars, isAutoBackupEnabled, clerkUserId]);
 
 // 监听用户登录状态变化
-{/*useEffect(() => {
+useEffect(() => {
   if (isLoaded) {
     if (isSignedIn && user) {
       setClerkUserId(user.id);
@@ -88,8 +88,9 @@ useEffect(() => {
       setClerkUserId(null);
     }
   }
-}, [isLoaded, isSignedIn, user]);*/}
+}, [isLoaded, isSignedIn, user]);
 
+  // 从localStorage获取联系人和笔记数据
   const getLocalData = () => {
     try {
       console.log("Getting data from localStorage")
@@ -98,40 +99,31 @@ useEffect(() => {
       const sharedEventsStr = localStorage.getItem("shared-events")
       const bookmarksStr = localStorage.getItem("bookmarked-events")
       const countdownsStr = localStorage.getItem("countdowns")
-      const defaultviewStr = localStorage.getItem("default-view")
-      const shortcutsStr = localStorage.getItem("enable-shortcuts")
-      const firstdayStr = localStorage.getItem("first-day-of-week")
 
       const contacts = contactsStr ? JSON.parse(contactsStr) : []
       const notes = notesStr ? JSON.parse(notesStr) : []
       const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : []
       const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : []
-      const countdowns = countdownsStr ? JSON.parse(countdownsStr) : []
-      const defaultview = defaultviewStr ? JSON.parse(defaultviewStr) : []
-      const shortcuts = shortcutsStr ? JSON.parse(shortcutsStr) : []
-      const firstday = firstdayStr ? JSON.parse(firstdayStr) : []
+      const countdowns = countdownsStr? JSON.parse(countdownsStr) : []
 
       console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns`,
 )
-return { contacts, notes, sharedEvents, bookmarks, countdowns, defaultview, shortcuts, firstday }
+return { contacts, notes, sharedEvents, bookmarks, countdowns } // Include bookmarks in the returned data
 } catch (error)
 {
   console.error("Error getting data from localStorage:", error)
-  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [], defaultview: [], shortcuts: [], firstday: [] } 
+  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [] } // Include empty bookmarks array
 }
 }
 
 // 将数据保存到localStorage
-const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[]; defaultview?: any[]; shortcuts?: any[]; firstday?: any[] }) => {
+const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[] }) => {
   try {
     const contacts = data.contacts || []
     const notes = data.notes || []
     const sharedEvents = data.sharedEvents || []
     const bookmarks = data.bookmarks || []
     const countdowns = data.countdowns || []
-    const defaultview = data.defaultview || []
-    const shortcuts = data.shortcuts || []
-    const firstday = data.firstday || []
 
     console.log(
       `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns to localStorage`,
@@ -141,9 +133,6 @@ const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: a
     localStorage.setItem("shared-events", JSON.stringify(sharedEvents))
     localStorage.setItem("bookmarked-events", JSON.stringify(bookmarks))
     localStorage.setItem("countdowns", JSON.stringify(countdowns))
-    localStorage.setItem("default-view", JSON.stringify(defaultview))
-    localStorage.setItem("enable-shortcuts", JSON.stringify(shortcuts))
-    localStorage.setItem("first-day-of-week", JSON.stringify(firstday))
     console.log("Data saved to localStorage")
   } catch (error) {
     console.error("Error saving data to localStorage:", error)
@@ -159,7 +148,8 @@ const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: a
 const enableAutoBackup = () => {
   if (clerkUserId) {
     setIsAutoBackupEnabled(true);
-    localStorage.setItem("auto-backup-enabled", "true");
+    localStorage.setItem("auto-backup-enabled", "true"); // 明确设置为 "true"
+    localStorage.setItem("auto-backup-id", clerkUserId);
     toast(language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled", {
       description: language === "zh" 
         ? "您的数据将在每次更改时自动备份。" 
@@ -173,7 +163,8 @@ const enableAutoBackup = () => {
 const disableAutoBackup = () => {
   setIsAutoBackupEnabled(false);
   localStorage.removeItem("auto-backup-enabled");
-
+  localStorage.removeItem("auto-backup-id");
+  
   if (syncInterval) {
     clearInterval(syncInterval);
     setSyncInterval(null);
@@ -195,7 +186,7 @@ const performAutoBackup = async () => {
 
   try {
     console.log("Starting auto-backup...");
-    const { contacts, notes, sharedEvents, bookmarks, countdowns, defaultview, shortcuts, firstday } = getLocalData();
+    const { contacts, notes, sharedEvents, bookmarks, countdowns } = getLocalData();
     const backupData = {
       events: events || [],
       calendars: calendars || [],
@@ -204,9 +195,6 @@ const performAutoBackup = async () => {
       sharedEvents,
       bookmarks,
       countdowns,
-      defaultview,
-      shortcuts,
-      firstday,
       timestamp: new Date().toISOString(),
     };
 
@@ -250,15 +238,13 @@ const restoreUserData = async (silent = true) => {
         ? JSON.parse(result.data) 
         : result.data;
 
+      // 智能合并数据（保留您原有的合并逻辑）
       saveLocalData({
         contacts: restoredData.contacts || [],
         notes: restoredData.notes || [],
         sharedEvents: restoredData.sharedEvents || [],
         bookmarks: restoredData.bookmarks || [],
-        countdowns: restoredData.countdowns || [],
-        defaultview: restoredData.defaultview || [],
-        shortcuts: restoredData.shortcuts || [],
-        firstday: restoredData.firstday || []
+        countdowns: restoredData.countdowns || []
       });
 
       if (Array.isArray(restoredData.events)) {
