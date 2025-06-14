@@ -196,6 +196,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             }} />
           </div>
         </div>
+
+        <a href="/" className="flex items-center gap-2 self-center font-medium">
+          <Calendar className="size-4" color="#0066ff" />
+          One Calendar
+        </a>
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -235,10 +240,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             </CardContent>
           </Card>
         </motion.div>
-
-        <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-          {language === "zh" ? "由 One Calendar 提供支持" : "Powered by One Calendar"}
-        </p>
       </div>
     )
   }
@@ -270,6 +271,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </div>
       </div>
 
+        <a href="/" className="flex items-center gap-2 self-center font-medium">
+          <Calendar className="size-4" color="#0066ff" />
+          One Calendar
+        </a>      
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -393,10 +399,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           </div>
         </Card>
       </motion.div>
-
-      <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-        {language === "zh" ? "由 One Calendar 提供支持" : "Powered by One Calendar"}
-      </p>
     </div>
   )
 }
