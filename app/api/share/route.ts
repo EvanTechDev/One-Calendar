@@ -179,21 +179,33 @@ async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFo
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user ID from Clerk
+    console.log("POST: Starting request processing");
+
     const { userId } = await auth();
+    console.log("POST: User ID from auth:", userId);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("POST: Parsing request body");
     const body = await request.json();
     const { id, data } = body;
+    console.log("POST: Request body parsed - id:", id, "data type:", typeof data);
+    
     if (!id || !data) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
+    console.log("POST: Data string length:", dataString.length);
 
+    console.log("POST: Checking BACKUP_SALT exists:", !!process.env.BACKUP_SALT);
+    console.log("POST: Checking MISSKEY_URL exists:", !!process.env.MISSKEY_URL);
+    console.log("POST: Checking MISSKEY_TOKEN exists:", !!process.env.MISSKEY_TOKEN);
+
+    console.log("POST: Starting encryption");
     const encryptionResult = encryptData(dataString, userId);
+    console.log("POST: Encryption completed");
 
     const encryptedPayload = {
       encryptedData: encryptionResult.encryptedData,
@@ -265,11 +277,13 @@ export async function POST(request: NextRequest) {
       id: id,
       message: "Share created successfully.",
     });
-  } catch (error) {
-    console.error("Share API error:", error);
+    } catch (error) {
+    console.error("POST: Share API error:", error);
+    console.error("POST: Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
+        details: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );
@@ -329,7 +343,7 @@ export async function GET(request: NextRequest) {
     
     try {
       const encryptedPayload = JSON.parse(encryptedContent);
-      
+
       const decryptedData = decryptData(
         encryptedPayload.encryptedData,
         encryptedPayload.iv,
