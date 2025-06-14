@@ -154,44 +154,28 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // 背景组件
-  const Background = () => (
-    <div className="fixed -z-10 inset-0">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-black dark:to-purple-900">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }} />
-        <div className="absolute inset-0 dark:block hidden" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }} />
-      </div>
-    </div>
-  )
+
 
   // 加载状态
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <Background />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <div className="relative mb-8">
-            <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-400/20 rounded-full animate-ping" />
-            <Loader2 className="h-16 w-16 text-blue-500 dark:text-blue-400 animate-spin relative z-10" />
+        <div className="fixed -z-10 inset-0">
+          <div className="absolute inset-0 bg-white dark:bg-black">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+              backgroundSize: '24px 24px'
+            }} />
+            <div className="absolute inset-0 dark:block hidden" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+              backgroundSize: '24px 24px'
+            }} />
           </div>
-          <p className="text-xl font-medium text-gray-700 dark:text-gray-200 mb-2">
-            {language === "zh" ? "正在加载事件..." : "Loading event..."}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {language === "zh" ? "请稍候片刻" : "Please wait a moment"}
-          </p>
-        </motion.div>
+        </div>
+        <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
+        <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
+          {language === "zh" ? "加载中..." : "Loading..."}
+        </p>
       </div>
     )
   }
@@ -199,105 +183,70 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   // 错误状态
   if (error || !event) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <Background />
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="fixed -z-10 inset-0">
+          <div className="absolute inset-0 bg-white dark:bg-black">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+              backgroundSize: '24px 24px'
+            }} />
+            <div className="absolute inset-0 dark:block hidden" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+              backgroundSize: '24px 24px'
+            }} />
+          </div>
+        </div>
+        
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-lg w-full"
+          transition={{ duration: 0.5 }}
         >
-          <Card className="relative overflow-hidden border-0 shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            {/* 装饰性背景 */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-400 via-pink-400 to-purple-400" />
-            
-            <CardContent className="p-8 text-center">
-              {/* 错误图标 */}
+          <Card className="max-w-md w-full overflow-hidden">
+            <CardContent className="p-6 text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="relative mb-6"
+                className="mb-6"
               >
-                <div className="absolute inset-0 bg-red-100 dark:bg-red-900/30 rounded-full animate-pulse" />
-                <div className="relative bg-red-50 dark:bg-red-900/50 rounded-full p-4 mx-auto w-fit">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-full p-4 mx-auto w-fit">
                   <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                 </div>
               </motion.div>
 
-              {/* 错误标题 */}
-              <motion.h1
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
-              >
+              <CardTitle className="text-2xl font-bold text-red-500 mb-4">
                 {language === "zh" ? "事件未找到" : "Event Not Found"}
-              </motion.h1>
-
-              {/* 错误描述 */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed"
-              >
+              </CardTitle>
+              
+              <CardDescription className="text-gray-600 dark:text-gray-300 mb-6 text-left">
                 {language === "zh"
-                  ? "抱歉，无法找到您要查看的日历事件。该分享链接可能已过期、被删除或者输入有误。"
-                  : "Sorry, we couldn't find the calendar event you're looking for. The share link may have expired, been deleted, or entered incorrectly."}
-              </motion.p>
+                  ? "无法加载共享的日历事件。该链接可能已过期或无效。"
+                  : "Unable to load the shared calendar event. The link may be expired or invalid."}
+              </CardDescription>
 
-              {/* 建议操作 */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="space-y-4"
-              >
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
-                    {language === "zh" ? "您可以尝试：" : "You can try:"}
-                  </p>
-                  <ul className="text-sm text-blue-600 dark:text-blue-400 space-y-1 text-left">
-                    <li>• {language === "zh" ? "检查链接是否完整和正确" : "Check if the link is complete and correct"}</li>
-                    <li>• {language === "zh" ? "联系分享者重新发送链接" : "Contact the sharer to resend the link"}</li>
-                    <li>• {language === "zh" ? "确认事件是否仍在有效期内" : "Confirm if the event is still valid"}</li>
-                  </ul>
-                </div>
-
-                {/* 操作按钮 */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button 
-                    onClick={() => router.push("/")} 
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
-                  >
-                    <Home className="mr-2 h-4 w-4" />
-                    {language === "zh" ? "返回首页" : "Back to Home"}
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={() => window.location.reload()}
-                    className="flex-1 border-gray-300 dark:border-gray-600"
-                  >
-                    <Search className="mr-2 h-4 w-4" />
-                    {language === "zh" ? "重新加载" : "Reload"}
-                  </Button>
-                </div>
-              </motion.div>
+              <div className="bg-muted rounded-lg p-4 mb-6">
+                <p className="text-sm font-medium mb-2">
+                  {language === "zh" ? "可能的原因：" : "Possible reasons:"}
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 text-left">
+                  <li>• {language === "zh" ? "分享链接已过期" : "Share link has expired"}</li>
+                  <li>• {language === "zh" ? "事件已被删除" : "Event has been deleted"}</li>
+                  <li>• {language === "zh" ? "链接输入错误" : "Link entered incorrectly"}</li>
+                </ul>
+              </div>
+              
+              <Button onClick={() => router.push("/")} className="w-full">
+                <Home className="mr-2 h-4 w-4" />
+                {language === "zh" ? "返回主页" : "Return to Home"}
+              </Button>
             </CardContent>
           </Card>
-
-          {/* 底部提示 */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6"
-          >
-            {language === "zh" ? "需要帮助？请联系客服支持" : "Need help? Contact support"}
-          </motion.p>
         </motion.div>
+
+        <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+          {language === "zh" ? "由 One Calendar 提供支持" : "Powered by One Calendar"}
+        </p>
       </div>
     )
   }
@@ -316,14 +265,25 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4">
-      <Background />
+      <div className="fixed -z-10 inset-0">
+        <div className="absolute inset-0 bg-white dark:bg-black">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+          <div className="absolute inset-0 dark:block hidden" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+        </div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="max-w-md w-full overflow-hidden shadow-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-0">
+        <Card className="max-w-md w-full overflow-hidden">
           <div className="relative">
             {/* 左侧彩色条 */}
             <div className={cn("absolute left-0 top-0 h-full w-1", event.color)} />
@@ -412,7 +372,8 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
               {/* 操作按钮 */}
               <div className="mt-8 space-y-3">
                 <Button
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                  className="w-full"
+                  variant="default"
                   onClick={handleAddToCalendar}
                   disabled={isAdding}
                 >
