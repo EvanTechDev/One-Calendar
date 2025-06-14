@@ -204,16 +204,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         >
           <Card className="max-w-md w-full overflow-hidden">
             <CardContent className="p-6 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="mb-6"
-              >
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-full p-4 mx-auto w-fit">
                   <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                 </div>
-              </motion.div>
 
               <CardTitle className="text-2xl font-bold text-red-500 mb-4">
                 {language === "zh" ? "事件未找到" : "Event Not Found"}
