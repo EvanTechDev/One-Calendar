@@ -1,4 +1,49 @@
 import { type NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { auth } from "@clerk/nextjs";
+
+function encryptData(data: string, userId: string): { encryptedData: string; iv: string; authTag: string } {
+  const salt = process.env.BACKUP_SALT;
+  if (!salt) {
+    throw new Error("BACKUP_SALT environment variable is not set");
+  }
+  
+  const algorithm = 'aes-256-gcm';
+  const key = crypto.scryptSync(userId, salt, 32);
+  const iv = crypto.randomBytes(16);
+  
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
+  let encrypted = cipher.update(data, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag();
+  
+  return {
+    encryptedData: encrypted,
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex')
+  };
+}
+
+function decryptData(encryptedData: string, iv: string, authTag: string, userId: string): string {
+  const salt = process.env.BACKUP_SALT;
+  if (!salt) {
+    throw new Error("BACKUP_SALT environment variable is not set");
+  }
+  
+  const algorithm = 'aes-256-gcm';
+  const key = crypto.scryptSync(userId, salt, 32);
+  const ivBuffer = Buffer.from(iv, 'hex');
+  const authTagBuffer = Buffer.from(authTag, 'hex');
+  
+  const decipher = crypto.createDecipheriv(algorithm, key, ivBuffer);
+  decipher.setAuthTag(authTagBuffer);
+  
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
 
 async function ensureShareFolderStructure(misskeyUrl: string, misskeyToken: string, shareId: string): Promise<string> {
   
@@ -134,14 +179,30 @@ async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFo
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, data } = body;
     if (!id || !data) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+    
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const blob = new Blob([dataString], { type: "application/json" });
+
+    const encryptionResult = encryptData(dataString, userId);
+
+    const encryptedPayload = {
+      encryptedData: encryptionResult.encryptedData,
+      iv: encryptionResult.iv,
+      authTag: encryptionResult.authTag
+    };
+    
+    const blob = new Blob([JSON.stringify(encryptedPayload)], { type: "application/json" });
     const fileName = "data.json";
+    
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
     if (!MISSKEY_URL || !MISSKEY_TOKEN) {
@@ -162,9 +223,11 @@ export async function POST(request: NextRequest) {
         limit: 100,
       }),
     });
+    
     if (!listResponse.ok) {
       throw new Error(`Failed to list files: ${listResponse.statusText}`);
     }
+    
     const files = await listResponse.json();
     for (const file of files) {
       await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
@@ -183,13 +246,16 @@ export async function POST(request: NextRequest) {
     formData.append('i', MISSKEY_TOKEN);
     formData.append('file', blob, fileName);
     formData.append('folderId', folderId);
+    
     const uploadResponse = await fetch(`${MISSKEY_URL}/api/drive/files/create`, {
       method: 'POST',
       body: formData,
     });
+    
     if (!uploadResponse.ok) {
       throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
     }
+    
     const uploadedFile = await uploadResponse.json();
     return NextResponse.json({
       success: true,
@@ -202,7 +268,7 @@ export async function POST(request: NextRequest) {
     console.error("Share API error:", error);
     return NextResponse.json(
       {
-        error: error.message,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
       },
       { status: 500 }
     );
@@ -211,6 +277,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = request.nextUrl.searchParams.get("id");
     if (!id) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
@@ -237,6 +308,7 @@ export async function GET(request: NextRequest) {
         limit: 1,
       }),
     });
+    
     if (!listResponse.ok) {
       throw new Error(`Failed to list files: ${listResponse.statusText}`);
     }
@@ -252,13 +324,28 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
     }
     
-    const data = await contentResponse.text();
-    return NextResponse.json({ success: true, data });
+    const encryptedContent = await contentResponse.text();
+    
+    try {
+      const encryptedPayload = JSON.parse(encryptedContent);
+
+      const decryptedData = decryptData(
+        encryptedPayload.encryptedData,
+        encryptedPayload.iv,
+        encryptedPayload.authTag,
+        userId
+      );
+      
+      return NextResponse.json({ success: true, data: decryptedData });
+    } catch (decryptError) {
+      console.error("Decryption error:", decryptError);
+      return NextResponse.json({ error: "Failed to decrypt data" }, { status: 500 });
+    }
   } catch (error) {
     console.error("Share API error:", error);
     return NextResponse.json(
       {
-        error: error.message,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
       },
       { status: 500 }
     );
@@ -267,6 +354,11 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id } = body;
     if (!id) {
@@ -342,7 +434,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Share API error:", error);
     return NextResponse.json(
       {
-        error: error.message,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
       },
       { status: 500 }
     );
