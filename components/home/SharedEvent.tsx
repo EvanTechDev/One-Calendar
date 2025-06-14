@@ -196,7 +196,8 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             }} />
           </div>
         </div>
-
+        
+        <div className="relative z-10 flex w-full max-w-sm flex-col gap-6"> 
         <a href="/" className="flex items-center gap-2 self-center font-medium">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
@@ -240,6 +241,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             </CardContent>
           </Card>
         </motion.div>
+        </div>
       </div>
     )
   }
@@ -271,6 +273,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </div>
       </div>
 
+      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center gap-2 self-center font-medium">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
@@ -399,6 +402,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           </div>
         </Card>
       </motion.div>
+      </div>
     </div>
   )
 }
