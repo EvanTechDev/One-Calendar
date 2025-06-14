@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
+import { auth } from "@clerk/nextjs";
 
 function encryptData(data: string, userId: string): { encryptedData: string; iv: string; authTag: string } {
-  const salt = process.env.SALT;
+  const salt = process.env.BACKUP_SALT;
   if (!salt) {
-    throw new Error("SALT environment variable is not set");
+    throw new Error("BACKUP_SALT environment variable is not set");
   }
   
   const algorithm = 'aes-256-gcm';
@@ -26,9 +26,9 @@ function encryptData(data: string, userId: string): { encryptedData: string; iv:
 }
 
 function decryptData(encryptedData: string, iv: string, authTag: string, userId: string): string {
-  const salt = process.env.SALT;
+  const salt = process.env.BACKUP_SALT;
   if (!salt) {
-    throw new Error("SALT environment variable is not set");
+    throw new Error("BACKUP_SALT environment variable is not set");
   }
   
   const algorithm = 'aes-256-gcm';
@@ -37,7 +37,6 @@ function decryptData(encryptedData: string, iv: string, authTag: string, userId:
   const authTagBuffer = Buffer.from(authTag, 'hex');
   
   const decipher = crypto.createDecipheriv(algorithm, key, ivBuffer);
-
   decipher.setAuthTag(authTagBuffer);
   
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
@@ -46,8 +45,9 @@ function decryptData(encryptedData: string, iv: string, authTag: string, userId:
   return decrypted;
 }
 
-async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: string, userId: string): Promise<string> {
-  const mainFolderName = "calendar";
+async function ensureShareFolderStructure(misskeyUrl: string, misskeyToken: string, shareId: string): Promise<string> {
+  
+  const mainFolderName = "shares";
   
   const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
@@ -65,9 +65,9 @@ async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: s
   }
   
   const mainFolders = await listMainFoldersResponse.json();
-  let mainCalendarFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
+  let mainSharesFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
   
-  if (!mainCalendarFolder) {
+  if (!mainSharesFolder) {
     const createMainFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
       method: 'POST',
       headers: {
@@ -80,91 +80,136 @@ async function ensureCalendarFolderStructure(misskeyUrl: string, misskeyToken: s
     });
     
     if (!createMainFolderResponse.ok) {
-      throw new Error(`Failed to create main calendar folder: ${createMainFolderResponse.statusText}`);
+      throw new Error(`Failed to create main shares folder: ${createMainFolderResponse.statusText}`);
     }
     
-    mainCalendarFolder = await createMainFolderResponse.json();
+    mainSharesFolder = await createMainFolderResponse.json();
   }
 
-  const userFolderName = userId;
+  const shareFolderName = shareId;
   
-  const listUserFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+  const listShareFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       i: misskeyToken,
-      folderId: mainCalendarFolder.id,
+      folderId: mainSharesFolder.id,
       limit: 100,
     }),
   });
   
-  if (!listUserFoldersResponse.ok) {
-    throw new Error(`Failed to list user folders: ${listUserFoldersResponse.statusText}`);
+  if (!listShareFoldersResponse.ok) {
+    throw new Error(`Failed to list share folders: ${listShareFoldersResponse.statusText}`);
   }
   
-  const userFolders = await listUserFoldersResponse.json();
-  let userFolder = userFolders.find((folder: any) => folder.name === userFolderName);
+  const shareFolders = await listShareFoldersResponse.json();
+  let shareFolder = shareFolders.find((folder: any) => folder.name === shareFolderName);
   
-  if (!userFolder) {
-    const createUserFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
+  if (!shareFolder) {
+    const createShareFolderResponse = await fetch(`${misskeyUrl}/api/drive/folders/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         i: misskeyToken,
-        name: userFolderName,
-        parentId: mainCalendarFolder.id,
+        name: shareFolderName,
+        parentId: mainSharesFolder.id,
       }),
     });
     
-    if (!createUserFolderResponse.ok) {
-      throw new Error(`Failed to create user folder: ${createUserFolderResponse.statusText}`);
+    if (!createShareFolderResponse.ok) {
+      throw new Error(`Failed to create share folder: ${createShareFolderResponse.statusText}`);
     }
     
-    userFolder = await createUserFolderResponse.json();
+    shareFolder = await createShareFolderResponse.json();
   }
   
-  return userFolder.id;
+  return shareFolder.id;
+}
+
+async function getMainSharesFolderId(misskeyUrl: string, misskeyToken: string): Promise<string | null> {
+  const mainFolderName = "shares";
+  
+  const listMainFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      i: misskeyToken,
+      limit: 100,
+    }),
+  });
+  
+  if (!listMainFoldersResponse.ok) {
+    throw new Error(`Failed to list folders: ${listMainFoldersResponse.statusText}`);
+  }
+  
+  const mainFolders = await listMainFoldersResponse.json();
+  const mainSharesFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
+  
+  return mainSharesFolder ? mainSharesFolder.id : null;
+}
+
+async function getShareFolderId(misskeyUrl: string, misskeyToken: string, mainFolderId: string, shareId: string): Promise<string | null> {
+  const listShareFoldersResponse = await fetch(`${misskeyUrl}/api/drive/folders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      i: misskeyToken,
+      folderId: mainFolderId,
+      limit: 100,
+    }),
+  });
+  
+  if (!listShareFoldersResponse.ok) {
+    throw new Error(`Failed to list share folders: ${listShareFoldersResponse.statusText}`);
+  }
+  
+  const shareFolders = await listShareFoldersResponse.json();
+  const shareFolder = shareFolders.find((folder: any) => folder.name === shareId);
+  
+  return shareFolder ? shareFolder.id : null;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
-    }
-    const userId = user.id;
-
-    const MISSKEY_URL = process.env.MISSKEY_URL;
-    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const { data } = body;
-    if (!data) {
-      return NextResponse.json({ error: "Missing required field: 'data' is required" }, { status: 400 });
+    const { id, data } = body;
+    if (!id || !data) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-
+    
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    
-    const { encryptedData, iv, authTag } = encryptData(dataString, userId);
-    
+
+    const encryptionResult = encryptData(dataString, userId);
+
     const encryptedPayload = {
-      encryptedData,
-      iv,
-      authTag,
-      timestamp: new Date().toISOString()
+      encryptedData: encryptionResult.encryptedData,
+      iv: encryptionResult.iv,
+      authTag: encryptionResult.authTag
     };
     
     const blob = new Blob([JSON.stringify(encryptedPayload)], { type: "application/json" });
     const fileName = "data.json";
     
-    const folderId = await ensureCalendarFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, userId);
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
+    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
+      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    }
+    
+    const folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
     
     const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
@@ -212,15 +257,92 @@ export async function POST(request: NextRequest) {
     }
     
     const uploadedFile = await uploadResponse.json();
-    
     return NextResponse.json({
       success: true,
       url: uploadedFile.url,
-      userId: userId,
-      message: "Encrypted backup created successfully"
+      path: `shares/${id}/data.json`,
+      id: id,
+      message: "Share created successfully.",
     });
   } catch (error) {
-    console.error("Backup API error:", error);
+    console.error("Share API error:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const id = request.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
+    }
+    
+    const fileName = "data.json";
+    const MISSKEY_URL = process.env.MISSKEY_URL;
+    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
+    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
+      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
+    }
+    
+    const folderId = await ensureShareFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, id);
+    
+    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        i: MISSKEY_TOKEN,
+        folderId: folderId,
+        name: fileName,
+        limit: 1,
+      }),
+    });
+    
+    if (!listResponse.ok) {
+      throw new Error(`Failed to list files: ${listResponse.statusText}`);
+    }
+    
+    const files = await listResponse.json();
+    if (files.length === 0) {
+      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    }
+    
+    const fileInfo = files[0];
+    const contentResponse = await fetch(fileInfo.url);
+    if (!contentResponse.ok) {
+      throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
+    }
+    
+    const encryptedContent = await contentResponse.text();
+    
+    try {
+      const encryptedPayload = JSON.parse(encryptedContent);
+
+      const decryptedData = decryptData(
+        encryptedPayload.encryptedData,
+        encryptedPayload.iv,
+        encryptedPayload.authTag,
+        userId
+      );
+      
+      return NextResponse.json({ success: true, data: decryptedData });
+    } catch (decryptError) {
+      console.error("Decryption error:", decryptError);
+      return NextResponse.json({ error: "Failed to decrypt data" }, { status: 500 });
+    }
+  } catch (error) {
+    console.error("Share API error:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -232,79 +354,53 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = user.id;
 
+    const body = await request.json();
+    const { id } = body;
+    if (!id) {
+      return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
+    }
+    
     const MISSKEY_URL = process.env.MISSKEY_URL;
     const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
     if (!MISSKEY_URL || !MISSKEY_TOKEN) {
       throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
     }
-
-    const mainFolderName = "calendar";
     
-    const listMainFoldersResponse = await fetch(`${MISSKEY_URL}/api/drive/folders`, {
+    const mainFolderId = await getMainSharesFolderId(MISSKEY_URL, MISSKEY_TOKEN);
+    if (!mainFolderId) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `No shares folder found, nothing to delete.` 
+      });
+    }
+
+    const shareFolderId = await getShareFolderId(MISSKEY_URL, MISSKEY_TOKEN, mainFolderId, id);
+    if (!shareFolderId) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `No share found with ID: ${id}, nothing to delete.` 
+      });
+    }
+
+    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         i: MISSKEY_TOKEN,
+        folderId: shareFolderId,
         limit: 100,
       }),
     });
     
-    if (!listMainFoldersResponse.ok) {
-      throw new Error(`Failed to list folders: ${listMainFoldersResponse.statusText}`);
-    }
-    
-    const mainFolders = await listMainFoldersResponse.json();
-    const mainCalendarFolder = mainFolders.find((folder: any) => folder.name === mainFolderName);
-    
-    if (!mainCalendarFolder) {
-      return NextResponse.json({ error: "Calendar folder not found" }, { status: 404 });
-    }
-
-    const listUserFoldersResponse = await fetch(`${MISSKEY_URL}/api/drive/folders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: mainCalendarFolder.id,
-        limit: 100,
-      }),
-    });
-    
-    if (!listUserFoldersResponse.ok) {
-      throw new Error(`Failed to list user folders: ${listUserFoldersResponse.statusText}`);
-    }
-    
-    const userFolders = await listUserFoldersResponse.json();
-    const userFolder = userFolders.find((folder: any) => folder.name === userId);
-    
-    if (!userFolder) {
-      return NextResponse.json({ error: "User backup folder not found" }, { status: 404 });
-    }
-
-    const listFilesResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: userFolder.id,
-        limit: 100,
-      }),
-    });
-    
-    if (listFilesResponse.ok) {
-      const files = await listFilesResponse.json();
+    if (listResponse.ok) {
+      const files = await listResponse.json();
       for (const file of files) {
         await fetch(`${MISSKEY_URL}/api/drive/files/delete`, {
           method: 'POST',
@@ -319,136 +415,23 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    const deleteFolderResponse = await fetch(`${MISSKEY_URL}/api/drive/folders/delete`, {
+    await fetch(`${MISSKEY_URL}/api/drive/folders/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         i: MISSKEY_TOKEN,
-        folderId: userFolder.id,
+        folderId: shareFolderId,
       }),
     });
     
-    if (!deleteFolderResponse.ok) {
-      throw new Error(`Failed to delete user folder: ${deleteFolderResponse.statusText}`);
-    }
-
     return NextResponse.json({
       success: true,
-      message: "User backup folder and all files deleted successfully",
-      userId: userId
+      message: `Successfully deleted share with ID: ${id}`,
     });
   } catch (error) {
-    console.error("Delete API error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized: User not authenticated" }, { status: 401 });
-    }
-    const userId = user.id;
-
-    const MISSKEY_URL = process.env.MISSKEY_URL;
-    const MISSKEY_TOKEN = process.env.MISSKEY_TOKEN;
-    if (!MISSKEY_URL || !MISSKEY_TOKEN) {
-      throw new Error("MISSKEY_URL or MISSKEY_TOKEN is not set");
-    }
-
-    const fileName = "data.json";
-    const folderId = await ensureCalendarFolderStructure(MISSKEY_URL, MISSKEY_TOKEN, userId);
-    
-    const listResponse = await fetch(`${MISSKEY_URL}/api/drive/files`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        i: MISSKEY_TOKEN,
-        folderId: folderId,
-        name: fileName,
-        limit: 100,
-      }),
-    });
-    
-    if (!listResponse.ok) {
-      throw new Error(`Failed to list files: ${listResponse.statusText}`);
-    }
-    
-    const files = await listResponse.json();
-    if (files.length === 0) {
-      return NextResponse.json({ error: "Backup not found" }, { status: 404 });
-    }
-    
-    const latestFile = files.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-    const fileUrl = latestFile.url;
-    
-    const contentResponse = await fetch(fileUrl);
-    if (!contentResponse.ok) {
-      throw new Error(`Failed to fetch file content: ${contentResponse.statusText}`);
-    }
-    
-    const encryptedContent = await contentResponse.text();
-    
-    try {
-      const encryptedPayload = JSON.parse(encryptedContent);
-      
-      // 检查加密载荷的完整性
-      if (!encryptedPayload.encryptedData || !encryptedPayload.iv) {
-        throw new Error("Invalid encrypted backup format: missing required fields");
-      }
-      
-      // 处理向后兼容性：如果没有authTag，说明是旧版本的备份
-      if (!encryptedPayload.authTag) {
-        console.warn("Backup was created with old version without auth tag, attempting compatibility mode");
-        throw new Error("This backup was created with an older version and is no longer compatible. Please create a new backup.");
-      }
-      
-      const decryptedData = decryptData(
-        encryptedPayload.encryptedData, 
-        encryptedPayload.iv, 
-        encryptedPayload.authTag, 
-        userId
-      );
-      
-      return NextResponse.json({ 
-        success: true, 
-        data: decryptedData,
-        timestamp: encryptedPayload.timestamp 
-      });
-    } catch (decryptError) {
-      console.error("Decryption error:", decryptError);
-      
-      if (decryptError instanceof Error) {
-        if (decryptError.message.includes("bad decrypt") || decryptError.message.includes("wrong final block length")) {
-          return NextResponse.json(
-            { error: "Authentication failed: This backup may belong to a different user or the data has been tampered with." },
-            { status: 403 }
-          );
-        } else if (decryptError.message.includes("older version")) {
-          return NextResponse.json(
-            { error: decryptError.message },
-            { status: 409 }
-          );
-        }
-      }
-      
-      return NextResponse.json(
-        { error: "Failed to decrypt backup data. Please check if this backup belongs to your account." },
-        { status: 403 }
-      );
-    }
-  } catch (error) {
-    console.error("Restore API error:", error);
+    console.error("Share API error:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
