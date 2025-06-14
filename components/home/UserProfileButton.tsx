@@ -101,7 +101,6 @@ useEffect(() => {
       const defaultviewStr = localStorage.getItem("default-view")
       const shortcutsStr = localStorage.getItem("enable-shortcuts")
       const firstdayStr = localStorage.getItem("first-day-of-week")
-      const timezoneStr = localStorage.getItem("timezone")
 
       const contacts = contactsStr ? JSON.parse(contactsStr) : []
       const notes = notesStr ? JSON.parse(notesStr) : []
@@ -111,20 +110,19 @@ useEffect(() => {
       const defaultview = defaultviewStr ? JSON.parse(defaultviewStr) : []
       const shortcuts = shortcutsStr ? JSON.parse(shortcutsStr) : []
       const firstday = firstdayStr ? JSON.parse(firstdayStr) : []
-      const timezone = timezoneStr ? JSON.parse(timezoneStr): []
 
       console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns`,
 )
-return { contacts, notes, sharedEvents, bookmarks, countdowns } // Include bookmarks in the returned data
+return { contacts, notes, sharedEvents, bookmarks, countdowns, defaultview, shortcuts, firstday }
 } catch (error)
 {
   console.error("Error getting data from localStorage:", error)
-  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [] } // Include empty bookmarks array
+  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [], defaultview: [], shortcuts: [], firstday: [] } 
 }
 }
 
 // 将数据保存到localStorage
-const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[]; defaultview?: any[]; shortcuts?: any[]; firstday?: any[]; timezone?: any[] }) => {
+const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[]; defaultview?: any[]; shortcuts?: any[]; firstday?: any[] }) => {
   try {
     const contacts = data.contacts || []
     const notes = data.notes || []
@@ -134,7 +132,6 @@ const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: a
     const defaultview = data.defaultview || []
     const shortcuts = data.shortcuts || []
     const firstday = data.firstday || []
-    const timezone = data.timezone || []
 
     console.log(
       `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns to localStorage`,
@@ -147,7 +144,6 @@ const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: a
     localStorage.setItem("default-view", JSON.stringify(defaultview))
     localStorage.setItem("enable-shortcuts", JSON.stringify(shortcuts))
     localStorage.setItem("first-day-of-week", JSON.stringify(firstday))
-    localStorage.setItem("timezone", JSON.stringify(timezone))
     console.log("Data saved to localStorage")
   } catch (error) {
     console.error("Error saving data to localStorage:", error)
@@ -178,7 +174,6 @@ const disableAutoBackup = () => {
   setIsAutoBackupEnabled(false);
   localStorage.removeItem("auto-backup-enabled");
 
-  
   if (syncInterval) {
     clearInterval(syncInterval);
     setSyncInterval(null);
@@ -200,7 +195,7 @@ const performAutoBackup = async () => {
 
   try {
     console.log("Starting auto-backup...");
-    const { contacts, notes, sharedEvents, bookmarks, countdowns, defaultview, shortcuts, firstday, timezone } = getLocalData();
+    const { contacts, notes, sharedEvents, bookmarks, countdowns, defaultview, shortcuts, firstday } = getLocalData();
     const backupData = {
       events: events || [],
       calendars: calendars || [],
@@ -212,7 +207,6 @@ const performAutoBackup = async () => {
       defaultview,
       shortcuts,
       firstday,
-      timezone,
       timestamp: new Date().toISOString(),
     };
 
