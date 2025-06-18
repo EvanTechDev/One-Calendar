@@ -80,7 +80,7 @@ cd One-Calendar
 bun install
 
 # Start the app
-bun run dev
+bun dev
 ```
 
 Then visit `http://localhost:3000`
