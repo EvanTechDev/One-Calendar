@@ -198,7 +198,7 @@ const performAutoBackup = async () => {
       timestamp: new Date().toISOString(),
     };
 
-    const response = await fetch("/api/blob/d1", {
+    const response = await fetch("/api/blob", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -229,7 +229,7 @@ const restoreUserData = async (silent = true) => {
   
   setIsRestoring(true);
   try {
-    const response = await fetch(`/api/blob/d1?id=${clerkUserId}`);
+    const response = await fetch(`/api/blob?id=${clerkUserId}`);
     if (!response.ok) throw new Error("Backup not found");
 
     const result = await response.json();
@@ -290,7 +290,7 @@ const deleteUserData = async (showConfirm: boolean = true) => {
       if (!confirmed) return;
     }
 
-    const response = await fetch('/api/blob/d1', {
+    const response = await fetch('/api/blob', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
