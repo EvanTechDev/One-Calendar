@@ -5,6 +5,9 @@ import { Pool } from "pg";
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 async function initializeDatabase() {
@@ -77,9 +80,9 @@ export async function POST(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRES_URL;
-    if (!POSTGRE_URL) {
-      throw new Error("POSTGRE_URL is not set");
+    const POSTGRES_URL = process.env.POSTGRES_URL;
+    if (!POSTGRES_URL) {
+      throw new Error("POSTGRES_URL is not set");
     }
 
     await initializeDatabase();
@@ -133,9 +136,9 @@ export async function DELETE(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRES_URL;
-    if (!POSTGRE_URL) {
-      throw new Error("POSTGRE_URL is not set");
+    const POSTGRES_URL = process.env.POSTGRES_URL;
+    if (!POSTGRES_URL) {
+      throw new Error("POSTGRES_URL is not set");
     }
 
     await initializeDatabase();
@@ -178,9 +181,9 @@ export async function GET(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRES_URL;
-    if (!POSTGRE_URL) {
-      throw new Error("POSTGRE_URL is not set");
+    const POSTGRES_URL = process.env.POSTGRES_URL;
+    if (!POSTGRES_URL) {
+      throw new Error("POSTGRES_URL is not set");
     }
 
     await initializeDatabase();
