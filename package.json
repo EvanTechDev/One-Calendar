@@ -69,7 +69,8 @@
     "groq-sdk": "latest",
     "axios": "latest",
     "sonner": "2.0.3",
-    "@marsidev/react-turnstile": "latest"
+    "@marsidev/react-turnstile": "latest",
+    "pg": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
