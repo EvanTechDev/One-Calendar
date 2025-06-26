@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { Pool } from "pg";
 
 const pool = new Pool({
-  connectionString: process.env.POSTGRE_URL,
+  connectionString: process.env.POSTGRES_URL,
 });
 
 async function initializeDatabase() {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
+    const POSTGRE_URL = process.env.POSTGRES_URL;
     if (!POSTGRE_URL) {
       throw new Error("POSTGRE_URL is not set");
     }
@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
+    const POSTGRE_URL = process.env.POSTGRES_URL;
     if (!POSTGRE_URL) {
       throw new Error("POSTGRE_URL is not set");
     }
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
     }
     const userId = user.id;
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
+    const POSTGRE_URL = process.env.POSTGRES_URL;
     if (!POSTGRE_URL) {
       throw new Error("POSTGRE_URL is not set");
     }
