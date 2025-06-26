@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
+    const POSTGRES_URL = process.env.POSTGRES_URL;
     if (!POSTGRES_URL) {
       throw new Error("POSTGRES_URL is not set");
     }
@@ -85,9 +85,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
     }
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
-    if (!POSTGRE_URL) {
-      throw new Error("POSTGRE_URL is not set");
+    const POSTGRES_URL = process.env.POSTGRES_URL;
+    if (!POSTGRES_URL) {
+      throw new Error("POSTGRES_URL is not set");
     }
 
     await initializeDatabase();
@@ -122,17 +122,17 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('POSTGRE_URL:', process.env.POSTGRE_URL); // Debug log
-    console.log('SSL Config:', { ssl: { rejectUnauthorized: false } }); // Debug log
+    console.log('POSTGRES_URL:', process.env.POSTGRES_URL);
+    console.log('SSL Config:', { ssl: { rejectUnauthorized: false } });
     const body = await request.json();
     const { id } = body;
     if (!id) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
     }
 
-    const POSTGRE_URL = process.env.POSTGRE_URL;
-    if (!POSTGRE_URL) {
-      throw new Error("POSTGRE_URL is not set");
+    const POSTGRES_URL = process.env.POSTGRES_URL;
+    if (!POSTGRES_URL) {
+      throw new Error("POSTGRES_URL is not set");
     }
 
     await initializeDatabase();
