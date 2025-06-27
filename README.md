@@ -38,7 +38,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - 🧠 **AI Powered** – AI-first app that streamlines your scheduling.
 - 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
 - 🔐 **Private & Local** – Your data is yours. Export, backup, and control.
-- ☁️ **Cloud Sync** – Optional sync via Vercel Blob.
+- ☁️ **Cloud Sync** – Optional sync via PostgreSQL.
 - 🌐 **Clerk-Account** – Easily login with third-party.
 - 🌍 **International** – Automatically adapts to your language (English / 中文).
 - 🧱 **Customizable** – Tailor themes, default view, and integrations.
@@ -47,17 +47,16 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 
 - **Frontend**: Next.js 14, Tailwind CSS, shadcn/ui, TypeScript
 - **Auth**: Clerk
-- **Storage**: LocalStorage, Vercel Blob, Misskey Drive
+- **Storage**: PostgreSQL
 - **Weather**: OpenWeather API
 - **AI**: Groq API
 - **Analytics**: Vercel Analytics
 - **Deploy**: Vercel
 
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun)
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun.postgresql)
 
 ## Preview
 
-![Home](public/Home.jpg)
 ![App](/public/Banner.jpg)
 
 ## Getting Started
@@ -102,10 +101,8 @@ CLERK_SECRET_KEY=your-clerk-secret
 GROQ_API_KEY=your-groq-api
 OPENWEATHER_API_KEY=your-open-weather-api-key
 
-# Optional, choose between Misskey and Vercel blob
-MISSKEY_URL=https://misskey.io
-MISSKEY_TOKEN=your-misskey-token
-BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+# Optional, database
+POSTGRES_URL=postgres://user:password@host:port/dbname
 
 # Optional, Cloudflare turnstile captcha
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
@@ -114,29 +111,10 @@ TURNSTILE_SECRET_KEY=secret-key
 
 ### Enviroment Setup
 
-1.Misskey Drive
+1. Cloudflare Turnstile
 
-Go to social media built with Misskey
-
-Go to `Settings` < `API`
-
-![API](https://github.com/user-attachments/assets/db9cead7-96a2-4fd7-8c0b-55429198aa91)
-
-Click `Generate Access Token`
-
-![Generate_Token](https://github.com/user-attachments/assets/db068882-060d-4752-ac5e-7809dfb6a9b8)
-
-
-Click  `Enable All`, then confirm
-
-![Enable_All](https://github.com/user-attachments/assets/58d445da-4133-4519-9e7e-8f4d62dd9116)
-
-Fill in the env file:
-
-```env
-MISSKEY_URL=https://misskey.io (or your url)
-MISSKEY_TOKEN=your-misskey-token
-```
+> [!NOTE]\
+> Updating
 
 2. Groq
 
