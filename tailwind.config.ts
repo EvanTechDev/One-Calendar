@@ -72,5 +72,11 @@ export default {
       },
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), function ({ addVariant }) {
+      addVariant('theme', ({ modifySelectors, separator }) => {
+        modifySelectors(({ className }) => {
+          return `.${className}`;
+        });
+      });
+    },],
 } satisfies Config;
