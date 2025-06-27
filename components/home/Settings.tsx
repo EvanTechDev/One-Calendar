@@ -26,7 +26,6 @@ interface SettingsProps {
   setEnableShortcuts: (enable: boolean) => void
 }
 
-// Then update the Settings component to include the new props
 export default function Settings({
   language,
   setLanguage,
@@ -41,10 +40,9 @@ export default function Settings({
   enableShortcuts,
   setEnableShortcuts,
 }: SettingsProps) {
-  const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const t = translations[language]
 
-  // Replace the timezones array with GMT formatted timezones
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
     const now = new Date()
@@ -52,7 +50,6 @@ export default function Settings({
     return timezones
       .map((tz) => {
         try {
-          // Get the GMT offset for this timezone
           const offsetMinutes = new Date(now.toLocaleString("en-US", { timeZone: tz })).getTimezoneOffset() * -1
           const offsetHours = Math.abs(Math.floor(offsetMinutes / 60))
           const offsetMins = Math.abs(offsetMinutes % 60)
@@ -75,7 +72,6 @@ export default function Settings({
 
   const gmtTimezones = getGMTTimezones()
 
-  // Add the handleLanguageChange function as before
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang)
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
@@ -98,19 +94,21 @@ export default function Settings({
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Theme" />
+              <Select value={theme || "system"} onValueChange={setTheme}>
+                <SelectTrigger id="theme">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light" onClick={() => setTheme("light")}>{language === "zh" ? "亮色" : "Light"}</SelectItem>
-                  <SelectItem value="dark" onClick={() => setTheme("dark")}>{language === "zh" ? "暗色" : "Dark"}</SelectItem>
-                  <SelectItem value="system" onClick={() => setTheme("system")}>{language === "zh" ? "系统" : "System"}</SelectItem>
+                  <SelectItem value="light">{language === "zh" ? "亮色" : "Light"}</SelectItem>
+                  <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
+                  <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
+                  <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
+                  <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/*<div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="language">{t.language}</Label>
               <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
                 <SelectTrigger id="language">
@@ -121,7 +119,7 @@ export default function Settings({
                   <SelectItem value="zh">中文</SelectItem>
                 </SelectContent>
               </Select>
-            </div>*/}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
@@ -213,4 +211,3 @@ export default function Settings({
     </Sheet>
   )
 }
-
