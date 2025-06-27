@@ -20,4 +20,4 @@ jobs:
       - name: Ping PostgreSQL
         env:
           DB_URL: ${{ secrets.DB_URL }}
-        run: python alive.py
+        run: python db.py
