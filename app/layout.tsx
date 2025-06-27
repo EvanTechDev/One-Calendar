@@ -58,6 +58,7 @@ export default function RootLayout({
         signUpUrl="/sign-up"
       >
         <ThemeProvider
+            themes={['light', 'dark', 'blue', 'green']}
             attribute="class"
             defaultTheme="system"
             enableSystem
