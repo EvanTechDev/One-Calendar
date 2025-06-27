@@ -82,6 +82,15 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  .blue {
+  --background: 219, 234, 254;
+  --foreground: 30, 58, 138;
+}
+
+.green {
+  --background: 220, 252, 231;
+  --foreground: 20, 83, 45;
+}
 }
 
 @layer base {
