@@ -99,7 +99,7 @@ body {
     --accent-foreground: 210 20% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
+    --border: 215 27.9% 25%;
     --input: 215 27.9% 16.9%;
     --ring: 212 100% 45.2%;
     --chart-1: 220 70% 50%;
@@ -133,7 +133,7 @@ body {
     --accent-foreground: 140 10% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 140 10% 98%;
-    --border: 141 27.9% 15.9%;
+    --border: 141 27.9% 25%;
     --input: 141 27.9% 15.9%;
     --ring: 142 71% 45%;
     --chart-1: 220 70% 50%;
