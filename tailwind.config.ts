@@ -72,11 +72,13 @@ export default {
       },
   	}
   },
-  plugins: [require("tailwindcss-animate"), function ({ addVariant }) {
-      addVariant('theme', ({ modifySelectors, separator }) => {
-        modifySelectors(({ className }) => {
-          return `.${className}`;
-        });
-      });
-    },],
+  plugins: [
+  require("tailwindcss-animate"), 
+  function ({ addVariant }) {
+    addVariant('blue', '.blue &')
+    addVariant('green', '.green &')
+    addVariant('purple', '.purple &')
+    addVariant('orange', '.orange &')
+  },
+],
 } satisfies Config;
