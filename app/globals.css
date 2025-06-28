@@ -222,18 +222,19 @@ body {
     --sidebar-ring: 25 95% 53%;
 }
 
-.blue button,
-.green button,
-.purple button,
-.orange button {
-    border: 1px solid hsl(var(--border));
-}
-
 .blue button[variant="outline"],
 .green button[variant="outline"],
 .purple button[variant="outline"],
 .orange button[variant="outline"] {
     border: 1px solid hsl(var(--border));
+    background: transparent;
+}
+
+.blue button[variant="ghost"],
+.green button[variant="ghost"],
+.purple button[variant="ghost"],
+.orange button[variant="ghost"] {
+    border: none;
     background: transparent;
 }
 }
