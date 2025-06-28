@@ -83,72 +83,135 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .blue {
-    --background: 217 32.6% 17.5%;
-    --foreground: 210 20% 98%;
-    --card: 217 32.6% 17.5%;
-    --card-foreground: 210 20% 98%;
-    --popover: 217 32.6% 17.5%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 217 32.6% 17.5%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217 7.8% 77%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 25%;
-    --input: 215 27.9% 16.9%;
-    --ring: 212 100% 45.2%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 217 32.6% 17.5%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 212 100% 45.2%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 215 27.9% 16.9%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 27.9% 16.9%;
-    --sidebar-ring: 212 100% 45.2%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 13%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 27% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 27% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 27% 28%;
+    --input: 217 27% 18%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 270 95% 75%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 27% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 27% 28%;
+    --sidebar-ring: 217 91% 60%;
 }
+
 .green {
-    --background: 143 40% 16%;
-    --foreground: 140 10% 98%;
-    --card: 143 40% 16%;
-    --card-foreground: 140 10% 98%;
-    --popover: 143 40% 16%;
-    --popover-foreground: 140 10% 98%;
-    --primary: 140 10% 98%;
-    --primary-foreground: 143 40% 16%;
-    --secondary: 141 27.9% 15.9%;
-    --secondary-foreground: 140 10% 98%;
-    --muted: 141 27.9% 15.9%;
-    --muted-foreground: 143 7.8% 77%;
-    --accent: 141 27.9% 15.9%;
-    --accent-foreground: 140 10% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 140 10% 98%;
-    --border: 141 27.9% 25%;
-    --input: 141 27.9% 15.9%;
-    --ring: 142 71% 45%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 143 40% 16%;
-    --sidebar-foreground: 140 10% 98%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 140 10% 98%;
-    --sidebar-accent: 141 27.9% 15.9%;
-    --sidebar-accent-foreground: 140 10% 98%;
-    --sidebar-border: 141 27.9% 15.9%;
-    --sidebar-ring: 142 71% 45%;
+    --background: 158 64% 8%;
+    --foreground: 150 20% 96%;
+    --card: 158 64% 10%;
+    --card-foreground: 150 20% 96%;
+    --popover: 158 64% 10%;
+    --popover-foreground: 150 20% 96%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 150 20% 96%;
+    --secondary: 156 30% 15%;
+    --secondary-foreground: 150 20% 96%;
+    --muted: 156 30% 15%;
+    --muted-foreground: 155 15% 65%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 150 20% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 150 20% 96%;
+    --border: 156 30% 25%;
+    --input: 156 30% 15%;
+    --ring: 142 76% 36%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 270 95% 75%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 158 64% 8%;
+    --sidebar-foreground: 150 20% 96%;
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary-foreground: 150 20% 96%;
+    --sidebar-accent: 156 30% 15%;
+    --sidebar-accent-foreground: 150 20% 96%;
+    --sidebar-border: 156 30% 25%;
+    --sidebar-ring: 142 76% 36%;
+}
+
+.purple {
+    --background: 263 70% 8%;
+    --foreground: 280 20% 96%;
+    --card: 263 70% 10%;
+    --card-foreground: 280 20% 96%;
+    --popover: 263 70% 10%;
+    --popover-foreground: 280 20% 96%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 280 20% 96%;
+    --secondary: 263 30% 15%;
+    --secondary-foreground: 280 20% 96%;
+    --muted: 263 30% 15%;
+    --muted-foreground: 263 15% 65%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 280 20% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 280 20% 96%;
+    --border: 263 30% 25%;
+    --input: 263 30% 15%;
+    --ring: 262 83% 58%;
+    --chart-1: 262 83% 58%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 217 91% 60%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 263 70% 8%;
+    --sidebar-foreground: 280 20% 96%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 280 20% 96%;
+    --sidebar-accent: 263 30% 15%;
+    --sidebar-accent-foreground: 280 20% 96%;
+    --sidebar-border: 263 30% 25%;
+    --sidebar-ring: 262 83% 58%;
+}
+
+.blue button,
+.green button,
+.purple button {
+    border: 1px solid hsl(var(--border));
+}
+
+.blue button[variant="outline"],
+.green button[variant="outline"],
+.purple button[variant="outline"] {
+    border: 1px solid hsl(var(--border));
+    background: transparent;
+}
+
+.blue button[variant="ghost"],
+.green button[variant="ghost"],
+.purple button[variant="ghost"] {
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+.blue button[variant="ghost"]:hover,
+.green button[variant="ghost"]:hover,
+.purple button[variant="ghost"]:hover {
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--accent));
 }
 }
 
