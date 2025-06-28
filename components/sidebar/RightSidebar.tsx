@@ -80,7 +80,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
-
+{/*
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
@@ -183,7 +183,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
     setSelectedContact(null)
   }
 
-  // 删除联系人
+    // 删除联系人
   const deleteContact = (id: string) => {
     const updatedContacts = contacts.filter((contact) => contact.id !== id)
     setContacts(updatedContacts)
@@ -224,7 +224,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
     if (editingNoteId === id) {
       setEditingNoteId(null)
     }
-  }
+  } */}
 
   // 处理分析按钮点击
   const handleAnalyticsClick = () => {
@@ -239,7 +239,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   }
 
   // 渲染联系人列表视图
-  const renderContactListView = () => (
+  {/* const renderContactListView = () => (
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
@@ -401,7 +401,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   }
 
   // 渲染联系人编辑视图
-  const renderContactEditView = () => (
+const renderContactEditView = () => (
     <div className="h-full flex flex-col">
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center">
@@ -548,7 +548,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
         </div>
       </div>
     </div>
-  )
+  )*/}
 
   return (
     <>
@@ -564,7 +564,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500 green:bg-[#24a854]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]",
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
@@ -580,7 +580,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-sky-500 green:bg-[#24a854]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-sky-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]",
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
@@ -597,7 +597,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
               >
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 green:bg-[#24a854]",
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]",
                   )}
                 >
                   <Sun className="h-6 w-6 text-white dark:text-white" />
@@ -631,7 +631,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             )}
             onClick={() => setCountdownOpen(true)}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500 green:bg-[#24a854]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]">
               <CalendarClock className="h-6 w-6 text-white" />
             </div>
           </Button>
@@ -644,7 +644,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 green:bg-[#24a854]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]">
               <BarChart2 className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
@@ -661,7 +661,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500 green:bg-[#24a854]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0]",
                 chatOpen && "ring-2 ring-primary",
               )}
             >
