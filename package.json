@@ -4,7 +4,7 @@
   "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --turbopack",
+    "build": "turbo run build",
     "start": "next start",
     "lint": "next lint"
   },
