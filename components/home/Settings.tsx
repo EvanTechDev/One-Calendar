@@ -10,6 +10,7 @@ import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
 
 interface SettingsProps {
   language: Language
@@ -41,7 +42,10 @@ export default function Settings({
   setEnableShortcuts,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
   const t = translations[language]
+
+  const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
@@ -77,6 +81,21 @@ export default function Settings({
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
   }
 
+  const handleThemeChange = (newTheme: string) => {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(newTheme)) {
+      setTheme('system')
+    } else {
+      setTheme(newTheme)
+    }
+  }
+
+  const getEffectiveTheme = () => {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(theme || '')) {
+      return 'system'
+    }
+    return theme || 'system'
+  }
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -94,20 +113,29 @@ export default function Settings({
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
-              <Select value={theme || "system"} onValueChange={setTheme}>
+              <Select value={getEffectiveTheme()} onValueChange={handleThemeChange}>
                 <SelectTrigger id="theme">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light">{language === "zh" ? "亮色" : "Light"}</SelectItem>
                   <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
-                  <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
-                  <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
-                  <SelectItem value="purple">{language === "zh" ? "紫色" : "Purple"}</SelectItem>
-                  <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
+                  {isAppPage && (
+                    <>
+                      <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
+                      <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
+                      <SelectItem value="purple">{language === "zh" ? "紫色" : "Purple"}</SelectItem>
+                      <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
+                    </>
+                  )}
                   <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
                 </SelectContent>
               </Select>
+              {!isAppPage && (
+                <p className="text-xs text-muted-foreground">
+                  {language === "zh" ? "彩色主题仅在应用页面可用" : "Color themes are only available on the app page"}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
