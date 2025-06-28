@@ -3,8 +3,8 @@
   "version": "1.8.6",
   "packageManager": "bun@1.2.5",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
+    "dev": "next dev",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "next lint"
   },
