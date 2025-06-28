@@ -112,7 +112,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:text-[#24a854] "
+          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] "
           onClick={onCreateEvent}
         >
           {t.createEvent}
