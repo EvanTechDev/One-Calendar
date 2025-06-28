@@ -630,7 +630,7 @@ export default function WeekView({
       <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
-            <div key={hour} className="h-[60px] relative border-l">
+            <div key={hour} className="h-[60px] relative border-gray-200">
               <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
@@ -649,7 +649,7 @@ export default function WeekView({
               {hours.map((hour) => (
                 <div
                   key={hour}
-                  className="h-[60px] border-t border-gray-200"
+                  className="h-[60px] border-t"
                   onClick={(e) => handleTimeSlotClick(day, hour, e)}
                 />
               ))}
