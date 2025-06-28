@@ -82,7 +82,7 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-  .blue {
+  .app.blue {
     --background: 210 40% 95%;
     --foreground: 220 25% 15%;
     --card: 210 35% 92%;
@@ -117,7 +117,7 @@ body {
     --sidebar-ring: 217 85% 55%;
 }
 
-.green {
+.app.green {
     --background: 142 35% 92%;
     --foreground: 140 20% 15%;
     --card: 142 30% 88%;
@@ -152,7 +152,7 @@ body {
     --sidebar-ring: 142 65% 40%;
 }
 
-.purple {
+.app.purple {
     --background: 270 45% 92%;
     --foreground: 270 25% 15%;
     --card: 270 40% 88%;
@@ -187,7 +187,7 @@ body {
     --sidebar-ring: 262 75% 52%;
 }
 
-.orange {
+.app.orange {
     --background: 28 50% 92%;
     --foreground: 20 24% 15%;
     --card: 28 45% 88%;
@@ -230,26 +230,26 @@ body {
     background: transparent;
 }
 
-.blue button[variant="ghost"],
-.green button[variant="ghost"],
-.purple button[variant="ghost"],
-.orange button[variant="ghost"] {
+.app.blue button[variant="ghost"],
+.app.green button[variant="ghost"],
+.app.purple button[variant="ghost"],
+.app.orange button[variant="ghost"] {
     border: none;
     background: transparent;
 }
 
-.blue hr, .blue .divider,
-.green hr, .green .divider,
-.purple hr, .purple .divider,
-.orange hr, .orange .divider {
+.app.blue hr, .blue .divider,
+.app.green hr, .green .divider,
+.app.purple hr, .purple .divider,
+.app.orange hr, .orange .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
 
-.blue .separator,
-.green .separator,
-.purple .separator,
-.orange .separator {
+.app.blue .separator,
+.app.green .separator,
+.app.purple .separator,
+.app.orange .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
