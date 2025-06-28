@@ -103,6 +103,8 @@ export default function Settings({
                   <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
                   <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
                   <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
+                  <SelectItem value="green">{language === "zh" ? "紫色" : "Purple"}</SelectItem>
+                  <SelectItem value="green">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
                   <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
                 </SelectContent>
               </Select>
