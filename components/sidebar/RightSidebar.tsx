@@ -80,7 +80,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
-{/*
+
   // 联系人视图状态
   const [contactView, setContactView] = useState<ContactView>("list")
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
@@ -224,7 +224,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
     if (editingNoteId === id) {
       setEditingNoteId(null)
     }
-  } */}
+  } 
 
   // 处理分析按钮点击
   const handleAnalyticsClick = () => {
@@ -239,7 +239,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   }
 
   // 渲染联系人列表视图
-  {/* const renderContactListView = () => (
+   const renderContactListView = () => (
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
@@ -548,7 +548,7 @@ const renderContactEditView = () => (
         </div>
       </div>
     </div>
-  )*/}
+  )
 
   return (
     <>
