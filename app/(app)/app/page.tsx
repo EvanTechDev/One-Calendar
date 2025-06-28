@@ -25,5 +25,5 @@ export default function Home() {
     )
   }*/}
 
-  return <Calendar />;
+  return <Calendar className="app" />;
 }
