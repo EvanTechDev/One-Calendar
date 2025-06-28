@@ -11,7 +11,6 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTheme } from "next-themes"
 import { usePathname } from "next/navigation"
-import { useEffect } from "react"
 
 interface SettingsProps {
   language: Language
@@ -285,4 +284,4 @@ export default function Settings({
       </SheetContent>
     </Sheet>
   )
-}
+                  }
