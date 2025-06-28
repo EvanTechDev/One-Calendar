@@ -649,7 +649,7 @@ export default function WeekView({
               {hours.map((hour) => (
                 <div
                   key={hour}
-                  className="h-[60px] border-t"
+                  className="h-[60px] border-t border-gray-200"
                   onClick={(e) => handleTimeSlotClick(day, hour, e)}
                 />
               ))}
