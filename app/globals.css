@@ -199,20 +199,6 @@ body {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
-
-.blue button[variant="ghost"],
-.green button[variant="ghost"],
-.purple button[variant="ghost"] {
-    border: 1px solid transparent;
-    background: transparent;
-}
-
-.blue button[variant="ghost"]:hover,
-.green button[variant="ghost"]:hover,
-.purple button[variant="ghost"]:hover {
-    border: 1px solid hsl(var(--border));
-    background: hsl(var(--accent));
-}
 }
 
 @layer base {
