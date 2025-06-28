@@ -630,8 +630,7 @@ export default function WeekView({
       <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
-            <div key={hour} className="h-[60px] relative">
-              {/* 修复时间标签位置,特别是0:00的显示问题 */}
+            <div key={hour} className="h-[60px] relative border-gray-200">
               <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
@@ -749,7 +748,7 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0"
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854]"
                       style={{
                         top: `${topPosition}px`,
                       }}
