@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTheme } from "next-themes"
 import { usePathname } from "next/navigation"
+import { useEffect } from "react"
 
 interface SettingsProps {
   language: Language
@@ -46,6 +47,23 @@ export default function Settings({
   const t = translations[language]
 
   const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
+
+  useEffect(() => {
+    const body = document.body
+    
+    if (isAppPage) {
+      body.classList.add('app')
+    } else {
+      body.classList.remove('app')
+      if (theme && ['blue', 'green', 'purple', 'orange'].includes(theme)) {
+        setTheme('system')
+      }
+    }
+
+    return () => {
+      body.classList.remove('app')
+    }
+  }, [isAppPage, theme, setTheme])
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
