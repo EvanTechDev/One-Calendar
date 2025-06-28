@@ -3,8 +3,8 @@
   "version": "1.8.6",
   "packageManager": "bun@1.2.5",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --turbopack",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -78,6 +78,7 @@
     "@types/react-dom": "^18",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
+    "turbo": "^2.5.4",
     "typescript": "^5"
   }
 }
