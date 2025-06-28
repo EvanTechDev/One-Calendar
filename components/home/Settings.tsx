@@ -50,20 +50,47 @@ export default function Settings({
 
   useEffect(() => {
     const body = document.body
+    const colorThemes = ['blue', 'green', 'purple', 'orange']
     
     if (isAppPage) {
       body.classList.add('app')
+      
+      if (theme && colorThemes.includes(theme)) {
+        body.classList.add(theme)
+      }
     } else {
       body.classList.remove('app')
-      if (theme && ['blue', 'green', 'purple', 'orange'].includes(theme)) {
+      colorThemes.forEach(colorTheme => {
+        body.classList.remove(colorTheme)
+      })
+      
+      if (theme && colorThemes.includes(theme)) {
         setTheme('system')
       }
     }
 
     return () => {
       body.classList.remove('app')
+      colorThemes.forEach(colorTheme => {
+        body.classList.remove(colorTheme)
+      })
     }
   }, [isAppPage, theme, setTheme])
+
+  useEffect(() => {
+    if (!isAppPage) return
+    
+    const body = document.body
+    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    
+    colorThemes.forEach(colorTheme => {
+      body.classList.remove(colorTheme)
+    })
+    
+    if (theme && colorThemes.includes(theme)) {
+      body.classList.add(theme)
+    }
+  }, [theme, isAppPage])
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
