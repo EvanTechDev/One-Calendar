@@ -25,5 +25,5 @@ export default function Home() {
     )
   }*/}
 
-  return <Calendar className="app" />;
+  return <Calendar className="app blue:blue" />;
 }
