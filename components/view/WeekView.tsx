@@ -610,7 +610,7 @@ export default function WeekView({
               <div className="p-2 text-center">
                 <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
                 {/* 如果是今天,使用蓝色高亮显示日期 */}
-                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>
+                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold green:text-[#24a854]" : "")}>
                   {format(day, "d")}
                 </div>
               </div>
