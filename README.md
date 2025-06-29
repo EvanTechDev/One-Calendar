@@ -61,7 +61,6 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 ![Green](https://github.com/user-attachments/assets/3d5da3bd-007b-4e45-9833-da86d0122598)
 ![Yellow](https://github.com/user-attachments/assets/ab667369-c258-41b8-b8e1-f660606b9faa)
 
-
 ## Getting Started
 
 ### Prerequisites
@@ -114,12 +113,27 @@ TURNSTILE_SECRET_KEY=secret-key
 
 ### Enviroment Setup
 
-1. Cloudflare Turnstile
+1. SALT
+
+Install Openssl and Use this command to generate a SALT
+
+```
+openssl rand -hex 16
+```
+
+Then copy it into .env
+
+2. PostgreSQL
 
 > [!NOTE]\
 > Updating
 
-2. Groq
+3. Cloudflare Turnstile
+
+> [!NOTE]\
+> Updating
+
+4. Groq
 
 Go to [Groq Console](https://console.groq.com) and login
 
