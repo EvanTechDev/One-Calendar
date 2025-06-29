@@ -92,8 +92,8 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 # Required 
-NEXT_PUBLIC_BASE_URL=your-url
-BACKUP_SALT=Backup-Salt
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+SALT=Backup-Salt
 
 # Auth (Required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
