@@ -58,6 +58,9 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 ## Preview
 
 ![App](/public/Banner.jpg)
+![Green](https://github.com/user-attachments/assets/3d5da3bd-007b-4e45-9833-da86d0122598)
+![Yellow](https://github.com/user-attachments/assets/ab667369-c258-41b8-b8e1-f660606b9faa)
+
 
 ## Getting Started
 
