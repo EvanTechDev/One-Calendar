@@ -125,8 +125,17 @@ Then copy it into .env
 
 2. PostgreSQL
 
-> [!NOTE]\
-> Updating
+Run this command if you installed docker
+
+```
+bun run db
+```
+
+And the env:
+
+```env
+POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
+```
 
 3. Cloudflare Turnstile
 
