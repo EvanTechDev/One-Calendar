@@ -610,7 +610,7 @@ export default function WeekView({
               <div className="p-2 text-center">
                 <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
                 {/* 如果是今天,使用蓝色高亮显示日期 */}
-                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold" : "")}>
+                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold green:text-[#24a854] purple:text-[#6c29e0] orange:text-[#e26912]" : "")}>
                   {format(day, "d")}
                 </div>
               </div>
@@ -630,8 +630,7 @@ export default function WeekView({
       <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto" ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
-            <div key={hour} className="h-[60px] relative">
-              {/* 修复时间标签位置,特别是0:00的显示问题 */}
+            <div key={hour} className="h-[60px] relative border-gray-200">
               <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
             </div>
           ))}
@@ -650,7 +649,7 @@ export default function WeekView({
               {hours.map((hour) => (
                 <div
                   key={hour}
-                  className="h-[60px] border-t border-gray-200"
+                  className="h-[60px] border-t"
                   onClick={(e) => handleTimeSlotClick(day, hour, e)}
                 />
               ))}
@@ -749,7 +748,7 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0"
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] purple:border-[#6c29e0] orange:border-[#e26912]"
                       style={{
                         top: `${topPosition}px`,
                       }}

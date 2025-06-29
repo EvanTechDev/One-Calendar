@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { SettingsIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -10,6 +11,7 @@ import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
 
 interface SettingsProps {
   language: Language
@@ -26,7 +28,6 @@ interface SettingsProps {
   setEnableShortcuts: (enable: boolean) => void
 }
 
-// Then update the Settings component to include the new props
 export default function Settings({
   language,
   setLanguage,
@@ -41,10 +42,56 @@ export default function Settings({
   enableShortcuts,
   setEnableShortcuts,
 }: SettingsProps) {
-  const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
   const t = translations[language]
 
-  // Replace the timezones array with GMT formatted timezones
+  const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
+
+  useEffect(() => {
+    const body = document.body
+    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    
+    if (isAppPage) {
+      body.classList.add('app')
+      
+      if (theme && colorThemes.includes(theme)) {
+        body.classList.add(theme)
+      }
+    } else {
+      body.classList.remove('app')
+      colorThemes.forEach(colorTheme => {
+        body.classList.remove(colorTheme)
+      })
+      
+      if (theme && colorThemes.includes(theme)) {
+        setTheme('system')
+      }
+    }
+
+    return () => {
+      body.classList.remove('app')
+      colorThemes.forEach(colorTheme => {
+        body.classList.remove(colorTheme)
+      })
+    }
+  }, [isAppPage, theme, setTheme])
+
+  useEffect(() => {
+    if (!isAppPage) return
+    
+    const body = document.body
+    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    
+    colorThemes.forEach(colorTheme => {
+      body.classList.remove(colorTheme)
+    })
+    
+    if (theme && colorThemes.includes(theme)) {
+      body.classList.add(theme)
+    }
+  }, [theme, isAppPage])
+
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
     const now = new Date()
@@ -52,7 +99,6 @@ export default function Settings({
     return timezones
       .map((tz) => {
         try {
-          // Get the GMT offset for this timezone
           const offsetMinutes = new Date(now.toLocaleString("en-US", { timeZone: tz })).getTimezoneOffset() * -1
           const offsetHours = Math.abs(Math.floor(offsetMinutes / 60))
           const offsetMins = Math.abs(offsetMinutes % 60)
@@ -75,10 +121,24 @@ export default function Settings({
 
   const gmtTimezones = getGMTTimezones()
 
-  // Add the handleLanguageChange function as before
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang)
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { language: newLang } }))
+  }
+
+  const handleThemeChange = (newTheme: string) => {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(newTheme)) {
+      setTheme('system')
+    } else {
+      setTheme(newTheme)
+    }
+  }
+
+  const getEffectiveTheme = () => {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(theme || '')) {
+      return 'system'
+    }
+    return theme || 'system'
   }
 
   return (
@@ -98,19 +158,32 @@ export default function Settings({
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Theme" />
+              <Select value={getEffectiveTheme()} onValueChange={handleThemeChange}>
+                <SelectTrigger id="theme">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light" onClick={() => setTheme("light")}>{language === "zh" ? "亮色" : "Light"}</SelectItem>
-                  <SelectItem value="dark" onClick={() => setTheme("dark")}>{language === "zh" ? "暗色" : "Dark"}</SelectItem>
-                  <SelectItem value="system" onClick={() => setTheme("system")}>{language === "zh" ? "系统" : "System"}</SelectItem>
+                  <SelectItem value="light">{language === "zh" ? "亮色" : "Light"}</SelectItem>
+                  <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
+                  {isAppPage && (
+                    <>
+                      <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
+                      <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
+                      <SelectItem value="purple">{language === "zh" ? "紫色" : "Purple"}</SelectItem>
+                      <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
+                    </>
+                  )}
+                  <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
                 </SelectContent>
               </Select>
+              {!isAppPage && (
+                <p className="text-xs text-muted-foreground">
+                  {language === "zh" ? "彩色主题仅在应用页面可用" : "Color themes are only available on the app page"}
+                </p>
+              )}
             </div>
 
-            {/*<div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="language">{t.language}</Label>
               <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
                 <SelectTrigger id="language">
@@ -121,7 +194,7 @@ export default function Settings({
                   <SelectItem value="zh">中文</SelectItem>
                 </SelectContent>
               </Select>
-            </div>*/}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
@@ -212,5 +285,4 @@ export default function Settings({
       </SheetContent>
     </Sheet>
   )
-}
-
+                  }

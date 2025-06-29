@@ -519,7 +519,7 @@ export default function DayView({
           <div className="text-sm text-muted-foreground">
             {format(date, "E", { locale: language === "zh" ? zhCN : enUS })}
           </div>
-          <div className="text-3xl font-semibold text-blue-600">{format(date, "d")}</div>
+          <div className="text-3xl font-semibold text-[#0066ff] green:text-[#24a854] purple:text-[#6c29e0] orange:text-[#e26912]">{format(date, "d")}</div>
         </div>
         <div className="p-2">
           {/* 全天事件区域 */}
@@ -545,7 +545,7 @@ export default function DayView({
           {hours.map((hour) => (
             <div
               key={hour}
-              className="h-[60px] border-t border-gray-200 dark:border-gray-500"
+              className="h-[60px] border-t"
               onClick={(e) => handleTimeSlotClick(hour, e)}
             />
           ))}
@@ -657,7 +657,7 @@ export default function DayView({
 
             return (
               <div
-                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0"
+                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] purple:border-[#6c29e0] orange:border-[#e26912]"
                 style={{
                   top: `${topPosition}px`,
                 }}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,7 @@ import Weather from "@/components/home/Weather"
 import DailyToast from "@/components/home/DailyToast"
 import QuickStartGuide from "@/components/home/QuickStartGuide"
 import { toast } from "sonner"
+import { useTheme } from "next-themes"
 
 type ViewType = "day" | "week" | "month" | "analytics"
 
@@ -47,7 +48,7 @@ export interface CalendarEvent {
 
 export type Language = "en" | "zh"
 
-export default function Calendar() {
+export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [date, setDate] = useState(new Date())
@@ -70,7 +71,25 @@ export default function Calendar() {
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
+  const { theme } = useTheme()
+  useLayoutEffect(() => {
+    const body = document.body
+    const colorThemes = ['blue', 'green', 'purple', 'orange']
 
+    body.classList.add('app')
+
+    colorThemes.forEach(color => body.classList.remove(color))
+    
+    if (theme && colorThemes.includes(theme)) {
+      body.classList.add(theme)
+    }
+
+    return () => {
+      body.classList.remove('app')
+      colorThemes.forEach(color => body.classList.remove(color))
+    }
+  }, [theme])
+  
   const updateEvent = (updatedEvent) => {
     setEvents(prevEvents => 
       prevEvents.map(event => 
@@ -323,6 +342,7 @@ const handleShare = (event: CalendarEvent) => {
   }, [])
 
   return (
+    <div className={className}>
     <div className="flex h-screen bg-background">
       {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
@@ -563,6 +583,7 @@ const handleShare = (event: CalendarEvent) => {
 
       <DailyToast />
       <QuickStartGuide />
+    </div>
     </div>
   )
 }
