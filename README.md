@@ -104,7 +104,7 @@ GROQ_API_KEY=your-groq-api
 OPENWEATHER_API_KEY=your-open-weather-api-key
 
 # Optional, database
-POSTGRES_URL=postgres://user:password@host:port/dbname
+POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 
 # Optional, Cloudflare turnstile captcha
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
