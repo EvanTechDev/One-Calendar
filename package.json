@@ -1,6 +1,7 @@
 {
   "name": "one-calendar",
   "version": "1.8.6",
+  "private": true,
   "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
