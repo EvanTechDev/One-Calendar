@@ -58,6 +58,8 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 ## Preview
 
 ![App](/public/Banner.jpg)
+![Green](https://github.com/user-attachments/assets/3d5da3bd-007b-4e45-9833-da86d0122598)
+![Yellow](https://github.com/user-attachments/assets/ab667369-c258-41b8-b8e1-f660606b9faa)
 
 ## Getting Started
 
@@ -90,8 +92,8 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 # Required 
-NEXT_PUBLIC_BASE_URL=your-url
-BACKUP_SALT=Backup-Salt
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+SALT=Backup-Salt
 
 # Auth (Required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
@@ -102,7 +104,7 @@ GROQ_API_KEY=your-groq-api
 OPENWEATHER_API_KEY=your-open-weather-api-key
 
 # Optional, database
-POSTGRES_URL=postgres://user:password@host:port/dbname
+POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 
 # Optional, Cloudflare turnstile captcha
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
@@ -111,12 +113,36 @@ TURNSTILE_SECRET_KEY=secret-key
 
 ### Enviroment Setup
 
-1. Cloudflare Turnstile
+1. SALT
+
+Install Openssl and Use this command to generate a SALT
+
+```
+openssl rand -hex 16
+```
+
+Then copy it into .env
+
+2. PostgreSQL
+
+Run this command if you installed docker
+
+```
+bun run db
+```
+
+And the env:
+
+```env
+POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
+```
+
+3. Cloudflare Turnstile
 
 > [!NOTE]\
 > Updating
 
-2. Groq
+4. Groq
 
 Go to [Groq Console](https://console.groq.com) and login
 

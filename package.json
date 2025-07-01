@@ -1,12 +1,17 @@
 {
   "name": "one-calendar",
   "version": "1.8.6",
+  "private": true,
   "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:stop": "docker-compose stop",
+    "db:clean": "docker-compose down -v"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
