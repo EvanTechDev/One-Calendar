@@ -55,7 +55,7 @@ export default function TermsOfService() {
           heading: "5. User Responsibilities",
           content: [
             "You agree to use One Calendar in compliance with applicable laws and regulations.",
-            "You are responsible for the content you create, upload, or share, including calendar events and files stored via Vercel Blob.",
+            "You are responsible for the content you create, upload, or share, including calendar events and files stored via Supabase.",
             "You must not use One Calendar for illegal, harmful, or abusive purposes, including but not limited to distributing malware, engaging in harassment, or violating intellectual property rights."
           ]
         },
@@ -152,7 +152,7 @@ export default function TermsOfService() {
           heading: "5. 用户责任",
           content: [
             "您同意遵守适用法律法规使用 One Calendar。",
-            "您对创建、上传或共享的内容（包括日历事件和通过 Vercel Blob 存储的文件）负责。",
+            "您对创建、上传或共享的内容（包括日历事件和通过 Supabase 备份的数据）负责。",
             "您不得将 One Calendar 用于非法、有害或滥用的目的，包括但不限于分发恶意软件、进行骚扰或侵犯知识产权。"
           ]
         },
