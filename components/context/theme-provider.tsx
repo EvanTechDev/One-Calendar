@@ -5,7 +5,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 export function ThemeProvider({
   children,
-  themes = ['light', 'dark', 'blue', 'green'],
+  themes = ['light', 'dark', 'blue', 'green', "purple", "orange"],
   ...props
 }: React.ComponentProps<typeof NextThemesProvider> & {
   themes?: string[];
