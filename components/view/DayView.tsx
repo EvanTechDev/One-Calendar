@@ -519,7 +519,7 @@ export default function DayView({
           <div className="text-sm text-muted-foreground">
             {format(date, "E", { locale: language === "zh" ? zhCN : enUS })}
           </div>
-          <div className="text-3xl font-semibold text-[#0066ff] green:text-[#24a854] purple:text-[#6c29e0] orange:text-[#e26912]">{format(date, "d")}</div>
+          <div className="text-3xl font-semibold text-[#0066ff] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">{format(date, "d")}</div>
         </div>
         <div className="p-2">
           {/* 全天事件区域 */}
@@ -657,7 +657,7 @@ export default function DayView({
 
             return (
               <div
-                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] purple:border-[#6c29e0] orange:border-[#e26912]"
+                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B]"
                 style={{
                   top: `${topPosition}px`,
                 }}
