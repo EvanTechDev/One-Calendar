@@ -564,7 +564,7 @@ const renderContactEditView = () => (
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
@@ -580,7 +580,7 @@ const renderContactEditView = () => (
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-sky-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-sky-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
@@ -597,7 +597,7 @@ const renderContactEditView = () => (
               >
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]",
+                    "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                   )}
                 >
                   <Sun className="h-6 w-6 text-white dark:text-white" />
@@ -631,7 +631,7 @@ const renderContactEditView = () => (
             )}
             onClick={() => setCountdownOpen(true)}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]">
               <CalendarClock className="h-6 w-6 text-white" />
             </div>
           </Button>
@@ -644,7 +644,7 @@ const renderContactEditView = () => (
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]">
               <BarChart2 className="h-6 w-6 text-white dark:text-white" />
             </div>
           </Button>
@@ -661,7 +661,7 @@ const renderContactEditView = () => (
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500 blue:bg-[#0066ff] green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]",
+                "w-10 h-10 rounded-full flex items-center justify-center bg-teal-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                 chatOpen && "ring-2 ring-primary",
               )}
             >
