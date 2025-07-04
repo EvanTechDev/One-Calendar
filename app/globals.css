@@ -154,38 +154,38 @@ body {
 }
 
 .app.azalea {
-    --background: 325 25% 95%;
-    --foreground: 327 15% 12%;
-    --card: 325 20% 90%;
-    --card-foreground: 327 15% 12%;
-    --popover: 325 20% 90%;
-    --popover-foreground: 327 15% 12%;
-    --primary: 327 60% 50%;
+    --background: 331 25% 95%;
+    --foreground: 331 15% 18%;
+    --card: 331 20% 90%;
+    --card-foreground: 331 15% 18%;
+    --popover: 331 20% 90%;
+    --popover-foreground: 331 15% 18%;
+    --primary: 331 63% 49%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 324 15% 85%;
-    --secondary-foreground: 327 15% 12%;
-    --muted: 324 15% 88%;
-    --muted-foreground: 327 12% 38%;
-    --accent: 325 25% 87%;
-    --accent-foreground: 327 60% 50%;
+    --secondary: 328 15% 85%;
+    --secondary-foreground: 331 15% 18%;
+    --muted: 328 15% 88%;
+    --muted-foreground: 331 12% 42%;
+    --accent: 331 25% 87%;
+    --accent-foreground: 331 63% 49%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 325 20% 75%;
-    --input: 325 18% 85%;
-    --ring: 327 60% 50%;
-    --chart-1: 327 60% 50%;
+    --border: 331 20% 75%;
+    --input: 331 18% 85%;
+    --ring: 331 63% 49%;
+    --chart-1: 331 63% 49%;
     --chart-2: 217 91% 60%;
     --chart-3: 38 92% 50%;
     --chart-4: 270 95% 75%;
     --chart-5: 340 82% 52%;
-    --sidebar-background: 325 20% 90%;
-    --sidebar-foreground: 327 15% 12%;
-    --sidebar-primary: 327 60% 50%;
+    --sidebar-background: 331 20% 90%;
+    --sidebar-foreground: 331 15% 18%;
+    --sidebar-primary: 331 63% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 324 15% 85%;
-    --sidebar-accent-foreground: 327 15% 12%;
-    --sidebar-border: 325 20% 75%;
-    --sidebar-ring: 327 60% 50%;
+    --sidebar-accent: 328 15% 85%;
+    --sidebar-accent-foreground: 331 15% 18%;
+    --sidebar-border: 331 20% 75%;
+    --sidebar-ring: 331 63% 49%;
 }
 
 .green button[variant="outline"],
