@@ -111,7 +111,7 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
 TURNSTILE_SECRET_KEY=secret-key
 ```
 
-### Enviroment Setup
+### Environment Setup
 
 1. SALT
 
@@ -139,8 +139,25 @@ POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 
 3. Cloudflare Turnstile
 
-> [!NOTE]\
-> Updating
+Go to [Cloudflare dashboard](https://dash.cloudflare.com)
+
+Login and click the Turnstile button
+
+![home](https://github.com/user-attachments/assets/3233e31d-1dac-4ab1-ac2a-e66f1eff4bbc)
+
+Click the Add Widget button
+
+![Widget](https://github.com/user-attachments/assets/c9428ab6-159e-45b0-8a6e-ba536eb59c5c)
+
+Name it and add a hostname, then choose Managed and click the Create button 
+
+![Create](https://github.com/user-attachments/assets/6c5d7e37-aad6-4a16-aea9-f0369e6b3bb8)
+
+Copy your SiteKey and SecretKey and fill it into .env
+
+![Key](https://github.com/user-attachments/assets/240b13b6-139e-4eeb-8781-71ae30b04752)
+
+Why don't I just use Clerk's Captcha? Maybe there are bugs.
 
 4. Groq
 
