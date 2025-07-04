@@ -153,26 +153,65 @@ body {
     --sidebar-ring: 25 85% 48%;
 }
 
+.app.azalea {
+    --background: 325 25% 95%;
+    --foreground: 327 15% 12%;
+    --card: 325 20% 90%;
+    --card-foreground: 327 15% 12%;
+    --popover: 325 20% 90%;
+    --popover-foreground: 327 15% 12%;
+    --primary: 327 60% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 324 15% 85%;
+    --secondary-foreground: 327 15% 12%;
+    --muted: 324 15% 88%;
+    --muted-foreground: 327 12% 38%;
+    --accent: 325 25% 87%;
+    --accent-foreground: 327 60% 50%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 325 20% 75%;
+    --input: 325 18% 85%;
+    --ring: 327 60% 50%;
+    --chart-1: 327 60% 50%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 270 95% 75%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 325 20% 90%;
+    --sidebar-foreground: 327 15% 12%;
+    --sidebar-primary: 327 60% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 324 15% 85%;
+    --sidebar-accent-foreground: 327 15% 12%;
+    --sidebar-border: 325 20% 75%;
+    --sidebar-ring: 327 60% 50%;
+}
+
 .green button[variant="outline"],
-.orange button[variant="outline"] {
+.orange button[variant="outline"],
+.azalea button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
 
 .app.green button[variant="ghost"],
-.app.orange button[variant="ghost"] {
+.app.orange button[variant="ghost"],
+.app.azalea button[variant="ghost"] {
     border: none;
     background: transparent;
 }
 
 .app.green hr, .green .divider,
-.app.orange hr, .orange .divider {
+.app.orange hr, .orange .divider,
+.app.azalea hr, .orange .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
 
 .app.green .separator,
-.app.orange .separator {
+.app.orange .separator,
+.app.azalea .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
