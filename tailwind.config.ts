@@ -78,6 +78,7 @@ export default {
     addVariant('green', '.green &')
     addVariant('orange', '.orange &')
     addVariant('azalea', '.azalea &')
+    addVariant('pink', '.pink &')
   },
 ],
 } satisfies Config;
