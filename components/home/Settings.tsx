@@ -46,7 +46,7 @@ export default function Settings({
   const pathname = usePathname()
   const t = translations[language]
 
-  const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
+  /*const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
 
   useEffect(() => {
     const body = document.body
@@ -81,7 +81,7 @@ export default function Settings({
     if (!isAppPage) return
     
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink']
     
     colorThemes.forEach(colorTheme => {
       body.classList.remove(colorTheme)
@@ -90,7 +90,7 @@ export default function Settings({
     if (theme && colorThemes.includes(theme)) {
       body.classList.add(theme)
     }
-  }, [theme, isAppPage])
+  }, [theme, isAppPage]) */
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
@@ -170,6 +170,7 @@ export default function Settings({
                       <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
                       <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
                       <SelectItem value="azalea">{language === "zh" ? "映山红" : "Azalea"}</SelectItem>
+                      <SelectItem value="pink">{language === "zh" ? "粉色" : "Pink"}</SelectItem>
                     </>
                   )}
                   <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
