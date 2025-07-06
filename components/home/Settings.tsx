@@ -46,7 +46,7 @@ export default function Settings({
   const pathname = usePathname()
   const t = translations[language]
 
-  /*const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
+  const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
 
   useEffect(() => {
     const body = document.body
@@ -90,7 +90,7 @@ export default function Settings({
     if (theme && colorThemes.includes(theme)) {
       body.classList.add(theme)
     }
-  }, [theme, isAppPage]) */
+  }, [theme, isAppPage])
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
