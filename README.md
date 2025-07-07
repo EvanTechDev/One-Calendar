@@ -53,7 +53,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Analytics**: Vercel Analytics
 - **Deploy**: Vercel
 
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun.postgresql)
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun,postgresql)
 
 ## Preview
 
