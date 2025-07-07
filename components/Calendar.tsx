@@ -72,9 +72,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const { theme } = useTheme()
+
   useLayoutEffect(() => {
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
 
     body.classList.add('app')
 
