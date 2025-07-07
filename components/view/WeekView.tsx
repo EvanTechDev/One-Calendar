@@ -748,7 +748,7 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B] pink:text-[#FFAFA5]"
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B] pink:border-[#FFAFA5]"
                       style={{
                         top: `${topPosition}px`,
                       }}
