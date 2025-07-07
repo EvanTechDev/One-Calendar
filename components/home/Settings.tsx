@@ -135,7 +135,7 @@ export default function Settings({
   }
 
   const getEffectiveTheme = () => {
-    if (!isAppPage && ['green', 'orange', "azalea"， "pink", "crimson"].includes(theme || '')) {
+    if (!isAppPage && ['green', 'orange', "azalea", "pink", "crimson"].includes(theme || '')) {
       return 'system'
     }
     return theme || 'system'
