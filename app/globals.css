@@ -223,9 +223,46 @@ body {
     --sidebar-ring: 7 100% 82%;
 }
 
+.app.crimson {
+    --background: 341 25% 95%;
+    --foreground: 341 15% 18%;
+    --card: 341 20% 90%;
+    --card-foreground: 341 15% 18%;
+    --popover: 341 20% 90%;
+    --popover-foreground: 341 15% 18%;
+    --primary: 341 100% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 338 15% 85%;
+    --secondary-foreground: 341 15% 18%;
+    --muted: 338 15% 88%;
+    --muted-foreground: 341 12% 42%;
+    --accent: 341 25% 87%;
+    --accent-foreground: 341 100% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 341 20% 75%;
+    --input: 341 18% 85%;
+    --ring: 341 100% 30%;
+    --chart-1: 341 100% 30%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 270 95% 75%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 341 20% 90%;
+    --sidebar-foreground: 341 15% 18%;
+    --sidebar-primary: 341 100% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 338 15% 85%;
+    --sidebar-accent-foreground: 341 15% 18%;
+    --sidebar-border: 341 20% 75%;
+    --sidebar-ring: 341 100% 30%;
+}
+
 .green button[variant="outline"],
 .orange button[variant="outline"],
-.azalea button[variant="outline"] {
+.azalea button[variant="outline"],
+.pink button[variant="outline"]
+.crimson button[variant="outline"]{
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
@@ -233,7 +270,8 @@ body {
 .app.green button[variant="ghost"],
 .app.orange button[variant="ghost"],
 .app.azalea button[variant="ghost"],
-.app.pink button[variant="ghost"]{
+.app.pink button[variant="ghost"],
+.app.crimson button[variant="ghost"] {
     border: none;
     background: transparent;
 }
@@ -241,7 +279,8 @@ body {
 .app.green hr, .green .divider,
 .app.orange hr, .orange .divider,
 .app.azalea hr, .azalea .divider,
-.app.pink hr, .pink .divider{
+.app.pink hr, .pink .divider,
+.app.crimson hr, .crimson .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
@@ -249,7 +288,8 @@ body {
 .app.green .separator,
 .app.orange .separator,
 .app.azalea .separator,
-.app.pink .separator {
+.app.pink .separator,
+.app.crimson .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
