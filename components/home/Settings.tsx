@@ -50,7 +50,7 @@ export default function Settings({
 
   useEffect(() => {
     const body = document.body
-    const colorThemes = ['green', 'orange', "azalea"]
+    const colorThemes = ['green', 'orange', "azalea", 'pink', 'crimson']
     
     if (isAppPage) {
       body.classList.add('app')
@@ -81,7 +81,7 @@ export default function Settings({
     if (!isAppPage) return
     
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink']
+    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
     
     colorThemes.forEach(colorTheme => {
       body.classList.remove(colorTheme)
