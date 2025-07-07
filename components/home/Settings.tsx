@@ -127,7 +127,7 @@ export default function Settings({
   }
 
   const handleThemeChange = (newTheme: string) => {
-    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(newTheme)) {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson'].includes(newTheme)) {
       setTheme('system')
     } else {
       setTheme(newTheme)
@@ -135,7 +135,7 @@ export default function Settings({
   }
 
   const getEffectiveTheme = () => {
-    if (!isAppPage && ['green', 'orange', "azalea"].includes(theme || '')) {
+    if (!isAppPage && ['green', 'orange', "azalea"， "pink", "crimson"].includes(theme || '')) {
       return 'system'
     }
     return theme || 'system'
@@ -171,6 +171,7 @@ export default function Settings({
                       <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
                       <SelectItem value="azalea">{language === "zh" ? "映山红" : "Azalea"}</SelectItem>
                       <SelectItem value="pink">{language === "zh" ? "粉色" : "Pink"}</SelectItem>
+                      <SelectItem value="crimson">{language === "zh" ? "深红色" : "Crimson"}</SelectItem>
                     </>
                   )}
                   <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
