@@ -436,11 +436,12 @@ return (
 
 {isUserProfileOpen && (
 <Dialog open>
-  <DialogContent className="max-w-md mx-auto">
-    <UserProfile />
+  <DialogContent className="max-w-fit w-auto p-0 m-0">
+    <div className="flex justify-center items-center">
+      <UserProfile />
+    </div>
   </DialogContent>
 </Dialog>
-
 )}
 
 
