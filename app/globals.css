@@ -222,10 +222,15 @@ body {
     --sidebar-ring: 25 85% 48%;
 }
 
+.app.sunset {
+  
+}
+
 .blue button[variant="outline"],
 .green button[variant="outline"],
 .purple button[variant="outline"],
-.orange button[variant="outline"] {
+.orange button[variant="outline"],
+.sunset button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
@@ -233,7 +238,8 @@ body {
 .app.blue button[variant="ghost"],
 .app.green button[variant="ghost"],
 .app.purple button[variant="ghost"],
-.app.orange button[variant="ghost"] {
+.app.orange button[variant="ghost"],
+.app.sunset button[variant="ghost"] {
     border: none;
     background: transparent;
 }
@@ -241,7 +247,8 @@ body {
 .app.blue hr, .blue .divider,
 .app.green hr, .green .divider,
 .app.purple hr, .purple .divider,
-.app.orange hr, .orange .divider {
+.app.orange hr, .orange .divider,
+.app.sunset hr, .sunset .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
@@ -249,7 +256,8 @@ body {
 .app.blue .separator,
 .app.green .separator,
 .app.purple .separator,
-.app.orange .separator {
+.app.orange .separator,
+.app.sunset.separtor {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
