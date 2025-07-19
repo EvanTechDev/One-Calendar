@@ -41,11 +41,11 @@ export default function LandingPage() {
       <div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:hidden">
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.3) 1px, transparent 0)`,
             backgroundSize: '24px 24px'
           }} />
           <div className="absolute inset-0 dark:block hidden" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.65) 1px, transparent 0)`,
             backgroundSize: '24px 24px'
           }} />
         </div>
