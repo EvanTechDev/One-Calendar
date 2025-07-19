@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
         {
           heading: "3. Self-Hosted Instances",
           content: [
-            "Complete Data Sovereignty: When utilizing our self-hosted solution, you maintain absolute control and ownership over all your data, including email communications, calendar information, and uploaded files stored within your own infrastructure environment.",
+            "Complete Data Sovereignty: When utilizing our self-hosted solution, you maintain absolute control and ownership over all your data, including calendar information, and uploaded files stored within your own infrastructure environment.",
             "No Third-Party Data Transmission: Unless explicitly configured and consented to by you, self-hosted instances operate independently without transmitting any personal data to our servers, third-party services, or external analytics platforms.",
             "Infrastructure Independence: You retain full responsibility for data security, backup strategies, server maintenance, and compliance with applicable data protection regulations within your chosen hosting environment.",
             "Comprehensive Documentation: We provide detailed technical documentation, security best practices, configuration guides, and deployment instructions to ensure secure and reliable self-hosting implementation.",
@@ -147,7 +147,7 @@ export default function PrivacyPolicy() {
         {
           heading: "14. Contact Information and Privacy Inquiries",
           content: [
-            "Primary Contact: For privacy-related questions, concerns, or requests, please contact our Data Protection Officer at evan.huang000@proton.me with detailed information about your inquiry.",
+            "Primary Contact: For privacy-related questions, concerns, or requests, please contact our at evan.huang000@proton.me with detailed information about your inquiry.",
             "Technical Support: Technical issues, account problems, and general support can be addressed through our GitHub repository or support channels.",
             "Regulatory Inquiries: For compliance-related questions or regulatory inquiries, please use our designated privacy contact methods with appropriate documentation.",
             "Response Timeline: We strive to respond to all privacy inquiries within 30 days and will provide updates if additional time is required for complex requests."
@@ -187,7 +187,7 @@ export default function PrivacyPolicy() {
         {
           heading: "3. 自托管实例",
           content: [
-            "完全数据主权：当使用我们的自托管解决方案时，您对存储在自己基础设施环境中的所有数据保持绝对控制和所有权，包括电子邮件通信、日历信息和上传的文件。",
+            "完全数据主权：当使用我们的自托管解决方案时，您对存储在自己基础设施环境中的所有数据保持绝对控制和所有权，包括日历信息和上传的文件。",
             "无第三方数据传输：除非您明确配置和同意，自托管实例独立运行，不会向我们的服务器、第三方服务或外部分析平台传输任何个人数据。",
             "基础设施独立性：您对数据安全、备份策略、服务器维护以及在您选择的托管环境中遵守适用的数据保护法规承担全部责任。",
             "全面文档：我们提供详细的技术文档、安全最佳实践、配置指南和部署说明，以确保安全可靠的自托管实施。",
