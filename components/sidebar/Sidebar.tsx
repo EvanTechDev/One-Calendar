@@ -107,12 +107,12 @@ export default function Sidebar({
     )}>
       <div className="p-4">
         <div className="flex items-center mb-4">
-          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2 green:text-[#24a854] purple:text-[#6c29e0] orange:text-[#e26912]" />
+          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2 green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5] crimson:text-[#9B0032]" />
           <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
         </div>
 
         <Button
-          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] purple:bg-[#6c29e0] orange:bg-[#e26912]"
+          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]"
           onClick={onCreateEvent}
         >
           {t.createEvent}

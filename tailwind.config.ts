@@ -75,10 +75,11 @@ export default {
   plugins: [
   require("tailwindcss-animate"), 
   function ({ addVariant }) {
-    addVariant('blue', '.blue &')
     addVariant('green', '.green &')
-    addVariant('purple', '.purple &')
     addVariant('orange', '.orange &')
+    addVariant('azalea', '.azalea &')
+    addVariant('pink', '.pink &')
+    addVariant('crimson', '.crimson &')
   },
 ],
 } satisfies Config;

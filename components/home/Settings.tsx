@@ -50,7 +50,7 @@ export default function Settings({
 
   useEffect(() => {
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    const colorThemes = ['green', 'orange', "azalea", 'pink', 'crimson']
     
     if (isAppPage) {
       body.classList.add('app')
@@ -81,7 +81,7 @@ export default function Settings({
     if (!isAppPage) return
     
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange']
+    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
     
     colorThemes.forEach(colorTheme => {
       body.classList.remove(colorTheme)
@@ -127,7 +127,7 @@ export default function Settings({
   }
 
   const handleThemeChange = (newTheme: string) => {
-    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(newTheme)) {
+    if (!isAppPage && ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson'].includes(newTheme)) {
       setTheme('system')
     } else {
       setTheme(newTheme)
@@ -135,7 +135,7 @@ export default function Settings({
   }
 
   const getEffectiveTheme = () => {
-    if (!isAppPage && ['blue', 'green', 'purple', 'orange'].includes(theme || '')) {
+    if (!isAppPage && ['green', 'orange', "azalea", "pink", "crimson"].includes(theme || '')) {
       return 'system'
     }
     return theme || 'system'
@@ -167,10 +167,11 @@ export default function Settings({
                   <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
                   {isAppPage && (
                     <>
-                      <SelectItem value="blue">{language === "zh" ? "蓝色" : "Blue"}</SelectItem>
                       <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
-                      <SelectItem value="purple">{language === "zh" ? "紫色" : "Purple"}</SelectItem>
                       <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
+                      <SelectItem value="azalea">{language === "zh" ? "映山红" : "Azalea"}</SelectItem>
+                      <SelectItem value="pink">{language === "zh" ? "粉色" : "Pink"}</SelectItem>
+                      <SelectItem value="crimson">{language === "zh" ? "深红色" : "Crimson"}</SelectItem>
                     </>
                   )}
                   <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
