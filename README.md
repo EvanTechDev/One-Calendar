@@ -14,7 +14,7 @@
 
 </p>
 
-A beautifully minimal open-source calendar app to plan your week and life.
+A beautifully minimal open-source calendar app to plan your week and life
 
 
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
@@ -212,4 +212,5 @@ This project wouldn't be possible without these awesome services:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
+
 
