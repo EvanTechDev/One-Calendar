@@ -18,9 +18,8 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <a href="/" className="flex items-center gap-2 self-center font-medium">
-            <Calendar className="size-4" color="#0066ff" />
-          One Calendar
+        <a href="https://xyehr.cn" className="flex items-center gap-2 self-center font-medium">
+          Tech-Art
         </a>
         <SignUpForm />
       </div>
