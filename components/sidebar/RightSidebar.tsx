@@ -557,7 +557,7 @@ const renderContactEditView = () => (
         <div className="flex flex-col items-center space-y-4 flex-1">
           {/* Mini Calendar Button */}
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setMiniCalendarOpen(true)}
@@ -568,12 +568,12 @@ const renderContactEditView = () => (
                 miniCalendarOpen && "ring-2 ring-primary",
               )}
             >
-              <Calendar className="h-6 w-6 text-white dark:text-white" />
+              <Calendar className="h-6 w-6 text-black dark:text-white" />
             </div>
           </Button>
 
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setBookmarkPanelOpen(true)}
@@ -584,14 +584,14 @@ const renderContactEditView = () => (
                 bookmarkPanelOpen && "ring-2 ring-primary",
               )}
             >
-              <Bookmark className="h-6 w-6 text-white dark:text-white" />
+              <Bookmark className="h-6 w-6 text-black dark:text-white" />
             </div>
           </Button>
 
           <WeatherSheet
             trigger={
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
                 className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
               >
@@ -600,7 +600,7 @@ const renderContactEditView = () => (
                     "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
                   )}
                 >
-                  <Sun className="h-6 w-6 text-white dark:text-white" />
+                  <Sun className="h-6 w-6 text-black dark:text-white" />
                 </div>
               </Button>
             }
@@ -623,7 +623,7 @@ const renderContactEditView = () => (
           </Button> */}
 
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             className={cn(
               "rounded-full p-0 w-12 h-12 flex items-center justify-center",
@@ -632,20 +632,20 @@ const renderContactEditView = () => (
             onClick={() => setCountdownOpen(true)}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]">
-              <CalendarClock className="h-6 w-6 text-white" />
+              <CalendarClock className="h-6 w-6 text-black" />
             </div>
           </Button>
 
           <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />
 
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]">
-              <BarChart2 className="h-6 w-6 text-white dark:text-white" />
+              <BarChart2 className="h-6 w-6 text-black dark:text-white" />
             </div>
           </Button>
           
@@ -654,7 +654,7 @@ const renderContactEditView = () => (
         onOpenChange={setChatOpen}
         trigger={
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setChatOpen(true)}
@@ -665,7 +665,7 @@ const renderContactEditView = () => (
                 chatOpen && "ring-2 ring-primary",
               )}
             >
-              <MessageSquare className="h-6 w-6 text-white dark:text-white" />
+              <MessageSquare className="h-6 w-6 text-black dark:text-white" />
             </div>
           </Button>
         }
