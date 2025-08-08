@@ -50,7 +50,6 @@ export default function LandingPage() {
           }} />
         </div>
       </div>
-      </div>
       
       {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
