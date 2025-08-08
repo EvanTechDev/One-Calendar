@@ -559,7 +559,7 @@ const renderContactEditView = () => (
           <Button
             variant="secondary"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+            className="size-8"
             onClick={() => setMiniCalendarOpen(true)}
           >
             <Calendar className="h-6 w-6 text-black dark:text-white" />
@@ -568,7 +568,7 @@ const renderContactEditView = () => (
           <Button
             variant="secondary"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+            className="size-8"
             onClick={() => setBookmarkPanelOpen(true)}
           >
             <Bookmark className="h-6 w-6 text-black dark:text-white" />
@@ -579,7 +579,7 @@ const renderContactEditView = () => (
               <Button
                 variant="secondary"
                 size="icon"
-                className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+                className="size-8"
               >
                 <Sun className="h-6 w-6 text-black dark:text-white" />
               </Button>
@@ -606,7 +606,7 @@ const renderContactEditView = () => (
             variant="secondary"
             size="icon"
             className={cn(
-              "rounded-full p-0 w-12 h-12 flex items-center justify-center",
+              "size-8",
               countdownOpen && "ring-2 ring-primary"
             )}
             onClick={() => setCountdownOpen(true)}
@@ -619,7 +619,7 @@ const renderContactEditView = () => (
           <Button
             variant="secondary"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+            className="size-8"
             onClick={handleAnalyticsClick}
           >
             <BarChart2 className="h-6 w-6 text-black dark:text-white" />
@@ -632,7 +632,7 @@ const renderContactEditView = () => (
           <Button
             variant="secondary"
             size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
+            className="size-8"
             onClick={() => setChatOpen(true)}
           >
             <MessageSquare className="h-6 w-6 text-black dark:text-white" />
