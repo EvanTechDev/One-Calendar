@@ -562,14 +562,7 @@ const renderContactEditView = () => (
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setMiniCalendarOpen(true)}
           >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
-                miniCalendarOpen && "ring-2 ring-primary",
-              )}
-            >
-              <Calendar className="h-6 w-6 text-black dark:text-white" />
-            </div>
+            <Calendar className="h-6 w-6 text-black dark:text-white" />
           </Button>
 
           <Button
@@ -578,14 +571,7 @@ const renderContactEditView = () => (
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setBookmarkPanelOpen(true)}
           >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
-                bookmarkPanelOpen && "ring-2 ring-primary",
-              )}
-            >
-              <Bookmark className="h-6 w-6 text-black dark:text-white" />
-            </div>
+            <Bookmark className="h-6 w-6 text-black dark:text-white" />
           </Button>
 
           <WeatherSheet
@@ -595,13 +581,7 @@ const renderContactEditView = () => (
                 size="icon"
                 className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
               >
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
-                  )}
-                >
-                  <Sun className="h-6 w-6 text-black dark:text-white" />
-                </div>
+                <Sun className="h-6 w-6 text-black dark:text-white" />
               </Button>
             }
             />
@@ -631,9 +611,7 @@ const renderContactEditView = () => (
             )}
             onClick={() => setCountdownOpen(true)}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]">
-              <CalendarClock className="h-6 w-6 text-black" />
-            </div>
+            <CalendarClock className="h-6 w-6 text-black" />
           </Button>
 
           <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />
@@ -644,9 +622,7 @@ const renderContactEditView = () => (
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={handleAnalyticsClick}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]">
-              <BarChart2 className="h-6 w-6 text-black dark:text-white" />
-            </div>
+            <BarChart2 className="h-6 w-6 text-black dark:text-white" />
           </Button>
           
           <AIChatSheet 
@@ -659,14 +635,7 @@ const renderContactEditView = () => (
             className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
             onClick={() => setChatOpen(true)}
           >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
-                chatOpen && "ring-2 ring-primary",
-              )}
-            >
-              <MessageSquare className="h-6 w-6 text-black dark:text-white" />
-            </div>
+            <MessageSquare className="h-6 w-6 text-black dark:text-white" />
           </Button>
         }
         systemPrompt="# 日历应用 AI 助手提示词
