@@ -2,7 +2,7 @@ import { Calendar } from "lucide-react"
 
 import { SignUpForm } from "@/components/account/SignUpForm"
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center from-blue-500 via-indigo-500 to-purple-500 gap-6 p-6 md:p-10">
       <div className="fixed -z-10 inset-0">
