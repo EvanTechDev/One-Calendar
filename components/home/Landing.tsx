@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon } from "lucide-react"
+import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon, CalendarIcon } from "lucide-react"
 import Image from "next/image"
 
 export default function LandingPage() {
@@ -18,26 +18,53 @@ export default function LandingPage() {
   const { isLoaded, isSignedIn } = useUser()
   const [shouldRender, setShouldRender] = useState(false)
   const [activeFeature, setActiveFeature] = useState("cloud")
+  const [showLoading, setShowLoading] = useState(false)
+  const [loadingDots, setLoadingDots] = useState("")
 
   useEffect(() => {
     const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
     if (hasSkippedLanding || (isLoaded && isSignedIn)) {
+      setShowLoading(true)
       router.replace("/app")
     } else if (isLoaded) {
       setShouldRender(true)
     }
   }, [isLoaded, isSignedIn, router])
 
+  useEffect(() => {
+    if (showLoading) {
+      const interval = setInterval(() => {
+        setLoadingDots(prev => {
+          if (prev === "...") return "."
+          return prev + "."
+        })
+      }, 200)
+
+      return () => clearInterval(interval)
+    }
+  }, [showLoading])
+
   const handleGetStarted = () => {
     localStorage.setItem("skip-landing", "true")
+    setShowLoading(true)
     router.push("/app")
+  }
+
+  if (showLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
+        <CalendarIcon className="h-12 w-12 text-gray-600 dark:text-gray-400 mb-4" />
+        <p className="text-lg text-gray-600 dark:text-gray-400">
+          Loading One Calendar{loadingDots}
+        </p>
+      </div>
+    )
   }
 
   if (!shouldRender) return null
 
   return (
     <div className="flex flex-col min-h-screen text-gray-900 dark:text-white">
-      {/* Background Pattern */}
       <div className="fixed -z-10 inset-0">
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0" style={{
@@ -51,12 +78,10 @@ export default function LandingPage() {
         </div>
       </div>
       
-      {/* Header/Navigation - Floating Nav Bar */}
       <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
         <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/20">
           <div className="flex items-center gap-2 py-2 px-3">
             <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
-            {/*<span className="font-semibold text-lg text-gray-900 dark:text-white">One Calendar</span>*/}
           </div>
           <nav className="hidden md:flex items-center gap-6 px-3 mr-32">
             <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
@@ -123,7 +148,6 @@ export default function LandingPage() {
         </div>
       </header>
       
-      {/* Hero Section */}
       <section className="py-24 px-2">
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
@@ -169,7 +193,6 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Features Tabs Section */}
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <Tabs defaultValue="cloud" className="w-full" onValueChange={setActiveFeature}>
@@ -290,8 +313,7 @@ export default function LandingPage() {
           </Tabs>
         </div>
       </section>
-      
-      {/* Original Features Grid Section */}
+
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -341,7 +363,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FAQ Accordion Section */}
 <section className="py-16 px-4 relative overflow-hidden">
   <div className="max-w-3xl mx-auto">
     <h2 className="text-3xl font-medium mb-10 text-center dark:text-white">FAQ</h2>
@@ -403,7 +424,6 @@ export default function LandingPage() {
   </div>
 </section>
       
-      {/* CTA Section - Improved Background */}
       <section className="py-20 px-4 relative overflow-hidden">
         <div className="absolute inset-0" />
         <div className="max-w-5xl mx-auto relative z-10">
@@ -422,7 +442,6 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Original Footer */}
       <footer className="mt-auto py-8 border-t border-black/10 dark:border-white/10 text-gray-600 dark:text-white/70 text-sm px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; 2025 One Calendar. All rights reserved.</p>
