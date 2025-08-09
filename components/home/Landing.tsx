@@ -35,7 +35,7 @@ export default function LandingPage() {
     if (showLoading) {
       const interval = setInterval(() => {
         setLoadingDots(prev => {
-          if (prev === ". . .") return "."
+          if (prev === "...") return "."
           return prev + "."
         })
       }, 400)
@@ -53,7 +53,7 @@ export default function LandingPage() {
   if (showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
-        <CalendarIcon className="h-12 w-12 text-[#0066ff] mb-4" />
+        <CalendarIcon className="h-36 w-36 text-[#0066ff] mb-4" />
         <p className="text-lg text-black dark:text-white">
           Loading One Calendar{loadingDots}
         </p>
