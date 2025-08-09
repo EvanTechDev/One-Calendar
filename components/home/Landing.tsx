@@ -53,8 +53,8 @@ export default function LandingPage() {
   if (showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
-        <CalendarIcon className="h-36 w-36 text-[#0066ff] mb-4" />
-        <p className="text-lg text-black dark:text-white">
+        <CalendarIcon className="h-24 w-24 text-[#0066ff] mb-4" />
+        <p className="text-lg text-gray-700 dark:text-white">
           Loading One Calendar{loadingDots}
         </p>
       </div>
