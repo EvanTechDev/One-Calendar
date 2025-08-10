@@ -611,7 +611,7 @@ const renderContactEditView = () => (
             )}
             onClick={() => setCountdownOpen(true)}
           >
-            <CalendarClock className="h-6 w-6 text-black" />
+            <CalendarClock className="h-6 w-6 text-black dark:text-white" />
           </Button>
 
           <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />
