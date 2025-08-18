@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     site: "@One__Cal",
     title: "One Calendar",
     description: "All your events in one place, beautifully organized.",
+    themeColor: "#0066ff",
     images: [
       {
         url: `https://calendar.xyehr.cn/og.png`,
