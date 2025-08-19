@@ -13,6 +13,7 @@ import { ThemeProvider } from "@/components/context/theme-provider"
 export const metadata: Metadata = {
   title: "One Calendar",
   description: "All your events in one place, beautifully organized.",
+  themeColor: "#0066ff",
   openGraph: {
     title: "One Calendar",
     description: "All your events in one place, beautifully organized.",
@@ -31,7 +32,6 @@ export const metadata: Metadata = {
     site: "@One__Cal",
     title: "One Calendar",
     description: "All your events in one place, beautifully organized.",
-    themeColor: "#0066ff",
     images: [
       {
         url: `https://calendar.xyehr.cn/og.png`,
