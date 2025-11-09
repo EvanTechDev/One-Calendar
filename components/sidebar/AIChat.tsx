@@ -25,6 +25,57 @@ interface AIChatSheetProps {
   systemPrompt?: string
 }
 
+function ChatMessage({ message, isLoading }: { message: Message; isLoading: boolean }) {
+  const isUser = message.role === 'user'
+  const [copied, setCopied] = useState(false)
+  const messageRef = useRef<HTMLDivElement>(null)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const isAILoading = isLoading && !isUser
+
+  return (
+    <div className={cn("group flex w-full px-4 py-1", isUser ? "justify-end" : "justify-start")}>
+      <div
+        ref={messageRef}
+        className={cn(
+          "relative max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
+          isUser ? "bg-[#0066ff] text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md"
+        )}
+      >
+        <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm break-words dark:prose-invert max-w-none">
+          {message.content}
+        </ReactMarkdown>
+
+        {isAILoading && (
+          <span className="ml-2 inline-flex items-center">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400" />
+            <span className="mx-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-150" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-300" />
+          </span>
+        )}
+
+        <button
+          onClick={handleCopy}
+          className={cn(
+            "absolute -bottom-2 right-2 p-1 rounded-md bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-opacity duration-200",
+            isUser ? "bg-[#0056e6] text-white hover:bg-[#0047b3]" : "bg-gray-50 text-gray-500 hover:bg-gray-100",
+            "opacity-0 group-hover:opacity-100",
+            copied && "opacity-100"
+          )}
+          aria-label="Copy message"
+        >
+          {copied ? <span className="text-xs">Copied!</span> : <CopyIcon className="h-3 w-3" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function AIChatSheet({ 
   open, 
   onOpenChange, 
@@ -41,17 +92,12 @@ export default function AIChatSheet({
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth'
-      })
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' })
     }
   }, [messages])
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    }
+    if (open && inputRef.current) setTimeout(() => inputRef.current?.focus(), 100)
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,56 +172,9 @@ export default function AIChatSheet({
                   <img src="/ai.svg" alt="One AI" className="w-24 h-24 mb-4" />
                 </div>
               ) : (
-                messages.map((message) => {
-                  const isUser = message.role === 'user'
-                  const [copied, setCopied] = useState(false)
-                  const messageRef = useRef<HTMLDivElement>(null)
-
-                  const handleCopy = () => {
-                    navigator.clipboard.writeText(message.content)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1500)
-                  }
-
-                  const isAILoading = isLoading && !isUser
-
-                  return (
-                    <div key={message.id} className={cn("group flex w-full px-4 py-1", isUser ? "justify-end" : "justify-start")}>
-                      <div
-                        ref={messageRef}
-                        className={cn(
-                          "relative max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
-                          isUser ? "bg-[#0066ff] text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md"
-                        )}
-                      >
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm break-words dark:prose-invert max-w-none">
-                          {message.content}
-                        </ReactMarkdown>
-
-                        {isAILoading && (
-                          <span className="ml-2 inline-flex items-center">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400" />
-                            <span className="mx-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-150" />
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-300" />
-                          </span>
-                        )}
-
-                        <button
-                          onClick={handleCopy}
-                          className={cn(
-                            "absolute -bottom-2 right-2 p-1 rounded-md bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-opacity duration-200",
-                            isUser ? "bg-[#0056e6] text-white hover:bg-[#0047b3]" : "bg-gray-50 text-gray-500 hover:bg-gray-100",
-                            "opacity-0 group-hover:opacity-100",
-                            copied && "opacity-100"
-                          )}
-                          aria-label="Copy message"
-                        >
-                          {copied ? <span className="text-xs">Copied!</span> : <CopyIcon className="h-3 w-3" />}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
+                messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} isLoading={isLoading} />
+                ))
               )}
             </div>
           </ScrollArea>
@@ -207,4 +206,4 @@ export default function AIChatSheet({
 
 function cn(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
-}
+      }
