@@ -25,7 +25,7 @@ interface AIChatSheetProps {
   systemPrompt?: string
 }
 
-function ChatMessage({ message, isLoading }: { message: Message; isLoading: boolean }) {
+function ChatMessage({ message, isLast, isLoading }: { message: Message; isLast: boolean; isLoading: boolean }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
   const messageRef = useRef<HTMLDivElement>(null)
@@ -36,7 +36,7 @@ function ChatMessage({ message, isLoading }: { message: Message; isLoading: bool
     setTimeout(() => setCopied(false), 1500)
   }
 
-  const isAILoading = isLoading && !isUser
+  const showLoader = isLoading && !isUser && isLast
 
   return (
     <div className={cn("group flex w-full px-4 py-1", isUser ? "justify-end" : "justify-start")}>
@@ -44,14 +44,16 @@ function ChatMessage({ message, isLoading }: { message: Message; isLoading: bool
         ref={messageRef}
         className={cn(
           "relative max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
-          isUser ? "bg-[#0066ff] text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md"
+          isUser
+            ? "bg-[#0066ff] text-[#ffffff] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032] rounded-br-md"
+            : "bg-gray-100 text-gray-900 rounded-bl-md"
         )}
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm break-words dark:prose-invert max-w-none">
           {message.content}
         </ReactMarkdown>
 
-        {isAILoading && (
+        {showLoader && (
           <span className="ml-2 inline-flex items-center">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400" />
             <span className="mx-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-150" />
@@ -172,8 +174,8 @@ export default function AIChatSheet({
                   <img src="/ai.svg" alt="One AI" className="w-24 h-24 mb-4" />
                 </div>
               ) : (
-                messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} isLoading={isLoading} />
+                messages.map((message, index) => (
+                  <ChatMessage key={message.id} message={message} isLast={index === messages.length - 1} isLoading={isLoading} />
                 ))
               )}
             </div>
@@ -206,4 +208,4 @@ export default function AIChatSheet({
 
 function cn(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
-      }
+}
