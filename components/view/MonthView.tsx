@@ -1,6 +1,6 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, subDays, addDays } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, subDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
 
@@ -66,10 +66,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
         return (
           <div
             key={day.toString()}
-            className={cn(
-              "min-h-[100px] p-2 border rounded-lg",
-              isSameMonth(day, date) ? "bg-background border" : "bg-background border border-gray-200"
-            )}
+            className="min-h-[100px] p-2 border rounded-lg border"
           >
             <div className={cn("font-medium text-sm", isSameMonth(day, date) ? "" : "text-gray-400")}>{format(day, "d")}</div>
             <div className="space-y-1">
