@@ -7,7 +7,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
-import { SendHorizonal } from "lucide-react"
+import { SendHorizonal, CopyIcon } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface Message {
   id: string
@@ -21,6 +23,59 @@ interface AIChatSheetProps {
   onOpenChange: (open: boolean) => void
   trigger?: React.ReactNode
   systemPrompt?: string
+}
+
+function ChatMessage({ message, isLast, isLoading }: { message: Message; isLast: boolean; isLoading: boolean }) {
+  const isUser = message.role === 'user'
+  const [copied, setCopied] = useState(false)
+  const messageRef = useRef<HTMLDivElement>(null)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const showLoader = isLoading && !isUser && isLast
+
+  return (
+    <div className={cn("group flex w-full px-4 py-1", isUser ? "justify-end" : "justify-start")}>
+      <div
+        ref={messageRef}
+        className={cn(
+          "relative max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
+          isUser
+            ? "bg-[#0066ff] text-[#ffffff] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032] rounded-br-md"
+            : "bg-gray-100 text-gray-900 rounded-bl-md"
+        )}
+      >
+        <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm break-words dark:prose-invert max-w-none">
+          {message.content}
+        </ReactMarkdown>
+
+        {showLoader && (
+          <span className="ml-2 inline-flex items-center">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400" />
+            <span className="mx-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-150" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 delay-300" />
+          </span>
+        )}
+
+        <button
+          onClick={handleCopy}
+          className={cn(
+            "absolute -bottom-2 right-2 p-1 rounded-md bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-opacity duration-200",
+            isUser ? "bg-[#0056e6] text-white hover:bg-[#0047b3]" : "bg-gray-50 text-gray-500 hover:bg-gray-100",
+            "opacity-0 group-hover:opacity-100",
+            copied && "opacity-100"
+          )}
+          aria-label="Copy message"
+        >
+          {copied ? <span className="text-xs">Copied!</span> : <CopyIcon className="h-3 w-3" />}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function AIChatSheet({ 
@@ -39,19 +94,12 @@ export default function AIChatSheet({
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth'
-      })
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' })
     }
   }, [messages])
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 100)
-    }
+    if (open && inputRef.current) setTimeout(() => inputRef.current?.focus(), 100)
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,57 +120,35 @@ export default function AIChatSheet({
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: input }
           ]
-        }),
+        })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch response')
-      }
+      if (!response.ok) throw new Error('Failed to fetch response')
 
       const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('No reader available')
-      }
+      if (!reader) throw new Error('No reader available')
 
       const aiMessageId = Date.now().toString()
       let aiMessageContent = ""
 
-      setMessages(prev => [...prev, {
-        id: aiMessageId,
-        content: "",
-        role: 'assistant',
-        timestamp: new Date()
-      }])
+      setMessages(prev => [...prev, { id: aiMessageId, content: "", role: 'assistant', timestamp: new Date() }])
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
         const textChunk = new TextDecoder().decode(value)
         aiMessageContent += textChunk
-
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiMessageId 
-            ? { ...msg, content: aiMessageContent } 
-            : msg
-        ))
+        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? { ...msg, content: aiMessageContent } : msg))
       }
     } catch (error: any) {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        content: `Error: ${error.message || 'Request failed'}`,
-        role: 'assistant',
-        timestamp: new Date()
-      }])
+      setMessages(prev => [...prev, { id: Date.now().toString(), content: `Error: ${error.message || 'Request failed'}`, role: 'assistant', timestamp: new Date() }])
     } finally {
       setIsLoading(false)
     }
@@ -133,60 +159,24 @@ export default function AIChatSheet({
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>AI Assistant</SheetTitle>
+          <SheetTitle>One AI</SheetTitle>
         </SheetHeader>
-        
+
         <div className="flex-1 overflow-hidden">
-          <ScrollArea 
-            ref={scrollAreaRef}
-            className="h-full w-full pr-4"
-          >
+          <ScrollArea ref={scrollAreaRef} className="h-full w-full pr-4">
             <div className="flex flex-col gap-4 py-4">
               {!isSignedIn ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-4">
-                  <p>Please sign in to use the AI assistant</p>
+                  <p>Please sign in to use One AI</p>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <p>How can I help you today?</p>
-                  <p>By using AI services, you agree to our <a href="/privacy">privacy policy</a>.</p>
-                  <p>Your chat messages with AI will be sent to Groq for processing</p>
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <img src="/ai.svg" alt="One AI" className="w-24 h-24 mb-4" />
                 </div>
               ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2",
-                        message.role === 'user'
-                          ? 'bg-[#0066ff] text-[#ffffff] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]'
-                          : 'bg-secondary text-secondary-foreground'
-                      )}
-                    >
-                      {message.content}
-                      <div className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
+                messages.map((message, index) => (
+                  <ChatMessage key={message.id} message={message} isLast={index === messages.length - 1} isLoading={isLoading} />
                 ))
-              )}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] rounded-lg bg-secondary text-secondary-foreground px-4 py-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce delay-75" />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce delay-150" />
-                    </div>
-                  </div>
-                </div>
               )}
             </div>
           </ScrollArea>
@@ -202,19 +192,12 @@ export default function AIChatSheet({
               className="flex-1"
               disabled={isLoading}
             />
-            <Button 
-              type="submit" 
-              size="icon"
-              disabled={!input.trim() || isLoading}
-            >
+            <Button type="submit" size="icon" disabled={!input.trim() || isLoading}>
               <SendHorizonal className="h-4 w-4" />
             </Button>
           </form>
         ) : (
-          <Button 
-            className="mt-4" 
-            onClick={() => router.push('/sign-in')}
-          >
+          <Button className="mt-4" onClick={() => router.push('/sign-in')}>
             Sign In to Chat
           </Button>
         )}
