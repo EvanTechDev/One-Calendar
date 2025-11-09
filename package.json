@@ -75,7 +75,8 @@
     "axios": "latest",
     "sonner": "2.0.3",
     "@marsidev/react-turnstile": "latest",
-    "pg": "latest"
+    "pg": "latest",
+    "remark-gfm": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
