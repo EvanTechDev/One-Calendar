@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowUp, Copy } from "lucide-react"
@@ -250,7 +251,7 @@ export default function AIChatSheet({
               size="icon"
               disabled={!input.trim() || isLoading}
             >
-              <SendHorizonal className="h-4 w-4" />
+              <ArrowUp className="h-4 w-4" />
             </Button>
           </form>
         )}
