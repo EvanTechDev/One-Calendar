@@ -1,6 +1,6 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addDays } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
 
@@ -57,7 +57,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
 
       {totalDays.map((day, idx) => {
         if (!day) {
-          return <div key={idx} className="min-h-[100px] p-2 border rounded-lg bg-muted"></div>
+          return <div key={idx} className="min-h-[100px] p-2 border border-gray-200 text-gray-400 rounded-lg bg-muted"></div>
         }
 
         const dayEvents = events.filter((event) => isSameDay(new Date(event.startDate), day))
@@ -67,7 +67,10 @@ export default function MonthView({ date, events, onEventClick, language, firstD
         return (
           <div
             key={day.toString()}
-            className={cn("min-h-[100px] p-2 border rounded-lg", isSameMonth(day, date) ? "bg-background" : "bg-muted")}
+            className={cn(
+              "min-h-[100px] p-2 border rounded-lg",
+              isSameMonth(day, date) ? "bg-background border" : "bg-muted border border-gray-200 text-gray-400"
+            )}
           >
             <div className="font-medium text-sm">{format(day, "d")}</div>
             <div className="space-y-1">
