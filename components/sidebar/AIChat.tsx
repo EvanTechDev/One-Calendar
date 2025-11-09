@@ -60,8 +60,10 @@ function MessageBubble({ message, isLoading }: { message: Message; isLoading: bo
       <div
         ref={messageRef}
         className={cn(
-          "relative max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
-          isUser ? "bg-[#0066ff] text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md",
+          "relative max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
+          isUser
+            ? "bg-[#0066ff] text-[#ffffff] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032] rounded-br-md"
+            : "bg-secondary text-secondary-foreground rounded-bl-md",
         )}
       >
         <ReactMarkdown
@@ -81,7 +83,7 @@ function MessageBubble({ message, isLoading }: { message: Message; isLoading: bo
         <button
           onClick={handleCopy}
           className={cn(
-            "absolute -bottom-2 right-2 p-1 rounded-md bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-opacity duration-200",
+            "absolute -bottom-2 right-2 p-1 rounded-md transition-opacity duration-200",
             isUser ? "bg-[#0056e6] text-white hover:bg-[#0047b3]" : "bg-gray-50 text-gray-500 hover:bg-gray-100",
             "opacity-0 group-hover:opacity-100",
             copied && "opacity-100",
@@ -234,32 +236,19 @@ export default function AIChatSheet({
         </div>
 
         {isSignedIn && (
-          <div className="w-full flex justify-center pb-4">
-            <div className="w-full max-w-2xl">
-              <form onSubmit={handleSubmit} className="relative">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask me anything"
-                  className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 pr-14 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  rows={2}
-                />
-                <Button
-                  type="submit"
-                  className={cn(
-                    "absolute bottom-3 right-2 h-8 w-8 rounded-lg transition-all duration-200",
-                    input.trim().length === 0
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-[#0066ff] hover:bg-[#0056e6] text-white shadow-sm hover:shadow-md",
-                  )}
-                  disabled={input.trim().length === 0 || isLoading}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          </div>
+          <form onSubmit={handleSubmit} className="flex gap-2 pt-4">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything"
+              className="flex-1 resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              rows={1}
+            />
+            <Button type="submit" size="icon" disabled={input.trim().length === 0 || isLoading}>
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+          </form>
         )}
       </SheetContent>
     </Sheet>
