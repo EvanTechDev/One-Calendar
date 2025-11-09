@@ -237,21 +237,20 @@ export default function AIChatSheet({
 
         {isSignedIn && (
           <form onSubmit={handleSubmit} className="relative pt-4">
-            <textarea
+            <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
               placeholder="Type your message..."
-              className="w-full resize-none rounded-lg border bg-background px-4 py-3 pr-12 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              rows={1}
+              className="flex-1"
+              disabled={isLoading}
             />
-            <Button
-              type="submit"
+            <Button 
+              type="submit" 
               size="icon"
-              className="absolute bottom-5 right-2 h-8 w-8"
-              disabled={input.trim().length === 0 || isLoading}
+              disabled={!input.trim() || isLoading}
             >
-              <ArrowUp className="h-4 w-4" />
+              <SendHorizonal className="h-4 w-4" />
             </Button>
           </form>
         )}
