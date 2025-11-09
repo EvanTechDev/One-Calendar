@@ -1,6 +1,6 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
 
@@ -29,22 +29,23 @@ function getDarkerColorClass(color: string) {
   }
 
   return colorMapping[color] || '#3A3A3A';
-  }
+}
 
 export default function MonthView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: MonthViewProps) {
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
+  const startWeekDay = monthStart.getDay()
+  const leadingEmptyDays = (7 + (startWeekDay - firstDayOfWeek)) % 7
+
+  const totalDays = [...Array(leadingEmptyDays).fill(null), ...monthDays]
+
   return (
     <div className="grid grid-cols-7 gap-1 p-4">
       {(() => {
-        const days =
-          language === "zh"
-            ? ["日", "一", "二", "三", "四", "五", "六"]
-            : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        const days = language === "zh" ? ["日", "一", "二", "三", "四", "五", "六"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-        // Reorder days based on firstDayOfWeek
         const orderedDays = [...days.slice(firstDayOfWeek), ...days.slice(0, firstDayOfWeek)]
 
         return orderedDays.map((day) => (
@@ -53,42 +54,42 @@ export default function MonthView({ date, events, onEventClick, language, firstD
           </div>
         ))
       })()}
-      {monthDays.map((day) => {
-  const dayEvents = events.filter((event) => isSameDay(new Date(event.startDate), day))
-  const visibleEvents = dayEvents.slice(0, 3)
-  const remainingCount = dayEvents.length - visibleEvents.length
 
-  return (
-    <div
-      key={day.toString()}
-      className={cn("min-h-[100px] p-2 border rounded-lg", isSameMonth(day, date) ? "bg-background" : "bg-muted")}
-    >
-      <div className="font-medium text-sm">{format(day, "d")}</div>
-      <div className="space-y-1">
-        {visibleEvents.map((event) => (
+      {totalDays.map((day, idx) => {
+        if (!day) {
+          return <div key={idx} className="min-h-[100px] p-2 border rounded-lg bg-muted"></div>
+        }
+
+        const dayEvents = events.filter((event) => isSameDay(new Date(event.startDate), day))
+        const visibleEvents = dayEvents.slice(0, 3)
+        const remainingCount = dayEvents.length - visibleEvents.length
+
+        return (
           <div
-            key={event.id}
-            className={cn("relative text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
-            onClick={() => onEventClick(event)}
+            key={day.toString()}
+            className={cn("min-h-[100px] p-2 border rounded-lg", isSameMonth(day, date) ? "bg-background" : "bg-muted")}
           >
-            <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
-            <div className="pl-1.5">
-              {event.title}
+            <div className="font-medium text-sm">{format(day, "d")}</div>
+            <div className="space-y-1">
+              {visibleEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className={cn("relative text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
+                  onClick={() => onEventClick(event)}
+                >
+                  <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
+                  <div className="pl-1.5">{event.title}</div>
+                </div>
+              ))}
+              {remainingCount > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {language === "zh" ? `还有 ${remainingCount} 个事件` : `${remainingCount} more event${remainingCount > 1 ? "s" : ""}`}
+                </div>
+              )}
             </div>
           </div>
-        ))}
-        {remainingCount > 0 && (
-          <div className="text-xs text-muted-foreground">
-            {language === "zh"
-              ? `还有 ${remainingCount} 个事件`
-              : `${remainingCount} more event${remainingCount > 1 ? "s" : ""}`}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-})}
+        )
+      })}
     </div>
   )
 }
-
