@@ -1,6 +1,6 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, subDays, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
 
@@ -39,15 +39,18 @@ export default function MonthView({ date, events, onEventClick, language, firstD
   const startWeekDay = monthStart.getDay()
   const leadingEmptyDays = (7 + (startWeekDay - firstDayOfWeek)) % 7
 
-  const totalDays = [...Array(leadingEmptyDays).fill(null), ...monthDays]
+  const prevMonthDays: Date[] = []
+  for (let i = leadingEmptyDays; i > 0; i--) {
+    prevMonthDays.push(subDays(monthStart, i))
+  }
+
+  const totalDays = [...prevMonthDays, ...monthDays]
 
   return (
     <div className="grid grid-cols-7 gap-1 p-4">
       {(() => {
         const days = language === "zh" ? ["日", "一", "二", "三", "四", "五", "六"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
         const orderedDays = [...days.slice(firstDayOfWeek), ...days.slice(0, firstDayOfWeek)]
-
         return orderedDays.map((day) => (
           <div key={day} className="text-center font-medium text-sm py-2">
             {day}
@@ -55,11 +58,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
         ))
       })()}
 
-      {totalDays.map((day, idx) => {
-        if (!day) {
-          return <div key={idx} className="min-h-[100px] p-2 border border-gray-200 text-gray-400 rounded-lg bg-muted"></div>
-        }
-
+      {totalDays.map((day) => {
         const dayEvents = events.filter((event) => isSameDay(new Date(event.startDate), day))
         const visibleEvents = dayEvents.slice(0, 3)
         const remainingCount = dayEvents.length - visibleEvents.length
@@ -69,10 +68,10 @@ export default function MonthView({ date, events, onEventClick, language, firstD
             key={day.toString()}
             className={cn(
               "min-h-[100px] p-2 border rounded-lg",
-              isSameMonth(day, date) ? "bg-background border" : "bg-muted border border-gray-200 text-gray-400"
+              isSameMonth(day, date) ? "bg-background border" : "bg-background border border-gray-200"
             )}
           >
-            <div className="font-medium text-sm">{format(day, "d")}</div>
+            <div className={cn("font-medium text-sm", isSameMonth(day, date) ? "" : "text-gray-400")}>{format(day, "d")}</div>
             <div className="space-y-1">
               {visibleEvents.map((event) => (
                 <div
