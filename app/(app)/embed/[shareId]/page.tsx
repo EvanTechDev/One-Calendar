@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
-import { MapPin, Users, Calendar, Bell, AlignLeft, Clock, Loader2, AlertCircle, ExternalLink } from 'lucide-react'
+import { MapPin, Users, Calendar, Bell, AlignLeft, Clock, AlertCircle, ExternalLink } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -87,26 +87,7 @@ export default function EmbedEventPage({
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="fixed -z-10 inset-0">
-          <div className="absolute inset-0 bg-white dark:bg-black">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
-              backgroundSize: '24px 24px'
-            }} />
-            <div className="absolute inset-0 dark:block hidden" style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
-              backgroundSize: '24px 24px'
-            }} />
-          </div>
-        </div>
-        <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
-        <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
-          {language === "zh" ? "加载中..." : "Loading..."}
-        </p>
-      </div>
-    )
+    return null
   }
 
   if (error || !event) {
@@ -209,12 +190,12 @@ export default function EmbedEventPage({
               )}
             </div>
 
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-6 pt-6">
               <a
                 href={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium text-sm group"
+                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium text-sm group"
               >
                 {language === "zh" ? "查看完整详情" : "View Full Details"}
                 <ExternalLink className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
