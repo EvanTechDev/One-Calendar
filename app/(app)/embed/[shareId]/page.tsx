@@ -84,7 +84,7 @@ export default function EmbedEventPage({ params }: { params: Promise<{ shareId: 
 
   if (error || !event) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-transparent">
         <Card className="max-w-md w-full overflow-hidden bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
           <CardContent className="p-6 text-center">
             <div className="bg-red-50 dark:bg-red-900/20 rounded-full p-4 mx-auto w-fit">
@@ -111,7 +111,7 @@ export default function EmbedEventPage({ params }: { params: Promise<{ shareId: 
   const durationText = language === "zh" ? `${durationHours > 0 ? `${durationHours}小时` : ""}${durationMinutes > 0 ? ` ${durationMinutes}分钟` : ""}` : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`
 
   return (
-    <div className="p-4 min-h-screen">
+    <div className="p-4 min-h-screen bg-transparent">
       <Card className="max-w-md w-full overflow-hidden bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
         <div className="relative">
           <div className={cn("absolute left-0 top-0 h-full w-1", event.color)} />
@@ -180,4 +180,4 @@ export default function EmbedEventPage({ params }: { params: Promise<{ shareId: 
       </Card>
     </div>
   )
-            }
+}
