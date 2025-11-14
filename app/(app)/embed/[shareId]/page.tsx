@@ -127,7 +127,7 @@ export default function EmbedEventPage({
 
   return (
     <div className="p-4">
-      <Card className="max-w-md w-full overflow-hidden mx-auto">
+      <Card className="max-w-md w-full overflow-hidden">
         <div className="relative">
           <div className={cn("absolute left-0 top-0 h-full w-1", event.color)} />
           
@@ -190,7 +190,7 @@ export default function EmbedEventPage({
               )}
             </div>
 
-            <div className="mt-6 pt-6">
+            <div className="mt-4 pt-4">
               <a
                 href={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareId}`}
                 target="_blank"
