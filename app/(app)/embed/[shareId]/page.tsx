@@ -32,19 +32,12 @@ export default function EmbedEventPage({ params }: { params: Promise<{ shareId: 
   const [language, setLanguage] = useState<"zh" | "en">("en")
 
   useEffect(() => {
+    params.then((p) => setShareId(p.shareId))
+  }, [params])
+
+  useEffect(() => {
     const browserLang = navigator.language.toLowerCase()
     setLanguage(browserLang.startsWith("zh") ? "zh" : "en")
-
-    const mql = window.matchMedia("(prefers-color-scheme: dark)")
-    const applyTheme = (isDark: boolean) => {
-      if (isDark) document.documentElement.classList.add("dark")
-      else document.documentElement.classList.remove("dark")
-    }
-
-    applyTheme(mql.matches)
-    const listener = (e: MediaQueryListEvent) => applyTheme(e.matches)
-    mql.addEventListener("change", listener)
-    return () => mql.removeEventListener("change", listener)
   }, [])
 
   useEffect(() => {
