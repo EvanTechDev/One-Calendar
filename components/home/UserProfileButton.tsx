@@ -27,11 +27,18 @@ import { SignOutButton, UserProfile, useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-type EncryptedPayload = {
+type CipherBundle = {
   v: 1
   salt: string
-  iv: string
   ct: string
+}
+
+type ApiGetResponse = {
+  success?: boolean
+  ciphertext?: string
+  iv?: string
+  timestamp?: string
+  error?: string
 }
 
 const AUTO_BACKUP_ENABLED_KEY = "auto-backup-enabled"
@@ -64,27 +71,26 @@ async function deriveAesKey(password: string, salt: Uint8Array) {
   )
 }
 
-async function encryptString(password: string, plaintext: string): Promise<string> {
+async function encryptForApi(password: string, plaintext: string): Promise<{ ciphertext: string; iv: string }> {
   const enc = new TextEncoder()
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const key = await deriveAesKey(password, salt)
   const ctBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(plaintext))
-  const payload: EncryptedPayload = {
+  const bundle: CipherBundle = {
     v: 1,
     salt: toBase64(salt),
-    iv: toBase64(iv),
     ct: toBase64(new Uint8Array(ctBuf)),
   }
-  return JSON.stringify(payload)
+  return { ciphertext: JSON.stringify(bundle), iv: toBase64(iv) }
 }
 
-async function decryptString(password: string, encryptedJson: string): Promise<string> {
+async function decryptFromApi(password: string, ciphertext: string, ivB64: string): Promise<string> {
   const dec = new TextDecoder()
-  const parsed = JSON.parse(encryptedJson) as EncryptedPayload
-  if (!parsed || parsed.v !== 1 || !parsed.salt || !parsed.iv || !parsed.ct) throw new Error("Invalid payload")
+  const parsed = JSON.parse(ciphertext) as CipherBundle
+  if (!parsed || parsed.v !== 1 || !parsed.salt || !parsed.ct) throw new Error("Invalid ciphertext")
   const salt = fromBase64(parsed.salt)
-  const iv = fromBase64(parsed.iv)
+  const iv = fromBase64(ivB64)
   const ct = fromBase64(parsed.ct)
   const key = await deriveAesKey(password, salt)
   const ptBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct)
@@ -97,28 +103,32 @@ async function sha256Base64(text: string) {
   return toBase64(new Uint8Array(hash))
 }
 
-async function apiGetBlob(signal?: AbortSignal): Promise<string | null> {
+async function apiGetBlob(signal?: AbortSignal): Promise<{ ciphertext: string; iv: string; timestamp?: string } | null> {
   const res = await fetch("/api/blob", { method: "GET", signal, headers: { Accept: "application/json" } })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`GET /api/blob failed: ${res.status}`)
-  const ct = res.headers.get("content-type") || ""
-  if (ct.includes("application/json")) {
-    const j = await res.json().catch(() => null)
-    const blob = j?.blob ?? j?.data ?? j?.payload ?? j?.content ?? null
-    if (typeof blob === "string") return blob
-    return JSON.stringify(j)
-  }
-  return await res.text()
+  const j = (await res.json()) as ApiGetResponse
+  const ciphertext = j?.ciphertext
+  const iv = j?.iv
+  if (typeof ciphertext !== "string" || typeof iv !== "string") throw new Error("Invalid server response")
+  return { ciphertext, iv, timestamp: j?.timestamp }
 }
 
-async function apiPostBlob(blob: string, signal?: AbortSignal) {
+async function apiPostBlob(payload: { ciphertext: string; iv: string }, signal?: AbortSignal) {
   const res = await fetch("/api/blob", {
     method: "POST",
     signal,
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ blob }),
+    body: JSON.stringify(payload),
   })
-  if (!res.ok) throw new Error(`POST /api/blob failed: ${res.status}`)
+  if (!res.ok) {
+    let msg = ""
+    try {
+      const j = await res.json()
+      msg = j?.error ? ` (${j.error})` : ""
+    } catch {}
+    throw new Error(`POST /api/blob failed: ${res.status}${msg}`)
+  }
 }
 
 async function apiDeleteBlob(signal?: AbortSignal) {
@@ -238,8 +248,8 @@ export default function UserProfileButton() {
         const ac = new AbortController()
         inFlightRef.current = ac
 
-        const encrypted = await encryptString(encryptionKeyRef.current!, plaintext)
-        await apiPostBlob(encrypted, ac.signal)
+        const payload = await encryptForApi(encryptionKeyRef.current!, plaintext)
+        await apiPostBlob(payload, ac.signal)
         toast(language === "zh" ? "已上传云端备份" : "Cloud backup uploaded")
       } catch (e: any) {
         toast(language === "zh" ? `备份失败：${e?.message || "未知错误"}` : `Backup failed: ${e?.message || "Unknown error"}`)
