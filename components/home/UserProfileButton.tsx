@@ -380,11 +380,14 @@ export default function UserProfileButton() {
       <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === "zh" ? "解锁备份" : "Unlock Backup"}</DialogTitle>
+            <DialogTitle>{language === "zh" ? "输入密码" : "Enter the password"}</DialogTitle>
+            <DialogDescription>
+              {language === "zh" ? "输入密码以解锁和备份数据" : "Enter the password to unlock and backup data"}
+            </DialogDescription>
           </DialogHeader>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <DialogFooter>
-            <Button onClick={unlock}>{language === "zh" ? "解锁" : "Unlock"}</Button>
+            <Button onClick={unlock}>{language === "zh" ? "确认" : "Confirm"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
