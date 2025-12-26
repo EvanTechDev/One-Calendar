@@ -365,6 +365,9 @@ export default function UserProfileButton() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "设置加密密码" : "Set Encryption Password"}</DialogTitle>
+            <DialogDescription>
+              {language === "zh" ? "请设置加密密码并记住和妥善保管您的加密密码，不要向任何人透露它" : "Please set an encryption password and remember and keep your encryption password safe. Do not reveal it to anyone"}
+            </DialogDescription>
           </DialogHeader>
           <Label>{language === "zh" ? "密码" : "Password"}</Label>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
