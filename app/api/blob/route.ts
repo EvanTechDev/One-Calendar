@@ -1,3 +1,5 @@
+export const runtime = "node"
+
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { Pool } from "pg"
