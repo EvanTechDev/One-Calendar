@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { Pool } from "pg"
@@ -9,7 +10,10 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 })
 
+let inited = false
+
 async function initDB() {
+  if (inited) return
   const client = await pool.connect()
   try {
     await client.query(`
@@ -20,6 +24,7 @@ async function initDB() {
         timestamp TIMESTAMP NOT NULL
       )
     `)
+    inited = true
   } finally {
     client.release()
   }
@@ -28,15 +33,17 @@ async function initDB() {
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = await req.json()
-    const { ciphertext, iv } = body
-
-    if (!ciphertext || !iv) {
+    const ciphertext = body?.ciphertext
+    const iv = body?.iv
+    if (typeof ciphertext !== "string" || typeof iv !== "string" || !ciphertext || !iv) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+    }
+
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json({ error: "POSTGRES_URL missing" }, { status: 500 })
     }
 
     await initDB()
@@ -53,23 +60,28 @@ export async function POST(req: NextRequest) {
           iv = EXCLUDED.iv,
           timestamp = EXCLUDED.timestamp
         `,
-        [user.id, ciphertext, iv, new Date().toISOString()]
+        [user.id, ciphertext, iv, new Date().toISOString()],
       )
-
       return NextResponse.json({ success: true })
     } finally {
       client.release()
     }
-  } catch (e) {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+  } catch (e: any) {
+    console.error("POST /api/blob error:", e)
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
 
 export async function GET() {
   try {
     const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json({ error: "POSTGRES_URL missing" }, { status: 500 })
     }
 
     await initDB()
@@ -78,13 +90,9 @@ export async function GET() {
     try {
       const result = await client.query(
         `SELECT ciphertext, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-        [user.id]
+        [user.id],
       )
-
-      if (result.rowCount === 0) {
-        return NextResponse.json({ error: "Not found" }, { status: 404 })
-      }
-
+      if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 })
       return NextResponse.json({
         success: true,
         ciphertext: result.rows[0].ciphertext,
@@ -94,31 +102,38 @@ export async function GET() {
     } finally {
       client.release()
     }
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+  } catch (e: any) {
+    console.error("GET /api/blob error:", e)
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
 
 export async function DELETE() {
   try {
     const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json({ error: "POSTGRES_URL missing" }, { status: 500 })
     }
 
     await initDB()
 
     const client = await pool.connect()
     try {
-      await client.query(
-        `DELETE FROM calendar_backups WHERE user_id = $1`,
-        [user.id]
-      )
+      await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [user.id])
       return NextResponse.json({ success: true })
     } finally {
       client.release()
     }
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+  } catch (e: any) {
+    console.error("DELETE /api/blob error:", e)
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
