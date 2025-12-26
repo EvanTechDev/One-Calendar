@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { translations, useLanguage } from "@/lib/i18n"
+import { useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -46,10 +46,16 @@ function ub64(s: string) {
 }
 
 async function derive(password: string, salt: Uint8Array) {
-  const m = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"])
+  const k = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"],
+  )
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
-    m,
+    k,
     { name: "AES-GCM", length: 256 },
     false,
     ["encrypt", "decrypt"],
@@ -60,7 +66,11 @@ async function encrypt(password: string, text: string) {
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const key = await derive(password, salt)
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(text))
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(text),
+  )
   return {
     ciphertext: JSON.stringify({ v: 1, salt: b64(salt), ct: b64(new Uint8Array(ct)) }),
     iv: b64(iv),
@@ -70,7 +80,11 @@ async function encrypt(password: string, text: string) {
 async function decrypt(password: string, ciphertext: string, iv: string) {
   const d = JSON.parse(ciphertext)
   const key = await derive(password, ub64(d.salt))
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ub64(iv) }, key, ub64(d.ct))
+  const pt = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: ub64(iv) },
+    key,
+    ub64(d.ct),
+  )
   return new TextDecoder().decode(pt)
 }
 
@@ -122,63 +136,83 @@ export default function UserProfileButton() {
   }, [])
 
   useEffect(() => {
-    if (enabled && !keyRef.current) setUnlockOpen(true)
-  }, [enabled])
+    if (!isSignedIn) return
+    if (keyRef.current) return
+    if (restoredRef.current) return
+
+    apiGet().then((cloud) => {
+      if (cloud) setUnlockOpen(true)
+    })
+  }, [isSignedIn])
 
   useEffect(() => {
     if (!enabled) return
     if (!keyRef.current) return
     if (!restoredRef.current) return
+
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const payload = await encrypt(keyRef.current!, JSON.stringify({ events, calendars }))
+      const payload = await encrypt(
+        keyRef.current!,
+        JSON.stringify({ events, calendars }),
+      )
       await apiPost(payload)
       timerRef.current = null
     }, 800)
   }, [events, calendars, enabled])
+
+  async function unlock() {
+    if (!password) return
+
+    const cloud = await apiGet()
+    if (!cloud) return
+
+    let plain
+    try {
+      plain = await decrypt(password, cloud.ciphertext, cloud.iv)
+    } catch {
+      toast(language === "zh" ? "密码错误" : "Incorrect password")
+      return
+    }
+
+    try {
+      const data = JSON.parse(plain)
+      if (data?.events && data?.calendars) {
+        setEvents(data.events)
+        setCalendars(data.calendars)
+      }
+    } catch {}
+
+    keyRef.current = password
+    restoredRef.current = true
+    localStorage.setItem(AUTO_KEY, "true")
+    setEnabled(true)
+
+    setPassword("")
+    setUnlockOpen(false)
+
+    toast(language === "zh" ? "数据已恢复并开启自动备份" : "Data restored and auto backup enabled")
+  }
 
   async function enable() {
     if (password !== confirm) {
       setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    const payload = await encrypt(password, JSON.stringify({ events, calendars }))
+    const payload = await encrypt(
+      password,
+      JSON.stringify({ events, calendars }),
+    )
     await apiPost(payload)
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
     restoredRef.current = true
     setEnabled(true)
-    setSetPwdOpen(false)
     setPassword("")
     setConfirm("")
+    setSetPwdOpen(false)
     toast(language === "zh" ? "自动备份已启用" : "Auto backup enabled")
-  }
-
-  async function unlock() {
-    if (!password) return
-    const cloud = await apiGet()
-    if (cloud) {
-      let plain
-      try {
-        plain = await decrypt(password, cloud.ciphertext, cloud.iv)
-      } catch {
-        toast(language === "zh" ? "密码错误" : "Incorrect password")
-        return
-      }
-      try {
-        const data = JSON.parse(plain)
-        if (data?.events && data?.calendars) {
-          setEvents(data.events)
-          setCalendars(data.calendars)
-        }
-      } catch {}
-    }
-    keyRef.current = password
-    restoredRef.current = true
-    setUnlockOpen(false)
-    setPassword("")
-    toast(language === "zh" ? "数据已恢复" : "Data restored")
   }
 
   async function rotate() {
@@ -188,6 +222,7 @@ export default function UserProfileButton() {
     }
     const cloud = await apiGet()
     if (!cloud) return
+
     let plain
     try {
       plain = await decrypt(oldPassword, cloud.ciphertext, cloud.iv)
@@ -195,6 +230,7 @@ export default function UserProfileButton() {
       toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
       return
     }
+
     const next = await encrypt(password, plain)
     await apiPost(next)
     keyRef.current = password
@@ -228,7 +264,13 @@ export default function UserProfileButton() {
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
-              <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
+              <Image
+                src={user.imageUrl}
+                alt="avatar"
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
+              />
             </Button>
           ) : (
             <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
@@ -291,7 +333,13 @@ export default function UserProfileButton() {
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "自动备份" : "Auto Backup"}</DialogTitle>
             <DialogDescription>
-              {enabled ? (language === "zh" ? "已启用" : "Enabled") : language === "zh" ? "未启用" : "Disabled"}
+              {enabled
+                ? language === "zh"
+                  ? "已启用"
+                  : "Enabled"
+                : language === "zh"
+                  ? "未启用"
+                  : "Disabled"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
