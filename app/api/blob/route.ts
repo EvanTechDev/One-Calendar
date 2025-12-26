@@ -1,8 +1,8 @@
-export const runtime = "node"
-
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { Pool } from "pg"
+
+export const runtime = "nodejs"
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
