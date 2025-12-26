@@ -106,7 +106,13 @@ export default function UserProfileButton() {
   const [error, setError] = useState("")
 
   const keyRef = useRef<string | null>(null)
-  const enabled = useMemo(() => localStorage.getItem(AUTO_KEY) === "true", [])
+  
+const [enabled, setEnabled] = useState(false)
+
+useEffect(() => {
+  setEnabled(localStorage.getItem(AUTO_KEY) === "true")
+}, [])
+
 
   useEffect(() => {
     if (enabled && !keyRef.current) setUnlockOpen(true)
