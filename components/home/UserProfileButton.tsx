@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { User, LogOut, CircleUser, FolderSync, CloudUpload, Trash2 } from "lucide-react"
+import { User, LogOut, CircleUser, FolderSync, CloudUpload, Trash2, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,384 +23,154 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
-import { SignOutButton, UserProfile, useUser } from "@clerk/nextjs"
+import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-type CipherBundle = {
-  v: 1
-  salt: string
-  ct: string
+const AUTO_KEY = "auto-backup-enabled"
+
+function b64(u: Uint8Array) {
+  return btoa(String.fromCharCode(...u))
 }
 
-type ApiGetResponse = {
-  success?: boolean
-  ciphertext?: string
-  iv?: string
-  timestamp?: string
-  error?: string
+function ub64(s: string) {
+  return new Uint8Array(atob(s).split("").map((c) => c.charCodeAt(0)))
 }
 
-const AUTO_BACKUP_ENABLED_KEY = "auto-backup-enabled"
-const AUTO_BACKUP_USER_KEY = "auto-backup-user"
-const LOCAL_BACKUP_KEYS_CANDIDATES = ["calendar-backup", "backup", "calendar-data", "calendar_events", "calendar_calendars"]
-const LOCAL_BACKUP_CHANGED_EVENT = "localstorage-changed"
-
-function toBase64(bytes: Uint8Array) {
-  let s = ""
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i])
-  return btoa(s)
-}
-
-function fromBase64(b64: string) {
-  const bin = atob(b64)
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes
-}
-
-async function deriveAesKey(password: string, salt: Uint8Array) {
-  const enc = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"])
+async function derive(password: string, salt: Uint8Array) {
+  const m = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"])
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
-    keyMaterial,
+    m,
     { name: "AES-GCM", length: 256 },
     false,
     ["encrypt", "decrypt"],
   )
 }
 
-async function encryptForApi(password: string, plaintext: string): Promise<{ ciphertext: string; iv: string }> {
-  const enc = new TextEncoder()
+async function encrypt(password: string, text: string) {
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  const key = await deriveAesKey(password, salt)
-  const ctBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(plaintext))
-  const bundle: CipherBundle = {
-    v: 1,
-    salt: toBase64(salt),
-    ct: toBase64(new Uint8Array(ctBuf)),
+  const key = await derive(password, salt)
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(text))
+  return {
+    ciphertext: JSON.stringify({ v: 1, salt: b64(salt), ct: b64(new Uint8Array(ct)) }),
+    iv: b64(iv),
   }
-  return { ciphertext: JSON.stringify(bundle), iv: toBase64(iv) }
 }
 
-async function decryptFromApi(password: string, ciphertext: string, ivB64: string): Promise<string> {
-  const dec = new TextDecoder()
-  const parsed = JSON.parse(ciphertext) as CipherBundle
-  if (!parsed || parsed.v !== 1 || !parsed.salt || !parsed.ct) throw new Error("Invalid ciphertext")
-  const salt = fromBase64(parsed.salt)
-  const iv = fromBase64(ivB64)
-  const ct = fromBase64(parsed.ct)
-  const key = await deriveAesKey(password, salt)
-  const ptBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct)
-  return dec.decode(ptBuf)
+async function decrypt(password: string, ciphertext: string, iv: string) {
+  const d = JSON.parse(ciphertext)
+  const key = await derive(password, ub64(d.salt))
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ub64(iv) }, key, ub64(d.ct))
+  return new TextDecoder().decode(pt)
 }
 
-async function sha256Base64(text: string) {
-  const enc = new TextEncoder()
-  const hash = await crypto.subtle.digest("SHA-256", enc.encode(text))
-  return toBase64(new Uint8Array(hash))
+async function apiGet() {
+  const r = await fetch("/api/blob")
+  if (r.status === 404) return null
+  if (!r.ok) throw new Error()
+  return r.json()
 }
 
-async function apiGetBlob(signal?: AbortSignal): Promise<{ ciphertext: string; iv: string; timestamp?: string } | null> {
-  const res = await fetch("/api/blob", { method: "GET", signal, headers: { Accept: "application/json" } })
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error(`GET /api/blob failed: ${res.status}`)
-  const j = (await res.json()) as ApiGetResponse
-  const ciphertext = j?.ciphertext
-  const iv = j?.iv
-  if (typeof ciphertext !== "string" || typeof iv !== "string") throw new Error("Invalid server response")
-  return { ciphertext, iv, timestamp: j?.timestamp }
-}
-
-async function apiPostBlob(payload: { ciphertext: string; iv: string }, signal?: AbortSignal) {
-  const res = await fetch("/api/blob", {
+async function apiPost(body: any) {
+  const r = await fetch("/api/blob", {
     method: "POST",
-    signal,
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   })
-  if (!res.ok) {
-    let msg = ""
-    try {
-      const j = await res.json()
-      msg = j?.error ? ` (${j.error})` : ""
-    } catch {}
-    throw new Error(`POST /api/blob failed: ${res.status}${msg}`)
-  }
+  if (!r.ok) throw new Error()
 }
 
-async function apiDeleteBlob(signal?: AbortSignal) {
-  const res = await fetch("/api/blob", { method: "DELETE", signal, headers: { Accept: "application/json" } })
-  if (!res.ok) throw new Error(`DELETE /api/blob failed: ${res.status}`)
-}
-
-function readLocalBackupCandidate(): string | null {
-  for (const k of LOCAL_BACKUP_KEYS_CANDIDATES) {
-    const v = localStorage.getItem(k)
-    if (typeof v === "string" && v.length > 0) return v
-  }
-  return null
+async function apiDelete() {
+  const r = await fetch("/api/blob", { method: "DELETE" })
+  if (!r.ok) throw new Error()
 }
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events = [], calendars = [] } = useCalendar()
-  const { isLoaded, isSignedIn, user } = useUser()
+  const { events, calendars } = useCalendar()
+  const { user, isSignedIn } = useUser()
   const router = useRouter()
 
-  const [clerkUserId, setClerkUserId] = useState<string | null>(null)
-  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false)
-
-  const [showAutoBackupDialog, setShowAutoBackupDialog] = useState(false)
-  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false)
-  const [showUnlockDialog, setShowUnlockDialog] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
+  const [setPwdOpen, setSetPwdOpen] = useState(false)
+  const [unlockOpen, setUnlockOpen] = useState(false)
+  const [rotateOpen, setRotateOpen] = useState(false)
 
   const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [passwordError, setPasswordError] = useState("")
-  const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
+  const [confirm, setConfirm] = useState("")
+  const [oldPassword, setOldPassword] = useState("")
+  const [error, setError] = useState("")
 
-  const encryptionKeyRef = useRef<string | null>(null)
-  const lastUploadedHashRef = useRef<string | null>(null)
-  const uploadTimerRef = useRef<number | null>(null)
-  const inFlightRef = useRef<AbortController | null>(null)
+  const keyRef = useRef<string | null>(null)
+  const enabled = useMemo(() => localStorage.getItem(AUTO_KEY) === "true", [])
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) setClerkUserId(user.id)
-    else setClerkUserId(null)
-  }, [isLoaded, isSignedIn, user])
+    if (enabled && !keyRef.current) setUnlockOpen(true)
+  }, [enabled])
 
-  useEffect(() => {
-    const enabled = localStorage.getItem(AUTO_BACKUP_ENABLED_KEY) === "true"
-    setIsAutoBackupEnabled(enabled)
-    if (enabled && !encryptionKeyRef.current) setShowUnlockDialog(true)
-  }, [])
-
-  useEffect(() => {
-    const origSetItem = localStorage.setItem
-    const origRemoveItem = localStorage.removeItem
-    const origClear = localStorage.clear
-
-    const dispatch = (key?: string | null, newValue?: string | null) => {
-      window.dispatchEvent(new CustomEvent(LOCAL_BACKUP_CHANGED_EVENT, { detail: { key, newValue } }))
-    }
-
-    localStorage.setItem = function (key: string, value: string) {
-      origSetItem.call(localStorage, key, value)
-      dispatch(key, value)
-    }
-    localStorage.removeItem = function (key: string) {
-      origRemoveItem.call(localStorage, key)
-      dispatch(key, null)
-    }
-    localStorage.clear = function () {
-      origClear.call(localStorage)
-      dispatch(null, null)
-    }
-
-    return () => {
-      localStorage.setItem = origSetItem
-      localStorage.removeItem = origRemoveItem
-      localStorage.clear = origClear
-    }
-  }, [])
-
-  const isAutoBackupAllowed = useMemo(() => {
-    if (!isSignedIn || !clerkUserId) return false
-    const owner = localStorage.getItem(AUTO_BACKUP_USER_KEY)
-    if (!owner) return true
-    return owner === clerkUserId
-  }, [isSignedIn, clerkUserId])
-
-  const buildPlainBackup = () => {
-    const localExisting = readLocalBackupCandidate()
-    if (localExisting) return localExisting
-    return JSON.stringify(
-      {
-        v: 1,
-        ts: Date.now(),
-        events,
-        calendars,
-      },
-      null,
-      0,
-    )
-  }
-
-  const scheduleUpload = (reason: "storage" | "data" | "manual") => {
-    if (!isAutoBackupEnabled) return
-    if (!isAutoBackupAllowed) return
-    if (!encryptionKeyRef.current) return
-    if (uploadTimerRef.current) window.clearTimeout(uploadTimerRef.current)
-
-    uploadTimerRef.current = window.setTimeout(async () => {
-      uploadTimerRef.current = null
-      try {
-        const plaintext = buildPlainBackup()
-        const h = await sha256Base64(plaintext)
-        if (lastUploadedHashRef.current === h && reason !== "manual") return
-        lastUploadedHashRef.current = h
-
-        inFlightRef.current?.abort()
-        const ac = new AbortController()
-        inFlightRef.current = ac
-
-        const payload = await encryptForApi(encryptionKeyRef.current!, plaintext)
-        await apiPostBlob(payload, ac.signal)
-        toast(language === "zh" ? "已上传云端备份" : "Cloud backup uploaded")
-      } catch (e: any) {
-        toast(language === "zh" ? `备份失败：${e?.message || "未知错误"}` : `Backup failed: ${e?.message || "Unknown error"}`)
-      }
-    }, 800)
-  }
-
-  useEffect(() => {
-    if (!isAutoBackupEnabled) return
-    if (!isAutoBackupAllowed) return
-    if (!encryptionKeyRef.current) return
-    scheduleUpload("data")
-  }, [isAutoBackupEnabled, isAutoBackupAllowed, events, calendars])
-
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.storageArea !== localStorage) return
-      if (e.key === AUTO_BACKUP_ENABLED_KEY) {
-        const enabled = localStorage.getItem(AUTO_BACKUP_ENABLED_KEY) === "true"
-        setIsAutoBackupEnabled(enabled)
-        if (enabled && !encryptionKeyRef.current) setShowUnlockDialog(true)
-        if (!enabled) {
-          encryptionKeyRef.current = null
-          lastUploadedHashRef.current = null
-        }
-        return
-      }
-      if (isAutoBackupEnabled) scheduleUpload("storage")
-    }
-
-    const onPatched = (e: Event) => {
-      const ce = e as CustomEvent<{ key?: string | null; newValue?: string | null }>
-      const key = ce?.detail?.key ?? null
-      if (key === AUTO_BACKUP_ENABLED_KEY) {
-        const enabled = localStorage.getItem(AUTO_BACKUP_ENABLED_KEY) === "true"
-        setIsAutoBackupEnabled(enabled)
-        if (enabled && !encryptionKeyRef.current) setShowUnlockDialog(true)
-        if (!enabled) {
-          encryptionKeyRef.current = null
-          lastUploadedHashRef.current = null
-        }
-        return
-      }
-      if (isAutoBackupEnabled) scheduleUpload("storage")
-    }
-
-    window.addEventListener("storage", onStorage)
-    window.addEventListener(LOCAL_BACKUP_CHANGED_EVENT, onPatched as EventListener)
-
-    return () => {
-      window.removeEventListener("storage", onStorage)
-      window.removeEventListener(LOCAL_BACKUP_CHANGED_EVENT, onPatched as EventListener)
-    }
-  }, [isAutoBackupEnabled, isAutoBackupAllowed])
-
-  const enableAutoBackup = () => {
-    setPasswordError("")
-    if (!password || password !== confirmPassword) {
-      setPasswordError(language === "zh" ? "密码不一致" : "Passwords do not match")
+  async function enable() {
+    if (password !== confirm) {
+      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    if (!clerkUserId) {
-      toast(language === "zh" ? "请先登录" : "Please sign in first")
-      return
-    }
-    encryptionKeyRef.current = password
-    localStorage.setItem(AUTO_BACKUP_ENABLED_KEY, "true")
-    localStorage.setItem(AUTO_BACKUP_USER_KEY, clerkUserId)
-    setIsAutoBackupEnabled(true)
-    setShowSetPasswordDialog(false)
+    const p = await encrypt(password, JSON.stringify({ events, calendars }))
+    await apiPost(p)
+    localStorage.setItem(AUTO_KEY, "true")
+    keyRef.current = password
+    setSetPwdOpen(false)
     setPassword("")
-    setConfirmPassword("")
+    setConfirm("")
     toast(language === "zh" ? "自动备份已启用" : "Auto backup enabled")
-    scheduleUpload("manual")
   }
 
-  const unlockWithPassword = () => {
-    setPasswordError("")
-    if (!password) {
-      setPasswordError(language === "zh" ? "请输入密码" : "Password required")
-      return
-    }
-    encryptionKeyRef.current = password
-    setShowUnlockDialog(false)
+  function unlock() {
+    if (!password) return
+    keyRef.current = password
     setPassword("")
-    toast(language === "zh" ? "已解锁加密备份" : "Backup unlocked")
-    scheduleUpload("manual")
+    setUnlockOpen(false)
+    toast(language === "zh" ? "备份已解锁" : "Backup unlocked")
   }
 
-  const disableAutoBackup = () => {
-    encryptionKeyRef.current = null
-    lastUploadedHashRef.current = null
-    localStorage.removeItem(AUTO_BACKUP_ENABLED_KEY)
-    localStorage.removeItem(AUTO_BACKUP_USER_KEY)
-    setIsAutoBackupEnabled(false)
-    toast(language === "zh" ? "自动备份已禁用" : "Auto backup disabled")
-  }
-
-  const handleLogin = () => router.push("/sign-in")
-  const handleSignUp = () => router.push("/sign-up")
-
-  const handleManualSyncUpload = async () => {
-    if (!isSignedIn || !clerkUserId) {
-      toast(language === "zh" ? "请先登录" : "Please sign in first")
+  async function rotate() {
+    if (password !== confirm) {
+      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    if (!isAutoBackupEnabled) {
-      toast(language === "zh" ? "请先启用自动备份" : "Enable auto backup first")
-      return
-    }
-    if (!encryptionKeyRef.current) {
-      setShowUnlockDialog(true)
-      return
-    }
-    scheduleUpload("manual")
-  }
-
-  const handleDeleteCloud = async () => {
-    if (!isSignedIn || !clerkUserId) {
-      toast(language === "zh" ? "请先登录" : "Please sign in first")
-      return
-    }
+    const cloud = await apiGet()
+    if (!cloud) return
+    let plain
     try {
-      inFlightRef.current?.abort()
-      const ac = new AbortController()
-      inFlightRef.current = ac
-      await apiDeleteBlob(ac.signal)
-      toast(language === "zh" ? "云端数据已删除" : "Cloud data deleted")
-    } catch (e: any) {
-      toast(language === "zh" ? `删除失败：${e?.message || "未知错误"}` : `Delete failed: ${e?.message || "Unknown error"}`)
-    }
-  }
-
-  const handleFetchCloudRaw = async () => {
-    if (!isSignedIn || !clerkUserId) {
-      toast(language === "zh" ? "请先登录" : "Please sign in first")
+      plain = await decrypt(oldPassword, cloud.ciphertext, cloud.iv)
+    } catch {
+      toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
       return
     }
-    try {
-      inFlightRef.current?.abort()
-      const ac = new AbortController()
-      inFlightRef.current = ac
-      const raw = await apiGetBlob(ac.signal)
-      if (!raw) {
-        toast(language === "zh" ? "云端暂无备份" : "No cloud backup")
-        return
-      }
-      toast(language === "zh" ? "已获取云端未解密数据" : "Fetched cloud encrypted blob")
-    } catch (e: any) {
-      toast(language === "zh" ? `获取失败：${e?.message || "未知错误"}` : `Fetch failed: ${e?.message || "Unknown error"}`)
-    }
+    const next = await encrypt(password, plain)
+    await apiPost(next)
+    keyRef.current = password
+    setRotateOpen(false)
+    setOldPassword("")
+    setPassword("")
+    setConfirm("")
+    toast(language === "zh" ? "加密密钥已更新" : "Encryption key updated")
+  }
+
+  async function sync() {
+    if (!keyRef.current) return
+    const p = await encrypt(keyRef.current, JSON.stringify({ events, calendars }))
+    await apiPost(p)
+    toast(language === "zh" ? "已同步" : "Synced")
+  }
+
+  async function destroy() {
+    await apiDelete()
+    localStorage.removeItem(AUTO_KEY)
+    keyRef.current = null
+    toast(language === "zh" ? "云端数据已删除" : "Cloud data deleted")
   }
 
   return (
@@ -409,7 +179,7 @@ export default function UserProfileButton() {
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
             <Button variant="ghost" size="icon" className="rounded-full">
-              <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full" />
+              <Image src={user.imageUrl} alt="avatar" width={32} height={32} />
             </Button>
           ) : (
             <Button variant="ghost" size="icon">
@@ -421,24 +191,29 @@ export default function UserProfileButton() {
         <DropdownMenuContent align="end">
           {isSignedIn ? (
             <>
-              <DropdownMenuItem onClick={() => setIsUserProfileOpen(true)}>
+              <DropdownMenuItem onClick={() => setProfileOpen(true)}>
                 <CircleUser className="mr-2 h-4 w-4" />
                 {language === "zh" ? "个人资料" : "Profile"}
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => setShowAutoBackupDialog(true)}>
+              <DropdownMenuItem onClick={() => setBackupOpen(true)}>
                 <CloudUpload className="mr-2 h-4 w-4" />
                 {language === "zh" ? "自动备份" : "Auto Backup"}
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={handleManualSyncUpload}>
+              <DropdownMenuItem onClick={sync}>
                 <FolderSync className="mr-2 h-4 w-4" />
                 {language === "zh" ? "同步数据" : "Sync"}
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={handleDeleteCloud}>
+              <DropdownMenuItem onClick={() => setRotateOpen(true)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                {language === "zh" ? "更改密钥" : "Change Key"}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={destroy}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                {language === "zh" ? "删除数据" : "Delete"}
+                {language === "zh" ? "删除数据" : "Delete Data"}
               </DropdownMenuItem>
 
               <SignOutButton>
@@ -450,58 +225,41 @@ export default function UserProfileButton() {
             </>
           ) : (
             <>
-              <DropdownMenuItem onClick={handleLogin}>{language === "zh" ? "登录" : "Sign In"}</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignUp}>{language === "zh" ? "注册" : "Sign Up"}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/sign-in")}>
+                {language === "zh" ? "登录" : "Sign In"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/sign-up")}>
+                {language === "zh" ? "注册" : "Sign Up"}
+              </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {isUserProfileOpen && (
-        <Dialog open onOpenChange={setIsUserProfileOpen}>
-          <DialogContent className="p-0 w-auto">
-            <UserProfile />
-          </DialogContent>
-        </Dialog>
-      )}
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="p-0 w-auto">
+          <UserProfile />
+        </DialogContent>
+      </Dialog>
 
-      <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
+      <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "自动备份" : "Auto Backup"}</DialogTitle>
             <DialogDescription>
-              {isAutoBackupEnabled
-                ? language === "zh"
-                  ? "已启用"
-                  : "Enabled"
-                : language === "zh"
-                  ? "未启用"
-                  : "Disabled"}
+              {enabled ? (language === "zh" ? "已启用" : "Enabled") : language === "zh" ? "未启用" : "Disabled"}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="secondary" onClick={handleFetchCloudRaw}>
-              {language === "zh" ? "获取云端 blob" : "GET blob"}
-            </Button>
-            <Button variant="secondary" onClick={handleManualSyncUpload}>
-              {language === "zh" ? "上传本地备份" : "POST blob"}
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteCloud}>
-              {language === "zh" ? "删除云端数据" : "DELETE blob"}
-            </Button>
-          </div>
-
           <DialogFooter>
-            {isAutoBackupEnabled ? (
-              <Button variant="destructive" onClick={disableAutoBackup}>
+            {enabled ? (
+              <Button variant="destructive" onClick={destroy}>
                 {language === "zh" ? "禁用" : "Disable"}
               </Button>
             ) : (
               <Button
                 onClick={() => {
-                  setShowAutoBackupDialog(false)
-                  setShowSetPasswordDialog(true)
+                  setBackupOpen(false)
+                  setSetPwdOpen(true)
                 }}
               >
                 {language === "zh" ? "启用" : "Enable"}
@@ -511,63 +269,48 @@ export default function UserProfileButton() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSetPasswordDialog} onOpenChange={setShowSetPasswordDialog}>
+      <Dialog open={setPwdOpen} onOpenChange={setSetPwdOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "设置加密密码" : "Set Encryption Password"}</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label>{language === "zh" ? "密码" : "Password"}</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPasswordError("")
-                  setPassword(e.target.value)
-                }}
-              />
-            </div>
-            <div>
-              <Label>{language === "zh" ? "确认密码" : "Confirm Password"}</Label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setPasswordError("")
-                  setConfirmPassword(e.target.value)
-                }}
-              />
-            </div>
-            {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
-          </div>
-
+          <Label>{language === "zh" ? "密码" : "Password"}</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label>{language === "zh" ? "确认密码" : "Confirm Password"}</Label>
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
-            <Button onClick={enableAutoBackup}>{language === "zh" ? "确认" : "Confirm"}</Button>
+            <Button onClick={enable}>{language === "zh" ? "确认" : "Confirm"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
+      <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "解锁备份" : "Unlock Backup"}</DialogTitle>
           </DialogHeader>
-
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => {
-              setPasswordError("")
-              setPassword(e.target.value)
-            }}
-          />
-
-          {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
-
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <DialogFooter>
-            <Button onClick={unlockWithPassword}>{language === "zh" ? "解锁" : "Unlock"}</Button>
+            <Button onClick={unlock}>{language === "zh" ? "解锁" : "Unlock"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "更改加密密钥" : "Change Encryption Key"}</DialogTitle>
+          </DialogHeader>
+          <Label>{language === "zh" ? "旧密码" : "Old Password"}</Label>
+          <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+          <Label>{language === "zh" ? "新密码" : "New Password"}</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label>{language === "zh" ? "确认新密码" : "Confirm New Password"}</Label>
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <DialogFooter>
+            <Button onClick={rotate}>{language === "zh" ? "确认更改" : "Confirm Change"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
