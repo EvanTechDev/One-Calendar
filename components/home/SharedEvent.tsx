@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Home,
   Lock,
+  Flame,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -27,12 +28,7 @@ import { Button } from "@/components/ui/button";
 import { useCalendar } from "@/components/context/CalendarContext";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -66,6 +62,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [requiresPassword, setRequiresPassword] = useState(false);
+  const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -81,6 +78,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         setError(null);
         setEvent(null);
         setRequiresPassword(false);
+        setBurnAfterRead(false);
         setPassword("");
         setPasswordSubmitting(false);
         setPasswordError(null);
@@ -97,6 +95,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             const payload = await response.json().catch(() => null);
             if (payload?.requiresPassword) {
               setRequiresPassword(true);
+              setBurnAfterRead(!!payload?.burnAfterRead);
               return;
             }
           }
@@ -105,7 +104,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         }
 
         const result = await response.json();
-
         if (!result?.success || !result?.data) {
           setError("Invalid share data");
           return;
@@ -113,6 +111,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
         const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
         setEvent(eventData);
+        setBurnAfterRead(!!result?.burnAfterRead);
       } catch {
         setError("Failed to load shared event");
       } finally {
@@ -127,7 +126,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
     if (!shareId) return;
 
     const pwd = password;
-
     if (!pwd) {
       setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password");
       return;
@@ -142,12 +140,19 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
       if (!response.ok) {
         if (response.status === 401) {
+          const payload = await response.json().catch(() => null);
+          setBurnAfterRead(!!payload?.burnAfterRead);
           setPasswordError(language === "zh" ? "需要密码" : "Password required");
           setRequiresPassword(true);
           return;
         }
         if (response.status === 403) {
           setPasswordError(language === "zh" ? "密码错误" : "Invalid password");
+          setRequiresPassword(true);
+          return;
+        }
+        if (response.status === 404) {
+          setPasswordError(language === "zh" ? "分享不存在或已被销毁" : "Share not found or already destroyed");
           setRequiresPassword(true);
           return;
         }
@@ -165,8 +170,16 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
       const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
       setEvent(eventData);
+      setBurnAfterRead(!!result?.burnAfterRead);
       setRequiresPassword(false);
       setPasswordError(null);
+
+      if (result?.burnAfterRead) {
+        toast({
+          title: language === "zh" ? "阅后即焚" : "Burn after read",
+          description: language === "zh" ? "已成功查看，该分享已从服务器删除。" : "Viewed successfully. This share has been deleted from the server.",
+        });
+      }
     } catch {
       setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
       setRequiresPassword(true);
@@ -280,7 +293,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </div>
 
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        <a href="/" className="flex items-center gap-2 self-center font-medium">
+          <a href="/" className="flex items-center gap-2 self-center font-medium">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
         </a>
@@ -296,8 +309,21 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     {language === "zh" ? "此分享已加密" : "This share is encrypted"}
                   </CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-300">
-                    {language === "zh" ? "请输入密码以解密并查看事件内容。" : "Enter the password to decrypt and view the event."}
+                    {burnAfterRead
+                      ? language === "zh"
+                        ? "该分享为阅后即焚：正确解密后将自动删除。"
+                        : "This share is burn-after-read: it will be deleted after a successful decrypt."
+                      : language === "zh"
+                        ? "请输入密码以解密并查看事件内容。"
+                        : "Enter the password to decrypt and view the event."}
                   </CardDescription>
+
+                  {burnAfterRead && (
+                    <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
+                      <Flame className="h-4 w-4" />
+                      {language === "zh" ? "阅后即焚已启用" : "Burn after read enabled"}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -387,18 +413,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                 </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-300 mb-6 text-left">
                   {language === "zh"
-                    ? "无法加载共享的日历事件。该链接可能已过期或无效。"
-                    : "Unable to load the shared calendar event. The link may be expired or invalid."}
+                    ? "无法加载共享的日历事件。该链接可能已过期、无效或已被阅后即焚销毁。"
+                    : "Unable to load the shared calendar event. The link may be expired, invalid, or already destroyed."}
                 </CardDescription>
-                <div className="bg-muted rounded-lg p-4 mb-6">
-                  <p className="text-sm font-medium mb-2">
-                    {language === "zh" ? "可能的原因：" : "Possible reasons:"}
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 text-left">
-                    <li>• {language === "zh" ? "事件已被删除" : "Event has been deleted"}</li>
-                    <li>• {language === "zh" ? "链接输入错误" : "Link entered incorrectly"}</li>
-                  </ul>
-                </div>
                 <Button onClick={() => router.push("/")} className="w-full">
                   <Home className="mr-2 h-4 w-4" />
                   {language === "zh" ? "返回主页" : "Return to Home"}
@@ -460,6 +477,12 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       {language === "zh" ? "分享者：" : "Shared by: "}
                       <span className="font-medium">{event.sharedBy}</span>
                     </CardDescription>
+                    {burnAfterRead && (
+                      <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
+                        <Flame className="h-4 w-4" />
+                        {language === "zh" ? "此分享为阅后即焚（已在服务器删除）" : "Burn-after-read (deleted from server)"}
+                      </div>
+                    )}
                   </div>
                   <Badge variant="outline" className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -546,7 +569,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
                   <Button variant="outline" className="w-full" onClick={copyLink}>
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    {copied ? (language === "zh" ? "已复制!" : "Copied!") : (language === "zh" ? "复制分享链接" : "Copy Share Link")}
+                    {copied ? (language === "zh" ? "已复制!" : "Copied!") : language === "zh" ? "复制分享链接" : "Copy Share Link"}
                   </Button>
                 </div>
               </CardContent>
