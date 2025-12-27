@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import crypto from "crypto";
@@ -5,8 +6,8 @@ import crypto from "crypto";
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 async function initializeDatabase() {
@@ -20,64 +21,65 @@ async function initializeDatabase() {
         iv TEXT NOT NULL,
         auth_tag TEXT NOT NULL,
         timestamp TIMESTAMP NOT NULL,
+        is_protected BOOLEAN DEFAULT FALSE,
+        enc_version INTEGER,
         UNIQUE(share_id)
       )
     `);
+
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`);
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`);
+    await client.query(`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`);
   } finally {
     client.release();
   }
 }
 
-function encryptData(data: string, shareId: string): { encryptedData: string; iv: string; authTag: string } {
+const ALGORITHM = "aes-256-gcm";
+
+function keyV2Unprotected(shareId: string) {
+  return crypto.createHash("sha256").update(shareId, "utf8").digest();
+}
+
+function keyV3Password(password: string, shareId: string) {
+  return crypto.scryptSync(password, shareId, 32);
+}
+
+function keyV1Legacy(shareId: string) {
   const salt = process.env.SALT;
-  if (!salt) {
-    throw new Error("SALT environment variable is not set");
-  }
-  
-  const algorithm = 'aes-256-gcm';
-  const key = crypto.scryptSync(shareId, salt, 32);
+  if (!salt) throw new Error("SALT environment variable is not set");
+  return crypto.scryptSync(shareId, salt, 32);
+}
+
+function encryptWithKey(data: string, key: Buffer): { encryptedData: string; iv: string; authTag: string } {
   const iv = crypto.randomBytes(16);
-  
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  let encrypted = cipher.update(data, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(data, "utf8", "hex");
+  encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag();
-  
   return {
     encryptedData: encrypted,
-    iv: iv.toString('hex'),
-    authTag: authTag.toString('hex')
+    iv: iv.toString("hex"),
+    authTag: authTag.toString("hex"),
   };
 }
 
-function decryptData(encryptedData: string, iv: string, authTag: string, shareId: string): string {
-  const salt = process.env.SALT;
-  if (!salt) {
-    throw new Error("SALT environment variable is not set");
-  }
-  
-  const algorithm = 'aes-256-gcm';
-  const key = crypto.scryptSync(shareId, salt, 32);
-  const ivBuffer = Buffer.from(iv, 'hex');
-  const authTagBuffer = Buffer.from(authTag, 'hex');
-  
-  const decipher = crypto.createDecipheriv(algorithm, key, ivBuffer);
+function decryptWithKey(encryptedData: string, iv: string, authTag: string, key: Buffer): string {
+  const ivBuffer = Buffer.from(iv, "hex");
+  const authTagBuffer = Buffer.from(authTag, "hex");
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBuffer);
   decipher.setAuthTag(authTagBuffer);
-  
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  
+  let decrypted = decipher.update(encryptedData, "hex", "utf8");
+  decrypted += decipher.final("utf8");
   return decrypted;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('POSTGRES_URL:', process.env.POSTGRES_URL); // Debug log
-    console.log('SSL Config:', { ssl: { rejectUnauthorized: false } }); // Debug log
     const body = await request.json();
-    const { id, data } = body;
-    if (!id || !data) {
+    const { id, data, password } = body as { id?: string; data?: any; password?: string };
+
+    if (!id || data === undefined || data === null) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -89,32 +91,42 @@ export async function POST(request: NextRequest) {
     await initializeDatabase();
 
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const { encryptedData, iv, authTag } = encryptData(dataString, id);
+
+    const hasPassword = typeof password === "string" && password.length > 0;
+    const encVersion = hasPassword ? 3 : 2;
+    const key = hasPassword ? keyV3Password(password, id) : keyV2Unprotected(id);
+
+    const { encryptedData, iv, authTag } = encryptWithKey(dataString, key);
 
     const client = await pool.connect();
     try {
-      await client.query(`
-        INSERT INTO shares (share_id, encrypted_data, iv, auth_tag, timestamp)
-        VALUES ($1, $2, $3, $4, $5)
+      await client.query(
+        `
+        INSERT INTO shares (share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, enc_version)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (share_id)
         DO UPDATE SET
           encrypted_data = EXCLUDED.encrypted_data,
           iv = EXCLUDED.iv,
           auth_tag = EXCLUDED.auth_tag,
-          timestamp = EXCLUDED.timestamp
-      `, [id, encryptedData, iv, authTag, new Date().toISOString()]);
+          timestamp = EXCLUDED.timestamp,
+          is_protected = EXCLUDED.is_protected,
+          enc_version = EXCLUDED.enc_version
+        `,
+        [id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, encVersion]
+      );
 
       return NextResponse.json({
         success: true,
         path: `shares/${id}/data.json`,
-        id: id,
-        message: "Share created successfully."
+        id,
+        message: "Share created successfully.",
+        protected: hasPassword,
       });
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error("Share API error:", error, error instanceof Error ? error.stack : '');
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -127,9 +139,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('POSTGRES_URL:', process.env.POSTGRES_URL); // Debug log
-    console.log('SSL Config:', { ssl: { rejectUnauthorized: false } }); // Debug log
     const id = request.nextUrl.searchParams.get("id");
+    const password = request.nextUrl.searchParams.get("password") ?? "";
+
     if (!id) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
     }
@@ -144,7 +156,7 @@ export async function GET(request: NextRequest) {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        'SELECT encrypted_data, iv, auth_tag, timestamp FROM shares WHERE share_id = $1',
+        "SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, enc_version FROM shares WHERE share_id = $1",
         [id]
       );
 
@@ -152,35 +164,52 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Share not found" }, { status: 404 });
       }
 
-      const { encrypted_data, iv, auth_tag, timestamp } = result.rows[0];
+      const row = result.rows[0] as {
+        encrypted_data: string;
+        iv: string;
+        auth_tag: string;
+        timestamp: Date;
+        is_protected: boolean;
+        enc_version: number | null;
+      };
+
+      if (row.is_protected) {
+        if (!password) {
+          return NextResponse.json(
+            { error: "Password required", requiresPassword: true },
+            { status: 401 }
+          );
+        }
+      }
+
+      const encVersion = row.enc_version ?? 1;
+
+      let key: Buffer;
+      if (row.is_protected) {
+        key = keyV3Password(password, id);
+      } else {
+        if (encVersion === 1) key = keyV1Legacy(id);
+        else key = keyV2Unprotected(id);
+      }
 
       try {
-        const decryptedData = decryptData(encrypted_data, iv, auth_tag, id);
-        return NextResponse.json({ 
-          success: true, 
+        const decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key);
+        return NextResponse.json({
+          success: true,
           data: decryptedData,
-          timestamp: timestamp.toISOString()
+          timestamp: row.timestamp.toISOString(),
+          protected: row.is_protected,
         });
       } catch (decryptError) {
-        console.error("Decryption error:", decryptError);
-        if (decryptError instanceof Error) {
-          if (decryptError.message.includes("bad decrypt") || decryptError.message.includes("wrong final block length")) {
-            return NextResponse.json(
-              { error: "Authentication failed: This share may have been tampered with or is invalid." },
-              { status: 403 }
-            );
-          }
+        if (row.is_protected) {
+          return NextResponse.json({ error: "Invalid password" }, { status: 403 });
         }
-        return NextResponse.json(
-          { error: "Failed to decrypt share data. Please check the share ID." },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Failed to decrypt share data." }, { status: 403 });
       }
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error("Share API error:", error, error instanceof Error ? error.stack : '');
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -193,10 +222,9 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('POSTGRES_URL:', process.env.POSTGRES_URL); // Debug log
-    console.log('SSL Config:', { ssl: { rejectUnauthorized: false } }); // Debug log
     const body = await request.json();
-    const { id } = body;
+    const { id } = body as { id?: string };
+
     if (!id) {
       return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
     }
@@ -210,15 +238,12 @@ export async function DELETE(request: NextRequest) {
 
     const client = await pool.connect();
     try {
-      const result = await client.query(
-        'DELETE FROM shares WHERE share_id = $1 RETURNING *',
-        [id]
-      );
+      const result = await client.query("DELETE FROM shares WHERE share_id = $1 RETURNING *", [id]);
 
       if (result.rowCount === 0) {
-        return NextResponse.json({ 
-          success: true, 
-          message: `No share found with ID: ${id}, nothing to delete.` 
+        return NextResponse.json({
+          success: true,
+          message: `No share found with ID: ${id}, nothing to delete.`,
         });
       }
 
@@ -230,7 +255,6 @@ export async function DELETE(request: NextRequest) {
       client.release();
     }
   } catch (error) {
-    console.error("Share API error:", error, error instanceof Error ? error.stack : '');
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error occurred",
