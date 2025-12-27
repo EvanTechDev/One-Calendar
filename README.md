@@ -125,52 +125,6 @@ And the env:
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 ```
 
-2. Cloudflare Turnstile
-
-Go to [Cloudflare dashboard](https://dash.cloudflare.com)
-
-Login and click the Turnstile button
-
-![home](https://github.com/user-attachments/assets/3233e31d-1dac-4ab1-ac2a-e66f1eff4bbc)
-
-Click the Add Widget button
-
-![Widget](https://github.com/user-attachments/assets/c9428ab6-159e-45b0-8a6e-ba536eb59c5c)
-
-Name it and add a hostname, then choose Managed and click the Create button 
-
-![Create](https://github.com/user-attachments/assets/6c5d7e37-aad6-4a16-aea9-f0369e6b3bb8)
-
-Copy your SiteKey and SecretKey and fill it into .env
-
-![Key](https://github.com/user-attachments/assets/240b13b6-139e-4eeb-8781-71ae30b04752)
-
-Why don't I just use Clerk's Captcha? Maybe there are bugs.
-
-3. Groq
-
-Go to [Groq Console](https://console.groq.com) and login
-
-Click the `Create API Key`
-
-![Screenshot_20250502_150743](https://github.com/user-attachments/assets/1e8faf08-7afe-405e-83a7-01039de35338)
-
-Copy your API Key
-
-![Screenshot_20250502_150857](https://github.com/user-attachments/assets/55374169-7f2b-480d-924f-80a46b014551)
-
-Fill in the env file:
-
-```env
-GROQ_API_KEY=your-api-key
-```
-
-## Roadmap
-
-You can report a bug or request a new feature on our feedback website
-
-[Roadmap & Feedback](https://feedback.xyehr.cn)
-
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
@@ -200,6 +154,7 @@ This project wouldn't be possible without these awesome services:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
+
 
 
 
