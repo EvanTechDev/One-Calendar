@@ -280,8 +280,10 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </div>
 
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-            <Calendar className="size-4" color="#0066ff" />
-            One Calendar
+        <a href="/" className="flex items-center gap-2 self-center font-medium">
+          <Calendar className="size-4" color="#0066ff" />
+          One Calendar
+        </a>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
@@ -369,10 +371,10 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </div>
 
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-          /
-            <Calendar className="size-4" color="#0066ff" />
-            One Calendar
-          </a>
+          <a href="/" className="flex items-center gap-2 self-center font-medium">
+          <Calendar className="size-4" color="#0066ff" />
+          One Calendar
+        </a>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
@@ -441,7 +443,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
       </div>
 
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        /
+        <a href="/" className="flex items-center gap-2 self-center font-medium">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
         </a>
