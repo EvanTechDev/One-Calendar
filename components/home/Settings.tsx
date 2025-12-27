@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTheme } from "next-themes"
 import { usePathname } from "next/navigation"
+import { Kbd } from "@/components/ui/kbd"
 
 interface SettingsProps {
   language: Language
@@ -243,7 +244,7 @@ export default function Settings({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            {/*<div className="space-y-2">
               <Label htmlFor="notification-sound">{t.notificationSound}</Label>
               <div className="flex gap-2">
                 <Select
@@ -259,7 +260,7 @@ export default function Settings({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </div>*/}
 
             <div className="flex items-center space-x-2">
               <Switch id="enable-shortcuts" checked={enableShortcuts} onCheckedChange={setEnableShortcuts} />
@@ -270,14 +271,14 @@ export default function Settings({
               <div className="rounded-md border p-4">
                 <h3 className="mb-2 font-medium">{language === "zh" ? "可用快捷键" : "Available Shortcuts"}</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>N - {language === "zh" ? "创建新事件" : "New Event"}</div>
-                  <div>/ - {language === "zh" ? "搜索事件" : "Search Events"}</div>
-                  <div>T - {language === "zh" ? "今天" : "Today"}</div>
-                  <div>1 - {language === "zh" ? "日视图" : "Day View"}</div>
-                  <div>2 - {language === "zh" ? "周视图" : "Week View"}</div>
-                  <div>3 - {language === "zh" ? "月视图" : "Month View"}</div>
-                  <div>→ - {language === "zh" ? "下个周期" : "Next Period"}</div>
-                  <div>← - {language === "zh" ? "上个周期" : "Previous Period"}</div>
+                  <div><Kbd>N</Kbd> - {language === "zh" ? "创建新事件" : "New Event"}</div>
+                  <div><Kbd>/</Kbd> - {language === "zh" ? "搜索事件" : "Search Events"}</div>
+                  <div><Kbd>T</Kbd> - {language === "zh" ? "今天" : "Today"}</div>
+                  <div><Kbd>1</Kbd> - {language === "zh" ? "日视图" : "Day View"}</div>
+                  <div><Kbd>2</Kbd> - {language === "zh" ? "周视图" : "Week View"}</div>
+                  <div><Kbd>3</Kbd> - {language === "zh" ? "月视图" : "Month View"}</div>
+                  <div><Kbd>→</Kbd> - {language === "zh" ? "下个周期" : "Next Period"}</div>
+                  <div><Kbd>←</Kbd> - {language === "zh" ? "上个周期" : "Previous Period"}</div>
                 </div>
               </div>
             )}

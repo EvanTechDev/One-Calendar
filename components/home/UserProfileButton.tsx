@@ -1,5 +1,16 @@
-import { useState, useEffect } from "react"
-import { User, Upload, Download, X, Check, LogOut, CircleUser, FolderSync, CloudUpload, Trash2 } from 'lucide-react'
+
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import {
+  User,
+  LogOut,
+  CircleUser,
+  FolderSync,
+  CloudUpload,
+  Trash2,
+  KeyRound,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -9,407 +20,290 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { translations, useLanguage } from "@/lib/i18n"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useUser, SignIn, SignUp, SignOutButton, UserProfile, useClerk } from "@clerk/nextjs"
+import { useLanguage } from "@/lib/i18n"
+import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
+const AUTO_KEY = "auto-backup-enabled"
+
+function b64(u: Uint8Array) {
+  return btoa(String.fromCharCode(...u))
+}
+
+function ub64(s: string) {
+  return new Uint8Array(atob(s).split("").map((c) => c.charCodeAt(0)))
+}
+
+async function derive(password: string, salt: Uint8Array) {
+  const k = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"],
+  )
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
+    k,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  )
+}
+
+async function encrypt(password: string, text: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const key = await derive(password, salt)
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(text),
+  )
+  return {
+    ciphertext: JSON.stringify({ v: 1, salt: b64(salt), ct: b64(new Uint8Array(ct)) }),
+    iv: b64(iv),
+  }
+}
+
+async function decrypt(password: string, ciphertext: string, iv: string) {
+  const d = JSON.parse(ciphertext)
+  const key = await derive(password, ub64(d.salt))
+  const pt = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: ub64(iv) },
+    key,
+    ub64(d.ct),
+  )
+  return new TextDecoder().decode(pt)
+}
+
+async function apiGet() {
+  const r = await fetch("/api/blob")
+  if (r.status === 404) return null
+  if (!r.ok) throw new Error()
+  return r.json()
+}
+
+async function apiPost(body: any) {
+  const r = await fetch("/api/blob", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!r.ok) throw new Error()
+}
+
+async function apiDelete() {
+  const r = await fetch("/api/blob", { method: "DELETE" })
+  if (!r.ok) throw new Error()
+}
+
 export default function UserProfileButton() {
   const [language] = useLanguage()
-  const t = translations[language]
-  const { events = [], calendars = [], setEvents, setCalendars } = useCalendar()
-
-  const [isBackupOpen, setIsBackupOpen] = useState(false)
-  const [isRestoreOpen, setIsRestoreOpen] = useState(false)
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [passwordError, setPasswordError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-
-  const [replaceExistingData, setReplaceExistingData] = useState(true)
-  const [showAutoBackupDialog, setShowAutoBackupDialog] = useState(false)
-  const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(false)
-  const [currentBackupId, setCurrentBackupId] = useState<string | null>(null)
-
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [isSignUpOpen, setIsSignUpOpen] = useState(false); 
-  const [clerkUserId, setClerkUserId] = useState<string | null>(null);
+  const { events, calendars, setEvents, setCalendars } = useCalendar()
+  const { user, isSignedIn } = useUser()
   const router = useRouter()
-  const [syncInterval, setSyncInterval] = useState<NodeJS.Timeout | null>(null);
-  const [restoreInterval, setRestoreInterval] = useState<NodeJS.Timeout | null>(null);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [lastRestoreTime, setLastRestoreTime] = useState<Date | null>(null);
-  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
-  const { openUserProfile } = useClerk();
 
-  const handleLogin = () => {
-    router.push("/sign-in")
-  }
+  const [enabled, setEnabled] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
+  const [setPwdOpen, setSetPwdOpen] = useState(false)
+  const [unlockOpen, setUnlockOpen] = useState(false)
+  const [rotateOpen, setRotateOpen] = useState(false)
 
-  const handleSignUp = () => {
-    router.push("/sign-up")
-  }
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [oldPassword, setOldPassword] = useState("")
+  const [error, setError] = useState("")
 
-  const handleSignOut = () => {
-    toast(language === "zh" ? "已登出" : "Signed Out", {
-      description: language === "zh" ? "您已成功退出登录" : "You have been signed out",
-    });
-  };
+  const keyRef = useRef<string | null>(null)
+  const restoredRef = useRef(false)
+  const timerRef = useRef<any>(null)
 
-  // 监听用户登录状态变化
-useEffect(() => {
-  if (isAutoBackupEnabled && clerkUserId) {
-    const timer = setTimeout(() => {
-      performAutoBackup();
-    }, 1000); // 防抖1秒
-    
-    return () => clearTimeout(timer);
-  }
-}, [events, calendars, isAutoBackupEnabled, clerkUserId]);
+  useEffect(() => {
+    setEnabled(localStorage.getItem(AUTO_KEY) === "true")
+  }, [])
 
-// 监听用户登录状态变化
-useEffect(() => {
-  if (isLoaded) {
-    if (isSignedIn && user) {
-      setClerkUserId(user.id);
-      const backupId = localStorage.getItem("auto-backup-id");
-      if (backupId) {
-        // setCurrentBackupId(backupId);
-        console.log(backupId)
-      }
-    } else {
-      setClerkUserId(null);
-    }
-  }
-}, [isLoaded, isSignedIn, user]);
+  useEffect(() => {
+    if (!isSignedIn) return
+    if (keyRef.current) return
+    if (restoredRef.current) return
 
-  // 从localStorage获取联系人和笔记数据
-  const getLocalData = () => {
-    try {
-      console.log("Getting data from localStorage")
-      const contactsStr = localStorage.getItem("contacts")
-      const notesStr = localStorage.getItem("notes")
-      const sharedEventsStr = localStorage.getItem("shared-events")
-      const bookmarksStr = localStorage.getItem("bookmarked-events")
-      const countdownsStr = localStorage.getItem("countdowns")
-
-      const contacts = contactsStr ? JSON.parse(contactsStr) : []
-      const notes = notesStr ? JSON.parse(notesStr) : []
-      const sharedEvents = sharedEventsStr ? JSON.parse(sharedEventsStr) : []
-      const bookmarks = bookmarksStr ? JSON.parse(bookmarksStr) : []
-      const countdowns = countdownsStr? JSON.parse(countdownsStr) : []
-
-      console.log(`Found ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns`,
-)
-return { contacts, notes, sharedEvents, bookmarks, countdowns } // Include bookmarks in the returned data
-} catch (error)
-{
-  console.error("Error getting data from localStorage:", error)
-  return { contacts: [], notes: [], sharedEvents: [], bookmarks: [], countdowns: [] } // Include empty bookmarks array
-}
-}
-
-// 将数据保存到localStorage
-const saveLocalData = (data: { contacts?: any[]; notes?: any[]; sharedEvents?: any[]; bookmarks?: any[]; countdowns?: any[] }) => {
-  try {
-    const contacts = data.contacts || []
-    const notes = data.notes || []
-    const sharedEvents = data.sharedEvents || []
-    const bookmarks = data.bookmarks || []
-    const countdowns = data.countdowns || []
-
-    console.log(
-      `Saving ${contacts.length} contacts, ${notes.length} notes, ${sharedEvents.length} shared events, and ${bookmarks.length} bookmarks, ${countdowns.length} countdowns to localStorage`,
-    )
-    localStorage.setItem("contacts", JSON.stringify(contacts))
-    localStorage.setItem("notes", JSON.stringify(notes))
-    localStorage.setItem("shared-events", JSON.stringify(sharedEvents))
-    localStorage.setItem("bookmarked-events", JSON.stringify(bookmarks))
-    localStorage.setItem("countdowns", JSON.stringify(countdowns))
-    console.log("Data saved to localStorage")
-  } catch (error) {
-    console.error("Error saving data to localStorage:", error)
-    toast(language === "zh" ? "保存本地数据失败" : "Failed to save local data", {
-      variant: "destructive",
-      description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
+    apiGet().then((cloud) => {
+      if (cloud) setUnlockOpen(true)
     })
-  }
-}
+  }, [isSignedIn])
 
+  useEffect(() => {
+    if (!enabled) return
+    if (!keyRef.current) return
+    if (!restoredRef.current) return
 
-// Add a function to enable auto-backup
-const enableAutoBackup = () => {
-  if (clerkUserId) {
-    setIsAutoBackupEnabled(true);
-    localStorage.setItem("auto-backup-enabled", "true"); // 明确设置为 "true"
-    localStorage.setItem("auto-backup-id", clerkUserId);
-    toast(language === "zh" ? "自动备份已启用" : "Auto-Backup Enabled", {
-      description: language === "zh" 
-        ? "您的数据将在每次更改时自动备份。" 
-        : "Your data will be automatically backed up on changes.",
-    });
-    setShowAutoBackupDialog(false);
-    performAutoBackup();
-  }
-};
+    if (timerRef.current) clearTimeout(timerRef.current)
 
-const disableAutoBackup = () => {
-  setIsAutoBackupEnabled(false);
-  localStorage.removeItem("auto-backup-enabled");
-  localStorage.removeItem("auto-backup-id");
-  
-  if (syncInterval) {
-    clearInterval(syncInterval);
-    setSyncInterval(null);
-  }
+    timerRef.current = setTimeout(async () => {
+      const payload = await encrypt(
+        keyRef.current!,
+        JSON.stringify({ events, calendars }),
+      )
+      await apiPost(payload)
+      timerRef.current = null
+    }, 800)
+  }, [events, calendars, enabled])
 
-  toast(language === "zh" ? "自动备份已禁用" : "Auto-Backup Disabled", {
-    description: language === "zh" 
-      ? "您的数据将不再自动备份" 
-      : "Your data will no longer be automatically backed up"
-  });
-};
+  async function unlock() {
+    if (!password) return
 
-// Add a function to perform auto-backup
-const performAutoBackup = async () => {
-  if (!isAutoBackupEnabled || !clerkUserId) {
-    console.log("Auto-backup skipped: disabled or no user ID");
-    return;
-  }
+    const cloud = await apiGet()
+    if (!cloud) return
 
-  try {
-    console.log("Starting auto-backup...");
-    const { contacts, notes, sharedEvents, bookmarks, countdowns } = getLocalData();
-    const backupData = {
-      events: events || [],
-      calendars: calendars || [],
-      contacts,
-      notes,
-      sharedEvents,
-      bookmarks,
-      countdowns,
-      timestamp: new Date().toISOString(),
-    };
-
-    const response = await fetch("/api/blob", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: `${clerkUserId}`,
-        data: backupData,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
+    let plain
+    try {
+      plain = await decrypt(password, cloud.ciphertext, cloud.iv)
+    } catch {
+      toast(language === "zh" ? "密码错误" : "Incorrect password")
+      return
     }
 
-    console.log("Auto-backup successful!");
-  } catch (error) {
-    console.error("Auto-backup failed:", error);
-  }
-};
-
-// Add useEffect to watch for data changes and trigger auto-backup
-useEffect(() => {
-  if (isAutoBackupEnabled && events.length > 0) {
-    performAutoBackup()
-  }
-}, [events, calendars, isAutoBackupEnabled])
-
-const restoreUserData = async (silent = true) => {
-  if (!clerkUserId || isRestoring) return;
-  
-  setIsRestoring(true);
-  try {
-    const response = await fetch(`/api/blob?id=${clerkUserId}`);
-    if (!response.ok) throw new Error("Backup not found");
-
-    const result = await response.json();
-    if (result.success && result.data) {
-      const restoredData = typeof result.data === 'string' 
-        ? JSON.parse(result.data) 
-        : result.data;
-
-      // 智能合并数据（保留您原有的合并逻辑）
-      saveLocalData({
-        contacts: restoredData.contacts || [],
-        notes: restoredData.notes || [],
-        sharedEvents: restoredData.sharedEvents || [],
-        bookmarks: restoredData.bookmarks || [],
-        countdowns: restoredData.countdowns || []
-      });
-
-      if (Array.isArray(restoredData.events)) {
-        setEvents(prev => {
-          const existingIds = new Set(prev.map(e => e.id));
-          const newEvents = restoredData.events.filter((e: any) => !existingIds.has(e.id));
-          return [...prev, ...newEvents];
-        });
+    try {
+      const data = JSON.parse(plain)
+      if (data?.events && data?.calendars) {
+        setEvents(data.events)
+        setCalendars(data.calendars)
       }
+    } catch {}
 
-      setLastRestoreTime(new Date());
-      
-      if (!silent) {
-        toast(language === "zh" ? "数据恢复成功" : "Data Restored", {
-          description: language === "zh" 
-            ? `已同步最新备份 (${new Date().toLocaleTimeString()})`
-            : `Synced latest backup (${new Date().toLocaleTimeString()})`
-        });
-      }
-    }
-  } catch (error) {
-    console.error("恢复失败:", error);
-    if (!silent) {
-      toast(language === "zh" ? "恢复失败" : "Restore Failed", {
-        variant: "destructive",
-        description: error instanceof Error 
-          ? error.message 
-          : language === "zh" ? "无法获取备份数据" : "Failed to fetch backup"
-      });
-    }
-  } finally {
-    setIsRestoring(false);
+    keyRef.current = password
+    restoredRef.current = true
+    localStorage.setItem(AUTO_KEY, "true")
+    setEnabled(true)
+
+    setPassword("")
+    setUnlockOpen(false)
+
+    toast(language === "zh" ? "数据已恢复并开启自动备份" : "Data restored and auto backup enabled")
   }
-};
 
-const deleteUserData = async (showConfirm: boolean = true) => {
-  try {
-    // 可选：显示确认对话框
-    if (showConfirm) {
-      const confirmed = window.confirm(
-        language === "zh" ? "确定要删除数据吗？" : "Are you sure you want to delete the data?"
-      );
-      if (!confirmed) return;
+  async function enable() {
+    if (password !== confirm) {
+      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
+      return
     }
-
-    const response = await fetch('/api/blob', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      toast(language === "zh" ? "数据删除成功" : "Data Deleted", {
-          description: language === "zh" 
-            ? `已删除云端数据`
-            : `Deleted cloud data`
-        });
-    } else {
-      const errorData = await response.json();
-      console.error('Delete failed:', errorData);
-      toast(language === "zh" ? "数据删除失败" : "Data Delete Failed", {
-          description: language === "zh" 
-            ? `无法删除云端数据`
-            : `Can't delete cloud data`
-        });
-    }
-  } catch (error) {
-    console.error('Error deleting data:', error);
+    const payload = await encrypt(
+      password,
+      JSON.stringify({ events, calendars }),
+    )
+    await apiPost(payload)
+    localStorage.setItem(AUTO_KEY, "true")
+    keyRef.current = password
+    restoredRef.current = true
+    setEnabled(true)
+    setPassword("")
+    setConfirm("")
+    setSetPwdOpen(false)
+    toast(language === "zh" ? "自动备份已启用" : "Auto backup enabled")
   }
-};
-  
-// 修改后的用户登录状态 useEffect
-useEffect(() => {
-  if (!isLoaded || !isSignedIn || !user) return;
 
-  setClerkUserId(user.id);
-  
-  restoreUserData(false); 
-  
-  const interval = setInterval(() => {
-    restoreUserData(true);
-  }, 30000);
-
-  return () => clearInterval(interval);
-}, [isLoaded, isSignedIn, user]);
-
-
-useEffect(() => {
-  return () => {
-    if (syncInterval) {
-      clearInterval(syncInterval);
+  async function rotate() {
+    if (password !== confirm) {
+      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
+      return
     }
-  };
-}, [syncInterval]);
+    const cloud = await apiGet()
+    if (!cloud) return
 
-useEffect(() => {
-  return () => {
-    if (restoreInterval) {
-      clearInterval(restoreInterval);
+    let plain
+    try {
+      plain = await decrypt(oldPassword, cloud.ciphertext, cloud.iv)
+    } catch {
+      toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
+      return
     }
-  };
-}, [restoreInterval]);
 
-useEffect(() => {
-  const isEnabled = localStorage.getItem("auto-backup-enabled") === "true";
-  setIsAutoBackupEnabled(isEnabled);
-}, []);
+    const next = await encrypt(password, plain)
+    await apiPost(next)
+    keyRef.current = password
+    setRotateOpen(false)
+    setOldPassword("")
+    setPassword("")
+    setConfirm("")
+    toast(language === "zh" ? "加密密钥已更新" : "Encryption key updated")
+  }
 
-return (
+  function disableAutoBackup() {
+    localStorage.removeItem(AUTO_KEY)
+    keyRef.current = null
+    restoredRef.current = false
+    setEnabled(false)
+    toast(language === "zh" ? "自动备份已关闭" : "Auto backup disabled")
+  }
+
+  async function destroy() {
+    await apiDelete()
+    localStorage.removeItem(AUTO_KEY)
+    keyRef.current = null
+    restoredRef.current = false
+    setEnabled(false)
+    toast(language === "zh" ? "云端数据已删除" : "Cloud data deleted")
+  }
+
+  return (
     <>
       <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-        {isSignedIn && user?.imageUrl ? (
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Image
-              src={user.imageUrl}
-              alt="User avatar"
-              width={32}
-              height={32}
-              className="rounded-full"
-              referrerPolicy="no-referrer"
-            />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <User className="h-5 w-5" />
-            <span className="sr-only">{language === "zh" ? "用户资料" : "User Profile"}</span>
-          </Button>
-        )}
-      </DropdownMenuTrigger>
-  
+        <DropdownMenuTrigger asChild>
+          {isSignedIn && user?.imageUrl ? (
+            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
+              <Image
+                src={user.imageUrl}
+                alt="avatar"
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
+              />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+              <User className="h-5 w-5" />
+            </Button>
+          )}
+        </DropdownMenuTrigger>
+
         <DropdownMenuContent align="end">
           {isSignedIn ? (
             <>
-              <DropdownMenuItem 
-                onClick={() => setIsUserProfileOpen(true)}
-                className="cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => setProfileOpen(true)}>
                 <CircleUser className="mr-2 h-4 w-4" />
                 {language === "zh" ? "个人资料" : "Profile"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                 onClick={() => setShowAutoBackupDialog(true)}
-                 className="cursor-pointer"
-              >
+
+              <DropdownMenuItem onClick={() => setBackupOpen(true)}>
                 <CloudUpload className="mr-2 h-4 w-4" />
                 {language === "zh" ? "自动备份" : "Auto Backup"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                 onClick={() => restoreUserData(false)}
-                 className="cursor-pointer"
-              >
-                <FolderSync className="mr-2 h-4 w-4" />
-                {language === "zh" ? "同步数据" : "Sync data"}
+
+              <DropdownMenuItem onClick={() => setRotateOpen(true)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                {language === "zh" ? "更改密钥" : "Change Key"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                 onClick={() => deleteUserData(false)}
-                 className="cursor-pointer"
-              >
+
+              <DropdownMenuItem onClick={destroy}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                {language === "zh" ? "删除数据" : "Delete data"}
+                {language === "zh" ? "删除数据" : "Delete Data"}
               </DropdownMenuItem>
-              <SignOutButton signOutCallback={handleSignOut}>
-                <DropdownMenuItem className="cursor-pointer">
+
+              <SignOutButton>
+                <DropdownMenuItem>
                   <LogOut className="mr-2 h-4 w-4" />
                   {language === "zh" ? "退出登录" : "Sign Out"}
                 </DropdownMenuItem>
@@ -417,16 +311,10 @@ return (
             </>
           ) : (
             <>
-              <DropdownMenuItem 
-                onClick={handleLogin}
-                className="cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => router.push("/sign-in")}>
                 {language === "zh" ? "登录" : "Sign In"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleSignUp}
-                className="cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => router.push("/sign-up")}>
                 {language === "zh" ? "注册" : "Sign Up"}
               </DropdownMenuItem>
             </>
@@ -434,51 +322,96 @@ return (
         </DropdownMenuContent>
       </DropdownMenu>
 
-{isUserProfileOpen && (
-<Dialog open>
-  <DialogContent className="max-w-fit w-auto p-0 m-0">
-    <div className="flex justify-center items-center">
-      <UserProfile />
-    </div>
-  </DialogContent>
-</Dialog>
-)}
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="p-0 w-auto">
+          <UserProfile />
+        </DialogContent>
+      </Dialog>
 
+      <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "自动备份" : "Auto Backup"}</DialogTitle>
+            <DialogDescription>
+              {enabled
+                ? language === "zh"
+                  ? "已启用"
+                  : "Enabled"
+                : language === "zh"
+                  ? "未启用"
+                  : "Disabled"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            {enabled ? (
+              <Button variant="destructive" onClick={disableAutoBackup}>
+                {language === "zh" ? "关闭" : "Disable"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  setBackupOpen(false)
+                  setSetPwdOpen(true)
+                }}
+              >
+                {language === "zh" ? "启用" : "Enable"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      
-      <Dialog open={showAutoBackupDialog} onOpenChange={setShowAutoBackupDialog}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>{language === "zh" ? "自动备份设置" : "Auto-Backup Settings"}</DialogTitle>
-      <DialogDescription>
-        {language === "zh" 
-          ? `当前状态: ${isAutoBackupEnabled ? "已启用" : "已禁用"} (用户ID: ${clerkUserId})`
-          : `Status: ${isAutoBackupEnabled ? "Enabled" : "Disabled"} (User ID: ${clerkUserId})`}
-      </DialogDescription>
-    </DialogHeader>
-    <DialogFooter className="gap-2">
-      {isAutoBackupEnabled && (
-        <Button 
-          variant="destructive" 
-          onClick={() => {
-            disableAutoBackup();
-            setShowAutoBackupDialog(false);
-          }}
-        >
-          {language === "zh" ? "禁用" : "Disable"}
-        </Button>
-      )}
-      <Button 
-        onClick={() => {
-          enableAutoBackup();
-          performAutoBackup();
-        }}
-      >
-        {language === "zh" ? "启用" : "Enable"}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+      <Dialog open={setPwdOpen} onOpenChange={setSetPwdOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "设置加密密码" : "Set Encryption Password"}</DialogTitle>
+            <DialogDescription>
+              {language === "zh" ? "请设置加密密码并记住和妥善保管您的加密密码，不要向任何人透露它" : "Please set an encryption password and remember and keep your encryption password safe. Do not reveal it to anyone"}
+            </DialogDescription>
+          </DialogHeader>
+          <Label>{language === "zh" ? "密码" : "Password"}</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label>{language === "zh" ? "确认密码" : "Confirm Password"}</Label>
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <DialogFooter>
+            <Button onClick={enable}>{language === "zh" ? "确认" : "Confirm"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "输入密码" : "Enter the password"}</DialogTitle>
+            <DialogDescription>
+              {language === "zh" ? "输入密码以解锁和备份数据" : "Enter the password to unlock and backup data"}
+            </DialogDescription>
+          </DialogHeader>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <DialogFooter>
+            <Button onClick={unlock}>{language === "zh" ? "确认" : "Confirm"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "zh" ? "更改加密密钥" : "Change Encryption Key"}</DialogTitle>
+          </DialogHeader>
+          <Label>{language === "zh" ? "旧密码" : "Old Password"}</Label>
+          <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+          <Label>{language === "zh" ? "新密码" : "New Password"}</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label>{language === "zh" ? "确认新密码" : "Confirm New Password"}</Label>
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <DialogFooter>
+            <Button onClick={rotate}>{language === "zh" ? "确认更改" : "Confirm Change"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
