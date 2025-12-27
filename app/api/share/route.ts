@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import crypto from "crypto";
