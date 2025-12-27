@@ -37,7 +37,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 
 - 🧠 **AI Powered** – AI-first app that streamlines your scheduling.
 - 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
-- 🔐 **Private & Local** – Your data is yours. Export, backup, and control.
+- 🔐 **Private & Local** – Your data is yours. E2EE. Share, backup, and control.
 - ☁️ **Cloud Sync** – Optional sync via PostgreSQL.
 - 🌐 **Clerk Account** – Easily login with third-party.
 - 🌍 **International** – Automatically adapts to your language (English / 中文).
@@ -45,12 +45,11 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, Tailwind CSS, shadcn/ui, TypeScript
+- **Frontend**: Next.js 16, Tailwind CSS, Shadcn UI, TypeScript
 - **Auth**: Clerk
 - **Storage**: PostgreSQL
 - **Weather**: OpenWeather API
 - **AI**: Groq API
-- **Analytics**: Vercel Analytics
 - **Deploy**: Vercel
 
 ![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun,postgresql)
@@ -67,7 +66,7 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 
 Required Versions:
 
-- [NodeJS](https://nodejs.org) (v18 or higher)
+- [NodeJS](https://nodejs.org) (v20 or higher)
 - [Bun](https://bun.sh) (v1.2 or higher)
 
 ### Quick Start
@@ -93,7 +92,6 @@ Copy `.env.example` to `.env` and fill in:
 ```env
 # Required 
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
-SALT=Backup-Salt
 
 # Auth (Required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
@@ -113,17 +111,7 @@ TURNSTILE_SECRET_KEY=secret-key
 
 ### Environment Setup
 
-1. SALT
-
-Install Openssl and Use this command to generate a SALT
-
-```
-openssl rand -hex 16
-```
-
-Then copy it into .env
-
-2. PostgreSQL
+1. PostgreSQL
 
 Run this command if you installed docker
 
@@ -136,52 +124,6 @@ And the env:
 ```env
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 ```
-
-3. Cloudflare Turnstile
-
-Go to [Cloudflare dashboard](https://dash.cloudflare.com)
-
-Login and click the Turnstile button
-
-![home](https://github.com/user-attachments/assets/3233e31d-1dac-4ab1-ac2a-e66f1eff4bbc)
-
-Click the Add Widget button
-
-![Widget](https://github.com/user-attachments/assets/c9428ab6-159e-45b0-8a6e-ba536eb59c5c)
-
-Name it and add a hostname, then choose Managed and click the Create button 
-
-![Create](https://github.com/user-attachments/assets/6c5d7e37-aad6-4a16-aea9-f0369e6b3bb8)
-
-Copy your SiteKey and SecretKey and fill it into .env
-
-![Key](https://github.com/user-attachments/assets/240b13b6-139e-4eeb-8781-71ae30b04752)
-
-Why don't I just use Clerk's Captcha? Maybe there are bugs.
-
-4. Groq
-
-Go to [Groq Console](https://console.groq.com) and login
-
-Click the `Create API Key`
-
-![Screenshot_20250502_150743](https://github.com/user-attachments/assets/1e8faf08-7afe-405e-83a7-01039de35338)
-
-Copy your API Key
-
-![Screenshot_20250502_150857](https://github.com/user-attachments/assets/55374169-7f2b-480d-924f-80a46b014551)
-
-Fill in the env file:
-
-```env
-GROQ_API_KEY=your-api-key
-```
-
-## Roadmap
-
-You can report a bug or request a new feature on our feedback website
-
-[Roadmap & Feedback](https://feedback.xyehr.cn)
 
 ## Star History
 
@@ -212,5 +154,7 @@ This project wouldn't be possible without these awesome services:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
+
+
 
 

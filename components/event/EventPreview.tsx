@@ -71,6 +71,9 @@ export default function EventPreview({
   const { isSignedIn, user } = useUser();
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [passwordEnabled, setPasswordEnabled] = useState(false);
+  const [sharePassword, setSharePassword] = useState("");
+  const [burnAfterRead, setBurnAfterRead] = useState(false);
 
   useEffect(() => {
     if (open && openShareImmediately) {
@@ -89,24 +92,18 @@ export default function EventPreview({
   }, [open, openShareImmediately, isSignedIn, language]);
 
   useEffect(() => {
-    const storedBookmarks = JSON.parse(
-      localStorage.getItem("bookmarked-events") || "[]"
-    );
+    const storedBookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]");
     setBookmarks(storedBookmarks);
   }, []);
 
   useEffect(() => {
     if (event) {
-      const isCurrentEventBookmarked = bookmarks.some(
-        (bookmark: any) => bookmark.id === event.id
-      );
+      const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id);
       setIsBookmarked(isCurrentEventBookmarked);
     }
   }, [event, bookmarks]);
 
-  if (!event || !open) {
-    return null;
-  }
+  if (!event || !open) return null;
 
   const getCalendarName = () => {
     if (!event) return "";
@@ -124,41 +121,28 @@ export default function EventPreview({
   };
 
   const formatNotificationTime = () => {
-    if (event.notification === 0) {
-      return language === "zh" ? "事件开始时" : "At time of event";
-    }
-    return language === "zh"
-      ? `${event.notification} 分钟前`
-      : `${event.notification} minutes before`;
+    if (event.notification === 0) return language === "zh" ? "事件开始时" : "At time of event";
+    return language === "zh" ? `${event.notification} 分钟前` : `${event.notification} minutes before`;
   };
 
-  const getInitials = (name: string) => {
-    return name.charAt(0).toUpperCase();
-  };
+  const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
   const hasParticipants =
     event.participants &&
     event.participants.length > 0 &&
     event.participants.some((p) => p.trim() !== "");
 
-  const toggleParticipants = () => {
-    setParticipantsOpen(!participantsOpen);
-  };
+  const toggleParticipants = () => setParticipantsOpen(!participantsOpen);
 
   const toggleBookmark = () => {
     if (!event) return;
     if (isBookmarked) {
-      const updatedBookmarks = bookmarks.filter(
-        (bookmark: any) => bookmark.id !== event.id
-      );
+      const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id);
       localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
       toast(language === "zh" ? "已取消收藏" : "Removed from bookmarks", {
-        description:
-          language === "zh"
-            ? "事件已从收藏夹中移除"
-            : "Event has been removed from your bookmarks",
+        description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
       });
     } else {
       const bookmarkData = {
@@ -175,10 +159,7 @@ export default function EventPreview({
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
       toast(language === "zh" ? "已收藏" : "Bookmarked", {
-        description:
-          language === "zh"
-            ? "事件已添加到收藏夹"
-            : "Event has been added to your bookmarks",
+        description: language === "zh" ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
       });
     }
   };
@@ -187,32 +168,52 @@ export default function EventPreview({
     if (!event) return;
     if (!user) {
       toast(language === "zh" ? "请先登录" : "Please sign in", {
-        description:
-          language === "zh"
-            ? "分享功能仅对登录用户开放"
-            : "Share function available to signed-in users only",
+        description: language === "zh" ? "分享功能仅对登录用户开放" : "Share function available to signed-in users only",
         variant: "destructive",
       });
       return;
     }
+
+    if (passwordEnabled) {
+      const pwd = sharePassword.trim();
+      if (pwd.length < 4) {
+        toast(language === "zh" ? "密码过短" : "Password too short", {
+          description: language === "zh" ? "密码至少 4 位" : "Password must be at least 4 characters",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (burnAfterRead) setBurnAfterRead(false);
+    }
+
     try {
       setIsSharing(true);
-      const shareId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      const shareId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       const clerkUsername = user.username || user.firstName || "Anonymous";
       const sharedEvent = { ...event, sharedBy: clerkUsername };
+
+      const payload: any = { id: shareId, data: sharedEvent };
+      if (passwordEnabled) payload.password = sharePassword;
+      if (passwordEnabled) payload.burnAfterRead = !!burnAfterRead;
+
       const response = await fetch("/api/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: shareId, data: sharedEvent }),
+        body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
-        throw new Error("Failed to share event");
+        const msg = await response.json().catch(() => null);
+        throw new Error(msg?.error || "Failed to share event");
       }
+
       const result = await response.json();
+
       if (result.success) {
         const link = `${window.location.origin}/share/${shareId}`;
         setShareLink(link);
+
         try {
           const qrURL = await QRCode.toDataURL(link, {
             width: 300,
@@ -220,12 +221,9 @@ export default function EventPreview({
             color: { dark: "#000000", light: "#ffffff" },
           });
           setQRCodeDataURL(qrURL);
-        } catch (qrError) {
-          console.error("Error generating QR code:", qrError);
-        }
-        const storedShares = JSON.parse(
-          localStorage.getItem("shared-events") || "[]"
-        );
+        } catch {}
+
+        const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]");
         storedShares.push({
           id: shareId,
           eventId: event.id,
@@ -233,20 +231,31 @@ export default function EventPreview({
           sharedBy: clerkUsername,
           shareDate: new Date().toISOString(),
           shareLink: link,
+          protected: !!passwordEnabled,
+          burnAfterRead: !!burnAfterRead,
         });
         localStorage.setItem("shared-events", JSON.stringify(storedShares));
+
+        toast(language === "zh" ? "分享成功" : "Shared", {
+          description:
+            passwordEnabled && burnAfterRead
+              ? language === "zh"
+                ? "已启用密码保护 + 阅后即焚"
+                : "Password protected + burn after read"
+              : passwordEnabled
+                ? language === "zh"
+                  ? "该分享已启用密码保护"
+                  : "This share is password protected"
+                : language === "zh"
+                  ? "分享链接已生成"
+                  : "Share link generated",
+        });
       } else {
         throw new Error("Failed to share event");
       }
     } catch (error) {
-      console.error("Error sharing event:", error);
       toast(language === "zh" ? "分享失败" : "Share Failed", {
-        description:
-          error instanceof Error
-            ? error.message
-            : language === "zh"
-              ? "未知错误"
-              : "Unknown error",
+        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
         variant: "destructive",
       });
     } finally {
@@ -258,26 +267,8 @@ export default function EventPreview({
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
       toast(language === "zh" ? "链接已复制" : "Link Copied", {
-        description:
-          language === "zh"
-            ? "分享链接已复制到剪贴板"
-            : "Share link copied to clipboard",
+        description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
       });
-    }
-  };
-
-  const generateQRCode = async () => {
-    if (shareLink) {
-      try {
-        const url = await QRCode.toDataURL(shareLink, {
-          width: 300,
-          margin: 2,
-          color: { dark: "#000000", light: "#ffffff" },
-        });
-        setQRCodeDataURL(url);
-      } catch (error) {
-        console.error("Error generating QR code:", error);
-      }
     }
   };
 
@@ -299,13 +290,14 @@ export default function EventPreview({
     if (!open) {
       setShareLink("");
       setQRCodeDataURL("");
+      setPasswordEnabled(false);
+      setSharePassword("");
+      setBurnAfterRead(false);
     }
     setShareDialogOpen(open);
   };
 
-  const handleDialogClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
 
   const cleanupSharesForEvent = async () => {
     const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]");
@@ -328,9 +320,7 @@ export default function EventPreview({
     );
 
     const failed = results.filter(
-      (r) =>
-        r.status === "rejected" ||
-        (r.status === "fulfilled" && !(r.value as Response).ok)
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !(r.value as Response).ok)
     );
 
     if (failed.length) {
@@ -348,8 +338,7 @@ export default function EventPreview({
     e.stopPropagation();
     try {
       await cleanupSharesForEvent();
-    } catch (err) {
-      console.error("Error cleaning up shares:", err);
+    } catch {
       toast(language === "zh" ? "删除分享失败" : "Failed to delete shares", {
         description:
           language === "zh"
@@ -363,10 +352,7 @@ export default function EventPreview({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={() => onOpenChange(false)}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => onOpenChange(false)}>
       <div
         className="bg-background rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -384,10 +370,7 @@ export default function EventPreview({
                 e.stopPropagation();
                 if (!isSignedIn) {
                   toast(language === "zh" ? "请先登录" : "Please sign in", {
-                    description:
-                      language === "zh"
-                        ? "登录后才能使用分享功能"
-                        : "Sign in required to use share function",
+                    description: language === "zh" ? "登录后才能使用分享功能" : "Sign in required to use share function",
                     variant: "destructive",
                   });
                   return;
@@ -399,27 +382,12 @@ export default function EventPreview({
               <Share2 className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
-              <Bookmark
-                className={cn(
-                  "h-5 w-5",
-                  isBookmarked ? "fill-blue-500 text-blue-500" : ""
-                )}
-              />
+              <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDeleteClick}
-              className="h-8 w-8"
-            >
+            <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
               <Trash2 className="h-5 w-5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-8 w-8 ml-2"
-            >
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -447,22 +415,13 @@ export default function EventPreview({
             <div className="flex items-start">
               <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={toggleParticipants}
-                >
+                <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
                   <p>
                     {event.participants.filter((p) => p.trim() !== "").length}{" "}
                     {language === "zh" ? "参与者" : "participants"}
                   </p>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      participantsOpen ? "transform rotate-180" : ""
-                    )}
-                  />
+                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", participantsOpen ? "transform rotate-180" : "")} />
                 </div>
-
                 {participantsOpen && (
                   <div className="mt-2 space-y-2">
                     {event.participants
@@ -496,9 +455,7 @@ export default function EventPreview({
               <div className="flex-1">
                 <p>{formatNotificationTime()}</p>
                 <p className="text-sm text-muted-foreground">
-                  {language === "zh"
-                    ? `${event.notification} 分钟前 按电子邮件`
-                    : `${event.notification} minutes before by email`}
+                  {language === "zh" ? `${event.notification} 分钟前 按电子邮件` : `${event.notification} minutes before by email`}
                 </p>
               </div>
             </div>
@@ -516,11 +473,7 @@ export default function EventPreview({
       </div>
 
       <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
-        <DialogContent
-          className="sm:max-w-md"
-          ref={dialogContentRef}
-          onClick={handleDialogClick}
-        >
+        <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
             <DialogTitle>{language === "zh" ? "分享事件" : "Share Event"}</DialogTitle>
           </DialogHeader>
@@ -530,10 +483,62 @@ export default function EventPreview({
               <div className="space-y-2">
                 <Label htmlFor="shared-by">{language === "zh" ? "分享" : "Share"}</Label>
                 <p className="text-sm text-muted-foreground">
-                  {language === "zh"
-                    ? "您将以当前登录身份进行事件分享。"
-                    : "You will share this event as your current logged-in identity."}
+                  {language === "zh" ? "您将以当前登录身份进行事件分享。" : "You will share this event as your current logged-in identity."}
                 </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="enable-password">{language === "zh" ? "启用密码保护" : "Enable password protection"}</Label>
+                  <input
+                    id="enable-password"
+                    type="checkbox"
+                    checked={passwordEnabled}
+                    onChange={(e) => {
+                      const v = e.target.checked;
+                      setPasswordEnabled(v);
+                      if (!v) {
+                        setSharePassword("");
+                        setBurnAfterRead(false);
+                      }
+                    }}
+                    className="h-4 w-4"
+                  />
+                </div>
+
+                {passwordEnabled && (
+                  <div className="space-y-2">
+                    <Label htmlFor="share-password">{language === "zh" ? "分享密码" : "Share password"}</Label>
+                    <Input
+                      id="share-password"
+                      type="password"
+                      value={sharePassword}
+                      onChange={(e) => setSharePassword(e.target.value)}
+                      placeholder={language === "zh" ? "至少 4 位" : "At least 4 characters"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {language === "zh"
+                        ? "服务器不会保存密码，访问者需要输入正确密码才能查看。"
+                        : "The server does not store the password. Viewers must enter it to see the event."}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <Label htmlFor="burn-after-read">{language === "zh" ? "阅后即焚" : "Burn after read"}</Label>
+                      <input
+                        id="burn-after-read"
+                        type="checkbox"
+                        checked={burnAfterRead}
+                        onChange={(e) => setBurnAfterRead(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "zh"
+                        ? "访问者输入正确密码并成功解密后，该分享会自动从服务器删除。"
+                        : "After a viewer decrypts successfully, this share is automatically deleted from the server."}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
@@ -561,14 +566,7 @@ export default function EventPreview({
                         fill="none"
                         viewBox="0 0 24 24"
                       >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path
                           className="opacity-75"
                           fill="currentColor"
@@ -587,9 +585,7 @@ export default function EventPreview({
             <div className="space-y-4 py-2">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="share-link">
-                    {language === "zh" ? "分享链接" : "Share Link"}
-                  </Label>
+                  <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
                   <div className="flex items-center space-x-2">
                     <Input
                       id="share-link"
@@ -614,8 +610,8 @@ export default function EventPreview({
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {language === "zh"
-                      ? "任何拥有此链接的人都可以查看此事件。"
-                      : "Anyone with this link can view this event."}
+                      ? "任何拥有此链接的人都可以访问分享页面。若启用密码保护，需要输入密码才能查看内容。"
+                      : "Anyone with this link can access the share page. If password protected, they must enter the password to view the content."}
                   </p>
                 </div>
 
@@ -623,11 +619,7 @@ export default function EventPreview({
                   <div className="mt-4 flex flex-col items-center">
                     <Label className="mb-2">{language === "zh" ? "二维码" : "QR Code"}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
-                      <img
-                        src={qrCodeDataURL || "/placeholder.svg"}
-                        alt="QR Code"
-                        className="w-full max-w-[200px] mx-auto"
-                      />
+                      <img src={qrCodeDataURL || "/placeholder.svg"} alt="QR Code" className="w-full max-w-[200px] mx-auto" />
                     </div>
                     <Button
                       variant="outline"
@@ -642,9 +634,7 @@ export default function EventPreview({
                       {language === "zh" ? "下载二维码" : "Download QR Code"}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      {language === "zh"
-                        ? "扫描此二维码可立即查看日程"
-                        : "Scan this QR code to view the event"}
+                      {language === "zh" ? "扫描此二维码可立即查看日程" : "Scan this QR code to view the event"}
                     </p>
                   </div>
                 )}
