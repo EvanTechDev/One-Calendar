@@ -1,9 +1,10 @@
 
-"use client"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { format } from "date-fns"
-import { zhCN, enUS } from "date-fns/locale"
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { zhCN, enUS } from "date-fns/locale";
 import {
   MapPin,
   Users,
@@ -17,205 +18,215 @@ import {
   AlertCircle,
   Home,
   Lock,
-} from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { cn } from "@/lib/utils"
-import { useLanguage } from "@/lib/i18n"
-import { translations } from "@/lib/i18n"
-import { Button } from "@/components/ui/button"
-import { useCalendar } from "@/components/context/CalendarContext"
-import { motion } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n";
+import { translations } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { useCalendar } from "@/components/context/CalendarContext";
+import { motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface SharedEvent {
-  id: string
-  title: string
-  startDate: string
-  endDate: string
-  isAllDay: boolean
-  location?: string
-  participants: string[]
-  notification: number
-  description?: string
-  color: string
-  calendarId: string
-  sharedBy: string
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  isAllDay: boolean;
+  location?: string;
+  participants: string[];
+  notification: number;
+  description?: string;
+  color: string;
+  calendarId: string;
+  sharedBy: string;
 }
 
 interface SharedEventViewProps {
-  shareId: string
+  shareId: string;
 }
 
 export default function SharedEventView({ shareId }: SharedEventViewProps) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [language] = useLanguage()
-  const t = translations[language]
-  const [event, setEvent] = useState<SharedEvent | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isAdding, setIsAdding] = useState(false)
-  const { calendars, events, setEvents } = useCalendar()
-  const [copied, setCopied] = useState(false)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [language] = useLanguage();
+  const t = translations[language];
 
-  const [requiresPassword, setRequiresPassword] = useState(false)
-  const [password, setPassword] = useState("")
-  const [passwordSubmitting, setPasswordSubmitting] = useState(false)
-  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [event, setEvent] = useState<SharedEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const [isAdding, setIsAdding] = useState(false);
+  const { calendars, events, setEvents } = useCalendar();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchSharedEvent = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        setEvent(null)
-        setRequiresPassword(false)
-        setPassword("")
-        setPasswordSubmitting(false)
-        setPasswordError(null)
+        setLoading(true);
+        setError(null);
+        setEvent(null);
+        setRequiresPassword(false);
+        setPassword("");
+        setPasswordSubmitting(false);
+        setPasswordError(null);
 
         if (!shareId) {
-          setError("No share ID provided")
-          return
+          setError("No share ID provided");
+          return;
         }
 
-        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`)
+        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
 
         if (!response.ok) {
           if (response.status === 401) {
-            const payload = await response.json().catch(() => null)
+            const payload = await response.json().catch(() => null);
             if (payload?.requiresPassword) {
-              setRequiresPassword(true)
-              return
+              setRequiresPassword(true);
+              return;
             }
           }
-          setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event")
-          return
+          setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event");
+          return;
         }
 
-        const result = await response.json()
+        const result = await response.json();
+
         if (!result?.success || !result?.data) {
-          setError("Invalid share data")
-          return
+          setError("Invalid share data");
+          return;
         }
 
-        const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data)
-        setEvent(eventData)
-      } catch (e) {
-        setError("Failed to load shared event")
+        const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
+        setEvent(eventData);
+      } catch {
+        setError("Failed to load shared event");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchSharedEvent()
-  }, [shareId])
+    fetchSharedEvent();
+  }, [shareId]);
 
   const tryDecryptWithPassword = async () => {
-    if (!shareId) return
-    const pwd = password
+    if (!shareId) return;
+
+    const pwd = password;
+
     if (!pwd) {
-      setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password")
-      return
+      setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password");
+      return;
     }
+
     try {
-      setPasswordSubmitting(true)
-      setPasswordError(null)
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`
-      const response = await fetch(url)
+      setPasswordSubmitting(true);
+      setPasswordError(null);
+
+      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         if (response.status === 401) {
-          setPasswordError(language === "zh" ? "需要密码" : "Password required")
-          setRequiresPassword(true)
-          return
+          setPasswordError(language === "zh" ? "需要密码" : "Password required");
+          setRequiresPassword(true);
+          return;
         }
         if (response.status === 403) {
-          setPasswordError(language === "zh" ? "密码错误" : "Invalid password")
-          setRequiresPassword(true)
-          return
+          setPasswordError(language === "zh" ? "密码错误" : "Invalid password");
+          setRequiresPassword(true);
+          return;
         }
-        setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt")
-        setRequiresPassword(true)
-        return
+        setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
+        setRequiresPassword(true);
+        return;
       }
 
-      const result = await response.json()
+      const result = await response.json();
       if (!result?.success || !result?.data) {
-        setPasswordError(language === "zh" ? "数据无效" : "Invalid data")
-        setRequiresPassword(true)
-        return
+        setPasswordError(language === "zh" ? "数据无效" : "Invalid data");
+        setRequiresPassword(true);
+        return;
       }
 
-      const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data)
-      setEvent(eventData)
-      setRequiresPassword(false)
-      setPasswordError(null)
-    } catch (e) {
-      setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt")
-      setRequiresPassword(true)
+      const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
+      setEvent(eventData);
+      setRequiresPassword(false);
+      setPasswordError(null);
+    } catch {
+      setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
+      setRequiresPassword(true);
     } finally {
-      setPasswordSubmitting(false)
-      setLoading(false)
+      setPasswordSubmitting(false);
+      setLoading(false);
     }
-  }
+  };
 
   const formatDateWithTimezone = (dateString: string) => {
-    const date = new Date(dateString)
-    return format(date, "yyyy-MM-dd HH:mm", { locale: language === "zh" ? zhCN : enUS })
-  }
+    const date = new Date(dateString);
+    return format(date, "yyyy-MM-dd HH:mm", { locale: language === "zh" ? zhCN : enUS });
+  };
 
   const handleAddToCalendar = async () => {
-    if (!event) return
+    if (!event) return;
+
     try {
-      setIsAdding(true)
-      let targetCalendarId = event.calendarId
-      const calendarExists = calendars.some((cal) => cal.id === targetCalendarId)
-      if (!calendarExists) {
-        targetCalendarId = calendars[0]?.id ?? "default"
-      }
+      setIsAdding(true);
+
+      let targetCalendarId = event.calendarId;
+      const calendarExists = calendars.some((cal) => cal.id === targetCalendarId);
+      if (!calendarExists) targetCalendarId = calendars[0]?.id ?? "default";
+
       const newEvent = {
         ...event,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
         calendarId: targetCalendarId,
-      }
-      setEvents([...events, newEvent])
+      };
+
+      setEvents([...events, newEvent]);
+
       toast({
         title: language === "zh" ? "添加成功" : "Added Successfully",
         description: language === "zh" ? "事件已添加到您的日历" : "Event has been added to your calendar",
-      })
-      setTimeout(() => router.push("/"), 1500)
+      });
+
+      setTimeout(() => router.push("/"), 1500);
     } catch (e) {
       toast({
         title: language === "zh" ? "添加失败" : "Add Failed",
         description: e instanceof Error ? e.message : language === "zh" ? "未知错误" : "Unknown error",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsAdding(false)
+      setIsAdding(false);
     }
-  }
+  };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
     toast({
       title: language === "zh" ? "链接已复制" : "Link Copied",
       description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
-    })
-    setTimeout(() => setCopied(false), 2000)
-  }
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (loading) {
     return (
@@ -243,7 +254,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           {language === "zh" ? "加载中..." : "Loading..."}
         </p>
       </div>
-    )
+    );
   }
 
   if (requiresPassword && !event) {
@@ -298,7 +309,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") tryDecryptWithPassword()
+                        if (e.key === "Enter") tryDecryptWithPassword();
                       }}
                       placeholder={language === "zh" ? "输入分享密码" : "Enter share password"}
                     />
@@ -334,7 +345,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           </motion.div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !event) {
@@ -358,11 +369,13 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             />
           </div>
         </div>
+
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
           /
             <Calendar className="size-4" color="#0066ff" />
             One Calendar
           </a>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
               <CardContent className="p-6 text-center">
@@ -378,7 +391,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     : "Unable to load the shared calendar event. The link may be expired or invalid."}
                 </CardDescription>
                 <div className="bg-muted rounded-lg p-4 mb-6">
-                  <p className="text-sm font-medium mb-2">{language === "zh" ? "可能的原因：" : "Possible reasons:"}</p>
+                  <p className="text-sm font-medium mb-2">
+                    {language === "zh" ? "可能的原因：" : "Possible reasons:"}
+                  </p>
                   <ul className="text-sm text-muted-foreground space-y-1 text-left">
                     <li>• {language === "zh" ? "事件已被删除" : "Event has been deleted"}</li>
                     <li>• {language === "zh" ? "链接输入错误" : "Link entered incorrectly"}</li>
@@ -393,18 +408,18 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           </motion.div>
         </div>
       </div>
-    )
+    );
   }
 
-  const startDate = new Date(event.startDate)
-  const endDate = new Date(event.endDate)
-  const durationMs = endDate.getTime() - startDate.getTime()
-  const durationHours = Math.floor(durationMs / (1000 * 60 * 60))
-  const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+  const startDate = new Date(event.startDate);
+  const endDate = new Date(event.endDate);
+  const durationMs = endDate.getTime() - startDate.getTime();
+  const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+  const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
   const durationText =
     language === "zh"
       ? `${durationHours > 0 ? `${durationHours}小时` : ""}${durationMinutes > 0 ? ` ${durationMinutes}分钟` : ""}`
-      : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`
+      : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`;
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4">
@@ -497,11 +512,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       className="flex items-start"
                     >
                       <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                      <p>
-                        {language === "zh"
-                          ? `提前 ${event.notification} 分钟提醒`
-                          : `${event.notification} minutes before`}
-                      </p>
+                      <p>{language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}</p>
                     </motion.div>
                   )}
 
@@ -544,5 +555,5 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
