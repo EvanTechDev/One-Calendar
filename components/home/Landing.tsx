@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -17,10 +16,6 @@ import Image from "next/image"
 
 export default function LandingPage() {
   const router = useRouter()
-  const { isLoaded, isSignedIn } = useUser()
-  const [shouldRender, setShouldRender] = useState(false)
-  const [showLoading, setShowLoading] = useState(false)
-  const [loadingDots, setLoadingDots] = useState("")
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [activeFeature, setActiveFeature] = useState("cloud")
   const [scrollY, setScrollY] = useState(0)
@@ -59,13 +54,11 @@ export default function LandingPage() {
     }
   }, [])
 
-  /*const handleGetStarted = () => {
-    localStorage.setItem("skip-landing", "true")
-    setShowLoading(true)
+  const handleGetStarted = () => {
     router.push("/app")
   }
 
-  if (showLoading) {
+  /*if (showLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
         <div className="relative">
