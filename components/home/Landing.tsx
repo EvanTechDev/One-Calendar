@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { 
   GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, 
   KeyboardIcon, ImportIcon, CalendarIcon, ArrowRight, CheckCircle2,
-  Sparkles, Zap, Clock, Shield, Smartphone, Globe, Star, TrendingUp,
-  Users, Lock, RefreshCw, Bell, MessageSquare, Award
+  Sparkles, Zap, Lock, Bell, RefreshCw, Star, Users
 } from "lucide-react"
 import Image from "next/image"
 
@@ -129,12 +128,12 @@ export default function LandingPage() {
       {/* Floating Elements */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-2 h-2 bg-blue-500/30 rounded-full animate-pulse" />
-        <div className="absolute top-40 right-20 w-3 h-3 bg-purple-500/30 rounded-full animate-pulse delay-100" />
-        <div className="absolute bottom-40 left-1/4 w-2 h-2 bg-pink-500/30 rounded-full animate-pulse delay-200" />
+        <div className="absolute top-40 right-20 w-3 h-3 bg-purple-500/30 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }} />
+        <div className="absolute bottom-40 left-1/4 w-2 h-2 bg-pink-500/30 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
       </div>
       
       {/* Header */}
-      <header className={`sticky top-6 z-50 px-4 mx-auto flex justify-center transition-all duration-300 ${scrollY > 50 ? 'top-4' : 'top-6'}`}>
+      <header className={`sticky z-50 px-4 mx-auto flex justify-center transition-all duration-300 ${scrollY > 50 ? 'top-4' : 'top-6'}`}>
         <div className="w-auto max-w-6xl flex items-center justify-between rounded-2xl px-4 py-2 bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-black/10 dark:border-white/20 shadow-lg">
           <div className="flex items-center gap-3 py-2 px-3">
             <div className="relative">
@@ -172,7 +171,9 @@ export default function LandingPage() {
                     <span className="text-sm font-medium">Privacy Policy</span>
                   </a>
                   <a href="/terms" className="flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                    <Shield className="w-5 h-5 mr-3" />
+                    <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
                     <span className="text-sm font-medium">Terms of Service</span>
                   </a>
                 </div>
@@ -290,30 +291,95 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: CloudIcon, title: "Cloud Sync", desc: "Access your events from anywhere with secure cloud storage", color: "blue" },
-              { icon: Share2Icon, title: "Easy Sharing", desc: "Collaborate and share your schedule with ease", color: "green" },
-              { icon: BarChart3Icon, title: "Analytics", desc: "Gain insights with smart event tracking", color: "purple" },
-              { icon: SunIcon, title: "Weather Integration", desc: "See real-time weather in your calendar", color: "yellow" },
-              { icon: KeyboardIcon, title: "Keyboard Shortcuts", desc: "Navigate quickly with customizable shortcuts", color: "red" },
-              { icon: ImportIcon, title: "Import & Export", desc: "Easily move data in and out", color: "pink" },
-              { icon: Bell, title: "Smart Reminders", desc: "AI-powered notifications at the right time", color: "indigo" },
-              { icon: Lock, title: "Privacy First", desc: "Your data is encrypted and secure", color: "gray" },
-              { icon: RefreshCw, title: "Auto Sync", desc: "Real-time synchronization across devices", color: "teal" }
-            ].map((feature, i) => (
-              <Card 
-                key={i}
-                className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-              >
-                <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-xl bg-${feature.color}-100 dark:bg-${feature.color}-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <feature.icon className={`h-6 w-6 text-${feature.color}-600 dark:text-${feature.color}-400`} />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">{feature.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <CloudIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Cloud Sync</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Access your events from anywhere with secure cloud storage</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Share2Icon className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Easy Sharing</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Collaborate and share your schedule with ease</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <BarChart3Icon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Analytics</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Gain insights with smart event tracking</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <SunIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Weather Integration</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">See real-time weather in your calendar</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <KeyboardIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Keyboard Shortcuts</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Navigate quickly with customizable shortcuts</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-pink-100 dark:bg-pink-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <ImportIcon className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Import & Export</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Easily move data in and out</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Bell className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Smart Reminders</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">AI-powered notifications at the right time</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Lock className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Your data is encrypted and secure</p>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <RefreshCw className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Auto Sync</h3>
+                <p className="text-gray-600 dark:text-white/60 text-sm leading-relaxed">Real-time synchronization across devices</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -534,7 +600,7 @@ export default function LandingPage() {
                 <span className="text-lg font-semibold">What analytical features does One Calendar provide?</span>
               </AccordionTrigger>
               <AccordionContent className="pb-4 text-gray-600 dark:text-white/60 leading-relaxed">
-                Our analytics help you understand how you spend your time, provide insights into your most productive day and hours, and identify patterns to improve efficiency. These insights help you plan and optimize your schedule intelligently.
+                Our analytics help you understand how you spend your time, provide insights into your most productive day and hours, and identify patterns to improve efficiency.
               </AccordionContent>
             </AccordionItem>
             
