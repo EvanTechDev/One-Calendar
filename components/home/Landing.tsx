@@ -1,674 +1,465 @@
+"use client"
 
-import Link from "next/link";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon, CalendarIcon } from "lucide-react"
+import Image from "next/image"
 
-// ------------------------------
-// Tiny inline SVG icons (no deps)
-// ------------------------------
-function IconSparkles(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M12 2l1.2 5.2L18 8.5l-4.8 1.3L12 15l-1.2-5.2L6 8.5l4.8-1.3L12 2Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 14l.7 3L8 18l-3.3 1-.7 3-.7-3L0 18l3.3-1L4 14Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        opacity=".75"
-      />
-      <path
-        d="M20 12l.6 2.4L23 15l-2.4.6L20 18l-.6-2.4L17 15l2.4-.6L20 12Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        opacity=".75"
-      />
-    </svg>
-  );
-}
+export default function LandingPage() {
+  const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
+  const [shouldRender, setShouldRender] = useState(false)
+  const [activeFeature, setActiveFeature] = useState("cloud")
+  const [showLoading, setShowLoading] = useState(false)
+  const [loadingDots, setLoadingDots] = useState("")
 
-function IconArrowRight(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M5 12h12"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+  useEffect(() => {
+    const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
+    if (hasSkippedLanding || (isLoaded && isSignedIn)) {
+      setShowLoading(true)
+      router.replace("/app")
+    } else if (isLoaded) {
+      setShouldRender(true)
+    }
+  }, [isLoaded, isSignedIn, router])
 
-function IconCheck(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M20 6L9 17l-5-5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+  useEffect(() => {
+    if (showLoading) {
+      const interval = setInterval(() => {
+        setLoadingDots(prev => {
+          if (prev === "...") return "."
+          return prev + "."
+        })
+      }, 400)
 
-function IconCalendar(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M7 3v3M17 3v3M4 8h16"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 12h3M13 12h3M8 16h3M13 16h3"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        opacity=".8"
-      />
-    </svg>
-  );
-}
+      return () => clearInterval(interval)
+    }
+  }, [showLoading])
 
-function IconZap(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M13 2L3 14h8l-1 8 11-14h-8l0-6Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+  const handleGetStarted = () => {
+    localStorage.setItem("skip-landing", "true")
+    setShowLoading(true)
+    router.push("/app")
+  }
 
-function IconClock(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M12 6v6l4 2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconShield(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M12 2l8 4v6c0 6-4 10-8 10S4 18 4 12V6l8-4Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.5 12l1.8 1.8L15.8 9.3"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity=".9"
-      />
-    </svg>
-  );
-}
-
-function IconSearch(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M11 19a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M21 21l-3.8-3.8"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-// ------------------------------
-// Page
-// ------------------------------
-export default function Page() {
-  return (
-    <main className="min-h-screen bg-black text-white antialiased">
-      {/* Single-file "global" styles */}
-      <style jsx global>{`
-        :root {
-          color-scheme: dark;
-        }
-        /* subtle grid background */
-        .bg-grid {
-          background-image: linear-gradient(
-              to right,
-              rgba(255, 255, 255, 0.06) 1px,
-              transparent 1px
-            ),
-            linear-gradient(
-              to bottom,
-              rgba(255, 255, 255, 0.06) 1px,
-              transparent 1px
-            );
-          background-size: 48px 48px;
-        }
-        /* noise overlay */
-        .noise {
-          position: relative;
-        }
-        .noise::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
-          mix-blend-mode: overlay;
-          opacity: 0.35;
-        }
-        /* gradient border */
-        .gradient-border {
-          position: relative;
-        }
-        .gradient-border::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          padding: 1px;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.35),
-            rgba(255, 255, 255, 0.05),
-            rgba(255, 255, 255, 0.25)
-          );
-          -webkit-mask: linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          pointer-events: none;
-        }
-        /* soft glow */
-        .glow {
-          filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.12));
-        }
-        /* floaty */
-        @keyframes floaty {
-          0%,
-          100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-        .floaty {
-          animation: floaty 6s ease-in-out infinite;
-        }
-      `}</style>
-
-      {/* Background layers */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-40" />
-        <div className="absolute inset-0 noise" />
-        {/* light blobs */}
-        <div className="pointer-events-none absolute -top-24 right-[-180px] h-[520px] w-[520px] rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-[-200px] h-[520px] w-[520px] rounded-full bg-white/10 blur-3xl" />
-
-        <div className="relative">
-          <Navbar />
-          <Hero />
-          <Logos />
-          <Bento />
-          <Pricing />
-          <FAQ />
-          <Footer />
-        </div>
-      </div>
-    </main>
-  );
-}
-
-// ------------------------------
-// Components (same file)
-// ------------------------------
-function Navbar() {
-  return (
-    <header className="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-black/40">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        /
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black font-semibold">
-            1
-          </span>
-          <span className="text-sm tracking-wide text-white/90 group-hover:text-white">
-            One Calendar
-          </span>
-        </Link>
-
-        <nav className="hidden items-center gap-6 md:flex text-sm text-white/70">
-          #features
-            Features
-          </a>
-          #pricing
-            Pricing
-          </a>
-          #faq
-            FAQ
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-3">
-          #pricing
-            Sign in
-          </a>
-          #
-            Get Early Access
-          </a>
-        </div>
-      </div>
-      <div className="mx-auto h-px max-w-6xl bg-white/10" />
-    </header>
-  );
-}
-
-function Hero() {
-  return (
-    <section className="mx-auto max-w-6xl px-6 pt-16 pb-12 md:pt-24">
-      <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
-          <IconSparkles className="h-4 w-4" />
-          <span>Minimal. Fast. Focused.</span>
-          <span className="text-white/40">•</span>
-          <span className="text-white/60">One Calendar v1</span>
-        </div>
-
-        <h1 className="mt-8 text-4xl font-semibold tracking-tight md:text-6xl">
-          One calendar for{" "}
-          <span className="text-white/70">planning</span>,{" "}
-          <span className="text-white/70">focus</span> and{" "}
-          <span className="text-white/70">shipping</span>.
-        </h1>
-
-        <p className="mt-6 text-base leading-relaxed text-white/70 md:text-lg">
-          把日程、任务、专注时段整合到一条优雅的时间线上。更少切换，更清晰的今天。
+  if (showLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
+        <CalendarIcon className="h-24 w-24 text-[#0066ff] mb-4" />
+        <p className="text-lg text-gray-700 dark:text-white">
+          Loading One Calendar{loadingDots}
         </p>
+      </div>
+    )
+  }
 
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          #
-            Start free
-            <IconArrowRight className="ml-2 h-4 w-4" />
-          </a>
-          <a
-            href="#features"
-            className="inline-flex items-center justify-center rounded-xlame (replace with real screenshot later) */}
-      <div className="mt-14">
-        <div className="gradient-border mx-auto max-w-5xl rounded-2xl bg-white/5 p-2">
-          <div className="rounded-xl bg-black/60 p-6 md:p-10">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              <span className="ml-3 text-xs text-white/50">
-                onecalendar.app
-              </span>
-            </div>
+  if (!shouldRender) return null
 
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5 floaty">
-                <p className="text-xs text-white/50">Today</p>
-                <p className="mt-2 text-lg font-medium">Deep work</p>
-                <p className="mt-1 text-sm text-white/60">09:30 – 11:00</p>
-                <div className="mt-4 h-px bg-white/10" />
-                <p className="mt-3 text-xs text-white/45">
-                  Keyboard-first schedule
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5 md:col-span-2">
-                <p className="text-xs text-white/50">Timeline</p>
-
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-16 rounded-lg bg-white/5 border border-white/10" />
-                    <div className="h-10 flex-1 rounded-lg bg-white/5 border border-white/10" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-16 rounded-lg bg-white/5 border border-white/10" />
-                    <div className="h-10 flex-1 rounded-lg bg-white/5 border border-white/10" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-16 rounded-lg bg-white/5 border border-white/10" />
-                    <div className="h-10 flex-1 rounded-lg bg-white/5 border border-white/10" />
-                  </div>
-                </div>
-
-                <p className="mt-4 text-xs text-white/50">
-                  （这里可替换为你真实的产品截图：放一张 png / webp 进来就很高级）
-                </p>
-              </div>
-            </div>
+  return (
+    <div className="flex flex-col min-h-screen text-gray-900 dark:text-white">
+      <div className="fixed -z-10 inset-0">
+        <div className="absolute inset-0 bg-white dark:bg-black">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+          <div className="absolute inset-0 dark:block hidden" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+        </div>
+      </div>
+      
+      <header className="sticky top-6 z-50 px-4 mx-auto flex justify-center">
+        <div className="w-auto max-w-4xl flex items-center justify-between rounded-xl px-2 py-1 bg-black/5 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/20">
+          <div className="flex items-center gap-2 py-2 px-3">
+            <Image src="/icon.svg" alt="One Calendar" width={24} height={24} />
           </div>
-        </div>
-
-        <p className="mt-6 text-center text-xs text-white/45">
-          Crisp. Monochrome. Confident.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function Logos() {
-  const items = ["Google Calendar", "Notion", "Slack", "Zoom", "GitHub", "Linear"];
-
-  return (
-    <section className="mx-auto max-w-6xl px-6 pb-10">
-      <div className="mx-auto max-w-4xl">
-        <p className="text-center text-xs text-white/50">
-          Works with the tools you already use
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-6">
-          {items.map((name) => (
-            <div
-              key={name}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-xs text-white/70"
-            >
-              {name}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Bento() {
-  const features = [
-    {
-      title: "Unified timeline",
-      desc: "日程 + 任务 + 专注时段，统一在一条时间线上。",
-      icon: IconCalendar,
-      wide: true,
-    },
-    {
-      title: "Lightning fast",
-      desc: "键盘优先、瞬时搜索、零等待切换。",
-      icon: IconZap,
-    },
-    {
-      title: "Time blocking",
-      desc: "把计划变成可执行的时间块。",
-      icon: IconClock,
-    },
-    {
-      title: "Privacy first",
-      desc: "默认安全，数据最小化与可控导出。",
-      icon: IconShield,
-    },
-    {
-      title: "Instant search",
-      desc: "跨日程、事件、备注的全局搜索。",
-      icon: IconSearch,
-      wide: true,
-    },
-    {
-      title: "Delightful details",
-      desc: "细节决定体验：留白、对齐、微交互。",
-      icon: IconSparkles,
-    },
-  ];
-
-  return (
-    <section id="features" className="mx-auto max-w-6xl px-6 py-16">
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Built for calm productivity
-        </h2>
-        <p className="mt-4 text-white/70">
-          更少噪音、更清晰节奏。把每一天变成可控、可复盘的系统。
-        </p>
-      </div>
-
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {features.map((f) => (
-          <div
-            key={f.title}
-            className={[
-              "gradient-border rounded-2xl bg-white/5 p-6 hover:bg-white/10 transition-colors",
-              f.wide ? "md:col-span-2" : "",
-            ].join(" ")}
+          <nav className="hidden md:flex items-center gap-6 px-3 mr-32">
+            <a href="/about" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white">About</a>
+            <div className="relative group">
+        <a href="#" className="text-sm text-gray-700 hover:text-gray-900 dark:text-white/70 dark:hover:text-white flex items-center">
+          Resources
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-4 w-4 ml-1 text-gray-500 dark:text-gray-400 transition-transform duration-200 group-hover:rotate-180" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
           >
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                <f.icon className="h-5 w-5 text-white/80" />
-              </span>
-              <h3 className="text-base font-medium">{f.title}</h3>
-            </div>
-
-            <p className="mt-3 text-sm leading-relaxed text-white/70">
-              {f.desc}
-            </p>
-
-            <div className="mt-6 h-px w-full bg-white/10" />
-            <p className="mt-3 text-xs text-white/45">Designed to feel inevitable.</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Pricing() {
-  const plans = [
-    {
-      name: "Free",
-      price: "¥0",
-      desc: "适合个人尝鲜",
-      features: ["基础日历", "时间块", "跨设备同步", "基础搜索"],
-      cta: "Get started",
-      highlight: false,
-    },
-    {
-      name: "Pro",
-      price: "¥28",
-      desc: "适合高频使用者",
-      features: [
-        "所有 Free",
-        "高级搜索",
-        "多日视图",
-        "模板与重复规则",
-        "快捷键增强",
-      ],
-      cta: "Go Pro",
-      highlight: true,
-    },
-    {
-      name: "Team",
-      price: "¥68",
-      desc: "适合小团队协作",
-      features: ["所有 Pro", "共享日历", "权限控制", "团队分析", "优先支持"],
-      cta: "Contact sales",
-      highlight: false,
-    },
-  ];
-
-  return (
-    <section id="pricing" className="mx-auto max-w-6xl px-6 py-16">
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Simple pricing
-        </h2>
-        <p className="mt-4 text-white/70">
-          透明、克制、不玩套路。你随时可以升级或取消。
-        </p>
-      </div>
-
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {plans.map((p) => (
-          <div
-            key={p.name}
-            className={[
-              "rounded-2xl p-6",
-              p.highlight
-                ? "gradient-border bg-white/10 glow"
-                : "border border-white/10 bg-white/5",
-            ].join(" ")}
-          >
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-lg font-medium">{p.name}</h3>
-              <span className="text-sm text-white/60">/ month</span>
-            </div>
-
-            <div className="mt-4 flex items-end gap-2">
-              <span className="text-4xl font-semibold">{p.price}</span>
-              <span className="text-sm text-white/60">起</span>
-            </div>
-
-            <p className="mt-3 text-sm text-white/70">{p.desc}</p>
-
-            <ul className="mt-6 space-y-3">
-              {p.features.map((f) => (
-                <li
-                  key={f}
-                  className="flex items-start gap-2 text-sm text-white/75"
-                >
-                  <IconCheck className="mt-0.5 h-4 w-4 text-white/70" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            <a
-              href="#"
-              class      </div>
-        ))}
-      </div>
-
-      <p className="mt-6 text-center text-xs text-white/45">
-        * 价格仅为示例，你可以替换成订阅/买断/教育优惠等。
-      </p>
-    </section>
-  );
-}
-
-function FAQ() {
-  const faqs = [
-    {
-      q: "One Calendar 和传统日历有什么不同？",
-      a: "它把日程、任务、专注时段统一到时间线上，让“计划”自然变成“执行”。",
-    },
-    {
-      q: "支持哪些平台？",
-      a: "Web 优先，同时可扩展到桌面/移动端（PWA 或原生封装）。",
-    },
-    {
-      q: "我的数据安全吗？",
-      a: "默认最小化采集，支持导出，未来可加端到端加密选项。",
-    },
-    {
-      q: "可以和 Google Calendar 同步吗？",
-      a: "可以。也可扩展到 CalDAV、ICS 订阅、多账户等。",
-    },
-  ];
-
-  return (
-    <section id="faq" className="mx-auto max-w-6xl px-6 py-16">
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          FAQ
-        </h2>
-        <p className="mt-4 text-white/70">常见问题，快速解答。</p>
-      </div>
-
-      <div className="mx-auto mt-10 max-w-3xl space-y-3">
-        {faqs.map((f) => (
-          <details
-            key={f.q}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 open:bg-white/10 transition-colors"
-          >
-            <summary className="cursor-pointer list-none text-sm font-medium">
-              {f.q}
-            </summary>
-            <p className="mt-3 text-sm leading-relaxed text-white/70">{f.a}</p>
-          </details>
-        ))}
-      </div>
-
-      <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
-        <h3 className="text-base font-medium">Ready to own your day?</h3>
-        <p className="mt-2 text-sm text-white/70">
-          现在就开始使用 One Calendar，建立更清晰的节奏。
-        </p>
-
-        <a
-          href="#"
-Access
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </a>
-      </div>
-    </section>
-  );
-}
 
-function Footer() {
-  return (
-    <footer className="border-t border-white/10">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium">One Calendar</p>
-            <p className="mt-2 text-xs text-white/50">
-              © {new Date().getFullYear()} One Calendar. All rights reserved.
-            </p>
-          </div>
-
-          <div className="flex gap-6 text-xs text-white/60">
-            #
-              Privacy
+        <div className="absolute left-0 mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
+          <div className="py-2 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
+            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener noreferrer" className="flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+              </svg>
+              <span className="text-sm text-gray-700 dark:text-white/70">GitHub</span>
             </a>
-            #
-              Terms
+            <a href="https://x.com/One__Cal" target="_blank" rel="noopener noreferrer" className="flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+              </svg>
+              <span className="text-sm text-gray-700 dark:text-white/70">X</span>
             </a>
-            #
-              Contact
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <a href="/privacy" className="flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              <span className="text-sm text-gray-700 dark:text-white/70">Privacy Policy</span>
+            </a>
+            <a href="/terms" className="flex items-center px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <span className="text-sm text-gray-700 dark:text-white/70">Terms of Service</span>
             </a>
           </div>
         </div>
       </div>
-    </footer>
-  );
+          </nav>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10"
+              onClick={() => router.push("/sign-in")}
+            >
+              Sign in
+            </Button>
+            <Button
+              onClick={handleGetStarted}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </header>
+      
+      <section className="py-24 px-2">
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center py-1 px-3 rounded-full bg-black/5 dark:bg-white/5 backdrop-blur-sm mb-8 relative"
+     style={{
+       border: "1px solid transparent",
+       backgroundImage: "linear-gradient(#ffffff, #ffffff), linear-gradient(90deg, #ff00ff, #00ffff, #ff8800, #00ff00)",
+       backgroundOrigin: "border-box",
+       backgroundClip: "padding-box, border-box",
+       position: "relative"
+     }}>
+  <span className="text-sm text-black">AI Powered</span>
+</div>
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 bg-clip-text text-transparent relative bg-black dark:bg-white">
+             Time-Saving AI Calendar,<br />Designed for Efficiency
+          </h1>
+          <p className="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto mb-6">
+            One Calendar is an AI-first app that streamlines your scheduling.
+          </p>
+          <div className="flex justify-center mb-16">
+            <Button
+              onClick={handleGetStarted}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
+            >
+              Get Started
+            </Button>
+          </div>
+          <div className="rounded-lg overflow-hidden border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-md shadow-2xl max-w-4xl mx-auto">
+            <Image
+              src="/Banner.jpg"
+              alt="One Calendar Preview"
+              width={1200}
+              height={675}
+              className="w-full object-cover dark:hidden"
+            />
+            <Image
+              src="/Banner-dark.jpg"
+              alt="One Calendar Preview - Dark"
+              width={1200}
+              height={675}
+              className="w-full object-cover hidden dark:block"
+            />
+          </div>
+        </div>
+      </section>
+      
+      <section className="py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <Tabs defaultValue="cloud" className="w-full" onValueChange={setActiveFeature}>
+            <div className="flex justify-center mb-12">
+              <TabsList className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/20 backdrop-blur-md">
+                <TabsTrigger value="cloud" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <CloudIcon className="h-4 w-4 mr-2" />
+                  Cloud Sync
+                </TabsTrigger>
+                <TabsTrigger value="sharing" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <Share2Icon className="h-4 w-4 mr-2" />
+                  Sharing
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <BarChart3Icon className="h-4 w-4 mr-2" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="weather" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <SunIcon className="h-4 w-4 mr-2" />
+                  Weather
+                </TabsTrigger>
+                <TabsTrigger value="shortcuts" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <KeyboardIcon className="h-4 w-4 mr-2" />
+                  Shortcuts
+                </TabsTrigger>
+                <TabsTrigger value="import" className="data-[state=active]:bg-black/10 dark:data-[state=active]:bg-white/10">
+                  <ImportIcon className="h-4 w-4 mr-2" />
+                  Import
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <TabsContent value="cloud" className="mt-0">
+                <Badge className="mb-4 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-500/30 border-none">Cloud Technology</Badge>
+                <h2 className="text-3xl font-bold mb-4">Cloud Sync</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  Access your events from anywhere with secure cloud storage. Your calendar stays in sync across all your devices.
+                </p>
+              </TabsContent>
+              <TabsContent value="sharing" className="mt-0">
+                <Badge className="mb-4 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300 hover:bg-green-500/30 border-none">Collaboration</Badge>
+                <h2 className="text-3xl font-bold mb-4">Easy Sharing</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  Collaborate and share your schedule with ease. Perfect for team coordination and family planning.
+                </p>
+              </TabsContent>
+              <TabsContent value="analytics" className="mt-0">
+                <Badge className="mb-4 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 hover:bg-purple-500/30 border-none">Insights</Badge>
+                <h2 className="text-3xl font-bold mb-4">Analytics</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  Gain insights with smart event tracking and summaries. Understand how you spend your time.
+                </p>
+              </TabsContent>
+              <TabsContent value="weather" className="mt-0">
+                <Badge className="mb-4 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-500/30 border-none">Forecasting</Badge>
+                <h2 className="text-3xl font-bold mb-4">Weather Integration</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  See real-time weather in your calendar view. Plan outdoor events with confidence.
+                </p>
+              </TabsContent>
+              <TabsContent value="shortcuts" className="mt-0">
+                <Badge className="mb-4 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 hover:bg-red-500/30 border-none">Productivity</Badge>
+                <h2 className="text-3xl font-bold mb-4">Keyboard Shortcuts</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  Navigate quickly using customizable shortcuts. Work efficiently without touching your mouse.
+                </p>
+              </TabsContent>
+              <TabsContent value="import" className="mt-0">
+                <Badge className="mb-4 bg-pink-100 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 hover:bg-pink-500/30 border-none">Data Transfer</Badge>
+                <h2 className="text-3xl font-bold mb-4">Import & Export</h2>
+                <p className="text-gray-700 dark:text-white/70">
+                  Easily move data in and out of One Calendar. Compatible with all standard calendar formats.
+                </p>
+              </TabsContent>
+              <div className="order-first md:order-last relative">
+                <div className="aspect-video rounded-lg overflow-hidden border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 backdrop-blur-md flex items-center justify-center relative">
+                  {activeFeature === "cloud" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-200/70 to-purple-200/70 dark:from-blue-500/20 dark:to-purple-500/20 opacity-30" />
+                      <CloudIcon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                  {activeFeature === "sharing" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-200/70 to-blue-200/70 dark:from-green-500/20 dark:to-blue-500/20 opacity-30" />
+                      <Share2Icon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                  {activeFeature === "analytics" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-200/70 to-blue-200/70 dark:from-purple-500/20 dark:to-blue-500/20 opacity-30" />
+                      <BarChart3Icon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                  {activeFeature === "weather" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/70 to-orange-200/70 dark:from-yellow-500/20 dark:to-orange-500/20 opacity-30" />
+                      <SunIcon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                  {activeFeature === "shortcuts" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-200/70 to-purple-200/70 dark:from-red-500/20 dark:to-purple-500/20 opacity-30" />
+                      <KeyboardIcon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                  {activeFeature === "import" && (
+                    <div className="p-4 w-full h-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-pink-200/70 to-blue-200/70 dark:from-pink-500/20 dark:to-blue-500/20 opacity-30" />
+                      <ImportIcon className="h-20 w-20 text-black/30 dark:text-white/30" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-3 -right-3 h-24 w-24 bg-blue-300/30 dark:bg-blue-500/30 rounded-full blur-3xl" />
+                <div className="absolute -top-3 -left-3 h-16 w-16 bg-purple-300/30 dark:bg-purple-500/30 rounded-full blur-2xl" />
+              </div>
+            </div>
+          </Tabs>
+        </div>
+      </section>
+
+      <section className="py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <CloudIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Cloud Sync</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">Access your events from anywhere with secure cloud storage.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <Share2Icon className="h-8 w-8 text-green-600 dark:text-green-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Easy Sharing</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">Collaborate and share your schedule with ease.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <BarChart3Icon className="h-8 w-8 text-purple-600 dark:text-purple-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Analytics</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">Gain insights with smart event tracking and summaries.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <SunIcon className="h-8 w-8 text-yellow-600 dark:text-yellow-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Weather Integration</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">See real-time weather in your calendar view.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <KeyboardIcon className="h-8 w-8 text-red-600 dark:text-red-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Keyboard Shortcuts</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">Navigate quickly using customizable shortcuts.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 backdrop-blur-md hover:bg-opacity-10 transition-all duration-300">
+              <CardContent className="p-6">
+                <ImportIcon className="h-8 w-8 text-pink-600 dark:text-pink-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Import & Export</h3>
+                <p className="text-gray-700 dark:text-white/70 text-sm">Easily move data in and out of One Calendar.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+<section className="py-16 px-4 relative overflow-hidden">
+  <div className="max-w-3xl mx-auto">
+    <h2 className="text-3xl font-medium mb-10 text-center dark:text-white">FAQ</h2>
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="item-1" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">What's One Calendar?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          One Calendar is an AI-driven calendar app designed to simplify your schedule and manage your time with smart features and a user-friendly interface.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-2" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">How do I import my existing calendar?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          One Calendar supports importing data from Apple Calendar, Outlook and Google Calendar. Just download your calendar ics file in their settings and go to One Calendar's analysis page to import it.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-3" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">How do I share my schedule with others?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          With our sharing feature, you can easily share specific events with family, friends or colleagues. Let others import events, etc.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-4" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">What analytical features does One Calendar provide?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          Our analytics can help you understand how you spend your time, provide insights into your most productive day and most productive hours, and identify patterns that can improve efficiency. These insights can help you plan and optimize your schedule more intelligently.
+        </AccordionContent>
+      </AccordionItem>
+      
+      <AccordionItem value="item-5" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">Is there a free plan available?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          Of course! One Calendar supports free use, our product is free and open-sourced. Suitable for any user, we also provide support, you can contact us to get it.
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="item-6" className="border-b border-black/10 dark:border-white/10">
+        <AccordionTrigger className="py-4 text-left hover:no-underline">
+          <span className="text-lg font-medium">How to report a problem or request a feature?</span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 text-gray-700 dark:text-white/70">
+          You can open a new issus on our Github page or on our feedback to feedback or request features.
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  </div>
+</section>
+      
+      <section className="py-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0" />
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-medium mb-6 dark:text-white">Ready to transform your scheduling?</h2>
+            <p className="text-xl text-gray-700 dark:text-white/70 mb-8 max-w-2xl mx-auto">
+              Join thousands of users who've streamlined their calendar management with One Calendar.
+            </p>
+            <Button
+              onClick={handleGetStarted}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-xl"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </section>
+      
+      <footer className="mt-auto py-8 border-t border-black/10 dark:border-white/10 text-gray-600 dark:text-white/70 text-sm px-6">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <p>&copy; 2025 One Calendar. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="/about" className="hover:text-gray-900 dark:hover:text-white">About</a>
+            <a href="/privacy" className="hover:text-gray-900 dark:hover:text-white">Privacy</a>
+            <a href="/terms" className="hover:text-gray-900 dark:hover:text-white">Terms</a>
+            <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
+              <GithubIcon className="w-4 h-4" />
+            </a>
+            <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
+                <path fill="currentColor" d="M 4.0175781 4 L 13.091797 17.609375 L 4.3359375 28 L 6.9511719 28 L 14.246094 19.34375 L 20.017578 28 L 20.552734 28 L 28.015625 28 L 18.712891 14.042969 L 27.175781 4 L 24.560547 4 L 17.558594 12.310547 L 12.017578 4 L 4.0175781 4 z M 7.7558594 6 L 10.947266 6 L 24.279297 26 L 21.087891 26 L 7.7558594 6 z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
 }
