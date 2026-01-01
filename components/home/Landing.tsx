@@ -25,7 +25,7 @@ export default function LandingPage() {
   const [activeFeature, setActiveFeature] = useState("cloud")
   const [scrollY, setScrollY] = useState(0)
 
-  useEffect(() => {
+  /*useEffect(() => {
     const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
     if (hasSkippedLanding || (isLoaded && isSignedIn)) {
       setShowLoading(true)
@@ -42,7 +42,7 @@ export default function LandingPage() {
       }, 400)
       return () => clearInterval(interval)
     }
-  }, [showLoading])
+  }, [showLoading])*/
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -59,7 +59,7 @@ export default function LandingPage() {
     }
   }, [])
 
-  const handleGetStarted = () => {
+  /*const handleGetStarted = () => {
     localStorage.setItem("skip-landing", "true")
     setShowLoading(true)
     router.push("/app")
@@ -79,7 +79,7 @@ export default function LandingPage() {
     )
   }
 
-  if (!shouldRender) return null
+  if (!shouldRender) return null*/
 
   const stats = [
     { value: "50K+", label: "Active Users" },
