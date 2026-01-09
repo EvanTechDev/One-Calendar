@@ -380,7 +380,14 @@ export default function UserProfileButton() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
+      <Dialog
+  open={unlockOpen}
+  onOpenChange={(open) => {
+    if (open) {
+      setUnlockOpen(true)
+    }
+  }}
+>
   <DialogContent
     onInteractOutside={(e) => e.preventDefault()}
     onEscapeKeyDown={(e) => e.preventDefault()}
@@ -409,6 +416,7 @@ export default function UserProfileButton() {
     </DialogFooter>
   </DialogContent>
 </Dialog>
+
 
 
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
