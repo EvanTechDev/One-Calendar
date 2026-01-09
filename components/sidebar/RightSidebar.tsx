@@ -572,19 +572,7 @@ const renderContactEditView = () => (
           >
             <Bookmark className="h-6 w-6 text-black dark:text-white" />
           </Button>
-
-          <WeatherSheet
-            trigger={
-              <Button
-                variant="secondary"
-                size="icon"
-                className="rounded-full size-10"
-              >
-                <Sun className="h-6 w-6 text-black dark:text-white" />
-              </Button>
-            }
-            />
-                                     
+          
           {/* <Button
             variant="ghost"
             size="icon"
