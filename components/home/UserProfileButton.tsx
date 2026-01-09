@@ -381,19 +381,35 @@ export default function UserProfileButton() {
       </Dialog>
 
       <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{language === "zh" ? "输入密码" : "Enter the password"}</DialogTitle>
-            <DialogDescription>
-              {language === "zh" ? "输入密码以解锁和备份数据" : "Enter the password to unlock and backup data"}
-            </DialogDescription>
-          </DialogHeader>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <DialogFooter>
-            <Button onClick={unlock}>{language === "zh" ? "确认" : "Confirm"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent
+    onInteractOutside={(e) => e.preventDefault()}
+    onEscapeKeyDown={(e) => e.preventDefault()}
+  >
+    <DialogHeader>
+      <DialogTitle>
+        {language === "zh" ? "输入密码" : "Enter the password"}
+      </DialogTitle>
+      <DialogDescription>
+        {language === "zh"
+          ? "输入密码以解锁和备份数据"
+          : "Enter the password to unlock and backup data"}
+      </DialogDescription>
+    </DialogHeader>
+
+    <Input
+      type="password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+    />
+
+    <DialogFooter>
+      <Button onClick={unlock}>
+        {language === "zh" ? "确认" : "Confirm"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
 
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
         <DialogContent>
