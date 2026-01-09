@@ -23,7 +23,6 @@ import AnalyticsView from "@/components/analytics/AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "@/components/home/UserProfileButton"
 import { cn } from "@/lib/utils"
-import Weather from "@/components/home/Weather"
 import DailyToast from "@/components/home/DailyToast"
 import QuickStartGuide from "@/components/home/QuickStartGuide"
 import { toast } from "sonner"
@@ -393,7 +392,6 @@ const handleShare = (event: CalendarEvent) => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Weather />
             <div className="relative z-50">
               <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
