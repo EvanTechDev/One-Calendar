@@ -15,7 +15,6 @@ import BookmarkPanel from "./BookmarkPanel"
 import AIChatSheet from "./AIChat"
 import { useRouter } from "next/navigation"
 import { CountdownTool } from "./Countdown"
-import WeatherSheet from './Weather';
 
 // 通讯录类型定义
 interface Contact {
@@ -565,26 +564,6 @@ const renderContactEditView = () => (
             <Calendar className="h-6 w-6 text-black dark:text-white" />
           </Button>
 
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full size-10"
-            onClick={() => setBookmarkPanelOpen(true)}
-          >
-            <Bookmark className="h-6 w-6 text-black dark:text-white" />
-          </Button>
-
-          <WeatherSheet
-            trigger={
-              <Button
-                variant="secondary"
-                size="icon"
-                className="rounded-full size-10"
-              >
-                <Sun className="h-6 w-6 text-black dark:text-white" />
-              </Button>
-            }
-            />
                                      
           {/* <Button
             variant="ghost"
