@@ -17,16 +17,15 @@ interface MonthViewProps {
 
 function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
-    'bg-blue-500': '#3C74C4',
-    'bg-yellow-500': '#C39248',
-    'bg-red-500': '#C14D4D',
-    'bg-green-500': '#3C996C',
-    'bg-purple-500': '#A44DB3',
-    'bg-pink-500': '#C14D84',
-    'bg-indigo-500': '#3D63B3',
-    'bg-orange-500': '#C27048',
-    'bg-teal-500': '#3C8D8D',
-  }
+  "bg-[#FFD5C6]": "#F0030F",
+  "bg-[#FFE3C8]": "#FE7032",
+  "bg-[#FEF0BF]": "#F3B82C",
+  "bg-[#DDFFE4]": "#49CC80",
+  "bg-[#E2F9FF]": "#33A6E5",
+  "bg-[#FEEDFF]": "#9851FD",
+  "bg-[#F7F4F3]": "#B3B4B4",
+};
+
 
   return colorMapping[color] || '#3A3A3A';
 }
