@@ -17,14 +17,15 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
-  { value: "bg-[#FFD5C6]", label: "Red" },
-  { value: "bg-[#FFE3C8]", label: "Orange" },
-  { value: "bg-[#FEF0BF]", label: "Yellow" },
-  { value: "bg-[#DDFFE4]", label: "Green" },
-  { value: "bg-[#E2F9FF]", label: "Blue" },
-  { value: "bg-[#FEEDFF]", label: "Purple" },
-  { value: "bg-[#F7F4F3]", label: "Gray" },
+  { value: "bg-[#F4B8A5]", label: "Red" },
+  { value: "bg-[#F6C59A]", label: "Orange" },
+  { value: "bg-[#EFD98A]", label: "Yellow" },
+  { value: "bg-[#BFE8CC]", label: "Green" },
+  { value: "bg-[#B9E6F2]", label: "Blue" },
+  { value: "bg-[#E1C9F2]", label: "Purple" },
+  { value: "bg-[#E3E1E0]", label: "Gray" },
 ];
+
 
 // 生成小时选项 (0-23)
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
