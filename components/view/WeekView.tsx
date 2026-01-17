@@ -672,35 +672,49 @@ export default function WeekView({
                     <ContextMenu key={`${event.id}-${day.toISOString().split("T")[0]}`}>
                       <ContextMenuTrigger asChild>
                         <div
-                          className={cn("relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
-                          style={{
-                            top: `${startMinutes}px`,
-                            height: `${height}px`,
-                            opacity: 0.92,
-                            width,
-                            left,
-                            zIndex: column + 1,
-                          }}
-                          onMouseDown={(e) => handleEventDragStart(event, e)}
-                          onMouseUp={handleEventDragEnd}
-                          onMouseLeave={handleEventDragEnd}
-                                                    onClick={(e) => {
-                            e.stopPropagation()
-                            if (!isDraggingRef.current) {
-                              onEventClick(event)
-                            }
-                          }}
-                        >
-                         <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
-                          <div className="pl-1.5">
-                          <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
-                          {height >= 40 && (
-                            <div className="text-xs truncate" style={{ color: getDarkerColorClass(event.color) }}>
-                              {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
-                            </div>
-                          )}
-                          </div>
-                        </div>
+  className={cn(
+    "relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden",
+    event.color
+  )}
+  style={{
+    top: `${startMinutes}px`,
+    height: `${height}px`,
+    width,
+    left,
+    zIndex: column + 1,
+  }}
+>
+  <div
+    className="absolute inset-0 pointer-events-none"
+    style={{
+      backgroundColor: isDark ? "rgba(0,0,0,0.18)" : "transparent",
+    }}
+  />
+
+  <div
+    className="absolute left-0 top-0 w-1 h-full rounded-l-md"
+    style={{ backgroundColor: getDarkerColorClass(event.color) }}
+  />
+
+  <div className="relative pl-1.5">
+    <div
+      className="font-medium truncate"
+      style={{ color: getDarkerColorClass(event.color) }}
+    >
+      {event.title}
+    </div>
+
+    {height >= 40 && (
+      <div
+        className="text-xs truncate"
+        style={{ color: getDarkerColorClass(event.color) }}
+      >
+        {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
+      </div>
+    )}
+  </div>
+</div>
+
                       </ContextMenuTrigger>
     
                     <ContextMenuContent className="w-40">
