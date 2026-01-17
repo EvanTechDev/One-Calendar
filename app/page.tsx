@@ -32,12 +32,8 @@ function Badge({ icon, text }: { icon: React.ReactNode; text: string }) {
 export default function LandingPage() {
   const [activeCard, setActiveCard] = useState(0)
   const [progress, setProgress] = useState(0)
-  const router = useRouter()
   const { isLoaded, isSignedIn } = useUser()
   const mountedRef = useRef(true)
-  const [showLoading, setShowLoading] = useState(false)
-  const [loadingDots, setLoadingDots] = useState("")
-  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
@@ -494,7 +490,7 @@ export default function LandingPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Left - Effortless integration */}
+                    {/* Bottom Left - Effortless integration
                     <div className="border-r-0 md:border-r border-[rgba(55,50,47,0.12)] p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6 bg-transparent">
                       <div className="flex flex-col gap-2">
                         <h3 className="text-[#37322F] text-lg sm:text-xl font-semibold leading-tight font-sans">
@@ -508,12 +504,12 @@ export default function LandingPage() {
                         <div className="w-full h-full flex items-center justify-center bg-transparent">
                           <EffortlessIntegration width={400} height={250} className="max-w-full max-h-full" />
                         </div>
-                        {/* Gradient mask for soft bottom edge */}
+                        Gradient mask for soft bottom edge
                         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#F7F5F3] to-transparent pointer-events-none"></div>
                       </div>
                     </div>
 
-                    {/* Bottom Right - Numbers that speak */}
+                    Bottom Right - Numbers that speak
                     <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6">
                       <div className="flex flex-col gap-2">
                         <h3 className="text-[#37322F] text-lg sm:text-xl font-semibold leading-tight font-sans">
@@ -532,9 +528,9 @@ export default function LandingPage() {
                             className="w-full h-full object-contain"
                           />
                         </div>
-                        {/* Gradient mask for soft bottom edge */}
+                        Gradient mask for soft bottom edge
                         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#F7F5F3] to-transparent pointer-events-none"></div>
-                        {/* Fallback content if component doesn't render */}
+                        Fallback content if component doesn't render
                         <div className="absolute inset-0 flex items-center justify-center opacity-20 hidden">
                           <div className="flex flex-col items-center gap-2 p-4">
                             <div className="w-3/4 h-full bg-green-500 rounded-full"></div>
@@ -542,7 +538,7 @@ export default function LandingPage() {
                           <div className="text-sm text-green-600">Growth Rate</div>
                         </div>
                       </div>
-                    </div>
+                    </div>*/}
                   </div>
 
                   <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
