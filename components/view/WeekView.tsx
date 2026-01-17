@@ -676,7 +676,7 @@ export default function WeekView({
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
-                            opacity: 0.9,
+                            // opacity: 0.9,
                             width,
                             left,
                             zIndex: column + 1,
