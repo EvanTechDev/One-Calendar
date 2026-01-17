@@ -80,16 +80,16 @@ export default function DayView({
 
   function getDarkerColorClass(color: string) {
     const colorMapping: Record<string, string> = {
-      'bg-blue-500': '#3C74C4',
-      'bg-yellow-500': '#C39248',
-      'bg-red-500': '#C14D4D',
-      'bg-green-500': '#3C996C',
-      'bg-purple-500': '#A44DB3',
-      'bg-pink-500': '#C14D84',
-      'bg-indigo-500': '#3D63B3',
-      'bg-orange-500': '#C27048',
-      'bg-teal-500': '#3C8D8D',
-    }
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
 
     return colorMapping[color] || '#3A3A3A';
   }
@@ -410,10 +410,10 @@ export default function DayView({
             }}
           >
             <div 
-              className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+              className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} 
               style={{ backgroundColor: getDarkerColorClass(event.color) }} 
             />
-            <div className="pl-1.5 truncate text-white">
+            <div className="pl-1.5 truncate" style={{ color: getDarkerColorClass(event.color) }}>
               {event.title}
             </div>
           </div>
