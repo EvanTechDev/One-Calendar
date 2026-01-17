@@ -60,6 +60,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="${instrumentSerif.variable} antialiased" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&display=swap" />
+      </head>
       <body className={GeistSans.className}> 
       <ClerkProvider 
         localization={enUS}
