@@ -562,8 +562,8 @@ export default function LandingPage() {
               {/* Documentation Section */}
               <DocumentationSection />
 
-              {/* Testimonials Section */}
-              <TestimonialsSection />
+              {/* Testimonials Section
+              <TestimonialsSection />*/}
 
               {/* Pricing Section */}
               <PricingSection />
