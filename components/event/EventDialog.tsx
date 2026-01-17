@@ -17,16 +17,17 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
-  { value: "bg-[#E8F1FF]", label: "Blue" },
-  { value: "bg-[#E9F7EF]", label: "Green" },
-  { value: "bg-[#FFF4D6]", label: "Yellow" },
-  { value: "bg-[#FDECEC]", label: "Red" },
-  { value: "bg-[#F3ECFF]", label: "Purple" },
-  { value: "bg-[#FCE7F3]", label: "Pink" },
-  { value: "bg-[#EEF2FF]", label: "Indigo" },
-  { value: "bg-[#FFF0E5]", label: "Orange" },
-  { value: "bg-[#E6FAF7]", label: "Teal" },
+  { value: "bg-[#D6E4FF]", label: "Blue" },
+  { value: "bg-[#D1FAE5]", label: "Green" },
+  { value: "bg-[#FDE68A]", label: "Yellow" },
+  { value: "bg-[#FADDDD]", label: "Red" },
+  { value: "bg-[#E5D9FF]", label: "Purple" },
+  { value: "bg-[#F8D7E8]", label: "Pink" },
+  { value: "bg-[#DDE2FF]", label: "Indigo" },
+  { value: "bg-[#FBD4B4]", label: "Orange" },
+  { value: "bg-[#CFF3ED]", label: "Teal" },
 ]
+
 
 
 // 生成小时选项 (0-23)
