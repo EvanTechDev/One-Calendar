@@ -695,7 +695,7 @@ export default function WeekView({
                           <div className="pl-1.5">
                           <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
                           {height >= 40 && (
-                            <div className="text-xs text-white/90 truncate">
+                            <div className="text-xs truncate" style={{ color: getDarkerColorClass(event.color) }}>
                               {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
                             </div>
                           )}
