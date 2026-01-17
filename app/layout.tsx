@@ -59,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="${instrumentSerif.variable} antialiased" suppressHydrationWarning>
+    <html lang="en" className={'${instrumentSerif.variable} antialiased'} suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&display=swap" />
       </head>
