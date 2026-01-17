@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Trash2, Copy, ExternalLink } from "lucide-react"
+// import { Trash2, Copy, ExternalLink } from "lucide-react"
+import { Trash as Trash2, Copy, External as ExternalLink } from 'geist/icons';
 import { format } from "date-fns"
 import { translations, useLanguage } from "@/lib/i18n"
 import {
