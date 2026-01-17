@@ -17,7 +17,7 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
-  { value: "bg-[#D6E4FF]", label: "Blue" },
+  { value: "bg-[#E6F6FD]", label: "Blue" },
   { value: "bg-[#D1FAE5]", label: "Green" },
   { value: "bg-[#FDE68A]", label: "Yellow" },
   { value: "bg-[#FADDDD]", label: "Red" },
