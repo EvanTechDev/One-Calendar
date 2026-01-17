@@ -799,7 +799,7 @@ export default function EventDialog({
                 {colorOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
-                      <div className={cn("w-4 h-4 rounded-full mr-2", colorMapping[option.vault])} />
+                      <div className={cn("w-4 h-4 rounded-full mr-2")} style={{ backgroundColor: colorMapping[option.vault]}}/>
                       {option.label}
                     </div>
                   </SelectItem>
