@@ -7,12 +7,18 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  swcMinify: true,
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
     unoptimized: true,
-  }
+  },
+  experimental: {
+  rsc: {
+    partialCompilation: true,
+  },
+},
  /* experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
