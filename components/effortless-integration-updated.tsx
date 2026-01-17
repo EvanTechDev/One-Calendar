@@ -130,7 +130,7 @@ const EffortlessIntegration: React.FC<EffortlessIntegrationProps> = ({ width = 4
           b
         </div>
 
-        {/* GitHub - 180° (left) 
+        {/*
         <div
           style={{
             width: "32px",
@@ -155,9 +155,8 @@ const EffortlessIntegration: React.FC<EffortlessIntegrationProps> = ({ width = 4
               filter: "brightness(0) invert(1)",
             }}
           />
-        </div>
-
-        {/* Slack - 0° (right) */}
+        </div>*/}
+        
         <div
           style={{
             width: "32px",
@@ -262,78 +261,6 @@ const EffortlessIntegration: React.FC<EffortlessIntegrationProps> = ({ width = 4
           />
         </div>
 
-        {/* Stripe - 180° (left) 
-        <div
-          style={{
-            width: "32px",
-            height: "32px",
-            left: `${getPositionOnRing(160, Math.PI).x - 16}px`,
-            top: `${getPositionOnRing(160, Math.PI).y - 16}px`,
-            position: "absolute",
-            background: "#635BFF",
-            boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/stripe.svg"
-            alt="Stripe"
-            style={{
-              width: "18px",
-              height: "18px",
-              filter: "brightness(0) invert(1)",
-            }}
-          />
-        </div>
-
-        {/* Framer - 0° (right) 
-        <div
-          style={{
-            width: "32px",
-            height: "32px",
-            left: `${getPositionOnRing(160, 0).x - 16}px`,
-            top: `${getPositionOnRing(160, 0).y - 16}px`,
-            position: "absolute",
-            background: "#000000",
-            boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/framer.svg"
-            alt="Framer"
-            style={{
-              width: "16px",
-              height: "16px",
-              filter: "brightness(0) invert(1)",
-            }}
-          />
-        </div>
-
-        <svg
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-          }}
-        >
-          <defs>
-            <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(55, 50, 47, 0.1)" />
-              <stop offset="50%" stopColor="rgba(55, 50, 47, 0.05)" />
-              <stop offset="100%" stopColor="rgba(55, 50, 47, 0.1)" />
-            </linearGradient>
-          </defs>
-
-          {/* Inner ring connections */}
           <line
             x1={centerX}
             y1={centerY}
@@ -401,7 +328,7 @@ const EffortlessIntegration: React.FC<EffortlessIntegrationProps> = ({ width = 4
             strokeWidth="1"
             opacity="0.1"
           />
-        </div>
+        </svg>
       </div>
     </div>
   )
