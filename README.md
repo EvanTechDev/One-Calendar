@@ -18,8 +18,6 @@ A beautifully minimal open-source calendar app to plan your week and life
 
 
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
-<a href="https://app.netlify.com/start/deploy?repository=https://github.com/EvanTechDev/One-Calendar" style="display: inline-block;"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" style="height: 32px;"></a>
-
 
 </div>
 
@@ -48,11 +46,10 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Frontend**: Next.js 16, Tailwind CSS, Shadcn UI, TypeScript
 - **Auth**: Clerk
 - **Storage**: PostgreSQL
-- **Weather**: OpenWeather API
 - **AI**: Groq API
 - **Deploy**: Vercel
 
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,openweather,bun,postgresql)
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,bun,postgresql)
 
 ## Preview
 
@@ -147,13 +144,13 @@ This project wouldn't be possible without these awesome services:
   <a href="https://vercel.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/5107d47f-7ce9-425a-8e24-77c322205bd4" alt="Vercel" width="96"/></a>
   <a href="https://clerk.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/6f9fa5d7-e0c2-4c14-aef9-e39bd0465e23" alt="Clerk" width="96"/></a>
   <a href="https://groq.com" style="text-decoraion: none;"><img src="https://github.com/user-attachments/assets/650dc220-c0a7-4761-a7ce-2c24a7d75133" alt="Groq" width="96"></a>
-  <a href="https://openweathermap.org" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/d07ed7a1-c374-45f5-90fd-17c3de2a9098" alt="OpenWeather API" width="96"/></a>
 </div>
 
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
+
 
 
 
