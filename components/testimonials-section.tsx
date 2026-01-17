@@ -71,7 +71,7 @@ export default function TestimonialsSection() {
   }
 
   return (
-    <div className="w-full border-b border-[rgba(55,50,47,0.12)] flex flex-col justify-center items-center">
+    <div className="w-full border-b border-[rgba(55,50,47,0.12)] flex flex-col justify-center items-center bg-white">
       {/* Header Section */}
 
       {/* Testimonial Content */}
