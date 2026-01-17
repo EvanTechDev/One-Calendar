@@ -401,7 +401,7 @@ const EffortlessIntegration: React.FC<EffortlessIntegrationProps> = ({ width = 4
             strokeWidth="1"
             opacity="0.1"
           />
-        </svg>
+        </div>
       </div>
     </div>
   )
