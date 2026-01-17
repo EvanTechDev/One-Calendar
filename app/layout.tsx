@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
+import { Instrument_Serif } from "next/font/google"
 import { ThemeProvider } from "@/components/context/theme-provider"
 
 export const metadata: Metadata = {
@@ -43,6 +44,15 @@ export const metadata: Metadata = {
   },
 }
 
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: ["400"],
+  display: "swap",
+  preload: true,
+})
+
+
 export default function RootLayout({
   children,
 }: {
@@ -50,7 +60,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={GeistSans.className}> 
+      <body className={GeistSans.className ${instrumentSerif.variable}}> 
       <ClerkProvider 
         localization={enUS}
         fallbackRedirectUrl="/"
