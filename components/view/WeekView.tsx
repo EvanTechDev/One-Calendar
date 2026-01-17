@@ -683,41 +683,23 @@ export default function WeekView({
   style={{
     top: `${startMinutes}px`,
     height: `${height}px`,
+    opacity: isDark ? 0.82 : 0.92,
     width,
     left,
     zIndex: column + 1,
   }}
 >
-  <div
-    className="absolute inset-0 pointer-events-none"
-    style={{
-      backgroundColor: isDark ? "rgba(0,0,0,0.18)" : "transparent",
-    }}
-  />
 
-  <div
-    className="absolute left-0 top-0 w-1 h-full rounded-l-md"
-    style={{ backgroundColor: getDarkerColorClass(event.color) }}
-  />
-
-  <div className="relative pl-1.5">
-    <div
-      className="font-medium truncate"
-      style={{ color: getDarkerColorClass(event.color) }}
-    >
-      {event.title}
-    </div>
-
-    {height >= 40 && (
-      <div
-        className="text-xs truncate"
-        style={{ color: getDarkerColorClass(event.color) }}
-      >
-        {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
-      </div>
-    )}
-  </div>
-</div>
+                         <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
+                          <div className="pl-1.5">
+                          <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
+                          {height >= 40 && (
+                            <div className="text-xs truncate" style={{ color: getDarkerColorClass(event.color) }}>
+                              {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
+                            </div>
+                          )}
+                          </div>
+                        </div>
 
                       </ContextMenuTrigger>
     
