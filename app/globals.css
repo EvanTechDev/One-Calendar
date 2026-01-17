@@ -304,3 +304,37 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+.font-inter {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-instrument-serif {
+  font-family: var(--font-instrument-serif);
+  font-display: swap;
+}
+
+/* Added explicit font loading optimization */
+@supports (font-display: swap) {
+  @font-face {
+    font-family: "Instrument Serif";
+    font-display: swap;
+  }
+}
+
+.mix-blend-multiply {
+  mix-blend-mode: multiply;
+}
+
+.backdrop-blur-custom {
+  backdrop-filter: blur(8.25px);
+}
