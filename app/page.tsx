@@ -35,6 +35,9 @@ export default function LandingPage() {
   const router = useRouter()
   const { isLoaded, isSignedIn } = useUser()
   const mountedRef = useRef(true)
+  const [showLoading, setShowLoading] = useState(false)
+  const [loadingDots, setLoadingDots] = useState("")
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
