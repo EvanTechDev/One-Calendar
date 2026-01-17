@@ -17,16 +17,29 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
-  { value: "bg-blue-500", label: "Blue" },
-  { value: "bg-green-500", label: "Green" },
-  { value: "bg-yellow-500", label: "Yellow" },
-  { value: "bg-red-500", label: "Red" },
-  { value: "bg-purple-500", label: "Purple" },
-  { value: "bg-pink-500", label: "Pink" },
-  { value: "bg-indigo-500", label: "Indigo" },
-  { value: "bg-orange-500", label: "Orange" },
-  { value: "bg-teal-500", label: "Teal" },
+  { value: "bg-[#E6F6FD]", label: "Blue" },
+  { value: "bg-[#E7F8F2]", label: "Green" },
+  { value: "bg-[#FEF5E6]", label: "Yellow" },
+  { value: "bg-[#FFE4E6]", label: "Red" },
+  { value: "bg-[#F3EEFE]", label: "Purple" },
+  { value: "bg-[#FCE7F3]", label: "Pink" },
+  { value: "bg-[#EEF2FF]", label: "Indigo" },
+  { value: "bg-[#FFF0E5]", label: "Orange" },
+  { value: "bg-[#E6FAF7]", label: "Teal" },
 ]
+
+const colorMapping: Record<string, string> = {
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
+
 
 // 生成小时选项 (0-23)
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
@@ -786,7 +799,7 @@ export default function EventDialog({
                 {colorOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
-                      <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                      <div className={cn("w-4 h-4 rounded-full mr-2")} style={{ backgroundColor: colorMapping[option.value]}}/>
                       {option.label}
                     </div>
                   </SelectItem>

@@ -74,7 +74,19 @@ export default function EventPreview({
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
+  const colorMapping: Record<string, string> = {
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
 
+  
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn) {
@@ -394,7 +406,11 @@ export default function EventPreview({
         </div>
 
         <div className="px-5 pb-5 flex">
-          <div className={cn("w-2 self-stretch rounded-full mr-4", event.color)} />
+          <div
+  className="w-2 self-stretch rounded-full mr-4"
+  style={{ backgroundColor: colorMapping[event.color] }}
+/>
+
           <div className="flex-1">
             <h2 className="text-2xl font-bold mb-1">{event.title}</h2>
             <p className="text-muted-foreground">{formatDateRange()}</p>
