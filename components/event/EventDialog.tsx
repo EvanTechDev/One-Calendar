@@ -19,12 +19,12 @@ import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 const colorOptions = [
   { value: "bg-[#E6F6FD]", label: "Blue" },
   { value: "bg-[#E7F8F2]", label: "Green" },
-  { value: "bg-[#FEF5E6]", label: "Yellow" },
+  { value: "bg-[#FEF5E6]", label: "Amber" },
   { value: "bg-[#FFE4E6]", label: "Red" },
   { value: "bg-[#F3EEFE]", label: "Purple" },
   { value: "bg-[#FCE7F3]", label: "Pink" },
-  { value: "bg-[#EEF2FF]", label: "Indigo" },
-  { value: "bg-[#FFF0E5]", label: "Orange" },
+  // { value: "bg-[#EEF2FF]", label: "Indigo" },
+  // { value: "bg-[#FFF0E5]", label: "Orange" },
   { value: "bg-[#E6FAF7]", label: "Teal" },
 ]
 
