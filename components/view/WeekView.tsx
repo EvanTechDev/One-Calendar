@@ -676,19 +676,25 @@ export default function WeekView({
                     <ContextMenu key={`${event.id}-${day.toISOString().split("T")[0]}`}>
                       <ContextMenuTrigger asChild>
                         <div
-  className={cn(
-    "relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden",
-    event.color
-  )}
-  style={{
-    top: `${startMinutes}px`,
-    height: `${height}px`,
-    opacity: isDark ? 0.82 : 0.92,
-    width,
-    left,
-    zIndex: column + 1,
-  }}
->
+                          className={cn("relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden", event.color)}
+                          style={{
+                            top: `${startMinutes}px`,
+                            height: `${height}px`,
+                            opacity: 0.92,
+                            width,
+                            left,
+                            zIndex: column + 1,
+                          }}
+                          onMouseDown={(e) => handleEventDragStart(event, e)}
+                          onMouseUp={handleEventDragEnd}
+                          onMouseLeave={handleEventDragEnd}
+                                                    onClick={(e) => {
+                            e.stopPropagation()
+                            if (!isDraggingRef.current) {
+                              onEventClick(event)
+                            }
+                          }}
+                        >
 
                          <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
                           <div className="pl-1.5">
