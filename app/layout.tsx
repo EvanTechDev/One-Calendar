@@ -59,8 +59,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={GeistSans.className ${instrumentSerif.variable}}> 
+    <html lang="en" className="${instrumentSerif.variable} antialiased" suppressHydrationWarning>
+      <body className={GeistSans.className}> 
       <ClerkProvider 
         localization={enUS}
         fallbackRedirectUrl="/"
