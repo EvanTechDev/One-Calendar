@@ -16,6 +16,7 @@ import FooterSection from "../components/footer-section"
 import Image from "next/image"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
+import { CalendarIcon } from 'lucide-react'
 
 // Reusable Badge Component
 function Badge({ icon, text }: { icon: React.ReactNode; text: string }) {
