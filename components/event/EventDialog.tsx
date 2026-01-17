@@ -40,7 +40,6 @@ const colorMapping: Record<string, string> = {
   'bg-[#E6FAF7]': '#14B8A6',
 }
 
-
 // 生成小时选项 (0-23)
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
