@@ -18,17 +18,15 @@ import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
   { value: "bg-[#E6F6FD]", label: "Blue" },
-  { value: "bg-[#D1FAE5]", label: "Green" },
-  { value: "bg-[#FDE68A]", label: "Yellow" },
-  { value: "bg-[#FADDDD]", label: "Red" },
-  { value: "bg-[#E5D9FF]", label: "Purple" },
-  { value: "bg-[#F8D7E8]", label: "Pink" },
-  { value: "bg-[#DDE2FF]", label: "Indigo" },
-  { value: "bg-[#FBD4B4]", label: "Orange" },
-  { value: "bg-[#CFF3ED]", label: "Teal" },
+  { value: "bg-[#E7F8F2]", label: "Green" },
+  { value: "bg-[#FEF5E6]", label: "Yellow" },
+  { value: "bg-[#FFE4E6]", label: "Red" },
+  { value: "bg-[#F3EEFE]", label: "Purple" },
+  { value: "bg-[#FCE7F3]", label: "Pink" },
+  { value: "bg-[#EEF2FF]", label: "Indigo" },
+  { value: "bg-[#FFF0E5]", label: "Orange" },
+  { value: "bg-[#E6FAF7]", label: "Teal" },
 ]
-
-
 
 // 生成小时选项 (0-23)
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
