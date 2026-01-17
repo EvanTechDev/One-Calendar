@@ -70,6 +70,10 @@ export default function WeekView({
   const [dragEventDuration, setDragEventDuration] = useState<number>(0) // 事件持续时间（分钟）
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isDraggingRef = useRef(false)
+  const isDark =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+
 
   const menuLabels = {
     edit: language === "zh" ? "修改" : "Edit",
