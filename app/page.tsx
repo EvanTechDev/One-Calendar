@@ -218,50 +218,59 @@ export default function LandingPage() {
                 <div className="w-full max-w-[960px] lg:w-[960px] h-[200px] sm:h-[280px] md:h-[450px] lg:h-[695.55px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9.06px] flex flex-col justify-start items-start">
                   {/* Dashboard Content */}
                   <div className="self-stretch flex-1 flex justify-start items-start">
-                    {/* Main Content */}
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Product Image 1 - Plan your schedules */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 0 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <Image
-                            src="/Banner.jpg"
-                            alt="Schedules Dashboard - Customer Subscription Management"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+  <div className="w-full flex justify-center">
+    <div className="w-full max-w-6xl">
+      <div
+        className={`transition-all duration-500 ease-in-out ${
+          activeCard === 0
+            ? "opacity-100 scale-100 blur-0"
+            : "opacity-0 scale-95 blur-sm pointer-events-none"
+        }`}
+      >
+        <Image
+          src="/Banner.jpg"
+          alt="Schedules Dashboard - Customer Subscription Management"
+          width={1920}
+          height={1080}
+          className="w-full h-auto object-contain"
+          priority
+        />
+      </div>
 
-                        {/* Product Image 2 - Data to insights */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 1 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <Image
-                            src="/A.jpg"
-                            alt="Analytics Dashboard"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+      <div
+        className={`transition-all duration-500 ease-in-out ${
+          activeCard === 1
+            ? "opacity-100 scale-100 blur-0"
+            : "opacity-0 scale-95 blur-sm pointer-events-none"
+        }`}
+      >
+        <Image
+          src="/A.jpg"
+          alt="Analytics Dashboard"
+          width={1920}
+          height={1080}
+          className="w-full h-auto object-contain"
+        />
+      </div>
 
-                        {/* Product Image 3 - Data visualization */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 2 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <Image
-                            src="/S.jpg"
-                            alt="Share Page"
-                            className="w-full h-full object-contain" // Changed from object-cover to object-contain to preserve landscape aspect ratio
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+      <div
+        className={`transition-all duration-500 ease-in-out ${
+          activeCard === 2
+            ? "opacity-100 scale-100 blur-0"
+            : "opacity-0 scale-95 blur-sm pointer-events-none"
+        }`}
+      >
+        <Image
+          src="/S.jpg"
+          alt="Share Page"
+          width={1920}
+          height={1080}
+          className="w-full h-auto object-contain"
+        />
+      </div>
+    </div>
+  </div>
+</div>
                 </div>
               </div>
 
