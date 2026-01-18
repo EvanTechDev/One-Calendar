@@ -23,17 +23,17 @@ export default function DocumentationSection() {
     {
       title: "Plan your schedules",
       description: "Explore your data, build your dashboard,\nsave your time together.",
-      image: "/modern-dashboard-interface-with-data-visualization.jpg",
+      image: "/Banner.jpg",
     },
     {
       title: "Data to insights in minutes",
       description: "Transform raw data into actionable insights\nwith powerful analytics tools.",
-      image: "/analytics-dashboard.png",
+      image: "/A.jpg",
     },
     {
       title: "Share schedule safety",
       description: "Password-protect share with anyone\nand burn-after-read.",
-      image: "/team-collaboration-interface-with-shared-workspace.jpg",
+      image: "/S.jpg",
     },
   ]
 
