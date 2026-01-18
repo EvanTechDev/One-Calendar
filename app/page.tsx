@@ -3,16 +3,13 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import SmartSimpleBrilliant from "../components/smart-simple-brilliant"
-import YourWorkInSync from "../components/your-work-in-sync"
-import EffortlessIntegration from "../components/effortless-integration-updated"
-import NumbersThatSpeak from "../components/numbers-that-speak"
-import DocumentationSection from "../components/documentation-section"
-import TestimonialsSection from "../components/testimonials-section"
-import FAQSection from "../components/faq-section"
-import PricingSection from "../components/pricing-section"
-import CTASection from "../components/cta-section"
-import FooterSection from "../components/footer-section"
+import SmartSimpleBrilliant from "@/components/landing/smart-simple-brilliant"
+import YourWorkInSync from "@/components/landing/your-work-in-sync"
+import DocumentationSection from "@/components/landing/documentation-section"
+import FAQSection from "@/components/landing/faq-section"
+import PricingSection from "@/components/landing/pricing-section"
+import CTASection from "@/components/landing/cta-section"
+import FooterSection from "@/components/landing/footer-section"
 import Image from "next/image"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
@@ -216,53 +213,51 @@ export default function LandingPage() {
 
               <div className="w-full max-w-[960px] lg:w-[960px] pt-2 sm:pt-4 pb-6 sm:pb-8 md:pb-10 lg:pb-16 px-2 sm:px-4 md:px-6 lg:px-11 flex flex-col justify-center items-center gap-2 relative z-5 my-8 sm:my-12 md:my-16 lg:my-16 mb-0">
   <div className="w-full max-w-[960px] lg:w-[960px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9.06px] flex justify-center items-center relative">
-    <div className="w-full">
-      <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-            activeCard === 0
-              ? "opacity-100 scale-100 blur-0"
-              : "opacity-0 scale-95 blur-sm pointer-events-none"
-          }`}
-        >
-          <Image
-            src="/Banner.jpg"
-            alt="Schedules Dashboard - Customer Subscription Management"
-            fill
-            className="object-contain"
-            priority
-          />
-        </div>
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-            activeCard === 1
-              ? "opacity-100 scale-100 blur-0"
-              : "opacity-0 scale-95 blur-sm pointer-events-none"
-          }`}
-        >
-          <Image
-            src="/A.jpg"
-            alt="Analytics Dashboard"
-            fill
-            className="object-contain"
-          />
-        </div>
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-            activeCard === 2
-              ? "opacity-100 scale-100 blur-0"
-              : "opacity-0 scale-95 blur-sm pointer-events-none"
-          }`}
-        >
-          <Image
-            src="/S.jpg"
-            alt="Share Page"
-            fill
-            className="object-contain"
-          />
-        </div>
-      </div>
-    </div>
+    这是我现在的完整代码                  <div className="self-stretch flex-1 flex justify-start items-start">
+                    {/* Main Content */}
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="relative w-full h-full overflow-hidden">
+                        {/* Product Image 1 - Plan your schedules */}
+                        <div
+                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+                            activeCard === 0 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
+                          }`}
+                        >
+                          <Image
+                            src="/Banner.jpg"
+                            alt="Schedules Dashboard - Customer Subscription Management"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Product Image 2 - Data to insights */}
+                        <div
+                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+                            activeCard === 1 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
+                          }`}
+                        >
+                          <Image
+                            src="/A.jpg"
+                            alt="Analytics Dashboard"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Product Image 3 - Data visualization */}
+                        <div
+                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+                            activeCard === 2 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
+                          }`}
+                        >
+                          <Image
+                            src="/S.jpg"
+                            alt="Share Page"
+                            className="w-full h-full object-contain" // Changed from object-cover to object-contain to preserve landscape aspect ratio
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
   </div>
 </div>
 
