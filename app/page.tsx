@@ -227,7 +227,7 @@ export default function LandingPage() {
                             activeCard === 0 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
                           }`}
                         >
-                          <img
+                          <Image
                             src="/Banner.jpg"
                             alt="Schedules Dashboard - Customer Subscription Management"
                             className="w-full h-full object-cover"
@@ -240,7 +240,7 @@ export default function LandingPage() {
                             activeCard === 1 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
                           }`}
                         >
-                          <img
+                          <Image
                             src="/A.jpg"
                             alt="Analytics Dashboard"
                             className="w-full h-full object-cover"
@@ -253,7 +253,7 @@ export default function LandingPage() {
                             activeCard === 2 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
                           }`}
                         >
-                          <img
+                          <Image
                             src="/S.jpg"
                             alt="Share Page"
                             className="w-full h-full object-contain" // Changed from object-cover to object-contain to preserve landscape aspect ratio
