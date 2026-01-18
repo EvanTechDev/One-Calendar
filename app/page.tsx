@@ -214,65 +214,58 @@ export default function LandingPage() {
                 />
               </div>
 
-              <div className="w-full max-w-[960px] lg:w-[960px] pt-2 sm:pt-4 pb-6 sm:pb-8 md:pb-10 px-2 sm:px-4 md:px-6 lg:px-11 flex flex-col justify-center items-center gap-2 relative z-5 my-8 sm:my-12 md:my-16 lg:my-16 mb-0 lg:pb-0">
-                <div className="w-full max-w-[960px] lg:w-[960px] h-[200px] sm:h-[280px] md:h-[450px] lg:h-[695.55px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9.06px] flex flex-col justify-start items-start">
-                  {/* Dashboard Content */}
-                  <div className="self-stretch flex-1 flex justify-start items-start">
-  <div className="w-full flex justify-center">
-    <div className="w-full max-w-6xl">
-      <div
-        className={`transition-all duration-500 ease-in-out ${
-          activeCard === 0
-            ? "opacity-100 scale-100 blur-0"
-            : "opacity-0 scale-95 blur-sm pointer-events-none"
-        }`}
-      >
-        <Image
-          src="/Banner.jpg"
-          alt="Schedules Dashboard - Customer Subscription Management"
-          width={1920}
-          height={1080}
-          className="w-full h-auto object-contain"
-          priority
-        />
-      </div>
-
-      <div
-        className={`transition-all duration-500 ease-in-out ${
-          activeCard === 1
-            ? "opacity-100 scale-100 blur-0"
-            : "opacity-0 scale-95 blur-sm pointer-events-none"
-        }`}
-      >
-        <Image
-          src="/A.jpg"
-          alt="Analytics Dashboard"
-          width={1920}
-          height={1080}
-          className="w-full h-auto object-contain"
-        />
-      </div>
-
-      <div
-        className={`transition-all duration-500 ease-in-out ${
-          activeCard === 2
-            ? "opacity-100 scale-100 blur-0"
-            : "opacity-0 scale-95 blur-sm pointer-events-none"
-        }`}
-      >
-        <Image
-          src="/S.jpg"
-          alt="Share Page"
-          width={1920}
-          height={1080}
-          className="w-full h-auto object-contain"
-        />
+              <div className="w-full max-w-[960px] lg:w-[960px] pt-2 sm:pt-4 pb-6 sm:pb-8 md:pb-10 lg:pb-16 px-2 sm:px-4 md:px-6 lg:px-11 flex flex-col justify-center items-center gap-2 relative z-5 my-8 sm:my-12 md:my-16 lg:my-16 mb-0">
+  <div className="w-full max-w-[960px] lg:w-[960px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9.06px] flex justify-center items-center relative">
+    <div className="w-full">
+      <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+        <div
+          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+            activeCard === 0
+              ? "opacity-100 scale-100 blur-0"
+              : "opacity-0 scale-95 blur-sm pointer-events-none"
+          }`}
+        >
+          <Image
+            src="/Banner.jpg"
+            alt="Schedules Dashboard - Customer Subscription Management"
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
+        <div
+          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+            activeCard === 1
+              ? "opacity-100 scale-100 blur-0"
+              : "opacity-0 scale-95 blur-sm pointer-events-none"
+          }`}
+        >
+          <Image
+            src="/A.jpg"
+            alt="Analytics Dashboard"
+            fill
+            className="object-contain"
+          />
+        </div>
+        <div
+          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+            activeCard === 2
+              ? "opacity-100 scale-100 blur-0"
+              : "opacity-0 scale-95 blur-sm pointer-events-none"
+          }`}
+        >
+          <Image
+            src="/S.jpg"
+            alt="Share Page"
+            fill
+            className="object-contain"
+          />
+        </div>
       </div>
     </div>
   </div>
 </div>
-                </div>
-              </div>
+
 
               <div className="self-stretch border-t border-[#E0DEDB] border-b border-[#E0DEDB] flex justify-center items-start">
                 <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
