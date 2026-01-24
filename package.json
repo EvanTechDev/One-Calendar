@@ -75,6 +75,7 @@
     "@marsidev/react-turnstile": "latest",
     "pg": "latest",
     "remark-gfm": "latest",
+    "@friendlycaptcha/sdk": "latest",
     "react-markdown": "latest"
   },
   "devDependencies": {
