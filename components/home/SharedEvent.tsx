@@ -77,7 +77,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/friendlycaptcha/config", { cache: "no-store" });
+        const res = await fetch("/api/share/config", { cache: "no-store" });
         const cfg = await res.json();
         const enabled = Boolean(cfg?.enabled && cfg?.sitekey);
         setFcEnabled(enabled);
