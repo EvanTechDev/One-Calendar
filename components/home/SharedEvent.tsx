@@ -626,22 +626,30 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                   )}
                 </div>
                 <div className="mt-8 space-y-3">
-                  <Button className="w-full" variant="default" onClick={handleAddToCalendar} disabled={isAdding}>
-                    {isAdding ? (
-                      <span className="flex items-center justify-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {language === "zh" ? "添加中..." : "Adding..."}
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center">
-  <CalendarPlus className="mr-2 h-5 w-5" onClick={copyLink} />
-</span>
-<ExternalLink className="mr-2 h-4 w-4" />
-
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    {copied ? (language === "zh" ? "已复制!" : "Copied!") : language === "zh" ? "复制分享链接" : "Copy Share Link"}
-                  </Button>
-                </div>
+  <Button
+    className="w-full"
+    variant="default"
+    onClick={handleAddToCalendar}
+    disabled={isAdding}
+  >
+    {isAdding ? (
+      <span className="flex items-center justify-center">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        {language === "zh" ? "添加中..." : "Adding..."}
+      </span>
+    ) : (
+      <>
+        <span className="flex items-center justify-center">
+          <CalendarPlus className="mr-2 h-5 w-5" onClick={copyLink} />
+          <ExternalLink className="mr-2 h-4 w-4" />
+          {copied
+            ? (language === "zh" ? "已复制!" : "Copied!")
+            : (language === "zh" ? "复制分享链接" : "Copy Share Link")}
+        </span>
+      </>
+    )}
+  </Button>
+</div>
               </CardContent>
             </div>
           </Card>
