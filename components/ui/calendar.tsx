@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   DayPicker,
-  getDefaultClassNames,
   type DayButton,
 } from "react-day-picker"
 
