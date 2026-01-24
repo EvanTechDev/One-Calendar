@@ -1,74 +1,96 @@
 
 "use client";
 
-import { useEffect, useId, useMemo } from "react";
-import Script from "next/script";
-
-declare global {
-  interface Window {
-    [key: string]: any;
-  }
-}
+import { useEffect, useRef } from "react";
 
 type Props = {
   sitekey: string;
-  lang?: string;
+  startMode?: "auto" | "focus" | "none";
   onSolved: (token: string) => void;
+  onError?: () => void;
+  onExpired?: () => void;
   onReset?: () => void;
 };
 
-export default function FriendlyCaptchaWidget({
+export default function FriendlyCaptchaWidgetV2({
   sitekey,
-  lang = "en",
+  startMode = "auto",
   onSolved,
+  onError,
+  onExpired,
   onReset,
 }: Props) {
-  const id = useId();
-  const cbName = useMemo(() => `__fc_cb_${id.replace(/:/g, "_")}`, [id]);
+  const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    window[cbName] = (solution: string) => {
-      onSolved(solution);
+    let destroyed = false;
+    let widget: any;
+    let el: HTMLElement | null = null;
+
+    const run = async () => {
+      if (!mountRef.current || !sitekey) return;
+
+      const sdkMod = await import("@friendlycaptcha/sdk");
+      const FriendlyCaptchaSDK = (sdkMod as any).FriendlyCaptchaSDK;
+      const sdk = new FriendlyCaptchaSDK();
+
+      widget = sdk.createWidget({
+        element: mountRef.current,
+        sitekey,
+        startMode,
+      });
+
+      el = widget.getElement?.() ?? mountRef.current;
+
+      const handleComplete = (e: any) => {
+        if (destroyed) return;
+        const token = e?.detail?.response || widget?.getResponse?.() || "";
+        if (token) onSolved(token);
+      };
+
+      const handleError = () => {
+        if (destroyed) return;
+        onError?.();
+      };
+
+      const handleExpire = () => {
+        if (destroyed) return;
+        onExpired?.();
+      };
+
+      const handleReset = () => {
+        if (destroyed) return;
+        onReset?.();
+      };
+
+      el?.addEventListener("frc:widget.complete", handleComplete as EventListener);
+      el?.addEventListener("frc:widget.error", handleError as EventListener);
+      el?.addEventListener("frc:widget.expire", handleExpire as EventListener);
+      el?.addEventListener("frc:widget.reset", handleReset as EventListener);
+
+      return () => {
+        el?.removeEventListener("frc:widget.complete", handleComplete as EventListener);
+        el?.removeEventListener("frc:widget.error", handleError as EventListener);
+        el?.removeEventListener("frc:widget.expire", handleExpire as EventListener);
+        el?.removeEventListener("frc:widget.reset", handleReset as EventListener);
+      };
     };
+
+    let cleanup: any;
+    run().then((c) => (cleanup = c));
+
     return () => {
+      destroyed = true;
       try {
-        delete window[cbName];
+        cleanup?.();
+      } catch {}
+      try {
+        widget?.destroy?.();
       } catch {}
     };
-  }, [cbName, onSolved]);
+  }, [sitekey, startMode, onSolved, onError, onExpired, onReset]);
 
   if (!sitekey) return null;
 
-  return (
-    <div className="space-y-2">
-      <Script
-        type="module"
-        src="https://cdn.jsdelivr.net/npm/friendly-challenge@0.9.18/widget.module.min.js"
-        async
-        defer
-      />
-      <Script
-        noModule
-        src="https://cdn.jsdelivr.net/npm/friendly-challenge@0.9.18/widget.min.js"
-        async
-        defer
-      />
-      <div
-        className="frc-captcha"
-        data-sitekey={sitekey}
-        data-callback={cbName}
-        data-lang={lang}
-        data-start="auto"
-      />
-      {onReset ? (
-        <button
-          type="button"
-          className="text-xs text-muted-foreground underline"
-          onClick={onReset}
-        >
-          Reset
-        </button>
-      ) : null}
-    </div>
-  );
+  return <div ref={mountRef} />;
 }
