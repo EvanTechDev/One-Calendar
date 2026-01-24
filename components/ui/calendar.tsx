@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { DayPicker, getDefaultClassNames, type ClassNames } from "react-day-picker"
+import { DayPicker, type ClassNames } from "react-day-picker"
 import "react-day-picker/dist/style.css"
 import { cn } from "@/lib/utils"
 
@@ -12,10 +12,7 @@ export interface CalendarProps {
 }
 
 export function Calendar({ selected, onSelect, className }: CalendarProps) {
-  const defaultClassNames = getDefaultClassNames()
-
   const classNames: ClassNames = {
-    ...defaultClassNames,
     months: "flex flex-col space-y-4",
     month: "space-y-4",
     caption: "flex justify-center pt-1 relative items-center",
