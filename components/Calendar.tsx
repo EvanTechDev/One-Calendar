@@ -580,7 +580,6 @@ const handleShare = (event: CalendarEvent) => {
       </Suspense>
 
       <DailyToast />
-      <QuickStartGuide />
     </div>
     </div>
   )
