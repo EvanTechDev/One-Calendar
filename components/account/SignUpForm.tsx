@@ -244,7 +244,6 @@ export function SignUpForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_microsoft")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="20" height="20">
                     <path fill="#f25022" d="M1 1h10v10H1z" />
@@ -259,7 +258,6 @@ export function SignUpForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_google")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -275,7 +273,6 @@ export function SignUpForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthSignUp("oauth_github")}
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                     <path
@@ -304,7 +301,6 @@ export function SignUpForm({
                       required
                       value={formData.firstName}
                       onChange={handleChange}
-                      disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -316,7 +312,6 @@ export function SignUpForm({
                       required
                       value={formData.lastName}
                       onChange={handleChange}
-                      disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                     />
                   </div>
                 </div>
@@ -331,7 +326,6 @@ export function SignUpForm({
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                   />
                 </div>
 
@@ -344,7 +338,6 @@ export function SignUpForm({
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                   />
                   {siteKey ? (
                     <div className="turnstile-container">
