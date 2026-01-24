@@ -55,80 +55,70 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
     setSelectedDate(date)
   }
 
-  return (
-    <>
-      {/* 右侧图标栏 - 固定在右侧 */}
-      <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
-        <div className="flex flex-col items-center space-y-6 flex-1">
-          {/* Mini Calendar Button */}
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full size-10"
-            onClick={() => setMiniCalendarOpen(true)}
-          >
-            <Calendar className="h-6 w-6 text-black dark:text-white" />
-          </Button>
+return (
+  <>
+    <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
+      <div className="flex flex-col items-center space-y-6 flex-1">
+        {/* Mini Calendar Button */}
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full size-10"
+          onClick={() => setMiniCalendarOpen(true)}
+        >
+          <Calendar className="h-6 w-6 text-black dark:text-white" />
+        </Button>
 
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full size-10"
-            onClick={() => setBookmarkPanelOpen(true)}
-          >
-            <Bookmark className="h-6 w-6 text-black dark:text-white" />
-          </Button>
-          
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full p-0 w-12 h-12 flex items-center justify-center"
-            onClick={() => setContactsOpen(true)}
-          >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center bg-blue-500",
-                contactsOpen && "ring-2 ring-primary",
-              )}
-            >
-              <User className="h-6 w-6 text-white dark:text-white" />
-            </div>
-          </Button> */}
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full size-10"
+          onClick={() => setBookmarkPanelOpen(true)}
+        >
+          <Bookmark className="h-6 w-6 text-black dark:text-white" />
+        </Button>
 
-          <Button
-            variant="secondary"
-            size="icon"
-            className={cn(
-              "rounded-full size-10",
-              countdownOpen && "ring-2 ring-primary"
-            )}
-            onClick={() => setCountdownOpen(true)}
-          >
-            <ClockDashed className="h-6 w-6 text-black dark:text-white" />
-          </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          className={cn(
+            "rounded-full size-10",
+            countdownOpen && "ring-2 ring-primary"
+          )}
+          onClick={() => setCountdownOpen(true)}
+        >
+          <ClockDashed className="h-6 w-6 text-black dark:text-white" />
+        </Button>
 
-          <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />
+        <CountdownTool
+          open={countdownOpen}
+          onOpenChange={setCountdownOpen}
+        />
 
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full size-10"
-            onClick={handleAnalyticsClick}
-          >
-            <BarChart2 className="h-6 w-6 text-black dark:text-white" />
-          </Button>
-          
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full size-10"
+          onClick={handleAnalyticsClick}
+        >
+          <BarChart2 className="h-6 w-6 text-black dark:text-white" />
+        </Button>
+      </div>
+    </div>
 
-      {/* Mini Calendar Sheet */}
-      <MiniCalendarSheet
-        open={miniCalendarOpen}
-        onOpenChange={setMiniCalendarOpen}
-        selectedDate={selectedDate}
-        onDateSelect={handleDateSelect}
-      />
-      {/* Add the BookmarkPanel component at the end of the return statement, before the closing fragment */}
-      <BookmarkPanel open={bookmarkPanelOpen} onOpenChange={setBookmarkPanelOpen} />
-    </>
-  )
-}
+    {/* Mini Calendar Sheet */}
+    <MiniCalendarSheet
+      open={miniCalendarOpen}
+      onOpenChange={setMiniCalendarOpen}
+      selectedDate={selectedDate}
+      onDateSelect={handleDateSelect}
+    />
+
+    <BookmarkPanel
+      open={bookmarkPanelOpen}
+      onOpenChange={setBookmarkPanelOpen}
+    />
+  </>
+)
+
 
