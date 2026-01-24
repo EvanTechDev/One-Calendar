@@ -73,6 +73,8 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   const [fcVerified, setFcVerified] = useState(false);
   const [fcVerifying, setFcVerifying] = useState(false);
   const [fcError, setFcError] = useState<string | null>(null);
+  const captchaRef = useRef<FriendlyCaptchaRef>(null);
+
 
   useEffect(() => {
     const load = async () => {
@@ -185,78 +187,85 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   };
 
   const tryDecryptWithPassword = async () => {
-    if (!shareId) return;
-    const pwd = password;
-    if (!pwd) {
-      setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password");
-      return;
-    }
+  if (!shareId) return;
+  const pwd = password;
+  if (!pwd) {
+    setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password");
+    return;
+  }
 
-    const captchaOk = await verifyCaptchaIfNeeded();
-    if (!captchaOk) return;
+  const captchaOk = await verifyCaptchaIfNeeded();
+  if (!captchaOk) return;
 
-    try {
-      setPasswordSubmitting(true);
-      setPasswordError(null);
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(
-        pwd
-      )}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        if (response.status === 401) {
-          const payload = await response.json().catch(() => null);
-          setBurnAfterRead(!!payload?.burnAfterRead);
-          setPasswordError(language === "zh" ? "需要密码" : "Password required");
-          setRequiresPassword(true);
-          return;
-        }
-        if (response.status === 403) {
-          setPasswordError(language === "zh" ? "密码错误" : "Invalid password");
-          setRequiresPassword(true);
-          return;
-        }
-        if (response.status === 404) {
-          setPasswordError(
-            language === "zh"
-              ? "分享不存在或已被销毁"
-              : "Share not found or already destroyed"
-          );
-          setRequiresPassword(true);
-          return;
-        }
-        setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
+  try {
+    setPasswordSubmitting(true);
+    setPasswordError(null);
+    const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(
+      pwd
+    )}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 401) {
+        const payload = await response.json().catch(() => null);
+        setBurnAfterRead(!!payload?.burnAfterRead);
+        setPasswordError(language === "zh" ? "需要密码" : "Password required");
         setRequiresPassword(true);
+        captchaRef.current?.reset?.();
         return;
       }
-      const result = await response.json();
-      if (!result?.success || !result?.data) {
-        setPasswordError(language === "zh" ? "数据无效" : "Invalid data");
+      if (response.status === 403) {
+        setPasswordError(language === "zh" ? "密码错误" : "Invalid password");
         setRequiresPassword(true);
+        captchaRef.current?.reset?.();
         return;
       }
-      const eventData =
-        typeof result.data === "object" ? result.data : JSON.parse(result.data);
-      setEvent(eventData);
-      setBurnAfterRead(!!result?.burnAfterRead);
-      setRequiresPassword(false);
-      setPasswordError(null);
-      if (result?.burnAfterRead) {
-        toast({
-          title: language === "zh" ? "阅后即焚" : "Burn after read",
-          description:
-            language === "zh"
-              ? "已成功查看，该分享已从服务器删除。"
-              : "Viewed successfully. This share has been deleted from the server.",
-        });
+      if (response.status === 404) {
+        setPasswordError(
+          language === "zh"
+            ? "分享不存在或已被销毁"
+            : "Share not found or already destroyed"
+        );
+        setRequiresPassword(true);
+        captchaRef.current?.reset?.();
+        return;
       }
-    } catch {
       setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
       setRequiresPassword(true);
-    } finally {
-      setPasswordSubmitting(false);
-      setLoading(false);
+      captchaRef.current?.reset?.();
+      return;
     }
-  };
+    const result = await response.json();
+    if (!result?.success || !result?.data) {
+      setPasswordError(language === "zh" ? "数据无效" : "Invalid data");
+      setRequiresPassword(true);
+      captchaRef.current?.reset?.();
+      return;
+    }
+    const eventData =
+      typeof result.data === "object" ? result.data : JSON.parse(result.data);
+    setEvent(eventData);
+    setBurnAfterRead(!!result?.burnAfterRead);
+    setRequiresPassword(false);
+    setPasswordError(null);
+    if (result?.burnAfterRead) {
+      toast({
+        title: language === "zh" ? "阅后即焚" : "Burn after read",
+        description:
+          language === "zh"
+            ? "已成功查看，该分享已从服务器删除。"
+            : "Viewed successfully. This share has been deleted from the server.",
+      });
+    }
+  } catch {
+    setPasswordError(language === "zh" ? "解密失败" : "Failed to decrypt");
+    setRequiresPassword(true);
+    captchaRef.current?.reset?.();
+  } finally {
+    setPasswordSubmitting(false);
+    setLoading(false);
+  }
+};
+
 
   const formatDateWithTimezone = (dateString: string) => {
     const date = new Date(dateString);
