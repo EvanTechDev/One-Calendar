@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
 type Props = {
   sitekey: string;
@@ -11,85 +11,92 @@ type Props = {
   onReset?: () => void;
 };
 
-export default function FriendlyCaptchaWidget({
-  sitekey,
-  startMode = "auto",
-  onSolved,
-  onError,
-  onExpired,
-  onReset,
-}: Props) {
-  const mountRef = useRef<HTMLDivElement | null>(null);
-  const callbacksRef = useRef({ onSolved, onError, onExpired, onReset });
-  callbacksRef.current = { onSolved, onError, onExpired, onReset };
+export type FriendlyCaptchaRef = {
+  reset: () => void;
+};
 
-  useEffect(() => {
-    if (!mountRef.current || !sitekey) return;
+const FriendlyCaptchaWidgetV2 = forwardRef<FriendlyCaptchaRef, Props>(
+  ({ sitekey, startMode = "auto", onSolved, onError, onExpired, onReset }, ref) => {
+    const mountRef = useRef<HTMLDivElement | null>(null);
+    const widgetRef = useRef<any>(null);
+    const callbacksRef = useRef({ onSolved, onError, onExpired, onReset });
+    callbacksRef.current = { onSolved, onError, onExpired, onReset };
 
-    let destroyed = false;
-    let widget: any = null;
-    let el: HTMLElement | null = null;
+    useImperativeHandle(ref, () => ({
+      reset: () => {
+        widgetRef.current?.reset?.();
+      },
+    }));
 
-    const run = async () => {
-      const sdkMod = await import("@friendlycaptcha/sdk");
-      const FriendlyCaptchaSDK = (sdkMod as any).FriendlyCaptchaSDK;
-      const sdk = new FriendlyCaptchaSDK();
+    useEffect(() => {
+      if (!mountRef.current || !sitekey) return;
 
-      widget = sdk.createWidget({
-        element: mountRef.current!,
-        sitekey,
-        startMode,
-      });
+      let destroyed = false;
+      let el: HTMLElement | null = null;
 
-      el = widget.getElement?.() ?? mountRef.current;
+      const run = async () => {
+        const sdkMod = await import("@friendlycaptcha/sdk");
+        const FriendlyCaptchaSDK = (sdkMod as any).FriendlyCaptchaSDK;
+        const sdk = new FriendlyCaptchaSDK();
 
-      const handleComplete = (e: any) => {
-        if (destroyed) return;
-        const token = e?.detail?.response || widget?.getResponse?.() || "";
-        if (token) callbacksRef.current.onSolved(token);
+        widgetRef.current = sdk.createWidget({
+          element: mountRef.current!,
+          sitekey,
+          startMode,
+        });
+
+        el = widgetRef.current.getElement?.() ?? mountRef.current;
+
+        const handleComplete = (e: any) => {
+          if (destroyed) return;
+          const token = e?.detail?.response || widgetRef.current?.getResponse?.() || "";
+          if (token) callbacksRef.current.onSolved(token);
+        };
+
+        const handleError = () => {
+          if (destroyed) return;
+          callbacksRef.current.onError?.();
+        };
+
+        const handleExpire = () => {
+          if (destroyed) return;
+          callbacksRef.current.onExpired?.();
+        };
+
+        const handleReset = () => {
+          if (destroyed) return;
+          callbacksRef.current.onReset?.();
+        };
+
+        el?.addEventListener("frc:widget.complete", handleComplete as EventListener);
+        el?.addEventListener("frc:widget.error", handleError as EventListener);
+        el?.addEventListener("frc:widget.expire", handleExpire as EventListener);
+        el?.addEventListener("frc:widget.reset", handleReset as EventListener);
+
+        return () => {
+          el?.removeEventListener("frc:widget.complete", handleComplete as EventListener);
+          el?.removeEventListener("frc:widget.error", handleError as EventListener);
+          el?.removeEventListener("frc:widget.expire", handleExpire as EventListener);
+          el?.removeEventListener("frc:widget.reset", handleReset as EventListener);
+        };
       };
 
-      const handleError = () => {
-        if (destroyed) return;
-        callbacksRef.current.onError?.();
-      };
-
-      const handleExpire = () => {
-        if (destroyed) return;
-        callbacksRef.current.onExpired?.();
-      };
-
-      const handleReset = () => {
-        if (destroyed) return;
-        callbacksRef.current.onReset?.();
-      };
-
-      el?.addEventListener("frc:widget.complete", handleComplete as EventListener);
-      el?.addEventListener("frc:widget.error", handleError as EventListener);
-      el?.addEventListener("frc:widget.expire", handleExpire as EventListener);
-      el?.addEventListener("frc:widget.reset", handleReset as EventListener);
+      let cleanup: any;
+      run().then((c) => (cleanup = c));
 
       return () => {
-        el?.removeEventListener("frc:widget.complete", handleComplete as EventListener);
-        el?.removeEventListener("frc:widget.error", handleError as EventListener);
-        el?.removeEventListener("frc:widget.expire", handleExpire as EventListener);
-        el?.removeEventListener("frc:widget.reset", handleReset as EventListener);
+        destroyed = true;
+        try { cleanup?.(); } catch {}
+        try { widgetRef.current?.destroy?.(); } catch {}
+        widgetRef.current = null;
+        el = null;
       };
-    };
+    }, [sitekey, startMode]);
 
-    let cleanup: any;
-    run().then((c) => (cleanup = c));
+    if (!sitekey) return null;
 
-    return () => {
-      destroyed = true;
-      try { cleanup?.(); } catch {}
-      try { widget?.destroy?.(); } catch {}
-      widget = null;
-      el = null;
-    };
-  }, [sitekey, startMode]);
+    return <div ref={mountRef} />;
+  }
+);
 
-  if (!sitekey) return null;
-
-  return <div ref={mountRef} />;
-}
+export default FriendlyCaptchaWidgetV2;
