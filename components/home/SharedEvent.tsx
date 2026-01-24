@@ -160,31 +160,43 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
   }, [shareId, fcEnabled]);
 
   const verifyCaptchaIfNeeded = async () => {
-    if (!fcEnabled) return true;
-    if (!fcToken) {
-      setFcError(language === "zh" ? "请先完成验证码" : "Please complete the captcha");
+  if (!fcToken) {
+    setFcError(language === "zh" ? "请完成验证码" : "Please complete captcha");
+    return false;
+  }
+
+  try {
+    setFcVerifying(true);
+    setFcError(null);
+    const res = await fetch("/api/share/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: fcToken }),
+    });
+
+    if (!res.ok) {
+      setFcVerified(false);
+      setFcError(language === "zh" ? "验证码验证失败，请重试" : "Captcha verification failed");
+      captchaRef.current?.reset?.();
       return false;
     }
-    try {
-      setFcVerifying(true);
-      setFcError(null);
-      const v = await fetch("/api/share/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: fcToken }),
-      });
-      const vr = await v.json().catch(() => null);
-      if (!vr?.success) {
-        setFcVerified(false);
-        setFcError(language === "zh" ? "验证码验证失败，请重试" : "Captcha verification failed");
-        return false;
-      }
-      setFcVerified(true);
-      return true;
-    } finally {
-      setFcVerifying(false);
+
+    const data = await res.json().catch(() => null);
+
+    if (!data?.success) {
+      setFcVerified(false);
+      setFcError(language === "zh" ? "验证码验证失败，请重试" : "Captcha verification failed");
+      captchaRef.current?.reset?.();
+      return false;
     }
-  };
+
+    setFcVerified(true);
+    return true;
+  } finally {
+    setFcVerifying(false);
+  }
+};
+
 
   const tryDecryptWithPassword = async () => {
   if (!shareId) return;
