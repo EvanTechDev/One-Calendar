@@ -12,7 +12,7 @@ type Props = {
   onReset?: () => void;
 };
 
-export default function FriendlyCaptchaWidgetV2({
+export default function FriendlyCaptchaWidget({
   sitekey,
   startMode = "auto",
   onSolved,
