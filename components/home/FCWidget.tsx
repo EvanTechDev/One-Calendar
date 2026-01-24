@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -21,21 +20,23 @@ export default function FriendlyCaptchaWidget({
   onReset,
 }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const callbacksRef = useRef({ onSolved, onError, onExpired, onReset });
+  callbacksRef.current = { onSolved, onError, onExpired, onReset };
 
   useEffect(() => {
+    if (!mountRef.current || !sitekey) return;
+
     let destroyed = false;
-    let widget: any;
+    let widget: any = null;
     let el: HTMLElement | null = null;
 
     const run = async () => {
-      if (!mountRef.current || !sitekey) return;
-
       const sdkMod = await import("@friendlycaptcha/sdk");
       const FriendlyCaptchaSDK = (sdkMod as any).FriendlyCaptchaSDK;
       const sdk = new FriendlyCaptchaSDK();
 
       widget = sdk.createWidget({
-        element: mountRef.current,
+        element: mountRef.current!,
         sitekey,
         startMode,
       });
@@ -45,22 +46,22 @@ export default function FriendlyCaptchaWidget({
       const handleComplete = (e: any) => {
         if (destroyed) return;
         const token = e?.detail?.response || widget?.getResponse?.() || "";
-        if (token) onSolved(token);
+        if (token) callbacksRef.current.onSolved(token);
       };
 
       const handleError = () => {
         if (destroyed) return;
-        onError?.();
+        callbacksRef.current.onError?.();
       };
 
       const handleExpire = () => {
         if (destroyed) return;
-        onExpired?.();
+        callbacksRef.current.onExpired?.();
       };
 
       const handleReset = () => {
         if (destroyed) return;
-        onReset?.();
+        callbacksRef.current.onReset?.();
       };
 
       el?.addEventListener("frc:widget.complete", handleComplete as EventListener);
@@ -81,14 +82,12 @@ export default function FriendlyCaptchaWidget({
 
     return () => {
       destroyed = true;
-      try {
-        cleanup?.();
-      } catch {}
-      try {
-        widget?.destroy?.();
-      } catch {}
+      try { cleanup?.(); } catch {}
+      try { widget?.destroy?.(); } catch {}
+      widget = null;
+      el = null;
     };
-  }, [sitekey, startMode, onSolved, onError, onExpired, onReset]);
+  }, [sitekey, startMode]);
 
   if (!sitekey) return null;
 
