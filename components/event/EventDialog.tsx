@@ -577,38 +577,6 @@ export default function EventDialog({
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
-            <div className="flex space-x-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <span className="text-sm bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                      AI
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-4" align="end">
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-prompt">AI Prompt</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="ai-prompt"
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="Example: Team meeting next Monday at 10am"
-                        className="flex-1"
-                      />
-                      <Button
-                        size="icon"
-                        onClick={handleAiSubmit}
-                        disabled={isAiLoading || !aiPrompt.trim()}
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pb-6">
