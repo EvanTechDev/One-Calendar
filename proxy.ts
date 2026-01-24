@@ -9,8 +9,7 @@ export default clerkMiddleware({
     "/reset-password",
     "/api/blob",
     "/api/share",
-    "/api/chat",
-    "/api/chat/schedule"
+    "/api/verify"
   ],
 })
 
