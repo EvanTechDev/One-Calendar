@@ -1,5 +1,5 @@
-"use client";
 
+"use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import FriendlyCaptchaWidget from "@/components/home/FCWidget";
 
 interface SharedEvent {
   id: string;
@@ -45,30 +46,62 @@ interface SharedEvent {
   calendarId: string;
   sharedBy: string;
 }
-
 interface SharedEventViewProps {
   shareId: string;
 }
-
 export default function SharedEventView({ shareId }: SharedEventViewProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [language] = useLanguage();
   const t = translations[language];
-
   const [event, setEvent] = useState<SharedEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [requiresPassword, setRequiresPassword] = useState(false);
   const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-
   const [isAdding, setIsAdding] = useState(false);
   const { calendars, events, setEvents } = useCalendar();
   const [copied, setCopied] = useState(false);
+
+  const [fcEnabled, setFcEnabled] = useState(false);
+  const [fcSitekey, setFcSitekey] = useState<string | null>(null);
+  const [fcLang, setFcLang] = useState("en");
+  const [fcToken, setFcToken] = useState<string | null>(null);
+  const [fcVerified, setFcVerified] = useState(false);
+  const [fcVerifying, setFcVerifying] = useState(false);
+  const [fcError, setFcError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch("/api/friendlycaptcha/config", { cache: "no-store" });
+        const cfg = await res.json();
+        const enabled = Boolean(cfg?.enabled && cfg?.sitekey);
+        setFcEnabled(enabled);
+        setFcSitekey(cfg?.sitekey ?? null);
+        setFcLang(language === "zh" ? "zh" : "en");
+        if (!enabled) {
+          setFcToken(null);
+          setFcVerified(true);
+          setFcError(null);
+        } else {
+          setFcToken(null);
+          setFcVerified(false);
+          setFcError(null);
+        }
+      } catch {
+        setFcEnabled(false);
+        setFcSitekey(null);
+        setFcToken(null);
+        setFcVerified(true);
+        setFcError(null);
+      }
+    };
+    load();
+  }, [language]);
 
   useEffect(() => {
     const fetchSharedEvent = async () => {
@@ -81,14 +114,15 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         setPassword("");
         setPasswordSubmitting(false);
         setPasswordError(null);
+        setFcToken(null);
+        setFcVerified(!fcEnabled);
+        setFcError(null);
 
         if (!shareId) {
           setError("No share ID provided");
           return;
         }
-
         const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
-
         if (!response.ok) {
           if (response.status === 401) {
             const payload = await response.json().catch(() => null);
@@ -98,17 +132,20 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
               return;
             }
           }
-          setError(response.status === 404 ? "Shared event not found" : "Failed to load shared event");
+          setError(
+            response.status === 404
+              ? "Shared event not found"
+              : "Failed to load shared event"
+          );
           return;
         }
-
         const result = await response.json();
         if (!result?.success || !result?.data) {
           setError("Invalid share data");
           return;
         }
-
-        const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
+        const eventData =
+          typeof result.data === "object" ? result.data : JSON.parse(result.data);
         setEvent(eventData);
         setBurnAfterRead(!!result?.burnAfterRead);
       } catch {
@@ -117,26 +154,54 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         setLoading(false);
       }
     };
-
     fetchSharedEvent();
-  }, [shareId]);
+  }, [shareId, fcEnabled]);
+
+  const verifyCaptchaIfNeeded = async () => {
+    if (!fcEnabled) return true;
+    if (!fcToken) {
+      setFcError(language === "zh" ? "请先完成验证码" : "Please complete the captcha");
+      return false;
+    }
+    try {
+      setFcVerifying(true);
+      setFcError(null);
+      const v = await fetch("/api/share/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: fcToken }),
+      });
+      const vr = await v.json().catch(() => null);
+      if (!vr?.success) {
+        setFcVerified(false);
+        setFcError(language === "zh" ? "验证码验证失败，请重试" : "Captcha verification failed");
+        return false;
+      }
+      setFcVerified(true);
+      return true;
+    } finally {
+      setFcVerifying(false);
+    }
+  };
 
   const tryDecryptWithPassword = async () => {
     if (!shareId) return;
-
     const pwd = password;
     if (!pwd) {
       setPasswordError(language === "zh" ? "请输入密码" : "Please enter a password");
       return;
     }
 
+    const captchaOk = await verifyCaptchaIfNeeded();
+    if (!captchaOk) return;
+
     try {
       setPasswordSubmitting(true);
       setPasswordError(null);
-
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
+      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(
+        pwd
+      )}`;
       const response = await fetch(url);
-
       if (!response.ok) {
         if (response.status === 401) {
           const payload = await response.json().catch(() => null);
@@ -151,7 +216,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           return;
         }
         if (response.status === 404) {
-          setPasswordError(language === "zh" ? "分享不存在或已被销毁" : "Share not found or already destroyed");
+          setPasswordError(
+            language === "zh"
+              ? "分享不存在或已被销毁"
+              : "Share not found or already destroyed"
+          );
           setRequiresPassword(true);
           return;
         }
@@ -159,24 +228,25 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         setRequiresPassword(true);
         return;
       }
-
       const result = await response.json();
       if (!result?.success || !result?.data) {
         setPasswordError(language === "zh" ? "数据无效" : "Invalid data");
         setRequiresPassword(true);
         return;
       }
-
-      const eventData = typeof result.data === "object" ? result.data : JSON.parse(result.data);
+      const eventData =
+        typeof result.data === "object" ? result.data : JSON.parse(result.data);
       setEvent(eventData);
       setBurnAfterRead(!!result?.burnAfterRead);
       setRequiresPassword(false);
       setPasswordError(null);
-
       if (result?.burnAfterRead) {
         toast({
           title: language === "zh" ? "阅后即焚" : "Burn after read",
-          description: language === "zh" ? "已成功查看，该分享已从服务器删除。" : "Viewed successfully. This share has been deleted from the server.",
+          description:
+            language === "zh"
+              ? "已成功查看，该分享已从服务器删除。"
+              : "Viewed successfully. This share has been deleted from the server.",
         });
       }
     } catch {
@@ -195,14 +265,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
   const handleAddToCalendar = async () => {
     if (!event) return;
-
     try {
       setIsAdding(true);
-
       let targetCalendarId = event.calendarId;
       const calendarExists = calendars.some((cal) => cal.id === targetCalendarId);
       if (!calendarExists) targetCalendarId = calendars[0]?.id ?? "default";
-
       const newEvent = {
         ...event,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -210,14 +277,12 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         endDate: new Date(event.endDate),
         calendarId: targetCalendarId,
       };
-
       setEvents([...events, newEvent]);
-
       toast({
         title: language === "zh" ? "添加成功" : "Added Successfully",
-        description: language === "zh" ? "事件已添加到您的日历" : "Event has been added to your calendar",
+        description:
+          language === "zh" ? "事件已添加到您的日历" : "Event has been added to your calendar",
       });
-
       setTimeout(() => router.push("/"), 1500);
     } catch (e) {
       toast({
@@ -290,13 +355,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             />
           </div>
         </div>
-
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
           <a href="/" className="flex items-center gap-2 self-center font-medium">
-          <Calendar className="size-4" color="#0066ff" />
-          One Calendar
-        </a>
-
+            <Calendar className="size-4" color="#0066ff" />
+            One Calendar
+          </a>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
               <CardContent className="p-6">
@@ -316,7 +379,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                         ? "请输入密码以解密并查看事件内容。"
                         : "Enter the password to decrypt and view the event."}
                   </CardDescription>
-
                   {burnAfterRead && (
                     <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
                       <Flame className="h-4 w-4" />
@@ -324,7 +386,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     </div>
                   )}
                 </div>
-
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="share-password">{language === "zh" ? "密码" : "Password"}</Label>
@@ -347,8 +408,32 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     )}
                   </div>
 
-                  <Button className="w-full" onClick={tryDecryptWithPassword} disabled={passwordSubmitting}>
-                    {passwordSubmitting ? (
+                  {fcEnabled && fcSitekey ? (
+                    <div className="pt-2">
+                      <FriendlyCaptchaWidget
+                        sitekey={fcSitekey}
+                        lang={fcLang}
+                        onSolved={(token) => {
+                          setFcToken(token);
+                          setFcVerified(true);
+                          setFcError(null);
+                        }}
+                        onReset={() => {
+                          setFcToken(null);
+                          setFcVerified(false);
+                          setFcError(null);
+                        }}
+                      />
+                      {fcError ? <p className="text-sm text-red-500 mt-2">{fcError}</p> : null}
+                    </div>
+                  ) : null}
+
+                  <Button
+                    className="w-full"
+                    onClick={tryDecryptWithPassword}
+                    disabled={passwordSubmitting || fcVerifying || (fcEnabled && !fcVerified)}
+                  >
+                    {passwordSubmitting || fcVerifying ? (
                       <span className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         {language === "zh" ? "解密中..." : "Decrypting..."}
@@ -359,7 +444,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       </span>
                     )}
                   </Button>
-
                   <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
                     <Home className="mr-2 h-4 w-4" />
                     {language === "zh" ? "返回主页" : "Return to Home"}
@@ -394,13 +478,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             />
           </div>
         </div>
-
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
           <a href="/" className="flex items-center gap-2 self-center font-medium">
-          <Calendar className="size-4" color="#0066ff" />
-          One Calendar
-        </a>
-
+            <Calendar className="size-4" color="#0066ff" />
+            One Calendar
+          </a>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
               <CardContent className="p-6 text-center">
@@ -457,13 +539,11 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           />
         </div>
       </div>
-
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center gap-2 self-center font-medium">
           <Calendar className="size-4" color="#0066ff" />
           One Calendar
         </a>
-
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Card className="max-w-md w-full overflow-hidden">
             <div className="relative">
@@ -488,7 +568,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     <span>{durationText}</span>
                   </Badge>
                 </div>
-
                 <Card className="bg-muted mb-6">
                   <CardContent className="p-4 flex items-start">
                     <Calendar className="h-5 w-5 mr-3 mt-0.5 text-primary" />
@@ -500,7 +579,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     </div>
                   </CardContent>
                 </Card>
-
                 <div className="space-y-5">
                   {event.location && (
                     <motion.div
@@ -513,7 +591,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       <p>{event.location}</p>
                     </motion.div>
                   )}
-
                   {event.participants?.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
@@ -525,7 +602,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       <p>{event.participants.join(", ")}</p>
                     </motion.div>
                   )}
-
                   {event.notification > 0 && (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
@@ -537,7 +613,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       <p>{language === "zh" ? `提前 ${event.notification} 分钟提醒` : `${event.notification} minutes before`}</p>
                     </motion.div>
                   )}
-
                   {event.description && (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
@@ -550,7 +625,6 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                     </motion.div>
                   )}
                 </div>
-
                 <div className="mt-8 space-y-3">
                   <Button className="w-full" variant="default" onClick={handleAddToCalendar} disabled={isAdding}>
                     {isAdding ? (
@@ -560,13 +634,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        <CalendarPlus className="mr-2 h-5 w-5" />
-                        {language === "zh" ? "添加到我的日历" : "Add to My Calendar"}
-                      </span>
-                    )}
-                  </Button>
-
-                  <Button variant="outline" className="w-full" onClick={copyLink}>
+                        <CalendarPlus className="mr-2 h-5 w-5"Name="w-full" onClick={copyLink}>
                     <ExternalLink className="mr-2 h-4 w-4" />
                     {copied ? (language === "zh" ? "已复制!" : "Copied!") : language === "zh" ? "复制分享链接" : "Copy Share Link"}
                   </Button>
