@@ -24,7 +24,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import UserProfileButton from "@/components/home/UserProfileButton"
 import { cn } from "@/lib/utils"
 import DailyToast from "@/components/home/DailyToast"
-import QuickStartGuide from "@/components/home/QuickStartGuide"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 
@@ -581,7 +580,6 @@ const handleShare = (event: CalendarEvent) => {
       </Suspense>
 
       <DailyToast />
-      <QuickStartGuide />
     </div>
     </div>
   )
