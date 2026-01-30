@@ -17,7 +17,7 @@
 A beautifully minimal open-source calendar app to plan your week and life
 
 
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,POSTGRES_URL,SALT&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
 
 </div>
 
@@ -33,7 +33,7 @@ A beautifully minimal open-source calendar app to plan your week and life
 
 Most calendar tools are cluttered, over-engineered, or locked behind paywalls. One Calendar aims to be:
 
-- 🧠 **AI Powered** – AI-first app that streamlines your scheduling.
+- 🧠 **No AI** – No-AI app that can't track your data.
 - 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
 - 🔐 **Private & Local** – Your data is yours. E2EE. Share, backup, and control.
 - ☁️ **Cloud Sync** – Optional sync via PostgreSQL.
@@ -46,10 +46,9 @@ Most calendar tools are cluttered, over-engineered, or locked behind paywalls. O
 - **Frontend**: Next.js 16, Tailwind CSS, Shadcn UI, TypeScript
 - **Auth**: Clerk
 - **Storage**: PostgreSQL
-- **AI**: Groq API
 - **Deploy**: Vercel
 
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,groq,vercel,bun,postgresql)
+![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,vercel,bun,postgresql)
 
 ## Preview
 
@@ -84,43 +83,7 @@ Then visit `http://localhost:3000`
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in:
-
-```env
-# Required 
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-
-# Auth (Required)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
-CLERK_SECRET_KEY=your-clerk-secret
-
-# Optional
-GROQ_API_KEY=your-groq-api
-OPENWEATHER_API_KEY=your-open-weather-api-key
-
-# Optional, database
-POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
-
-# Optional, Cloudflare turnstile captcha
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
-TURNSTILE_SECRET_KEY=secret-key
-```
-
-### Environment Setup
-
-1. PostgreSQL
-
-Run this command if you installed docker
-
-```
-bun run db
-```
-
-And the env:
-
-```env
-POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
-```
+Copy `.env.example` to `.env` and fill in.
 
 ## Star History
 
@@ -142,14 +105,17 @@ This project wouldn't be possible without these awesome services:
 
 <div style="display: flex; justify-content: center;">
   <a href="https://vercel.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/5107d47f-7ce9-425a-8e24-77c322205bd4" alt="Vercel" width="96"/></a>
+    <a href="https://cloudflare.com" style="text-decoraion: none;"><img width="96" alt="Cloudflare" src="https://github.com/user-attachments/assets/19c949e5-73b6-4ce6-9d9f-ba0739d0b2e0" /></a>
   <a href="https://clerk.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/6f9fa5d7-e0c2-4c14-aef9-e39bd0465e23" alt="Clerk" width="96"/></a>
-  <a href="https://groq.com" style="text-decoraion: none;"><img src="https://github.com/user-attachments/assets/650dc220-c0a7-4761-a7ce-2c24a7d75133" alt="Groq" width="96"></a>
+    <a href="https://supabase.com" style="text-decoraion: none;"><img width="96" alt="Supabase" src="https://github.com/user-attachments/assets/8cce085f-1235-4bf7-9f7f-76182ddd58d4" /></a>
+  <a href="https://neon.com" style="text-decoraion: none;"><img width="96" alt="Neon" src="https://github.com/user-attachments/assets/a3862f39-69e2-43da-bba5-b821f502f8f8" /></a>
 </div>
 
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
+
 
 
 
