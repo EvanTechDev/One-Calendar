@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "1.9.5",
+  "version": "1.9.6",
   "private": true,
   "packageManager": "bun@1.3.6",
   "scripts": {
@@ -72,7 +72,6 @@
     "@marsidev/react-turnstile": "latest",
     "pg": "latest",
     "remark-gfm": "latest",
-    "@tailwindcss/postcss": "latest",
     "react-markdown": "latest"
   },
   "devDependencies": {
