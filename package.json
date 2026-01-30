@@ -72,6 +72,7 @@
     "@marsidev/react-turnstile": "latest",
     "pg": "latest",
     "remark-gfm": "latest",
+    "@tailwindcss/postcss": "latest",
     "react-markdown": "latest"
   },
   "devDependencies": {
