@@ -172,7 +172,13 @@ export default function ShareManagement() {
       </CardContent>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="data-[state=open]:animate-none data-[state=closed]:animate-none">
+<AlertDialogContent
+  className="
+    [--radix-dialog-content-transform-origin:center]
+    data-[state=open]:animate-none 
+    data-[state=closed]:animate-none
+  "
+>
           <AlertDialogHeader>
             <AlertDialogTitle>{language === "zh" ? "删除分享" : "Delete Share"}</AlertDialogTitle>
             <AlertDialogDescription>
