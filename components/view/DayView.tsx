@@ -462,11 +462,11 @@ export default function DayView({
           pointerEvents: 'none',
         }}
       >
-        <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+        <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} 
           style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }} 
         />
-        <div className="pl-1.5">
-          <div className="font-medium text-white truncate">{draggingEvent.title}</div>
+        <div className="pl-1">
+          <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{draggingEvent.title}</div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
               {formatTime(dragPreview.hour)}:{dragPreview.minute.toString().padStart(2, '0')} - {formatTime(Math.floor(endMinutes / 60))}:{(endMinutes % 60).toString().padStart(2, '0')}
@@ -593,9 +593,9 @@ export default function DayView({
                       }
                     }}
                   >
-                   <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
-                    <div className="pl-1.5">
-                    <div className="font-medium text-white truncate">{event.title}</div>
+                   <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
+                    <div className="pl-1">
+                    <div className="font-medium truncate"  style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
                     {height >= 40 && (
                       <div className="text-xs text-white/90 truncate">
                         {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
