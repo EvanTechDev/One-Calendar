@@ -11,10 +11,10 @@ import {
   Bell,
   AlignLeft,
   ChevronDown,
-  Share2,
   Bookmark,
   Download,
 } from "lucide-react";
+import { Share as Share2 } from "@/components/icons/share";
 import { Button } from "@/components/ui/button";
 import { zhCN, enUS } from "date-fns/locale";
 import { format } from "date-fns";
