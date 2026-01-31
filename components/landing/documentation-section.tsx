@@ -1,19 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type React from "react"
-
-// Badge component for consistency
-function Badge({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="px-[14px] py-[6px] bg-white shadow-[0px_0px_0px_4px_rgba(55,50,47,0.05)] overflow-hidden rounded-[90px] flex justify-start items-center gap-[8px] border border-[rgba(2,6,23,0.08)] shadow-xs">
-      <div className="w-[14px] h-[14px] relative overflow-hidden flex items-center justify-center">{icon}</div>
-      <div className="text-center flex justify-center flex-col text-[#37322F] text-xs font-medium leading-3 font-sans">
-        {text}
-      </div>
-    </div>
-  )
-}
 
 export default function DocumentationSection() {
   const [activeCard, setActiveCard] = useState(0)
@@ -22,17 +9,17 @@ export default function DocumentationSection() {
   const cards = [
     {
       title: "Plan your schedules",
-      description: "Explore your data, build your dashboard,\nsave your time together.",
+      description: "Explore your data, build your dashboard, and save time together.",
       image: "/Banner.jpg",
     },
     {
       title: "Data to insights in minutes",
-      description: "Transform raw data into actionable insights\nwith powerful analytics tools.",
+      description: "Transform raw data into actionable insights with powerful analytics tools.",
       image: "/A.jpg",
     },
     {
-      title: "Share schedule safety",
-      description: "Password-protect share with anyone\nand burn-after-read.",
+      title: "Share schedules safely",
+      description: "Password-protect sharing with anyone and burn-after-read security.",
       image: "/S.jpg",
     },
   ]
@@ -52,78 +39,73 @@ export default function DocumentationSection() {
   }
 
   return (
-    <div className="w-full border-b border-[rgba(55,50,47,0.12)] flex flex-col justify-center items-center">
-      {/* Header Section */}
-      <div className="self-stretch px-6 md:px-24 py-12 md:py-16 border-b border-[rgba(55,50,47,0.12)] flex justify-center items-center gap-6">
-        <div className="w-full max-w-[586px] px-6 py-5 shadow-[0px_2px_4px_rgba(50,45,43,0.06)] overflow-hidden rounded-lg flex flex-col justify-start items-center gap-4 shadow-none">
-          <Badge
-            icon={
-              <div className="w-[10.50px] h-[10.50px] outline outline-[1.17px] outline-[#37322F] outline-offset-[-0.58px] rounded-full"></div>
-            }
-            text="Platform Features"
-          />
-          <div className="self-stretch text-center flex justify-center flex-col text-[#49423D] text-3xl md:text-5xl font-semibold leading-tight md:leading-[60px] font-sans tracking-tight">
+    <section className="py-24 border-t border-border">
+      <div className="max-w-[1200px] mx-auto px-6">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <p className="text-sm font-medium text-muted-foreground mb-4">PLATFORM</p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-foreground text-balance">
             Streamline your business operations
-          </div>
-          <div className="self-stretch text-center text-[#605A57] text-base font-normal leading-7 font-sans">
-            Manage schedules, analyze data, and collaborate with your team
-            <br />
-            all in one powerful platform.
-          </div>
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground max-w-[600px] mx-auto">
+            Manage schedules, analyze data, and collaborate with your team all in one powerful platform.
+          </p>
         </div>
-      </div>
 
-      {/* Content Section */}
-      <div className="self-stretch px-4 md:px-9 overflow-hidden flex justify-start items-center">
-        <div className="flex-1 py-8 md:py-11 flex flex-col md:flex-row justify-start items-center gap-6 md:gap-12">
-          {/* Left Column - Feature Cards */}
-          <div className="w-full md:w-auto md:max-w-[400px] flex flex-col justify-center items-center gap-4 order-2 md:order-1">
+        {/* Content */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
+          {/* Feature Cards */}
+          <div className="w-full lg:w-[400px] flex flex-col gap-3 order-2 lg:order-1">
             {cards.map((card, index) => {
               const isActive = index === activeCard
 
               return (
-                <div
+                <button
                   key={index}
                   onClick={() => handleCardClick(index)}
-                  className={`w-full overflow-hidden flex flex-col justify-start items-start transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? "bg-white shadow-[0px_0px_0px_0.75px_#E0DEDB_inset]"
-                      : "border border-[rgba(2,6,23,0.08)]"
+                  className={`relative w-full p-5 text-left rounded-lg border transition-all duration-200 ${
+                    isActive 
+                      ? 'border-foreground/20 bg-card shadow-sm' 
+                      : 'border-border hover:border-foreground/10 hover:bg-secondary/50'
                   }`}
                 >
-                  <div
-                    className={`w-full h-0.5 bg-[rgba(50,45,43,0.08)] overflow-hidden ${isActive ? "opacity-100" : "opacity-0"}`}
-                  >
-                    <div
-                      key={animationKey}
-                      className="h-0.5 bg-[#322D2B] animate-[progressBar_5s_linear_forwards] will-change-transform"
-                    />
-                  </div>
-                  <div className="px-6 py-5 w-full flex flex-col gap-2">
-                    <div className="self-stretch flex justify-center flex-col text-[#49423D] text-sm font-semibold leading-6 font-sans">
-                      {card.title}
+                  {isActive && (
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-border rounded-t-lg overflow-hidden">
+                      <div
+                        key={animationKey}
+                        className="h-full bg-foreground"
+                        style={{
+                          animation: 'progressBar 5s linear forwards'
+                        }}
+                      />
                     </div>
-                    <div className="self-stretch text-[#605A57] text-[13px] font-normal leading-[22px] font-sans whitespace-pre-line">
-                      {card.description}
-                    </div>
-                  </div>
-                </div>
+                  )}
+                  <h3 className="font-medium text-foreground">{card.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                    {card.description}
+                  </p>
+                </button>
               )
             })}
           </div>
 
-          {/* Right Column - Image */}
-          <div className="w-full md:w-auto rounded-lg flex flex-col justify-center items-center gap-2 order-1 md:order-2 md:px-0 px-[00]">
-            <div className="w-full md:w-[580px] h-[250px] md:h-[420px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-lg flex flex-col justify-start items-start">
-              <div
-                className={`w-full h-full transition-all duration-300 ${
-                  activeCard === 0
-                    ? "bg-gradient-to-br from-blue-50 to-blue-100"
-                    : activeCard === 1
-                      ? "bg-gradient-to-br from-purple-50 to-purple-100"
-                      : "bg-gradient-to-br from-green-50 to-green-100"
-                }`}
-              />
+          {/* Image Preview */}
+          <div className="flex-1 order-1 lg:order-2">
+            <div className="aspect-[4/3] rounded-xl border border-border overflow-hidden bg-card shadow-lg">
+              {cards.map((card, index) => (
+                <div
+                  key={index}
+                  className={`w-full h-full transition-opacity duration-300 ${
+                    activeCard === index ? "opacity-100" : "opacity-0 absolute inset-0"
+                  }`}
+                >
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -132,13 +114,13 @@ export default function DocumentationSection() {
       <style jsx>{`
         @keyframes progressBar {
           0% {
-            transform: translateX(-100%);
+            width: 0%;
           }
           100% {
-            transform: translateX(0%);
+            width: 100%;
           }
         }
       `}</style>
-    </div>
+    </section>
   )
 }
