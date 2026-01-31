@@ -579,7 +579,7 @@ export default function WeekView({
           pointerEvents: 'none', // 确保拖拽预览不会干扰鼠标事件
         }}
       >
-        <div className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
+        <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} 
           style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }} 
         />
         <div className="pl-1">
