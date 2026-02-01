@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       await client.query(
         `
         INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (share_id)
         DO UPDATE SET
           encrypted_data = EXCLUDED.encrypted_data,
