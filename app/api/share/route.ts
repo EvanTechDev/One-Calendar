@@ -13,6 +13,7 @@ async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS shares (
         id SERIAL PRIMARY KEY,
+        user_id TEXT,
         share_id VARCHAR(255) NOT NULL,
         encrypted_data TEXT NOT NULL,
         iv TEXT NOT NULL,
@@ -24,10 +25,12 @@ async function initializeDatabase() {
         UNIQUE(share_id)
       )
     `);
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`);
     await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`);
     await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`);
     await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`);
     await client.query(`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`);
   } finally {
     client.release();
   }
