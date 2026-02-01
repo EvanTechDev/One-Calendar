@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { Pool } from "pg";
 import crypto from "crypto";
 
@@ -74,8 +74,8 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const body = await request.json();
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           enc_version = EXCLUDED.enc_version,
           user_id = EXCLUDED.user_id
         `,
-        [userId, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
+        [user.id, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
       );
 
       return NextResponse.json({
@@ -247,8 +247,8 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
@@ -266,7 +266,7 @@ export async function DELETE(request: NextRequest) {
 
     const client = await pool.connect();
     try {
-      const result = await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2 RETURNING *", [id, userId]);
+      const result = await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2 RETURNING *", [id, user.id]);
 
       if (result.rowCount === 0) {
         return NextResponse.json({
