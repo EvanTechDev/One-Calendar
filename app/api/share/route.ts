@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { Pool } from "pg";
 import crypto from "crypto";
 
@@ -13,7 +14,7 @@ async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS shares (
         id SERIAL PRIMARY KEY,
-        user_id TEXT,
+        user_id TEXT NOT NULL,
         share_id VARCHAR(255) NOT NULL,
         encrypted_data TEXT NOT NULL,
         iv TEXT NOT NULL,
@@ -73,6 +74,7 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = auth();
     const body = await request.json();
     const { id, data, password, burnAfterRead } = body as {
       id?: string;
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
     try {
       await client.query(
         `
-        INSERT INTO shares (share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
+        INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (share_id)
         DO UPDATE SET
@@ -116,9 +118,10 @@ export async function POST(request: NextRequest) {
           timestamp = EXCLUDED.timestamp,
           is_protected = EXCLUDED.is_protected,
           is_burn = EXCLUDED.is_burn,
-          enc_version = EXCLUDED.enc_version
+          enc_version = EXCLUDED.enc_version,
+          user_id = EXCLUDED.user_id
         `,
-        [id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
+        [userId, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
       );
 
       return NextResponse.json({
@@ -241,6 +244,11 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     const body = await request.json();
     const { id } = body as { id?: string };
 
@@ -255,7 +263,7 @@ export async function DELETE(request: NextRequest) {
 
     const client = await pool.connect();
     try {
-      const result = await client.query("DELETE FROM shares WHERE share_id = $1 RETURNING *", [id]);
+      const result = await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2 RETURNING *", [id, userId]);
 
       if (result.rowCount === 0) {
         return NextResponse.json({
