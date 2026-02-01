@@ -50,6 +50,22 @@ interface SharedEventViewProps {
   shareId: string;
 }
 
+function getDarkerColorClass(color: string) {
+  const colorMapping: Record<string, string> = {
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
+  
+  return colorMapping[color] || '#3A3A3A';
+}
+
 export default function SharedEventView({ shareId }: SharedEventViewProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -467,7 +483,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Card className="max-w-md w-full overflow-hidden">
             <div className="relative">
-              <div className={cn("absolute left-0 top-0 h-full w-1", event.color)} />
+              <div className={cn("absolute left-0 top-0 h-full w-1")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>

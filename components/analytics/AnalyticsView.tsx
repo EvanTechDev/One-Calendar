@@ -1,15 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import TimeAnalyticsComponent from "./TimeAnalytics"
-import ImportExport from "./ImportExport"
-import AnalyticsGuide from "./AnalyticsGuide"
-import type { CalendarEvent } from "../Calendar"
+import TimeAnalyticsComponent from "@/components/analytics/TimeAnalytics"
+import ImportExport from "@/components/analytics/ImportExport"
+import type { CalendarEvent } from "@/components/Calendar"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { useLanguage } from "@/hooks/useLanguage"
 import { translations } from "@/lib/i18n"
-import ShareManagement from "./ShareManagement"
-import EventsCalendar from "./EventsCalendar"
+import ShareManagement from "@/components/analytics/ShareManagement"
+import EventsCalendar from "@/components/analytics/EventsCalendar"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
@@ -54,7 +53,6 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
       </div>
-      <AnalyticsGuide />
       <TimeAnalyticsComponent events={events} calendars={calendars} key={`time-analytics-${language}-${forceUpdate}`} />
       <div className="grid grid-cols-1 gap-8">
         <EventsCalendar />

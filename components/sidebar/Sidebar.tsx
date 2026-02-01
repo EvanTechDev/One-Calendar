@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronDown, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -133,12 +133,11 @@ export default function Sidebar({
         <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t.myCalendars}</span>
-            <ChevronDown className="h-4 w-4" />
           </div>
           {calendars.map((calendar) => (
             <div key={calendar.id} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={cn("h-3 w-3 rounded-sm", calendar.color)} />
+                <div className={cn("h-3 w-3 rounded-full", calendar.color)} />
                 <span className="text-sm">{calendar.name}</span>
               </div>
               <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
