@@ -579,7 +579,7 @@ export default function EventDialog({
             <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
           </div>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pb-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title">{t.title}</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
