@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
+import { format } from "date-fns"
+import { translations, useLanguage } from "@/lib/i18n"
 
 interface SharedEvent {
   id: string;
