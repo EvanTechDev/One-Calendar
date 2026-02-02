@@ -67,7 +67,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
         return (
           <div
             key={day.toString()}
-            className="min-h-[100px] p-2 border rounded-lg border"
+            className="min-h-[100px] p-2 border rounded-xl border"
           >
             <div className={cn("font-medium text-sm", isSameMonth(day, date) ? "" : "text-gray-400")}>{format(day, "d")}</div>
             <div className="space-y-1">
