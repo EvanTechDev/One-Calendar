@@ -573,13 +573,13 @@ export default function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg p-0">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="p-6 pb-0">
           <div className="flex justify-between items-center">
             <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
           </div>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="px-6 pt-4 pb-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title">{t.title}</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -826,7 +826,7 @@ export default function EventDialog({
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
-          <DialogFooter className={cn("pt-4", event ? "sm:justify-between" : "sm:justify-end")}>
+          <div className={event ? "sm:justify-between" : "sm:justify-end"}>
   {event && (
     <Button
       type="button"
@@ -853,7 +853,7 @@ export default function EventDialog({
       {event ? t.update : t.save}
     </Button>
   </div>
-</DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
