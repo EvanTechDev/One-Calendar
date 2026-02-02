@@ -14,6 +14,7 @@ import {
   Clock,
   CalendarPlus,
   ExternalLink,
+  Copy,
   AlertCircle,
   Home,
   Lock,
@@ -583,7 +584,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
                   </Button>
 
                   <Button variant="outline" className="w-full" onClick={copyLink}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
+                    <Copy className="mr-2 h-4 w-4" />
                     {copied ? (language === "zh" ? "已复制!" : "Copied!") : language === "zh" ? "复制分享链接" : "Copy Share Link"}
                   </Button>
                 </div>
