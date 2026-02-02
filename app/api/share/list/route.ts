@@ -67,7 +67,7 @@ export async function GET() {
             eventTitle,
             sharedBy: userId,
             shareDate: row.timestamp.toISOString(),
-            shareLink: `/shares/${row.share_id}/data.json`,
+            shareLink: `/share/${row.share_id}`,
             isProtected: row.is_protected,
           };
         })
