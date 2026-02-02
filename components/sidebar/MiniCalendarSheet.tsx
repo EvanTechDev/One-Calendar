@@ -171,7 +171,7 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
               <div className="space-y-4">
                 {dayEvents.map((event) => (
                   <div key={event.id} className="flex items-start">
-                    <div className={cn("w-1 self-stretch rounded-full mr-3")} style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }}/>
+                    <div className={cn("w-1 self-stretch rounded-full mr-3")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
                     <div className="flex-1">
                       <div className="flex justify-between">
                         <div className="font-medium">{event.title}</div>
