@@ -826,7 +826,7 @@ export default function EventDialog({
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
-          <DialogFooter className={cn("pt-4", event ? "sm:event ? "sm:justify-between" : "sm:justify-end")}>
+          <DialogFooter className={cn("pt-4", event ? "sm:justify-between" : "sm:justify-end")}>
   {event && (
     <Button
       type="button"
