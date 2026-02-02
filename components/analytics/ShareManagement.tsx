@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
 import { translations, useLanguage } from "@/lib/i18n"
@@ -25,6 +26,11 @@ export default function ShareManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingDecrypt, setLoadingDecrypt] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState("")
+  const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(null)
+  const [isDecrypting, setIsDecrypting] = useState(false)
+
 
   useEffect(() => {
     async function fetchSharedEvents() {
@@ -82,30 +88,43 @@ export default function ShareManagement() {
     }
   };
 
-  const decryptProtectedShare = async (share: SharedEvent) => {
-    const password = prompt(language === "zh" ? "请输入密码" : "Enter password", "");
-    if (!password) return;
-    setLoadingDecrypt(true);
-    try {
-      const res = await fetch(`/api/share?id=${share.id}&password=${encodeURIComponent(password)}`);
-      const data = await res.json();
-      if (!data.success) {
-        toast(language === "zh" ? "密码错误" : "Invalid password", { variant: "destructive" });
-        return;
-      }
-      const parsed = JSON.parse(data.data);
-      const updated = sharedEvents.map((s) =>
-        s.id === share.id
+  const handleDecrypt = async () => {
+  if (!decryptingShare || !passwordInput) return
+
+  try {
+    setIsDecrypting(true)
+
+    const res = await fetch(
+      `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`
+    )
+    const data = await res.json()
+
+    if (!data.success) {
+      toast(language === "zh" ? "密码错误" : "Invalid password", { variant: "destructive" })
+      return
+    }
+
+    const parsed = JSON.parse(data.data)
+
+    setSharedEvents((prev) =>
+      prev.map((s) =>
+        s.id === decryptingShare.id
           ? { ...s, eventId: parsed.id, eventTitle: parsed.title, isProtected: false }
           : s
-      );
-      setSharedEvents(updated);
-    } catch (error) {
-      toast(language === "zh" ? "解密失败" : "Failed to decrypt", { variant: "destructive" });
-    } finally {
-      setLoadingDecrypt(false);
-    }
-  };
+      )
+    )
+
+    toast(language === "zh" ? "解密成功" : "Decrypted")
+    setPasswordDialogOpen(false)
+    setDecryptingShare(null)
+    setPasswordInput("")
+  } catch (error) {
+    toast(language === "zh" ? "解密失败" : "Failed to decrypt", { variant: "destructive" })
+  } finally {
+    setIsDecrypting(false)
+  }
+}
+
 
   return (
     <Card className="w-full">
@@ -149,7 +168,11 @@ export default function ShareManagement() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => decryptProtectedShare(share)}
+                        onClick={() => {
+  setDecryptingShare(share)
+  setPasswordInput("")
+  setPasswordDialogOpen(true)
+}}
                         disabled={loadingDecrypt}
                       >
                         <Lock className="h-4 w-4" />
@@ -210,6 +233,55 @@ export default function ShareManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>
+        {language === "zh" ? "输入分享密码" : "Enter Share Password"}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {language === "zh"
+          ? "此分享受密码保护，请输入密码以查看内容。"
+          : "This share is password protected. Enter the password to view it."}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <div className="py-2">
+      <Input
+        type="password"
+        value={passwordInput}
+        onChange={(e) => setPasswordInput(e.target.value)}
+        placeholder={language === "zh" ? "输入密码" : "Enter password"}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleDecrypt()
+        }}
+      />
+    </div>
+
+    <AlertDialogFooter>
+      <AlertDialogCancel
+        onClick={() => {
+          setDecryptingShare(null)
+          setPasswordInput("")
+        }}
+      >
+        {language === "zh" ? "取消" : "Cancel"}
+      </AlertDialogCancel>
+
+      <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
+        {isDecrypting
+          ? language === "zh"
+            ? "解密中..."
+            : "Decrypting..."
+          : language === "zh"
+          ? "解密"
+          : "Decrypt"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </Card>
   );
 }
