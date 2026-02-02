@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -574,12 +574,12 @@ export default function EventDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader className="p-6 pb-0">
+        <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
           </div>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pb-6">
           <div>
             <Label htmlFor="title">{t.title}</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -826,33 +826,25 @@ export default function EventDialog({
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
-          <div className={event ? "sm:justify-between" : "sm:justify-end"}>
-  {event && (
-    <Button
-      type="button"
-      variant="destructive"
-      onClick={() => {
-        onEventDelete(event.id)
-        onOpenChange(false)
-      }}
-      className="sm:mr-auto"
-    >
-      {t.delete}
-    </Button>
-  )}
-
-  <div className="flex space-x-2">
-    <Button
-      type="button"
-      variant="outline"
-      onClick={() => onOpenChange(false)}
-    >
-      {t.cancel}
-    </Button>
-    <Button type="submit">
-      {event ? t.update : t.save}
-    </Button>
-  </div>
+          <div className="flex justify-between">
+            {event && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  onEventDelete(event.id)
+                  onOpenChange(false)
+                }}
+              >
+                {t.delete}
+              </Button>
+            )}
+            <div className="flex space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {t.cancel}
+              </Button>
+              <Button type="submit">{event ? t.update : t.save}</Button>
+            </div>
           </div>
         </form>
       </DialogContent>
