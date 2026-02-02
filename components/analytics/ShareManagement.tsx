@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface SharedEvent {
@@ -135,9 +135,6 @@ export default function ShareManagement() {
                       {share.isProtected ? (language === "zh" ? "受保护" : "Protected") : share.eventTitle}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {language === "zh" ? "分享者：" : "Shared by: "} {share.sharedBy}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
                       {language === "zh" ? "分享日期：" : "Shared on: "} {formatDate(share.shareDate)}
                     </p>
                   </div>
@@ -155,7 +152,7 @@ export default function ShareManagement() {
                         onClick={() => decryptProtectedShare(share)}
                         disabled={loadingDecrypt}
                       >
-                        {language === "zh" ? "解密" : "Decrypt"}
+                        <Lock className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
