@@ -208,7 +208,7 @@ export default function ShareManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{language === "zh" ? "取消" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteShare} disabled={isDeleting}>
+            <AlertDialogAction onClick={deleteShare} disabled={isDeleting} variant="destructive">
               {isDeleting ? (
                 <span className="flex items-center">
                   <svg
