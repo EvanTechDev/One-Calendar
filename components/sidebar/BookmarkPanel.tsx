@@ -31,6 +31,23 @@ interface BookmarkedEvent {
   bookmarkedAt: string
 }
 
+function getDarkerColorClass(color: string) {
+    const colorMapping: Record<string, string> = {
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
+
+
+    return colorMapping[color] || '#3A3A3A';
+}
+
 export default function BookmarkPanel({ open, onOpenChange, onEventClick }: BookmarkPanelProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -131,7 +148,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
                     className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
                     onClick={() => handleEventClick(bookmark)}
                   >
-                    <div className={cn("w-1.5 self-stretch rounded-full mr-3", bookmark.color)} />
+                    <div className={cn("w-1.5 self-stretch rounded-full mr-3")} style={{ backgroundColor: getDarkerColorClass(bookmark.color) }}/>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium truncate">{bookmark.title}</h4>
                       <p className="text-sm text-muted-foreground">{formatEventDate(bookmark.startDate)}</p>

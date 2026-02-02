@@ -366,7 +366,7 @@ export default function EventPreview({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => onOpenChange(false)}>
       <div
-        className="bg-background rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden"
+        className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-5">

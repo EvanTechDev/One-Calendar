@@ -230,12 +230,12 @@ export default function Sidebar({
                 ))}
               </div>
             </div>
-            <DialogFooter>
+            <div>
             <Button onClick={addCategory} disabled={!newCategoryName}>
               <Plus className="mr-2 h-4 w-4" />
               {t.addCategory}
             </Button>
-            </DialogFooter>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

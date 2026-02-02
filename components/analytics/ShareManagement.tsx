@@ -1,116 +1,130 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
-import { Trash2, Copy, ExternalLink } from "lucide-react"
-import { format } from "date-fns"
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
 import { translations, useLanguage } from "@/lib/i18n"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 interface SharedEvent {
-  id: string
-  eventId: string
-  eventTitle: string
-  sharedBy: string
-  shareDate: string
-  shareLink: string
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  sharedBy: string;
+  shareDate: string;
+  shareLink: string;
+  isProtected: boolean;
 }
 
 export default function ShareManagement() {
-  const [language] = useLanguage()
-  const t = translations[language]
-  const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([])
-  const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [language] = useLanguage();
+  const t = translations[language];
+  const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([]);
+  const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [loadingDecrypt, setLoadingDecrypt] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState("")
+  const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(null)
+  const [isDecrypting, setIsDecrypting] = useState(false)
 
-  // Load shared events from localStorage
+
   useEffect(() => {
-    const storedShares = localStorage.getItem("shared-events")
-    if (storedShares) {
+    async function fetchSharedEvents() {
       try {
-        setSharedEvents(JSON.parse(storedShares))
+        const res = await fetch("/api/share/list");
+        if (!res.ok) throw new Error("Failed to fetch shared events");
+        const data = await res.json();
+        setSharedEvents(data.shares || []);
       } catch (error) {
-        console.error("Error parsing shared events:", error)
+        console.error("Error fetching shared events:", error);
+        toast(language === "zh" ? "获取分享列表失败" : "Failed to load shared events", {
+          variant: "destructive",
+          description: error instanceof Error ? error.message : "",
+        });
       }
     }
-  }, [])
+    fetchSharedEvents();
+  }, [language]);
 
-  // Copy share link to clipboard
-  const copyShareLink = (shareLink: string) => {
-    navigator.clipboard.writeText(shareLink)
-    toast(language === "zh" ? "链接已复制" : "Link Copied", {
-      description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
-    })
-  }
-
-  // Open share link in new tab
-  const openShareLink = (shareLink: string) => {
-    window.open(shareLink, "_blank")
-  }
-
-  // Delete a shared event
-  const deleteShare = async () => {
-    if (!selectedShare) return
-
-    try {
-      setIsDeleting(true)
-
-      // Call API to delete the share
-      const response = await fetch("/api/share", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: selectedShare.id,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to delete share")
-      }
-
-      // Update localStorage
-      const updatedShares = sharedEvents.filter((share) => share.id !== selectedShare.id)
-      localStorage.setItem("shared-events", JSON.stringify(updatedShares))
-      setSharedEvents(updatedShares)
-
-      toast(language === "zh" ? "分享已删除" : "Share Deleted", {
-        description: language === "zh" ? "分享已成功删除" : "Share has been successfully deleted",
-      })
-    } catch (error) {
-      console.error("Error deleting share:", error)
-      toast(language === "zh" ? "删除失败" : "Delete Failed", {
-        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
-        variant: "destructive",
-      })
-    } finally {
-      setIsDeleting(false)
-      setDeleteDialogOpen(false)
-      setSelectedShare(null)
-    }
-  }
-
-  // Format date
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "yyyy-MM-dd HH:mm")
-    } catch (error) {
-      return dateString
+      return format(new Date(dateString), "yyyy-MM-dd HH:mm");
+    } catch {
+      return dateString;
     }
+  };
+
+  const copyShareLink = (shareLink: string) => {
+    navigator.clipboard.writeText(shareLink);
+    toast(language === "zh" ? "链接已复制" : "Link Copied");
+  };
+
+  const openShareLink = (shareLink: string) => {
+    window.open(shareLink, "_blank");
+  };
+
+  const deleteShare = async () => {
+    if (!selectedShare) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch("/api/share", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedShare.id }),
+      });
+      if (!res.ok) throw new Error("Failed to delete share");
+      setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id));
+      toast(language === "zh" ? "分享已删除" : "Share Deleted");
+    } catch (error) {
+      toast(language === "zh" ? "删除失败" : "Delete Failed", { variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setSelectedShare(null);
+    }
+  };
+
+  const handleDecrypt = async () => {
+  if (!decryptingShare || !passwordInput) return
+
+  try {
+    setIsDecrypting(true)
+
+    const res = await fetch(
+      `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`
+    )
+    const data = await res.json()
+
+    if (!data.success) {
+      toast(language === "zh" ? "密码错误" : "Invalid password", { variant: "destructive" })
+      return
+    }
+
+    const parsed = JSON.parse(data.data)
+
+    setSharedEvents((prev) =>
+      prev.map((s) =>
+        s.id === decryptingShare.id
+          ? { ...s, eventId: parsed.id, eventTitle: parsed.title, isProtected: false }
+          : s
+      )
+    )
+
+    toast(language === "zh" ? "解密成功" : "Decrypted")
+    setPasswordDialogOpen(false)
+    setDecryptingShare(null)
+    setPasswordInput("")
+  } catch (error) {
+    toast(language === "zh" ? "解密失败" : "Failed to decrypt", { variant: "destructive" })
+  } finally {
+    setIsDecrypting(false)
   }
+}
+
 
   return (
     <Card className="w-full">
@@ -136,14 +150,11 @@ export default function ShareManagement() {
               <div key={share.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium">{share.eventTitle}</h3>
+                    <h3 className="font-medium">
+                      {share.isProtected ? (language === "zh" ? "受保护" : "Protected") : share.eventTitle}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      {language === "zh" ? "分享者：" : "Shared by: "}
-                      {share.sharedBy}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {language === "zh" ? "分享日期：" : "Shared on: "}
-                      {formatDate(share.shareDate)}
+                      {language === "zh" ? "分享日期：" : "Shared on: "} {formatDate(share.shareDate)}
                     </p>
                   </div>
                   <div className="flex space-x-2">
@@ -153,12 +164,26 @@ export default function ShareManagement() {
                     <Button variant="outline" size="icon" onClick={() => openShareLink(share.shareLink)}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
+                    {share.isProtected && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+  setDecryptingShare(share)
+  setPasswordInput("")
+  setPasswordDialogOpen(true)
+}}
+                        disabled={loadingDecrypt}
+                      >
+                        <Lock className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => {
-                        setSelectedShare(share)
-                        setDeleteDialogOpen(true)
+                        setSelectedShare(share);
+                        setDeleteDialogOpen(true);
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -183,7 +208,7 @@ export default function ShareManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{language === "zh" ? "取消" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteShare} disabled={isDeleting}>
+            <AlertDialogAction onClick={deleteShare} disabled={isDeleting} variant="destructive">
               {isDeleting ? (
                 <span className="flex items-center">
                   <svg
@@ -192,14 +217,7 @@ export default function ShareManagement() {
                     fill="none"
                     viewBox="0 0 24 24"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path
                       className="opacity-75"
                       fill="currentColor"
@@ -215,7 +233,55 @@ export default function ShareManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
-  )
-}
 
+      <AlertDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>
+        {language === "zh" ? "输入分享密码" : "Enter Share Password"}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {language === "zh"
+          ? "此分享受密码保护，请输入密码以查看内容。"
+          : "This share is password protected. Enter the password to view it."}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <div className="py-2">
+      <Input
+        type="password"
+        value={passwordInput}
+        onChange={(e) => setPasswordInput(e.target.value)}
+        placeholder={language === "zh" ? "输入密码" : "Enter password"}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleDecrypt()
+        }}
+      />
+    </div>
+
+    <AlertDialogFooter>
+      <AlertDialogCancel
+        onClick={() => {
+          setDecryptingShare(null)
+          setPasswordInput("")
+        }}
+      >
+        {language === "zh" ? "取消" : "Cancel"}
+      </AlertDialogCancel>
+
+      <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
+        {isDecrypting
+          ? language === "zh"
+            ? "解密中..."
+            : "Decrypting..."
+          : language === "zh"
+          ? "解密"
+          : "Decrypt"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
+    </Card>
+  );
+}
