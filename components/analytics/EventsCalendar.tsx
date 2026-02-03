@@ -76,10 +76,10 @@ const EventsCalendar: React.FC = () => {
   const t = translations[language];
   
   useEffect(() => {
-    const loadEvents = () => {
+    const loadEvents = async () => {
       if (!es.isUnlocked) return;
       
-      const storedEvents = es.getItem('calendar-events');
+      const storedEvents = await es.getItem('calendar-events');
       if (storedEvents) {
         try {
           const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];

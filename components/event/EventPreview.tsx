@@ -105,12 +105,12 @@ export default function EventPreview({
   }, [open, openShareImmediately, isSignedIn, language]);
 
   useEffect(() => {
-    const loadBookmarks = () => {
+    const loadBookmarks = async () => {
       if (!es.isUnlocked) {
         setBookmarks([])
         return
       }
-      const storedBookmarks = es.getItem("bookmarked-events")
+      const storedBookmarks = await es.getItem("bookmarked-events")
       if (storedBookmarks) {
         try {
           const parsed = JSON.parse(storedBookmarks)
@@ -263,7 +263,7 @@ export default function EventPreview({
           setQRCodeDataURL(qrURL);
         } catch {}
 
-        const storedSharesData = es.getItem("shared-events")
+        const storedSharesData = await es.getItem("shared-events")
         const storedShares = storedSharesData ? JSON.parse(storedSharesData) : []
         storedShares.push({
           id: shareId,
@@ -343,7 +343,7 @@ export default function EventPreview({
   const cleanupSharesForEvent = async () => {
     if (!es.isUnlocked) return
 
-    const storedSharesData = es.getItem("shared-events")
+    const storedSharesData = await es.getItem("shared-events")
     const storedShares = storedSharesData ? JSON.parse(storedSharesData) : []
     const relatedShares = storedShares.filter((s: any) => s?.eventId === event.id);
     if (!relatedShares.length) return;

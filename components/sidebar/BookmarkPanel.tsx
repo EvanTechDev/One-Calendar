@@ -57,14 +57,14 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
 
   // Load bookmarks from localStorage
   useEffect(() => {
-    const loadBookmarks = () => {
+    const loadBookmarks = async () => {
       if (!open) return
       if (!es.isUnlocked) {
         setBookmarks([])
         return
       }
 
-      const storedBookmarks = es.getItem("bookmarked-events")
+      const storedBookmarks = await es.getItem("bookmarked-events")
       if (storedBookmarks) {
         try {
           const parsedBookmarks = JSON.parse(storedBookmarks)

@@ -49,13 +49,29 @@ class EncryptedStorage {
     this.password = null
   }
 
-  getItem(key: string): string | null {
-    if (!this.isUnlocked) return null
+  async getItem(key: string): Promise<string | null> {
+    if (!this.isUnlocked || !this.password) return null
     
     const encrypted = localStorage.getItem(key)
     if (!encrypted) return null
     
-    return encrypted
+    try {
+      const data = JSON.parse(encrypted)
+      const salt = this.ub64(data.salt)
+      const iv = this.ub64(data.iv)
+      const ct = this.ub64(data.ct)
+      
+      const derivedKey = await this.deriveKey(this.password, salt)
+      const plaintext = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        derivedKey,
+        ct
+      )
+      
+      return new TextDecoder().decode(plaintext)
+    } catch {
+      return null
+    }
   }
 
   async setItem(key: string, value: string): Promise<void> {

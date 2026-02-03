@@ -196,8 +196,8 @@ export default function UserProfileButton() {
     await es.setItem("calendar-categories", calendarsEncrypted)
 
     try {
-      const eventsData = es.getItem("calendar-events")
-      const calendarsData = es.getItem("calendar-categories")
+      const eventsData = await es.getItem("calendar-events")
+      const calendarsData = await es.getItem("calendar-categories")
 
       if (eventsData && calendarsData) {
         const parsedEvents = JSON.parse(eventsData)
@@ -277,8 +277,8 @@ export default function UserProfileButton() {
       return
     }
 
-    const eventsData = es.getItem("calendar-events")
-    const calendarsData = es.getItem("calendar-categories")
+    const eventsData = await es.getItem("calendar-events")
+    const calendarsData = await es.getItem("calendar-categories")
 
     if (eventsData && calendarsData) {
       await es.setItem("calendar-events", eventsData)

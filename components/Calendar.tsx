@@ -289,7 +289,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 const toggleBookmark = async (event: CalendarEvent) => {
   if (!es.isUnlocked) return
 
-  const bookmarksData = es.getItem("bookmarked-events")
+  const bookmarksData = await es.getItem("bookmarked-events")
   let bookmarks = []
   try {
     const parsed = bookmarksData ? JSON.parse(bookmarksData) : []

@@ -63,8 +63,8 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     const loadData = async () => {
       if (!es.isUnlocked) return
 
-      const calendarsData = es.getItem("calendar-categories")
-      const eventsData = es.getItem("calendar-events")
+      const calendarsData = await es.getItem("calendar-categories")
+      const eventsData = await es.getItem("calendar-events")
 
       if (calendarsData) {
         try {
