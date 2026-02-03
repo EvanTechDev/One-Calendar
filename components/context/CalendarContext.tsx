@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext } from "react"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
+import { createContext, useContext, useState, useEffect } from "react"
+import { es } from "@/lib/encryptedStorage"
 
 export interface CalendarCategory {
   id: string
@@ -56,35 +56,70 @@ const defaultCalendars: CalendarCategory[] = [
 ]
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  // 修改这里，使用空数组作为默认值，不自动创建分类
-  const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>("calendar-categories", [])
+  const [calendars, setCalendarsState] = useState<CalendarCategory[]>([])
+  const [events, setEventsState] = useState<CalendarEvent[]>([])
 
-  const [events, setEvents] = useLocalStorage<CalendarEvent[]>("calendar-events", [])
+  useEffect(() => {
+    const loadData = async () => {
+      if (!es.isUnlocked) return
 
-  const addCategory = (category: CalendarCategory) => {
-    setCalendars([...calendars, category])
-  }
+      const calendarsData = es.getItem("calendar-categories")
+      const eventsData = es.getItem("calendar-events")
 
-  const removeCategory = (id: string) => {
-    setCalendars(calendars.filter((cal) => cal.id !== id))
-  }
-
-  const updateCategory = (id: string, category: Partial<CalendarCategory>) => {
-    setCalendars(calendars.map((cal) => (cal.id === id ? { ...cal, ...category } : cal)))
-  }
-
-  const addEvent = (newEvent: CalendarEvent) => {
-    setEvents((prevEvents) => {
-      // 检查事件是否已存在
-      const eventExists = prevEvents.some((event) => event.id === newEvent.id)
-
-      // 如果已存在，替换它；否则添加新事件
-      if (eventExists) {
-        return prevEvents.map((event) => (event.id === newEvent.id ? newEvent : event))
-      } else {
-        return [...prevEvents, newEvent]
+      if (calendarsData) {
+        try {
+          setCalendarsState(JSON.parse(calendarsData))
+        } catch {}
       }
-    })
+
+      if (eventsData) {
+        try {
+          setEventsState(JSON.parse(eventsData))
+        } catch {}
+      }
+    }
+
+    loadData()
+
+    const handleStorageChange = () => {
+      loadData()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
+  }, [])
+
+  const setCalendars = async (calendars: CalendarCategory[]) => {
+    await es.setItem("calendar-categories", JSON.stringify(calendars))
+    setCalendarsState(calendars)
+  }
+
+  const setEvents = async (events: CalendarEvent[]) => {
+    await es.setItem("calendar-events", JSON.stringify(events))
+    setEventsState(events)
+  }
+
+  const addCategory = async (category: CalendarCategory) => {
+    const updated = [...calendars, category]
+    await setCalendars(updated)
+  }
+
+  const removeCategory = async (id: string) => {
+    const updated = calendars.filter((cal) => cal.id !== id)
+    await setCalendars(updated)
+  }
+
+  const updateCategory = async (id: string, category: Partial<CalendarCategory>) => {
+    const updated = calendars.map((cal) => (cal.id === id ? { ...cal, ...category } : cal))
+    await setCalendars(updated)
+  }
+
+  const addEvent = async (newEvent: CalendarEvent) => {
+    const eventExists = events.some((event) => event.id === newEvent.id)
+    const updated = eventExists
+      ? events.map((event) => (event.id === newEvent.id ? newEvent : event))
+      : [...events, newEvent]
+    await setEvents(updated)
   }
 
   return (

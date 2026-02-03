@@ -10,6 +10,7 @@ import {
   Trash2,
   KeyRound,
 } from "lucide-react"
+import { es } from "@/lib/encryptedStorage"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -146,20 +147,35 @@ export default function UserProfileButton() {
 
   useEffect(() => {
     if (!enabled) return
-    if (!keyRef.current) return
+    if (!es.isUnlocked) return
     if (!restoredRef.current) return
 
-    if (timerRef.current) clearTimeout(timerRef.current)
+    const handleStorageChange = async () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
 
-    timerRef.current = setTimeout(async () => {
-      const payload = await encrypt(
-        keyRef.current!,
-        JSON.stringify({ events, calendars }),
-      )
-      await apiPost(payload)
-      timerRef.current = null
-    }, 800)
-  }, [events, calendars, enabled])
+      timerRef.current = setTimeout(async () => {
+        const eventsEncrypted = localStorage.getItem("calendar-events")
+        const calendarsEncrypted = localStorage.getItem("calendar-categories")
+
+        if (!eventsEncrypted || !calendarsEncrypted) return
+
+        await apiPost({
+          ciphertext: eventsEncrypted,
+          iv: calendarsEncrypted,
+        })
+
+        timerRef.current = null
+      }, 800)
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    handleStorageChange()
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [enabled])
 
   async function unlock() {
     if (!password) return
@@ -167,21 +183,33 @@ export default function UserProfileButton() {
     const cloud = await apiGet()
     if (!cloud) return
 
-    let plain
-    try {
-      plain = await decrypt(password, cloud.ciphertext, cloud.iv)
-    } catch {
-      toast(language === "zh" ? "密码错误" : "Incorrect password")
+    const unlockSuccess = await es.unlock(password)
+    if (!unlockSuccess) {
+      toast(language === "zh" ? "解锁失败" : "Unlock failed")
       return
     }
 
+    const eventsEncrypted = cloud.ciphertext
+    const calendarsEncrypted = cloud.iv
+
+    await es.setItem("calendar-events", eventsEncrypted)
+    await es.setItem("calendar-categories", calendarsEncrypted)
+
     try {
-      const data = JSON.parse(plain)
-      if (data?.events && data?.calendars) {
-        setEvents(data.events)
-        setCalendars(data.calendars)
+      const eventsData = es.getItem("calendar-events")
+      const calendarsData = es.getItem("calendar-categories")
+
+      if (eventsData && calendarsData) {
+        const parsedEvents = JSON.parse(eventsData)
+        const parsedCalendars = JSON.parse(calendarsData)
+        setEvents(parsedEvents)
+        setCalendars(parsedCalendars)
       }
-    } catch {}
+    } catch {
+      toast(language === "zh" ? "数据解密失败" : "Failed to decrypt data")
+      es.lock()
+      return
+    }
 
     keyRef.current = password
     restoredRef.current = true
@@ -199,11 +227,26 @@ export default function UserProfileButton() {
       setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    const payload = await encrypt(
-      password,
-      JSON.stringify({ events, calendars }),
-    )
-    await apiPost(payload)
+
+    const unlockSuccess = await es.unlock(password)
+    if (!unlockSuccess) {
+      toast(language === "zh" ? "解锁失败" : "Unlock failed")
+      return
+    }
+
+    await es.setItem("calendar-events", JSON.stringify(events))
+    await es.setItem("calendar-categories", JSON.stringify(calendars))
+
+    const eventsEncrypted = localStorage.getItem("calendar-events")
+    const calendarsEncrypted = localStorage.getItem("calendar-categories")
+
+    if (eventsEncrypted && calendarsEncrypted) {
+      await apiPost({
+        ciphertext: eventsEncrypted,
+        iv: calendarsEncrypted,
+      })
+    }
+
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
     restoredRef.current = true
@@ -219,19 +262,39 @@ export default function UserProfileButton() {
       setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    const cloud = await apiGet()
-    if (!cloud) return
 
-    let plain
-    try {
-      plain = await decrypt(oldPassword, cloud.ciphertext, cloud.iv)
-    } catch {
+    if (!keyRef.current || keyRef.current !== oldPassword) {
       toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
       return
     }
 
-    const next = await encrypt(password, plain)
-    await apiPost(next)
+    es.lock()
+
+    const unlockSuccess = await es.unlock(password)
+    if (!unlockSuccess) {
+      await es.unlock(oldPassword)
+      toast(language === "zh" ? "新密码设置失败" : "Failed to set new password")
+      return
+    }
+
+    const eventsData = es.getItem("calendar-events")
+    const calendarsData = es.getItem("calendar-categories")
+
+    if (eventsData && calendarsData) {
+      await es.setItem("calendar-events", eventsData)
+      await es.setItem("calendar-categories", calendarsData)
+
+      const eventsEncrypted = localStorage.getItem("calendar-events")
+      const calendarsEncrypted = localStorage.getItem("calendar-categories")
+
+      if (eventsEncrypted && calendarsEncrypted) {
+        await apiPost({
+          ciphertext: eventsEncrypted,
+          iv: calendarsEncrypted,
+        })
+      }
+    }
+
     keyRef.current = password
     setRotateOpen(false)
     setOldPassword("")
@@ -245,15 +308,19 @@ export default function UserProfileButton() {
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
+    es.lock()
     toast(language === "zh" ? "自动备份已关闭" : "Auto backup disabled")
   }
 
   async function destroy() {
     await apiDelete()
     localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem("calendar-events")
+    localStorage.removeItem("calendar-categories")
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
+    es.lock()
     toast(language === "zh" ? "云端数据已删除" : "Cloud data deleted")
   }
 

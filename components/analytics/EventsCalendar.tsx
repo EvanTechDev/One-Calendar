@@ -3,6 +3,7 @@ import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseI
 import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { es } from "@/lib/encryptedStorage";
 
 interface CalendarEvent {
   id: string;
@@ -75,34 +76,46 @@ const EventsCalendar: React.FC = () => {
   const t = translations[language];
   
   useEffect(() => {
-    const storedEvents = localStorage.getItem('calendar-events');
-    if (storedEvents) {
-      const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
-      setEvents(parsedEvents);
+    const loadEvents = () => {
+      if (!es.isUnlocked) return;
       
-      // 计算所有有事件的年份
-      const years = new Set<number>();
-      parsedEvents.forEach(event => {
-        const startYear = new Date(event.startDate).getFullYear();
-        const endYear = new Date(event.endDate).getFullYear();
-        for (let year = startYear; year <= endYear; year++) {
-          years.add(year);
-        }
-      });
-      
-      const sortedYears = Array.from(years).sort();
-      setAvailableYears(sortedYears);
-      
-      // 如果有事件年份,默认选择最近的年份
-      if (sortedYears.length > 0) {
-        const currentYear = new Date().getFullYear();
-        // 找到当前年份或者最近的年份
-        const closestYear = sortedYears.reduce((prev, curr) => 
-          Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
-        );
-        setSelectedYear(closestYear);
+      const storedEvents = es.getItem('calendar-events');
+      if (storedEvents) {
+        try {
+          const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
+          setEvents(parsedEvents);
+          
+          const years = new Set<number>();
+          parsedEvents.forEach(event => {
+            const startYear = new Date(event.startDate).getFullYear();
+            const endYear = new Date(event.endDate).getFullYear();
+            for (let year = startYear; year <= endYear; year++) {
+              years.add(year);
+            }
+          });
+          
+          const sortedYears = Array.from(years).sort();
+          setAvailableYears(sortedYears);
+          
+          if (sortedYears.length > 0) {
+            const currentYear = new Date().getFullYear();
+            const closestYear = sortedYears.reduce((prev, curr) => 
+              Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
+            );
+            setSelectedYear(closestYear);
+          }
+        } catch {}
       }
-    }
+    };
+
+    loadEvents();
+
+    const handleStorageChange = () => {
+      loadEvents();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const getEventCountForDay = (day: Date) => {
