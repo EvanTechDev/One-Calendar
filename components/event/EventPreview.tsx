@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { useUser } from "@clerk/nextjs";
+import { es } from "@/lib/encryptedStorage";
 
 interface EventPreviewProps {
   event: CalendarEvent | null;
@@ -104,8 +105,24 @@ export default function EventPreview({
   }, [open, openShareImmediately, isSignedIn, language]);
 
   useEffect(() => {
-    const storedBookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]");
-    setBookmarks(storedBookmarks);
+    const loadBookmarks = () => {
+      if (!es.isUnlocked) return
+      const storedBookmarks = es.getItem("bookmarked-events")
+      if (storedBookmarks) {
+        try {
+          setBookmarks(JSON.parse(storedBookmarks))
+        } catch {}
+      }
+    }
+
+    loadBookmarks()
+
+    const handleStorageChange = () => {
+      loadBookmarks()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
   }, []);
 
   useEffect(() => {
@@ -146,11 +163,13 @@ export default function EventPreview({
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen);
 
-  const toggleBookmark = () => {
+  const toggleBookmark = async () => {
     if (!event) return;
+    if (!es.isUnlocked) return;
+
     if (isBookmarked) {
       const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id);
-      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
+      await es.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
       toast(language === "zh" ? "已取消收藏" : "Removed from bookmarks", {
@@ -167,7 +186,7 @@ export default function EventPreview({
         bookmarkedAt: new Date().toISOString(),
       };
       const updatedBookmarks = [...bookmarks, bookmarkData];
-      localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
+      await es.setItem("bookmarked-events", JSON.stringify(updatedBookmarks));
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
       toast(language === "zh" ? "已收藏" : "Bookmarked", {
@@ -235,7 +254,8 @@ export default function EventPreview({
           setQRCodeDataURL(qrURL);
         } catch {}
 
-        const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]");
+        const storedSharesData = es.getItem("shared-events")
+        const storedShares = storedSharesData ? JSON.parse(storedSharesData) : []
         storedShares.push({
           id: shareId,
           eventId: event.id,
@@ -246,7 +266,7 @@ export default function EventPreview({
           protected: !!passwordEnabled,
           burnAfterRead: !!burnAfterRead,
         });
-        localStorage.setItem("shared-events", JSON.stringify(storedShares));
+        await es.setItem("shared-events", JSON.stringify(storedShares));
 
         toast(language === "zh" ? "分享成功" : "Shared", {
           description:
@@ -312,7 +332,10 @@ export default function EventPreview({
   const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
 
   const cleanupSharesForEvent = async () => {
-    const storedShares = JSON.parse(localStorage.getItem("shared-events") || "[]");
+    if (!es.isUnlocked) return
+
+    const storedSharesData = es.getItem("shared-events")
+    const storedShares = storedSharesData ? JSON.parse(storedSharesData) : []
     const relatedShares = storedShares.filter((s: any) => s?.eventId === event.id);
     if (!relatedShares.length) return;
 
@@ -326,7 +349,7 @@ export default function EventPreview({
       )
     );
 
-    localStorage.setItem(
+    await es.setItem(
       "shared-events",
       JSON.stringify(storedShares.filter((s: any) => s?.eventId !== event.id))
     );

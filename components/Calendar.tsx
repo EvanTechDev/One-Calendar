@@ -17,6 +17,7 @@ import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATIO
 import EventPreview from "@/components/event/EventPreview"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/components/context/CalendarContext"
+import { es } from "@/lib/encryptedStorage"
 import EventUrlHandler from "@/components/event/EventUrlHandler"
 import RightSidebar from "@/components/sidebar/RightSidebar"
 import AnalyticsView from "@/components/analytics/AnalyticsView"
@@ -285,13 +286,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   // 收藏（书签）功能
-const toggleBookmark = (event: CalendarEvent) => {
-  const bookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
+const toggleBookmark = async (event: CalendarEvent) => {
+  if (!es.isUnlocked) return
+
+  const bookmarksData = es.getItem("bookmarked-events")
+  const bookmarks = bookmarksData ? JSON.parse(bookmarksData) : []
 
   const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
   if (isBookmarked) {
     const updated = bookmarks.filter((b: any) => b.id !== event.id)
-    localStorage.setItem("bookmarked-events", JSON.stringify(updated))
+    await es.setItem("bookmarked-events", JSON.stringify(updated))
   } else {
     const bookmarkData = {
       id: event.id,
@@ -302,7 +306,7 @@ const toggleBookmark = (event: CalendarEvent) => {
       location: event.location,
       bookmarkedAt: new Date().toISOString(),
     }
-    localStorage.setItem("bookmarked-events", JSON.stringify([...bookmarks, bookmarkData]))
+    await es.setItem("bookmarked-events", JSON.stringify([...bookmarks, bookmarkData]))
   }
 }
 
