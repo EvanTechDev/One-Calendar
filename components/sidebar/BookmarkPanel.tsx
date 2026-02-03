@@ -59,22 +59,31 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   useEffect(() => {
     const loadBookmarks = () => {
       if (!open) return
-      if (!es.isUnlocked) return
+      if (!es.isUnlocked) {
+        setBookmarks([])
+        return
+      }
 
       const storedBookmarks = es.getItem("bookmarked-events")
       if (storedBookmarks) {
         try {
           const parsedBookmarks = JSON.parse(storedBookmarks)
-          // Sort by bookmarked date (newest first)
-          parsedBookmarks.sort(
-            (a: BookmarkedEvent, b: BookmarkedEvent) =>
-              new Date(b.bookmarkedAt).getTime() - new Date(a.bookmarkedAt).getTime(),
-          )
-          setBookmarks(parsedBookmarks)
+          if (Array.isArray(parsedBookmarks)) {
+            // Sort by bookmarked date (newest first)
+            parsedBookmarks.sort(
+              (a: BookmarkedEvent, b: BookmarkedEvent) =>
+                new Date(b.bookmarkedAt).getTime() - new Date(a.bookmarkedAt).getTime(),
+            )
+            setBookmarks(parsedBookmarks)
+          } else {
+            setBookmarks([])
+          }
         } catch (error) {
           console.error("Error parsing bookmarks:", error)
           setBookmarks([])
         }
+      } else {
+        setBookmarks([])
       }
     }
 
@@ -117,11 +126,11 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   }
 
   // Filter bookmarks based on search term
-  const filteredBookmarks = bookmarks.filter(
+  const filteredBookmarks = Array.isArray(bookmarks) ? bookmarks.filter(
     (bookmark) =>
       bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (bookmark.location && bookmark.location.toLowerCase().includes(searchTerm.toLowerCase())),
-  )
+  ) : []
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

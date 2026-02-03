@@ -290,7 +290,13 @@ const toggleBookmark = async (event: CalendarEvent) => {
   if (!es.isUnlocked) return
 
   const bookmarksData = es.getItem("bookmarked-events")
-  const bookmarks = bookmarksData ? JSON.parse(bookmarksData) : []
+  let bookmarks = []
+  try {
+    const parsed = bookmarksData ? JSON.parse(bookmarksData) : []
+    bookmarks = Array.isArray(parsed) ? parsed : []
+  } catch {
+    bookmarks = []
+  }
 
   const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
   if (isBookmarked) {

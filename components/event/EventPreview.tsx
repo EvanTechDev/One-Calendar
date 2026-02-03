@@ -106,12 +106,20 @@ export default function EventPreview({
 
   useEffect(() => {
     const loadBookmarks = () => {
-      if (!es.isUnlocked) return
+      if (!es.isUnlocked) {
+        setBookmarks([])
+        return
+      }
       const storedBookmarks = es.getItem("bookmarked-events")
       if (storedBookmarks) {
         try {
-          setBookmarks(JSON.parse(storedBookmarks))
-        } catch {}
+          const parsed = JSON.parse(storedBookmarks)
+          setBookmarks(Array.isArray(parsed) ? parsed : [])
+        } catch {
+          setBookmarks([])
+        }
+      } else {
+        setBookmarks([])
       }
     }
 
@@ -126,7 +134,7 @@ export default function EventPreview({
   }, []);
 
   useEffect(() => {
-    if (event) {
+    if (event && Array.isArray(bookmarks)) {
       const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id);
       setIsBookmarked(isCurrentEventBookmarked);
     }
@@ -166,6 +174,7 @@ export default function EventPreview({
   const toggleBookmark = async () => {
     if (!event) return;
     if (!es.isUnlocked) return;
+    if (!Array.isArray(bookmarks)) return;
 
     if (isBookmarked) {
       const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id);
