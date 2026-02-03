@@ -174,4 +174,3 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
     </Sheet>
   )
 }
-

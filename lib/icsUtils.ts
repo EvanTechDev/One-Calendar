@@ -99,4 +99,3 @@ export async function importFromICS(file: File): Promise<Event[]> {
 
   return events
 }
-

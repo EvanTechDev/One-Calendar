@@ -66,4 +66,3 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
     </div>
   )
 }
-

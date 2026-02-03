@@ -526,4 +526,3 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
-

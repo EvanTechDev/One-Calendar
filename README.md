@@ -65,7 +65,7 @@ Required Versions:
 
 ### Quick Start
 
-```bash
+\`\`\`bash
 # Clone the repo
 git clone https://github.com/EvanTechDev/One-Calendar.git
 cd One-Calendar
@@ -75,7 +75,7 @@ bun install
 
 # Start the app
 bun dev
-```
+\`\`\`
 
 Then visit `http://localhost:3000`
 
@@ -113,10 +113,3 @@ This project wouldn't be possible without these awesome services:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
 See the [LICENSE](./LICENSE) file for details.
-
-
-
-
-
-
-

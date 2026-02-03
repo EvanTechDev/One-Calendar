@@ -189,4 +189,3 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
     </Sheet>
   )
 }
-
