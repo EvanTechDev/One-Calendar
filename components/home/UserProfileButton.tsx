@@ -154,14 +154,52 @@ export default function UserProfileButton() {
       if (timerRef.current) clearTimeout(timerRef.current)
 
       timerRef.current = setTimeout(async () => {
-        const eventsEncrypted = localStorage.getItem("calendar-events")
-        const calendarsEncrypted = localStorage.getItem("calendar-categories")
+        const eventsData = await es.getItem("calendar-events")
+        const calendarsData = await es.getItem("calendar-categories")
 
-        if (!eventsEncrypted || !calendarsEncrypted) return
+        if (!eventsData || !calendarsData) return
+
+        const combinedData = JSON.stringify({
+          events: JSON.parse(eventsData),
+          calendars: JSON.parse(calendarsData)
+        })
+
+        const iv = crypto.getRandomValues(new Uint8Array(12))
+        const salt = crypto.getRandomValues(new Uint8Array(16))
+        const encoder = new TextEncoder()
+        
+        const keyMaterial = await crypto.subtle.importKey(
+          "raw",
+          encoder.encode(keyRef.current),
+          "PBKDF2",
+          false,
+          ["deriveKey"]
+        )
+        
+        const key = await crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
+          keyMaterial,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt"]
+        )
+        
+        const ciphertext = await crypto.subtle.encrypt(
+          { name: "AES-GCM", iv },
+          key,
+          encoder.encode(combinedData)
+        )
+        
+        const encrypted = JSON.stringify({
+          v: 1,
+          salt: btoa(String.fromCharCode(...salt)),
+          iv: btoa(String.fromCharCode(...iv)),
+          ct: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+        })
 
         await apiPost({
-          ciphertext: eventsEncrypted,
-          iv: calendarsEncrypted,
+          ciphertext: encrypted,
+          iv: btoa(String.fromCharCode(...iv))
         })
 
         timerRef.current = null
@@ -189,24 +227,26 @@ export default function UserProfileButton() {
       return
     }
 
-    const eventsEncrypted = cloud.ciphertext
-    const calendarsEncrypted = cloud.iv
-
-    await es.setItem("calendar-events", eventsEncrypted)
-    await es.setItem("calendar-categories", calendarsEncrypted)
+    let plainData
+    try {
+      plainData = await es.decryptValue(cloud.ciphertext)
+      if (!plainData) throw new Error("Decryption failed")
+    } catch {
+      toast(language === "zh" ? "密码错误" : "Incorrect password")
+      es.lock()
+      return
+    }
 
     try {
-      const eventsData = await es.getItem("calendar-events")
-      const calendarsData = await es.getItem("calendar-categories")
-
-      if (eventsData && calendarsData) {
-        const parsedEvents = JSON.parse(eventsData)
-        const parsedCalendars = JSON.parse(calendarsData)
-        setEvents(parsedEvents)
-        setCalendars(parsedCalendars)
+      const data = JSON.parse(plainData)
+      if (data?.events && data?.calendars) {
+        await es.setItem("calendar-events", JSON.stringify(data.events))
+        await es.setItem("calendar-categories", JSON.stringify(data.calendars))
+        setEvents(data.events)
+        setCalendars(data.calendars)
       }
     } catch {
-      toast(language === "zh" ? "数据解密失败" : "Failed to decrypt data")
+      toast(language === "zh" ? "数据格式错误" : "Data format error")
       es.lock()
       return
     }
@@ -237,15 +277,45 @@ export default function UserProfileButton() {
     await es.setItem("calendar-events", JSON.stringify(events))
     await es.setItem("calendar-categories", JSON.stringify(calendars))
 
-    const eventsEncrypted = localStorage.getItem("calendar-events")
-    const calendarsEncrypted = localStorage.getItem("calendar-categories")
+    const combinedData = JSON.stringify({ events, calendars })
+    
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const encoder = new TextEncoder()
+    
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(password),
+      "PBKDF2",
+      false,
+      ["deriveKey"]
+    )
+    
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt"]
+    )
+    
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      encoder.encode(combinedData)
+    )
+    
+    const encrypted = JSON.stringify({
+      v: 1,
+      salt: btoa(String.fromCharCode(...salt)),
+      iv: btoa(String.fromCharCode(...iv)),
+      ct: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+    })
 
-    if (eventsEncrypted && calendarsEncrypted) {
-      await apiPost({
-        ciphertext: eventsEncrypted,
-        iv: calendarsEncrypted,
-      })
-    }
+    await apiPost({
+      ciphertext: encrypted,
+      iv: btoa(String.fromCharCode(...iv))
+    })
 
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
@@ -268,32 +338,63 @@ export default function UserProfileButton() {
       return
     }
 
-    es.lock()
-
-    const unlockSuccess = await es.unlock(password)
-    if (!unlockSuccess) {
-      await es.unlock(oldPassword)
-      toast(language === "zh" ? "新密码设置失败" : "Failed to set new password")
-      return
-    }
-
+    await es.unlock(oldPassword)
     const eventsData = await es.getItem("calendar-events")
     const calendarsData = await es.getItem("calendar-categories")
 
-    if (eventsData && calendarsData) {
-      await es.setItem("calendar-events", eventsData)
-      await es.setItem("calendar-categories", calendarsData)
-
-      const eventsEncrypted = localStorage.getItem("calendar-events")
-      const calendarsEncrypted = localStorage.getItem("calendar-categories")
-
-      if (eventsEncrypted && calendarsEncrypted) {
-        await apiPost({
-          ciphertext: eventsEncrypted,
-          iv: calendarsEncrypted,
-        })
-      }
+    if (!eventsData || !calendarsData) {
+      toast(language === "zh" ? "读取数据失败" : "Failed to read data")
+      return
     }
+
+    es.lock()
+    await es.unlock(password)
+
+    await es.setItem("calendar-events", eventsData)
+    await es.setItem("calendar-categories", calendarsData)
+
+    const combinedData = JSON.stringify({
+      events: JSON.parse(eventsData),
+      calendars: JSON.parse(calendarsData)
+    })
+    
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const encoder = new TextEncoder()
+    
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(password),
+      "PBKDF2",
+      false,
+      ["deriveKey"]
+    )
+    
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt"]
+    )
+    
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      encoder.encode(combinedData)
+    )
+    
+    const encrypted = JSON.stringify({
+      v: 1,
+      salt: btoa(String.fromCharCode(...salt)),
+      iv: btoa(String.fromCharCode(...iv)),
+      ct: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+    })
+
+    await apiPost({
+      ciphertext: encrypted,
+      iv: btoa(String.fromCharCode(...iv))
+    })
 
     keyRef.current = password
     setRotateOpen(false)
