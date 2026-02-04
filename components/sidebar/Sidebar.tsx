@@ -21,6 +21,8 @@ interface SidebarProps {
   selectedDate?: Date
   isCollapsed?: boolean
   onToggleCollapse?: () => void
+  selectedCalendarIds: string[]
+  onToggleCalendar: (calendarId: string) => void
 }
 
 export interface CalendarCategory {
@@ -38,6 +40,8 @@ export default function Sidebar({
   selectedDate,
   isCollapsed = false,
   onToggleCollapse,
+  selectedCalendarIds,
+  onToggleCalendar,
 }: SidebarProps) {
 
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
@@ -134,10 +138,26 @@ export default function Sidebar({
           </div>
           {calendars.map((calendar) => (
             <div key={calendar.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className={cn("h-3 w-3 rounded-full", calendar.color)} />
+              <label
+                className="flex items-center space-x-2 cursor-pointer"
+                htmlFor={`calendar-${calendar.id}`}
+              >
+                <input
+                  id={`calendar-${calendar.id}`}
+                  type="checkbox"
+                  checked={selectedCalendarIds.includes(calendar.id)}
+                  onChange={() => onToggleCalendar(calendar.id)}
+                  className={cn(
+                    "h-4 w-4 rounded-[3px] border-2 appearance-none cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    selectedCalendarIds.includes(calendar.id) ? calendar.color : "bg-transparent",
+                    selectedCalendarIds.includes(calendar.id)
+                      ? "border-transparent"
+                      : calendar.color.replace("bg-", "border-"),
+                  )}
+                  aria-label={calendar.name}
+                />
                 <span className="text-sm">{calendar.name}</span>
-              </div>
+              </label>
               <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
                 <X className="h-4 w-4" />
               </Button>
