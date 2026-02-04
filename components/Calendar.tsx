@@ -102,27 +102,26 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   useEffect(() => {
     const nextCalendarIds = calendars.map((calendar) => calendar.id)
 
-    if (!calendarSelectionInitializedRef.current) {
-      setSelectedCalendarIds(nextCalendarIds)
-      previousCalendarIdsRef.current = nextCalendarIds
-      calendarSelectionInitializedRef.current = true
-      return
-    }
-
-    const previousCalendarIds = previousCalendarIdsRef.current
-    const wasAllSelected =
-      previousCalendarIds.length > 0 &&
-      previousCalendarIds.every((id) => selectedCalendarIds.includes(id))
-
     setSelectedCalendarIds((current) => {
-      if (wasAllSelected) {
+      if (!calendarSelectionInitializedRef.current) {
+        calendarSelectionInitializedRef.current = true
+        previousCalendarIdsRef.current = nextCalendarIds
         return nextCalendarIds
       }
-      return current.filter((id) => nextCalendarIds.includes(id))
-    })
 
-    previousCalendarIdsRef.current = nextCalendarIds
-  }, [calendars, selectedCalendarIds])
+      const previousCalendarIds = previousCalendarIdsRef.current
+      const wasAllSelected =
+        previousCalendarIds.length > 0 &&
+        previousCalendarIds.every((id) => current.includes(id))
+
+      const nextSelected = wasAllSelected
+        ? nextCalendarIds
+        : current.filter((id) => nextCalendarIds.includes(id))
+
+      previousCalendarIdsRef.current = nextCalendarIds
+      return nextSelected
+    })
+  }, [calendars])
   
   // 新增：快速创建事件的初始时间
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(null)
