@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { format, parse, isValid, set, getHours, getMinutes } from "date-fns"
 import { cn } from "@/lib/utils"
-import { translations, type Language } from "@/lib/i18n"
+import { isZhLanguage, translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
@@ -127,6 +127,7 @@ export default function EventDialog({
   const [endTimeError, setEndTimeError] = useState(false)
 
   const t = translations[language]
+  const isZh = isZhLanguage(language)
 
   // 合并日期和时间
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
@@ -404,7 +405,7 @@ export default function EventDialog({
 
     const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      title: title.trim() || (language === "zh" ? "未命名事件" : "Untitled Event"),
+      title: title.trim() || (isZh ? "未命名事件" : "Untitled Event"),
       isAllDay,
       startDate: fullStartDate,
       endDate: fullEndDate,
@@ -507,7 +508,7 @@ export default function EventDialog({
             )}
           >
             <Clock className="mr-2 h-4 w-4" />
-            {displayTime || (language === "zh" ? "选择时间" : "Select time")}
+            {displayTime || (isZh ? "选择时间" : "Select time")}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -518,7 +519,7 @@ export default function EventDialog({
                 onValueChange={(newHour) => onChange(newHour, value.minutes)}
               >
                 <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={language === "zh" ? "时" : "Hour"} />
+                  <SelectValue placeholder={isZh ? "时" : "Hour"} />
                 </SelectTrigger>
                 <SelectContent>
                   {hourOptions.map(option => (
@@ -536,7 +537,7 @@ export default function EventDialog({
                 onValueChange={(newMinute) => onChange(value.hours, newMinute)}
               >
                 <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={language === "zh" ? "分" : "Min"} />
+                  <SelectValue placeholder={isZh ? "分" : "Min"} />
                 </SelectTrigger>
                 <SelectContent>
                   {minuteOptions.map(option => (
@@ -550,7 +551,7 @@ export default function EventDialog({
             
             <div className="flex flex-col space-y-1">
               <Label htmlFor="custom-time">
-                {language === "zh" ? "自定义时间 (HH:mm)" : "Custom time (HH:mm)"}
+                {isZh ? "自定义时间 (HH:mm)" : "Custom time (HH:mm)"}
               </Label>
               <Input 
                 id="custom-time"
@@ -561,7 +562,7 @@ export default function EventDialog({
               />
               {hasError && (
                 <p className="text-xs text-red-500">
-                  {language === "zh" ? "请使用正确的格式 (HH:mm)" : "Please use the correct format (HH:mm)"}
+                  {isZh ? "请使用正确的格式 (HH:mm)" : "Please use the correct format (HH:mm)"}
                 </p>
               )}
             </div>

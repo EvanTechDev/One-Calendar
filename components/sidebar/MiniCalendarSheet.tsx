@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import { useLanguage } from "@/lib/i18n"
+import { isZhLanguage, translations, useLanguage } from "@/lib/i18n"
 import type { CalendarEvent } from "../Calendar"
 import { useCalendar } from "@/components/context/CalendarContext"
 
@@ -21,6 +21,8 @@ interface MiniCalendarSheetProps {
 
 export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, onDateSelect }: MiniCalendarSheetProps) {
   const [language] = useLanguage()
+  const t = translations[language]
+  const isZh = isZhLanguage(language)
   const { events } = useCalendar()
   const [currentDate, setCurrentDate] = useState(selectedDate)
 
@@ -30,8 +32,8 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
   }, [selectedDate])
 
   // Get the current week days
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: language === "zh" ? 1 : 0 })
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: language === "zh" ? 1 : 0 })
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: isZh ? 1 : 0 })
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: isZh ? 1 : 0 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   // Get events for the selected day
@@ -91,16 +93,13 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
     const durationMs = endDate.getTime() - startDate.getTime()
     const durationMinutes = Math.round(durationMs / (1000 * 60))
 
-    return language === "zh" ? `${durationMinutes} 分钟` : `${durationMinutes} min`
+    return `${durationMinutes} ${t.minutesShort}`
   }
 
   // Get day names based on language
   const getDayNames = () => {
-    if (language === "zh") {
-      return ["一", "二", "三", "四", "五", "六", "日"]
-    } else {
-      return ["M", "T", "W", "T", "F", "S", "S"]
-    }
+    const orderedDays = [...t.weekdays.slice(1), t.weekdays[0]]
+    return isZh ? orderedDays : t.weekdays
   }
 
   return (
@@ -108,7 +107,7 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
       <SheetContent side="right" className="w-[350px] sm:w-[400px] p-0">
         <SheetHeader className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center">
-            <SheetTitle>{language === "zh" ? "日历" : "Calendar"}</SheetTitle>
+            <SheetTitle>{t.calendar}</SheetTitle>
           </div>
         </SheetHeader>
 
@@ -116,12 +115,12 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <span className="text-lg font-medium">
-                {format(currentDate, "MMMM", { locale: language === "zh" ? zhCN : enUS })}
+                {format(currentDate, "MMMM", { locale: isZh ? zhCN : enUS })}
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" onClick={handleTodayClick}>
-                {language === "zh" ? "今天" : "Today"}
+                {t.today}
               </Button>
               <Button variant="ghost" size="sm" onClick={handlePreviousWeek}>
                 <ChevronRight className="h-4 w-4 rotate-180" />
@@ -157,15 +156,15 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
 
         <div className="p-4">
           <h3 className="text-lg font-medium mb-4">
-            {format(currentDate, language === "zh" ? "M月d日 EEEE" : "EEEE, MMMM d", {
-              locale: language === "zh" ? zhCN : enUS,
+            {format(currentDate, isZh ? "M月d日 EEEE" : "EEEE, MMMM d", {
+              locale: isZh ? zhCN : enUS,
             })}
           </h3>
 
           <ScrollArea className="h-[calc(100vh-300px)]">
             {dayEvents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                {language === "zh" ? "今天没有日程" : "No events today"}
+                {t.noEventsToday}
               </div>
             ) : (
               <div className="space-y-4">
@@ -189,4 +188,3 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
     </Sheet>
   )
 }
-

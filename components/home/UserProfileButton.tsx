@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { useLanguage } from "@/lib/i18n"
+import { translations, useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -157,6 +157,7 @@ async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
 
 export default function UserProfileButton() {
   const [language] = useLanguage()
+  const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
   const router = useRouter()
@@ -218,7 +219,7 @@ export default function UserProfileButton() {
     try {
       plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
     } catch {
-      toast(language === "zh" ? "密码错误" : "Incorrect password")
+      toast(t.incorrectPassword)
       return
     }
 
@@ -247,12 +248,12 @@ export default function UserProfileButton() {
     setPassword("")
     setUnlockOpen(false)
 
-    toast(language === "zh" ? "数据已恢复并开启自动备份" : "Data restored and auto backup enabled")
+    toast(t.dataRestoredAutoBackupEnabled)
   }
 
   async function enable() {
     if (password !== confirm) {
-      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
+      setError(t.passwordsDoNotMatch)
       return
     }
     await setEncryptionPassword(password)
@@ -269,12 +270,12 @@ export default function UserProfileButton() {
     setPassword("")
     setConfirm("")
     setSetPwdOpen(false)
-    toast(language === "zh" ? "自动备份已启用" : "Auto backup enabled")
+    toast(t.autoBackupEnabled)
   }
 
   async function rotate() {
     if (password !== confirm) {
-      setError(language === "zh" ? "密码不一致" : "Passwords do not match")
+      setError(t.passwordsDoNotMatch)
       return
     }
     const cloud = await apiGet()
@@ -283,7 +284,7 @@ export default function UserProfileButton() {
     try {
       await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
     } catch {
-      toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
+      toast(t.incorrectOldPassword)
       return
     }
 
@@ -299,7 +300,7 @@ export default function UserProfileButton() {
     setOldPassword("")
     setPassword("")
     setConfirm("")
-    toast(language === "zh" ? "加密密钥已更新" : "Encryption key updated")
+    toast(t.encryptionKeyUpdated)
   }
 
   function disableAutoBackup() {
@@ -312,7 +313,7 @@ export default function UserProfileButton() {
       void decryptLocalStorage(currentPassword)
     }
     clearEncryptionPassword()
-    toast(language === "zh" ? "自动备份已关闭" : "Auto backup disabled")
+    toast(t.autoBackupDisabled)
   }
 
   async function destroy() {
@@ -321,7 +322,7 @@ export default function UserProfileButton() {
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
-    toast(language === "zh" ? "云端数据已删除" : "Cloud data deleted")
+    toast(t.cloudDataDeleted)
   }
 
   return (
@@ -350,38 +351,38 @@ export default function UserProfileButton() {
             <>
               <DropdownMenuItem onClick={() => setProfileOpen(true)}>
                 <CircleUser className="mr-2 h-4 w-4" />
-                {language === "zh" ? "个人资料" : "Profile"}
+                {t.profile}
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => setBackupOpen(true)}>
                 <CloudUpload className="mr-2 h-4 w-4" />
-                {language === "zh" ? "自动备份" : "Auto Backup"}
+                {t.autoBackup}
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => setRotateOpen(true)}>
                 <KeyRound className="mr-2 h-4 w-4" />
-                {language === "zh" ? "更改密钥" : "Change Key"}
+                {t.changeKey}
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={destroy}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                {language === "zh" ? "删除数据" : "Delete Data"}
+                {t.deleteData}
               </DropdownMenuItem>
 
               <SignOutButton>
                 <DropdownMenuItem>
                   <LogOut className="mr-2 h-4 w-4" />
-                  {language === "zh" ? "退出登录" : "Sign Out"}
+                  {t.signOut}
                 </DropdownMenuItem>
               </SignOutButton>
             </>
           ) : (
             <>
               <DropdownMenuItem onClick={() => router.push("/sign-in")}>
-                {language === "zh" ? "登录" : "Sign In"}
+                {t.signIn}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/sign-up")}>
-                {language === "zh" ? "注册" : "Sign Up"}
+                {t.signUp}
               </DropdownMenuItem>
             </>
           )}
@@ -397,21 +398,17 @@ export default function UserProfileButton() {
       <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === "zh" ? "自动备份" : "Auto Backup"}</DialogTitle>
+            <DialogTitle>{t.autoBackup}</DialogTitle>
             <DialogDescription>
               {enabled
-                ? language === "zh"
-                  ? "已启用"
-                  : "Enabled"
-                : language === "zh"
-                  ? "未启用"
-                  : "Disabled"}
+                ? t.autoBackupStatusEnabled
+                : t.autoBackupStatusDisabled}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             {enabled ? (
               <Button variant="destructive" onClick={disableAutoBackup}>
-                {language === "zh" ? "关闭" : "Disable"}
+                {t.disable}
               </Button>
             ) : (
               <Button
@@ -420,7 +417,7 @@ export default function UserProfileButton() {
                   setSetPwdOpen(true)
                 }}
               >
-                {language === "zh" ? "启用" : "Enable"}
+                {t.enable}
               </Button>
             )}
           </DialogFooter>
@@ -430,18 +427,18 @@ export default function UserProfileButton() {
       <Dialog open={setPwdOpen} onOpenChange={setSetPwdOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === "zh" ? "设置加密密码" : "Set Encryption Password"}</DialogTitle>
+            <DialogTitle>{t.setEncryptionPassword}</DialogTitle>
             <DialogDescription>
-              {language === "zh" ? "请设置加密密码并记住和妥善保管您的加密密码，不要向任何人透露它" : "Please set an encryption password and remember and keep your encryption password safe. Do not reveal it to anyone"}
+              {t.setEncryptionPasswordDescription}
             </DialogDescription>
           </DialogHeader>
-          <Label>{language === "zh" ? "密码" : "Password"}</Label>
+          <Label>{t.password}</Label>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Label>{language === "zh" ? "确认密码" : "Confirm Password"}</Label>
+          <Label>{t.confirmPassword}</Label>
           <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
-            <Button onClick={enable}>{language === "zh" ? "确认" : "Confirm"}</Button>
+            <Button onClick={enable}>{t.confirm}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -460,12 +457,10 @@ export default function UserProfileButton() {
   >
     <DialogHeader>
       <DialogTitle>
-        {language === "zh" ? "输入密码" : "Enter the password"}
+        {t.enterPasswordTitle}
       </DialogTitle>
       <DialogDescription>
-        {language === "zh"
-          ? "输入密码以解锁和备份数据"
-          : "Enter the password to unlock and backup data"}
+        {t.enterPasswordDescription}
       </DialogDescription>
     </DialogHeader>
 
@@ -477,7 +472,7 @@ export default function UserProfileButton() {
 
     <DialogFooter>
       <Button onClick={unlock}>
-        {language === "zh" ? "确认" : "Confirm"}
+        {t.confirm}
       </Button>
     </DialogFooter>
   </DialogContent>
@@ -488,17 +483,17 @@ export default function UserProfileButton() {
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === "zh" ? "更改加密密钥" : "Change Encryption Key"}</DialogTitle>
+            <DialogTitle>{t.changeEncryptionKey}</DialogTitle>
           </DialogHeader>
-          <Label>{language === "zh" ? "旧密码" : "Old Password"}</Label>
+          <Label>{t.oldPassword}</Label>
           <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
-          <Label>{language === "zh" ? "新密码" : "New Password"}</Label>
+          <Label>{t.newPassword}</Label>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Label>{language === "zh" ? "确认新密码" : "Confirm New Password"}</Label>
+          <Label>{t.confirmNewPassword}</Label>
           <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
-            <Button onClick={rotate}>{language === "zh" ? "确认更改" : "Confirm Change"}</Button>
+            <Button onClick={rotate}>{t.confirmChange}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

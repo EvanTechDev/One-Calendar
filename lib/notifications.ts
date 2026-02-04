@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { readEncryptedLocalStorage } from "@/hooks/useLocalStorage";
+import { getStoredLanguage, translations } from "@/lib/i18n";
 
 let notificationInterval: NodeJS.Timeout | null = null;
 
@@ -22,10 +23,12 @@ export const checkPendingNotifications = async () => {
   const now = Date.now();
   const pendingEvents = await getPendingEvents(now);
 
-  pendingEvents.forEach((event) => {
-    triggerNotification(event);
-    showToast(event);
-  });
+  await Promise.all(
+    pendingEvents.map(async (event) => {
+      triggerNotification(event)
+      await showToast(event)
+    }),
+  )
 };
 
 // 获取待处理的事件
@@ -41,9 +44,11 @@ const triggerNotification = (event: any) => {
 };
 
 // 显示 Toast 通知
-const showToast = (event: any) => {
+const showToast = async (event: any) => {
+  const language = await getStoredLanguage()
+  const t = translations[language]
   toast(`${event.title}`, {
-    description: event.description || "No content",
+    description: event.description || t.noContent,
     duration: 4000,
   });
 };

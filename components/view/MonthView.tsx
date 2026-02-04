@@ -2,9 +2,8 @@
 
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, subDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import { translations, type Language } from "@/lib/i18n"
 import type { CalendarEvent } from "../Calendar"
-
-type Language = "en" | "zh"
 
 interface MonthViewProps {
   date: Date
@@ -33,6 +32,7 @@ function getDarkerColorClass(color: string) {
 }
 
 export default function MonthView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: MonthViewProps) {
+  const t = translations[language]
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
@@ -50,8 +50,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
   return (
     <div className="grid grid-cols-7 gap-1 p-4">
       {(() => {
-        const days = language === "zh" ? ["日", "一", "二", "三", "四", "五", "六"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        const orderedDays = [...days.slice(firstDayOfWeek), ...days.slice(0, firstDayOfWeek)]
+        const orderedDays = [...t.weekdays.slice(firstDayOfWeek), ...t.weekdays.slice(0, firstDayOfWeek)]
         return orderedDays.map((day) => (
           <div key={day} className="text-center font-medium text-sm py-2">
             {day}
@@ -83,7 +82,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
               ))}
               {remainingCount > 0 && (
                 <div className="text-xs text-muted-foreground">
-                  {language === "zh" ? `还有 ${remainingCount} 个事件` : `${remainingCount} more event${remainingCount > 1 ? "s" : ""}`}
+                  {(remainingCount === 1 ? t.moreEvents : t.moreEventsPlural).replace("{count}", remainingCount.toString())}
                 </div>
               )}
             </div>

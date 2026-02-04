@@ -12,9 +12,8 @@ import { format } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { useLanguage } from "@/hooks/useLanguage"
+import { isZhLanguage, translations, useLanguage } from "@/lib/i18n"
 import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
-import { translations } from "@/lib/i18n"
 
 interface BookmarkPanelProps {
   open: boolean
@@ -52,6 +51,7 @@ function getDarkerColorClass(color: string) {
 export default function BookmarkPanel({ open, onOpenChange, onEventClick }: BookmarkPanelProps) {
   const [language] = useLanguage()
   const t = translations[language]
+  const isZh = isZhLanguage(language)
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -85,7 +85,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   // Format date for display
   const formatEventDate = (dateString: string | Date) => {
     const date = new Date(dateString)
-    return format(date, "yyyy-MM-dd HH:mm", { locale: language === "zh" ? zhCN : enUS })
+    return format(date, "yyyy-MM-dd HH:mm", { locale: isZh ? zhCN : enUS })
   }
 
   // Remove bookmark
@@ -94,8 +94,8 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
     const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
     void writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks)
     setBookmarks(updatedBookmarks)
-    toast(language === "zh" ? "已移除收藏" : "Bookmark Removed", {
-      description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
+    toast(t.bookmarkRemoved, {
+      description: t.eventRemovedFromBookmarks,
     })
   }
 
@@ -121,7 +121,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center">
             <Bookmark className="mr-2 h-5 w-5" />
-            {language === "zh" ? "收藏夹" : "Bookmarks"}
+            {t.bookmarks}
           </SheetTitle>
         </SheetHeader>
 
@@ -130,7 +130,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder={language === "zh" ? "搜索收藏..." : "Search bookmarks..."}
+              placeholder={t.searchBookmarks}
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -142,9 +142,9 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
               <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
                 <Bookmark className="h-10 w-10 mb-2 opacity-20" />
                 {searchTerm ? (
-                  <p>{language === "zh" ? "没有找到匹配的收藏" : "No matching bookmarks found"}</p>
+                  <p>{t.noMatchingBookmarks}</p>
                 ) : (
-                  <p>{language === "zh" ? "您还没有收藏任何事件" : "You haven't bookmarked any events yet"}</p>
+                  <p>{t.noBookmarks}</p>
                 )}
               </div>
             ) : (

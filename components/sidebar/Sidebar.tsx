@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { translations } from "@/lib/i18n"
+import { translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { CalendarIcon } from "lucide-react"
 
@@ -22,8 +22,6 @@ interface SidebarProps {
   isCollapsed?: boolean
   onToggleCollapse?: () => void
 }
-
-export type Language = "en" | "zh"
 
 export interface CalendarCategory {
   id: string
@@ -54,12 +52,12 @@ export default function Sidebar({
   const t = translations[language || "zh"]
 
   const deleteText = {
-    title: language === "zh" ? "确认删除" : "Delete confirmation",
-    description: language === "zh" ? "您确定要删除此分类吗？此操作无法撤销。" : "Are you sure you want to delete this category? This action cannot be undone.",
-    cancel: language === "zh" ? "取消" : "Cancel",
-    delete: language === "zh" ? "删除" : "Delete",
-    toastSuccess: language === "zh" ? "分类已删除" : "Category deleted",
-    toastDescription: language === "zh" ? "已成功删除分类" : "Category has been deleted successfully"
+    title: t.deleteConfirmationTitle,
+    description: t.deleteConfirmationDescription,
+    cancel: t.cancel,
+    delete: t.delete,
+    toastSuccess: t.categoryDeleted,
+    toastDescription: t.categoryDeletedDescription,
   }
   
   if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {

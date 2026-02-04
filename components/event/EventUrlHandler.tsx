@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { addDays } from "date-fns"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { translations, useLanguage } from "@/lib/i18n"
+import { isZhLanguage, translations, useLanguage } from "@/lib/i18n"
 import { toast } from "sonner"
 
 interface EventFromUrl {
@@ -34,6 +34,7 @@ export default function EventUrlHandler() {
   const { events: calendarEvents, setEvents: setCalendarEvents } = useCalendar()
   const [language] = useLanguage()
   const t = translations[language]
+  const isZh = isZhLanguage(language)
   // 添加一个ref来跟踪是否已经处理过URL参数
   const hasProcessedParams = useRef(false)
 
@@ -264,7 +265,7 @@ export default function EventUrlHandler() {
   }
 
   const formatEventDate = (date: Date): string => {
-    return date.toLocaleString(language === "zh" ? "zh-CN" : "en-US", {
+    return date.toLocaleString(isZh ? "zh-CN" : "en-US", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

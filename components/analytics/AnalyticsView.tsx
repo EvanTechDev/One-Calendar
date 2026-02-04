@@ -5,8 +5,7 @@ import TimeAnalyticsComponent from "@/components/analytics/TimeAnalytics"
 import ImportExport from "@/components/analytics/ImportExport"
 import type { CalendarEvent } from "@/components/Calendar"
 import { useCalendar } from "@/components/context/CalendarContext"
-import { useLanguage } from "@/hooks/useLanguage"
-import { translations } from "@/lib/i18n"
+import { translations, useLanguage } from "@/lib/i18n"
 import ShareManagement from "@/components/analytics/ShareManagement"
 import EventsCalendar from "@/components/analytics/EventsCalendar"
 
@@ -66,4 +65,3 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
     </div>
   )
 }
-

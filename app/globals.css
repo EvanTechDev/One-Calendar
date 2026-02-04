@@ -12,6 +12,15 @@ body {
   }
 }
 
+@layer components {
+  .cn-toast {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
