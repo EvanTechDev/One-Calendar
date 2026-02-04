@@ -34,59 +34,33 @@ import { useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
+import {
+  clearEncryptionPassword,
+  encryptSnapshots,
+  markEncryptedSnapshot,
+  persistEncryptedSnapshots,
+  readEncryptedLocalStorage,
+  setEncryptionPassword,
+} from "@/hooks/useLocalStorage"
 
 const AUTO_KEY = "auto-backup-enabled"
-
-function b64(u: Uint8Array) {
-  return btoa(String.fromCharCode(...u))
-}
-
-function ub64(s: string) {
-  return new Uint8Array(atob(s).split("").map((c) => c.charCodeAt(0)))
-}
-
-async function derive(password: string, salt: Uint8Array) {
-  const k = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  )
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
-    k,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  )
-}
-
-async function encrypt(password: string, text: string) {
-  const salt = crypto.getRandomValues(new Uint8Array(16))
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const key = await derive(password, salt)
-  const ct = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    new TextEncoder().encode(text),
-  )
-  return {
-    ciphertext: JSON.stringify({ v: 1, salt: b64(salt), ct: b64(new Uint8Array(ct)) }),
-    iv: b64(iv),
-  }
-}
-
-async function decrypt(password: string, ciphertext: string, iv: string) {
-  const d = JSON.parse(ciphertext)
-  const key = await derive(password, ub64(d.salt))
-  const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: ub64(iv) },
-    key,
-    ub64(d.ct),
-  )
-  return new TextDecoder().decode(pt)
-}
+const BACKUP_VERSION = 1
+const BACKUP_KEYS = [
+  "calendar-events",
+  "calendar-categories",
+  "bookmarked-events",
+  "shared-events",
+  "countdowns",
+  "first-day-of-week",
+  "timezone",
+  "notification-sound",
+  "default-view",
+  "enable-shortcuts",
+  "preferred-language",
+  "skip-landing",
+  "today-toast",
+]
 
 async function apiGet() {
   const r = await fetch("/api/blob")
@@ -107,6 +81,78 @@ async function apiPost(body: any) {
 async function apiDelete() {
   const r = await fetch("/api/blob", { method: "DELETE" })
   if (!r.ok) throw new Error()
+}
+
+function collectLocalStorage() {
+  const storage: Record<string, string> = {}
+  BACKUP_KEYS.forEach((key) => {
+    const value = localStorage.getItem(key)
+    if (value !== null) {
+      storage[key] = value
+    }
+  })
+  return storage
+}
+
+function applyLocalStorage(storage: Record<string, string>) {
+  Object.entries(storage).forEach(([key, value]) => {
+    localStorage.setItem(key, value)
+    markEncryptedSnapshot(key, value)
+  })
+}
+
+async function encryptLocalStorage(password: string) {
+  BACKUP_KEYS.forEach((key) => {
+    const value = localStorage.getItem(key)
+    if (value !== null) {
+      markEncryptedSnapshot(key, value)
+    }
+  })
+  await encryptSnapshots(password)
+  await persistEncryptedSnapshots()
+}
+
+async function decryptLocalStorage(password: string) {
+  await Promise.all(
+    BACKUP_KEYS.map(async (key) => {
+      const value = localStorage.getItem(key)
+      if (!value) return
+      try {
+        const parsed = JSON.parse(value)
+        if (isEncryptedPayload(parsed)) {
+          const plain = await decryptPayload(password, parsed.ciphertext, parsed.iv)
+          localStorage.setItem(key, plain)
+          markEncryptedSnapshot(key, plain)
+        } else {
+          markEncryptedSnapshot(key, value)
+        }
+      } catch {
+        markEncryptedSnapshot(key, value)
+      }
+    }),
+  )
+}
+
+async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
+  await Promise.all(
+    BACKUP_KEYS.map(async (key) => {
+      const value = localStorage.getItem(key)
+      if (!value) return
+      try {
+        const parsed = JSON.parse(value)
+        if (isEncryptedPayload(parsed)) {
+          const plain = await decryptPayload(oldPassword, parsed.ciphertext, parsed.iv)
+          markEncryptedSnapshot(key, plain)
+        } else {
+          markEncryptedSnapshot(key, value)
+        }
+      } catch {
+        markEncryptedSnapshot(key, value)
+      }
+    }),
+  )
+  await encryptSnapshots(newPassword)
+  await persistEncryptedSnapshots()
 }
 
 export default function UserProfileButton() {
@@ -153,9 +199,9 @@ export default function UserProfileButton() {
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const payload = await encrypt(
+      const payload = await encryptPayload(
         keyRef.current!,
-        JSON.stringify({ events, calendars }),
+        JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
       )
       await apiPost(payload)
       timerRef.current = null
@@ -170,7 +216,7 @@ export default function UserProfileButton() {
 
     let plain
     try {
-      plain = await decrypt(password, cloud.ciphertext, cloud.iv)
+      plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
     } catch {
       toast(language === "zh" ? "密码错误" : "Incorrect password")
       return
@@ -178,10 +224,19 @@ export default function UserProfileButton() {
 
     try {
       const data = JSON.parse(plain)
-      if (data?.events && data?.calendars) {
-        setEvents(data.events)
-        setCalendars(data.calendars)
+      if (data?.storage) {
+        applyLocalStorage(data.storage)
+      } else if (data?.events || data?.calendars) {
+        const fallbackStorage: Record<string, string> = {}
+        if (data?.events) fallbackStorage["calendar-events"] = JSON.stringify(data.events)
+        if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
+        applyLocalStorage(fallbackStorage)
       }
+      await setEncryptionPassword(password)
+      const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
+      const restoredCalendars = await readEncryptedLocalStorage("calendar-categories", [])
+      setEvents(restoredEvents)
+      setCalendars(restoredCalendars)
     } catch {}
 
     keyRef.current = password
@@ -200,9 +255,11 @@ export default function UserProfileButton() {
       setError(language === "zh" ? "密码不一致" : "Passwords do not match")
       return
     }
-    const payload = await encrypt(
+    await setEncryptionPassword(password)
+    await encryptLocalStorage(password)
+    const payload = await encryptPayload(
       password,
-      JSON.stringify({ events, calendars }),
+      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
     )
     await apiPost(payload)
     localStorage.setItem(AUTO_KEY, "true")
@@ -223,16 +280,20 @@ export default function UserProfileButton() {
     const cloud = await apiGet()
     if (!cloud) return
 
-    let plain
     try {
-      plain = await decrypt(oldPassword, cloud.ciphertext, cloud.iv)
+      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
     } catch {
       toast(language === "zh" ? "旧密码错误" : "Incorrect old password")
       return
     }
 
-    const next = await encrypt(password, plain)
+    await reencryptLocalStorage(oldPassword, password)
+    const next = await encryptPayload(
+      password,
+      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+    )
     await apiPost(next)
+    await setEncryptionPassword(password)
     keyRef.current = password
     setRotateOpen(false)
     setOldPassword("")
@@ -242,10 +303,15 @@ export default function UserProfileButton() {
   }
 
   function disableAutoBackup() {
+    const currentPassword = keyRef.current
     localStorage.removeItem(AUTO_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
+    if (currentPassword) {
+      void decryptLocalStorage(currentPassword)
+    }
+    clearEncryptionPassword()
     toast(language === "zh" ? "自动备份已关闭" : "Auto backup disabled")
   }
 

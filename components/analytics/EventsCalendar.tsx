@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState } from "@/hooks/useLocalStorage";
+import { translations, useLanguage } from "@/lib/i18n";
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -19,90 +20,56 @@ interface CalendarEvent {
   recurrence: string;
 }
 
-type Language = 'en' | 'zh';
-
-interface Translations {
-  eventsCalendar: string;
-  selectYear: string;
-  noEvents: string;
-  less: string;
-  more: string;
-  weekdays: string[];
-  months: string[];
-}
-
-const translations: Record<Language, Translations> = {
-  en: {
-    eventsCalendar: 'Events Calendar',
-    selectYear: 'Select year',
-    noEvents: 'No events found',
-    less: 'Less',
-    more: 'More',
-    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  },
-  zh: {
-    eventsCalendar: '事件日历',
-    selectYear: '选择年份',
-    noEvents: '未找到事件',
-    less: '较少',
-    more: '较多',
-    weekdays: ['日', '一', '二', '三', '四', '五', '六'],
-    months: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-  }
-};
-
 const EventsCalendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [language, setLanguage] = useState<Language>('zh'); // 默认中文，稍后会根据系统语言更新
-  
-  // 检测系统语言并设置组件语言
-  useEffect(() => {
-    const detectLanguage = () => {
-      const browserLang = navigator.language.toLowerCase();
-      if (browserLang.startsWith('zh')) {
-        setLanguage('zh');
-      } else {
-        setLanguage('en');
-      }
-    };
-
-    detectLanguage();
-  }, []);
-  
+  const [language] = useLanguage();
   const t = translations[language];
+  const weekdays = t.weekdaysShort ?? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = t.monthsShort ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
   useEffect(() => {
-    const storedEvents = localStorage.getItem('calendar-events');
-    if (storedEvents) {
-      const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
-      setEvents(parsedEvents);
-      
-      // 计算所有有事件的年份
-      const years = new Set<number>();
-      parsedEvents.forEach(event => {
-        const startYear = new Date(event.startDate).getFullYear();
-        const endYear = new Date(event.endDate).getFullYear();
-        for (let year = startYear; year <= endYear; year++) {
-          years.add(year);
+    let active = true;
+    const loadEvents = () =>
+      readEncryptedLocalStorage<CalendarEvent[]>('calendar-events', []).then((parsedEvents) => {
+        if (!active) return;
+        setEvents(parsedEvents);
+
+        // 计算所有有事件的年份
+        const years = new Set<number>();
+        parsedEvents.forEach(event => {
+          const startYear = new Date(event.startDate).getFullYear();
+          const endYear = new Date(event.endDate).getFullYear();
+          for (let year = startYear; year <= endYear; year++) {
+            years.add(year);
+          }
+        });
+
+        const sortedYears = Array.from(years).sort();
+        setAvailableYears(sortedYears);
+
+        // 如果有事件年份,默认选择最近的年份
+        if (sortedYears.length > 0) {
+          const currentYear = new Date().getFullYear();
+          // 找到当前年份或者最近的年份
+          const closestYear = sortedYears.reduce((prev, curr) => 
+            Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
+          );
+          setSelectedYear(closestYear);
         }
       });
-      
-      const sortedYears = Array.from(years).sort();
-      setAvailableYears(sortedYears);
-      
-      // 如果有事件年份,默认选择最近的年份
-      if (sortedYears.length > 0) {
-        const currentYear = new Date().getFullYear();
-        // 找到当前年份或者最近的年份
-        const closestYear = sortedYears.reduce((prev, curr) => 
-          Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
-        );
-        setSelectedYear(closestYear);
+
+    loadEvents();
+    const unsubscribe = subscribeEncryptionState(() => {
+      if (getEncryptionState().ready) {
+        loadEvents();
       }
-    }
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const getEventCountForDay = (day: Date) => {
@@ -130,12 +97,12 @@ const EventsCalendar: React.FC = () => {
     // 获取月份索引 (0-11)
     const monthIndex = date.getMonth();
     // 从翻译对象中获取对应语言的月份名称
-    return t.months[monthIndex];
+    return months[monthIndex];
   };
 
   const renderCalendarGrid = () => {
     if (availableYears.length === 0) {
-      return <div className="text-gray-500 dark:text-gray-400">{t.noEvents}</div>;
+      return <div className="text-gray-500 dark:text-gray-400">{t.eventsCalendarNoEvents || t.noEvents}</div>;
     }
 
     // 创建日历的数据
@@ -219,7 +186,7 @@ const EventsCalendar: React.FC = () => {
             <div className="flex">
               {/* 星期标签 */}
               <div className="flex flex-col pr-2">
-                {t.weekdays.map((day, i) => (
+                {weekdays.map((day, i) => (
                   <div 
                     key={`day-${i}`} 
                     className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-end"

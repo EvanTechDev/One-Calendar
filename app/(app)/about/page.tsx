@@ -1,48 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { GithubIcon } from "lucide-react"
+import { translations, useLanguage } from "@/lib/i18n"
 
 export default function AboutPage() {
-  const [lang, setLang] = useState<"en" | "zh">("en")
-
-  useEffect(() => {
-    if (navigator.language.startsWith("zh")) {
-      setLang("zh")
-    }
-  }, [])
-
-  const content = {
-    en: {
-      title: "About One Calendar",
-      heading: "One Calendar is designed for the way people actually plan.",
-      paragraphs: [
-        "Time management shouldn't feel like a chore. That's why we built One Calendar — a clean, simple, and powerful calendar that adapts to your life.",
-        "We believe great tools should get out of your way. No clutter, no friction — just a fast, intuitive experience that helps you stay focused and in control.",
-        "From personal planning to team collaboration, One Calendar gives you the features you need without the complexity you don’t.",
-        "We’re excited to build a better future for time — and we’d love to have you along for the journey."
-      ],
-      contact: "Want to contribute or get in touch?",
-      cta: "Check out the project on GitHub or send us feedback.",
-      home: "Back to Home",
-    },
-    zh: {
-      title: "关于 One Calendar",
-      heading: "我们正在打造一个真正符合现代节奏的日历工具。",
-      paragraphs: [
-        "管理时间不该是一件麻烦事。One Calendar 致力于打造一个干净、简单而强大的日历，真正贴合你的生活节奏。",
-        "我们相信，优秀的工具应该“隐形”——不打扰、不复杂，只带来快速流畅的体验，帮助你专注当下、掌握全局。",
-        "无论是个人安排，还是团队协作，One Calendar 都提供恰到好处的功能，而不会堆砌无用选项。",
-        "我们正在重新构想时间的未来，期待你一同加入这段旅程。"
-      ],
-      contact: "想参与项目或联系我们？",
-      cta: "欢迎访问我们的 GitHub 项目或发送反馈。",
-      home: "返回首页",
-    },
-  }
-
-  const t = content[lang]
+  const [language] = useLanguage()
+  const t = translations[language]
 
   return (
     <div className="min-h-screen flex flex-col text-black dark:text-white">
@@ -59,10 +23,10 @@ export default function AboutPage() {
           }} />
         </div>
       </div>
-        <h1 className="text-4xl font-bold text-center mb-12">{t.title}</h1>
+        <h1 className="text-4xl font-bold text-center mb-12">{t.aboutTitle}</h1>
         <div className="space-y-5 text-left">
-          <h2 className="text-2xl font-semibold">{t.heading}</h2>
-          {t.paragraphs.map((p, i) => (
+          <h2 className="text-2xl font-semibold">{t.aboutHeading}</h2>
+          {t.aboutParagraphs.map((p, i) => (
             <p key={i} className="text-lg text-gray-700 leading-relaxed dark:text-white">
               {p}
             </p>
@@ -72,8 +36,8 @@ export default function AboutPage() {
 
       <section className="text-center px-6 py-16">
         <div className="max-w-3xl mx-auto space-y-4">
-          <h2 className="text-xl font-medium">{t.contact}</h2>
-          <p className="text-gray-600 dark:text-white">{t.cta}</p>
+          <h2 className="text-xl font-medium">{t.aboutContact}</h2>
+          <p className="text-gray-600 dark:text-white">{t.aboutCta}</p>
           <div className="flex justify-center gap-4 pt-4">
             <Link
               href="https://github.com/Dev-Huang1/One-Calendar"
@@ -84,7 +48,7 @@ export default function AboutPage() {
               GitHub
             </Link>
             <Link href="/" className="text-sm text-gray-500 underline hover:text-black">
-              {t.home}
+              {t.aboutHome}
             </Link>
           </div>
         </div>

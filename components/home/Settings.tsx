@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { translations, type Language } from "@/lib/i18n"
+import { languageOptions, translations, type Language } from "@/lib/i18n"
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -150,12 +150,12 @@ export default function Settings({
           <span className="sr-only">Settings</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="h-full flex flex-col">
+      <SheetContent className="h-full flex flex-col overflow-hidden">
         <SheetHeader className="flex-shrink-0">
           <SheetTitle>{t.settings}</SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
@@ -192,8 +192,11 @@ export default function Settings({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
+                  {languageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {t[option.labelKey]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
