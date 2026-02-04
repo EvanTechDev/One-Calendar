@@ -18,7 +18,7 @@ interface AnalyticsViewProps {
 
 export default function AnalyticsView({ events, onCreateEvent, onImportEvents }: AnalyticsViewProps) {
   const { calendars } = useCalendar()
-  const [language, setLanguage] = useLanguage()
+  const [language] = useLanguage()
   const t = translations[language]
   // 添加一个状态来强制组件重新渲染
   const [forceUpdate, setForceUpdate] = useState(0)
@@ -66,4 +66,3 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
     </div>
   )
 }
-

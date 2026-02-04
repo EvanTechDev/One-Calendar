@@ -72,6 +72,10 @@ export function useLanguage(): [Language, (lang: Language) => void] {
       }
     }
 
+    const handleLanguageChange = () => {
+      loadLanguage()
+    }
+
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
         loadLanguage()
@@ -79,10 +83,12 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     })
 
     window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("languagechange", handleLanguageChange)
     return () => {
       active = false
       unsubscribe()
       window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("languagechange", handleLanguageChange)
     }
   }, [])
 
