@@ -21,7 +21,7 @@ import { zhCN, enUS } from "date-fns/locale";
 import { format } from "date-fns";
 import type { CalendarEvent } from "../Calendar";
 import type { Language } from "@/lib/i18n";
-import { translations } from "@/lib/i18n";
+import { isZhLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/components/context/CalendarContext";
 import {
@@ -61,8 +61,8 @@ export default function EventPreview({
   openShareImmediately,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
-  const t = translations[language];
-  const locale = language === "zh" ? zhCN : enUS;
+  const isZh = isZhLanguage(language);
+  const locale = isZh ? zhCN : enUS;
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState("");
@@ -91,9 +91,9 @@ export default function EventPreview({
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn) {
-        toast(language === "zh" ? "请先登录" : "Please sign in", {
+        toast(isZh ? "请先登录" : "Please sign in", {
           description:
-            language === "zh"
+            isZh
               ? "登录后才能使用分享功能"
               : "Sign in required to use share function",
           variant: "destructive",
@@ -150,8 +150,8 @@ export default function EventPreview({
   };
 
   const formatNotificationTime = () => {
-    if (event.notification === 0) return language === "zh" ? "事件开始时" : "At time of event";
-    return language === "zh" ? `${event.notification} 分钟前` : `${event.notification} minutes before`;
+    if (event.notification === 0) return isZh ? "事件开始时" : "At time of event";
+    return isZh ? `${event.notification} 分钟前` : `${event.notification} minutes before`;
   };
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
@@ -170,8 +170,8 @@ export default function EventPreview({
       await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
-      toast(language === "zh" ? "已取消收藏" : "Removed from bookmarks", {
-        description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
+      toast(isZh ? "已取消收藏" : "Removed from bookmarks", {
+        description: isZh ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
       });
     } else {
       const bookmarkData = {
@@ -187,8 +187,8 @@ export default function EventPreview({
       await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
-      toast(language === "zh" ? "已收藏" : "Bookmarked", {
-        description: language === "zh" ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
+      toast(isZh ? "已收藏" : "Bookmarked", {
+        description: isZh ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
       });
     }
   };
@@ -196,8 +196,8 @@ export default function EventPreview({
   const handleShare = async () => {
     if (!event) return;
     if (!user) {
-      toast(language === "zh" ? "请先登录" : "Please sign in", {
-        description: language === "zh" ? "分享功能仅对登录用户开放" : "Share function available to signed-in users only",
+      toast(isZh ? "请先登录" : "Please sign in", {
+        description: isZh ? "分享功能仅对登录用户开放" : "Share function available to signed-in users only",
         variant: "destructive",
       });
       return;
@@ -206,8 +206,8 @@ export default function EventPreview({
     if (passwordEnabled) {
       const pwd = sharePassword.trim();
       if (pwd.length < 4) {
-        toast(language === "zh" ? "密码过短" : "Password too short", {
-          description: language === "zh" ? "密码至少 4 位" : "Password must be at least 4 characters",
+        toast(isZh ? "密码过短" : "Password too short", {
+          description: isZh ? "密码至少 4 位" : "Password must be at least 4 characters",
           variant: "destructive",
         });
         return;
@@ -265,17 +265,17 @@ export default function EventPreview({
         });
         await writeEncryptedLocalStorage("shared-events", storedShares);
 
-        toast(language === "zh" ? "分享成功" : "Shared", {
+        toast(isZh ? "分享成功" : "Shared", {
           description:
             passwordEnabled && burnAfterRead
-              ? language === "zh"
+              ? isZh
                 ? "已启用密码保护 + 阅后即焚"
                 : "Password protected + burn after read"
               : passwordEnabled
-                ? language === "zh"
+                ? isZh
                   ? "该分享已启用密码保护"
                   : "This share is password protected"
-                : language === "zh"
+                : isZh
                   ? "分享链接已生成"
                   : "Share link generated",
         });
@@ -283,8 +283,8 @@ export default function EventPreview({
         throw new Error("Failed to share event");
       }
     } catch (error) {
-      toast(language === "zh" ? "分享失败" : "Share Failed", {
-        description: error instanceof Error ? error.message : language === "zh" ? "未知错误" : "Unknown error",
+      toast(isZh ? "分享失败" : "Share Failed", {
+        description: error instanceof Error ? error.message : isZh ? "未知错误" : "Unknown error",
         variant: "destructive",
       });
     } finally {
@@ -295,8 +295,8 @@ export default function EventPreview({
   const copyShareLink = () => {
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
-      toast(language === "zh" ? "链接已复制" : "Link Copied", {
-        description: language === "zh" ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
+      toast(isZh ? "链接已复制" : "Link Copied", {
+        description: isZh ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
       });
     }
   };
@@ -309,8 +309,8 @@ export default function EventPreview({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast(language === "zh" ? "二维码已下载" : "QR Code Downloaded", {
-        description: language === "zh" ? "已保存到您的设备" : "Saved to your device",
+      toast(isZh ? "二维码已下载" : "QR Code Downloaded", {
+        description: isZh ? "已保存到您的设备" : "Saved to your device",
       });
     }
   };
@@ -353,9 +353,9 @@ export default function EventPreview({
     );
 
     if (failed.length) {
-      toast(language === "zh" ? "删除分享失败" : "Failed to delete shares", {
+      toast(isZh ? "删除分享失败" : "Failed to delete shares", {
         description:
-          language === "zh"
+          isZh
             ? "部分分享记录未能从服务器删除，但已从本地移除"
             : "Some shares could not be deleted from server, but were removed locally",
         variant: "destructive",
@@ -368,9 +368,9 @@ export default function EventPreview({
     try {
       await cleanupSharesForEvent();
     } catch {
-      toast(language === "zh" ? "删除分享失败" : "Failed to delete shares", {
+      toast(isZh ? "删除分享失败" : "Failed to delete shares", {
         description:
-          language === "zh"
+          isZh
             ? "分享清理发生错误，但将继续删除事件"
             : "Share cleanup encountered an error, but event deletion will continue",
         variant: "destructive",
@@ -398,8 +398,8 @@ export default function EventPreview({
               onClick={(e) => {
                 e.stopPropagation();
                 if (!isSignedIn) {
-                  toast(language === "zh" ? "请先登录" : "Please sign in", {
-                    description: language === "zh" ? "登录后才能使用分享功能" : "Sign in required to use share function",
+                  toast(isZh ? "请先登录" : "Please sign in", {
+                    description: isZh ? "登录后才能使用分享功能" : "Sign in required to use share function",
                     variant: "destructive",
                   });
                   return;
@@ -451,7 +451,7 @@ export default function EventPreview({
                 <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
                   <p>
                     {event.participants.filter((p) => p.trim() !== "").length}{" "}
-                    {language === "zh" ? "参与者" : "participants"}
+                    {isZh ? "参与者" : "participants"}
                   </p>
                   <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", participantsOpen ? "transform rotate-180" : "")} />
                 </div>
@@ -488,7 +488,7 @@ export default function EventPreview({
               <div className="flex-1">
                 <p>{formatNotificationTime()}</p>
                 <p className="text-sm text-muted-foreground">
-                  {language === "zh" ? `${event.notification} 分钟前 按电子邮件` : `${event.notification} minutes before by email`}
+                  {isZh ? `${event.notification} 分钟前 按电子邮件` : `${event.notification} minutes before by email`}
                 </p>
               </div>
             </div>
@@ -508,21 +508,21 @@ export default function EventPreview({
       <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
         <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
-            <DialogTitle>{language === "zh" ? "分享事件" : "Share Event"}</DialogTitle>
+            <DialogTitle>{isZh ? "分享事件" : "Share Event"}</DialogTitle>
           </DialogHeader>
 
           {!shareLink ? (
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="shared-by">{language === "zh" ? "分享" : "Share"}</Label>
+                <Label htmlFor="shared-by">{isZh ? "分享" : "Share"}</Label>
                 <p className="text-sm text-muted-foreground">
-                  {language === "zh" ? "您将以当前登录身份进行事件分享。" : "You will share this event as your current logged-in identity."}
+                  {isZh ? "您将以当前登录身份进行事件分享。" : "You will share this event as your current logged-in identity."}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="enable-password">{language === "zh" ? "启用密码保护" : "Enable password protection"}</Label>
+                  <Label htmlFor="enable-password">{isZh ? "启用密码保护" : "Enable password protection"}</Label>
                   <input
                     id="enable-password"
                     type="checkbox"
@@ -541,22 +541,22 @@ export default function EventPreview({
 
                 {passwordEnabled && (
                   <div className="space-y-2">
-                    <Label htmlFor="share-password">{language === "zh" ? "分享密码" : "Share password"}</Label>
+                    <Label htmlFor="share-password">{isZh ? "分享密码" : "Share password"}</Label>
                     <Input
                       id="share-password"
                       type="password"
                       value={sharePassword}
                       onChange={(e) => setSharePassword(e.target.value)}
-                      placeholder={language === "zh" ? "至少 4 位" : "At least 4 characters"}
+                      placeholder={isZh ? "至少 4 位" : "At least 4 characters"}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {language === "zh"
+                      {isZh
                         ? "服务器不会保存密码，访问者需要输入正确密码才能查看。"
                         : "The server does not store the password. Viewers must enter it to see the event."}
                     </p>
 
                     <div className="flex items-center justify-between pt-2">
-                      <Label htmlFor="burn-after-read">{language === "zh" ? "阅后即焚" : "Burn after read"}</Label>
+                      <Label htmlFor="burn-after-read">{isZh ? "阅后即焚" : "Burn after read"}</Label>
                       <input
                         id="burn-after-read"
                         type="checkbox"
@@ -566,7 +566,7 @@ export default function EventPreview({
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {language === "zh"
+                      {isZh
                         ? "访问者输入正确密码并成功解密后，该分享会自动从服务器删除。"
                         : "After a viewer decrypts successfully, this share is automatically deleted from the server."}
                     </p>
@@ -582,7 +582,7 @@ export default function EventPreview({
                     handleShareDialogChange(false);
                   }}
                 >
-                  {language === "zh" ? "取消" : "Cancel"}
+                  {isZh ? "取消" : "Cancel"}
                 </Button>
                 <Button
                   onClick={(e) => {
@@ -606,10 +606,10 @@ export default function EventPreview({
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      {language === "zh" ? "分享中..." : "Sharing..."}
+                      {isZh ? "分享中..." : "Sharing..."}
                     </span>
                   ) : (
-                    <>{language === "zh" ? "分享" : "Share"}</>
+                    <>{isZh ? "分享" : "Share"}</>
                   )}
                 </Button>
               </DialogFooter>
@@ -618,7 +618,7 @@ export default function EventPreview({
             <div className="space-y-4 py-2">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="share-link">{language === "zh" ? "分享链接" : "Share Link"}</Label>
+                  <Label htmlFor="share-link">{isZh ? "分享链接" : "Share Link"}</Label>
                   <div className="flex items-center space-x-2">
                     <Input
                       id="share-link"
@@ -638,11 +638,11 @@ export default function EventPreview({
                         copyShareLink();
                       }}
                     >
-                      {language === "zh" ? "复制" : "Copy"}
+                      {isZh ? "复制" : "Copy"}
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {language === "zh"
+                    {isZh
                       ? "任何拥有此链接的人都可以访问分享页面。若启用密码保护，需要输入密码才能查看内容。"
                       : "Anyone with this link can access the share page. If password protected, they must enter the password to view the content."}
                   </p>
@@ -650,7 +650,7 @@ export default function EventPreview({
 
                 {qrCodeDataURL && (
                   <div className="mt-4 flex flex-col items-center">
-                    <Label className="mb-2">{language === "zh" ? "二维码" : "QR Code"}</Label>
+                    <Label className="mb-2">{isZh ? "二维码" : "QR Code"}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
                       <img src={qrCodeDataURL || "/placeholder.svg"} alt="QR Code" className="w-full max-w-[200px] mx-auto" />
                     </div>
@@ -664,10 +664,10 @@ export default function EventPreview({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      {language === "zh" ? "下载二维码" : "Download QR Code"}
+                      {isZh ? "下载二维码" : "Download QR Code"}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      {language === "zh" ? "扫描此二维码可立即查看日程" : "Scan this QR code to view the event"}
+                      {isZh ? "扫描此二维码可立即查看日程" : "Scan this QR code to view the event"}
                     </p>
                   </div>
                 )}
@@ -680,7 +680,7 @@ export default function EventPreview({
                     handleShareDialogChange(false);
                   }}
                 >
-                  {language === "zh" ? "完成" : "Done"}
+                  {isZh ? "完成" : "Done"}
                 </Button>
               </DialogFooter>
             </div>

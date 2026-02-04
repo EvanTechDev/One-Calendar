@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,7 +9,6 @@ import { ClockDashed } from "@/components/icons/clock-dashed"
 import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare, Sun } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { translations, useLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MiniCalendarSheet from "./MiniCalendarSheet"
 import BookmarkPanel from "./BookmarkPanel"
@@ -35,8 +34,6 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ onViewChange, onEventClick }: RightSidebarProps) {
-  const [language] = useLanguage()
-  const t = translations[language]
   const [miniCalendarOpen, setMiniCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)

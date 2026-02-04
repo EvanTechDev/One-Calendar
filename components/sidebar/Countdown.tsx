@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
+import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 
 interface Countdown {
   id: string;
@@ -46,15 +47,17 @@ interface CountdownToolProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const colorOptions = [
-  { value: "bg-red-500", label: "红色", labelEn: "Red" },
-  { value: "bg-blue-500", label: "蓝色", labelEn: "Blue" },
-  { value: "bg-green-500", label: "绿色", labelEn: "Green" },
-  { value: "bg-yellow-500", label: "黄色", labelEn: "Yellow" },
-  { value: "bg-purple-500", label: "紫色", labelEn: "Purple" },
-  { value: "bg-pink-500", label: "粉色", labelEn: "Pink" },
-  { value: "bg-indigo-500", label: "靛蓝", labelEn: "Indigo" },
-  { value: "bg-orange-500", label: "橙色", labelEn: "Orange" },
+type TranslationKey = keyof typeof translations["en"]
+
+const colorOptions: { value: string; labelKey: TranslationKey }[] = [
+  { value: "bg-red-500", labelKey: "colorRed" },
+  { value: "bg-blue-500", labelKey: "colorBlue" },
+  { value: "bg-green-500", labelKey: "colorGreen" },
+  { value: "bg-yellow-500", labelKey: "colorYellow" },
+  { value: "bg-purple-500", labelKey: "colorPurple" },
+  { value: "bg-pink-500", labelKey: "colorPink" },
+  { value: "bg-indigo-500", labelKey: "colorIndigo" },
+  { value: "bg-orange-500", labelKey: "colorOrange" },
 ];
 
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
@@ -64,15 +67,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     color: "bg-blue-500"
   });
   const [view, setView] = useState<"list" | "detail" | "edit">("list");
-  const [language, setLanguage] = useState<"en" | "zh">("en");
+  const [language] = useLanguage();
+  const t = translations[language];
+  const isZh = isZhLanguage(language);
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
-
-  useEffect(() => {
-    const userLanguage = navigator.language.startsWith("zh") ? "zh" : "en";
-    setLanguage(userLanguage);
-  }, []);
 
   // useLocalStorage handles persistence.
 
@@ -83,7 +83,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       month: 'short', 
       day: 'numeric' 
     };
-    return date.toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", options);
+    return date.toLocaleDateString(isZh ? "zh-CN" : "en-US", options);
   };
 
   const formatDateLong = (dateStr: string) => {
@@ -93,7 +93,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       month: 'long', 
       day: 'numeric' 
     };
-    return date.toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", options);
+    return date.toLocaleDateString(isZh ? "zh-CN" : "en-US", options);
   };
 
   const calculateDaysLeft = (dateStr: string, repeat: Countdown["repeat"]) => {
@@ -126,71 +126,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     return today.toISOString().split('T')[0];
   };
 
-  const t = (key: string) => {
-    const translations = {
-      en: {
-        title: "Countdown",
-        add: "Add Countdown",
-        name: "Event Name",
-        date: "Date",
-        repeat: "Repeat",
-        description: "Description",
-        color: "Color",
-        repeatOptions: {
-          none: "None",
-          weekly: "Weekly", 
-          monthly: "Monthly",
-          yearly: "Yearly",
-        },
-        save: "Save",
-        edit: "Edit",
-        delete: "Delete",
-        cancel: "Cancel",
-        daysLeft: "days left",
-        noEvents: "No events yet",
-        searchPlaceholder: "Search events...",
-        countdownDetails: "Countdown Details",
-        editCountdown: "Edit Countdown",
-        addCountdown: "Add Countdown",
-        selectDate: "Select date",
-      },
-      zh: {
-        title: "倒数日",
-        add: "添加倒数日",
-        name: "事件名称",
-        date: "日期", 
-        repeat: "重复",
-        description: "描述",
-        color: "颜色",
-        repeatOptions: {
-          none: "不重复",
-          weekly: "每周",
-          monthly: "每月",
-          yearly: "每年",
-        },
-        save: "保存",
-        edit: "编辑",
-        delete: "删除",
-        cancel: "取消",
-        daysLeft: "天后",
-        noEvents: "暂无事件",
-        searchPlaceholder: "搜索事件...",
-        countdownDetails: "倒数日详情",
-        editCountdown: "编辑倒数日",
-        addCountdown: "添加倒数日",
-        selectDate: "选择日期",
-      },
-    };
-    const lang = translations[language];
-    return lang?.[key] ?? key;
-  };
-
   const tRepeat = (key: Countdown["repeat"]) =>
     ({
-      none: t("repeatOptions")["none"],
-      weekly: t("repeatOptions")["weekly"],
-      monthly: t("repeatOptions")["monthly"],
-      yearly: t("repeatOptions")["yearly"],
+      none: t.countdownRepeatNone,
+      weekly: t.countdownRepeatWeekly,
+      monthly: t.countdownRepeatMonthly,
+      yearly: t.countdownRepeatYearly,
     }[key]);
 
   const startAddCountdown = () => {
@@ -258,11 +199,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle>{t("title")}</SheetTitle>
+          <SheetTitle>{t.countdownTitle}</SheetTitle>
         </div>
         <div className="mt-2">
           <Input
-            placeholder={t("searchPlaceholder")}
+            placeholder={t.countdownSearchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full"
@@ -272,12 +213,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       <div className="p-4">
         <Button variant="outline" size="sm" onClick={startAddCountdown} className="w-full mb-4">
           <Plus className="mr-2 h-4 w-4" />
-          {t("add")}
+          {t.countdownAdd}
         </Button>
         <ScrollArea className="h-[calc(100vh-200px)]">
           {countdowns.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t("noEvents")}
+              {t.countdownNoEvents}
             </div>
           ) : (
             <div className="space-y-2">
@@ -315,7 +256,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           {Math.abs(daysLeft)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {t("daysLeft")}
+                          {t.countdownDaysLeft}
                         </div>
                       </div>
                     </div>
@@ -341,7 +282,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Button variant="ghost" size="icon" className="mr-2" onClick={backToCountdownList}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <SheetTitle>{t("countdownDetails")}</SheetTitle>
+            <SheetTitle>{t.countdownDetails}</SheetTitle>
           </div>
         </SheetHeader>
         <div className="p-4">
@@ -356,7 +297,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <div>
               <h2 className="text-xl font-bold">{selectedCountdown.name}</h2>
               <div className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}>
-                {Math.abs(daysLeft)} {t("daysLeft")}
+                {Math.abs(daysLeft)} {t.countdownDaysLeft}
               </div>
             </div>
           </div>
@@ -365,7 +306,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
                 <CalendarIcon className="h-4 w-4 mr-1" />
-                {t("date")}
+                {t.countdownDate}
               </h3>
               <p className="text-base">{formattedDate}</p>
             </div>
@@ -373,7 +314,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
                 <Clock className="h-4 w-4 mr-1" />
-                {t("repeat")}
+                {t.countdownRepeat}
               </h3>
               <p className="text-base">{tRepeat(selectedCountdown.repeat)}</p>
             </div>
@@ -381,7 +322,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             {selectedCountdown.description && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                  {t("description")}
+                  {t.countdownDescription}
                 </h3>
                 <p className="whitespace-pre-wrap text-base">{selectedCountdown.description}</p>
               </div>
@@ -391,11 +332,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="flex space-x-2 mt-8">
             <Button variant="outline" className="flex-1" onClick={() => startEditCountdown(selectedCountdown)}>
               <Edit2 className="mr-2 h-4 w-4" />
-              {t("edit")}
+              {t.countdownEdit}
             </Button>
             <Button variant="destructive" className="flex-1" onClick={() => deleteCountdown(selectedCountdown.id)}>
               <Trash2 className="mr-2 h-4 w-4" />
-              {t("delete")}
+              {t.countdownDelete}
             </Button>
           </div>
         </div>
@@ -423,14 +364,14 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <SheetTitle>
-            {selectedCountdown ? t("editCountdown") : t("addCountdown")}
+            {selectedCountdown ? t.countdownEditTitle : t.countdownAddTitle}
           </SheetTitle>
         </div>
       </SheetHeader>
       <div className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">{t("name")}*</Label>
+            <Label htmlFor="name">{t.countdownName}*</Label>
             <Input
               id="name"
               value={newCountdown.name || ""}
@@ -440,17 +381,17 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="color">{t("color")}*</Label>
+            <Label htmlFor="color">{t.countdownColor}*</Label>
             <Select value={newCountdown.color} onValueChange={(value) => setNewCountdown({ ...newCountdown, color: value })}>
               <SelectTrigger id="color">
-                <SelectValue placeholder={t("color")} />
+                <SelectValue placeholder={t.countdownColor} />
               </SelectTrigger>
               <SelectContent>
                 {colorOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
                       <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
-                      {language === "zh" ? option.label : option.labelEn}
+                      {t[option.labelKey]}
                     </div>
                   </SelectItem>
                 ))}
@@ -459,7 +400,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>{t("date")}*</Label>
+            <Label>{t.countdownDate}*</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -472,10 +413,10 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? (
                     format(selectedDate, "PPP", { 
-                      locale: language === "zh" ? zhCN : enUS 
+                      locale: isZh ? zhCN : enUS
                     })
                   ) : (
-                    <span>{t("selectDate")}</span>
+                    <span>{t.countdownSelectDate}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -488,14 +429,14 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     setCalendarOpen(false);
                   }}
                   initialFocus
-                  locale={language === "zh" ? zhCN : enUS}
+                  locale={isZh ? zhCN : enUS}
                 />
               </PopoverContent>
             </Popover>
           </div>
 
           <div className="space-y-2">
-            <Label>{t("repeat")}</Label>
+            <Label>{t.countdownRepeat}</Label>
             <Select
               value={newCountdown.repeat || "none"}
               onValueChange={(value: Countdown["repeat"]) =>
@@ -503,7 +444,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder={t("repeat")} />
+                <SelectValue placeholder={t.countdownRepeat} />
               </SelectTrigger>
               <SelectContent>
                 {["none", "weekly", "monthly", "yearly"].map((key) => (
@@ -516,7 +457,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">{t("description")}</Label>
+            <Label htmlFor="description">{t.countdownDescription}</Label>
             <Textarea
               id="description"
               value={newCountdown.description || ""}
@@ -529,7 +470,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       <div className="p-4 border-t flex justify-between">
         {selectedCountdown && (
           <Button variant="destructive" onClick={() => deleteCountdown(selectedCountdown.id)}>
-            {t("delete")}
+            {t.countdownDelete}
           </Button>
         )}
         <div className="flex space-x-2 ml-auto">
@@ -543,13 +484,13 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               }
             }}
           >
-            {t("cancel")}
+            {t.countdownCancel}
           </Button>
           <Button 
             onClick={saveCountdown} 
             disabled={!newCountdown.name || !selectedDate || !newCountdown.color}
           >
-            {t("save")}
+            {t.countdownSave}
           </Button>
         </div>
       </div>

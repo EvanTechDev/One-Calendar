@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState } from "@/hooks/useLocalStorage";
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 
 interface CalendarEvent {
   id: string;
@@ -20,60 +20,13 @@ interface CalendarEvent {
   recurrence: string;
 }
 
-type Language = 'en' | 'zh';
-
-interface Translations {
-  eventsCalendar: string;
-  selectYear: string;
-  noEvents: string;
-  less: string;
-  more: string;
-  weekdays: string[];
-  months: string[];
-}
-
-const translations: Record<Language, Translations> = {
-  en: {
-    eventsCalendar: 'Events Calendar',
-    selectYear: 'Select year',
-    noEvents: 'No events found',
-    less: 'Less',
-    more: 'More',
-    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  },
-  zh: {
-    eventsCalendar: '事件日历',
-    selectYear: '选择年份',
-    noEvents: '未找到事件',
-    less: '较少',
-    more: '较多',
-    weekdays: ['日', '一', '二', '三', '四', '五', '六'],
-    months: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-  }
-};
-
 const EventsCalendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [language, setLanguage] = useState<Language>('zh'); // 默认中文，稍后会根据系统语言更新
-  
-  // 检测系统语言并设置组件语言
-  useEffect(() => {
-    const detectLanguage = () => {
-      const browserLang = navigator.language.toLowerCase();
-      if (browserLang.startsWith('zh')) {
-        setLanguage('zh');
-      } else {
-        setLanguage('en');
-      }
-    };
-
-    detectLanguage();
-  }, []);
-  
+  const [language] = useLanguage();
   const t = translations[language];
+  const isZh = isZhLanguage(language);
   
   useEffect(() => {
     let active = true;
@@ -148,7 +101,7 @@ const EventsCalendar: React.FC = () => {
 
   const renderCalendarGrid = () => {
     if (availableYears.length === 0) {
-      return <div className="text-gray-500 dark:text-gray-400">{t.noEvents}</div>;
+      return <div className="text-gray-500 dark:text-gray-400">{t.noEventsFound}</div>;
     }
 
     // 创建日历的数据
@@ -264,7 +217,7 @@ const EventsCalendar: React.FC = () => {
                             height: `${cellSize}px`, 
                             marginBottom: `${cellGap}px` 
                           }}
-                          title={isCurrentYear ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${language === 'zh' ? '个事件' : 'events'}` : ''}
+                          title={isCurrentYear ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${isZh ? '个事件' : 'events'}` : ''}
                         />
                       );
                     })}

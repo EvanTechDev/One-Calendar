@@ -47,32 +47,32 @@ export default function Settings({
   const pathname = usePathname()
   const t = translations[language]
 
-  const isAppPage = pathname === '/app' || pathname?.startsWith('/app/')
+  const isAppPage = pathname === "/app" || pathname?.startsWith("/app/")
 
   useEffect(() => {
     const body = document.body
-    const colorThemes = ['green', 'orange', "azalea", 'pink', 'crimson']
+    const colorThemes = ["green", "orange", "azalea", "pink", "crimson"]
     
     if (isAppPage) {
-      body.classList.add('app')
+      body.classList.add("app")
       
       if (theme && colorThemes.includes(theme)) {
         body.classList.add(theme)
       }
     } else {
-      body.classList.remove('app')
-      colorThemes.forEach(colorTheme => {
+      body.classList.remove("app")
+      colorThemes.forEach((colorTheme) => {
         body.classList.remove(colorTheme)
       })
       
       if (theme && colorThemes.includes(theme)) {
-        setTheme('system')
+        setTheme("system")
       }
     }
 
     return () => {
-      body.classList.remove('app')
-      colorThemes.forEach(colorTheme => {
+      body.classList.remove("app")
+      colorThemes.forEach((colorTheme) => {
         body.classList.remove(colorTheme)
       })
     }
@@ -82,9 +82,9 @@ export default function Settings({
     if (!isAppPage) return
     
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
+    const colorThemes = ["blue", "green", "purple", "orange", "azalea", "pink", "crimson"]
     
-    colorThemes.forEach(colorTheme => {
+    colorThemes.forEach((colorTheme) => {
       body.classList.remove(colorTheme)
     })
     
@@ -128,18 +128,18 @@ export default function Settings({
   }
 
   const handleThemeChange = (newTheme: string) => {
-    if (!isAppPage && ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson'].includes(newTheme)) {
-      setTheme('system')
+    if (!isAppPage && ["blue", "green", "purple", "orange", "azalea", "pink", "crimson"].includes(newTheme)) {
+      setTheme("system")
     } else {
       setTheme(newTheme)
     }
   }
 
   const getEffectiveTheme = () => {
-    if (!isAppPage && ['green', 'orange', "azalea", "pink", "crimson"].includes(theme || '')) {
-      return 'system'
+    if (!isAppPage && ["green", "orange", "azalea", "pink", "crimson"].includes(theme || "")) {
+      return "system"
     }
-    return theme || 'system'
+    return theme || "system"
   }
 
   return (
@@ -150,37 +150,37 @@ export default function Settings({
           <span className="sr-only">Settings</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="h-full flex flex-col">
+      <SheetContent className="h-full flex flex-col min-h-0">
         <SheetHeader className="flex-shrink-0">
           <SheetTitle>{t.settings}</SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 pr-4 min-h-0">
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="theme">{language === "zh" ? "主题" : "Theme"}</Label>
+              <Label htmlFor="theme">{t.theme}</Label>
               <Select value={getEffectiveTheme()} onValueChange={handleThemeChange}>
                 <SelectTrigger id="theme">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light">{language === "zh" ? "亮色" : "Light"}</SelectItem>
-                  <SelectItem value="dark">{language === "zh" ? "暗色" : "Dark"}</SelectItem>
+                  <SelectItem value="light">{t.themeLight}</SelectItem>
+                  <SelectItem value="dark">{t.themeDark}</SelectItem>
                   {isAppPage && (
                     <>
-                      <SelectItem value="green">{language === "zh" ? "绿色" : "Green"}</SelectItem>
-                      <SelectItem value="orange">{language === "zh" ? "橙色" : "Orange"}</SelectItem>
-                      <SelectItem value="azalea">{language === "zh" ? "映山红" : "Azalea"}</SelectItem>
-                      <SelectItem value="pink">{language === "zh" ? "粉色" : "Pink"}</SelectItem>
-                      <SelectItem value="crimson">{language === "zh" ? "深红色" : "Crimson"}</SelectItem>
+                      <SelectItem value="green">{t.themeGreen}</SelectItem>
+                      <SelectItem value="orange">{t.themeOrange}</SelectItem>
+                      <SelectItem value="azalea">{t.themeAzalea}</SelectItem>
+                      <SelectItem value="pink">{t.themePink}</SelectItem>
+                      <SelectItem value="crimson">{t.themeCrimson}</SelectItem>
                     </>
                   )}
-                  <SelectItem value="system">{language === "zh" ? "系统" : "System"}</SelectItem>
+                  <SelectItem value="system">{t.themeSystem}</SelectItem>
                 </SelectContent>
               </Select>
               {!isAppPage && (
                 <p className="text-xs text-muted-foreground">
-                  {language === "zh" ? "彩色主题仅在应用页面可用" : "Color themes are only available on the app page"}
+                  {t.themeColorOnlyApp}
                 </p>
               )}
             </div>
@@ -192,8 +192,8 @@ export default function Settings({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
+                  <SelectItem value="en">{t.languageEnglish}</SelectItem>
+                  <SelectItem value="zh-CN">{t.languageChinese}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -215,7 +215,7 @@ export default function Settings({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="default-view">{language === "zh" ? "默认视图" : "Default View"}</Label>
+              <Label htmlFor="default-view">{t.defaultView}</Label>
               <Select value={defaultView} onValueChange={setDefaultView}>
                 <SelectTrigger id="default-view">
                   <SelectValue />
@@ -264,21 +264,21 @@ export default function Settings({
 
             <div className="flex items-center space-x-2">
               <Switch id="enable-shortcuts" checked={enableShortcuts} onCheckedChange={setEnableShortcuts} />
-              <Label htmlFor="enable-shortcuts">{language === "zh" ? "开启快捷键" : "Enable Keyboard Shortcuts"}</Label>
+              <Label htmlFor="enable-shortcuts">{t.enableShortcuts}</Label>
             </div>
 
             {enableShortcuts && (
               <div className="rounded-md border p-4">
-                <h3 className="mb-2 font-medium">{language === "zh" ? "可用快捷键" : "Available Shortcuts"}</h3>
+                <h3 className="mb-2 font-medium">{t.availableShortcuts}</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><Kbd>N</Kbd> - {language === "zh" ? "创建新事件" : "New Event"}</div>
-                  <div><Kbd>/</Kbd> - {language === "zh" ? "搜索事件" : "Search Events"}</div>
-                  <div><Kbd>T</Kbd> - {language === "zh" ? "今天" : "Today"}</div>
-                  <div><Kbd>1</Kbd> - {language === "zh" ? "日视图" : "Day View"}</div>
-                  <div><Kbd>2</Kbd> - {language === "zh" ? "周视图" : "Week View"}</div>
-                  <div><Kbd>3</Kbd> - {language === "zh" ? "月视图" : "Month View"}</div>
-                  <div><Kbd>→</Kbd> - {language === "zh" ? "下个周期" : "Next Period"}</div>
-                  <div><Kbd>←</Kbd> - {language === "zh" ? "上个周期" : "Previous Period"}</div>
+                  <div><Kbd>N</Kbd> - {t.newEvent}</div>
+                  <div><Kbd>/</Kbd> - {t.searchEvents}</div>
+                  <div><Kbd>T</Kbd> - {t.today}</div>
+                  <div><Kbd>1</Kbd> - {t.dayView}</div>
+                  <div><Kbd>2</Kbd> - {t.weekView}</div>
+                  <div><Kbd>3</Kbd> - {t.monthView}</div>
+                  <div><Kbd>→</Kbd> - {t.nextPeriod}</div>
+                  <div><Kbd>←</Kbd> - {t.previousPeriod}</div>
                 </div>
               </div>
             )}

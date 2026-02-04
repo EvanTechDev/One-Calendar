@@ -44,7 +44,6 @@ export interface CalendarEvent {
   calendarId: string
 }
 
-export type Language = "en" | "zh"
 
 export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
@@ -437,7 +436,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                       ))
                     ) : (
                       <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        {language === "zh" ? "没有找到匹配的事件" : "No matching events found"}
+                        {t.noMatchingEvents}
                       </div>
                     )}
                   </ScrollArea>

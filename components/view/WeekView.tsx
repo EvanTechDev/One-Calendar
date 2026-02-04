@@ -12,7 +12,7 @@ import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval, add } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import type { Language } from "@/lib/i18n"
+import { isZhLanguage, translations, type Language } from "@/lib/i18n"
 
 interface WeekViewProps {
   date: Date
@@ -57,6 +57,8 @@ export default function WeekView({
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const today = new Date()
+  const t = translations[language]
+  const isZh = isZhLanguage(language)
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasScrolledRef = useRef(false)
@@ -76,10 +78,10 @@ export default function WeekView({
 
 
   const menuLabels = {
-    edit: language === "zh" ? "修改" : "Edit",
-    share: language === "zh" ? "分享" : "Share",
-    bookmark: language === "zh" ? "书签" : "Bookmark",
-    delete: language === "zh" ? "删除" : "Delete",
+    edit: t.edit,
+    share: t.share,
+    bookmark: t.bookmark,
+    delete: t.delete,
   }
 
   function getDarkerColorClass(color: string) {
@@ -223,7 +225,7 @@ export default function WeekView({
       hour12: false, // 使用24小时制
       timeZone: timezone,
     }
-    return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", options).format(date)
+    return new Intl.DateTimeFormat(isZh ? "zh-CN" : "en-US", options).format(date)
   }
 
   // 判断事件是否为全天事件
@@ -613,7 +615,7 @@ export default function WeekView({
           return (
             <div key={day.toString()} className="sticky top-0 z-30 bg-background">
               <div className="p-2 text-center">
-                <div>{format(day, "E", { locale: language === "zh" ? zhCN : enUS })}</div>
+                <div>{format(day, "E", { locale: isZh ? zhCN : enUS })}</div>
                 {/* 如果是今天,使用蓝色高亮显示日期 */}
                 <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5]" : "")}>
                   {format(day, "d")}
@@ -777,7 +779,7 @@ export default function WeekView({
             opacity: 0.8,
           }}
         >
-          {language === "zh" ? "拖动到新位置" : "Drag to new position"}
+          {t.dragToNewPosition}
         </div>
       )}
     </div>
