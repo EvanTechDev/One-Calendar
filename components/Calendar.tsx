@@ -15,7 +15,7 @@ import Settings from "@/components/home/Settings"
 import { translations, useLanguage } from "@/lib/i18n"
 import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/lib/notifications"
 import EventPreview from "@/components/event/EventPreview"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
+import { readEncryptedLocalStorage, useLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 import { useCalendar } from "@/components/context/CalendarContext"
 import EventUrlHandler from "@/components/event/EventUrlHandler"
 import RightSidebar from "@/components/sidebar/RightSidebar"
@@ -285,31 +285,31 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   // 收藏（书签）功能
-const toggleBookmark = (event: CalendarEvent) => {
-  const bookmarks = JSON.parse(localStorage.getItem("bookmarked-events") || "[]")
+  const toggleBookmark = async (event: CalendarEvent) => {
+    const bookmarks = await readEncryptedLocalStorage<any[]>("bookmarked-events", [])
 
-  const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
-  if (isBookmarked) {
-    const updated = bookmarks.filter((b: any) => b.id !== event.id)
-    localStorage.setItem("bookmarked-events", JSON.stringify(updated))
-  } else {
-    const bookmarkData = {
-      id: event.id,
-      title: event.title,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      color: event.color,
-      location: event.location,
-      bookmarkedAt: new Date().toISOString(),
+    const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
+    if (isBookmarked) {
+      const updated = bookmarks.filter((b: any) => b.id !== event.id)
+      await writeEncryptedLocalStorage("bookmarked-events", updated)
+    } else {
+      const bookmarkData = {
+        id: event.id,
+        title: event.title,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        color: event.color,
+        location: event.location,
+        bookmarkedAt: new Date().toISOString(),
+      }
+      await writeEncryptedLocalStorage("bookmarked-events", [...bookmarks, bookmarkData])
     }
-    localStorage.setItem("bookmarked-events", JSON.stringify([...bookmarks, bookmarkData]))
   }
-}
 
-const handleShare = (event: CalendarEvent) => {
-  setPreviewEvent(event)
-  setPreviewOpen(true)
-}
+  const handleShare = (event: CalendarEvent) => {
+    setPreviewEvent(event)
+    setPreviewOpen(true)
+  }
 
 
   const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 export default function DailyToast() {
   const [ready, setReady] = useState(false)
@@ -15,16 +16,16 @@ export default function DailyToast() {
     if (!ready) return
 
     const today = new Date().toISOString().split("T")[0]
-    const toastShown = localStorage.getItem("today-toast")
+    readEncryptedLocalStorage<string | null>("today-toast", null).then((toastShown) => {
+      if (toastShown !== today) {
+        const isZh = navigator.language.startsWith("zh")
+        toast(isZh ? "📅 欢迎回来！" : "📅 Welcome back!", {
+          description: isZh ? "查看你今天的日程吧。" : "Check your schedule for today.",
+        })
 
-    if (toastShown !== today) {
-      const isZh = navigator.language.startsWith("zh")
-      toast(isZh ? "📅 欢迎回来！" : "📅 Welcome back!", {
-        description: isZh ? "查看你今天的日程吧。" : "Check your schedule for today.",
-      })
-
-      localStorage.setItem("today-toast", today)
-    }
+        void writeEncryptedLocalStorage("today-toast", today)
+      }
+    })
   }, [ready])
 
   return null

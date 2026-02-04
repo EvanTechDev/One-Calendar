@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { readEncryptedLocalStorage } from "@/hooks/useLocalStorage";
 
 let notificationInterval: NodeJS.Timeout | null = null;
 
@@ -17,9 +18,9 @@ export const clearAllNotificationTimers = () => {
 };
 
 // 检查待处理的通知
-export const checkPendingNotifications = () => {
+export const checkPendingNotifications = async () => {
   const now = Date.now();
-  const pendingEvents = getPendingEvents(now);
+  const pendingEvents = await getPendingEvents(now);
 
   pendingEvents.forEach((event) => {
     triggerNotification(event);
@@ -28,8 +29,8 @@ export const checkPendingNotifications = () => {
 };
 
 // 获取待处理的事件
-const getPendingEvents = (currentTime: number) => {
-  const events = JSON.parse(localStorage.getItem("events") || "[]");
+const getPendingEvents = async (currentTime: number) => {
+  const events = await readEncryptedLocalStorage<any[]>("calendar-events", []);
   return events.filter((event: any) => event.notificationTime <= currentTime);
 };
 

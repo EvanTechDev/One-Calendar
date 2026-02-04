@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { GithubIcon, CloudIcon, Share2Icon, BarChart3Icon, SunIcon, KeyboardIcon, ImportIcon, ExternalLinkIcon, MoonIcon, CalendarIcon } from "lucide-react"
 import Image from "next/image"
+import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -22,12 +23,19 @@ export default function LandingPage() {
   const [loadingDots, setLoadingDots] = useState("")
 
   useEffect(() => {
-    const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
-    if (hasSkippedLanding || (isLoaded && isSignedIn)) {
-      setShowLoading(true)
-      router.replace("/app")
-    } else if (isLoaded) {
-      setShouldRender(true)
+    let active = true
+    readEncryptedLocalStorage<string | boolean | null>("skip-landing", null).then((value) => {
+      if (!active) return
+      const hasSkippedLanding = value === "true" || value === true
+      if (hasSkippedLanding || (isLoaded && isSignedIn)) {
+        setShowLoading(true)
+        router.replace("/app")
+      } else if (isLoaded) {
+        setShouldRender(true)
+      }
+    })
+    return () => {
+      active = false
     }
   }, [isLoaded, isSignedIn, router])
 
@@ -45,7 +53,7 @@ export default function LandingPage() {
   }, [showLoading])
 
   const handleGetStarted = () => {
-    localStorage.setItem("skip-landing", "true")
+    void writeEncryptedLocalStorage("skip-landing", "true")
     setShowLoading(true)
     router.push("/app")
   }

@@ -13,6 +13,7 @@ import { zhCN, enUS } from "date-fns/locale"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/hooks/useLanguage"
+import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 import { translations } from "@/lib/i18n"
 
 interface BookmarkPanelProps {
@@ -57,22 +58,28 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   // Load bookmarks from localStorage
   useEffect(() => {
     if (open) {
-      const storedBookmarks = localStorage.getItem("bookmarked-events")
-      if (storedBookmarks) {
-        try {
-          const parsedBookmarks = JSON.parse(storedBookmarks)
+      const loadBookmarks = () =>
+        readEncryptedLocalStorage<BookmarkedEvent[]>("bookmarked-events", []).then((stored) => {
+          const parsedBookmarks = [...stored]
           // Sort by bookmarked date (newest first)
           parsedBookmarks.sort(
             (a: BookmarkedEvent, b: BookmarkedEvent) =>
               new Date(b.bookmarkedAt).getTime() - new Date(a.bookmarkedAt).getTime(),
           )
           setBookmarks(parsedBookmarks)
-        } catch (error) {
-          console.error("Error parsing bookmarks:", error)
-          setBookmarks([])
-        }
+        })
+
+      loadBookmarks()
+
+      const unsubscribe = subscribeEncryptionState(() => {
+        if (!getEncryptionState().ready) return
+        loadBookmarks()
+      })
+      return () => {
+        unsubscribe()
       }
     }
+    return undefined
   }, [open])
 
   // Format date for display
@@ -85,7 +92,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
   const removeBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
-    localStorage.setItem("bookmarked-events", JSON.stringify(updatedBookmarks))
+    void writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks)
     setBookmarks(updatedBookmarks)
     toast(language === "zh" ? "已移除收藏" : "Bookmark Removed", {
       description: language === "zh" ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
@@ -174,4 +181,3 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
     </Sheet>
   )
 }
-

@@ -14,6 +14,7 @@ import Image from "next/image"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { CalendarIcon } from 'lucide-react'
+import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 // Reusable Badge Component
 function Badge({ icon, text }: { icon: React.ReactNode; text: string }) {
@@ -84,12 +85,19 @@ export default function LandingPage() {
   }
   
   useEffect(() => {
-    const hasSkippedLanding = localStorage.getItem("skip-landing") === "true"
-    if (hasSkippedLanding || (isLoaded && isSignedIn)) {
-      setShowLoading(true)
-      router.replace("/app")
-    } else if (isLoaded) {
-      setShouldRender(true)
+    let active = true
+    readEncryptedLocalStorage<string | boolean | null>("skip-landing", null).then((value) => {
+      if (!active) return
+      const hasSkippedLanding = value === "true" || value === true
+      if (hasSkippedLanding || (isLoaded && isSignedIn)) {
+        setShowLoading(true)
+        router.replace("/app")
+      } else if (isLoaded) {
+        setShouldRender(true)
+      }
+    })
+    return () => {
+      active = false
     }
   }, [isLoaded, isSignedIn, router])
 
@@ -107,7 +115,7 @@ export default function LandingPage() {
   }, [showLoading])
 
   const handleGetStarted = () => {
-    localStorage.setItem("skip-landing", "true")
+    void writeEncryptedLocalStorage("skip-landing", "true")
     setShowLoading(true)
     router.push("/app")
   }

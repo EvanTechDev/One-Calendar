@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -57,7 +58,7 @@ const colorOptions = [
 ];
 
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
-  const [countdowns, setCountdowns] = useState<Countdown[]>([]);
+  const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>("countdowns", []);
   const [selectedCountdown, setSelectedCountdown] = useState<Countdown | null>(null);
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
     color: "bg-blue-500"
@@ -73,26 +74,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     setLanguage(userLanguage);
   }, []);
 
-  // 从 localStorage 加载数据
-  useEffect(() => {
-    const savedCountdowns = localStorage.getItem('countdowns');
-    if (savedCountdowns) {
-      try {
-        const parsedCountdowns = JSON.parse(savedCountdowns);
-        setCountdowns(parsedCountdowns);
-      } catch (error) {
-        console.error('Error parsing saved countdowns:', error);
-        setCountdowns([]);
-      }
-    }
-  }, []);
-
-  // 保存数据到 localStorage
-  useEffect(() => {
-    if (countdowns.length >= 0) {
-      localStorage.setItem('countdowns', JSON.stringify(countdowns));
-    }
-  }, [countdowns]);
+  // useLocalStorage handles persistence.
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
