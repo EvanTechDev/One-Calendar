@@ -88,11 +88,27 @@ const showSystemNotification = async (event: any) => {
   const body = event.description || t.noContent
   const tag = event.id ? `event-${event.id}` : "calendar-event"
 
+  const options: NotificationOptions = {
+    body,
+    tag,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+  }
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (registration) {
+        await registration.showNotification(title, options)
+        return
+      }
+    } catch {
+      // fall through to direct notification
+    }
+  }
+
   try {
-    new Notification(title, {
-      body,
-      tag,
-    })
+    new Notification(title, options)
   } catch {
     return
   }
