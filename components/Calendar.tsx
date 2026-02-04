@@ -315,13 +315,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
-      checkPendingNotifications()
+      checkPendingNotifications(notificationSound)
       notificationsInitializedRef.current = true
     }
 
     if (!notificationIntervalRef.current) {
       notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications()
+        checkPendingNotifications(notificationSound)
       }, 60000)
     }
 
@@ -330,7 +330,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         clearInterval(notificationIntervalRef.current)
       }
     }
-  }, [])
+  }, [notificationSound])
 
   useEffect(() => {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
