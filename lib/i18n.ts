@@ -1,6 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import {
+  getEncryptionState,
+  readEncryptedLocalStorage,
+  subscribeEncryptionState,
+  writeEncryptedLocalStorage,
+} from "@/hooks/useLocalStorage"
 
 export type Language = "en" | "zh"
 
@@ -487,43 +493,52 @@ function detectSystemLanguage(): Language {
 export function useLanguage(): [Language, (lang: Language) => void] {
   const [language, setLanguageState] = useState<Language>("zh") // 默认为中文
 
-  // 从localStorage读取语言设置
-  const readLanguageFromStorage = () => {
-    const storedLanguage = localStorage.getItem("preferred-language")
-    if (storedLanguage === "en" || storedLanguage === "zh") {
-      return storedLanguage as Language
-    }
-    return detectSystemLanguage()
-  }
-
   useEffect(() => {
     // 初始化时读取语言设置
-    const storedLanguage = readLanguageFromStorage()
-    setLanguageState(storedLanguage)
+    let active = true
+    const loadLanguage = () =>
+      readEncryptedLocalStorage<Language | null>("preferred-language", null).then((storedLanguage) => {
+        if (!active) return
+        if (storedLanguage === "en" || storedLanguage === "zh") {
+          setLanguageState(storedLanguage)
+        } else {
+          setLanguageState(detectSystemLanguage())
+        }
+      })
+
+    loadLanguage()
 
     // 创建一个事件监听器，当localStorage变化时触发
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "preferred-language") {
-        const newLanguage = e.newValue as Language
-        if (newLanguage === "en" || newLanguage === "zh") {
-          setLanguageState(newLanguage)
-        }
+        readEncryptedLocalStorage<Language | null>("preferred-language", null).then((newLanguage) => {
+          if (newLanguage === "en" || newLanguage === "zh") {
+            setLanguageState(newLanguage)
+          }
+        })
       }
     }
 
+    const unsubscribe = subscribeEncryptionState(() => {
+      if (getEncryptionState().ready) {
+        loadLanguage()
+      }
+    })
+
     window.addEventListener("storage", handleStorageChange)
     return () => {
+      active = false
+      unsubscribe()
       window.removeEventListener("storage", handleStorageChange)
     }
   }, [])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
-    localStorage.setItem("preferred-language", lang)
+    void writeEncryptedLocalStorage("preferred-language", lang)
     // 触发一个自定义事件，通知其他组件语言已更改
     window.dispatchEvent(new Event("languagechange"))
   }
 
   return [language, setLanguage]
 }
-

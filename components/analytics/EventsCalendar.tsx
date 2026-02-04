@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState } from "@/hooks/useLocalStorage";
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,34 +76,46 @@ const EventsCalendar: React.FC = () => {
   const t = translations[language];
   
   useEffect(() => {
-    const storedEvents = localStorage.getItem('calendar-events');
-    if (storedEvents) {
-      const parsedEvents = JSON.parse(storedEvents) as CalendarEvent[];
-      setEvents(parsedEvents);
-      
-      // 计算所有有事件的年份
-      const years = new Set<number>();
-      parsedEvents.forEach(event => {
-        const startYear = new Date(event.startDate).getFullYear();
-        const endYear = new Date(event.endDate).getFullYear();
-        for (let year = startYear; year <= endYear; year++) {
-          years.add(year);
+    let active = true;
+    const loadEvents = () =>
+      readEncryptedLocalStorage<CalendarEvent[]>('calendar-events', []).then((parsedEvents) => {
+        if (!active) return;
+        setEvents(parsedEvents);
+
+        // 计算所有有事件的年份
+        const years = new Set<number>();
+        parsedEvents.forEach(event => {
+          const startYear = new Date(event.startDate).getFullYear();
+          const endYear = new Date(event.endDate).getFullYear();
+          for (let year = startYear; year <= endYear; year++) {
+            years.add(year);
+          }
+        });
+
+        const sortedYears = Array.from(years).sort();
+        setAvailableYears(sortedYears);
+
+        // 如果有事件年份,默认选择最近的年份
+        if (sortedYears.length > 0) {
+          const currentYear = new Date().getFullYear();
+          // 找到当前年份或者最近的年份
+          const closestYear = sortedYears.reduce((prev, curr) => 
+            Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
+          );
+          setSelectedYear(closestYear);
         }
       });
-      
-      const sortedYears = Array.from(years).sort();
-      setAvailableYears(sortedYears);
-      
-      // 如果有事件年份,默认选择最近的年份
-      if (sortedYears.length > 0) {
-        const currentYear = new Date().getFullYear();
-        // 找到当前年份或者最近的年份
-        const closestYear = sortedYears.reduce((prev, curr) => 
-          Math.abs(curr - currentYear) < Math.abs(prev - currentYear) ? curr : prev
-        );
-        setSelectedYear(closestYear);
+
+    loadEvents();
+    const unsubscribe = subscribeEncryptionState(() => {
+      if (getEncryptionState().ready) {
+        loadEvents();
       }
-    }
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const getEventCountForDay = (day: Date) => {
