@@ -69,6 +69,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const { theme } = useTheme()
+  const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([])
+  const calendarSelectionInitializedRef = useRef(false)
+  const previousCalendarIdsRef = useRef<string[]>([])
 
   useLayoutEffect(() => {
     const body = document.body
@@ -95,6 +98,31 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       )
     )
   }
+
+  useEffect(() => {
+    const nextCalendarIds = calendars.map((calendar) => calendar.id)
+
+    if (!calendarSelectionInitializedRef.current) {
+      setSelectedCalendarIds(nextCalendarIds)
+      previousCalendarIdsRef.current = nextCalendarIds
+      calendarSelectionInitializedRef.current = true
+      return
+    }
+
+    const previousCalendarIds = previousCalendarIdsRef.current
+    const wasAllSelected =
+      previousCalendarIds.length > 0 &&
+      previousCalendarIds.every((id) => selectedCalendarIds.includes(id))
+
+    setSelectedCalendarIds((current) => {
+      if (wasAllSelected) {
+        return nextCalendarIds
+      }
+      return current.filter((id) => nextCalendarIds.includes(id))
+    })
+
+    previousCalendarIdsRef.current = nextCalendarIds
+  }, [calendars, selectedCalendarIds])
   
   // 新增：快速创建事件的初始时间
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(null)
@@ -310,8 +338,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setPreviewOpen(true)
   }
 
+  const handleToggleCalendar = (calendarId: string) => {
+    setSelectedCalendarIds((prev) =>
+      prev.includes(calendarId) ? prev.filter((id) => id !== calendarId) : [...prev, calendarId],
+    )
+  }
 
-  const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredEvents = events
+    .filter((event) => selectedCalendarIds.includes(event.calendarId))
+    .filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -355,6 +390,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          selectedCalendarIds={selectedCalendarIds}
+          onToggleCalendar={handleToggleCalendar}
         />
 
       <div className="flex-1 flex flex-col min-w-0 pr-14">
@@ -526,7 +563,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           )}
           {view === "analytics" && (
             <AnalyticsView
-              events={events}
+              events={filteredEvents}
               onCreateEvent={(startDate, endDate) => {
                 setSelectedEvent(null) // 确保是创建新事件
                 setQuickCreateStartTime(startDate)
