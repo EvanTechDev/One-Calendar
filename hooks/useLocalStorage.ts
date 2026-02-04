@@ -23,20 +23,21 @@ const ENCRYPTION_STATE: EncryptionState = {
 const encryptedSnapshots = new Map<string, EncryptedSnapshot>()
 const subscribers = new Set<() => void>()
 
-function safeJsonParse<T>(value: string): T | string {
-  try {
-    return JSON.parse(value) as T
-  } catch {
-    return value
-  }
-}
-
 function tryParse(value: string) {
   try {
     return { ok: true, parsed: JSON.parse(value) }
   } catch {
     return { ok: false, parsed: null }
   }
+}
+
+function coerceStoredValue<T>(raw: string, initialValue: T): T {
+  const parsed = tryParse(raw)
+  if (parsed.ok) return parsed.parsed as T
+  if (typeof initialValue === "string" || initialValue === null) {
+    return raw as T
+  }
+  return initialValue
 }
 
 function notifySubscribers() {
@@ -143,29 +144,33 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
   try {
     const snapshot = encryptedSnapshots.get(key)
     if (snapshot?.value) {
-      const parsedSnapshot = safeJsonParse(snapshot.value)
-      if (typeof parsedSnapshot === "object" && parsedSnapshot && isEncryptedPayload(parsedSnapshot)) {
+      const parsedSnapshot = tryParse(snapshot.value)
+      if (parsedSnapshot.ok && isEncryptedPayload(parsedSnapshot.parsed)) {
         if (!ENCRYPTION_STATE.password) return initialValue
         const plain = await decryptPayload(
           ENCRYPTION_STATE.password,
-          parsedSnapshot.ciphertext,
-          parsedSnapshot.iv,
+          parsedSnapshot.parsed.ciphertext,
+          parsedSnapshot.parsed.iv,
         )
         encryptedSnapshots.set(key, { value: plain, failed: false })
-        return safeJsonParse<T>(plain) as T
+        return coerceStoredValue<T>(plain, initialValue)
       }
-      return parsedSnapshot as T
+      return coerceStoredValue(snapshot.value, initialValue)
     }
     const item = window.localStorage.getItem(key)
     if (!item) return initialValue
-    const parsed = safeJsonParse(item)
-    if (typeof parsed === "object" && parsed && isEncryptedPayload(parsed)) {
+    const parsed = tryParse(item)
+    if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
       if (!ENCRYPTION_STATE.password) return initialValue
-      const plain = await decryptPayload(ENCRYPTION_STATE.password, parsed.ciphertext, parsed.iv)
+      const plain = await decryptPayload(
+        ENCRYPTION_STATE.password,
+        parsed.parsed.ciphertext,
+        parsed.parsed.iv,
+      )
       encryptedSnapshots.set(key, { value: plain, failed: false })
-      return safeJsonParse<T>(plain) as T
+      return coerceStoredValue<T>(plain, initialValue)
     }
-    return parsed as T
+    return coerceStoredValue(item, initialValue)
   } catch (error) {
     console.log(error)
     return initialValue
@@ -199,26 +204,26 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     if (!item) return initialValue
     const snapshot = encryptedSnapshots.get(key)
     if (snapshot?.value) {
-      const parsedSnapshot = safeJsonParse(snapshot.value)
-      if (typeof parsedSnapshot === "object" && parsedSnapshot && isEncryptedPayload(parsedSnapshot)) {
+      const parsedSnapshot = tryParse(snapshot.value)
+      if (parsedSnapshot.ok && isEncryptedPayload(parsedSnapshot.parsed)) {
         if (!ENCRYPTION_STATE.password) return initialValue
         const plain = await decryptPayload(
           ENCRYPTION_STATE.password,
-          parsedSnapshot.ciphertext,
-          parsedSnapshot.iv,
+          parsedSnapshot.parsed.ciphertext,
+          parsedSnapshot.parsed.iv,
         )
         snapshot.value = plain
         snapshot.failed = false
-        return safeJsonParse<T>(plain) as T
+        return coerceStoredValue<T>(plain, initialValue)
       }
-      return parsedSnapshot as T
+      return coerceStoredValue(snapshot.value, initialValue)
     }
-    const parsed = safeJsonParse(item)
-    if (typeof parsed === "object" && parsed && isEncryptedPayload(parsed)) {
+    const parsed = tryParse(item)
+    if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
       encryptedSnapshots.set(key, { value: item, failed: false })
       return initialValue
     }
-    return parsed as T
+    return coerceStoredValue(item, initialValue)
   } catch (error) {
     console.log(error)
     return initialValue
