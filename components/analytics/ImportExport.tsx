@@ -14,6 +14,7 @@ import { Download, Upload, CalendarIcon, ExternalLink, AlertCircle } from 'lucid
 import type { CalendarEvent } from "../Calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { translations, useLanguage } from "@/lib/i18n"
+import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 
 interface ImportExportProps {
   events: CalendarEvent[]
@@ -30,6 +31,11 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
   const [includeCompleted, setIncludeCompleted] = useState(true)
   const [dateRangeOption, setDateRangeOption] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [encryptJsonExport, setEncryptJsonExport] = useState(false)
+  const [jsonPassword, setJsonPassword] = useState("")
+  const [jsonPasswordConfirm, setJsonPasswordConfirm] = useState("")
+  const [jsonImportEncrypted, setJsonImportEncrypted] = useState(false)
+  const [jsonImportPassword, setJsonImportPassword] = useState("")
   const [debugMode, setDebugMode] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>("")
   const [language] = useLanguage() // 使用useLanguage钩子
@@ -84,7 +90,21 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         downloadFile(icsContent, "calendar-export.ics", "text/calendar")
       } else if (exportFormat === "json") {
         // Export as JSON
-        const jsonContent = JSON.stringify(filteredEvents, null, 2)
+        let jsonContent = JSON.stringify(filteredEvents, null, 2)
+
+        if (encryptJsonExport) {
+          if (!jsonPassword.trim()) {
+            throw new Error(t.passwordRequired || "Password is required")
+          }
+
+          if (jsonPassword !== jsonPasswordConfirm) {
+            throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
+          }
+
+          const encrypted = await encryptPayload(jsonPassword, jsonContent)
+          jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
+        }
+
         downloadFile(jsonContent, "calendar-export.json", "application/json")
       } else if (exportFormat === "csv") {
         // Export as CSV
@@ -123,7 +143,7 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         if (fileExt === "ics") {
           importedEvents = parseICS(rawContent)
         } else if (fileExt === "json") {
-          importedEvents = JSON.parse(rawContent)
+          importedEvents = await parseJsonEvents(rawContent)
         } else if (fileExt === "csv") {
           importedEvents = parseCSV(rawContent)
         } else {
@@ -137,7 +157,7 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         if (importUrl.endsWith(".ics")) {
           importedEvents = parseICS(rawContent)
         } else if (importUrl.endsWith(".json")) {
-          importedEvents = JSON.parse(rawContent)
+          importedEvents = await parseJsonEvents(rawContent)
         } else {
           throw new Error(t.unsupportedUrlFormat || "Unsupported URL format")
         }
@@ -195,6 +215,39 @@ ${rawContent.substring(0, 500)}...`)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const parseJsonEvents = async (rawContent: string): Promise<CalendarEvent[]> => {
+    const parsed = JSON.parse(rawContent)
+
+    if (Array.isArray(parsed)) {
+      return parsed as CalendarEvent[]
+    }
+
+    if (isEncryptedPayload(parsed) || parsed?.encrypted) {
+      if (!jsonImportEncrypted) {
+        throw new Error(t.encryptedJsonNeedToggle || "This JSON is encrypted. Please enable encrypted import.")
+      }
+
+      if (!jsonImportPassword.trim()) {
+        throw new Error(t.passwordRequired || "Password is required")
+      }
+
+      if (!isEncryptedPayload(parsed)) {
+        throw new Error(t.invalidEncryptedJson || "Invalid encrypted JSON payload")
+      }
+
+      const decrypted = await decryptPayload(jsonImportPassword, parsed.ciphertext, parsed.iv)
+      const decryptedEvents = JSON.parse(decrypted)
+
+      if (!Array.isArray(decryptedEvents)) {
+        throw new Error(t.invalidEncryptedJson || "Invalid encrypted JSON payload")
+      }
+
+      return decryptedEvents as CalendarEvent[]
+    }
+
+    throw new Error(t.unsupportedFormat || "Unsupported file format")
   }
 
   const generateICSFile = (events: CalendarEvent[]): string => {
@@ -677,6 +730,28 @@ END:VEVENT
                 />
                 <Label htmlFor="debug-mode">{t.debugMode}</Label>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="json-import-encrypted"
+                  checked={jsonImportEncrypted}
+                  onCheckedChange={(checked) => setJsonImportEncrypted(checked as boolean)}
+                />
+                <Label htmlFor="json-import-encrypted">{t.thisJsonEncrypted || "This JSON is password-encrypted"}</Label>
+              </div>
+
+              {jsonImportEncrypted && (
+                <div className="space-y-2">
+                  <Label htmlFor="json-import-password">{t.password || "Password"}</Label>
+                  <Input
+                    id="json-import-password"
+                    type="password"
+                    value={jsonImportPassword}
+                    onChange={(e) => setJsonImportPassword(e.target.value)}
+                    placeholder={t.enterPassword || "Enter a password"}
+                  />
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="url" className="space-y-4 pt-4">
@@ -759,6 +834,44 @@ END:VEVENT
               </Select>
             </div>
 
+            {exportFormat === "json" && (
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="encrypt-json-export"
+                    checked={encryptJsonExport}
+                    onCheckedChange={(checked) => setEncryptJsonExport(checked as boolean)}
+                  />
+                  <Label htmlFor="encrypt-json-export">{t.usePasswordEncryption || "Use password encryption"}</Label>
+                </div>
+
+                {encryptJsonExport && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="json-password">{t.password || "Password"}</Label>
+                      <Input
+                        id="json-password"
+                        type="password"
+                        value={jsonPassword}
+                        onChange={(e) => setJsonPassword(e.target.value)}
+                        placeholder={t.enterPassword || "Enter a password"}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="json-password-confirm">{t.confirmYourPassword || "Confirm your password"}</Label>
+                      <Input
+                        id="json-password-confirm"
+                        type="password"
+                        value={jsonPasswordConfirm}
+                        onChange={(e) => setJsonPasswordConfirm(e.target.value)}
+                        placeholder={t.confirmYourPassword || "Confirm your password"}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="include-completed"
@@ -782,4 +895,3 @@ END:VEVENT
     </Card>
   )
 }
-
