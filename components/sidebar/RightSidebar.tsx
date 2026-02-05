@@ -54,7 +54,7 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
 
 return (
   <>
-    <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
+    <div className="w-14 bg-background border-l border-t rounded-tl-2xl flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
       <div className="flex flex-col items-center space-y-6 flex-1">
         {/* Mini Calendar Button */}
         <Button

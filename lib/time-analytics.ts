@@ -11,6 +11,9 @@ export interface TimeAnalytics {
   categorizedHours: Record<string, number>
   mostProductiveDay: string
   mostProductiveHour: number
+  averageEventDuration: number
+  activeDays: number
+  busiestCategoryId: string
   longestEvent: {
     title: string
     duration: number
@@ -58,6 +61,9 @@ export function analyzeTimeUsage(events: any[], categories: TimeCategory[] = def
     categorizedHours: {},
     mostProductiveDay: "",
     mostProductiveHour: 0,
+    averageEventDuration: 0,
+    activeDays: 0,
+    busiestCategoryId: "uncategorized",
     longestEvent: {
       title: "",
       duration: 0,
@@ -146,6 +152,19 @@ export function analyzeTimeUsage(events: any[], categories: TimeCategory[] = def
       result.mostProductiveHour = Number.parseInt(hour)
     }
   }
+
+  result.activeDays = Object.keys(eventsByDay).length
+  result.averageEventDuration = result.totalEvents > 0 ? result.totalHours / result.totalEvents : 0
+
+  let busiestCategoryId = "uncategorized"
+  let busiestHours = -1
+  for (const [categoryId, hours] of Object.entries(result.categorizedHours)) {
+    if (hours > busiestHours) {
+      busiestHours = hours
+      busiestCategoryId = categoryId
+    }
+  }
+  result.busiestCategoryId = busiestCategoryId
 
   return result
 }

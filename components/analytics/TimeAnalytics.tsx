@@ -5,12 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { CalendarEvent } from "../Calendar"
 import type { CalendarCategory } from "../Sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -131,11 +126,30 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     "teal-500": "#14b8a6",
   }
 
+  const busiestCategoryName = (() => {
+    if (analytics.busiestCategoryId === "uncategorized") return t.uncategorized
+    return timeCategories.find((cat) => cat.id === analytics.busiestCategoryId)?.name || t.uncategorized
+  })()
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>{t.timeAnalytics}</CardTitle>
-        <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle>{t.timeAnalytics}</CardTitle>
+            <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
+          </div>
+          <Select value={timeRange} onValueChange={(value: "week" | "month" | "year") => setTimeRange(value)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">{t.thisWeek || "This Week"}</SelectItem>
+              <SelectItem value="month">{t.thisMonth || "This Month"}</SelectItem>
+              <SelectItem value="year">{t.thisYear || "This Year"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -208,6 +222,34 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
                 <p className="text-3xl font-bold mt-2">
                   {analytics.mostProductiveHour !== undefined ? `${analytics.mostProductiveHour}:00` : t.noData}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h3 className="text-lg font-medium">{t.totalHours || "Total Hours"}</h3>
+                <p className="text-3xl font-bold mt-2">{analytics.totalHours.toFixed(1)}h</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h3 className="text-lg font-medium">{t.averageEventDuration || "Average Event Duration"}</h3>
+                <p className="text-3xl font-bold mt-2">{analytics.averageEventDuration.toFixed(1)}h</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h3 className="text-lg font-medium">{t.busiestCategory || "Busiest Category"}</h3>
+                <p className="text-2xl font-bold mt-2">{busiestCategoryName || t.noData}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t.activeDays || "Active Days"}: {analytics.activeDays}</p>
               </div>
             </CardContent>
           </Card>
