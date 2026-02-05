@@ -53,7 +53,7 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
       </div>
       <TimeAnalyticsComponent events={events} calendars={calendars} key={`time-analytics-${language}-${forceUpdate}`} />
-      <div className="grid grid-cols-1 gap-8">
+      <div className="space-y-8">
         <EventsCalendar />
         <ImportExport
           events={events}
