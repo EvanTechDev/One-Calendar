@@ -1,16 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus, X } from "lucide-react"
-import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../Calendar"
 import type { CalendarCategory } from "../Sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
@@ -21,23 +15,15 @@ interface TimeAnalyticsProps {
 }
 
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
-  const [timeCategories, setTimeCategories] = useLocalStorage<CalendarCategory[]>("calendar-categories", calendars)
+  const [timeCategories] = useLocalStorage<CalendarCategory[]>("calendar-categories", calendars)
   const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null)
-  const [newCategory, setNewCategory] = useState<Partial<CalendarCategory>>({
-    name: "",
-    color: "bg-gray-500",
-    keywords: [],
-  })
   const [timeRange, setTimeRange] = useState<"week" | "month" | "year">("month")
   const [language] = useLanguage()
   const t = translations[language]
-  // 添加一个状态来强制组件重新渲染
   const [forceUpdate, setForceUpdate] = useState(0)
 
-  // 监听语言变化事件
   useEffect(() => {
     const handleLanguageChange = () => {
-      // 强制组件重新渲染
       setForceUpdate((prev) => prev + 1)
     }
 
@@ -47,54 +33,32 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     }
   }, [])
 
-  useEffect(() => {
-    // 根据选择的时间范围过滤事件
+  const filteredEvents = useMemo(() => {
     const now = new Date()
-    const filteredEvents = events.filter((event) => {
+    return events.filter((event) => {
       const eventDate = new Date(event.startDate)
       if (timeRange === "week") {
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         return eventDate >= oneWeekAgo
-      } else if (timeRange === "month") {
+      }
+      if (timeRange === "month") {
         const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
         return eventDate >= oneMonthAgo
-      } else if (timeRange === "year") {
-        const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-        return eventDate >= oneYearAgo
       }
-      return true
+      const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+      return eventDate >= oneYearAgo
     })
+  }, [events, timeRange])
 
+  useEffect(() => {
     const result = analyzeTimeUsage(filteredEvents, timeCategories)
     setAnalytics(result)
-  }, [events, timeCategories, timeRange, language, forceUpdate]) // 添加language依赖，确保语言变化时重新渲染
-
-  const handleAddCategory = () => {
-    if (newCategory.name) {
-      const newCat: CalendarCategory = {
-        id: Date.now().toString(),
-        name: newCategory.name,
-        color: newCategory.color || "bg-gray-500",
-        keywords: [], // 默认为空数组
-      }
-      setTimeCategories([...timeCategories, newCat])
-      setNewCategory({
-        name: "",
-        color: "bg-gray-500",
-        keywords: [],
-      })
-    }
-  }
-
-  const handleRemoveCategory = (id: string) => {
-    setTimeCategories(timeCategories.filter((cat) => cat.id !== id))
-  }
+  }, [filteredEvents, timeCategories, language, forceUpdate])
 
   if (!analytics) {
     return <div>{t.loading}</div>
   }
 
-  // 为扇形统计图准备数据
   const pieData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
@@ -106,7 +70,6 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       }
     })
 
-  // 为条形统计图图准备数据
   const barData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
@@ -131,11 +94,32 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     "teal-500": "#14b8a6",
   }
 
+  const topCategory = barData.length > 0 ? [...barData].sort((a, b) => b.hours - a.hours)[0] : null
+  const avgDuration = analytics.totalEvents > 0 ? analytics.totalHours / analytics.totalEvents : 0
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>{t.timeAnalytics}</CardTitle>
-        <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>{t.timeAnalytics}</CardTitle>
+            <CardDescription>{t.timeAnalyticsDesc || "Analyze how you spend your time"}</CardDescription>
+          </div>
+          <div className="inline-flex rounded-md border bg-background p-1">
+            {(["week", "month", "year"] as const).map((range) => (
+              <button
+                key={range}
+                type="button"
+                onClick={() => setTimeRange(range)}
+                className={`rounded px-3 py-1 text-sm transition-colors ${
+                  timeRange === range ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {range === "week" ? t.week : range === "month" ? t.month : t.year}
+              </button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -148,7 +132,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    labelLine={true}
+                    labelLine
                     label={({ name, value }) => `${name}: ${value}h`}
                     outerRadius={80}
                     fill="#8884d8"
@@ -169,7 +153,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
+                  <YAxis dataKey="name" type="category" width={100} />
                   <Tooltip formatter={(value) => [`${value} ${t.hours}`, ""]} />
                   <Legend />
                   <Bar dataKey="hours" name={t.hours}>
@@ -182,33 +166,49 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.totalEvents}</h3>
-                <p className="text-3xl font-bold mt-2">{analytics.totalEvents}</p>
-              </div>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.totalEvents}</h3>
+              <p className="text-2xl font-bold mt-2">{analytics.totalEvents}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.mostProductiveDay}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.mostProductiveDay ? new Date(analytics.mostProductiveDay).toLocaleDateString() : t.noData}
-                </p>
-              </div>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.totalHours || "Total Hours"}</h3>
+              <p className="text-2xl font-bold mt-2">{analytics.totalHours.toFixed(1)}h</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.mostProductiveHour}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.mostProductiveHour !== undefined ? `${analytics.mostProductiveHour}:00` : t.noData}
-                </p>
-              </div>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.analyticsAverageDuration || "Average Duration"}</h3>
+              <p className="text-2xl font-bold mt-2">{avgDuration.toFixed(1)}h</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.analyticsTopCategory || "Top Category"}</h3>
+              <p className="text-lg font-bold mt-2 truncate">{topCategory ? topCategory.name : t.noData}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.mostProductiveDay}</h3>
+              <p className="text-lg font-semibold mt-2">
+                {analytics.mostProductiveDay ? new Date(analytics.mostProductiveDay).toLocaleDateString(language) : t.noData}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <h3 className="text-sm text-muted-foreground">{t.mostProductiveHour}</h3>
+              <p className="text-lg font-semibold mt-2">
+                {analytics.mostProductiveHour !== undefined ? `${analytics.mostProductiveHour}:00` : t.noData}
+              </p>
             </CardContent>
           </Card>
         </div>
