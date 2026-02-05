@@ -341,7 +341,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   return (
     <div className={className}>
-    <div className="flex h-screen bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
           onCreateEvent={() => {
