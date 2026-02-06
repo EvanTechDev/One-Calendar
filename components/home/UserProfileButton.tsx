@@ -11,7 +11,6 @@ import {
   Mail,
   Link as LinkIcon,
   RefreshCcw,
-  Camera,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -180,6 +179,7 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [username, setUsername] = useState("")
   const [newEmail, setNewEmail] = useState("")
   const [profileSaving, setProfileSaving] = useState(false)
 
@@ -195,6 +195,7 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
     if (!user) return
     setFirstName(user.firstName || "")
     setLastName(user.lastName || "")
+    setUsername(user.username || "")
   }, [user])
 
   useEffect(() => {
@@ -225,6 +226,7 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       await user.update({
         firstName: firstName || null,
         lastName: lastName || null,
+        username: username || null,
       })
       toast(language.startsWith("zh") ? "个人资料已更新" : "Profile updated")
     } catch (e: any) {
@@ -233,20 +235,6 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       })
     } finally {
       setProfileSaving(false)
-    }
-  }
-
-
-  async function updateAvatar(file: File) {
-    if (!user) return
-    try {
-      await user.setProfileImage({ file })
-      await user.reload()
-      toast(language.startsWith("zh") ? "头像已更新" : "Avatar updated")
-    } catch (e: any) {
-      toast(language.startsWith("zh") ? "头像更新失败" : "Failed to update avatar", {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      })
     }
   }
 
@@ -406,7 +394,7 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
-            <Button variant={variant} size="icon" className={`rounded-full overflow-hidden h-10 w-10 p-0 ${className}`}>
+            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
               <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
             </Button>
           ) : (
@@ -470,27 +458,6 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
             <div className="space-y-6 py-1">
               <section className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-medium">{language.startsWith("zh") ? "基本信息" : "Basic info"}</h3>
-                <div className="flex items-center gap-3">
-                  {user?.imageUrl && (
-                    <Image src={user.imageUrl} alt="avatar" width={56} height={56} className="rounded-full object-cover" />
-                  )}
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <div className="inline-flex items-center rounded-md border px-3 py-2 text-sm">
-                      <Camera className="h-4 w-4 mr-2" />
-                      {language.startsWith("zh") ? "更换头像" : "Change avatar"}
-                    </div>
-                  </Label>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void updateAvatar(file)
-                    }}
-                  />
-                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>{language.startsWith("zh") ? "名字" : "First name"}</Label>
@@ -500,6 +467,10 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
                     <Label>{language.startsWith("zh") ? "姓氏" : "Last name"}</Label>
                     <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{language.startsWith("zh") ? "用户名" : "Username"}</Label>
+                  <Input value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
                 <Button onClick={saveProfile} disabled={profileSaving}>
                   {profileSaving
