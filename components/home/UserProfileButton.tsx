@@ -154,7 +154,12 @@ async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
   await persistEncryptedSnapshots()
 }
 
-export default function UserProfileButton() {
+type UserProfileButtonProps = {
+  variant?: React.ComponentProps<typeof Button>["variant"]
+  className?: string
+}
+
+export default function UserProfileButton({ variant = "ghost", className = "" }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
@@ -401,11 +406,11 @@ export default function UserProfileButton() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
-            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
+            <Button variant={variant} size="icon" className={`rounded-full overflow-hidden h-8 w-8 p-0 ${className}`}>
               <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+            <Button variant={variant} size="icon" className={`rounded-full h-8 w-8 ${className}`}>
               <User className="h-5 w-5" />
             </Button>
           )}

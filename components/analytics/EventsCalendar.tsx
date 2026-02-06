@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState } from "@/hooks/useLocalStorage";
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 
@@ -245,9 +245,6 @@ const EventsCalendar: React.FC = () => {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="pb-0">
-        <CardTitle className="sr-only">{t.eventsCalendar}</CardTitle>
-      </CardHeader>
       <CardContent className="pt-4">
         {renderCalendarGrid()}
       </CardContent>
