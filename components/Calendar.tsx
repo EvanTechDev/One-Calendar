@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense, useLayoutEffect } from "react"
+import { useState, useEffect, useRef, Suspense, useLayoutEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon, ArrowLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
@@ -50,7 +50,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
-  const [previousMainView, setPreviousMainView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
@@ -109,7 +108,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     // Only set the view on initial load
     if (view !== defaultView) {
       setView(defaultView as ViewType)
-      if (["day", "week", "month"].includes(defaultView)) setPreviousMainView(defaultView as ViewType)
     }
   }, [])
 
@@ -151,17 +149,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         case "1":
           e.preventDefault()
           setView("day")
-          setPreviousMainView("day")
           break
         case "2":
           e.preventDefault()
           setView("week")
-          setPreviousMainView("week")
           break
         case "3":
           e.preventDefault()
           setView("month")
-          setPreviousMainView("month")
           break
         case "ArrowRight":
           e.preventDefault()
@@ -316,7 +311,19 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
 
-  const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredEvents = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
+    if (!keyword) return events
+
+    return events
+      .filter((event) => {
+        const title = event.title?.toLowerCase() || ""
+        const location = event.location?.toLowerCase() || ""
+        const description = event.description?.toLowerCase() || ""
+        return title.includes(keyword) || location.includes(keyword) || description.includes(keyword)
+      })
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+  }, [events, searchTerm])
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -396,7 +403,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
-              <Select value={view === "analytics" || view === "settings" ? previousMainView : view} onValueChange={(value: ViewType) => { setView(value); setPreviousMainView(value) }}>
+              <Select value={view === "day" || view === "week" || view === "month" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -410,17 +417,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </SelectContent>
               </Select>
             </div>
-            {(view === "analytics" || view === "settings") && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                onClick={() => setView(previousMainView)}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                {t.back || "返回"}
-              </Button>
-            )}
             <div className="relative z-50">
               <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
@@ -428,6 +424,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 placeholder={t.searchEvents}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && filteredEvents.length > 0) {
+                    setPreviewEvent(filteredEvents[0])
+                    setPreviewOpen(true)
+                    setSearchTerm("")
+                  }
+                }}
                 className="pl-9 pr-4 py-2 w-40"
               />
               {searchTerm && (
@@ -477,7 +480,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             >
               <SettingsIcon className="h-4 w-4" />
             </Button>
-            <UserProfileButton variant="outline" className="rounded-full" />
+            <UserProfileButton variant="outline" className="rounded-full h-10 w-10" />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>

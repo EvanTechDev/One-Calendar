@@ -406,11 +406,11 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
-            <Button variant={variant} size="icon" className={`rounded-full overflow-hidden h-8 w-8 p-0 ${className}`}>
+            <Button variant={variant} size="icon" className={`rounded-full overflow-hidden h-10 w-10 p-0 ${className}`}>
               <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
             </Button>
           ) : (
-            <Button variant={variant} size="icon" className={`rounded-full h-8 w-8 ${className}`}>
+            <Button variant={variant} size="icon" className={`rounded-full h-10 w-10 ${className}`}>
               <User className="h-5 w-5" />
             </Button>
           )}
