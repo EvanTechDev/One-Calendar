@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense, useLayoutEffect } from "react"
+import { useState, useEffect, useRef, Suspense, useLayoutEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search, PanelLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
@@ -27,7 +27,7 @@ import DailyToast from "@/components/home/DailyToast"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 
-type ViewType = "day" | "week" | "month" | "analytics"
+type ViewType = "day" | "week" | "month" | "analytics" | "settings"
 
 export interface CalendarEvent {
   id: string
@@ -248,10 +248,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setSelectedEvent(null) // 重置选中的事件
   }
 
-  const handleImportEvents = (importedEvents: Omit<CalendarEvent, "id">[]) => {
+  const handleImportEvents = (importedEvents: CalendarEvent[]) => {
     const newEvents = importedEvents.map((event) => ({
       ...event,
-      id: Math.random().toString(36).substring(7),
+      id: event.id || Math.random().toString(36).substring(7),
     })) as CalendarEvent[]
     setEvents((prevEvents) => [...prevEvents, ...newEvents])
   }
@@ -311,7 +311,19 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
 
-  const filteredEvents = events.filter((event) => event.title.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredEvents = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
+    if (!keyword) return events
+
+    return events
+      .filter((event) => {
+        const title = event.title?.toLowerCase() || ""
+        const location = event.location?.toLowerCase() || ""
+        const description = event.description?.toLowerCase() || ""
+        return title.includes(keyword) || location.includes(keyword) || description.includes(keyword)
+      })
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+  }, [events, searchTerm])
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -374,7 +386,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            {view !== "analytics" && (
+            {view !== "analytics" && view !== "settings" && (
               <>
                 <div className="flex items-center space-x-1">
                   <Button variant="ghost" size="icon" onClick={handlePrevious}>
@@ -391,7 +403,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
           <div className="flex items-center space-x-2">
             <div className="relative z-50">
-              <Select value={view} onValueChange={(value: ViewType) => setView(value)}>
+              <Select value={view === "day" || view === "week" || view === "month" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -400,7 +412,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     <SelectItem value="day">{t.day}</SelectItem>
                     <SelectItem value="week">{t.week}</SelectItem>
                     <SelectItem value="month">{t.month}</SelectItem>
-                    <SelectItem value="analytics">{t.analytics}</SelectItem>
+
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -412,6 +424,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 placeholder={t.searchEvents}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && filteredEvents.length > 0) {
+                    setPreviewEvent(filteredEvents[0])
+                    setPreviewOpen(true)
+                    setSearchTerm("")
+                  }
+                }}
                 className="pl-9 pr-4 py-2 w-40"
               />
               {searchTerm && (
@@ -443,21 +462,25 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </div>
               )}
             </div>
-            <Settings
-              language={language}
-              setLanguage={setLanguage}
-              firstDayOfWeek={firstDayOfWeek}
-              setFirstDayOfWeek={setFirstDayOfWeek}
-              timezone={timezone}
-              setTimezone={setTimezone}
-              notificationSound={notificationSound}
-              setNotificationSound={setNotificationSound}
-              defaultView={defaultView}
-              setDefaultView={setDefaultView}
-              enableShortcuts={enableShortcuts}
-              setEnableShortcuts={setEnableShortcuts}
-            />
-            <UserProfileButton />
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => setView("analytics")}
+              aria-label={t.analytics}
+            >
+              <BarChart2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => setView("settings")}
+              aria-label={t.settings}
+            >
+              <SettingsIcon className="h-4 w-4" />
+            </Button>
+            <UserProfileButton variant="outline" className="rounded-full h-8 w-8" />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
@@ -532,6 +555,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 setQuickCreateStartTime(startDate)
                 setEventDialogOpen(true)
               }}
+            />
+          )}
+          {view === "settings" && (
+            <Settings
+              language={language}
+              setLanguage={setLanguage}
+              firstDayOfWeek={firstDayOfWeek}
+              setFirstDayOfWeek={setFirstDayOfWeek}
+              timezone={timezone}
+              setTimezone={setTimezone}
+              notificationSound={notificationSound}
+              setNotificationSound={setNotificationSound}
+              defaultView={defaultView}
+              setDefaultView={setDefaultView}
+              enableShortcuts={enableShortcuts}
+              setEnableShortcuts={setEnableShortcuts}
+              events={events}
               onImportEvents={handleImportEvents}
             />
           )}

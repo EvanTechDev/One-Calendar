@@ -2,39 +2,30 @@
 
 import { useState, useEffect } from "react"
 import TimeAnalyticsComponent from "@/components/analytics/TimeAnalytics"
-import ImportExport from "@/components/analytics/ImportExport"
+import EventsCalendar from "@/components/analytics/EventsCalendar"
 import type { CalendarEvent } from "@/components/Calendar"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
-import ShareManagement from "@/components/analytics/ShareManagement"
-import EventsCalendar from "@/components/analytics/EventsCalendar"
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
   onCreateEvent: (startDate: Date, endDate: Date) => void
-  onImportEvents: (events: CalendarEvent[]) => void
 }
 
-export default function AnalyticsView({ events, onCreateEvent, onImportEvents }: AnalyticsViewProps) {
+export default function AnalyticsView({ events }: AnalyticsViewProps) {
   const { calendars } = useCalendar()
-  const [language, setLanguage] = useLanguage()
+  const [language] = useLanguage()
   const t = translations[language]
-  // 添加一个状态来强制组件重新渲染
   const [forceUpdate, setForceUpdate] = useState(0)
 
-  // 监听localStorage变化
   useEffect(() => {
-    // 创建一个事件监听器，当localStorage变化时触发
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "preferred-language") {
-        // 强制组件重新渲染
         setForceUpdate((prev) => prev + 1)
       }
     }
 
-    // 监听语言变化事件
     const handleLanguageChange = () => {
-      // 强制组件重新渲染
       setForceUpdate((prev) => prev + 1)
     }
 
@@ -53,15 +44,7 @@ export default function AnalyticsView({ events, onCreateEvent, onImportEvents }:
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
       </div>
       <TimeAnalyticsComponent events={events} calendars={calendars} key={`time-analytics-${language}-${forceUpdate}`} />
-      <div className="flex flex-col gap-8">
-        <EventsCalendar />
-        <ImportExport
-          events={events}
-          onImportEvents={onImportEvents}
-          key={`import-export-${language}-${forceUpdate}`}
-        />
-        <ShareManagement key={`share-management-${language}-${forceUpdate}`} />
-      </div>
+      <EventsCalendar />
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ClockDashed } from "@/components/icons/clock-dashed"
-import { User, BookText, Plus, ArrowLeft, BarChart2, Edit2, Trash2, Calendar, Bookmark, MessageSquare, Sun } from 'lucide-react'
+import { User, BookText, Plus, ArrowLeft, Edit2, Trash2, Calendar, Bookmark, MessageSquare, Sun } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -39,14 +39,6 @@ export default function RightSidebar({ onViewChange, onEventClick }: RightSideba
   const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false)
   const [countdownOpen, setCountdownOpen] = useState(false);
   const router = useRouter();
-
-  // 处理分析按钮点击
-  const handleAnalyticsClick = () => {
-    if (onViewChange) {
-      onViewChange("analytics")
-    }
-  }
-
   // 处理日期选择
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
@@ -91,15 +83,6 @@ return (
           open={countdownOpen}
           onOpenChange={setCountdownOpen}
         />
-
-        <Button
-          variant="secondary"
-          size="icon"
-          className="rounded-full size-10"
-          onClick={handleAnalyticsClick}
-        >
-          <BarChart2 className="h-6 w-6 text-black dark:text-white" />
-        </Button>
       </div>
     </div>
 

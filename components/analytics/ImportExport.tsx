@@ -646,39 +646,6 @@ END:VEVENT
             <AlertTitle>{t.googleCalendarGuide}</AlertTitle>
             <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
           </Alert>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <CalendarIcon className="h-8 w-8 text-blue-500" />
-                  <h3 className="font-medium">{t.iCalendarFormat}</h3>
-                  <p className="text-sm text-muted-foreground">{t.iCalendarFormatDesc}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <Download className="h-8 w-8 text-green-500" />
-                  <h3 className="font-medium">{t.backupData}</h3>
-                  <p className="text-sm text-muted-foreground">{t.backupDataDesc}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <ExternalLink className="h-8 w-8 text-purple-500" />
-                  <h3 className="font-medium">{t.crossPlatformSync}</h3>
-                  <p className="text-sm text-muted-foreground">{t.crossPlatformSyncDesc}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           <div className="border rounded-lg p-4">
             <h3 className="font-medium mb-2">{t.importExportTips}</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">

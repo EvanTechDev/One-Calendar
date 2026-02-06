@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState } from "@/hooks/useLocalStorage";
 import { format, startOfWeek, addDays, startOfYear, endOfYear, isSameDay, parseISO, getDay, differenceInDays } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 
@@ -166,8 +166,8 @@ const EventsCalendar: React.FC = () => {
           </Select>
         </div>
         
-        <div className="overflow-x-auto pb-4">
-          <div style={{ position: 'relative', paddingTop: '20px', minWidth: `${totalWeeks * cellWithGap}px` }}>
+        <div className="overflow-x-auto pb-2">
+          <div style={{ position: 'relative', paddingTop: '20px', minWidth: `${Math.max(totalWeeks * cellWithGap, 720)}px` }}>
             {/* 月份标签 */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
               {monthLabels.map((month, i) => (
@@ -244,11 +244,8 @@ const EventsCalendar: React.FC = () => {
   };
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-0">
-        <CardTitle className="sr-only">{t.eventsCalendar}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="overflow-hidden">
+      <CardContent className="pt-4">
         {renderCalendarGrid()}
       </CardContent>
     </Card>
