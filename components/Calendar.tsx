@@ -341,7 +341,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   return (
     <div className={className}>
-    <div className="flex h-screen bg-background">
+    <div className="relative flex h-dvh overflow-hidden bg-background">
       {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
           onCreateEvent={() => {
@@ -357,7 +357,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
-      <div className="flex-1 flex flex-col min-w-0 pr-14">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pr-14">
         {" "}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <div className="flex items-center space-x-4">
