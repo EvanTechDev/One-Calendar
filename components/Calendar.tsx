@@ -465,7 +465,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full"
+              className="rounded-full h-8 w-8"
               onClick={() => setView("analytics")}
               aria-label={t.analytics}
             >
@@ -474,13 +474,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full"
+              className="rounded-full h-8 w-8"
               onClick={() => setView("settings")}
               aria-label={t.settings}
             >
               <SettingsIcon className="h-4 w-4" />
             </Button>
-            <UserProfileButton variant="outline" className="rounded-full h-10 w-10" />
+            <UserProfileButton variant="outline" className="rounded-full h-8 w-8" />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
