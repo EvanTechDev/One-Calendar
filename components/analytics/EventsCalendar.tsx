@@ -244,7 +244,7 @@ const EventsCalendar: React.FC = () => {
   };
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardHeader className="pb-0">
         <CardTitle className="sr-only">{t.eventsCalendar}</CardTitle>
       </CardHeader>

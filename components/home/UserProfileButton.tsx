@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -6,10 +5,13 @@ import {
   User,
   LogOut,
   CircleUser,
-  FolderSync,
   CloudUpload,
   Trash2,
   KeyRound,
+  Mail,
+  Link as LinkIcon,
+  RefreshCcw,
+  Camera,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,10 +30,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { translations, useLanguage } from "@/lib/i18n"
-import { useUser, SignOutButton, UserProfile } from "@clerk/nextjs"
+import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
@@ -87,9 +90,7 @@ function collectLocalStorage() {
   const storage: Record<string, string> = {}
   BACKUP_KEYS.forEach((key) => {
     const value = localStorage.getItem(key)
-    if (value !== null) {
-      storage[key] = value
-    }
+    if (value !== null) storage[key] = value
   })
   return storage
 }
@@ -104,9 +105,7 @@ function applyLocalStorage(storage: Record<string, string>) {
 async function encryptLocalStorage(password: string) {
   BACKUP_KEYS.forEach((key) => {
     const value = localStorage.getItem(key)
-    if (value !== null) {
-      markEncryptedSnapshot(key, value)
-    }
+    if (value !== null) markEncryptedSnapshot(key, value)
   })
   await encryptSnapshots(password)
   await persistEncryptedSnapshots()
@@ -174,6 +173,11 @@ export default function UserProfileButton() {
   const [oldPassword, setOldPassword] = useState("")
   const [error, setError] = useState("")
 
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [newEmail, setNewEmail] = useState("")
+  const [profileSaving, setProfileSaving] = useState(false)
+
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
@@ -183,20 +187,20 @@ export default function UserProfileButton() {
   }, [])
 
   useEffect(() => {
-    if (!isSignedIn) return
-    if (keyRef.current) return
-    if (restoredRef.current) return
+    if (!user) return
+    setFirstName(user.firstName || "")
+    setLastName(user.lastName || "")
+  }, [user])
 
+  useEffect(() => {
+    if (!isSignedIn || keyRef.current || restoredRef.current) return
     apiGet().then((cloud) => {
       if (cloud) setUnlockOpen(true)
     })
   }, [isSignedIn])
 
   useEffect(() => {
-    if (!enabled) return
-    if (!keyRef.current) return
-    if (!restoredRef.current) return
-
+    if (!enabled || !keyRef.current || !restoredRef.current) return
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
@@ -209,9 +213,83 @@ export default function UserProfileButton() {
     }, 800)
   }, [events, calendars, enabled])
 
+  async function saveProfile() {
+    if (!user) return
+    try {
+      setProfileSaving(true)
+      await user.update({
+        firstName: firstName || null,
+        lastName: lastName || null,
+      })
+      toast(language.startsWith("zh") ? "个人资料已更新" : "Profile updated")
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "更新失败" : "Failed to update profile", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+
+  async function updateAvatar(file: File) {
+    if (!user) return
+    try {
+      await user.setProfileImage({ file })
+      await user.reload()
+      toast(language.startsWith("zh") ? "头像已更新" : "Avatar updated")
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "头像更新失败" : "Failed to update avatar", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    }
+  }
+
+  async function addEmailAddress() {
+    if (!user || !newEmail) return
+    try {
+      const email = await user.createEmailAddress({ email: newEmail })
+      await email.prepareVerification({ strategy: "email_code" })
+      setNewEmail("")
+      toast(language.startsWith("zh") ? "已添加邮箱，请查收验证码" : "Email added. Check your inbox for verification")
+      await user.reload()
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "添加邮箱失败" : "Failed to add email", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    }
+  }
+
+  async function setPrimaryEmail(emailId: string) {
+    if (!user) return
+    try {
+      await user.update({ primaryEmailAddressId: emailId })
+      toast(language.startsWith("zh") ? "主邮箱已更新" : "Primary email updated")
+      await user.reload()
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "更新主邮箱失败" : "Failed to update primary email", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    }
+  }
+
+  async function unlinkOAuth(accountId: string) {
+    if (!user) return
+    try {
+      const target = user.externalAccounts.find((acc) => acc.id === accountId)
+      if (!target) return
+      await target.destroy()
+      toast(language.startsWith("zh") ? "OAuth 账号已断开" : "OAuth account disconnected")
+      await user.reload()
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "断开失败" : "Failed to disconnect", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    }
+  }
+
   async function unlock() {
     if (!password) return
-
     const cloud = await apiGet()
     if (!cloud) return
 
@@ -247,7 +325,6 @@ export default function UserProfileButton() {
 
     setPassword("")
     setUnlockOpen(false)
-
     toast(t.dataRestoredAutoBackupEnabled)
   }
 
@@ -258,10 +335,7 @@ export default function UserProfileButton() {
     }
     await setEncryptionPassword(password)
     await encryptLocalStorage(password)
-    const payload = await encryptPayload(
-      password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
-    )
+    const payload = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(payload)
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
@@ -289,10 +363,7 @@ export default function UserProfileButton() {
     }
 
     await reencryptLocalStorage(oldPassword, password)
-    const next = await encryptPayload(
-      password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
-    )
+    const next = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(next)
     await setEncryptionPassword(password)
     keyRef.current = password
@@ -331,13 +402,7 @@ export default function UserProfileButton() {
         <DropdownMenuTrigger asChild>
           {isSignedIn && user?.imageUrl ? (
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
-              <Image
-                src={user.imageUrl}
-                alt="avatar"
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
-              />
+              <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
             </Button>
           ) : (
             <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
@@ -378,20 +443,133 @@ export default function UserProfileButton() {
             </>
           ) : (
             <>
-              <DropdownMenuItem onClick={() => router.push("/sign-in")}>
-                {t.signIn}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/sign-up")}>
-                {t.signUp}
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/sign-in")}>{t.signIn}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/sign-up")}>{t.signUp}</DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="p-0 w-auto">
-          <UserProfile />
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{language.startsWith("zh") ? "个人资料" : "Profile"}</DialogTitle>
+            <DialogDescription>
+              {language.startsWith("zh")
+                ? "管理名称、邮箱和 OAuth 连接。"
+                : "Manage your name, email addresses, and OAuth connections."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[70vh] pr-4">
+            <div className="space-y-6 py-1">
+              <section className="space-y-3 rounded-lg border p-4">
+                <h3 className="font-medium">{language.startsWith("zh") ? "基本信息" : "Basic info"}</h3>
+                <div className="flex items-center gap-3">
+                  {user?.imageUrl && (
+                    <Image src={user.imageUrl} alt="avatar" width={56} height={56} className="rounded-full object-cover" />
+                  )}
+                  <Label htmlFor="avatar-upload" className="cursor-pointer">
+                    <div className="inline-flex items-center rounded-md border px-3 py-2 text-sm">
+                      <Camera className="h-4 w-4 mr-2" />
+                      {language.startsWith("zh") ? "更换头像" : "Change avatar"}
+                    </div>
+                  </Label>
+                  <Input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) void updateAvatar(file)
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>{language.startsWith("zh") ? "名字" : "First name"}</Label>
+                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{language.startsWith("zh") ? "姓氏" : "Last name"}</Label>
+                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  </div>
+                </div>
+                <Button onClick={saveProfile} disabled={profileSaving}>
+                  {profileSaving
+                    ? language.startsWith("zh")
+                      ? "保存中..."
+                      : "Saving..."
+                    : language.startsWith("zh")
+                      ? "保存资料"
+                      : "Save profile"}
+                </Button>
+              </section>
+
+              <section className="space-y-3 rounded-lg border p-4">
+                <h3 className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" />{language.startsWith("zh") ? "邮箱" : "Emails"}</h3>
+                <div className="space-y-2">
+                  {(user?.emailAddresses || []).map((email) => (
+                    <div key={email.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                      <div>
+                        <p className="font-medium">{email.emailAddress}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {email.verification?.status === "verified"
+                            ? language.startsWith("zh") ? "已验证" : "Verified"
+                            : language.startsWith("zh") ? "未验证" : "Unverified"}
+                          {user?.primaryEmailAddressId === email.id
+                            ? ` · ${language.startsWith("zh") ? "主邮箱" : "Primary"}`
+                            : ""}
+                        </p>
+                      </div>
+                      {user?.primaryEmailAddressId !== email.id && (
+                        <Button variant="outline" size="sm" onClick={() => setPrimaryEmail(email.id)}>
+                          {language.startsWith("zh") ? "设为主邮箱" : "Set primary"}
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={language.startsWith("zh") ? "新增邮箱" : "Add email address"}
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                  <Button onClick={addEmailAddress}>{language.startsWith("zh") ? "添加" : "Add"}</Button>
+                </div>
+              </section>
+
+              <section className="space-y-3 rounded-lg border p-4">
+                <h3 className="font-medium flex items-center gap-2"><LinkIcon className="h-4 w-4" />OAuth</h3>
+                {(user?.externalAccounts || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {language.startsWith("zh") ? "暂无已连接 OAuth 账号" : "No connected OAuth accounts"}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(user?.externalAccounts || []).map((account) => (
+                      <div key={account.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                        <div>
+                          <p className="font-medium">{account.provider}</p>
+                          <p className="text-muted-foreground text-xs">{account.emailAddress || account.username || "-"}</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => unlinkOAuth(account.id)}>
+                          {language.startsWith("zh") ? "断开" : "Disconnect"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button variant="outline" onClick={() => user?.reload()}>
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  {language.startsWith("zh") ? "刷新连接状态" : "Refresh connections"}
+                </Button>
+              </section>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
@@ -399,26 +577,13 @@ export default function UserProfileButton() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t.autoBackup}</DialogTitle>
-            <DialogDescription>
-              {enabled
-                ? t.autoBackupStatusEnabled
-                : t.autoBackupStatusDisabled}
-            </DialogDescription>
+            <DialogDescription>{enabled ? t.autoBackupStatusEnabled : t.autoBackupStatusDisabled}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             {enabled ? (
-              <Button variant="destructive" onClick={disableAutoBackup}>
-                {t.disable}
-              </Button>
+              <Button variant="destructive" onClick={disableAutoBackup}>{t.disable}</Button>
             ) : (
-              <Button
-                onClick={() => {
-                  setBackupOpen(false)
-                  setSetPwdOpen(true)
-                }}
-              >
-                {t.enable}
-              </Button>
+              <Button onClick={() => { setBackupOpen(false); setSetPwdOpen(true) }}>{t.enable}</Button>
             )}
           </DialogFooter>
         </DialogContent>
@@ -428,9 +593,7 @@ export default function UserProfileButton() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t.setEncryptionPassword}</DialogTitle>
-            <DialogDescription>
-              {t.setEncryptionPasswordDescription}
-            </DialogDescription>
+            <DialogDescription>{t.setEncryptionPasswordDescription}</DialogDescription>
           </DialogHeader>
           <Label>{t.password}</Label>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -443,42 +606,18 @@ export default function UserProfileButton() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-  open={unlockOpen}
-  onOpenChange={(open) => {
-    if (open) {
-      setUnlockOpen(true)
-    }
-  }}
->
-  <DialogContent
-    onInteractOutside={(e) => e.preventDefault()}
-    onEscapeKeyDown={(e) => e.preventDefault()}
-  >
-    <DialogHeader>
-      <DialogTitle>
-        {t.enterPasswordTitle}
-      </DialogTitle>
-      <DialogDescription>
-        {t.enterPasswordDescription}
-      </DialogDescription>
-    </DialogHeader>
-
-    <Input
-      type="password"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-    />
-
-    <DialogFooter>
-      <Button onClick={unlock}>
-        {t.confirm}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
-
+      <Dialog open={unlockOpen} onOpenChange={(open) => { if (open) setUnlockOpen(true) }}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>{t.enterPasswordTitle}</DialogTitle>
+            <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
+          </DialogHeader>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <DialogFooter>
+            <Button onClick={unlock}>{t.confirm}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
         <DialogContent>

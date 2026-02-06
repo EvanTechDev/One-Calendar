@@ -27,7 +27,7 @@ import DailyToast from "@/components/home/DailyToast"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 
-type ViewType = "day" | "week" | "month" | "analytics"
+type ViewType = "day" | "week" | "month" | "analytics" | "settings"
 
 export interface CalendarEvent {
   id: string
@@ -248,10 +248,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setSelectedEvent(null) // 重置选中的事件
   }
 
-  const handleImportEvents = (importedEvents: Omit<CalendarEvent, "id">[]) => {
+  const handleImportEvents = (importedEvents: CalendarEvent[]) => {
     const newEvents = importedEvents.map((event) => ({
       ...event,
-      id: Math.random().toString(36).substring(7),
+      id: event.id || Math.random().toString(36).substring(7),
     })) as CalendarEvent[]
     setEvents((prevEvents) => [...prevEvents, ...newEvents])
   }
@@ -341,7 +341,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   return (
     <div className={className}>
-    <div className="flex h-screen bg-background">
+    <div className="relative flex h-dvh overflow-hidden bg-background">
       {/* <div className="w-80 border-r bg-background"> */}
         <Sidebar
           onCreateEvent={() => {
@@ -357,7 +357,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
-      <div className="flex-1 flex flex-col min-w-0 pr-14">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pr-14">
         {" "}
         <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
           <div className="flex items-center space-x-4">
@@ -374,7 +374,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            {view !== "analytics" && (
+            {view !== "analytics" && view !== "settings" && (
               <>
                 <div className="flex items-center space-x-1">
                   <Button variant="ghost" size="icon" onClick={handlePrevious}>
@@ -401,6 +401,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     <SelectItem value="week">{t.week}</SelectItem>
                     <SelectItem value="month">{t.month}</SelectItem>
                     <SelectItem value="analytics">{t.analytics}</SelectItem>
+                    <SelectItem value="settings">{t.settings}</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -443,20 +444,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </div>
               )}
             </div>
-            <Settings
-              language={language}
-              setLanguage={setLanguage}
-              firstDayOfWeek={firstDayOfWeek}
-              setFirstDayOfWeek={setFirstDayOfWeek}
-              timezone={timezone}
-              setTimezone={setTimezone}
-              notificationSound={notificationSound}
-              setNotificationSound={setNotificationSound}
-              defaultView={defaultView}
-              setDefaultView={setDefaultView}
-              enableShortcuts={enableShortcuts}
-              setEnableShortcuts={setEnableShortcuts}
-            />
             <UserProfileButton />
           </div>
         </header>
@@ -532,6 +519,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 setQuickCreateStartTime(startDate)
                 setEventDialogOpen(true)
               }}
+            />
+          )}
+          {view === "settings" && (
+            <Settings
+              language={language}
+              setLanguage={setLanguage}
+              firstDayOfWeek={firstDayOfWeek}
+              setFirstDayOfWeek={setFirstDayOfWeek}
+              timezone={timezone}
+              setTimezone={setTimezone}
+              notificationSound={notificationSound}
+              setNotificationSound={setNotificationSound}
+              defaultView={defaultView}
+              setDefaultView={setDefaultView}
+              enableShortcuts={enableShortcuts}
+              setEnableShortcuts={setEnableShortcuts}
+              events={events}
               onImportEvents={handleImportEvents}
             />
           )}
