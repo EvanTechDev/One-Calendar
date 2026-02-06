@@ -211,8 +211,8 @@ export default function Settings({
         )}
       </div>
 
-      <ImportExport events={events} onImportEvents={onImportEvents} />
       <ShareManagement />
+      <ImportExport events={events} onImportEvents={onImportEvents} />
     </div>
   )
 }

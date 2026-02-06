@@ -166,8 +166,8 @@ const EventsCalendar: React.FC = () => {
           </Select>
         </div>
         
-        <div className="overflow-x-auto pb-4">
-          <div style={{ position: 'relative', paddingTop: '20px', minWidth: `${totalWeeks * cellWithGap}px` }}>
+        <div className="overflow-x-auto pb-2">
+          <div style={{ position: 'relative', paddingTop: '20px', minWidth: `${Math.max(totalWeeks * cellWithGap, 720)}px` }}>
             {/* 月份标签 */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
               {monthLabels.map((month, i) => (
@@ -244,11 +244,11 @@ const EventsCalendar: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-0">
         <CardTitle className="sr-only">{t.eventsCalendar}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {renderCalendarGrid()}
       </CardContent>
     </Card>

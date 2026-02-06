@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search, PanelLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings2 } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
@@ -400,8 +400,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     <SelectItem value="day">{t.day}</SelectItem>
                     <SelectItem value="week">{t.week}</SelectItem>
                     <SelectItem value="month">{t.month}</SelectItem>
-                    <SelectItem value="analytics">{t.analytics}</SelectItem>
-                    <SelectItem value="settings">{t.settings}</SelectItem>
+
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -444,6 +443,24 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </div>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => setView("analytics")}
+              aria-label={t.analytics}
+            >
+              <BarChart2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => setView("settings")}
+              aria-label={t.settings}
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
             <UserProfileButton />
           </div>
         </header>
