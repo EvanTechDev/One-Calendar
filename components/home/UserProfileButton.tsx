@@ -11,6 +11,7 @@ import {
   Mail,
   Link as LinkIcon,
   RefreshCcw,
+  Camera,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -179,9 +180,9 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
-  const [username, setUsername] = useState("")
   const [newEmail, setNewEmail] = useState("")
   const [profileSaving, setProfileSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
@@ -195,7 +196,6 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
     if (!user) return
     setFirstName(user.firstName || "")
     setLastName(user.lastName || "")
-    setUsername(user.username || "")
   }, [user])
 
   useEffect(() => {
@@ -226,7 +226,6 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       await user.update({
         firstName: firstName || null,
         lastName: lastName || null,
-        username: username || null,
       })
       toast(language.startsWith("zh") ? "个人资料已更新" : "Profile updated")
     } catch (e: any) {
@@ -235,6 +234,22 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
       })
     } finally {
       setProfileSaving(false)
+    }
+  }
+
+  async function updateAvatar(file?: File | null) {
+    if (!user || !file) return
+    try {
+      setAvatarUploading(true)
+      await user.setProfileImage({ file })
+      await user.reload()
+      toast(language.startsWith("zh") ? "头像已更新" : "Avatar updated")
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "头像更新失败" : "Failed to update avatar", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+      })
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -458,6 +473,42 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
             <div className="space-y-6 py-1">
               <section className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-medium">{language.startsWith("zh") ? "基本信息" : "Basic info"}</h3>
+                <div className="space-y-2">
+                  <Label>{language.startsWith("zh") ? "头像" : "Avatar"}</Label>
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src={user?.imageUrl || "/placeholder.svg"}
+                      alt="avatar"
+                      width={52}
+                      height={52}
+                      className="h-12 w-12 rounded-full border object-cover"
+                    />
+                    <Label
+                      htmlFor="profile-avatar-input"
+                      className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                    >
+                      <Camera className="h-4 w-4" />
+                      {avatarUploading
+                        ? language.startsWith("zh")
+                          ? "上传中..."
+                          : "Uploading..."
+                        : language.startsWith("zh")
+                          ? "更换头像"
+                          : "Change avatar"}
+                    </Label>
+                    <Input
+                      id="profile-avatar-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={avatarUploading}
+                      onChange={(e) => {
+                        void updateAvatar(e.target.files?.[0])
+                        e.currentTarget.value = ""
+                      }}
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>{language.startsWith("zh") ? "名字" : "First name"}</Label>
@@ -467,10 +518,6 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
                     <Label>{language.startsWith("zh") ? "姓氏" : "Last name"}</Label>
                     <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{language.startsWith("zh") ? "用户名" : "Username"}</Label>
-                  <Input value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
                 <Button onClick={saveProfile} disabled={profileSaving}>
                   {profileSaving
