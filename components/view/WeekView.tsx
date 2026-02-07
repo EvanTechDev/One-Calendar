@@ -512,7 +512,7 @@ export default function WeekView({
               position: "absolute",
               left: "0",
               right: "0",
-              opacity: 0.9,
+              opacity: isDark ? 0.5 : 0.9,
               zIndex: 10 + index,
             }}
             onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -529,7 +529,7 @@ export default function WeekView({
               className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")} 
               style={{ backgroundColor: getDarkerColorClass(event.color) }} 
             />
-            <div className="pl-1.5 truncate text-white">
+            <div className="pl-1.5 truncate" style={{ color: getDarkerColorClass(event.color) }}>
               {event.title}
             </div>
           </div>
@@ -585,7 +585,7 @@ export default function WeekView({
           style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }} 
         />
         <div className="pl-1">
-          <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{draggingEvent.title}</div>
+          <div className="font-medium truncate" style={{ color: getDarkerColorClass(draggingEvent.color) }}>{draggingEvent.title}</div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
               {formatTime(dragPreview.hour)}:{dragPreview.minute.toString().padStart(2, '0')} - {formatTime(Math.floor(endMinutes / 60))}:{(endMinutes % 60).toString().padStart(2, '0')}
@@ -682,7 +682,7 @@ export default function WeekView({
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
-                            opacity: 0.92,
+                            opacity: isDark ? 0.5 : 0.92,
                             width,
                             left,
                             zIndex: column + 1,

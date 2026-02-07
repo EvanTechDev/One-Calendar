@@ -58,6 +58,10 @@ export default function DayView({
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isDraggingRef = useRef(false)
 
+  const isDark =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark")
+
   const menuLabels = {
     edit: t.edit,
     share: t.share,
@@ -398,7 +402,7 @@ export default function DayView({
               position: "absolute",
               left: "0",
               right: "0",
-              opacity: 0.9,
+              opacity: isDark ? 0.5 : 0.9,
               zIndex: 10 + index,
             }}
             onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -468,7 +472,7 @@ export default function DayView({
           style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }} 
         />
         <div className="pl-1">
-          <div className="font-medium truncate" style={{ color: getDarkerColorClass(event.color) }}>{draggingEvent.title}</div>
+          <div className="font-medium truncate" style={{ color: getDarkerColorClass(draggingEvent.color) }}>{draggingEvent.title}</div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
               {formatTime(dragPreview.hour)}:{dragPreview.minute.toString().padStart(2, '0')} - {formatTime(Math.floor(endMinutes / 60))}:{(endMinutes % 60).toString().padStart(2, '0')}
@@ -580,7 +584,7 @@ export default function DayView({
                     style={{
                       top: `${startMinutes}px`,
                       height: `${height}px`,
-                      opacity: 0.9,
+                      opacity: isDark ? 0.5 : 0.9,
                       width,
                       left,
                       zIndex: column + 1,
@@ -599,7 +603,7 @@ export default function DayView({
                     <div className="pl-1">
                     <div className="font-medium truncate"  style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
                     {height >= 40 && (
-                      <div className="text-xs text-white/90 truncate">
+                      <div className="text-xs truncate" style={{ color: getDarkerColorClass(event.color) }}>
                         {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}
                       </div>
                     )}

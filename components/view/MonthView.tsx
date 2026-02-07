@@ -36,6 +36,10 @@ export default function MonthView({ date, events, onEventClick, language, firstD
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const today = new Date()
+  const isDark =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark")
 
   const startWeekDay = monthStart.getDay()
   const leadingEmptyDays = (7 + (startWeekDay - firstDayOfWeek)) % 7
@@ -68,13 +72,24 @@ export default function MonthView({ date, events, onEventClick, language, firstD
             key={day.toString()}
             className="min-h-[100px] p-2 border rounded-xl border"
           >
-            <div className={cn("font-medium text-sm", isSameMonth(day, date) ? "" : "text-gray-400")}>{format(day, "d")}</div>
+            <div
+              className={cn(
+                "font-medium text-sm",
+                isSameMonth(day, date) ? "" : "text-gray-400",
+                isSameDay(day, today)
+                  ? "text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5]"
+                  : "",
+              )}
+            >
+              {format(day, "d")}
+            </div>
             <div className="space-y-1">
               {visibleEvents.map((event) => (
                 <div
                   key={event.id}
                   className={cn("relative text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
                   onClick={() => onEventClick(event)}
+                  style={{ opacity: isDark ? 0.5 : 1 }}
                 >
                   <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
                   <div className="pl-1.5" style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
