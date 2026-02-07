@@ -124,7 +124,7 @@ export default function Sidebar({
               setLocalSelectedDate(date)
               date && onDateSelect(date)
             }}
-            className="rounded-md border"
+            className="rounded-lg border"
           />
         </div>
 
