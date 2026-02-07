@@ -402,7 +402,7 @@ export default function DayView({
               position: "absolute",
               left: "0",
               right: "0",
-              opacity: isDark ? 0.5 : 0.9,
+              opacity: isDark ? 0.68 : 0.9,
               zIndex: 10 + index,
             }}
             onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -584,7 +584,7 @@ export default function DayView({
                     style={{
                       top: `${startMinutes}px`,
                       height: `${height}px`,
-                      opacity: isDark ? 0.5 : 0.9,
+                      opacity: isDark ? 0.68 : 0.9,
                       width,
                       left,
                       zIndex: column + 1,
@@ -601,7 +601,19 @@ export default function DayView({
                   >
                    <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
                     <div className="pl-1">
-                    <div className="font-medium truncate"  style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
+                    <div
+                      className="font-medium leading-tight break-words"
+                      style={{
+                        color: getDarkerColorClass(event.color),
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: Math.max(1, Math.floor((height - 8) / 16)),
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {event.title}
+                    </div>
                     {height >= 40 && (
                       <div className="text-xs truncate" style={{ color: getDarkerColorClass(event.color) }}>
                         {formatDateWithTimezone(start)} - {formatDateWithTimezone(end)}

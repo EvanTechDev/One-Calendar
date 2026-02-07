@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { format, addDays, subDays, startOfWeek, endOfWeek, isSameDay, isToday } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
-import { ChevronRight } from "lucide-react"
+import { CalendarDays, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -104,11 +104,12 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[350px] sm:w-[400px] p-0">
-        <SheetHeader className="p-4 border-b flex items-center justify-between">
-          <div className="flex items-center">
-            <SheetTitle>{t.calendar}</SheetTitle>
-          </div>
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5" />
+            {t.calendar}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="p-4 border-b">

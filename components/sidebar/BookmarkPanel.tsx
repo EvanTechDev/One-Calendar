@@ -117,7 +117,7 @@ export default function BookmarkPanel({ open, onOpenChange, onEventClick }: Book
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[350px] sm:w-[400px] p-0">
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center">
             <Bookmark className="mr-2 h-5 w-5" />
