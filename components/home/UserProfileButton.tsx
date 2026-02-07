@@ -216,11 +216,12 @@ export default function UserProfileButton({
   }, [user])
 
   useEffect(() => {
+    if (mode === "settings") return
     if (!isSignedIn || keyRef.current || restoredRef.current) return
     apiGet().then((cloud) => {
       if (cloud) setUnlockOpen(true)
     })
-  }, [isSignedIn])
+  }, [isSignedIn, mode])
 
   useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return
