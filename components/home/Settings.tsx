@@ -11,6 +11,7 @@ import ImportExport from "@/components/analytics/ImportExport"
 import ShareManagement from "@/components/analytics/ShareManagement"
 import type { CalendarEvent } from "@/components/Calendar"
 import { useTheme } from "next-themes"
+import UserProfileButton, { type UserProfileSection } from "@/components/home/UserProfileButton"
 
 interface SettingsProps {
   language: Language
@@ -27,6 +28,7 @@ interface SettingsProps {
   setEnableShortcuts: (enable: boolean) => void
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
+  focusUserProfileSection?: UserProfileSection | null
 }
 
 export default function Settings({
@@ -44,6 +46,7 @@ export default function Settings({
   setEnableShortcuts,
   events,
   onImportEvents,
+  focusUserProfileSection = null,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
   const t = translations[language]
@@ -209,6 +212,11 @@ export default function Settings({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">{language.startsWith("zh") ? "账户" : "Account"}</h2>
+        <UserProfileButton mode="settings" focusSection={focusUserProfileSection} />
       </div>
 
       <ShareManagement />
