@@ -21,7 +21,6 @@ import EventUrlHandler from "@/components/event/EventUrlHandler"
 import RightSidebar from "@/components/sidebar/RightSidebar"
 import AnalyticsView from "@/components/analytics/AnalyticsView"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import UserProfileButton from "@/components/home/UserProfileButton"
 import { cn } from "@/lib/utils"
 import DailyToast from "@/components/home/DailyToast"
 import { toast } from "sonner"
@@ -480,7 +479,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             >
               <SettingsIcon className="h-4 w-4" />
             </Button>
-            <UserProfileButton variant="outline" className="rounded-full h-8 w-8" />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>

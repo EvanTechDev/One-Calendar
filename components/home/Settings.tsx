@@ -11,6 +11,7 @@ import ImportExport from "@/components/analytics/ImportExport"
 import ShareManagement from "@/components/analytics/ShareManagement"
 import type { CalendarEvent } from "@/components/Calendar"
 import { useTheme } from "next-themes"
+import UserProfileButton from "@/components/home/UserProfileButton"
 
 interface SettingsProps {
   language: Language
@@ -209,6 +210,11 @@ export default function Settings({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">{language.startsWith("zh") ? "账户" : "Account"}</h2>
+        <UserProfileButton mode="settings" />
       </div>
 
       <ShareManagement />

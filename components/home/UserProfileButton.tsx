@@ -157,9 +157,10 @@ async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
 type UserProfileButtonProps = {
   variant?: React.ComponentProps<typeof Button>["variant"]
   className?: string
+  mode?: "dropdown" | "settings"
 }
 
-export default function UserProfileButton({ variant = "ghost", className = "" }: UserProfileButtonProps) {
+export default function UserProfileButton({ variant = "ghost", className = "", mode = "dropdown" }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
@@ -406,57 +407,93 @@ export default function UserProfileButton({ variant = "ghost", className = "" }:
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          {isSignedIn && user?.imageUrl ? (
-            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
-              <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
-            </Button>
-          ) : (
-            <Button variant={variant} size="icon" className={`rounded-full h-10 w-10 ${className}`}>
-              <User className="h-5 w-5" />
-            </Button>
-          )}
-        </DropdownMenuTrigger>
+      {mode === "dropdown" ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {isSignedIn && user?.imageUrl ? (
+              <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
+                <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
+              </Button>
+            ) : (
+              <Button variant={variant} size="icon" className={`rounded-full h-10 w-10 ${className}`}>
+                <User className="h-5 w-5" />
+              </Button>
+            )}
+          </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end">
+            {isSignedIn ? (
+              <>
+                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                  <CircleUser className="mr-2 h-4 w-4" />
+                  {t.profile}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => setBackupOpen(true)}>
+                  <CloudUpload className="mr-2 h-4 w-4" />
+                  {t.autoBackup}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => setRotateOpen(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {t.changeKey}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={destroy}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t.deleteData}
+                </DropdownMenuItem>
+
+                <SignOutButton>
+                  <DropdownMenuItem>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {t.signOut}
+                  </DropdownMenuItem>
+                </SignOutButton>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem onClick={() => router.push("/sign-in")}>{t.signIn}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/sign-up")}>{t.signUp}</DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div className="rounded-lg border p-4 space-y-4">
           {isSignedIn ? (
             <>
-              <DropdownMenuItem onClick={() => setProfileOpen(true)}>
-                <CircleUser className="mr-2 h-4 w-4" />
-                {t.profile}
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => setBackupOpen(true)}>
-                <CloudUpload className="mr-2 h-4 w-4" />
-                {t.autoBackup}
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => setRotateOpen(true)}>
-                <KeyRound className="mr-2 h-4 w-4" />
-                {t.changeKey}
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={destroy}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t.deleteData}
-              </DropdownMenuItem>
-
-              <SignOutButton>
-                <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {t.signOut}
-                </DropdownMenuItem>
-              </SignOutButton>
+              <div className="flex items-center gap-3">
+                <Image
+                  src={user?.imageUrl || "/placeholder.svg"}
+                  alt="avatar"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-full border object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button variant="outline" onClick={() => setProfileOpen(true)}><CircleUser className="h-4 w-4 mr-2" />{t.profile}</Button>
+                <Button variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
+                <Button variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
+                <Button variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                <SignOutButton>
+                  <Button variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
+                </SignOutButton>
+              </div>
             </>
           ) : (
-            <>
-              <DropdownMenuItem onClick={() => router.push("/sign-in")}>{t.signIn}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/sign-up")}>{t.signUp}</DropdownMenuItem>
-            </>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button variant="outline" onClick={() => router.push("/sign-in")}>{t.signIn}</Button>
+              <Button onClick={() => router.push("/sign-up")}>{t.signUp}</Button>
+            </div>
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </div>
+      )}
 
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="sm:max-w-2xl">
