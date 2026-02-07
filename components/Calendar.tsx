@@ -12,6 +12,7 @@ import WeekView from "@/components/view/WeekView"
 import MonthView from "@/components/view/MonthView"
 import EventDialog from "@/components/event/EventDialog"
 import Settings from "@/components/home/Settings"
+import UserProfileButton, { type UserProfileSection } from "@/components/home/UserProfileButton"
 import { translations, useLanguage } from "@/lib/i18n"
 import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/lib/notifications"
 import EventPreview from "@/components/event/EventPreview"
@@ -66,6 +67,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [focusUserProfileSection, setFocusUserProfileSection] = useState<UserProfileSection | null>(null)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const { theme } = useTheme()
 
@@ -181,6 +183,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const handleViewChange = (newView: ViewType) => {
     setView(newView)
+  }
+
+  const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
+    setView("settings")
+    setFocusUserProfileSection(null)
+    setTimeout(() => setFocusUserProfileSection(section), 0)
   }
 
   const handleTodayClick = () => {
@@ -479,6 +487,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             >
               <SettingsIcon className="h-4 w-4" />
             </Button>
+            <UserProfileButton
+              variant="outline"
+              className="rounded-full h-8 w-8"
+              onNavigateToSettings={handleUserProfileSectionNavigate}
+            />
           </div>
         </header>
         <div className="flex-1 overflow-auto" ref={calendarRef}>
@@ -571,6 +584,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               setEnableShortcuts={setEnableShortcuts}
               events={events}
               onImportEvents={handleImportEvents}
+              focusUserProfileSection={focusUserProfileSection}
             />
           )}
         </div>

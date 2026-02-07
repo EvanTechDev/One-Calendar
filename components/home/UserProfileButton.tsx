@@ -154,13 +154,23 @@ async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
   await persistEncryptedSnapshots()
 }
 
+export type UserProfileSection = "profile" | "backup" | "key" | "delete" | "signout"
+
 type UserProfileButtonProps = {
   variant?: React.ComponentProps<typeof Button>["variant"]
   className?: string
   mode?: "dropdown" | "settings"
+  onNavigateToSettings?: (section: UserProfileSection) => void
+  focusSection?: UserProfileSection | null
 }
 
-export default function UserProfileButton({ variant = "ghost", className = "", mode = "dropdown" }: UserProfileButtonProps) {
+export default function UserProfileButton({
+  variant = "ghost",
+  className = "",
+  mode = "dropdown",
+  onNavigateToSettings,
+  focusSection = null,
+}: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
@@ -188,6 +198,12 @@ export default function UserProfileButton({ variant = "ghost", className = "", m
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (mode !== "settings" || !focusSection) return
+    const target = document.getElementById(`settings-account-${focusSection}`)
+    target?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [focusSection, mode])
 
   useEffect(() => {
     setEnabled(localStorage.getItem(AUTO_KEY) === "true")
@@ -424,32 +440,39 @@ export default function UserProfileButton({ variant = "ghost", className = "", m
           <DropdownMenuContent align="end">
             {isSignedIn ? (
               <>
-                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
                   <CircleUser className="mr-2 h-4 w-4" />
                   {t.profile}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => setBackupOpen(true)}>
+                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("backup") : setBackupOpen(true)}>
                   <CloudUpload className="mr-2 h-4 w-4" />
                   {t.autoBackup}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => setRotateOpen(true)}>
+                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("key") : setRotateOpen(true)}>
                   <KeyRound className="mr-2 h-4 w-4" />
                   {t.changeKey}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={destroy}>
+                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("delete") : destroy()}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   {t.deleteData}
                 </DropdownMenuItem>
 
-                <SignOutButton>
-                  <DropdownMenuItem>
+                {onNavigateToSettings ? (
+                  <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
                     <LogOut className="mr-2 h-4 w-4" />
                     {t.signOut}
                   </DropdownMenuItem>
-                </SignOutButton>
+                ) : (
+                  <SignOutButton>
+                    <DropdownMenuItem>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {t.signOut}
+                    </DropdownMenuItem>
+                  </SignOutButton>
+                )}
               </>
             ) : (
               <>
@@ -477,12 +500,12 @@ export default function UserProfileButton({ variant = "ghost", className = "", m
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                <Button variant="outline" onClick={() => setProfileOpen(true)}><CircleUser className="h-4 w-4 mr-2" />{t.profile}</Button>
-                <Button variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
-                <Button variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
-                <Button variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                <Button id="settings-account-profile" variant="outline" onClick={() => setProfileOpen(true)}><CircleUser className="h-4 w-4 mr-2" />{t.profile}</Button>
+                <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
+                <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
+                <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                 <SignOutButton>
-                  <Button variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
+                  <Button id="settings-account-signout" variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
                 </SignOutButton>
               </div>
             </>
