@@ -144,7 +144,7 @@ export default function Sidebar({
                   checked={selectedCategoryFilters.includes(calendar.id)}
                   onCheckedChange={(checked) => onCategoryFilterChange?.(calendar.id, checked === true)}
                   className={cn(
-                    "h-4 w-4 rounded-full border-2 data-[state=checked]:text-white",
+                    "h-4 w-4 rounded-md border data-[state=checked]:text-white",
                     calendar.color,
                   )}
                 />
@@ -160,7 +160,7 @@ export default function Sidebar({
               <Checkbox
                 checked={selectedCategoryFilters.includes("__uncategorized__")}
                 onCheckedChange={(checked) => onCategoryFilterChange?.("__uncategorized__", checked === true)}
-                className="h-4 w-4 rounded-full border-2 border-muted-foreground/60"
+                className="h-4 w-4 rounded-md border border-muted-foreground/60"
               />
               <span className="text-sm text-muted-foreground">{t.uncategorized}</span>
             </div>

@@ -454,7 +454,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </SelectContent>
               </Select>
             </div>
-            <DropdownMenu open={!!searchTerm}>
+            <DropdownMenu open={!!searchTerm} modal={false}>
               <DropdownMenuTrigger asChild>
                 <div className="relative z-50">
                   <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -474,7 +474,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72 p-1">
+              <DropdownMenuContent
+                align="end"
+                className="w-72 p-1"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 {searchResultEvents.length > 0 ? (
                   <ScrollArea className="max-h-[320px]">
                     {searchResultEvents.map((event) => (

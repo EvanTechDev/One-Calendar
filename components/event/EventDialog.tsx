@@ -584,7 +584,7 @@ export default function EventDialog({
         <form onSubmit={handleSubmit} className="space-y-4 pb-6">
           <div>
             <Label htmlFor="title">{t.title}</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           <div className="flex items-center space-x-2">
