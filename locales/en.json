@@ -333,5 +333,6 @@
   "dragToNewPosition": "Drag to new position",
   "categoryAdded": "Category added",
   "categoryAddedDesc": "Successfully added",
-  "category": "category"
+  "category": "category",
+  "untitledInParentheses": "(Untitled)"
 }

@@ -118,7 +118,7 @@ export default function EventDialog({
   const [customNotificationTime, setCustomNotificationTime] = useState("10")
   const [description, setDescription] = useState("")
   const [color, setColor] = useState(colorOptions[0].value)
-  const [selectedCalendar, setSelectedCalendar] = useState(calendars[0]?.id || "")
+  const [selectedCalendar, setSelectedCalendar] = useState("")
   const [aiPrompt, setAiPrompt] = useState("")
   const [isAiLoading, setIsAiLoading] = useState(false)
   
@@ -128,6 +128,7 @@ export default function EventDialog({
 
   const t = translations[language]
   const isZh = isZhLanguage(language)
+  const calendarSelectValue = selectedCalendar || (calendars.length > 0 ? "__uncategorized__" : "")
 
   // 合并日期和时间
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
@@ -253,7 +254,7 @@ export default function EventDialog({
         }
         setDescription(event.description || "")
         setColor(event.color)
-        setSelectedCalendar(event.calendarId || (calendars.length > 0 ? calendars[0]?.id : ""))
+        setSelectedCalendar(event.calendarId || "")
       } else {
         resetForm()
         if (initialDate) {
@@ -299,7 +300,7 @@ export default function EventDialog({
     setCustomNotificationTime("10")
     setDescription("")
     setColor(colorOptions[0].value)
-    setSelectedCalendar(calendars.length > 0 ? calendars[0]?.id : "")
+    setSelectedCalendar("")
     setStartTimeError(false)
     setEndTimeError(false)
   }
@@ -405,7 +406,7 @@ export default function EventDialog({
 
     const eventData: CalendarEvent = {
       id: event?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      title: title.trim() || (isZh ? "未命名事件" : "Untitled Event"),
+      title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: fullStartDate,
       endDate: fullEndDate,
@@ -418,7 +419,7 @@ export default function EventDialog({
       notification: notificationMinutes,
       description,
       color,
-      calendarId: selectedCalendar || (calendars.length > 0 ? calendars[0]?.id : "1"),
+      calendarId: selectedCalendar === "__uncategorized__" ? "" : selectedCalendar,
     }
 
     if (event) {
@@ -740,11 +741,19 @@ export default function EventDialog({
 
           <div>
             <Label htmlFor="calendar">{t.calendar}</Label>
-            <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+            <Select value={calendarSelectValue} onValueChange={setSelectedCalendar}>
               <SelectTrigger>
                 <SelectValue placeholder={t.selectCalendar} />
               </SelectTrigger>
               <SelectContent>
+                {calendars.length > 0 && (
+                  <SelectItem value="__uncategorized__">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
+                      {t.uncategorized}
+                    </div>
+                  </SelectItem>
+                )}
                 {calendars.map((calendar) => (
                   <SelectItem key={calendar.id} value={calendar.id}>
                     <div className="flex items-center">

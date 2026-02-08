@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { addDays, subDays } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
@@ -54,6 +55,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<string[]>([])
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
@@ -318,11 +320,25 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
 
+  const eventsByCategory = useMemo(() => {
+    if (selectedCategoryFilters.length === 0) return events
+
+    return events.filter((event) => {
+      if (!event.calendarId) {
+        return selectedCategoryFilters.includes("__uncategorized__")
+      }
+
+      const hasCategory = calendars.some((cal) => cal.id === event.calendarId)
+      if (!hasCategory) return selectedCategoryFilters.includes("__uncategorized__")
+      return selectedCategoryFilters.includes(event.calendarId)
+    })
+  }, [events, selectedCategoryFilters, calendars])
+
   const filteredEvents = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
-    if (!keyword) return events
+    if (!keyword) return eventsByCategory
 
-    return events
+    return eventsByCategory
       .filter((event) => {
         const title = event.title?.toLowerCase() || ""
         const location = event.location?.toLowerCase() || ""
@@ -330,7 +346,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         return title.includes(keyword) || location.includes(keyword) || description.includes(keyword)
       })
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-  }, [events, searchTerm])
+  }, [eventsByCategory, searchTerm])
+
+  const searchResultEvents = useMemo(() => {
+    if (!searchTerm.trim()) return []
+    return filteredEvents.slice(0, 8)
+  }, [filteredEvents, searchTerm])
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -374,6 +395,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          selectedCategoryFilters={selectedCategoryFilters}
+          onCategoryFilterChange={(categoryId, checked) => {
+            setSelectedCategoryFilters((prev) => {
+              if (checked) {
+                return prev.includes(categoryId) ? prev : [...prev, categoryId]
+              }
+              return prev.filter((id) => id !== categoryId)
+            })
+          }}
         />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pr-14">
@@ -424,51 +454,51 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="relative z-50">
-              <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                type="text"
-                placeholder={t.searchEvents}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && filteredEvents.length > 0) {
-                    setPreviewEvent(filteredEvents[0])
-                    setPreviewOpen(true)
-                    setSearchTerm("")
-                  }
-                }}
-                className="pl-9 pr-4 py-2 w-40"
-              />
-              {searchTerm && (
-                <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                  <ScrollArea className="h-[300px] py-2">
-                    {filteredEvents.length > 0 ? (
-                      filteredEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            setPreviewEvent(event)
-                            setPreviewOpen(true)
-                            setSearchTerm("")
-                          }}
-                        >
-                          <div className="font-medium">{event.title}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {formatDateDisplay(new Date(event.startDate))}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        {t.noMatchingEvents}
-                      </div>
-                    )}
-                  </ScrollArea>
+            <DropdownMenu open={!!searchTerm}>
+              <DropdownMenuTrigger asChild>
+                <div className="relative z-50">
+                  <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder={t.searchEvents}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchResultEvents.length > 0) {
+                        setPreviewEvent(searchResultEvents[0])
+                        setPreviewOpen(true)
+                        setSearchTerm("")
+                      }
+                    }}
+                    className="pl-9 pr-4 py-2 w-48"
+                  />
                 </div>
-              )}
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72 p-1">
+                {searchResultEvents.length > 0 ? (
+                  <ScrollArea className="max-h-[320px]">
+                    {searchResultEvents.map((event) => (
+                      <DropdownMenuItem
+                        key={event.id}
+                        className="cursor-pointer flex-col items-start gap-1"
+                        onClick={() => {
+                          setPreviewEvent(event)
+                          setPreviewOpen(true)
+                          setSearchTerm("")
+                        }}
+                      >
+                        <div className="font-medium leading-none">{event.title || t.unnamedEvent}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateDisplay(new Date(event.startDate))}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </ScrollArea>
+                ) : (
+                  <DropdownMenuItem disabled>{t.noMatchingEvents}</DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="outline"
               size="icon"

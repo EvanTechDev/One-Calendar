@@ -333,5 +333,6 @@
   "dragToNewPosition": "拖动到新位置",
   "categoryAdded": "分类已添加",
   "categoryAddedDesc": "已成功添加",
-  "category": "分类"
+  "category": "分类",
+  "untitledInParentheses": "（无标题）"
 }

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/context/CalendarContext"
 import { CalendarIcon } from "lucide-react"
@@ -21,6 +22,8 @@ interface SidebarProps {
   selectedDate?: Date
   isCollapsed?: boolean
   onToggleCollapse?: () => void
+  selectedCategoryFilters?: string[]
+  onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
 }
 
 export interface CalendarCategory {
@@ -38,6 +41,8 @@ export default function Sidebar({
   selectedDate,
   isCollapsed = false,
   onToggleCollapse,
+  selectedCategoryFilters = [],
+  onCategoryFilterChange,
 }: SidebarProps) {
 
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
@@ -135,7 +140,14 @@ export default function Sidebar({
           {calendars.map((calendar) => (
             <div key={calendar.id} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={cn("h-3 w-3 rounded-full", calendar.color)} />
+                <Checkbox
+                  checked={selectedCategoryFilters.includes(calendar.id)}
+                  onCheckedChange={(checked) => onCategoryFilterChange?.(calendar.id, checked === true)}
+                  className={cn(
+                    "h-4 w-4 rounded-full border-2 data-[state=checked]:text-white",
+                    calendar.color,
+                  )}
+                />
                 <span className="text-sm">{calendar.name}</span>
               </div>
               <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
@@ -143,6 +155,16 @@ export default function Sidebar({
               </Button>
             </div>
           ))}
+          {calendars.length > 0 && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={selectedCategoryFilters.includes("__uncategorized__")}
+                onCheckedChange={(checked) => onCategoryFilterChange?.("__uncategorized__", checked === true)}
+                className="h-4 w-4 rounded-full border-2 border-muted-foreground/60"
+              />
+              <span className="text-sm text-muted-foreground">{t.uncategorized}</span>
+            </div>
+          )}
           {showAddCategory ? (
             <div className="flex items-center space-x-2">
               <Input
