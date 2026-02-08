@@ -26,12 +26,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, ArrowLeft, Edit2, Trash2, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Plus, ArrowLeft, Edit2, Trash2, Calendar as CalendarIcon, Clock, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
+import { ClockDashed } from "@/components/icons/clock-dashed";
 
 interface Countdown {
   id: string;
@@ -199,19 +200,25 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle>{t.countdownTitle}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2"><ClockDashed className="h-4 w-4" />{t.countdownTitle}</SheetTitle>
         </div>
-        <div className="mt-2">
+      </SheetHeader>
+      <div className="p-4">
+        <div className="relative mb-3">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t.countdownSearchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full"
+            className="w-full pl-8"
           />
         </div>
-      </SheetHeader>
-      <div className="p-4">
-        <Button variant="outline" size="sm" onClick={startAddCountdown} className="w-full mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={startAddCountdown}
+          className="w-full mb-4 bg-[#0066ff] text-white hover:bg-[#0052CC] border-[#0066ff] green:bg-[#24a854] green:border-[#24a854] orange:bg-[#e26912] orange:border-[#e26912] azalea:bg-[#CD2F7B] azalea:border-[#CD2F7B] pink:bg-[#FFAFA5] pink:border-[#FFAFA5] crimson:bg-[#9B0032] crimson:border-[#9B0032]"
+        >
           <Plus className="mr-2 h-4 w-4" />
           {t.countdownAdd}
         </Button>
