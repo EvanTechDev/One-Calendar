@@ -55,6 +55,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState("")
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<string[]>([])
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
@@ -456,18 +457,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             </div>
             <div className="relative z-50">
               <Search className="pointer-events-none h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <DropdownMenu open={!!searchTerm} modal={false}>
+              <DropdownMenu open={isSearchFocused && !!searchTerm} modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Input
                     type="text"
                     placeholder={t.searchEvents}
                     value={searchTerm}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setIsSearchFocused(false), 120)
+                    }}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && searchResultEvents.length > 0) {
                         setPreviewEvent(searchResultEvents[0])
                         setPreviewOpen(true)
                         setSearchTerm("")
+                        setIsSearchFocused(false)
                       }
                     }}
                     className="pl-9 pr-4 py-2 w-48"
@@ -489,6 +495,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                           setPreviewEvent(event)
                           setPreviewOpen(true)
                           setSearchTerm("")
+                          setIsSearchFocused(false)
                         }}
                       >
                         <div className="font-medium leading-none">{event.title || t.unnamedEvent}</div>
