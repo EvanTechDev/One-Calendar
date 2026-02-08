@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { addDays, subDays } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
@@ -457,59 +456,56 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             </div>
             <div className="relative z-50">
               <Search className="pointer-events-none h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <DropdownMenu open={isSearchFocused && !!searchTerm} modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Input
-                    type="text"
-                    placeholder={t.searchEvents}
-                    value={searchTerm}
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => {
-                      window.setTimeout(() => setIsSearchFocused(false), 120)
-                    }}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && searchResultEvents.length > 0) {
-                        setPreviewEvent(searchResultEvents[0])
-                        setPreviewOpen(true)
-                        setSearchTerm("")
-                        setIsSearchFocused(false)
-                      }
-                    }}
-                    className="pl-9 pr-4 py-2 w-48"
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                align="end"
-                className="w-72 p-1"
-                onCloseAutoFocus={(e) => e.preventDefault()}
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                {searchResultEvents.length > 0 ? (
-                  <ScrollArea className="max-h-[320px]">
-                    {searchResultEvents.map((event) => (
-                      <DropdownMenuItem
-                        key={event.id}
-                        className="cursor-pointer flex-col items-start gap-1"
-                        onClick={() => {
-                          setPreviewEvent(event)
-                          setPreviewOpen(true)
-                          setSearchTerm("")
-                          setIsSearchFocused(false)
-                        }}
-                      >
-                        <div className="font-medium leading-none">{event.title || t.unnamedEvent}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDateDisplay(new Date(event.startDate))}
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </ScrollArea>
-                ) : (
-                  <DropdownMenuItem disabled>{t.noMatchingEvents}</DropdownMenuItem>
-                )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Input
+                type="text"
+                placeholder={t.searchEvents}
+                value={searchTerm}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setIsSearchFocused(false), 120)
+                }}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchResultEvents.length > 0) {
+                    setPreviewEvent(searchResultEvents[0])
+                    setPreviewOpen(true)
+                    setSearchTerm("")
+                    setIsSearchFocused(false)
+                  }
+                }}
+                className="pl-9 pr-4 py-2 w-48"
+              />
+              {isSearchFocused && !!searchTerm && (
+                <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
+                  {searchResultEvents.length > 0 ? (
+                    <ScrollArea className="max-h-[320px]">
+                      <div className="space-y-1">
+                        {searchResultEvents.map((event) => (
+                          <button
+                            key={event.id}
+                            type="button"
+                            className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              setPreviewEvent(event)
+                              setPreviewOpen(true)
+                              setSearchTerm("")
+                              setIsSearchFocused(false)
+                            }}
+                          >
+                            <div className="font-medium leading-none">{event.title || t.unnamedEvent}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {formatDateDisplay(new Date(event.startDate))}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">{t.noMatchingEvents}</div>
+                  )}
+                </div>
+              )}
             </div>
             <Button
               variant="outline"
