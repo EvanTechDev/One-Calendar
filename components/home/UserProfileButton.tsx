@@ -23,6 +23,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -183,6 +193,8 @@ export default function UserProfileButton({
   const [setPwdOpen, setSetPwdOpen] = useState(false)
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [rotateOpen, setRotateOpen] = useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
@@ -422,6 +434,30 @@ export default function UserProfileButton({
     toast(t.cloudDataDeleted)
   }
 
+  async function deleteAccount() {
+    if (!user) return
+    try {
+      setIsDeletingAccount(true)
+      const response = await fetch("/api/account", { method: "DELETE" })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.error || "Failed to delete account data")
+      }
+
+      await user.delete()
+
+      toast(language.startsWith("zh") ? "账号已删除" : "Account deleted")
+      router.replace("/")
+    } catch (e: any) {
+      toast(language.startsWith("zh") ? "删除账号失败" : "Failed to delete account", {
+        description: e?.message || "",
+      })
+    } finally {
+      setIsDeletingAccount(false)
+      setDeleteAccountOpen(false)
+    }
+  }
+
   return (
     <>
       {mode === "dropdown" ? (
@@ -459,6 +495,11 @@ export default function UserProfileButton({
                 <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("delete") : destroy()}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   {t.deleteData}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {language.startsWith("zh") ? "删除账号" : "Delete account"}
                 </DropdownMenuItem>
 
                 {onNavigateToSettings ? (
@@ -505,6 +546,10 @@ export default function UserProfileButton({
                 <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
                 <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
                 <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                <Button variant="destructive" className="sm:col-span-2" onClick={() => setDeleteAccountOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {language.startsWith("zh") ? "删除账号" : "Delete account"}
+                </Button>
                 <SignOutButton>
                   <Button id="settings-account-signout" variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
                 </SignOutButton>
@@ -656,6 +701,38 @@ export default function UserProfileButton({
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{language.startsWith("zh") ? "确认删除账号？" : "Delete your account?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {language.startsWith("zh")
+                ? "此操作不可撤销。将删除你的账号，以及该用户的 calendar_events、shares 和备份数据。"
+                : "This action cannot be undone. It deletes your account and removes your calendar_events, shares, and backups."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{language.startsWith("zh") ? "取消" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={(e) => {
+                e.preventDefault()
+                void deleteAccount()
+              }}
+              disabled={isDeletingAccount}
+            >
+              {isDeletingAccount
+                ? language.startsWith("zh")
+                  ? "删除中..."
+                  : "Deleting..."
+                : language.startsWith("zh")
+                  ? "确认删除"
+                  : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
         <DialogContent>
