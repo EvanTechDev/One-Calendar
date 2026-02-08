@@ -26,6 +26,16 @@ import { cn } from "@/lib/utils"
 import DailyToast from "@/components/home/DailyToast"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type ViewType = "day" | "week" | "month" | "analytics" | "settings"
 
@@ -72,6 +82,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [focusUserProfileSection, setFocusUserProfileSection] = useState<UserProfileSection | null>(null)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const { theme } = useTheme()
+  const [pendingDeleteEvent, setPendingDeleteEvent] = useState<CalendarEvent | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   useLayoutEffect(() => {
     const body = document.body
@@ -239,6 +251,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
+    toast(language.startsWith("zh") ? "日程已创建" : "Event created")
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null) // Reset the quick create time
@@ -246,15 +259,45 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) => prevEvents.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)))
+    toast(language.startsWith("zh") ? "日程已更新" : "Event updated")
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null) // Reset the quick create time
   }
 
   const handleEventDelete = (eventId: string) => {
-    setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId))
+    const targetEvent = events.find((event) => event.id === eventId)
+    if (!targetEvent) return
+    setPendingDeleteEvent(targetEvent)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmEventDelete = () => {
+    if (!pendingDeleteEvent) return
+
+    const deletedEvent = pendingDeleteEvent
+    setEvents((prevEvents) => prevEvents.filter((event) => event.id !== deletedEvent.id))
     setEventDialogOpen(false)
-    setSelectedEvent(null) // 重置选中的事件
+    setSelectedEvent(null)
+    setPreviewOpen(false)
+    setDeleteConfirmOpen(false)
+    setPendingDeleteEvent(null)
+
+    toast(language.startsWith("zh") ? "日程已删除" : "Event deleted", {
+      description: deletedEvent.title,
+      action: {
+        label: language.startsWith("zh") ? "撤销" : "Undo",
+        onClick: () => {
+          setEvents((prevEvents) => {
+            if (prevEvents.some((event) => event.id === deletedEvent.id)) return prevEvents
+            return [...prevEvents, deletedEvent].sort(
+              (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+            )
+          })
+          toast(language.startsWith("zh") ? "已撤销删除" : "Deletion undone")
+        },
+      },
+    })
   }
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
@@ -669,6 +712,27 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       </Suspense>
 
       <DailyToast />
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{language.startsWith("zh") ? "确认删除日程？" : "Delete this event?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {language.startsWith("zh")
+                ? "删除后可在提示中点击“撤销”恢复。"
+                : "You can restore it with Undo from the notification after deletion."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteEvent(null)}>
+              {language.startsWith("zh") ? "取消" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={confirmEventDelete}>
+              {language.startsWith("zh") ? "删除" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </div>
   )
