@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
+import { ClockDashed } from "@/components/icons/clock-dashed";
 
 interface Countdown {
   id: string;
@@ -199,7 +200,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle>{t.countdownTitle}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2"><ClockDashed className="h-4 w-4" />{t.countdownTitle}</SheetTitle>
         </div>
       </SheetHeader>
       <div className="p-4">

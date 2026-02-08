@@ -454,10 +454,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </SelectContent>
               </Select>
             </div>
-            <DropdownMenu open={!!searchTerm} modal={false}>
-              <DropdownMenuTrigger asChild>
-                <div className="relative z-50">
-                  <Search className="h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="relative z-50">
+              <Search className="pointer-events-none h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <DropdownMenu open={!!searchTerm} modal={false}>
+                <DropdownMenuTrigger asChild>
                   <Input
                     type="text"
                     placeholder={t.searchEvents}
@@ -472,9 +472,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     }}
                     className="pl-9 pr-4 py-2 w-48"
                   />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
                 align="end"
                 className="w-72 p-1"
                 onCloseAutoFocus={(e) => e.preventDefault()}
@@ -502,8 +501,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 ) : (
                   <DropdownMenuItem disabled>{t.noMatchingEvents}</DropdownMenuItem>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <Button
               variant="outline"
               size="icon"
