@@ -269,7 +269,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   // 修改：根据语言设置不同的日期格式
   const formatDateDisplay = (date: Date) => {
     if (language === "en") {
-      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short" }
       return date.toLocaleDateString(language, options)
     } else {
       const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long" }
