@@ -31,6 +31,20 @@ function getDarkerColorClass(color: string) {
   return colorMapping[color] || '#3A3A3A';
 }
 
+function getDarkModeEventBackgroundColor(color: string) {
+  const darkModeColorMapping: Record<string, string> = {
+    'bg-[#E6F6FD]': '#2F4655',
+    'bg-[#E7F8F2]': '#2D4935',
+    'bg-[#FEF5E6]': '#4F3F1B',
+    'bg-[#FFE4E6]': '#6C2920',
+    'bg-[#F3EEFE]': '#483A63',
+    'bg-[#FCE7F3]': '#5A334A',
+    'bg-[#E6FAF7]': '#1F4A47',
+  }
+
+  return darkModeColorMapping[color]
+}
+
 export default function MonthView({ date, events, onEventClick, language, firstDayOfWeek, timezone }: MonthViewProps) {
   const t = translations[language]
   const monthStart = startOfMonth(date)
@@ -89,7 +103,10 @@ export default function MonthView({ date, events, onEventClick, language, firstD
                   key={event.id}
                   className={cn("relative text-xs truncate rounded-md p-1 cursor-pointer text-white", event.color)}
                   onClick={() => onEventClick(event)}
-                  style={{ opacity: isDark ? 0.68 : 1 }}
+                  style={{
+                    opacity: 1,
+                    backgroundColor: isDark ? getDarkModeEventBackgroundColor(event.color) : undefined,
+                  }}
                 >
                   <div className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")} style={{ backgroundColor: getDarkerColorClass(event.color) }} />
                   <div className="pl-1.5" style={{ color: getDarkerColorClass(event.color) }}>{event.title}</div>
