@@ -33,17 +33,17 @@ export interface CalendarCategory {
   keywords?: string[]
 }
 
-const CALENDAR_COLOR_MAP: Record<string, string> = {
-  "bg-blue-500": "#3b82f6",
-  "bg-green-500": "#22c55e",
-  "bg-purple-500": "#a855f7",
-  "bg-yellow-500": "#eab308",
-  "bg-red-500": "#ef4444",
-  "bg-pink-500": "#ec4899",
-  "bg-indigo-500": "#6366f1",
-  "bg-orange-500": "#f97316",
-  "bg-teal-500": "#14b8a6",
-}
+const CALENDAR_COLOR_OPTIONS = [
+  { value: "bg-blue-500", hex: "#3b82f6" },
+  { value: "bg-green-500", hex: "#10b981" },
+  { value: "bg-yellow-500", hex: "#f59e0b" },
+  { value: "bg-red-500", hex: "#ef4444" },
+  { value: "bg-purple-500", hex: "#8b5cf6" },
+  { value: "bg-pink-500", hex: "#ec4899" },
+  { value: "bg-teal-500", hex: "#14b8a6" },
+]
+
+const CALENDAR_COLOR_MAP = Object.fromEntries(CALENDAR_COLOR_OPTIONS.map((option) => [option.value, option.hex]))
 
 export default function Sidebar({
   onCreateEvent,
@@ -240,24 +240,15 @@ export default function Sidebar({
             <div className="space-y-2">
               <Label>{t.color}</Label>
               <div className="flex flex-wrap gap-2">
-                {[
-                  "blue-500",
-                  "green-500",
-                  "purple-500",
-                  "yellow-500",
-                  "red-500",
-                  "pink-500",
-                  "indigo-500",
-                  "orange-500",
-                  "teal-500",
-                ].map((color) => (
+                {CALENDAR_COLOR_OPTIONS.map((option) => (
                   <div
-                    key={color}
+                    key={option.value}
                     className={cn(
-                      `bg-${color} w-6 h-6 rounded-full cursor-pointer`,
-                      newCategoryColor === `bg-${color}` ? "ring-2 ring-offset-2 ring-black" : "",
+                      option.value,
+                      "w-6 h-6 rounded-full cursor-pointer",
+                      newCategoryColor === option.value ? "ring-2 ring-offset-2 ring-black" : "",
                     )}
-                    onClick={() => setNewCategoryColor(`bg-${color}`)}
+                    onClick={() => setNewCategoryColor(option.value)}
                   />
                 ))}
               </div>

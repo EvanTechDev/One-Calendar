@@ -17,16 +17,16 @@ import { useCalendar } from "@/components/context/CalendarContext"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
-  { value: "bg-[#E6F6FD]", label: "Blue" },
-  { value: "bg-[#E7F8F2]", label: "Green" },
-  { value: "bg-[#FEF5E6]", label: "Amber" },
-  { value: "bg-[#FFE4E6]", label: "Red" },
-  { value: "bg-[#F3EEFE]", label: "Purple" },
-  { value: "bg-[#FCE7F3]", label: "Pink" },
-  // { value: "bg-[#EEF2FF]", label: "Indigo" },
-  // { value: "bg-[#FFF0E5]", label: "Orange" },
-  { value: "bg-[#E6FAF7]", label: "Teal" },
+  { value: "bg-[#E6F6FD]", label: "Blue", calendarColor: "bg-blue-500" },
+  { value: "bg-[#E7F8F2]", label: "Green", calendarColor: "bg-green-500" },
+  { value: "bg-[#FEF5E6]", label: "Amber", calendarColor: "bg-yellow-500" },
+  { value: "bg-[#FFE4E6]", label: "Red", calendarColor: "bg-red-500" },
+  { value: "bg-[#F3EEFE]", label: "Purple", calendarColor: "bg-purple-500" },
+  { value: "bg-[#FCE7F3]", label: "Pink", calendarColor: "bg-pink-500" },
+  { value: "bg-[#E6FAF7]", label: "Teal", calendarColor: "bg-teal-500" },
 ]
+
+const calendarColorToEventColor = Object.fromEntries(colorOptions.map((option) => [option.calendarColor, option.value]))
 
 const colorMapping: Record<string, string> = {
   'bg-[#E6F6FD]': '#3B82F6',
@@ -35,8 +35,6 @@ const colorMapping: Record<string, string> = {
   'bg-[#FFE4E6]': '#EF4444',
   'bg-[#F3EEFE]': '#8B5CF6',
   'bg-[#FCE7F3]': '#EC4899',
-  'bg-[#EEF2FF]': '#6366F1',
-  'bg-[#FFF0E5]': '#FB923C',
   'bg-[#E6FAF7]': '#14B8A6',
 }
 
@@ -129,6 +127,12 @@ export default function EventDialog({
   const t = translations[language]
   const isZh = isZhLanguage(language)
   const calendarSelectValue = selectedCalendar || (calendars.length > 0 ? "__uncategorized__" : "")
+  const getEventColorByCalendarId = (calendarId: string) => {
+    const calendar = calendars.find((item) => item.id === calendarId)
+    if (!calendar) return colorOptions[0].value
+    return calendarColorToEventColor[calendar.color] ?? colorOptions[0].value
+  }
+
 
   // 合并日期和时间
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
@@ -259,6 +263,9 @@ export default function EventDialog({
         resetForm()
         if (initialDate) {
           setStartDate(initialDate)
+          if (calendars.length > 0) {
+            setColor(getEventColorByCalendarId(calendars[0].id))
+          }
           setEndDate(initialDate)
           
           const initialHour = getHours(initialDate);
@@ -741,7 +748,15 @@ export default function EventDialog({
 
           <div>
             <Label htmlFor="calendar">{t.calendar}</Label>
-            <Select value={calendarSelectValue} onValueChange={setSelectedCalendar}>
+            <Select
+              value={calendarSelectValue}
+              onValueChange={(value) => {
+                setSelectedCalendar(value)
+                if (value !== "__uncategorized__") {
+                  setColor(getEventColorByCalendarId(value))
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t.selectCalendar} />
               </SelectTrigger>
