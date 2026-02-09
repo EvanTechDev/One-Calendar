@@ -22,6 +22,7 @@ interface DayViewProps {
   onTimeSlotClick: (date: Date) => void
   language: Language
   timezone: string
+  timeFormat: "24h" | "12h"
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -36,6 +37,7 @@ export default function DayView({
   onTimeSlotClick, 
   language, 
   timezone,
+  timeFormat,
   onEditEvent,
   onDeleteEvent,
   onShareEvent,
@@ -70,15 +72,29 @@ export default function DayView({
   }
 
   const formatTime = (hour: number) => {
-    // 使用24小时制格式化时间
+    if (timeFormat === "12h") {
+      const period = hour >= 12 ? "PM" : "AM"
+      const twelveHour = hour % 12 || 12
+      return `${twelveHour} ${period}`
+    }
     return `${hour.toString().padStart(2, "0")}:00`
+  }
+
+
+  const formatHourMinute = (hour: number, minute: number) => {
+    if (timeFormat === "12h") {
+      const period = hour >= 12 ? "PM" : "AM"
+      const twelveHour = hour % 12 || 12
+      return `${twelveHour}:${minute.toString().padStart(2, "0")} ${period}`
+    }
+    return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
   }
 
   const formatDateWithTimezone = (date: Date) => {
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false, // 使用24小时制
+      hour12: timeFormat === "12h",
       timeZone: timezone,
     }
     return new Intl.DateTimeFormat(isZh ? "zh-CN" : "en-US", options).format(date)
@@ -492,7 +508,7 @@ export default function DayView({
           <div className="font-medium truncate" style={{ color: getDarkerColorClass(draggingEvent.color) }}>{draggingEvent.title}</div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
-              {formatTime(dragPreview.hour)}:{dragPreview.minute.toString().padStart(2, '0')} - {formatTime(Math.floor(endMinutes / 60))}:{(endMinutes % 60).toString().padStart(2, '0')}
+              {formatHourMinute(dragPreview.hour, dragPreview.minute)} - {formatHourMinute(Math.floor(endMinutes / 60), endMinutes % 60)}
             </div>
           )}
         </div>
@@ -675,18 +691,9 @@ export default function DayView({
             if (!isToday) return null
 
             // 获取当前时区的时间
-            const timeOptions: Intl.DateTimeFormatOptions = {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-              timeZone: timezone,
-            }
-
-            // 获取小时和分钟
-            const timeString = new Intl.DateTimeFormat("en-US", timeOptions).format(currentTime)
-            const [hoursStr, minutesStr] = timeString.split(":")
-            const currentHours = Number.parseInt(hoursStr, 10)
-            const currentMinutes = Number.parseInt(minutesStr, 10)
+            const currentTimeInTimezone = new Date(currentTime.toLocaleString("en-US", { timeZone: timezone }))
+            const currentHours = currentTimeInTimezone.getHours()
+            const currentMinutes = currentTimeInTimezone.getMinutes()
 
             // 计算像素位置
             const topPosition = currentHours * 60 + currentMinutes

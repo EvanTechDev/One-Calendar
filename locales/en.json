@@ -334,5 +334,8 @@
   "categoryAdded": "Category added",
   "categoryAddedDesc": "Successfully added",
   "category": "category",
-  "untitledInParentheses": "(Untitled)"
+  "untitledInParentheses": "(Untitled)",
+  "timeFormat": "Time Format",
+  "timeFormat24h": "24-hour (13:00)",
+  "timeFormat12h": "12-hour (1 PM)"
 }

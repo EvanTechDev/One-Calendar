@@ -117,6 +117,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   // Add the new state variables for default view and keyboard shortcuts
   const [defaultView, setDefaultView] = useLocalStorage<ViewType>("default-view", "week")
   const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>("enable-shortcuts", true)
+  const [timeFormat, setTimeFormat] = useLocalStorage<"24h" | "12h">("time-format", "24h")
 
   // Add a useEffect to set the initial view based on the default view setting
   useEffect(() => {
@@ -584,6 +585,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               onTimeSlotClick={handleTimeSlotClick}
               language={language}
               timezone={timezone}
+              timeFormat={timeFormat}
               onEditEvent={handleEventEdit}
               onDeleteEvent={(event) => handleEventDelete(event.id)}
               onShareEvent={(event) => {
@@ -611,6 +613,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               timezone={timezone}
+              timeFormat={timeFormat}
               onEditEvent={handleEventEdit}
               onDeleteEvent={(event) => handleEventDelete(event.id)}
               onShareEvent={(event) => {
@@ -663,6 +666,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               setDefaultView={setDefaultView}
               enableShortcuts={enableShortcuts}
               setEnableShortcuts={setEnableShortcuts}
+              timeFormat={timeFormat}
+              setTimeFormat={setTimeFormat}
               events={events}
               onImportEvents={handleImportEvents}
               focusUserProfileSection={focusUserProfileSection}
