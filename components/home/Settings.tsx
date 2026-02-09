@@ -27,6 +27,8 @@ interface SettingsProps {
   setDefaultView: (view: string) => void
   enableShortcuts: boolean
   setEnableShortcuts: (enable: boolean) => void
+  timeFormat: "24h" | "12h"
+  setTimeFormat: (format: "24h" | "12h") => void
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
   focusUserProfileSection?: UserProfileSection | null
@@ -45,6 +47,8 @@ export default function Settings({
   setDefaultView,
   enableShortcuts,
   setEnableShortcuts,
+  timeFormat,
+  setTimeFormat,
   events,
   onImportEvents,
   focusUserProfileSection = null,
@@ -188,6 +192,19 @@ export default function Settings({
                   {tz.label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="time-format">{t.timeFormat}</Label>
+          <Select value={timeFormat} onValueChange={(value: "24h" | "12h") => setTimeFormat(value)}>
+            <SelectTrigger id="time-format">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">{t.timeFormat24h}</SelectItem>
+              <SelectItem value="12h">{language.startsWith("zh") ? "12 小时制（下午 1 点）" : t.timeFormat12h}</SelectItem>
             </SelectContent>
           </Select>
         </div>
