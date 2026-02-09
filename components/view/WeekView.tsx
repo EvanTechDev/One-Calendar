@@ -101,6 +101,22 @@ export default function WeekView({
     return colorMapping[color] || '#3A3A3A';
   }
 
+  function getEventBackgroundColor(color: string) {
+    if (!isDark) return undefined
+
+    const darkModeColorMapping: Record<string, string> = {
+      'bg-[#E6F6FD]': '#2F4655',
+      'bg-[#E7F8F2]': '#2D4935',
+      'bg-[#FEF5E6]': '#4F3F1B',
+      'bg-[#FFE4E6]': '#6C2920',
+      'bg-[#F3EEFE]': '#483A63',
+      'bg-[#FCE7F3]': '#5A334A',
+      'bg-[#E6FAF7]': '#1F4A47',
+    }
+
+    return darkModeColorMapping[color]
+  }
+
   // 修改自动滚动到当前时间的效果,只在组件挂载时执行一次
   useEffect(() => {
     // 只在组件挂载时执行一次滚动
@@ -512,7 +528,8 @@ export default function WeekView({
               position: "absolute",
               left: "0",
               right: "0",
-              opacity: isDark ? 0.68 : 0.9,
+              opacity: isDark ? 1 : 0.9,
+              backgroundColor: getEventBackgroundColor(event.color),
               zIndex: 10 + index,
             }}
             onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -682,7 +699,8 @@ export default function WeekView({
                           style={{
                             top: `${startMinutes}px`,
                             height: `${height}px`,
-                            opacity: isDark ? 0.68 : 0.92,
+                            opacity: isDark ? 1 : 0.92,
+                            backgroundColor: getEventBackgroundColor(event.color),
                             width,
                             left,
                             zIndex: column + 1,
