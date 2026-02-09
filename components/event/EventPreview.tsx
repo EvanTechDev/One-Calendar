@@ -429,7 +429,16 @@ export default function EventPreview({
 />
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-1">{event.title}</h2>
+            <h2
+              className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              }}
+            >
+              {event.title}
+            </h2>
             <p className="text-muted-foreground">{formatDateRange()}</p>
           </div>
         </div>
@@ -498,7 +507,16 @@ export default function EventPreview({
             <div className="flex items-start">
               <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <p className="whitespace-pre-wrap">{event.description}</p>
+                <p
+                  className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical",
+                  }}
+                >
+                  {event.description}
+                </p>
               </div>
             </div>
           )}
