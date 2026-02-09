@@ -33,6 +33,18 @@ export interface CalendarCategory {
   keywords?: string[]
 }
 
+const CALENDAR_COLOR_MAP: Record<string, string> = {
+  "bg-blue-500": "#3b82f6",
+  "bg-green-500": "#22c55e",
+  "bg-purple-500": "#a855f7",
+  "bg-yellow-500": "#eab308",
+  "bg-red-500": "#ef4444",
+  "bg-pink-500": "#ec4899",
+  "bg-indigo-500": "#6366f1",
+  "bg-orange-500": "#f97316",
+  "bg-teal-500": "#14b8a6",
+}
+
 export default function Sidebar({
   onCreateEvent,
   onDateSelect,
@@ -143,10 +155,10 @@ export default function Sidebar({
                 <Checkbox
                   checked={selectedCategoryFilters.includes(calendar.id)}
                   onCheckedChange={(checked) => onCategoryFilterChange?.(calendar.id, checked === true)}
-                  className={cn(
-                    "h-4 w-4 rounded-md border data-[state=checked]:text-white",
-                    calendar.color,
-                  )}
+                  className="h-4 w-4 rounded-md border-0 data-[state=checked]:text-white"
+                  style={{
+                    backgroundColor: CALENDAR_COLOR_MAP[calendar.color] ?? "#3b82f6",
+                  }}
                 />
                 <span className="text-sm">{calendar.name}</span>
               </div>
