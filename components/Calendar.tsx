@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useLayoutEffect, useMemo } from 
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon, Command as CommandIcon } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
 import { format } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
@@ -206,22 +206,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
-
-  useEffect(() => {
-    let lastTwoFingerTap = 0
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length > 0 || e.changedTouches.length !== 2) return
-      const now = Date.now()
-      if (now - lastTwoFingerTap < 350) {
-        setCommandOpen(true)
-      }
-      lastTwoFingerTap = now
-    }
-
-    window.addEventListener("touchend", handleTouchEnd)
-    return () => window.removeEventListener("touchend", handleTouchEnd)
-  }, [])
 
   const handleDateSelect = (date: Date) => {
     setDate(date)
@@ -537,15 +521,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCommandOpen(true)}
-              className="w-[150px] justify-between"
-            >
-              <span>{language.startsWith("zh") ? "命令面板" : "Command"}</span>
-              <span className="text-xs text-muted-foreground">⌘/Ctrl K</span>
-            </Button>
             <div className="relative z-50">
               <Select value={view === "day" || view === "week" || view === "month" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
@@ -614,6 +589,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </div>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => setCommandOpen(true)}
+              aria-label={language.startsWith("zh") ? "命令面板" : "Command Palette"}
+            >
+              <CommandIcon className="h-4 w-4" />
+            </Button>
             <Button
               variant="outline"
               size="icon"
