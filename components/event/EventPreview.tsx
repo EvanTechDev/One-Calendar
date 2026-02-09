@@ -430,7 +430,7 @@ export default function EventPreview({
 
           <div className="flex-1">
             <h2
-              className="mb-1 text-2xl font-bold break-words overflow-hidden"
+              className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
               style={{
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
@@ -508,7 +508,7 @@ export default function EventPreview({
               <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
                 <p
-                  className="whitespace-pre-wrap break-words overflow-hidden"
+                  className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
                   style={{
                     display: "-webkit-box",
                     WebkitLineClamp: 4,
