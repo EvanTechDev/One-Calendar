@@ -1,8 +1,21 @@
+import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+
 let userConfig = undefined
 try {
-  userConfig = await import('./next.config')
+  userConfig = await import("./next.config")
 } catch (e) {
 
+}
+
+const packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
+
+const getGitCommit = () => {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim()
+  } catch {
+    return "unknown"
+  }
 }
 
 /** @type {import('next').NextConfig} */
@@ -12,7 +25,12 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  }
+  },
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
  /* experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
@@ -30,7 +48,7 @@ function mergeConfig(nextConfig, userConfig) {
 
   for (const key in userConfig) {
     if (
-      typeof nextConfig[key] === 'object' &&
+      typeof nextConfig[key] === "object" &&
       !Array.isArray(nextConfig[key])
     ) {
       nextConfig[key] = {

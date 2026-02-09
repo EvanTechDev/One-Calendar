@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Kbd } from "@/components/ui/kbd"
 import ImportExport from "@/components/analytics/ImportExport"
 import ShareManagement from "@/components/analytics/ShareManagement"
+import BuildInfoCard from "@/components/analytics/BuildInfoCard"
 import type { CalendarEvent } from "@/components/Calendar"
 import { useTheme } from "next-themes"
 import UserProfileButton, { type UserProfileSection } from "@/components/home/UserProfileButton"
@@ -220,6 +221,7 @@ export default function Settings({
 
       <ShareManagement />
       <ImportExport events={events} onImportEvents={onImportEvents} />
+      <BuildInfoCard language={language} />
     </div>
   )
 }
