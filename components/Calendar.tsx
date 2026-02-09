@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
 import { addDays, subDays } from "date-fns"
+import { format } from "date-fns"
 import Sidebar from "@/components/sidebar/Sidebar"
 import DayView from "@/components/view/DayView"
 import WeekView from "@/components/view/WeekView"
@@ -36,6 +37,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command"
 
 type ViewType = "day" | "week" | "month" | "analytics" | "settings"
 
@@ -84,6 +94,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const { theme } = useTheme()
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
 
   useLayoutEffect(() => {
     const body = document.body
@@ -131,6 +142,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (!enableShortcuts) return // Early return if shortcuts are disabled
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setCommandOpen((prev) => !prev)
+        return
+      }
+
       // Skip if user is typing in an input, textarea, or contentEditable element
       if (
         document.activeElement instanceof HTMLInputElement ||
@@ -190,6 +207,22 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
 
+  useEffect(() => {
+    let lastTwoFingerTap = 0
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length > 0 || e.changedTouches.length !== 2) return
+      const now = Date.now()
+      if (now - lastTwoFingerTap < 350) {
+        setCommandOpen(true)
+      }
+      lastTwoFingerTap = now
+    }
+
+    window.addEventListener("touchend", handleTouchEnd)
+    return () => window.removeEventListener("touchend", handleTouchEnd)
+  }, [])
+
   const handleDateSelect = (date: Date) => {
     setDate(date)
     setSidebarDate(date)
@@ -209,6 +242,28 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     const today = new Date()
     setDate(today)
     setSidebarDate(today) // Add this line to update the sidebar calendar
+  }
+
+  const runCommand = (action: () => void) => {
+    action()
+    setCommandOpen(false)
+  }
+
+  const openUrl = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const jumpToDate = () => {
+    const promptText = language.startsWith("zh") ? "输入日期 (YYYY-MM-DD)" : "Enter date (YYYY-MM-DD)"
+    const rawValue = window.prompt(promptText)
+    if (!rawValue) return
+    const parsedDate = new Date(rawValue)
+    if (Number.isNaN(parsedDate.getTime())) {
+      toast(language.startsWith("zh") ? "日期格式无效" : "Invalid date format")
+      return
+    }
+    setDate(parsedDate)
+    setSidebarDate(parsedDate)
   }
 
   const handlePrevious = () => {
@@ -482,6 +537,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           </div>
 
           <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCommandOpen(true)}
+              className="w-[150px] justify-between"
+            >
+              <span>{language.startsWith("zh") ? "命令面板" : "Command"}</span>
+              <span className="text-xs text-muted-foreground">⌘/Ctrl K</span>
+            </Button>
             <div className="relative z-50">
               <Select value={view === "day" || view === "week" || view === "month" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
                 <SelectTrigger className="w-[100px]">
@@ -712,6 +776,78 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       </Suspense>
 
       <DailyToast />
+
+      <CommandDialog
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        title={language.startsWith("zh") ? "命令面板" : "Command Palette"}
+        description={language.startsWith("zh") ? "搜索并执行操作" : "Search and run actions"}
+      >
+        <CommandInput placeholder={language.startsWith("zh") ? "输入命令或搜索日程..." : "Type a command or search events..."} />
+        <CommandList>
+          <CommandEmpty>{language.startsWith("zh") ? "未找到匹配内容" : "No results found."}</CommandEmpty>
+
+          <CommandGroup heading={language.startsWith("zh") ? "快速操作" : "Quick Actions"}>
+            <CommandItem onSelect={() => runCommand(() => {
+              setSelectedEvent(null)
+              setQuickCreateStartTime(new Date())
+              setEventDialogOpen(true)
+            })}>
+              {language.startsWith("zh") ? "创建新日程" : "Create new event"}
+              <CommandShortcut>N</CommandShortcut>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(handleTodayClick)}>
+              {language.startsWith("zh") ? "跳转到今天" : "Go to today"}
+              <CommandShortcut>T</CommandShortcut>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(jumpToDate)}>
+              {language.startsWith("zh") ? "跳转到指定日期" : "Jump to date"}
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => setView("analytics"))}>
+              {language.startsWith("zh") ? "打开统计分析" : "Open analytics"}
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => setView("settings"))}>
+              {language.startsWith("zh") ? "打开设置" : "Open settings"}
+            </CommandItem>
+          </CommandGroup>
+
+          <CommandGroup heading={language.startsWith("zh") ? "视图" : "Views"}>
+            <CommandItem onSelect={() => runCommand(() => setView("day"))}>{t.day}</CommandItem>
+            <CommandItem onSelect={() => runCommand(() => setView("week"))}>{t.week}</CommandItem>
+            <CommandItem onSelect={() => runCommand(() => setView("month"))}>{t.month}</CommandItem>
+          </CommandGroup>
+
+          <CommandGroup heading={language.startsWith("zh") ? "系统" : "System"}>
+            <CommandItem onSelect={() => runCommand(() => openUrl("https://github.com/EvanTechDev/One-Calendar#readme"))}>
+              {language.startsWith("zh") ? "文档" : "Docs"}
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => openUrl("mailto:evan.huang000@proton.me"))}>
+              {language.startsWith("zh") ? "联系我们" : "Contact us"}
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => openUrl("https://vercel.com/tech-art/one-calendar"))}>
+              {language.startsWith("zh") ? "服务状态" : "Status"}
+            </CommandItem>
+          </CommandGroup>
+
+          <CommandGroup heading={language.startsWith("zh") ? "日程" : "Events"}>
+            {filteredEvents.slice(0, 12).map((event) => (
+              <CommandItem
+                key={event.id}
+                value={`${event.title} ${event.location || ""} ${event.description || ""}`}
+                onSelect={() =>
+                  runCommand(() => {
+                    setPreviewEvent(event)
+                    setPreviewOpen(true)
+                  })
+                }
+              >
+                <span className="truncate">{event.title || t.unnamedEvent}</span>
+                <CommandShortcut>{format(new Date(event.startDate), "MM-dd")}</CommandShortcut>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
