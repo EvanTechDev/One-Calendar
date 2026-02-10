@@ -11,8 +11,6 @@ import DayView from "@/components/view/DayView"
 import WeekView from "@/components/view/WeekView"
 import MonthView from "@/components/view/MonthView"
 import YearView from "@/components/view/YearView"
-type ViewType = "day" | "week" | "month" | "year" | "analytics" | "settings"
-  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
 import EventDialog from "@/components/event/EventDialog"
 import Settings from "@/components/home/Settings"
 import UserProfileButton, { type UserProfileSection } from "@/components/home/UserProfileButton"
@@ -61,6 +59,7 @@ export interface CalendarEvent {
 export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -152,28 +151,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           setQuickCreateStartTime(new Date()) // 使用当前时间
           setEventDialogOpen(true)
           break
-        case "4":
-          e.preventDefault()
-          setView("year")
-          break
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => {
-      const nextCollapsed = !prev
-      if (!nextCollapsed) {
-        setIsSidebarExpanding(true)
-      } else {
-        setIsSidebarExpanding(false)
-      }
-      return nextCollapsed
-    })
-  }
-
-      if (view === "year") return subYears(prevDate, 1)
-      if (view === "year") return addYears(prevDate, 1)
-    if (view === "year") {
-      return date.getFullYear().toString()
-    }
-
         case "/":
           e.preventDefault()
           // Focus the search input
@@ -221,7 +198,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
 
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => !prev)
+    setIsSidebarCollapsed((prev) => {
+      const nextCollapsed = !prev
+      if (!nextCollapsed) {
+        setIsSidebarExpanding(true)
+      } else {
+        setIsSidebarExpanding(false)
+      }
+      return nextCollapsed
+    })
   }
 
   const handleDateSelect = (date: Date) => {
@@ -437,11 +422,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [filteredEvents, searchTerm])
 
   useEffect(() => {
-          onToggleCollapse={toggleSidebar}
-          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
-              onClick={toggleSidebar}
-              <Select value={view === "day" || view === "week" || view === "month" || view === "year" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" || defaultView === "year" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
-                    <SelectItem value="year">{t.year}</SelectItem>
+    if (!notificationsInitializedRef.current) {
+      checkPendingNotifications(notificationSound)
+      notificationsInitializedRef.current = true
     }
 
     if (!notificationIntervalRef.current) {
@@ -480,6 +463,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
@@ -655,17 +639,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               }}
             />
           )}
-          {view === "year" && (
-            <YearView
-              date={date}
-              events={filteredEvents}
-              onEventClick={handleEventClick}
-              language={language}
-              firstDayOfWeek={firstDayOfWeek}
-              isSidebarCollapsed={isSidebarCollapsed}
-              isSidebarExpanding={isSidebarExpanding}
-            />
-          )}
           {view === "week" && (
             <WeekView
               date={date}
@@ -712,6 +685,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               isSidebarCollapsed={isSidebarCollapsed}
+              isSidebarExpanding={isSidebarExpanding}
             />
           )}
           {view === "analytics" && (

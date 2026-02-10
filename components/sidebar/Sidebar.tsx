@@ -129,8 +129,6 @@ export default function Sidebar({
         }
       }}
     >
-      )}
-    >
       <div className="p-4">
         <div className="flex items-center mb-4">
           <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2 green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5] crimson:text-[#9B0032]" />
