@@ -746,7 +746,7 @@ END:VEVENT
           </Tabs>
 
           {debugInfo && (
-            <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+            <div className="mt-4 rounded-md bg-muted p-2">
               <h4 className="font-medium mb-1">{t.debugInfo}</h4>
               <pre className="text-xs overflow-auto max-h-40 whitespace-pre-wrap">{debugInfo}</pre>
             </div>

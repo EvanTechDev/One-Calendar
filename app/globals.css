@@ -92,6 +92,7 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   
+.green,
 .green .app-theme-scope {
     --background: 142 35% 92%;
     --foreground: 140 20% 15%;
@@ -127,6 +128,7 @@ body {
     --sidebar-ring: 142 65% 40%;
 }
 
+.orange,
 .orange .app-theme-scope {
     --background: 28 50% 92%;
     --foreground: 20 24% 15%;
@@ -162,6 +164,7 @@ body {
     --sidebar-ring: 25 85% 48%;
 }
 
+.azalea,
 .azalea .app-theme-scope {
     --background: 331 25% 95%;
     --foreground: 331 15% 18%;
@@ -197,6 +200,7 @@ body {
     --sidebar-ring: 331 63% 49%;
 }
 
+.pink,
 .pink .app-theme-scope {
     --background: 7 60% 95%;
     --foreground: 7 25% 18%;
@@ -232,6 +236,7 @@ body {
     --sidebar-ring: 7 100% 82%;
 }
 
+.crimson,
 .crimson .app-theme-scope {
     --background: 341 25% 95%;
     --foreground: 341 15% 18%;
