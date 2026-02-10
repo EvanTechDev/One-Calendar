@@ -59,6 +59,8 @@ export interface CalendarEvent {
 export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarAnimating, setIsSidebarAnimating] = useState(false)
+  const sidebarAnimationTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -195,6 +197,21 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
+
+
+  const toggleSidebar = () => {
+    setIsSidebarAnimating(true)
+    setIsSidebarCollapsed((prev) => !prev)
+
+    if (sidebarAnimationTimerRef.current) {
+      clearTimeout(sidebarAnimationTimerRef.current)
+    }
+
+    sidebarAnimationTimerRef.current = setTimeout(() => {
+      setIsSidebarAnimating(false)
+      sidebarAnimationTimerRef.current = null
+    }, 320)
+  }
 
   const handleDateSelect = (date: Date) => {
     setDate(date)
@@ -431,6 +448,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
     return () => {
       window.removeEventListener("beforeunload", clearAllNotificationTimers)
+      if (sidebarAnimationTimerRef.current) {
+        clearTimeout(sidebarAnimationTimerRef.current)
+      }
     }
   }, [])
 
@@ -449,7 +469,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           language={language}
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onToggleCollapse={toggleSidebar}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
@@ -467,7 +487,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           <div className="flex items-center space-x-4">
             <Button 
               variant="outline"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              onClick={toggleSidebar}
               size="sm"
             >
               <PanelLeft />
@@ -671,6 +691,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               isSidebarCollapsed={isSidebarCollapsed}
+              isSidebarAnimating={isSidebarAnimating}
             />
           )}
           {view === "analytics" && (
