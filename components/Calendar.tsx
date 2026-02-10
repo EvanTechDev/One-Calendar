@@ -59,7 +59,6 @@ export interface CalendarEvent {
 export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isSidebarAnimating, setIsSidebarAnimating] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -198,7 +197,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
 
   const toggleSidebar = () => {
-    setIsSidebarAnimating(true)
     setIsSidebarCollapsed((prev) => !prev)
   }
 
@@ -456,7 +454,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          onCollapseTransitionEnd={() => setIsSidebarAnimating(false)}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
@@ -678,7 +675,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               language={language}
               firstDayOfWeek={firstDayOfWeek}
               isSidebarCollapsed={isSidebarCollapsed}
-              isSidebarAnimating={isSidebarAnimating}
             />
           )}
           {view === "analytics" && (
