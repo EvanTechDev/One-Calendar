@@ -60,7 +60,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSidebarAnimating, setIsSidebarAnimating] = useState(false)
-  const sidebarAnimationTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>("week")
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -198,19 +197,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   }, [enableShortcuts, t.searchEvents]) // Make sure enableShortcuts is in the dependency array
 
-
   const toggleSidebar = () => {
     setIsSidebarAnimating(true)
     setIsSidebarCollapsed((prev) => !prev)
-
-    if (sidebarAnimationTimerRef.current) {
-      clearTimeout(sidebarAnimationTimerRef.current)
-    }
-
-    sidebarAnimationTimerRef.current = setTimeout(() => {
-      setIsSidebarAnimating(false)
-      sidebarAnimationTimerRef.current = null
-    }, 320)
   }
 
   const handleDateSelect = (date: Date) => {
@@ -448,9 +437,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     window.addEventListener("beforeunload", clearAllNotificationTimers)
     return () => {
       window.removeEventListener("beforeunload", clearAllNotificationTimers)
-      if (sidebarAnimationTimerRef.current) {
-        clearTimeout(sidebarAnimationTimerRef.current)
-      }
     }
   }, [])
 
@@ -470,6 +456,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          onCollapseTransitionEnd={() => setIsSidebarAnimating(false)}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
