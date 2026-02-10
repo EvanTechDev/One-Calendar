@@ -454,7 +454,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          disableWidthAnimation={view === "year"}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
