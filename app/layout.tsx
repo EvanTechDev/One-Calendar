@@ -13,7 +13,6 @@ import { ThemeProvider } from "@/components/context/theme-provider"
 export const metadata: Metadata = {
   title: "One Calendar",
   description: "All your events in one place, beautifully organized.",
-  themeColor: "#0066ff",
   openGraph: {
     title: "One Calendar",
     description: "All your events in one place, beautifully organized.",
@@ -59,7 +58,7 @@ export default function RootLayout({
         signUpUrl="/sign-up"
       >
         <ThemeProvider
-            themes={['light', 'dark', 'blue', 'green']}
+            themes={['light', 'dark', 'green', 'orange', 'azalea', 'pink', 'crimson']}
             attribute="class"
             defaultTheme="system"
             enableSystem
@@ -77,4 +76,3 @@ export default function RootLayout({
     </html>
   )
 }
-

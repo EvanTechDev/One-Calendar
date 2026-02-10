@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense, useLayoutEffect, useMemo } from "react"
+import { useState, useEffect, useRef, Suspense, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -26,7 +26,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import DailyToast from "@/components/home/DailyToast"
 import { toast } from "sonner"
-import { useTheme } from "next-themes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,28 +82,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [focusUserProfileSection, setFocusUserProfileSection] = useState<UserProfileSection | null>(null)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
-  const { theme } = useTheme()
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
-  useLayoutEffect(() => {
-    const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
 
-    body.classList.add('app')
-
-    colorThemes.forEach(color => body.classList.remove(color))
-    
-    if (theme && colorThemes.includes(theme)) {
-      body.classList.add(theme)
-    }
-
-    return () => {
-      body.classList.remove('app')
-      colorThemes.forEach(color => body.classList.remove(color))
-    }
-  }, [theme])
-  
   const updateEvent = (updatedEvent) => {
     setEvents(prevEvents => 
       prevEvents.map(event => 

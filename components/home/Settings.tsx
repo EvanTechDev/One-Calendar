@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { translations, type Language } from "@/lib/i18n"
@@ -55,23 +54,6 @@ export default function Settings({
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
   const t = translations[language]
-
-  useEffect(() => {
-    const body = document.body
-    const colorThemes = ["blue", "green", "purple", "orange", "azalea", "pink", "crimson"]
-
-    body.classList.add("app")
-    colorThemes.forEach((colorTheme) => body.classList.remove(colorTheme))
-
-    if (theme && colorThemes.includes(theme)) {
-      body.classList.add(theme)
-    }
-
-    return () => {
-      body.classList.remove("app")
-      colorThemes.forEach((colorTheme) => body.classList.remove(colorTheme))
-    }
-  }, [theme])
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
