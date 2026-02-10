@@ -666,6 +666,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           {view === "year" && (
             <YearView
               date={date}
+              events={filteredEvents}
+              onEventClick={handleEventClick}
               language={language}
               firstDayOfWeek={firstDayOfWeek}
             />
