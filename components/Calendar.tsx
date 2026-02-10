@@ -89,7 +89,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   useLayoutEffect(() => {
     const body = document.body
-    const colorThemes = ['blue', 'green', 'purple', 'orange', 'azalea', 'pink', 'crimson']
+    const colorThemes = ['green', 'orange', 'azalea', 'pink', 'crimson']
 
     body.classList.add('app')
 

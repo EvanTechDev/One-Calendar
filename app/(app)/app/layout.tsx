@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import type { Viewport } from "next"
-import { ThemeProvider } from "@/components/context/theme-provider"
 
 export const viewport: Viewport = {
   themeColor: [
@@ -10,15 +9,5 @@ export const viewport: Viewport = {
 }
 
 export default function AppPageLayout({ children }: { children: ReactNode }) {
-  return (
-    <ThemeProvider
-      themes={["light", "dark", "green", "orange", "azalea", "pink", "crimson"]}
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      {children}
-    </ThemeProvider>
-  )
+  return <>{children}</>
 }

@@ -58,7 +58,7 @@ export default function Settings({
 
   useEffect(() => {
     const body = document.body
-    const colorThemes = ["blue", "green", "purple", "orange", "azalea", "pink", "crimson"]
+    const colorThemes = ["green", "orange", "azalea", "pink", "crimson"]
 
     body.classList.add("app")
     colorThemes.forEach((colorTheme) => body.classList.remove(colorTheme))

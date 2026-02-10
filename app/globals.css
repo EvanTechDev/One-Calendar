@@ -267,11 +267,11 @@ body {
     --sidebar-ring: 341 100% 30%;
 }
 
-.green button[variant="outline"],
-.orange button[variant="outline"],
-.azalea button[variant="outline"],
-.pink button[variant="outline"]
-.crimson button[variant="outline"]{
+.app.green button[variant="outline"],
+.app.orange button[variant="outline"],
+.app.azalea button[variant="outline"],
+.app.pink button[variant="outline"],
+.app.crimson button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
@@ -285,11 +285,11 @@ body {
     background: transparent;
 }
 
-.app.green hr, .green .divider,
-.app.orange hr, .orange .divider,
-.app.azalea hr, .azalea .divider,
-.app.pink hr, .pink .divider,
-.app.crimson hr, .crimson .divider {
+.app.green hr, .app.green .divider,
+.app.orange hr, .app.orange .divider,
+.app.azalea hr, .app.azalea .divider,
+.app.pink hr, .app.pink .divider,
+.app.crimson hr, .app.crimson .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
