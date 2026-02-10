@@ -92,7 +92,7 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   
-.app.green {
+.green .app-theme-scope {
     --background: 142 35% 92%;
     --foreground: 140 20% 15%;
     --card: 142 30% 88%;
@@ -127,7 +127,7 @@ body {
     --sidebar-ring: 142 65% 40%;
 }
 
-.app.orange {
+.orange .app-theme-scope {
     --background: 28 50% 92%;
     --foreground: 20 24% 15%;
     --card: 28 45% 88%;
@@ -162,7 +162,7 @@ body {
     --sidebar-ring: 25 85% 48%;
 }
 
-.app.azalea {
+.azalea .app-theme-scope {
     --background: 331 25% 95%;
     --foreground: 331 15% 18%;
     --card: 331 20% 90%;
@@ -197,7 +197,7 @@ body {
     --sidebar-ring: 331 63% 49%;
 }
 
-.app.pink {
+.pink .app-theme-scope {
     --background: 7 60% 95%;
     --foreground: 7 25% 18%;
     --card: 7 50% 90%;
@@ -232,7 +232,7 @@ body {
     --sidebar-ring: 7 100% 82%;
 }
 
-.app.crimson {
+.crimson .app-theme-scope {
     --background: 341 25% 95%;
     --foreground: 341 15% 18%;
     --card: 341 20% 90%;
@@ -267,38 +267,38 @@ body {
     --sidebar-ring: 341 100% 30%;
 }
 
-.app.green button[variant="outline"],
-.app.orange button[variant="outline"],
-.app.azalea button[variant="outline"],
-.app.pink button[variant="outline"],
-.app.crimson button[variant="outline"] {
+.green .app-theme-scope button[variant="outline"],
+.orange .app-theme-scope button[variant="outline"],
+.azalea .app-theme-scope button[variant="outline"],
+.pink .app-theme-scope button[variant="outline"],
+.crimson .app-theme-scope button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
 
-.app.green button[variant="ghost"],
-.app.orange button[variant="ghost"],
-.app.azalea button[variant="ghost"],
-.app.pink button[variant="ghost"],
-.app.crimson button[variant="ghost"] {
+.green .app-theme-scope button[variant="ghost"],
+.orange .app-theme-scope button[variant="ghost"],
+.azalea .app-theme-scope button[variant="ghost"],
+.pink .app-theme-scope button[variant="ghost"],
+.crimson .app-theme-scope button[variant="ghost"] {
     border: none;
     background: transparent;
 }
 
-.app.green hr, .app.green .divider,
-.app.orange hr, .app.orange .divider,
-.app.azalea hr, .app.azalea .divider,
-.app.pink hr, .app.pink .divider,
-.app.crimson hr, .app.crimson .divider {
+.green .app-theme-scope hr, .green .app-theme-scope .divider,
+.orange .app-theme-scope hr, .orange .app-theme-scope .divider,
+.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider,
+.pink .app-theme-scope hr, .pink .app-theme-scope .divider,
+.crimson .app-theme-scope hr, .crimson .app-theme-scope .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
 
-.app.green .separator,
-.app.orange .separator,
-.app.azalea .separator,
-.app.pink .separator,
-.app.crimson .separator {
+.green .app-theme-scope .separator,
+.orange .app-theme-scope .separator,
+.azalea .app-theme-scope .separator,
+.pink .app-theme-scope .separator,
+.crimson .app-theme-scope .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;

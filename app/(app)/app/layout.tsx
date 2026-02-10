@@ -9,5 +9,5 @@ export const viewport: Viewport = {
 }
 
 export default function AppPageLayout({ children }: { children: ReactNode }) {
-  return <>{children}</>
+  return <div className="app-theme-scope">{children}</div>
 }
