@@ -176,6 +176,7 @@ export default function Settings({
               <SelectItem value="day">{t.day}</SelectItem>
               <SelectItem value="week">{t.week}</SelectItem>
               <SelectItem value="month">{t.month}</SelectItem>
+              <SelectItem value="year">{t.year}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -224,6 +225,7 @@ export default function Settings({
               <div><Kbd>1</Kbd> - {t.dayView}</div>
               <div><Kbd>2</Kbd> - {t.weekView}</div>
               <div><Kbd>3</Kbd> - {t.monthView}</div>
+              <div><Kbd>4</Kbd> - {t.yearView}</div>
               <div><Kbd>→</Kbd> - {t.nextPeriod}</div>
               <div><Kbd>←</Kbd> - {t.previousPeriod}</div>
             </div>
