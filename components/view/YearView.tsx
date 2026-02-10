@@ -98,7 +98,7 @@ export default function YearView({ date, events, onEventClick, language, firstDa
         className={cn(
           "grid gap-y-4",
           isSidebarCollapsed
-            ? "md:[grid-template-columns:repeat(3,15.5rem)] md:justify-between md:gap-x-10"
+            ? "md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6"
             : "md:grid-cols-3 md:gap-x-4",
         )}
       >
