@@ -670,6 +670,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               onEventClick={handleEventClick}
               language={language}
               firstDayOfWeek={firstDayOfWeek}
+              isSidebarCollapsed={isSidebarCollapsed}
             />
           )}
           {view === "analytics" && (

@@ -14,6 +14,7 @@ interface YearViewProps {
   onEventClick: (event: CalendarEvent) => void
   language: Language
   firstDayOfWeek: number
+  isSidebarCollapsed?: boolean
 }
 
 function getDarkerColorClass(color: string) {
@@ -46,7 +47,7 @@ function getDarkModeEventBackgroundColor(color: string) {
   return darkModeColorMapping[color]
 }
 
-export default function YearView({ date, events, onEventClick, language, firstDayOfWeek }: YearViewProps) {
+export default function YearView({ date, events, onEventClick, language, firstDayOfWeek, isSidebarCollapsed = false }: YearViewProps) {
   const t = translations[language]
   const currentYear = date.getFullYear()
   const today = new Date()
@@ -93,7 +94,14 @@ export default function YearView({ date, events, onEventClick, language, firstDa
 
   return (
     <div className="p-3 md:p-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-y-4",
+          isSidebarCollapsed
+            ? "md:[grid-template-columns:repeat(3,15.5rem)] md:justify-between md:gap-x-10"
+            : "md:grid-cols-3 md:gap-x-4",
+        )}
+      >
         {months.map((month) => (
           <section key={month.label} className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">{month.label}</h2>
