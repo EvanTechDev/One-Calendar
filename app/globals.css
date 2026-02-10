@@ -272,6 +272,20 @@ body {
     --sidebar-ring: 341 100% 30%;
 }
 
+.green,
+.green .app-theme-scope,
+.orange,
+.orange .app-theme-scope,
+.azalea,
+.azalea .app-theme-scope,
+.pink,
+.pink .app-theme-scope,
+.crimson,
+.crimson .app-theme-scope {
+    --card: var(--background);
+    --popover: var(--background);
+}
+
 .green .app-theme-scope button[variant="outline"],
 .orange .app-theme-scope button[variant="outline"],
 .azalea .app-theme-scope button[variant="outline"],
