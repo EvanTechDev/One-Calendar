@@ -15,6 +15,7 @@ interface YearViewProps {
   language: Language
   firstDayOfWeek: number
   isSidebarCollapsed?: boolean
+  isSidebarExpanding?: boolean
 }
 
 function getDarkerColorClass(color: string) {
@@ -54,6 +55,7 @@ export default function YearView({
   language,
   firstDayOfWeek,
   isSidebarCollapsed = false,
+  isSidebarExpanding = false,
 }: YearViewProps) {
   const t = translations[language]
   const currentYear = date.getFullYear()
@@ -102,10 +104,9 @@ export default function YearView({
   return (
     <div className="p-3 md:p-4">
       <div
-        key={isSidebarCollapsed ? "collapsed" : "expanded"}
         className={cn(
-          "grid gap-y-4 animate-in fade-in duration-200",
-          isSidebarCollapsed
+          "grid gap-y-4",
+          isSidebarCollapsed || isSidebarExpanding
             ? "md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6"
             : "md:grid-cols-3 md:gap-x-4",
         )}

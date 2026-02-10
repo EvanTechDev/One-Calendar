@@ -24,6 +24,7 @@ interface SidebarProps {
   onToggleCollapse?: () => void
   selectedCategoryFilters?: string[]
   onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
+  onCollapseTransitionEnd?: () => void
 }
 
 export interface CalendarCategory {
@@ -55,6 +56,7 @@ export default function Sidebar({
   onToggleCollapse,
   selectedCategoryFilters = [],
   onCategoryFilterChange,
+  onCollapseTransitionEnd,
 }: SidebarProps) {
 
   const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
@@ -120,6 +122,13 @@ export default function Sidebar({
       className={cn(
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
         isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-72 opacity-100",
+      )}
+      onTransitionEnd={(event) => {
+        if (event.target === event.currentTarget && event.propertyName === "width") {
+          onCollapseTransitionEnd?.()
+        }
+      }}
+    >
       )}
     >
       <div className="p-4">

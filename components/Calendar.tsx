@@ -11,6 +11,8 @@ import DayView from "@/components/view/DayView"
 import WeekView from "@/components/view/WeekView"
 import MonthView from "@/components/view/MonthView"
 import YearView from "@/components/view/YearView"
+type ViewType = "day" | "week" | "month" | "year" | "analytics" | "settings"
+  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
 import EventDialog from "@/components/event/EventDialog"
 import Settings from "@/components/home/Settings"
 import UserProfileButton, { type UserProfileSection } from "@/components/home/UserProfileButton"
@@ -150,6 +152,28 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           setQuickCreateStartTime(new Date()) // 使用当前时间
           setEventDialogOpen(true)
           break
+        case "4":
+          e.preventDefault()
+          setView("year")
+          break
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const nextCollapsed = !prev
+      if (!nextCollapsed) {
+        setIsSidebarExpanding(true)
+      } else {
+        setIsSidebarExpanding(false)
+      }
+      return nextCollapsed
+    })
+  }
+
+      if (view === "year") return subYears(prevDate, 1)
+      if (view === "year") return addYears(prevDate, 1)
+    if (view === "year") {
+      return date.getFullYear().toString()
+    }
+
         case "/":
           e.preventDefault()
           // Focus the search input
@@ -413,9 +437,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [filteredEvents, searchTerm])
 
   useEffect(() => {
-    if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(notificationSound)
-      notificationsInitializedRef.current = true
+          onToggleCollapse={toggleSidebar}
+          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
+              onClick={toggleSidebar}
+              <Select value={view === "day" || view === "week" || view === "month" || view === "year" ? view : defaultView === "day" || defaultView === "week" || defaultView === "month" || defaultView === "year" ? defaultView : "week"} onValueChange={(value: ViewType) => setView(value)}>
+                    <SelectItem value="year">{t.year}</SelectItem>
     }
 
     if (!notificationIntervalRef.current) {
@@ -627,6 +653,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                 updateEvent(updatedEvent)
               }}
+            />
+          )}
+          {view === "year" && (
+            <YearView
+              date={date}
+              events={filteredEvents}
+              onEventClick={handleEventClick}
+              language={language}
+              firstDayOfWeek={firstDayOfWeek}
+              isSidebarCollapsed={isSidebarCollapsed}
+              isSidebarExpanding={isSidebarExpanding}
             />
           )}
           {view === "week" && (
