@@ -38,14 +38,14 @@ export default function YearView({ date, language, firstDayOfWeek }: YearViewPro
   })
 
   return (
-    <div className="p-6">
-      <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+    <div className="p-4 md:p-5">
+      <div className="grid gap-5 md:grid-cols-3">
         {months.map((month) => (
-          <section key={month.label} className="space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight">{month.label}</h2>
-            <div className="grid grid-cols-7 gap-y-3 text-center">
+          <section key={month.label} className="space-y-1.5">
+            <h2 className="text-xl font-semibold tracking-tight">{month.label}</h2>
+            <div className="grid grid-cols-7 gap-y-1.5 text-center">
               {weekdayLabels.map((weekday) => (
-                <div key={`${month.label}-${weekday}`} className="text-2xl text-muted-foreground">
+                <div key={`${month.label}-${weekday}`} className="text-sm text-muted-foreground">
                   {weekday}
                 </div>
               ))}
@@ -58,7 +58,7 @@ export default function YearView({ date, language, firstDayOfWeek }: YearViewPro
                   <div
                     key={`${month.label}-${day.toISOString()}`}
                     className={cn(
-                      "mx-auto flex h-10 w-10 items-center justify-center rounded-full text-2xl",
+                      "mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm",
                       !isCurrentMonth && "text-muted-foreground",
                       isToday &&
                         "bg-[#0066FF] text-white green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]",
