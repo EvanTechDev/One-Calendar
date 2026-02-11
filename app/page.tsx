@@ -1,199 +1,247 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, ChevronRight, Plus } from "lucide-react"
 import { motion } from "framer-motion"
 
+const navItems = [
+  { label: "Product", href: "/about" },
+  { label: "Resources", href: "/privacy" },
+  { label: "Pricing", href: "/terms" },
+  { label: "Customers", href: "/about" },
+]
+
+const valueCards = [
+  {
+    title: "Purpose-built for planning",
+    description: "Turn rough plans into clear weekly execution without losing momentum.",
+  },
+  {
+    title: "Designed to move fast",
+    description: "Keyboard-first actions, instant updates, and a timeline that stays readable.",
+  },
+  {
+    title: "Crafted for teams",
+    description: "Share priorities, keep context visible, and align everyone on the same calendar.",
+  },
+]
+
+const footerColumns = [
+  {
+    title: "Features",
+    links: ["Plan", "Build", "Insights", "Requests", "Security"],
+  },
+  {
+    title: "Product",
+    links: ["Pricing", "Integrations", "Changelog", "Documentation", "Download"],
+  },
+  {
+    title: "Company",
+    links: ["About", "Customers", "Careers", "Quality", "Brand"],
+  },
+  {
+    title: "Resources",
+    links: ["Developers", "Status", "Startups", "Privacy", "Terms"],
+  },
+]
+
 const reveal = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
 }
 
-const navigation = [
-  { label: "Product", href: "/about" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
-]
-
-const highlights = [
-  "Unified calendar for projects, meetings, and routines.",
-  "Fast keyboard-first planning for daily execution.",
-  "Reliable sync and reminders across all your devices.",
-]
-
-const capabilities = [
-  {
-    title: "Plan by priority",
-    description: "Turn goals into structured calendar blocks in seconds.",
-  },
-  {
-    title: "Coordinate as a team",
-    description: "Share schedules, avoid collisions, and protect focus time.",
-  },
-  {
-    title: "Stay consistent",
-    description: "Build repeatable routines with clear visibility week to week.",
-  },
-  {
-    title: "Move faster",
-    description: "From quick capture to confirmed schedule without context switching.",
-  },
-]
-
-const metrics = [
-  { label: "Average planning time reduced", value: "7.4h / week" },
-  { label: "Events synchronized", value: "99.9%" },
-  { label: "Calendar response", value: "< 80ms" },
-]
-
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-neutral-950">
-      <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-12">
-        <header className="flex h-16 items-center justify-between border-b border-neutral-200">
-          <Link href="/" className="text-base font-semibold tracking-tight text-neutral-950">
-            One Calendar
-          </Link>
+    <div className="min-h-screen bg-[#060606] text-white">
+      <div className="mx-auto max-w-[1600px]">
+        <header className="border-b border-white/10">
+          <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 sm:px-10">
+            <Link href="/" className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-white">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/30 text-xs">◍</span>
+              One Calendar
+            </Link>
 
-          <nav className="hidden items-center gap-8 md:flex">
-            {navigation.map((item) => (
-              <Link key={item.label} href={item.href} className="text-sm text-neutral-600 transition-colors hover:text-neutral-950">
-                {item.label}
+            <nav className="hidden items-center gap-10 lg:flex">
+              {navItems.map((item) => (
+                <Link key={item.label} href={item.href} className="text-xl text-white/70 transition-colors hover:text-white">
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-3">
+              <Link href="/sign-in" className="rounded-lg px-4 py-2 text-xl text-white/80 transition hover:text-white">
+                Log in
               </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/sign-in" className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition hover:border-neutral-400 hover:text-neutral-950">
-              Log in
-            </Link>
-            <Link href="/sign-up" className="rounded-md bg-black px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-800">
-              Sign up
-            </Link>
+              <Link href="/sign-up" className="rounded-xl bg-white px-5 py-2 text-xl font-medium text-black transition hover:bg-white/90">
+                Sign up
+              </Link>
+            </div>
           </div>
         </header>
 
         <main>
-          <section className="py-20 sm:py-28">
-            <motion.div initial="hidden" animate="visible" variants={reveal} transition={{ duration: 0.5, ease: "easeOut" }} className="max-w-4xl">
-              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-neutral-950 sm:text-6xl">
-                Plan the week.
-                <br />
-                Execute the work.
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-neutral-600">
-                One Calendar helps modern teams organize priorities, protect focus time, and ship consistently.
-              </p>
-              <div className="mt-10 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/sign-up"
-                  className="inline-flex items-center gap-2 rounded-md bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-                >
-                  Start scheduling
-                  <ArrowRight className="h-4 w-4" />
+          <section className="border-b border-white/10">
+            <div className="mx-auto grid max-w-6xl gap-10 px-6 py-24 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
+              <motion.div initial="hidden" animate="visible" variants={reveal} transition={{ duration: 0.45, ease: "easeOut" }}>
+                <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-white sm:text-7xl">
+                  Plan the present.
+                  <br />
+                  Build the future.
+                </h1>
+                <p className="mt-8 max-w-2xl text-3xl leading-relaxed text-white/65">
+                  One Calendar helps product teams align priorities, run fast planning cycles, and ship with better rhythm.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: "easeOut" }}
+                className="flex gap-3"
+              >
+                <Link href="/about" className="rounded-2xl bg-white/12 px-6 py-4 text-2xl text-white transition hover:bg-white/18">
+                  Contact sales
                 </Link>
-                <Link href="/about" className="rounded-md border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-800 transition hover:border-neutral-400 hover:text-neutral-950">
-                  View product
-                </Link>
-              </div>
-            </motion.div>
-          </section>
-
-          <section className="border-t border-neutral-200 py-14">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              variants={reveal}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="grid gap-8 md:grid-cols-2"
-            >
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-500">Why teams choose One Calendar</p>
-                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">Built for focus, not friction.</h2>
-              </div>
-              <ul className="space-y-4">
-                {highlights.map((item) => (
-                  <li key={item} className="border-b border-neutral-200 pb-4 text-base text-neutral-700 last:border-b-0 last:pb-0">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </section>
-
-          <section className="border-t border-neutral-200 py-14">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={reveal}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-            >
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-500">Capabilities</p>
-              <div className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200">
-                {capabilities.map((item) => (
-                  <div key={item.title} className="grid gap-2 py-6 sm:grid-cols-[220px_1fr] sm:gap-8">
-                    <h3 className="text-base font-medium text-neutral-950">{item.title}</h3>
-                    <p className="text-base text-neutral-600">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </section>
-
-          <section className="border-t border-neutral-200 py-14">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              variants={reveal}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="grid gap-8 sm:grid-cols-3"
-            >
-              {metrics.map((metric) => (
-                <div key={metric.label} className="border-l border-neutral-200 pl-4 first:border-l-0 first:pl-0">
-                  <p className="text-2xl font-semibold tracking-tight text-neutral-950">{metric.value}</p>
-                  <p className="mt-2 text-sm text-neutral-600">{metric.label}</p>
-                </div>
-              ))}
-            </motion.div>
-          </section>
-
-          <section className="border-t border-neutral-200 py-20">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-              variants={reveal}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">Ready to organize time with confidence?</h2>
-                <p className="mt-3 text-base text-neutral-600">Start with One Calendar and keep your team aligned every week.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link href="/sign-up" className="rounded-md bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800">
+                <Link href="/sign-up" className="rounded-2xl bg-white px-6 py-4 text-2xl font-medium text-black transition hover:bg-white/90">
                   Get started
                 </Link>
-                <Link href="/sign-in" className="rounded-md border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-800 transition hover:border-neutral-400 hover:text-neutral-950">
-                  Log in
-                </Link>
+              </motion.div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.35 }}
+                variants={reveal}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+              >
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-lg text-white/70">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/75" />
+                  Product planning workspace
+                </div>
+                <h2 className="mt-8 max-w-4xl text-5xl font-semibold tracking-tight text-white sm:text-7xl">Set your product direction.</h2>
+                <p className="mt-7 max-w-3xl text-3xl leading-relaxed text-white/60">
+                  Align your team around one timeline. Plan, track, and communicate roadmap execution with clear context.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: 0.08 }}
+                className="relative mt-16 overflow-hidden rounded-2xl border border-white/10 bg-[#090909]"
+              >
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:90px_90px]" />
+                <div className="relative p-7 sm:p-10">
+                  <div className="text-xl text-white/65">Timeline overview</div>
+                  <div className="mt-6 space-y-4">
+                    {[
+                      "Q1 foundation and migration",
+                      "Beta workflow automation",
+                      "Cross-team launch alignment",
+                    ].map((row, index) => (
+                      <motion.div
+                        key={row}
+                        initial={{ opacity: 0, x: -14 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.35, delay: 0.08 + index * 0.08 }}
+                        className="flex items-center justify-between rounded-lg border border-white/10 px-5 py-4"
+                      >
+                        <span className="text-xl text-white/85">{row}</span>
+                        <span className="text-xl text-white/45">{index + 1}0%</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.25 }}
+                variants={reveal}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]"
+              >
+                <h3 className="text-5xl font-semibold tracking-tight text-white sm:text-7xl">Made for modern product teams.</h3>
+                <p className="text-3xl leading-relaxed text-white/60">
+                  Built with a strong focus on fast execution and high-quality planning. Keep docs, schedules, and decisions in one system.
+                  <Link href="/about" className="ml-2 inline-flex items-center gap-1 font-medium text-white transition hover:text-white/80">
+                    Make the switch <ChevronRight className="h-5 w-5" />
+                  </Link>
+                </p>
+              </motion.div>
+
+              <div className="mt-14 grid gap-5 md:grid-cols-3">
+                {valueCards.map((card, idx) => (
+                  <motion.article
+                    key={card.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.4, delay: idx * 0.06 }}
+                    className="flex min-h-[280px] flex-col justify-between rounded-[28px] border border-white/10 bg-[#0b0b0b] p-7"
+                  >
+                    <div>
+                      <div className="h-28 rounded-lg border border-white/10 bg-black/40" />
+                      <h4 className="mt-6 text-4xl font-medium tracking-tight text-white">{card.title}</h4>
+                      <p className="mt-3 text-2xl leading-relaxed text-white/60">{card.description}</p>
+                    </div>
+                    <button type="button" className="mt-8 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:text-white">
+                      <Plus className="h-5 w-5" />
+                    </button>
+                  </motion.article>
+                ))}
               </div>
-            </motion.div>
+            </div>
           </section>
         </main>
 
-        <footer className="flex flex-col gap-3 border-t border-neutral-200 py-8 text-sm text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} One Calendar</p>
-          <div className="flex items-center gap-4">
-            <Link href="/privacy" className="transition-colors hover:text-neutral-800">
-              Privacy
-            </Link>
-            <Link href="/terms" className="transition-colors hover:text-neutral-800">
-              Terms
-            </Link>
+        <footer className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+          <div className="grid gap-12 border-t border-white/10 pt-14 lg:grid-cols-[220px_1fr]">
+            <div className="flex items-start gap-3 text-2xl font-semibold tracking-tight text-white">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/30 text-xs">◍</span>
+              One Calendar
+            </div>
+
+            <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+              {footerColumns.map((column) => (
+                <div key={column.title}>
+                  <h5 className="text-xl font-medium text-white">{column.title}</h5>
+                  <ul className="mt-5 space-y-3">
+                    {column.links.map((link) => (
+                      <li key={link}>
+                        <Link href="/about" className="text-xl text-white/55 transition hover:text-white/85">
+                          {link}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-lg text-white/45 sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} One Calendar</p>
+            <div className="flex items-center gap-5">
+              <Link href="/privacy" className="transition hover:text-white/80">
+                Privacy
+              </Link>
+              <Link href="/terms" className="transition hover:text-white/80">
+                Terms
+              </Link>
+            </div>
           </div>
         </footer>
       </div>
