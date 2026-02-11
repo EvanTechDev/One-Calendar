@@ -23,7 +23,7 @@ import type { CalendarEvent } from "../calendar";
 import type { Language } from "@/lib/i18n";
 import { isZhLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useCalendar } from "@/components/context/calendar-context";
+import { useCalendar } from "@/components/providers/calendar-context";
 import {
   Dialog,
   DialogContent,

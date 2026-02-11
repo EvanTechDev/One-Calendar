@@ -3,17 +3,16 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import SmartSimpleBrilliant from "@/components/landing/smart-simple-brilliant"
-import YourWorkInSync from "@/components/landing/your-work-in-sync"
-import DocumentationSection from "@/components/landing/documentation-section"
-import FAQSection from "@/components/landing/faq-section"
-import PricingSection from "@/components/landing/pricing-section"
-import CTASection from "@/components/landing/cta-section"
-import FooterSection from "@/components/landing/footer-section"
+import SmartSimpleBrilliant from "@/components/marketing/smart-simple-brilliant"
+import YourWorkInSync from "@/components/marketing/your-work-in-sync"
+import DocumentationSection from "@/components/marketing/documentation-section"
+import FAQSection from "@/components/marketing/faq-section"
+import PricingSection from "@/components/marketing/pricing-section"
+import CTASection from "@/components/marketing/cta-section"
+import FooterSection from "@/components/marketing/footer-section"
 import Image from "next/image"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
-import { CalendarIcon } from 'lucide-react'
 import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 // Reusable Badge Component
@@ -34,8 +33,6 @@ export default function LandingPage() {
   const router = useRouter()
   const { isLoaded, isSignedIn } = useUser()
   const mountedRef = useRef(true)
-  const [showLoading, setShowLoading] = useState(false)
-  const [loadingDots, setLoadingDots] = useState("")
   const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
@@ -90,7 +87,6 @@ export default function LandingPage() {
       if (!active) return
       const hasSkippedLanding = value === "true" || value === true
       if (hasSkippedLanding || (isLoaded && isSignedIn)) {
-        setShowLoading(true)
         router.replace("/app")
       } else if (isLoaded) {
         setShouldRender(true)
@@ -101,34 +97,9 @@ export default function LandingPage() {
     }
   }, [isLoaded, isSignedIn, router])
 
-  useEffect(() => {
-    if (showLoading) {
-      const interval = setInterval(() => {
-        setLoadingDots(prev => {
-          if (prev === "...") return "."
-          return prev + "."
-        })
-      }, 400)
-
-      return () => clearInterval(interval)
-    }
-  }, [showLoading])
-
   const handleGetStarted = () => {
     void writeEncryptedLocalStorage("skip-landing", "true")
-    setShowLoading(true)
     router.push("/app")
-  }
-
-  if (showLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
-        <CalendarIcon className="h-36 w-36 text-[#0066ff] mb-4" />
-        <p className="text-base text-gray-700 dark:text-gray-300">
-          Loading One Calendar{loadingDots}
-        </p>
-      </div>
-    )
   }
 
   if (!shouldRender) return null

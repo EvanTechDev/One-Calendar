@@ -2,13 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
-import { CalendarProvider } from "@/components/context/calendar-context"
+import { CalendarProvider } from "@/components/providers/calendar-context"
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
-import { ThemeProvider } from "@/components/context/theme-provider"
+import { ThemeProvider } from "@/components/providers/theme-provider"
 
 export const metadata: Metadata = {
   title: "One Calendar",

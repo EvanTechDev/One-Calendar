@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils"
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n"
 import type { CalendarEvent } from "../calendar"
-import { useCalendar } from "@/components/context/calendar-context"
+import { useCalendar } from "@/components/providers/calendar-context"
 
 interface MiniCalendarSheetProps {
   open: boolean

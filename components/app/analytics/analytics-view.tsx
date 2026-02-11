@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import TimeAnalyticsComponent from "@/components/analytics/time-analytics"
-import EventsCalendar from "@/components/analytics/events-calendar"
-import type { CalendarEvent } from "@/components/calendar"
-import { useCalendar } from "@/components/context/calendar-context"
+import TimeAnalyticsComponent from "@/components/app/analytics/time-analytics"
+import EventsCalendar from "@/components/app/analytics/events-calendar"
+import type { CalendarEvent } from "@/components/app/calendar"
+import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface AnalyticsViewProps {
