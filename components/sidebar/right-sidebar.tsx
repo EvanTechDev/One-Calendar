@@ -10,10 +10,10 @@ import { User, BookText, Plus, ArrowLeft, Edit2, Trash2, Calendar, Bookmark, Mes
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import MiniCalendarSheet from "./MiniCalendarSheet"
-import BookmarkPanel from "./BookmarkPanel"
+import MiniCalendarSheet from "./mini-calendar-sheet"
+import BookmarkPanel from "./bookmark-panel"
 import { useRouter } from "next/navigation"
-import { CountdownTool } from "./Countdown"
+import { CountdownTool } from "./countdown"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },

@@ -19,11 +19,11 @@ import { Share as Share2 } from "@/components/icons/share";
 import { Button } from "@/components/ui/button";
 import { zhCN, enUS } from "date-fns/locale";
 import { format } from "date-fns";
-import type { CalendarEvent } from "../Calendar";
+import type { CalendarEvent } from "../calendar";
 import type { Language } from "@/lib/i18n";
 import { isZhLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useCalendar } from "@/components/context/CalendarContext";
+import { useCalendar } from "@/components/context/calendar-context";
 import {
   Dialog,
   DialogContent,

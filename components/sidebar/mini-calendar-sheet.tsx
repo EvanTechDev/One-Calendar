@@ -9,8 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n"
-import type { CalendarEvent } from "../Calendar"
-import { useCalendar } from "@/components/context/CalendarContext"
+import type { CalendarEvent } from "../calendar"
+import { useCalendar } from "@/components/context/calendar-context"
 
 interface MiniCalendarSheetProps {
   open: boolean

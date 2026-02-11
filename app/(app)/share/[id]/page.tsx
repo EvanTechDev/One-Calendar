@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import SharedEventView from "@/components/home/SharedEvent"
+import SharedEventView from "@/components/home/shared-event"
 
 export default function SharePage() {
   const params = useParams()
