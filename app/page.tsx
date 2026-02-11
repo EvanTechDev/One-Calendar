@@ -1,94 +1,73 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, ChevronRight, Plus, Check, Calendar, Clock3, Layers3, Sparkles } from "lucide-react"
+import { ArrowRight, Check, ChevronRight, Shield, Cloud, Languages, Lock, Hand } from "lucide-react"
 import { motion } from "framer-motion"
 
 const navItems = [
   { label: "Product", href: "/about" },
-  { label: "Resources", href: "/privacy" },
-  { label: "Pricing", href: "/terms" },
-  { label: "Customers", href: "/about" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+  { label: "Open Source", href: "https://github.com/EvanTechDev/One-Calendar" },
 ]
 
-const valueCards = [
+const coreFeatures = [
   {
-    title: "Purpose-built for planning",
-    description: "Turn rough plans into clear weekly execution without losing momentum.",
+    icon: Hand,
+    title: "Interactive calendar",
+    description: "Drag, drop, right-click, and edit events with a smooth weekly workflow.",
   },
   {
-    title: "Designed to move fast",
-    description: "Keyboard-first actions, instant updates, and a timeline that stays readable.",
+    icon: Shield,
+    title: "Privacy-first by design",
+    description: "Your schedule stays yours with encrypted storage and control over sharing.",
   },
   {
-    title: "Crafted for teams",
-    description: "Share priorities, keep context visible, and align everyone on the same calendar.",
-  },
-]
-
-const featurePills = [
-  { icon: Calendar, text: "Unified scheduling" },
-  { icon: Clock3, text: "Priority time-blocking" },
-  { icon: Layers3, text: "Cross-team visibility" },
-  { icon: Sparkles, text: "AI planning assists" },
-]
-
-const workflowSteps = [
-  "Capture incoming requests from product, design, and engineering.",
-  "Translate roadmap intent into sprint-level calendar priorities.",
-  "Auto-protect deep work windows before meetings fill the week.",
-  "Publish weekly plan with one click and shared context.",
-]
-
-const stats = [
-  { value: "7.4h", label: "Planning time saved / week" },
-  { value: "99.9%", label: "Calendar sync reliability" },
-  { value: "< 80ms", label: "Timeline update latency" },
-  { value: "3x", label: "Faster weekly planning cycles" },
-]
-
-const faqItems = [
-  {
-    q: "Can One Calendar replace multiple planning tools?",
-    a: "Yes. It centralizes calendar operations, roadmap scheduling, and team execution rhythms.",
+    icon: Cloud,
+    title: "Optional cloud sync",
+    description: "Use PostgreSQL sync when needed, or keep your setup local and lightweight.",
   },
   {
-    q: "Is it built for personal or team usage?",
-    a: "Both. It scales from individual focus systems to cross-functional product teams.",
-  },
-  {
-    q: "How quickly can a team onboard?",
-    a: "Most teams launch their first shared planning workflow in under one day.",
+    icon: Languages,
+    title: "English / 中文",
+    description: "Localization is built in, so teams can use the same product in their own language.",
   },
 ]
 
-const footerColumns = [
+const showcaseBlocks = [
   {
-    title: "Features",
-    links: ["Plan", "Build", "Insights", "Requests", "Security"],
+    title: "Weekly view for focused planning",
+    description: "See your priorities, meetings, and personal routines in one clean timeline.",
+    image: "/Banner.jpg",
   },
   {
-    title: "Product",
-    links: ["Pricing", "Integrations", "Changelog", "Documentation", "Download"],
+    title: "Analytics for time awareness",
+    description: "Track how your time is spent and adjust plans based on real weekly patterns.",
+    image: "/A.jpg",
   },
   {
-    title: "Company",
-    links: ["About", "Customers", "Careers", "Quality", "Brand"],
+    title: "Sharing and collaboration",
+    description: "Generate secure share links to align with teammates, clients, or family.",
+    image: "/Banner-dark.jpg",
   },
-  {
-    title: "Resources",
-    links: ["Developers", "Status", "Startups", "Privacy", "Terms"],
-  },
+]
+
+const trustPoints = [
+  "No AI tracking layer in core scheduling flow",
+  "Clerk authentication with modern account security",
+  "Theme and default-view customization",
+  "Import/export workflows for flexible ownership",
 ]
 
 const reveal = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 14 },
   visible: { opacity: 1, y: 0 },
 }
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#060606] text-white">
+    <div className="min-h-screen bg-[#070707] text-white">
       <div className="mx-auto max-w-[1600px]">
         <header className="border-b border-white/10">
           <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 sm:px-10">
@@ -97,7 +76,7 @@ export default function LandingPage() {
               One Calendar
             </Link>
 
-            <nav className="hidden items-center gap-10 lg:flex">
+            <nav className="hidden items-center gap-8 lg:flex">
               {navItems.map((item) => (
                 <Link key={item.label} href={item.href} className="text-sm text-white/70 transition-colors hover:text-white">
                   {item.label}
@@ -118,197 +97,27 @@ export default function LandingPage() {
 
         <main>
           <section className="border-b border-white/10">
-            <div className="mx-auto grid max-w-6xl gap-10 px-6 py-24 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
-              <motion.div initial="hidden" animate="visible" variants={reveal} transition={{ duration: 0.45, ease: "easeOut" }}>
-                <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-                  Plan the present.
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+              <motion.div initial="hidden" animate="visible" variants={reveal} transition={{ duration: 0.45, ease: "easeOut" }} className="max-w-4xl">
+                <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl">
+                  Privacy-first calendar for
                   <br />
-                  Build the future.
+                  real weekly execution.
                 </h1>
                 <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/65">
-                  One Calendar helps product teams align priorities, run fast planning cycles, and ship with better rhythm.
+                  One Calendar helps individuals and teams plan the week, stay in sync, and keep schedules intentional without clutter.
                 </p>
-              </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.45, delay: 0.08, ease: "easeOut" }}
-                className="flex gap-3"
-              >
-                <Link href="/about" className="rounded-lg bg-white/12 px-5 py-2.5 text-sm text-white transition hover:bg-white/18">
-                  Contact sales
-                </Link>
-                <Link href="/sign-up" className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90">
-                  Get started
-                </Link>
-              </motion.div>
-            </div>
-          </section>
-
-          <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
-              <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-                variants={reveal}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="flex flex-wrap gap-2"
-              >
-                {featurePills.map((pill) => {
-                  const Icon = pill.icon
-                  return (
-                    <div key={pill.text} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/75">
-                      <Icon className="h-3.5 w-3.5" />
-                      {pill.text}
-                    </div>
-                  )
-                })}
-              </motion.div>
-            </div>
-          </section>
-
-          <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
-              <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.35 }}
-                variants={reveal}
-                transition={{ duration: 0.45, ease: "easeOut" }}
-              >
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/70">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/75" />
-                  Product planning workspace
-                </div>
-                <h2 className="mt-6 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-6xl">Set your product direction.</h2>
-                <p className="mt-5 max-w-3xl text-lg leading-relaxed text-white/60">
-                  Align your team around one timeline. Plan, track, and communicate roadmap execution with clear context.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.45, delay: 0.08 }}
-                className="relative mt-16 overflow-hidden rounded-2xl border border-white/10 bg-[#090909]"
-              >
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:90px_90px]" />
-                <div className="relative p-7 sm:p-10">
-                  <div className="text-sm text-white/65">Timeline overview</div>
-                  <div className="mt-6 space-y-4">
-                    {["Q1 foundation and migration", "Beta workflow automation", "Cross-team launch alignment"].map((row, index) => (
-                      <motion.div
-                        key={row}
-                        initial={{ opacity: 0, x: -14 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.35, delay: 0.08 + index * 0.08 }}
-                        className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3"
-                      >
-                        <span className="text-sm text-white/85">{row}</span>
-                        <span className="text-xs text-white/45">{index + 1}0%</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </section>
-
-          <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
-              <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.25 }}
-                variants={reveal}
-                transition={{ duration: 0.45, ease: "easeOut" }}
-                className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]"
-              >
-                <h3 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Made for modern product teams.</h3>
-                <p className="text-base leading-relaxed text-white/60">
-                  Built with a strong focus on fast execution and high-quality planning. Keep docs, schedules, and decisions in one system.
-                  <Link href="/about" className="ml-2 inline-flex items-center gap-1 font-medium text-white transition hover:text-white/80">
-                    Make the switch <ChevronRight className="h-4 w-4" />
+                <div className="mt-10 flex flex-wrap items-center gap-3">
+                  <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90">
+                    Start planning
+                    <ArrowRight className="h-4 w-4" />
                   </Link>
-                </p>
+                  <Link href="/about" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm text-white/80 transition hover:text-white">
+                    View product details
+                  </Link>
+                </div>
               </motion.div>
-
-              <div className="mt-14 grid gap-5 md:grid-cols-3">
-                {valueCards.map((card, idx) => (
-                  <motion.article
-                    key={card.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{ duration: 0.4, delay: idx * 0.06 }}
-                    className="flex min-h-[220px] flex-col justify-between rounded-xl border border-white/10 bg-[#0b0b0b] p-6"
-                  >
-                    <div>
-                      <div className="h-20 rounded-lg border border-white/10 bg-black/40" />
-                      <h4 className="mt-5 text-2xl font-medium tracking-tight text-white">{card.title}</h4>
-                      <p className="mt-3 text-sm leading-relaxed text-white/60">{card.description}</p>
-                    </div>
-                    <button type="button" className="mt-6 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:text-white">
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </motion.article>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-              <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-                variants={reveal}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              >
-                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Workflow</p>
-                <h3 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">A clearer weekly planning loop.</h3>
-              </motion.div>
-
-              <div className="mt-8 grid gap-3 md:grid-cols-2">
-                {workflowSteps.map((step, idx) => (
-                  <motion.div
-                    key={step}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: idx * 0.06 }}
-                    className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#0a0a0a] p-4"
-                  >
-                    <Check className="mt-0.5 h-4 w-4 text-white/70" />
-                    <p className="text-sm leading-relaxed text-white/70">{step}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {stats.map((item, idx) => (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: idx * 0.05 }}
-                    className="rounded-lg border border-white/10 bg-[#0a0a0a] p-5"
-                  >
-                    <p className="text-2xl font-semibold tracking-tight text-white">{item.value}</p>
-                    <p className="mt-1 text-xs text-white/60">{item.label}</p>
-                  </motion.div>
-                ))}
-              </div>
             </div>
           </section>
 
@@ -320,23 +129,96 @@ export default function LandingPage() {
                 viewport={{ once: true, amount: 0.3 }}
                 variants={reveal}
                 transition={{ duration: 0.4 }}
+                className="grid gap-8 md:grid-cols-2"
               >
-                <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Frequently asked questions</h3>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">Built for actual usage</p>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">A practical calendar, not a concept page.</h2>
+                </div>
+                <ul className="space-y-3">
+                  {trustPoints.map((point) => (
+                    <li key={point} className="flex items-start gap-3 text-sm text-white/70">
+                      <Check className="mt-0.5 h-4 w-4 text-white/70" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.25 }}
+                variants={reveal}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]"
+              >
+                <h3 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Made for modern product and personal planning.</h3>
+                <p className="text-base leading-relaxed text-white/60">
+                  From weekly scheduling to secure sharing and analytics, One Calendar focuses on speed, privacy, and clarity.
+                  <Link href="/about" className="ml-2 inline-flex items-center gap-1 font-medium text-white transition hover:text-white/80">
+                    Learn more <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </p>
               </motion.div>
 
-              <div className="mt-8 divide-y divide-white/10 rounded-lg border border-white/10 bg-[#090909]">
-                {faqItems.map((item, idx) => (
-                  <motion.div
-                    key={item.q}
-                    initial={{ opacity: 0, y: 8 }}
+              <div className="mt-12 grid gap-5 md:grid-cols-2">
+                {coreFeatures.map((feature, idx) => {
+                  const Icon = feature.icon
+                  return (
+                    <motion.article
+                      key={feature.title}
+                      initial={{ opacity: 0, y: 14 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.2 }}
+                      transition={{ duration: 0.35, delay: idx * 0.06 }}
+                      className="rounded-xl border border-white/10 bg-[#0b0b0b] p-6"
+                    >
+                      <Icon className="h-5 w-5 text-white/85" />
+                      <h4 className="mt-4 text-lg font-medium text-white">{feature.title}</h4>
+                      <p className="mt-2 text-sm leading-relaxed text-white/60">{feature.description}</p>
+                    </motion.article>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={reveal}
+                transition={{ duration: 0.4 }}
+              >
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Feature showcase</p>
+                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Visual blocks that present real app capabilities.</h3>
+              </motion.div>
+
+              <div className="mt-10 grid gap-5 lg:grid-cols-3">
+                {showcaseBlocks.map((block, idx) => (
+                  <motion.article
+                    key={block.title}
+                    initial={{ opacity: 0, y: 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.3, delay: idx * 0.05 }}
-                    className="px-5 py-4"
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.35, delay: idx * 0.06 }}
+                    className="overflow-hidden rounded-xl border border-white/10 bg-[#0b0b0b]"
                   >
-                    <h4 className="text-sm font-medium text-white">{item.q}</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-white/65">{item.a}</p>
-                  </motion.div>
+                    <div className="relative h-44 w-full border-b border-white/10">
+                      <Image src={block.image} alt={block.title} fill className="object-cover opacity-85" />
+                    </div>
+                    <div className="p-5">
+                      <h4 className="text-base font-medium text-white">{block.title}</h4>
+                      <p className="mt-2 text-sm leading-relaxed text-white/60">{block.description}</p>
+                    </div>
+                  </motion.article>
                 ))}
               </div>
             </div>
@@ -345,12 +227,12 @@ export default function LandingPage() {
           <section className="border-b border-white/10">
             <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-20 sm:px-10 md:flex-row md:items-center">
               <div>
-                <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Start planning with confidence.</h3>
-                <p className="mt-2 text-sm text-white/65">Move from scattered schedules to one coordinated operating system.</p>
+                <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Keep your week intentional.</h3>
+                <p className="mt-2 text-sm text-white/65">Get a focused, secure calendar workflow that your team can actually maintain.</p>
               </div>
               <div className="flex items-center gap-3">
                 <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90">
-                  Start building
+                  Create account
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href="/sign-in" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm text-white/80 transition hover:text-white">
@@ -362,41 +244,57 @@ export default function LandingPage() {
         </main>
 
         <footer className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-          <div className="grid gap-12 border-t border-white/10 pt-14 lg:grid-cols-[200px_1fr]">
-            <div className="flex items-start gap-3 text-xl font-semibold tracking-tight text-white">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/30 text-xs">◍</span>
-              One Calendar
+          <div className="grid gap-8 border-t border-white/10 pt-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-3 text-lg font-semibold tracking-tight text-white">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/30 text-xs">◍</span>
+                One Calendar
+              </div>
+              <p className="mt-3 text-sm text-white/50">Open-source weekly calendar for focused planning and privacy-first scheduling.</p>
             </div>
 
-            <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-              {footerColumns.map((column) => (
-                <div key={column.title}>
-                  <h5 className="text-sm font-medium text-white">{column.title}</h5>
-                  <ul className="mt-5 space-y-3">
-                    {column.links.map((link) => (
-                      <li key={link}>
-                        <Link href="/about" className="text-sm text-white/55 transition hover:text-white/85">
-                          {link}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <div>
+              <h5 className="text-sm font-medium text-white">Product</h5>
+              <ul className="mt-4 space-y-2 text-sm text-white/55">
+                <li>
+                  <Link href="/about" className="transition hover:text-white/85">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sign-up" className="transition hover:text-white/85">
+                    Sign up
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="text-sm font-medium text-white">Security</h5>
+              <ul className="mt-4 space-y-2 text-sm text-white/55">
+                <li>
+                  <Link href="/privacy" className="transition hover:text-white/85">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="transition hover:text-white/85">
+                    Terms
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="text-sm font-medium text-white">Infrastructure</h5>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/65">
+                <Lock className="h-3.5 w-3.5" />
+                Clerk + PostgreSQL + Next.js
+              </div>
             </div>
           </div>
 
-          <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} One Calendar</p>
-            <div className="flex items-center gap-5">
-              <Link href="/privacy" className="transition hover:text-white/80">
-                Privacy
-              </Link>
-              <Link href="/terms" className="transition hover:text-white/80">
-                Terms
-              </Link>
-            </div>
-          </div>
+          <div className="mt-10 border-t border-white/10 pt-6 text-sm text-white/45">© {new Date().getFullYear()} One Calendar</div>
         </footer>
       </div>
     </div>
