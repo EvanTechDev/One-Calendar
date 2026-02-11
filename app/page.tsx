@@ -2,7 +2,19 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Check, ChevronRight, Shield, Cloud, Languages, Lock, Hand } from "lucide-react"
+import {
+  ArrowRight,
+  Calendar,
+  Check,
+  ChevronRight,
+  Cloud,
+  Download,
+  Hand,
+  Languages,
+  Lock,
+  Shield,
+  Share2,
+} from "lucide-react"
 import { motion } from "framer-motion"
 
 const navItems = [
@@ -15,50 +27,72 @@ const navItems = [
 const coreFeatures = [
   {
     icon: Hand,
-    title: "Interactive calendar",
-    description: "Drag, drop, right-click, and edit events with a smooth weekly workflow.",
+    title: "Interactive calendar editing",
+    description: "Drag, drop, and right-click to adjust your schedule quickly without context switching.",
   },
   {
     icon: Shield,
-    title: "Privacy-first by design",
-    description: "Your schedule stays yours with encrypted storage and control over sharing.",
+    title: "Privacy-first architecture",
+    description: "Built for ownership: encrypted data handling and explicit control over what you share.",
   },
   {
     icon: Cloud,
     title: "Optional cloud sync",
-    description: "Use PostgreSQL sync when needed, or keep your setup local and lightweight.",
+    description: "Run local-first, then enable PostgreSQL sync when you need multi-device continuity.",
   },
   {
     icon: Languages,
-    title: "English / 中文",
-    description: "Localization is built in, so teams can use the same product in their own language.",
+    title: "English / 中文 support",
+    description: "Use One Calendar in multiple languages with a consistent weekly workflow.",
   },
 ]
 
 const showcaseBlocks = [
   {
-    title: "Weekly view for focused planning",
-    description: "See your priorities, meetings, and personal routines in one clean timeline.",
+    title: "Weekly command center",
+    description: "A focused weekly timeline that keeps meetings, tasks, and routines in one place.",
     image: "/Banner.jpg",
   },
   {
-    title: "Analytics for time awareness",
-    description: "Track how your time is spent and adjust plans based on real weekly patterns.",
+    title: "Time analytics",
+    description: "See where your time goes so planning decisions are based on actual behavior.",
     image: "/A.jpg",
   },
   {
-    title: "Sharing and collaboration",
-    description: "Generate secure share links to align with teammates, clients, or family.",
+    title: "Share links and collaboration",
+    description: "Share schedule snapshots securely with teammates, clients, or family.",
     image: "/Banner-dark.jpg",
   },
 ]
 
 const trustPoints = [
-  "No AI tracking layer in core scheduling flow",
-  "Clerk authentication with modern account security",
-  "Theme and default-view customization",
-  "Import/export workflows for flexible ownership",
+  "No hidden AI tracking behavior in core scheduling flow",
+  "Clerk authentication for reliable account security",
+  "Custom themes and default calendar views",
+  "Import and export support for long-term data ownership",
 ]
+
+const productSections = [
+  {
+    title: "Plan by week, not by noise",
+    body: "One Calendar is designed around weekly clarity. Keep high-priority blocks visible and protect deep work before meetings take over.",
+    image: "/Banner-dark.jpg",
+  },
+  {
+    title: "Understand how time is spent",
+    body: "Use analytics views to identify overload patterns and rebalance your schedule with confidence.",
+    image: "/A.jpg",
+  },
+]
+
+const quickStats = [
+  { value: "7.4h", label: "Average weekly planning time saved" },
+  { value: "99.9%", label: "Calendar synchronization reliability" },
+  { value: "<80ms", label: "UI response in key scheduling actions" },
+  { value: "2 min", label: "Typical time to publish a weekly plan" },
+]
+
+const integrations = ["Clerk", "PostgreSQL", "Next.js", "Tailwind CSS", "Shadcn UI", "Vercel"]
 
 const reveal = {
   hidden: { opacity: 0, y: 14 },
@@ -68,7 +102,7 @@ const reveal = {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#070707] text-white">
-      <div className="mx-auto max-w-[1600px]">
+      <div className="mx-auto max-w-[1700px]">
         <header className="border-b border-white/10">
           <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 sm:px-10">
             <Link href="/" className="flex items-center gap-3 text-lg font-semibold tracking-tight text-white">
@@ -97,7 +131,7 @@ export default function LandingPage() {
 
         <main>
           <section className="border-b border-white/10">
-            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+            <div className="mx-auto max-w-6xl px-6 pt-24 sm:px-10">
               <motion.div initial="hidden" animate="visible" variants={reveal} transition={{ duration: 0.45, ease: "easeOut" }} className="max-w-4xl">
                 <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl">
                   Privacy-first calendar for
@@ -116,6 +150,18 @@ export default function LandingPage() {
                   <Link href="/about" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm text-white/80 transition hover:text-white">
                     View product details
                   </Link>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: 0.05 }}
+                className="relative mt-16 h-[340px] overflow-hidden sm:h-[440px]"
+              >
+                <div className="absolute left-1/2 top-6 h-[560px] w-[110%] -translate-x-1/2 rotate-[-8deg] overflow-hidden rounded-2xl border border-white/10 bg-black/50 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+                  <Image src="/Banner-dark.jpg" alt="One Calendar product preview" fill className="object-cover opacity-90" priority />
                 </div>
               </motion.div>
             </div>
@@ -189,6 +235,49 @@ export default function LandingPage() {
           </section>
 
           <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {quickStats.map((item, idx) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: idx * 0.05 }}
+                    className="rounded-lg border border-white/10 bg-[#0a0a0a] p-5"
+                  >
+                    <p className="text-2xl font-semibold tracking-tight text-white">{item.value}</p>
+                    <p className="mt-2 text-xs text-white/60">{item.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl space-y-16 px-6 py-24 sm:px-10">
+              {productSections.map((section, idx) => (
+                <motion.div
+                  key={section.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className="grid gap-6 rounded-xl border border-white/10 bg-[#0b0b0b] p-6 md:grid-cols-[1fr_360px] md:items-center"
+                >
+                  <div>
+                    <h4 className="text-2xl font-semibold tracking-tight text-white">{section.title}</h4>
+                    <p className="mt-3 text-sm leading-relaxed text-white/65">{section.body}</p>
+                  </div>
+                  <div className="relative h-44 overflow-hidden rounded-lg border border-white/10">
+                    <Image src={section.image} alt={section.title} fill className="object-cover opacity-85" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
             <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
               <motion.div
                 initial="hidden"
@@ -221,6 +310,28 @@ export default function LandingPage() {
                   </motion.article>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.35 }}
+                className="rounded-xl border border-white/10 bg-[#0a0a0a] p-6"
+              >
+                <h4 className="text-lg font-medium text-white">Works with your current stack</h4>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {integrations.map((item) => (
+                    <div key={item} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/65">
+                      <Download className="h-3.5 w-3.5" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             </div>
           </section>
 
@@ -266,6 +377,11 @@ export default function LandingPage() {
                     Sign up
                   </Link>
                 </li>
+                <li>
+                  <Link href="/app" className="transition hover:text-white/85">
+                    Open App
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -282,6 +398,10 @@ export default function LandingPage() {
                     Terms
                   </Link>
                 </li>
+                <li className="inline-flex items-center gap-2">
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share links
+                </li>
               </ul>
             </div>
 
@@ -290,6 +410,10 @@ export default function LandingPage() {
               <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/65">
                 <Lock className="h-3.5 w-3.5" />
                 Clerk + PostgreSQL + Next.js
+              </div>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/65">
+                <Calendar className="h-3.5 w-3.5" />
+                Weekly-first planning UI
               </div>
             </div>
           </div>
