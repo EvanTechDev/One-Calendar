@@ -8,20 +8,19 @@ import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
 export default function Home() {
   const { isLoaded, isSignedIn } = useUser()
   const router = useRouter()
-  const isLocalDevBypass =
-    process.env.NODE_ENV === "development" &&
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  const isAuthBypassEnabled =
+    process.env.NEXT_PUBLIC_BYPASS_CLERK_AUTH === "true" ||
+    process.env.NEXT_PUBLIC_VERCEL_ENV === "preview"
 
   useEffect(() => {
-    if (isLocalDevBypass) return
+    if (isAuthBypassEnabled) return
 
     if (isLoaded && !isSignedIn) {
       router.replace("/sign-in")
     }
-  }, [isLoaded, isSignedIn, isLocalDevBypass, router])
+  }, [isLoaded, isSignedIn, isAuthBypassEnabled, router])
 
-  if (isLocalDevBypass) {
+  if (isAuthBypassEnabled) {
     return <Calendar />
   }
 
