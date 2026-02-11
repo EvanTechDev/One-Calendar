@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, Calendar, Shield, Share2, Workflow, Clock3 } from "lucide-react"
+import { ArrowRight, Calendar, Shield, Share2, Workflow, Clock3, ChevronRight } from "lucide-react"
 
 const navItems = [
   { label: "Product", href: "/about" },
