@@ -1,5 +1,5 @@
-import { Calendar } from "lucide-react"
 import { LoginForm } from "@/components/auth/login-form"
+import { AuthBrand } from "@/components/auth/auth-brand"
 
 export default function LoginPage() {
   return (
@@ -17,9 +17,7 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        <a href="https://xyehr.cn" className="flex items-center gap-2 self-center font-medium">
-          Tech-Art
-        </a>
+        <AuthBrand />
         <LoginForm />
       </div>
     </div>

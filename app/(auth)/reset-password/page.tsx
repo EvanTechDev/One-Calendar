@@ -1,6 +1,5 @@
-import { Calendar } from "lucide-react"
-
 import { ResetPasswordForm } from "@/components/auth/reset-form";
+import { AuthBrand } from "@/components/auth/auth-brand"
 
 export default function ResetPasswordPage() {
   return (
@@ -18,9 +17,7 @@ export default function ResetPasswordPage() {
         </div>
       </div>
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <a href="https://xyehr.cn" className="flex items-center gap-2 self-center font-medium">
-          Tech-Art
-        </a>
+        <AuthBrand />
         <ResetPasswordForm />
       </div>
     </div>
