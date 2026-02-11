@@ -200,124 +200,42 @@ body {
     --sidebar-ring: 331 63% 49%;
 }
 
-.pink,
-.pink .app-theme-scope {
-    --background: 7 60% 95%;
-    --foreground: 7 25% 18%;
-    --card: 7 50% 90%;
-    --card-foreground: 7 25% 18%;
-    --popover: 7 50% 90%;
-    --popover-foreground: 7 25% 18%;
-    --primary: 7 100% 82%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 5 30% 85%;
-    --secondary-foreground: 7 25% 18%;
-    --muted: 5 30% 88%;
-    --muted-foreground: 7 20% 42%;
-    --accent: 7 60% 87%;
-    --accent-foreground: 7 100% 82%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 7 50% 75%;
-    --input: 7 40% 85%;
-    --ring: 7 100% 82%;
-    --chart-1: 7 100% 82%;
-    --chart-2: 217 91% 60%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 270 95% 75%;
-    --chart-5: 340 82% 52%;
-    --sidebar-background: 7 50% 90%;
-    --sidebar-foreground: 7 25% 18%;
-    --sidebar-primary: 7 100% 82%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 5 30% 85%;
-    --sidebar-accent-foreground: 7 25% 18%;
-    --sidebar-border: 7 50% 75%;
-    --sidebar-ring: 7 100% 82%;
-}
 
-.crimson,
-.crimson .app-theme-scope {
-    --background: 341 25% 95%;
-    --foreground: 341 15% 18%;
-    --card: 341 20% 90%;
-    --card-foreground: 341 15% 18%;
-    --popover: 341 20% 90%;
-    --popover-foreground: 341 15% 18%;
-    --primary: 341 100% 30%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 338 15% 85%;
-    --secondary-foreground: 341 15% 18%;
-    --muted: 338 15% 88%;
-    --muted-foreground: 341 12% 42%;
-    --accent: 341 25% 87%;
-    --accent-foreground: 341 100% 30%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 341 20% 75%;
-    --input: 341 18% 85%;
-    --ring: 341 100% 30%;
-    --chart-1: 341 100% 30%;
-    --chart-2: 217 91% 60%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 270 95% 75%;
-    --chart-5: 340 82% 52%;
-    --sidebar-background: 341 20% 90%;
-    --sidebar-foreground: 341 15% 18%;
-    --sidebar-primary: 341 100% 30%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 338 15% 85%;
-    --sidebar-accent-foreground: 341 15% 18%;
-    --sidebar-border: 341 20% 75%;
-    --sidebar-ring: 341 100% 30%;
-}
 
 .green,
 .green .app-theme-scope,
 .orange,
 .orange .app-theme-scope,
 .azalea,
-.azalea .app-theme-scope,
-.pink,
-.pink .app-theme-scope,
-.crimson,
-.crimson .app-theme-scope {
+.azalea .app-theme-scope {
     --card: var(--background);
     --popover: var(--background);
 }
 
 .green .app-theme-scope button[variant="outline"],
 .orange .app-theme-scope button[variant="outline"],
-.azalea .app-theme-scope button[variant="outline"],
-.pink .app-theme-scope button[variant="outline"],
-.crimson .app-theme-scope button[variant="outline"] {
+.azalea .app-theme-scope button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
 
 .green .app-theme-scope button[variant="ghost"],
 .orange .app-theme-scope button[variant="ghost"],
-.azalea .app-theme-scope button[variant="ghost"],
-.pink .app-theme-scope button[variant="ghost"],
-.crimson .app-theme-scope button[variant="ghost"] {
+.azalea .app-theme-scope button[variant="ghost"] {
     border: none;
     background: transparent;
 }
 
 .green .app-theme-scope hr, .green .app-theme-scope .divider,
 .orange .app-theme-scope hr, .orange .app-theme-scope .divider,
-.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider,
-.pink .app-theme-scope hr, .pink .app-theme-scope .divider,
-.crimson .app-theme-scope hr, .crimson .app-theme-scope .divider {
+.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
 
 .green .app-theme-scope .separator,
 .orange .app-theme-scope .separator,
-.azalea .app-theme-scope .separator,
-.pink .app-theme-scope .separator,
-.crimson .app-theme-scope .separator {
+.azalea .app-theme-scope .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;

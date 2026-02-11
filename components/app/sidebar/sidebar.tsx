@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
@@ -68,6 +69,7 @@ export default function Sidebar({
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
+  const { resolvedTheme } = useTheme()
   const t = translations[language || "zh"]
 
   const deleteText = {
@@ -131,12 +133,19 @@ export default function Sidebar({
     >
       <div className="p-4">
         <div className="mb-4 flex items-center">
-          <Image src="/icon.svg" alt="One Calendar" width={24} height={24} className="mr-2" />
+          <Image
+            src="/icon.svg"
+            alt="One Calendar"
+            width={24}
+            height={24}
+            className="mr-2"
+            style={{ filter: resolvedTheme === "dark" ? "brightness(0) invert(1)" : "brightness(0)" }}
+          />
           <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
         </div>
 
         <Button
-          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B] pink:bg-[#FFAFA5] crimson:bg-[#9B0032]"
+          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}

@@ -649,7 +649,7 @@ export default function WeekView({
               <div className="p-2 text-center">
                 <div>{format(day, "E", { locale: isZh ? zhCN : enUS })}</div>
                 {/* 如果是今天,使用蓝色高亮显示日期 */}
-                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5]" : "")}>
+                <div className={cn(isSameDay(day, today) ? "text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]" : "")}>
                   {format(day, "d")}
                 </div>
               </div>
@@ -792,7 +792,7 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B] pink:border-[#FFAFA5]"
+                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B]"
                       style={{
                         top: `${topPosition}px`,
                       }}
