@@ -1,5 +1,5 @@
 import { Calendar } from "lucide-react"
-import { LoginForm } from "@/components/account/login-form"
+import { LoginForm } from "@/components/auth/login-form"
 
 export default function LoginPage() {
   return (

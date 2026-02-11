@@ -1,6 +1,23 @@
 "use client"
-import Calendar from "@/components/calendar";
+import { useEffect } from "react"
+import { useUser } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
+import Calendar from "@/components/app/calendar"
+import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
 
 export default function Home() {
-  return <Calendar />;
+  const { isLoaded, isSignedIn } = useUser()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/sign-in")
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  if (!isLoaded || !isSignedIn) {
+    return <AuthWaitingLoading />
+  }
+
+  return <Calendar />
 }

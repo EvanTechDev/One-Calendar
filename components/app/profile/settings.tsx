@@ -6,12 +6,12 @@ import { translations, type Language } from "@/lib/i18n"
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { Kbd } from "@/components/ui/kbd"
-import ImportExport from "@/components/analytics/import-export"
-import ShareManagement from "@/components/analytics/share-management"
-import BuildInfoCard from "@/components/analytics/build-info-card"
-import type { CalendarEvent } from "@/components/calendar"
+import ImportExport from "@/components/app/analytics/import-export"
+import ShareManagement from "@/components/app/analytics/share-management"
+import BuildInfoCard from "@/components/app/analytics/build-info-card"
+import type { CalendarEvent } from "@/components/app/calendar"
 import { useTheme } from "next-themes"
-import UserProfileButton, { type UserProfileSection } from "@/components/home/user-profile-button"
+import UserProfileButton, { type UserProfileSection } from "@/components/app/profile/user-profile-button"
 
 interface SettingsProps {
   language: Language
