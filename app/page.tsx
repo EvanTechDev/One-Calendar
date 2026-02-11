@@ -1,12 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowRight, CalendarClock, Sparkles, Workflow, Zap } from "lucide-react"
-import { useUser } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 const featureCards = [
   {
@@ -38,33 +34,6 @@ const metrics = [
 ]
 
 export default function LandingPage() {
-  const router = useRouter()
-  const { isLoaded, isSignedIn } = useUser()
-  const [shouldRender, setShouldRender] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    readEncryptedLocalStorage<string | boolean | null>("skip-landing", null).then((value) => {
-      if (!active) return
-      const hasSkippedLanding = value === "true" || value === true
-      if (hasSkippedLanding || (isLoaded && isSignedIn)) {
-        router.replace("/app")
-      } else if (isLoaded) {
-        setShouldRender(true)
-      }
-    })
-    return () => {
-      active = false
-    }
-  }, [isLoaded, isSignedIn, router])
-
-  const handleGetStarted = () => {
-    void writeEncryptedLocalStorage("skip-landing", "true")
-    router.push("/app")
-  }
-
-  if (!shouldRender) return null
-
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
       <main className="relative overflow-hidden">
@@ -92,13 +61,9 @@ export default function LandingPage() {
               <Link href="/sign-in" className="rounded-full border border-white/20 px-4 py-2 text-sm text-white/80 transition hover:text-white">
                 Log in
               </Link>
-              <button
-                type="button"
-                onClick={handleGetStarted}
-                className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black transition hover:bg-white/90"
-              >
+              <Link href="/sign-up" className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black transition hover:bg-white/90">
                 Start free
-              </button>
+              </Link>
             </div>
           </header>
 
@@ -121,14 +86,13 @@ export default function LandingPage() {
                 One Calendar gives teams a clean operational layer for time, priorities, and momentum—without clutter.
               </p>
               <div className="mt-10 flex flex-wrap justify-center gap-4">
-                <button
-                  type="button"
-                  onClick={handleGetStarted}
+                <Link
+                  href="/sign-up"
                   className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-base font-medium text-black transition hover:bg-white/90"
                 >
                   Enter workspace
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                </button>
+                </Link>
                 <Link
                   href="/sign-up"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-7 py-3 text-base text-white/90 backdrop-blur transition hover:border-white/40 hover:bg-white/10"
