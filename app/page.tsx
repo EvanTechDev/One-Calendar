@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, ChevronRight, Plus } from "lucide-react"
+import { ArrowRight, ChevronRight, Plus, Check, Calendar, Clock3, Layers3, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
 
 const navItems = [
@@ -23,6 +23,42 @@ const valueCards = [
   {
     title: "Crafted for teams",
     description: "Share priorities, keep context visible, and align everyone on the same calendar.",
+  },
+]
+
+const featurePills = [
+  { icon: Calendar, text: "Unified scheduling" },
+  { icon: Clock3, text: "Priority time-blocking" },
+  { icon: Layers3, text: "Cross-team visibility" },
+  { icon: Sparkles, text: "AI planning assists" },
+]
+
+const workflowSteps = [
+  "Capture incoming requests from product, design, and engineering.",
+  "Translate roadmap intent into sprint-level calendar priorities.",
+  "Auto-protect deep work windows before meetings fill the week.",
+  "Publish weekly plan with one click and shared context.",
+]
+
+const stats = [
+  { value: "7.4h", label: "Planning time saved / week" },
+  { value: "99.9%", label: "Calendar sync reliability" },
+  { value: "< 80ms", label: "Timeline update latency" },
+  { value: "3x", label: "Faster weekly planning cycles" },
+]
+
+const faqItems = [
+  {
+    q: "Can One Calendar replace multiple planning tools?",
+    a: "Yes. It centralizes calendar operations, roadmap scheduling, and team execution rhythms.",
+  },
+  {
+    q: "Is it built for personal or team usage?",
+    a: "Both. It scales from individual focus systems to cross-functional product teams.",
+  },
+  {
+    q: "How quickly can a team onboard?",
+    a: "Most teams launch their first shared planning workflow in under one day.",
   },
 ]
 
@@ -111,6 +147,29 @@ export default function LandingPage() {
           </section>
 
           <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={reveal}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="flex flex-wrap gap-2"
+              >
+                {featurePills.map((pill) => {
+                  const Icon = pill.icon
+                  return (
+                    <div key={pill.text} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/75">
+                      <Icon className="h-3.5 w-3.5" />
+                      {pill.text}
+                    </div>
+                  )
+                })}
+              </motion.div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
             <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
               <motion.div
                 initial="hidden"
@@ -140,11 +199,7 @@ export default function LandingPage() {
                 <div className="relative p-7 sm:p-10">
                   <div className="text-sm text-white/65">Timeline overview</div>
                   <div className="mt-6 space-y-4">
-                    {[
-                      "Q1 foundation and migration",
-                      "Beta workflow automation",
-                      "Cross-team launch alignment",
-                    ].map((row, index) => (
+                    {["Q1 foundation and migration", "Beta workflow automation", "Cross-team launch alignment"].map((row, index) => (
                       <motion.div
                         key={row}
                         initial={{ opacity: 0, x: -14 }}
@@ -202,6 +257,105 @@ export default function LandingPage() {
                     </button>
                   </motion.article>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={reveal}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Workflow</p>
+                <h3 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">A clearer weekly planning loop.</h3>
+              </motion.div>
+
+              <div className="mt-8 grid gap-3 md:grid-cols-2">
+                {workflowSteps.map((step, idx) => (
+                  <motion.div
+                    key={step}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: idx * 0.06 }}
+                    className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#0a0a0a] p-4"
+                  >
+                    <Check className="mt-0.5 h-4 w-4 text-white/70" />
+                    <p className="text-sm leading-relaxed text-white/70">{step}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.map((item, idx) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: idx * 0.05 }}
+                    className="rounded-lg border border-white/10 bg-[#0a0a0a] p-5"
+                  >
+                    <p className="text-2xl font-semibold tracking-tight text-white">{item.value}</p>
+                    <p className="mt-1 text-xs text-white/60">{item.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={reveal}
+                transition={{ duration: 0.4 }}
+              >
+                <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Frequently asked questions</h3>
+              </motion.div>
+
+              <div className="mt-8 divide-y divide-white/10 rounded-lg border border-white/10 bg-[#090909]">
+                {faqItems.map((item, idx) => (
+                  <motion.div
+                    key={item.q}
+                    initial={{ opacity: 0, y: 8 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                    className="px-5 py-4"
+                  >
+                    <h4 className="text-sm font-medium text-white">{item.q}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-white/65">{item.a}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-white/10">
+            <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-20 sm:px-10 md:flex-row md:items-center">
+              <div>
+                <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Start planning with confidence.</h3>
+                <p className="mt-2 text-sm text-white/65">Move from scattered schedules to one coordinated operating system.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90">
+                  Start building
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/sign-in" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm text-white/80 transition hover:text-white">
+                  Log in
+                </Link>
               </div>
             </div>
           </section>
