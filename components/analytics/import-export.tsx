@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Download, Upload, CalendarIcon, ExternalLink, AlertCircle } from 'lucide-react'
-import type { CalendarEvent } from "../Calendar"
+import type { CalendarEvent } from "../calendar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { translations, useLanguage } from "@/lib/i18n"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"

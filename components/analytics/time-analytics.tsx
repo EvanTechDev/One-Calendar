@@ -6,8 +6,8 @@ import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { CalendarEvent } from "../Calendar"
-import type { CalendarCategory } from "../Sidebar"
+import type { CalendarEvent } from "../calendar"
+import type { CalendarCategory } from "../sidebar/sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
 
 interface TimeAnalyticsProps {

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { translations, type Language } from "@/lib/i18n"
-import { useCalendar } from "@/components/context/CalendarContext"
+import { useCalendar } from "@/components/context/calendar-context"
 import { CalendarIcon } from "lucide-react"
 
 interface SidebarProps {

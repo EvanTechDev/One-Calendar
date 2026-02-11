@@ -5,7 +5,7 @@ import { eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfW
 import { enUS, zhCN } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
-import type { CalendarEvent } from "../Calendar"
+import type { CalendarEvent } from "../calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface YearViewProps {

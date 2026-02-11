@@ -13,7 +13,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { format, parse, isValid, set, getHours, getMinutes } from "date-fns"
 import { cn } from "@/lib/utils"
 import { isZhLanguage, translations, type Language } from "@/lib/i18n"
-import { useCalendar } from "@/components/context/CalendarContext"
+import { useCalendar } from "@/components/context/calendar-context"
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react"
 
 const colorOptions = [
