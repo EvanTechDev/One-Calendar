@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { translations, type Language } from "@/lib/i18n"
 import { useCalendar } from "@/components/providers/calendar-context"
-import { CalendarIcon } from "lucide-react"
+import Image from "next/image"
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -130,8 +130,8 @@ export default function Sidebar({
       }}
     >
       <div className="p-4">
-        <div className="flex items-center mb-4">
-          <CalendarIcon className="h-6 w-6 text-[#0066ff] mr-2 green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B] pink:text-[#FFAFA5] crimson:text-[#9B0032]" />
+        <div className="mb-4 flex items-center">
+          <Image src="/icon.svg" alt="One Calendar" width={24} height={24} className="mr-2" />
           <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
         </div>
 

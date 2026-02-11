@@ -1,6 +1,7 @@
 {
   "calendar": "Calendar",
   "oneCalendar": "One Calendar",
+  "loadingCalendar": "Loading calendar",
   "createEvent": "Create Event",
   "myCalendars": "My Calendars",
   "addNewCalendar": "Add New Calendar",
@@ -156,7 +157,6 @@
   "dayView": "Day View",
   "weekView": "Week View",
   "monthView": "Month View",
-  "yearView": "Year View",
   "yearView": "Year View",
   "nextPeriod": "Next Period",
   "previousPeriod": "Previous Period",

@@ -1,6 +1,7 @@
 {
   "calendar": "日历",
   "oneCalendar": "One Calendar",
+  "loadingCalendar": "加载日历中",
   "createEvent": "创建日程",
   "myCalendars": "我的日历",
   "addNewCalendar": "添加新日历",
@@ -156,7 +157,6 @@
   "dayView": "日视图",
   "weekView": "周视图",
   "monthView": "月视图",
-  "yearView": "年视图",
   "yearView": "年视图",
   "nextPeriod": "下个周期",
   "previousPeriod": "上个周期",
