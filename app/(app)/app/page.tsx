@@ -15,8 +15,12 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router])
 
-  if (!isLoaded || !isSignedIn) {
+  if (!isLoaded) {
     return <AuthWaitingLoading />
+  }
+
+  if (!isSignedIn) {
+    return null
   }
 
   return <Calendar />
