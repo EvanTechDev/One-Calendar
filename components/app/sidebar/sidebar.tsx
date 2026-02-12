@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
@@ -69,7 +68,6 @@ export default function Sidebar({
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
-  const { resolvedTheme } = useTheme()
   const t = translations[language || "zh-CN"]
 
   const deleteText = {
@@ -138,8 +136,7 @@ export default function Sidebar({
             alt="One Calendar"
             width={24}
             height={24}
-            className="mr-2"
-            style={{ filter: resolvedTheme === "dark" ? "brightness(0) invert(1)" : "brightness(0)" }}
+            className="mr-2 brightness-0 dark:invert"
           />
           <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
         </div>
