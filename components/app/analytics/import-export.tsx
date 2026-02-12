@@ -91,13 +91,15 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         // Export as encrypted JSON payload
         let jsonContent = JSON.stringify(filteredEvents, null, 2)
 
-        if (!jsonPassword.trim()) {
-          throw new Error(t.passwordRequired || "Password is required")
-        }
+        const hasAnyPasswordInput = jsonPassword.trim() || jsonPasswordConfirm.trim()
+        if (hasAnyPasswordInput) {
+          if (!jsonPassword.trim()) {
+            throw new Error(t.passwordRequired || "Password is required")
+          }
 
-        if (jsonPassword !== jsonPasswordConfirm) {
-          throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
-        }
+          if (jsonPassword !== jsonPasswordConfirm) {
+            throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
+          }
 
         const encrypted = await encryptPayload(jsonPassword, jsonContent)
         jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
@@ -238,6 +240,10 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       return decryptedEvents as CalendarEvent[]
+    }
+
+    if (Array.isArray(parsed)) {
+      return parsed as CalendarEvent[]
     }
 
     throw new Error(t.unsupportedFormat || "Unsupported file format")
@@ -797,7 +803,7 @@ END:VEVENT
             {exportFormat === "json" && (
               <div className="space-y-3 rounded-md border p-3">
                 <div className="space-y-2">
-                  <Label htmlFor="json-password">{t.password || "Password"}</Label>
+                  <Label htmlFor="json-password">{(language.startsWith("zh") ? "密码（可选，用于加密）" : "Password (optional, for encryption)")}</Label>
                   <Input
                     id="json-password"
                     type="password"
