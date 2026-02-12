@@ -340,5 +340,14 @@
   "timeFormat12h": "12 小时制（1 PM）",
   "languageChineseSimplified": "简体中文",
   "languageChineseHongKong": "繁體中文（香港）",
-  "languageChineseTaiwan": "繁體中文（台灣）"
+  "languageChineseTaiwan": "繁體中文（台灣）",
+  "buildInfoTitle": "版本信息",
+  "buildInfoVersion": "版本号",
+  "buildInfoCommit": "提交号",
+  "buildInfoDeployment": "部署时间",
+  "buildInfoDeployedAgo": "{time}前部署",
+  "buildInfoUnknown": "未知",
+  "buildInfoMinutes": "分钟",
+  "buildInfoHours": "小时",
+  "buildInfoDays": "天"
 }
