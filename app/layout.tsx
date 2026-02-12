@@ -65,11 +65,9 @@ export default function RootLayout({
         <CalendarProvider>
           {children}
           <Toaster />
-          <SpeedInsights />
         </CalendarProvider> 
         </ThemeProvider>
       </ClerkProvider>
-      <Analytics />
       </body>
     </html>
   )
