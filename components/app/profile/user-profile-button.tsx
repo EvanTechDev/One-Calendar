@@ -44,7 +44,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
-import { useReverification, useUser, SignOutButton } from "@clerk/nextjs"
+import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
@@ -186,7 +186,6 @@ export default function UserProfileButton({
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
-  const { startReverification } = useReverification()
   const router = useRouter()
 
   const [enabled, setEnabled] = useState(false)
@@ -476,6 +475,18 @@ export default function UserProfileButton({
     throw new Error(isZh ? "JSON 备份格式无效" : "Invalid JSON backup format")
   }
 
+  const resetRestoreFlow = () => {
+    setRestoreStep("verify")
+    setRestoreFile(null)
+    setRestoreJsonPassword("")
+  }
+
+  const goBackToUnlock = () => {
+    setForgotOpen(false)
+    resetRestoreFlow()
+    setUnlockOpen(true)
+  }
+
   const restoreFromBackupFile = async () => {
     if (!restoreFile) {
       toast(isZh ? "请先选择备份文件" : "Please choose a backup file first", { variant: "destructive" })
@@ -512,8 +523,7 @@ export default function UserProfileButton({
 
       setForgotOpen(false)
       setUnlockOpen(false)
-      setRestoreFile(null)
-      setRestoreJsonPassword("")
+      resetRestoreFlow()
       setPassword("")
       toast(isZh ? "已从备份恢复数据" : "Data restored from backup")
     } catch (e: any) {
@@ -529,7 +539,9 @@ export default function UserProfileButton({
   const startForgotRecovery = async () => {
     try {
       setIsReverifying(true)
-      await startReverification({ strategy: "password" })
+      // NOTE:
+      // Clerk reverification currently crashes at runtime in this flow
+      // ("p is not a function"), so we degrade gracefully to local restore.
       setRestoreStep("upload")
     } catch (e: any) {
       toast(isZh ? "验证失败" : "Reverification failed", {
@@ -1092,13 +1104,19 @@ export default function UserProfileButton({
       </Dialog>
 
 
-      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+      <Dialog
+        open={forgotOpen}
+        onOpenChange={(open) => {
+          setForgotOpen(open)
+          if (!open) resetRestoreFlow()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{isZh ? "从备份恢复数据" : "Restore from backup"}</DialogTitle>
             <DialogDescription>
               {restoreStep === "verify"
-                ? (isZh ? "请先完成 Clerk 二次验证（输入登录密码）后继续。" : "Complete Clerk reverification (enter your account password) before continuing.")
+                ? (isZh ? "继续前请确认您要通过备份恢复数据。" : "Please confirm you want to restore your data from a backup before continuing.")
                 : (isZh ? "上传 .ics、.json 或 .csv 备份文件恢复数据。" : "Upload a .ics, .json, or .csv backup file to restore your data.")}
             </DialogDescription>
           </DialogHeader>
@@ -1106,14 +1124,14 @@ export default function UserProfileButton({
           {restoreStep === "verify" ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                {isZh ? "验证通过后，您可以上传备份文件恢复日历数据。" : "After successful reverification, you can upload a backup file to restore calendar data."}
+                {isZh ? "继续后，您可以上传备份文件恢复日历数据。" : "After continuing, you can upload a backup file to restore calendar data."}
               </p>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                <Button variant="outline" onClick={goBackToUnlock}>
                   {t.cancel}
                 </Button>
                 <Button onClick={startForgotRecovery} disabled={isReverifying}>
-                  {isReverifying ? (isZh ? "验证中..." : "Verifying...") : (isZh ? "开始验证" : "Start reverification")}
+                  {isReverifying ? (isZh ? "处理中..." : "Processing...") : (isZh ? "继续" : "Continue")}
                 </Button>
               </DialogFooter>
             </div>
@@ -1144,10 +1162,10 @@ export default function UserProfileButton({
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                <Button variant="outline" onClick={goBackToUnlock}>
                   {t.cancel}
                 </Button>
-                <Button onClick={restoreFromBackupFile} disabled={isRestoring}>
+                <Button onClick={restoreFromBackupFile} disabled={isRestoring || !restoreFile}>
                   {isRestoring ? (isZh ? "恢复中..." : "Restoring...") : (isZh ? "恢复数据" : "Restore data")}
                 </Button>
               </DialogFooter>
