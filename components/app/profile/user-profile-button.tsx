@@ -186,7 +186,7 @@ export default function UserProfileButton({
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
-  const reverification = useReverification() as any
+  const { startReverification } = useReverification()
   const router = useRouter()
 
   const [enabled, setEnabled] = useState(false)
@@ -529,15 +529,7 @@ export default function UserProfileButton({
   const startForgotRecovery = async () => {
     try {
       setIsReverifying(true)
-      const starter = typeof reverification === "function"
-        ? reverification
-        : reverification?.startReverification
-
-      if (typeof starter !== "function") {
-        throw new Error(isZh ? "当前环境不支持二次验证" : "Reverification is not available in current environment")
-      }
-
-      await starter({ strategy: "password" })
+      await startReverification({ strategy: "password" })
       setRestoreStep("upload")
     } catch (e: any) {
       toast(isZh ? "验证失败" : "Reverification failed", {

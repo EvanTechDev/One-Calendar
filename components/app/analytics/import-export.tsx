@@ -88,7 +88,7 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, "calendar-export.ics", "text/calendar")
       } else if (exportFormat === "json") {
-        // Export as JSON payload (plaintext by default; encrypted if password provided)
+        // Export as encrypted JSON payload
         let jsonContent = JSON.stringify(filteredEvents, null, 2)
 
         const hasAnyPasswordInput = jsonPassword.trim() || jsonPasswordConfirm.trim()
@@ -101,9 +101,8 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
             throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
           }
 
-          const encrypted = await encryptPayload(jsonPassword, jsonContent)
-          jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
-        }
+        const encrypted = await encryptPayload(jsonPassword, jsonContent)
+        jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
 
         downloadFile(jsonContent, "calendar-export.json", "application/json")
       } else if (exportFormat === "csv") {
