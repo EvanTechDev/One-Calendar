@@ -349,5 +349,15 @@
   "buildInfoUnknown": "Unknown",
   "buildInfoMinutes": "minutes",
   "buildInfoHours": "hours",
-  "buildInfoDays": "days"
+  "buildInfoDays": "days",
+  "eventCreated": "Event created",
+  "eventUpdated": "Event updated",
+  "eventDeleted": "Event deleted",
+  "deletionUndone": "Deletion undone",
+  "undo": "Undo",
+  "deleteEventConfirmTitle": "Delete this event?",
+  "deleteEventConfirmDescription": "You can restore it with Undo from the notification after deletion.",
+  "timeFormat12hWithMeridiem": "12-hour (1 PM)",
+  "account": "Account",
+  "passwordOptionalForEncryption": "Password (optional, for encryption)"
 }

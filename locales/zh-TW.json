@@ -349,5 +349,15 @@
   "buildInfoUnknown": "未知",
   "buildInfoMinutes": "分鐘",
   "buildInfoHours": "小時",
-  "buildInfoDays": "天"
+  "buildInfoDays": "天",
+  "eventCreated": "日程已建立",
+  "eventUpdated": "日程已更新",
+  "eventDeleted": "日程已刪除",
+  "deletionUndone": "已復原刪除",
+  "undo": "復原",
+  "deleteEventConfirmTitle": "確認刪除行程？",
+  "deleteEventConfirmDescription": "刪除後可在通知中點擊「復原」還原。",
+  "timeFormat12hWithMeridiem": "12 小時制（下午 1 點）",
+  "account": "帳戶",
+  "passwordOptionalForEncryption": "密碼（可選，用於加密）"
 }

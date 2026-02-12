@@ -349,5 +349,15 @@
   "buildInfoUnknown": "未知",
   "buildInfoMinutes": "分钟",
   "buildInfoHours": "小时",
-  "buildInfoDays": "天"
+  "buildInfoDays": "天",
+  "eventCreated": "日程已创建",
+  "eventUpdated": "日程已更新",
+  "eventDeleted": "日程已删除",
+  "deletionUndone": "已撤销删除",
+  "undo": "撤销",
+  "deleteEventConfirmTitle": "确认删除日程？",
+  "deleteEventConfirmDescription": "删除后可在提示中点击“撤销”恢复。",
+  "timeFormat12hWithMeridiem": "12 小时制（下午 1 点）",
+  "account": "账户",
+  "passwordOptionalForEncryption": "密码（可选，用于加密）"
 }

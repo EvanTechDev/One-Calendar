@@ -187,7 +187,7 @@ export default function Settings({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="24h">{t.timeFormat24h}</SelectItem>
-              <SelectItem value="12h">{language.startsWith("zh") ? "12 小时制（下午 1 点）" : t.timeFormat12h}</SelectItem>
+              <SelectItem value="12h">{t.timeFormat12hWithMeridiem}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -216,7 +216,7 @@ export default function Settings({
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold">{language.startsWith("zh") ? "账户" : "Account"}</h2>
+        <h2 className="text-lg font-semibold">{t.account}</h2>
         <UserProfileButton mode="settings" focusSection={focusUserProfileSection} />
       </div>
 

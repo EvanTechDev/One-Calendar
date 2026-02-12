@@ -804,7 +804,7 @@ END:VEVENT
             {exportFormat === "json" && (
               <div className="space-y-3 rounded-md border p-3">
                 <div className="space-y-2">
-                  <Label htmlFor="json-password">{(language.startsWith("zh") ? "密码（可选，用于加密）" : "Password (optional, for encryption)")}</Label>
+                  <Label htmlFor="json-password">{t.passwordOptionalForEncryption}</Label>
                   <Input
                     id="json-password"
                     type="password"
