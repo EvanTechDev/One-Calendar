@@ -3,8 +3,6 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { CalendarProvider } from "@/components/providers/calendar-context"
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
