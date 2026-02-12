@@ -75,8 +75,8 @@ export default function WeekView({
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isDraggingRef = useRef(false)
   const isDark =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark")
 
 
   const menuLabels = {
