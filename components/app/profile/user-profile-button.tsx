@@ -266,9 +266,9 @@ export default function UserProfileButton({
         firstName: firstName || null,
         lastName: lastName || null,
       })
-      toast(language.startsWith("zh") ? "个人资料已更新" : "Profile updated")
+      toast(t.profileUpdated)
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "更新失败" : "Failed to update profile", {
+      toast(t.profileUpdateFailed, {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
     } finally {
@@ -282,9 +282,9 @@ export default function UserProfileButton({
       setAvatarUploading(true)
       await user.setProfileImage({ file })
       await user.reload()
-      toast(language.startsWith("zh") ? "头像已更新" : "Avatar updated")
+      toast(t.avatarUpdated)
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "头像更新失败" : "Failed to update avatar", {
+      toast(t.avatarUpdateFailed, {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
     } finally {
@@ -298,10 +298,10 @@ export default function UserProfileButton({
       const email = await user.createEmailAddress({ email: newEmail })
       await email.prepareVerification({ strategy: "email_code" })
       setNewEmail("")
-      toast(language.startsWith("zh") ? "已添加邮箱，请查收验证码" : "Email added. Check your inbox for verification")
+      toast(t.emailAddedCheckInbox)
       await user.reload()
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "添加邮箱失败" : "Failed to add email", {
+      toast(t.addEmailFailed, {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
     }
@@ -311,10 +311,10 @@ export default function UserProfileButton({
     if (!user) return
     try {
       await user.update({ primaryEmailAddressId: emailId })
-      toast(language.startsWith("zh") ? "主邮箱已更新" : "Primary email updated")
+      toast(t.primaryEmailUpdated)
       await user.reload()
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "更新主邮箱失败" : "Failed to update primary email", {
+      toast(t.primaryEmailUpdateFailed, {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
     }
@@ -326,16 +326,16 @@ export default function UserProfileButton({
       const target = user.externalAccounts.find((acc) => acc.id === accountId)
       if (!target) return
       await target.destroy()
-      toast(language.startsWith("zh") ? "OAuth 账号已断开" : "OAuth account disconnected")
+      toast(t.oauthDisconnected)
       await user.reload()
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "断开失败" : "Failed to disconnect", {
+      toast(t.disconnectFailed, {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
     }
   }
 
-  const isZh = useMemo(() => language.startsWith("zh"), [language])
+  
 
   const hydrateEvent = (raw: any): CalendarEvent => {
     const startDate = raw?.startDate ? new Date(raw.startDate) : new Date()
@@ -343,7 +343,7 @@ export default function UserProfileButton({
 
     return {
       id: raw?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: raw?.title || (isZh ? "未命名日程" : "Unnamed Event"),
+      title: raw?.title || t.unnamedEvent,
       startDate,
       endDate: endDate < startDate ? new Date(startDate.getTime() + 60 * 60 * 1000) : endDate,
       isAllDay: Boolean(raw?.isAllDay),
@@ -490,10 +490,10 @@ export default function UserProfileButton({
 
       await user.delete()
 
-      toast(language.startsWith("zh") ? "账号已删除" : "Account deleted")
+      toast(t.accountDeleted)
       router.replace("/")
     } catch (e: any) {
-      toast(language.startsWith("zh") ? "删除账号失败" : "Failed to delete account", {
+      toast(t.deleteAccountFailed, {
         description: e?.message || "",
       })
     } finally {
@@ -543,7 +543,7 @@ export default function UserProfileButton({
 
                 <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {language.startsWith("zh") ? "删除账号" : "Delete account"}
+                  {t.deleteAccount}
                 </DropdownMenuItem>
 
                 {onNavigateToSettings ? (
@@ -587,38 +587,38 @@ export default function UserProfileButton({
               </div>
               <div className="space-y-4">
                 <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{language.startsWith("zh") ? "基本信息" : "Basic info"}</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "编辑头像与姓名等个人资料信息。" : "Edit your avatar and personal profile details."}</p>
-                  <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开基本信息" : "Open basic info"}</Button>
+                  <p className="text-sm font-semibold">{t.basicInfo}</p>
+                  <p className="text-xs text-muted-foreground">{t.editProfileDescription}</p>
+                  <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{t.openBasicInfo}</Button>
                 </div>
 
                 <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{language.startsWith("zh") ? "邮箱管理" : "Email management"}</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "查看、添加并管理您的邮箱地址。" : "View, add, and manage your email addresses."}</p>
-                  <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开邮箱设置" : "Open email settings"}</Button>
+                  <p className="text-sm font-semibold">{t.emailManagement}</p>
+                  <p className="text-xs text-muted-foreground">{t.manageEmailAddressesDescription}</p>
+                  <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{t.openEmailSettings}</Button>
                 </div>
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">OAuth</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "查看和管理已绑定的第三方登录账号。" : "View and manage connected third-party login providers."}</p>
-                  <Button variant="outline" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开 OAuth 设置" : "Open OAuth settings"}</Button>
+                  <p className="text-xs text-muted-foreground">{t.manageOauthDescription}</p>
+                  <Button variant="outline" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />{t.openOauthSettings}</Button>
                 </div>
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.autoBackup}</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "配置自动备份，防止本地数据意外丢失。" : "Configure automatic backups to avoid accidental local data loss."}</p>
-                  <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开备份设置" : "Open backup settings"}</Button>
+                  <p className="text-xs text-muted-foreground">{t.autoBackupHelp}</p>
+                  <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.openBackupSettings}</Button>
                 </div>
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.changeKey}</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "更新加密密钥，提升备份安全性。" : "Rotate your encryption key to improve backup security."}</p>
-                  <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "更改加密密钥" : "Change encryption key"}</Button>
+                  <p className="text-xs text-muted-foreground">{t.rotateKeyHelp}</p>
+                  <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeEncryptionKeyAction}</Button>
                 </div>
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.signOut}</p>
-                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "退出当前账号并返回登录页。" : "Sign out of your account and return to sign-in."}</p>
+                  <p className="text-xs text-muted-foreground">{t.signOutHelp}</p>
                   <SignOutButton>
                     <Button id="settings-account-signout" variant="outline"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
                   </SignOutButton>
@@ -628,15 +628,15 @@ export default function UserProfileButton({
                   <p className="text-sm font-semibold text-destructive">Danger Zone</p>
                   <div className="space-y-3 rounded-md border border-destructive/20 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
-                    <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "删除当前账号下的本地与云端日历数据。" : "Delete calendar data stored locally and in the cloud for this account."}</p>
+                    <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>
                     <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                   </div>
                   <div className="space-y-3 rounded-md border border-destructive/20 p-3">
-                    <p className="text-sm font-semibold text-destructive">{language.startsWith("zh") ? "删除账号" : "Delete account"}</p>
-                    <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "永久删除 Clerk 账号及关联数据，无法恢复。" : "Permanently remove your Clerk account and related data."}</p>
+                    <p className="text-sm font-semibold text-destructive">{t.deleteAccount}</p>
+                    <p className="text-xs text-muted-foreground">{t.deleteAccountPermanentHelp}</p>
                     <Button variant="destructive" onClick={() => setDeleteAccountOpen(true)}>
                       <Trash2 className="h-4 w-4 mr-2" />
-                      {language.startsWith("zh") ? "删除账号" : "Delete account"}
+                      {t.deleteAccount}
                     </Button>
                   </div>
                 </div>
@@ -654,20 +654,18 @@ export default function UserProfileButton({
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{language.startsWith("zh") ? "个人资料" : "Profile"}</DialogTitle>
+            <DialogTitle>{t.profile}</DialogTitle>
             <DialogDescription>
-              {language.startsWith("zh")
-                ? "管理名称、邮箱和 OAuth 连接。"
-                : "Manage your name, email addresses, and OAuth connections."}
+              {t.manageProfileDescription}
             </DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="max-h-[70vh] pr-4">
             <div className="space-y-6 py-1">
               <section className="space-y-3 rounded-lg border p-4" hidden={profileSection !== "basic"}>
-                <h3 className="font-medium">{language.startsWith("zh") ? "基本信息" : "Basic info"}</h3>
+                <h3 className="font-medium">{t.basicInfo}</h3>
                 <div className="space-y-2">
-                  <Label>{language.startsWith("zh") ? "头像" : "Avatar"}</Label>
+                  <Label>{t.avatar}</Label>
                   <div className="flex items-center gap-3">
                     <Image
                       src={user?.imageUrl || "/placeholder.svg"}
@@ -681,13 +679,7 @@ export default function UserProfileButton({
                       className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent"
                     >
                       <Camera className="h-4 w-4" />
-                      {avatarUploading
-                        ? language.startsWith("zh")
-                          ? "上传中..."
-                          : "Uploading..."
-                        : language.startsWith("zh")
-                          ? "更换头像"
-                          : "Change avatar"}
+                      {avatarUploading ? t.uploading : t.changeAvatar}
                     </Label>
                     <Input
                       id="profile-avatar-input"
@@ -704,27 +696,21 @@ export default function UserProfileButton({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>{language.startsWith("zh") ? "名字" : "First name"}</Label>
+                    <Label>{t.firstName}</Label>
                     <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>{language.startsWith("zh") ? "姓氏" : "Last name"}</Label>
+                    <Label>{t.lastName}</Label>
                     <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
                 </div>
                 <Button onClick={saveProfile} disabled={profileSaving}>
-                  {profileSaving
-                    ? language.startsWith("zh")
-                      ? "保存中..."
-                      : "Saving..."
-                    : language.startsWith("zh")
-                      ? "保存资料"
-                      : "Save profile"}
+                  {profileSaving ? t.saving : t.saveProfile}
                 </Button>
               </section>
 
               <section className="space-y-3 rounded-lg border p-4" hidden={profileSection !== "emails"}>
-                <h3 className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" />{language.startsWith("zh") ? "邮箱" : "Emails"}</h3>
+                <h3 className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" />{t.emails}</h3>
                 <div className="space-y-2">
                   {(user?.emailAddresses || []).map((email) => (
                     <div key={email.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
@@ -732,16 +718,16 @@ export default function UserProfileButton({
                         <p className="font-medium">{email.emailAddress}</p>
                         <p className="text-muted-foreground text-xs">
                           {email.verification?.status === "verified"
-                            ? language.startsWith("zh") ? "已验证" : "Verified"
-                            : language.startsWith("zh") ? "未验证" : "Unverified"}
+                            ? t.verified
+                            : t.unverified}
                           {user?.primaryEmailAddressId === email.id
-                            ? ` · ${language.startsWith("zh") ? "主邮箱" : "Primary"}`
+                            ? ` · ${t.primary}`
                             : ""}
                         </p>
                       </div>
                       {user?.primaryEmailAddressId !== email.id && (
                         <Button variant="outline" size="sm" onClick={() => setPrimaryEmail(email.id)}>
-                          {language.startsWith("zh") ? "设为主邮箱" : "Set primary"}
+                          {t.setPrimary}
                         </Button>
                       )}
                     </div>
@@ -749,12 +735,12 @@ export default function UserProfileButton({
                 </div>
                 <div className="flex gap-2">
                   <Input
-                    placeholder={language.startsWith("zh") ? "新增邮箱" : "Add email address"}
+                    placeholder={t.addEmailAddressPlaceholder}
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                   />
-                  <Button onClick={addEmailAddress}>{language.startsWith("zh") ? "添加" : "Add"}</Button>
+                  <Button onClick={addEmailAddress}>{t.add}</Button>
                 </div>
               </section>
 
@@ -762,7 +748,7 @@ export default function UserProfileButton({
                 <h3 className="font-medium flex items-center gap-2"><LinkIcon className="h-4 w-4" />OAuth</h3>
                 {(user?.externalAccounts || []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {language.startsWith("zh") ? "暂无已连接 OAuth 账号" : "No connected OAuth accounts"}
+                    {t.noConnectedOauthAccounts}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -773,7 +759,7 @@ export default function UserProfileButton({
                           <p className="text-muted-foreground text-xs">{account.emailAddress || account.username || "-"}</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={() => unlinkOAuth(account.id)}>
-                          {language.startsWith("zh") ? "断开" : "Disconnect"}
+                          {t.disconnect}
                         </Button>
                       </div>
                     ))}
@@ -781,7 +767,7 @@ export default function UserProfileButton({
                 )}
                 <Button variant="outline" onClick={() => user?.reload()}>
                   <RefreshCcw className="h-4 w-4 mr-2" />
-                  {language.startsWith("zh") ? "刷新连接状态" : "Refresh connections"}
+                  {t.refreshConnections}
                 </Button>
               </section>
             </div>
@@ -792,11 +778,9 @@ export default function UserProfileButton({
       <AlertDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{language.startsWith("zh") ? "确认删除账号？" : "Delete your account?"}</AlertDialogTitle>
+            <AlertDialogTitle>{t.deleteAccountConfirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {language.startsWith("zh")
-                ? "此操作不可撤销。将删除你的账号，以及该用户的 calendar_events、shares 和备份数据。请输入 DELETE MY ACCOUNT 继续。"
-                : "This action cannot be undone. It deletes your account and removes your calendar_events, shares, and backups. Type DELETE MY ACCOUNT to continue."}
+              {t.deleteAccountConfirmDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
@@ -810,7 +794,7 @@ export default function UserProfileButton({
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{language.startsWith("zh") ? "取消" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
@@ -819,13 +803,7 @@ export default function UserProfileButton({
               }}
               disabled={isDeletingAccount || deleteAccountConfirmText !== "DELETE MY ACCOUNT"}
             >
-              {isDeletingAccount
-                ? language.startsWith("zh")
-                  ? "删除中..."
-                  : "Deleting..."
-                : language.startsWith("zh")
-                  ? "确认删除"
-                  : "Delete account"}
+              {isDeletingAccount ? t.deleting : t.confirmDeleteAccount}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -888,7 +866,7 @@ export default function UserProfileButton({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {language.startsWith("zh") ? "验证中..." : "Verifying..."}
+                  {t.verifying}
                 </span>
               ) : (
                 t.confirm
