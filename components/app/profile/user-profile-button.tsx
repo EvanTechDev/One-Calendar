@@ -476,6 +476,18 @@ export default function UserProfileButton({
     throw new Error(isZh ? "JSON 备份格式无效" : "Invalid JSON backup format")
   }
 
+  const resetRestoreFlow = () => {
+    setRestoreStep("verify")
+    setRestoreFile(null)
+    setRestoreJsonPassword("")
+  }
+
+  const goBackToUnlock = () => {
+    setForgotOpen(false)
+    resetRestoreFlow()
+    setUnlockOpen(true)
+  }
+
   const restoreFromBackupFile = async () => {
     if (!restoreFile) {
       toast(isZh ? "请先选择备份文件" : "Please choose a backup file first", { variant: "destructive" })
@@ -512,8 +524,7 @@ export default function UserProfileButton({
 
       setForgotOpen(false)
       setUnlockOpen(false)
-      setRestoreFile(null)
-      setRestoreJsonPassword("")
+      resetRestoreFlow()
       setPassword("")
       toast(isZh ? "已从备份恢复数据" : "Data restored from backup")
     } catch (e: any) {
@@ -529,7 +540,7 @@ export default function UserProfileButton({
   const startForgotRecovery = async () => {
     try {
       setIsReverifying(true)
-      await startReverification({ strategy: "password" })
+      await startReverification()
       setRestoreStep("upload")
     } catch (e: any) {
       toast(isZh ? "验证失败" : "Reverification failed", {
@@ -1092,7 +1103,13 @@ export default function UserProfileButton({
       </Dialog>
 
 
-      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+      <Dialog
+        open={forgotOpen}
+        onOpenChange={(open) => {
+          setForgotOpen(open)
+          if (!open) resetRestoreFlow()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{isZh ? "从备份恢复数据" : "Restore from backup"}</DialogTitle>
@@ -1109,7 +1126,7 @@ export default function UserProfileButton({
                 {isZh ? "验证通过后，您可以上传备份文件恢复日历数据。" : "After successful reverification, you can upload a backup file to restore calendar data."}
               </p>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                <Button variant="outline" onClick={goBackToUnlock}>
                   {t.cancel}
                 </Button>
                 <Button onClick={startForgotRecovery} disabled={isReverifying}>
@@ -1144,10 +1161,10 @@ export default function UserProfileButton({
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                <Button variant="outline" onClick={goBackToUnlock}>
                   {t.cancel}
                 </Button>
-                <Button onClick={restoreFromBackupFile} disabled={isRestoring}>
+                <Button onClick={restoreFromBackupFile} disabled={isRestoring || !restoreFile}>
                   {isRestoring ? (isZh ? "恢复中..." : "Restoring...") : (isZh ? "恢复数据" : "Restore data")}
                 </Button>
               </DialogFooter>
