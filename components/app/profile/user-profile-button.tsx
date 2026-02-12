@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   User,
   LogOut,
@@ -44,7 +44,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
-import { useUser, SignOutButton } from "@clerk/nextjs"
+import { useReverification, useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
@@ -56,6 +56,7 @@ import {
   readEncryptedLocalStorage,
   setEncryptionPassword,
 } from "@/hooks/useLocalStorage"
+import type { CalendarEvent } from "@/components/providers/calendar-context"
 
 const AUTO_KEY = "auto-backup-enabled"
 const BACKUP_VERSION = 1
@@ -185,6 +186,7 @@ export default function UserProfileButton({
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
+  const { startReverification } = useReverification()
   const router = useRouter()
 
   const [enabled, setEnabled] = useState(false)
@@ -196,6 +198,12 @@ export default function UserProfileButton({
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [restoreStep, setRestoreStep] = useState<"verify" | "upload">("verify")
+  const [isReverifying, setIsReverifying] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [restoreFile, setRestoreFile] = useState<File | null>(null)
+  const [restoreJsonPassword, setRestoreJsonPassword] = useState("")
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
@@ -332,6 +340,204 @@ export default function UserProfileButton({
       toast(language.startsWith("zh") ? "断开失败" : "Failed to disconnect", {
         description: e?.errors?.[0]?.longMessage || e?.message || "",
       })
+    }
+  }
+
+  const isZh = useMemo(() => language.startsWith("zh"), [language])
+
+  const hydrateEvent = (raw: any): CalendarEvent => {
+    const startDate = raw?.startDate ? new Date(raw.startDate) : new Date()
+    const endDate = raw?.endDate ? new Date(raw.endDate) : new Date(startDate.getTime() + 60 * 60 * 1000)
+
+    return {
+      id: raw?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: raw?.title || (isZh ? "未命名日程" : "Unnamed Event"),
+      startDate,
+      endDate: endDate < startDate ? new Date(startDate.getTime() + 60 * 60 * 1000) : endDate,
+      isAllDay: Boolean(raw?.isAllDay),
+      recurrence: ["none", "daily", "weekly", "monthly", "yearly"].includes(raw?.recurrence)
+        ? raw.recurrence
+        : "none",
+      location: raw?.location,
+      participants: Array.isArray(raw?.participants) ? raw.participants : [],
+      notification: typeof raw?.notification === "number" ? raw.notification : 0,
+      description: raw?.description,
+      color: raw?.color || "bg-blue-500",
+      calendarId: raw?.calendarId || "1",
+    }
+  }
+
+  const parseICSBackup = (icsContent: string): CalendarEvent[] => {
+    const events: CalendarEvent[] = []
+    const lines = icsContent.split(/\r\n|\n|\r/)
+    let inEvent = false
+    let current: any = {}
+
+    for (const line of lines) {
+      if (line.startsWith("BEGIN:VEVENT")) {
+        inEvent = true
+        current = {}
+        continue
+      }
+      if (line.startsWith("END:VEVENT")) {
+        if (inEvent) events.push(hydrateEvent(current))
+        inEvent = false
+        current = {}
+        continue
+      }
+      if (!inEvent) continue
+
+      const i = line.indexOf(":")
+      if (i < 0) continue
+      const key = line.slice(0, i).split(";")[0]
+      const value = line.slice(i + 1)
+
+      if (key === "SUMMARY") current.title = value
+      if (key === "DESCRIPTION") current.description = value.replace(/\\n/g, "\n")
+      if (key === "LOCATION") current.location = value
+      if (key === "UID") current.id = value
+      if (key === "DTSTART") current.startDate = value.endsWith("Z") ? new Date(value.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, "$1-$2-$3T$4:$5:$6Z")) : new Date(value)
+      if (key === "DTEND") current.endDate = value.endsWith("Z") ? new Date(value.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, "$1-$2-$3T$4:$5:$6Z")) : new Date(value)
+    }
+
+    return events
+  }
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let insideQuotes = false
+    let currentValue = ""
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        if (i < line.length - 1 && line[i + 1] === '"') {
+          currentValue += '"'
+          i++
+        } else {
+          insideQuotes = !insideQuotes
+        }
+      } else if (char === "," && !insideQuotes) {
+        result.push(currentValue.trim())
+        currentValue = ""
+      } else {
+        currentValue += char
+      }
+    }
+
+    result.push(currentValue.trim())
+    return result
+  }
+
+  const parseCSVBackup = (csvContent: string): CalendarEvent[] => {
+    const lines = csvContent.split("\n").filter((l) => l.trim())
+    if (lines.length < 2) return []
+    const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase())
+
+    return lines.slice(1).map((line) => {
+      const values = parseCSVLine(line)
+      const map: Record<string, string> = {}
+      headers.forEach((h, i) => {
+        map[h] = values[i] || ""
+      })
+      return hydrateEvent({
+        title: map["title"],
+        startDate: map["start date"] || map["start"],
+        endDate: map["end date"] || map["end"],
+        location: map["location"],
+        description: map["description"],
+        color: map["color"],
+      })
+    })
+  }
+
+  const parseJSONBackup = async (raw: string) => {
+    const parsed = JSON.parse(raw)
+
+    if (isEncryptedPayload(parsed) || parsed?.encrypted) {
+      if (!restoreJsonPassword.trim()) {
+        throw new Error(isZh ? "请输入 JSON 备份密码" : "Please enter the JSON backup password")
+      }
+      if (!isEncryptedPayload(parsed)) {
+        throw new Error(isZh ? "JSON 备份格式无效" : "Invalid JSON backup format")
+      }
+      const plain = await decryptPayload(restoreJsonPassword, parsed.ciphertext, parsed.iv)
+      const decrypted = JSON.parse(plain)
+      if (!Array.isArray(decrypted)) {
+        throw new Error(isZh ? "JSON 备份格式无效" : "Invalid JSON backup format")
+      }
+      return decrypted.map(hydrateEvent)
+    }
+
+    if (Array.isArray(parsed)) {
+      return parsed.map(hydrateEvent)
+    }
+
+    throw new Error(isZh ? "JSON 备份格式无效" : "Invalid JSON backup format")
+  }
+
+  const restoreFromBackupFile = async () => {
+    if (!restoreFile) {
+      toast(isZh ? "请先选择备份文件" : "Please choose a backup file first", { variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsRestoring(true)
+      const ext = restoreFile.name.split(".").pop()?.toLowerCase()
+      const content = await restoreFile.text()
+
+      let restoredEvents: CalendarEvent[] = []
+      if (ext === "ics") {
+        restoredEvents = parseICSBackup(content)
+      } else if (ext === "json") {
+        restoredEvents = await parseJSONBackup(content)
+      } else if (ext === "csv") {
+        restoredEvents = parseCSVBackup(content)
+      } else {
+        throw new Error(isZh ? "不支持的备份格式" : "Unsupported backup format")
+      }
+
+      if (restoredEvents.length === 0) {
+        throw new Error(isZh ? "备份中未解析到事件" : "No events found in backup file")
+      }
+
+      setEvents(restoredEvents)
+      localStorage.setItem("calendar-events", JSON.stringify(restoredEvents))
+      clearEncryptionPassword()
+      keyRef.current = null
+      restoredRef.current = false
+      setEnabled(false)
+      localStorage.removeItem(AUTO_KEY)
+
+      setForgotOpen(false)
+      setUnlockOpen(false)
+      setRestoreFile(null)
+      setRestoreJsonPassword("")
+      setPassword("")
+      toast(isZh ? "已从备份恢复数据" : "Data restored from backup")
+    } catch (e: any) {
+      toast(isZh ? "恢复失败" : "Restore failed", {
+        description: e?.message || "",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  const startForgotRecovery = async () => {
+    try {
+      setIsReverifying(true)
+      await startReverification({ strategy: "password" })
+      setRestoreStep("upload")
+    } catch (e: any) {
+      toast(isZh ? "验证失败" : "Reverification failed", {
+        description: e?.errors?.[0]?.longMessage || e?.message || "",
+        variant: "destructive",
+      })
+    } finally {
+      setIsReverifying(false)
     }
   }
 
@@ -562,27 +768,54 @@ export default function UserProfileButton({
                 </div>
               </div>
               <div className="space-y-4">
-                <div>
-                  <p className="mb-2 text-sm font-medium">{t.profile}</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "基本信息" : "Basic info"}</Button>
-                    <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "邮箱" : "Emails"}</Button>
-                    <Button variant="outline" className="sm:col-span-2" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />OAuth</Button>
-                  </div>
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">{language.startsWith("zh") ? "基本信息" : "Basic info"}</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "编辑头像与姓名等个人资料信息。" : "Edit your avatar and personal profile details."}</p>
+                  <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开基本信息" : "Open basic info"}</Button>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
-                  <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">{language.startsWith("zh") ? "邮箱管理" : "Email management"}</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "查看、添加并管理您的邮箱地址。" : "View, add, and manage your email addresses."}</p>
+                  <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开邮箱设置" : "Open email settings"}</Button>
+                </div>
+
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">OAuth</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "查看和管理已绑定的第三方登录账号。" : "View and manage connected third-party login providers."}</p>
+                  <Button variant="outline" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开 OAuth 设置" : "Open OAuth settings"}</Button>
+                </div>
+
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">{t.autoBackup}</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "配置自动备份，防止本地数据意外丢失。" : "Configure automatic backups to avoid accidental local data loss."}</p>
+                  <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "打开备份设置" : "Open backup settings"}</Button>
+                </div>
+
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">{t.changeKey}</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "更新加密密钥，提升备份安全性。" : "Rotate your encryption key to improve backup security."}</p>
+                  <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "更改加密密钥" : "Change encryption key"}</Button>
+                </div>
+
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">{t.signOut}</p>
+                  <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "退出当前账号并返回登录页。" : "Sign out of your account and return to sign-in."}</p>
                   <SignOutButton>
-                    <Button id="settings-account-signout" variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
+                    <Button id="settings-account-signout" variant="outline"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
                   </SignOutButton>
                 </div>
 
-                <div className="rounded-md border border-destructive/40 p-3 space-y-2">
+                <div className="rounded-md border border-destructive/40 p-3 space-y-3">
                   <p className="text-sm font-semibold text-destructive">Danger Zone</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-3 rounded-md border border-destructive/20 p-3">
+                    <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
+                    <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "删除当前账号下的本地与云端日历数据。" : "Delete calendar data stored locally and in the cloud for this account."}</p>
                     <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                  </div>
+                  <div className="space-y-3 rounded-md border border-destructive/20 p-3">
+                    <p className="text-sm font-semibold text-destructive">{language.startsWith("zh") ? "删除账号" : "Delete account"}</p>
+                    <p className="text-xs text-muted-foreground">{language.startsWith("zh") ? "永久删除 Clerk 账号及关联数据，无法恢复。" : "Permanently remove your Clerk account and related data."}</p>
                     <Button variant="destructive" onClick={() => setDeleteAccountOpen(true)}>
                       <Trash2 className="h-4 w-4 mr-2" />
                       {language.startsWith("zh") ? "删除账号" : "Delete account"}
@@ -820,12 +1053,106 @@ export default function UserProfileButton({
             <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
           </DialogHeader>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button
+            type="button"
+            className="text-left text-xs text-blue-600 hover:underline"
+            onClick={() => {
+              setUnlockOpen(false)
+              setRestoreStep("verify")
+              setForgotOpen(true)
+            }}
+          >
+            {isZh ? "忘记加密密钥？从备份恢复" : "Forgot encryption key? Restore from backup"}
+          </button>
           <DialogFooter>
             <Button onClick={unlock} disabled={isUnlocking}>
-              {isUnlocking ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t.confirm}
+              {isUnlocking ? (
+                <span className="flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  {language.startsWith("zh") ? "验证中..." : "Verifying..."}
+                </span>
+              ) : (
+                t.confirm
+              )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isZh ? "从备份恢复数据" : "Restore from backup"}</DialogTitle>
+            <DialogDescription>
+              {restoreStep === "verify"
+                ? (isZh ? "请先完成 Clerk 二次验证（输入登录密码）后继续。" : "Complete Clerk reverification (enter your account password) before continuing.")
+                : (isZh ? "上传 .ics、.json 或 .csv 备份文件恢复数据。" : "Upload a .ics, .json, or .csv backup file to restore your data.")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {restoreStep === "verify" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {isZh ? "验证通过后，您可以上传备份文件恢复日历数据。" : "After successful reverification, you can upload a backup file to restore calendar data."}
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                  {t.cancel}
+                </Button>
+                <Button onClick={startForgotRecovery} disabled={isReverifying}>
+                  {isReverifying ? (isZh ? "验证中..." : "Verifying...") : (isZh ? "开始验证" : "Start reverification")}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="restore-file">{isZh ? "备份文件" : "Backup file"}</Label>
+                <Input
+                  id="restore-file"
+                  type="file"
+                  accept=".ics,.json,.csv"
+                  onChange={(e) => setRestoreFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-muted-foreground">{isZh ? "支持 .ics、.json、.csv" : "Supported: .ics, .json, .csv"}</p>
+              </div>
+
+              {restoreFile?.name.toLowerCase().endsWith(".json") && (
+                <div className="space-y-2">
+                  <Label htmlFor="restore-json-password">{isZh ? "JSON 备份密码（如有）" : "JSON backup password (if encrypted)"}</Label>
+                  <Input
+                    id="restore-json-password"
+                    type="password"
+                    value={restoreJsonPassword}
+                    onChange={(e) => setRestoreJsonPassword(e.target.value)}
+                    placeholder={isZh ? "如果 JSON 已加密，请输入密码" : "Enter password if JSON backup is encrypted"}
+                  />
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setForgotOpen(false); setUnlockOpen(true) }}>
+                  {t.cancel}
+                </Button>
+                <Button onClick={restoreFromBackupFile} disabled={isRestoring}>
+                  {isRestoring ? (isZh ? "恢复中..." : "Restoring...") : (isZh ? "恢复数据" : "Restore data")}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
