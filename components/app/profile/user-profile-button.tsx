@@ -539,9 +539,7 @@ export default function UserProfileButton({
   const startForgotRecovery = async () => {
     try {
       setIsReverifying(true)
-      // NOTE:
-      // Clerk reverification currently crashes at runtime in this flow
-      // ("p is not a function"), so we degrade gracefully to local restore.
+      await startReverification()
       setRestoreStep("upload")
     } catch (e: any) {
       toast(isZh ? "验证失败" : "Reverification failed", {
