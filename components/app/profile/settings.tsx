@@ -157,8 +157,6 @@ export default function Settings({
               <SelectItem value="week">{t.week}</SelectItem>
               <SelectItem value="month">{t.month}</SelectItem>
               <SelectItem value="year">{t.year}</SelectItem>
-              <div><Kbd>4</Kbd> - {t.yearView}</div>
-              <SelectItem value="year">{t.year}</SelectItem>
             </SelectContent>
           </Select>
         </div>

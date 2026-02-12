@@ -195,6 +195,9 @@ export default function UserProfileButton({
   const [rotateOpen, setRotateOpen] = useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
+  const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
@@ -216,6 +219,12 @@ export default function UserProfileButton({
     const target = document.getElementById(`settings-account-${focusSection}`)
     target?.scrollIntoView({ behavior: "smooth", block: "center" })
   }, [focusSection, mode])
+
+  useEffect(() => {
+    if (!deleteAccountOpen) {
+      setDeleteAccountConfirmText("")
+    }
+  }, [deleteAccountOpen])
 
   useEffect(() => {
     setEnabled(localStorage.getItem(AUTO_KEY) === "true")
@@ -328,42 +337,48 @@ export default function UserProfileButton({
 
   async function unlock() {
     if (!password) return
-    const cloud = await apiGet()
-    if (!cloud) return
-
-    let plain
-    try {
-      plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
-    } catch {
-      toast(t.incorrectPassword)
-      return
-    }
 
     try {
-      const data = JSON.parse(plain)
-      if (data?.storage) {
-        applyLocalStorage(data.storage)
-      } else if (data?.events || data?.calendars) {
-        const fallbackStorage: Record<string, string> = {}
-        if (data?.events) fallbackStorage["calendar-events"] = JSON.stringify(data.events)
-        if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
-        applyLocalStorage(fallbackStorage)
+      setIsUnlocking(true)
+      const cloud = await apiGet()
+      if (!cloud) return
+
+      let plain
+      try {
+        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
+      } catch {
+        toast(t.incorrectPassword)
+        return
       }
-      await setEncryptionPassword(password)
-      const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
-      const restoredCalendars = await readEncryptedLocalStorage("calendar-categories", [])
-      setEvents(restoredEvents)
-      setCalendars(restoredCalendars)
-    } catch {}
 
-    keyRef.current = password
-    restoredRef.current = true
-    localStorage.setItem(AUTO_KEY, "true")
-    setEnabled(true)
+      try {
+        const data = JSON.parse(plain)
+        if (data?.storage) {
+          applyLocalStorage(data.storage)
+        } else if (data?.events || data?.calendars) {
+          const fallbackStorage: Record<string, string> = {}
+          if (data?.events) fallbackStorage["calendar-events"] = JSON.stringify(data.events)
+          if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
+          applyLocalStorage(fallbackStorage)
+        }
+        await setEncryptionPassword(password)
+        const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
+        const restoredCalendars = await readEncryptedLocalStorage("calendar-categories", [])
+        setEvents(restoredEvents)
+        setCalendars(restoredCalendars)
+      } catch {}
 
-    setPassword("")
-    setUnlockOpen(false)
-    toast(t.dataRestoredAutoBackupEnabled)
+      keyRef.current = password
+      restoredRef.current = true
+      localStorage.setItem(AUTO_KEY, "true")
+      setEnabled(true)
+
+      setPassword("")
+      setUnlockOpen(false)
+      toast(t.dataRestoredAutoBackupEnabled)
+    } finally {
+      setIsUnlocking(false)
+    }
   }
 
   async function enable() {
@@ -434,8 +449,13 @@ export default function UserProfileButton({
     toast(t.cloudDataDeleted)
   }
 
+  const openProfileSection = (section: "basic" | "emails" | "oauth") => {
+    setProfileSection(section)
+    setProfileOpen(true)
+  }
+
   async function deleteAccount() {
-    if (!user) return
+    if (!user || deleteAccountConfirmText !== "DELETE MY ACCOUNT") return
     try {
       setIsDeletingAccount(true)
       const response = await fetch("/api/account", { method: "DELETE" })
@@ -541,18 +561,34 @@ export default function UserProfileButton({
                   <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</p>
                 </div>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Button id="settings-account-profile" variant="outline" onClick={() => setProfileOpen(true)}><CircleUser className="h-4 w-4 mr-2" />{t.profile}</Button>
-                <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
-                <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
-                <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
-                <Button variant="destructive" className="sm:col-span-2" onClick={() => setDeleteAccountOpen(true)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {language.startsWith("zh") ? "删除账号" : "Delete account"}
-                </Button>
-                <SignOutButton>
-                  <Button id="settings-account-signout" variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
-                </SignOutButton>
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-2 text-sm font-medium">{t.profile}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "基本信息" : "Basic info"}</Button>
+                    <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{language.startsWith("zh") ? "邮箱" : "Emails"}</Button>
+                    <Button variant="outline" className="sm:col-span-2" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />OAuth</Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button id="settings-account-backup" variant="outline" onClick={() => setBackupOpen(true)}><CloudUpload className="h-4 w-4 mr-2" />{t.autoBackup}</Button>
+                  <Button id="settings-account-key" variant="outline" onClick={() => setRotateOpen(true)}><KeyRound className="h-4 w-4 mr-2" />{t.changeKey}</Button>
+                  <SignOutButton>
+                    <Button id="settings-account-signout" variant="outline" className="sm:col-span-2"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
+                  </SignOutButton>
+                </div>
+
+                <div className="rounded-md border border-destructive/40 p-3 space-y-2">
+                  <p className="text-sm font-semibold text-destructive">Danger Zone</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                    <Button variant="destructive" onClick={() => setDeleteAccountOpen(true)}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {language.startsWith("zh") ? "删除账号" : "Delete account"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </>
           ) : (
@@ -577,7 +613,7 @@ export default function UserProfileButton({
 
           <ScrollArea className="max-h-[70vh] pr-4">
             <div className="space-y-6 py-1">
-              <section className="space-y-3 rounded-lg border p-4">
+              <section className="space-y-3 rounded-lg border p-4" hidden={profileSection !== "basic"}>
                 <h3 className="font-medium">{language.startsWith("zh") ? "基本信息" : "Basic info"}</h3>
                 <div className="space-y-2">
                   <Label>{language.startsWith("zh") ? "头像" : "Avatar"}</Label>
@@ -636,7 +672,7 @@ export default function UserProfileButton({
                 </Button>
               </section>
 
-              <section className="space-y-3 rounded-lg border p-4">
+              <section className="space-y-3 rounded-lg border p-4" hidden={profileSection !== "emails"}>
                 <h3 className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" />{language.startsWith("zh") ? "邮箱" : "Emails"}</h3>
                 <div className="space-y-2">
                   {(user?.emailAddresses || []).map((email) => (
@@ -671,7 +707,7 @@ export default function UserProfileButton({
                 </div>
               </section>
 
-              <section className="space-y-3 rounded-lg border p-4">
+              <section className="space-y-3 rounded-lg border p-4" hidden={profileSection !== "oauth"}>
                 <h3 className="font-medium flex items-center gap-2"><LinkIcon className="h-4 w-4" />OAuth</h3>
                 {(user?.externalAccounts || []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
@@ -708,19 +744,29 @@ export default function UserProfileButton({
             <AlertDialogTitle>{language.startsWith("zh") ? "确认删除账号？" : "Delete your account?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {language.startsWith("zh")
-                ? "此操作不可撤销。将删除你的账号，以及该用户的 calendar_events、shares 和备份数据。"
-                : "This action cannot be undone. It deletes your account and removes your calendar_events, shares, and backups."}
+                ? "此操作不可撤销。将删除你的账号，以及该用户的 calendar_events、shares 和备份数据。请输入 DELETE MY ACCOUNT 继续。"
+                : "This action cannot be undone. It deletes your account and removes your calendar_events, shares, and backups. Type DELETE MY ACCOUNT to continue."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-account-confirm-input">DELETE MY ACCOUNT</Label>
+            <Input
+              id="delete-account-confirm-input"
+              value={deleteAccountConfirmText}
+              onChange={(e) => setDeleteAccountConfirmText(e.target.value)}
+              placeholder="DELETE MY ACCOUNT"
+              autoComplete="off"
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>{language.startsWith("zh") ? "取消" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault()
                 void deleteAccount()
               }}
-              disabled={isDeletingAccount}
+              disabled={isDeletingAccount || deleteAccountConfirmText !== "DELETE MY ACCOUNT"}
             >
               {isDeletingAccount
                 ? language.startsWith("zh")
@@ -775,7 +821,10 @@ export default function UserProfileButton({
           </DialogHeader>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <DialogFooter>
-            <Button onClick={unlock}>{t.confirm}</Button>
+            <Button onClick={unlock} disabled={isUnlocking}>
+              {isUnlocking ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {t.confirm}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -123,6 +123,7 @@ export default function YearView({
 
               {month.days.map((day) => {
                 const dayKey = format(day, "yyyy-MM-dd")
+                const popoverKey = `${month.monthIndex}-${dayKey}`
                 const isToday = isSameDay(day, today)
                 const isCurrentMonth = isSameMonth(day, new Date(currentYear, month.monthIndex, 1))
                 const dayEvents = eventsByDayKey.get(dayKey) ?? []
@@ -130,8 +131,8 @@ export default function YearView({
                 return (
                   <Popover
                     key={`${month.label}-${day.toISOString()}`}
-                    open={openDayKey === dayKey}
-                    onOpenChange={(open) => setOpenDayKey(open ? dayKey : null)}
+                    open={openDayKey === popoverKey}
+                    onOpenChange={(open) => setOpenDayKey(open ? popoverKey : null)}
                   >
                     <PopoverTrigger asChild>
                       <button
