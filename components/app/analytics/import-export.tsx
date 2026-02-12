@@ -101,8 +101,9 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
             throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
           }
 
-        const encrypted = await encryptPayload(jsonPassword, jsonContent)
-        jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
+          const encrypted = await encryptPayload(jsonPassword, jsonContent)
+          jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
+        }
 
         downloadFile(jsonContent, "calendar-export.json", "application/json")
       } else if (exportFormat === "csv") {
