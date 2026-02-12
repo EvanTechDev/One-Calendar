@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import en from "@/locales/en.json"
 import zhCN from "@/locales/zh-CN.json"
+import zhHK from "@/locales/zh-HK.json"
+import zhTW from "@/locales/zh-TW.json"
 import {
   getEncryptionState,
   readEncryptedLocalStorage,
@@ -13,6 +15,8 @@ import {
 export const translations = {
   en,
   "zh-CN": zhCN,
+  "zh-HK": zhHK,
+  "zh-TW": zhTW,
 } as const
 
 export type Language = keyof typeof translations
@@ -25,12 +29,14 @@ const normalizeLanguage = (value: string | null | undefined): Language | null =>
     return value as Language
   }
   const lower = value.toLowerCase()
+  if (lower.startsWith("zh-hk")) return "zh-HK"
+  if (lower.startsWith("zh-tw")) return "zh-TW"
   if (lower.startsWith("zh")) return "zh-CN"
   if (lower.startsWith("en")) return "en"
   return null
 }
 
-export const isZhLanguage = (language: Language) => language === "zh-CN"
+export const isZhLanguage = (language: Language) => language.startsWith("zh")
 
 export const getStoredLanguage = async (): Promise<Language> => {
   const storedLanguage = await readEncryptedLocalStorage<string | null>(LANGUAGE_STORAGE_KEY, null)

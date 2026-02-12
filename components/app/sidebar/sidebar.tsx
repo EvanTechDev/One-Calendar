@@ -51,7 +51,7 @@ export default function Sidebar({
   onCreateEvent,
   onDateSelect,
   onViewChange,
-  language = "zh",
+  language = "zh-CN",
   selectedDate,
   isCollapsed = false,
   onToggleCollapse,
@@ -70,7 +70,7 @@ export default function Sidebar({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const { resolvedTheme } = useTheme()
-  const t = translations[language || "zh"]
+  const t = translations[language || "zh-CN"]
 
   const deleteText = {
     title: t.deleteConfirmationTitle,

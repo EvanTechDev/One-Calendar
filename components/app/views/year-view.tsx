@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfWeek } from "date-fns"
 import { enUS, zhCN } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { translations, type Language } from "@/lib/i18n"
+import { isZhLanguage, translations, type Language } from "@/lib/i18n"
 import type { CalendarEvent } from "../calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -60,7 +60,7 @@ export default function YearView({
   const t = translations[language]
   const currentYear = date.getFullYear()
   const today = new Date()
-  const locale = language === "zh-CN" ? zhCN : enUS
+  const locale = isZhLanguage(language) ? zhCN : enUS
   const [openDayKey, setOpenDayKey] = useState<string | null>(null)
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark")
 
@@ -96,7 +96,7 @@ export default function YearView({
 
     return {
       monthIndex,
-      label: format(monthStart, language === "zh-CN" ? "M月" : "LLLL", { locale }),
+      label: format(monthStart, isZhLanguage(language) ? "M月" : "LLLL", { locale }),
       days: monthDays,
     }
   })
@@ -151,7 +151,7 @@ export default function YearView({
                     <PopoverContent side="right" align="start" className="w-72">
                       <div className="space-y-2">
                         <div className="text-sm font-medium">
-                          {day.toLocaleDateString(language === "zh-CN" ? "zh-CN" : "en-US", {
+                          {day.toLocaleDateString(isZhLanguage(language) ? "zh-CN" : "en-US", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",

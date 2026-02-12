@@ -125,7 +125,9 @@ export default function Settings({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="en">{t.languageEnglish}</SelectItem>
-              <SelectItem value="zh-CN">{t.languageChinese}</SelectItem>
+              <SelectItem value="zh-CN">{t.languageChineseSimplified}</SelectItem>
+              <SelectItem value="zh-HK">{t.languageChineseHongKong}</SelectItem>
+              <SelectItem value="zh-TW">{t.languageChineseTaiwan}</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -231,7 +231,7 @@
   "themeGreen": "绿色",
   "themeOrange": "橙色",
   "themeAzalea": "映山红",
-  "languageEnglish": "英语",
+  "languageEnglish": "英語",
   "languageChinese": "中文",
   "noEventsToday": "今天没有日程",
   "minutesShort": "分钟",
@@ -338,7 +338,7 @@
   "timeFormat": "时间制",
   "timeFormat24h": "24 小时制（13:00）",
   "timeFormat12h": "12 小时制（1 PM）",
-  "languageChineseSimplified": "简体中文",
+  "languageChineseSimplified": "簡體中文",
   "languageChineseHongKong": "繁體中文（香港）",
   "languageChineseTaiwan": "繁體中文（台灣）"
 }
