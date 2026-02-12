@@ -87,22 +87,25 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
         // Create iCalendar format
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, "calendar-export.ics", "text/calendar")
-      } else if (exportFormat === "pgp") {
-        // Export as PGP (encrypted JSON payload)
+      } else if (exportFormat === "json") {
+        // Export as JSON payload (plaintext by default; encrypted if password provided)
         let jsonContent = JSON.stringify(filteredEvents, null, 2)
 
-        if (!jsonPassword.trim()) {
-          throw new Error(t.passwordRequired || "Password is required")
+        const hasAnyPasswordInput = jsonPassword.trim() || jsonPasswordConfirm.trim()
+        if (hasAnyPasswordInput) {
+          if (!jsonPassword.trim()) {
+            throw new Error(t.passwordRequired || "Password is required")
+          }
+
+          if (jsonPassword !== jsonPasswordConfirm) {
+            throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
+          }
+
+          const encrypted = await encryptPayload(jsonPassword, jsonContent)
+          jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-json-v1" }, null, 2)
         }
 
-        if (jsonPassword !== jsonPasswordConfirm) {
-          throw new Error(t.passwordsDoNotMatch || "Passwords do not match")
-        }
-
-        const encrypted = await encryptPayload(jsonPassword, jsonContent)
-        jsonContent = JSON.stringify({ ...encrypted, encrypted: true, format: "one-calendar-pgp-v1" }, null, 2)
-
-        downloadFile(jsonContent, "calendar-export.pgp", "application/pgp-encrypted")
+        downloadFile(jsonContent, "calendar-export.json", "application/json")
       } else if (exportFormat === "csv") {
         // Export as CSV
         const csvContent = generateCSV(filteredEvents)
@@ -139,7 +142,7 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
 
         if (fileExt === "ics") {
           importedEvents = parseICS(rawContent)
-        } else if (fileExt === "pgp") {
+        } else if (fileExt === "json") {
           importedEvents = await parseJsonEvents(rawContent)
         } else if (fileExt === "csv") {
           importedEvents = parseCSV(rawContent)
@@ -153,7 +156,7 @@ export default function ImportExport({ events, onImportEvents }: ImportExportPro
 
         if (importUrl.endsWith(".ics")) {
           importedEvents = parseICS(rawContent)
-        } else if (importUrl.endsWith(".pgp")) {
+        } else if (importUrl.endsWith(".json")) {
           importedEvents = await parseJsonEvents(rawContent)
         } else {
           throw new Error(t.unsupportedUrlFormat || "Unsupported URL format")
@@ -219,7 +222,7 @@ ${rawContent.substring(0, 500)}...`)
 
     if (isEncryptedPayload(parsed) || parsed?.encrypted) {
       if (!jsonImportEncrypted) {
-        throw new Error(t.encryptedJsonNeedToggle || "This PGP file is encrypted. Please enable encrypted import.")
+        throw new Error(t.encryptedJsonNeedToggle || "This JSON file is encrypted. Please enable encrypted import.")
       }
 
       if (!jsonImportPassword.trim()) {
@@ -227,17 +230,21 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       if (!isEncryptedPayload(parsed)) {
-        throw new Error(t.invalidEncryptedJson || "Invalid encrypted PGP payload")
+        throw new Error(t.invalidEncryptedJson || "Invalid encrypted JSON payload")
       }
 
       const decrypted = await decryptPayload(jsonImportPassword, parsed.ciphertext, parsed.iv)
       const decryptedEvents = JSON.parse(decrypted)
 
       if (!Array.isArray(decryptedEvents)) {
-        throw new Error(t.invalidEncryptedJson || "Invalid encrypted PGP payload")
+        throw new Error(t.invalidEncryptedJson || "Invalid encrypted JSON payload")
       }
 
       return decryptedEvents as CalendarEvent[]
+    }
+
+    if (Array.isArray(parsed)) {
+      return parsed as CalendarEvent[]
     }
 
     throw new Error(t.unsupportedFormat || "Unsupported file format")
@@ -671,7 +678,7 @@ END:VEVENT
                 <Input
                   id="calendar-file"
                   type="file"
-                  accept=".ics,.pgp,.csv"
+                  accept=".ics,.json,.csv"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 />
                 <p className="text-xs text-muted-foreground">{t.supportedFormats}</p>
@@ -697,7 +704,7 @@ END:VEVENT
                   checked={jsonImportEncrypted}
                   onCheckedChange={(checked) => setJsonImportEncrypted(checked as boolean)}
                 />
-                <Label htmlFor="json-import-encrypted">{t.thisJsonEncrypted || "This PGP file is password-encrypted"}</Label>
+                <Label htmlFor="json-import-encrypted">{t.thisJsonEncrypted || "This JSON file is password-encrypted"}</Label>
               </div>
 
               {jsonImportEncrypted && (
@@ -772,7 +779,7 @@ END:VEVENT
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ics">iCalendar (.ics)</SelectItem>
-                  <SelectItem value="pgp">PGP (.pgp)</SelectItem>
+                  <SelectItem value="json">JSON (.json)</SelectItem>
                   <SelectItem value="csv">CSV</SelectItem>
                 </SelectContent>
               </Select>
@@ -794,10 +801,10 @@ END:VEVENT
               </Select>
             </div>
 
-            {exportFormat === "pgp" && (
+            {exportFormat === "json" && (
               <div className="space-y-3 rounded-md border p-3">
                 <div className="space-y-2">
-                  <Label htmlFor="json-password">{t.password || "Password"}</Label>
+                  <Label htmlFor="json-password">{(language.startsWith("zh") ? "密码（可选，用于加密）" : "Password (optional, for encryption)")}</Label>
                   <Input
                     id="json-password"
                     type="password"
