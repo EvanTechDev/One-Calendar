@@ -56,7 +56,6 @@ import {
   readEncryptedLocalStorage,
   setEncryptionPassword,
 } from "@/hooks/useLocalStorage"
-import type { CalendarEvent } from "@/components/providers/calendar-context"
 
 const AUTO_KEY = "auto-backup-enabled"
 const BACKUP_VERSION = 1
@@ -197,12 +196,6 @@ export default function UserProfileButton({
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
-  const [forgotOpen, setForgotOpen] = useState(false)
-  const [restoreStep, setRestoreStep] = useState<"verify" | "upload">("verify")
-  const [isReverifying, setIsReverifying] = useState(false)
-  const [isRestoring, setIsRestoring] = useState(false)
-  const [restoreFile, setRestoreFile] = useState<File | null>(null)
-  const [restoreJsonPassword, setRestoreJsonPassword] = useState("")
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
@@ -1063,17 +1056,6 @@ export default function UserProfileButton({
             <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
           </DialogHeader>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button
-            type="button"
-            className="text-left text-xs text-blue-600 hover:underline"
-            onClick={() => {
-              setUnlockOpen(false)
-              setRestoreStep("verify")
-              setForgotOpen(true)
-            }}
-          >
-            {isZh ? "忘记加密密钥？从备份恢复" : "Forgot encryption key? Restore from backup"}
-          </button>
           <DialogFooter>
             <Button onClick={unlock} disabled={isUnlocking}>
               {isUnlocking ? (
