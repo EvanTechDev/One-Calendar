@@ -1,25 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import en from "@/locales/en.json"
-import zhCN from "@/locales/zh-CN.json"
-import zhHK from "@/locales/zh-HK.json"
-import zhTW from "@/locales/zh-TW.json"
 import {
   getEncryptionState,
   readEncryptedLocalStorage,
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from "@/hooks/useLocalStorage"
-
-export const translations = {
-  en,
-  "zh-CN": zhCN,
-  "zh-HK": zhHK,
-  "zh-TW": zhTW,
-} as const
-
-export type Language = keyof typeof translations
+import { translations, type Language } from "@/lib/locales"
 
 const LANGUAGE_STORAGE_KEY = "preferred-language"
 
@@ -107,3 +95,7 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
+
+
+export { translations }
+export type { Language }
