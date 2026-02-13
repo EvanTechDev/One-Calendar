@@ -1,17 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { GithubIcon } from "lucide-react"
+import { isZhLanguage, useLanguage } from "@/lib/i18n"
 
 export default function TermsOfService() {
-  const [lang, setLang] = useState<"en" | "zh">("en")
-
-  useEffect(() => {
-    if (navigator.language.startsWith("zh")) {
-      setLang("zh")
-    }
-  }, [])
+  const [language] = useLanguage()
+  const lang: "en" | "zh" = isZhLanguage(language) ? "zh" : "en"
 
   const content = {
     en: {
