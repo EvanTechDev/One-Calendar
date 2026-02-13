@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "此操作不可撤销。将删除你的账号，以及该用户的 calendar_events、shares 和备份数据。请输入 DELETE MY ACCOUNT 继续。",
   "deleting": "删除中...",
   "confirmDeleteAccount": "确认删除",
-  "verifying": "验证中..."
+  "verifying": "验证中...",
+  "dangerZone": "危险区域",
+  "shareManagementTitle": "分享管理",
+  "shareManagementDescription": "管理您分享的日历事件",
+  "shareManagementLoadFailed": "加载分享事件失败",
+  "shareDeleteFailed": "删除失败",
+  "sharedOn": "分享日期：",
+  "deleteShareConfirmDescription": "确定要删除此分享吗？此操作无法撤销，分享链接将不再可用。",
+  "enterSharePassword": "输入分享密码",
+  "sharePasswordDescription": "此分享受密码保护，请输入密码以查看内容。",
+  "decrypt": "解密",
+  "decrypting": "解密中...",
+  "decrypted": "已解密",
+  "decryptFailed": "解密失败",
+  "invalidPassword": "密码错误",
+  "protected": "受保护"
 }

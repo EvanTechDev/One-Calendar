@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "Cette action est irréversible. Elle supprime votre compte ainsi que vos événements, partages et sauvegardes. Tapez DELETE MY ACCOUNT pour continuer.",
   "deleting": "Suppression en cours...",
   "confirmDeleteAccount": "Confirmer la suppression",
-  "verifying": "Vérification..."
+  "verifying": "Vérification...",
+  "dangerZone": "Zone de danger",
+  "shareManagementTitle": "Gestion des partages",
+  "shareManagementDescription": "Gérez vos événements de calendrier partagés",
+  "shareManagementLoadFailed": "Échec du chargement des événements partagés",
+  "shareDeleteFailed": "Échec de la suppression",
+  "sharedOn": "Partagé le :",
+  "deleteShareConfirmDescription": "Voulez-vous vraiment supprimer ce partage ? Cette action est irréversible et le lien de partage ne sera plus accessible.",
+  "enterSharePassword": "Saisir le mot de passe du partage",
+  "sharePasswordDescription": "Ce partage est protégé par mot de passe. Saisissez le mot de passe pour l’afficher.",
+  "decrypt": "Déchiffrer",
+  "decrypting": "Déchiffrement...",
+  "decrypted": "Déchiffré",
+  "decryptFailed": "Échec du déchiffrement",
+  "invalidPassword": "Mot de passe invalide",
+  "protected": "Protégé"
 }

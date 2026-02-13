@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "Esta acción no se puede deshacer. Elimina tu cuenta y quita tus eventos de calendario, compartidos y copias de seguridad. Escribe DELETE MY ACCOUNT para continuar.",
   "deleting": "Eliminando...",
   "confirmDeleteAccount": "Confirmar eliminación de cuenta",
-  "verifying": "Verificando..."
+  "verifying": "Verificando...",
+  "dangerZone": "Zona de peligro",
+  "shareManagementTitle": "Gestión de compartidos",
+  "shareManagementDescription": "Gestiona tus eventos de calendario compartidos",
+  "shareManagementLoadFailed": "No se pudieron cargar los eventos compartidos",
+  "shareDeleteFailed": "Error al eliminar",
+  "sharedOn": "Compartido el:",
+  "deleteShareConfirmDescription": "¿Seguro que deseas eliminar este compartido? Esta acción no se puede deshacer y el enlace dejará de estar disponible.",
+  "enterSharePassword": "Introduce la contraseña del compartido",
+  "sharePasswordDescription": "Este compartido está protegido con contraseña. Introduce la contraseña para verlo.",
+  "decrypt": "Descifrar",
+  "decrypting": "Descifrando...",
+  "decrypted": "Descifrado",
+  "decryptFailed": "Error al descifrar",
+  "invalidPassword": "Contraseña no válida",
+  "protected": "Protegido"
 }
