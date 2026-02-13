@@ -179,7 +179,7 @@ export default function EventPreview({
       height: 300,
       type: "canvas",
       data: link,
-      image: "/icons.svg",
+      image: "/icon.svg",
       margin: 8,
       qrOptions: {
         errorCorrectionLevel: "H",
