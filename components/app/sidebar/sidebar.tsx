@@ -95,6 +95,7 @@ export default function Sidebar({
       setNewCategoryName("")
       setNewCategoryColor("bg-blue-500")
       setShowAddCategory(false)
+      setManageCategoriesOpen(false)
       toast(t.categoryAdded || "分类已添加", {
         description: `${t.categoryAddedDesc || "已成功添加"} "${newCategoryName}" ${t.category || "分类"}`,
       })
