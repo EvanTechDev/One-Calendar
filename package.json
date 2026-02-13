@@ -4,13 +4,14 @@
   "private": true,
   "packageManager": "bun@1.3.6",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "bun run generate:locales && next dev",
+    "build": "bun run generate:locales && next build",
     "start": "next start",
     "db": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:stop": "docker-compose stop",
-    "db:clean": "docker-compose down -v"
+    "db:clean": "docker-compose down -v",
+    "generate:locales": "bun lib/gen-locales.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",
