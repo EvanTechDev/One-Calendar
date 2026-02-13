@@ -624,14 +624,14 @@ export default function UserProfileButton({
                   </SignOutButton>
                 </div>
 
-                <div className="rounded-md border border-destructive/40 p-3 space-y-3">
+                <div className="rounded-md border border-destructive/70 p-3 space-y-3 bg-destructive/5">
                   <p className="text-sm font-semibold text-destructive">{t.dangerZone}</p>
-                  <div className="space-y-3 rounded-md border border-destructive/20 p-3">
+                  <div className="space-y-3 rounded-md border border-destructive/50 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>
                     <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                   </div>
-                  <div className="space-y-3 rounded-md border border-destructive/20 p-3">
+                  <div className="space-y-3 rounded-md border border-destructive/50 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteAccount}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountPermanentHelp}</p>
                     <Button variant="destructive" onClick={() => setDeleteAccountOpen(true)}>

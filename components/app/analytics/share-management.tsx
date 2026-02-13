@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
@@ -41,8 +41,7 @@ export default function ShareManagement() {
         setSharedEvents(data.shares || []);
       } catch (error) {
         console.error("Error fetching shared events:", error);
-        toast(t.shareManagementLoadFailed, {
-          variant: "destructive",
+        toast.error(t.shareManagementLoadFailed, {
           description: error instanceof Error ? error.message : "",
         });
       }
@@ -78,9 +77,9 @@ export default function ShareManagement() {
       });
       if (!res.ok) throw new Error("Failed to delete share");
       setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id));
-      toast(t.shareDeleted);
+      toast.success(t.shareDeleted);
     } catch (error) {
-      toast(t.shareDeleteFailed, { variant: "destructive" });
+      toast.error(t.shareDeleteFailed);
     } finally {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
@@ -100,7 +99,7 @@ export default function ShareManagement() {
     const data = await res.json()
 
     if (!data.success) {
-      toast(t.invalidPassword, { variant: "destructive" })
+      toast.error(t.invalidPassword)
       return
     }
 
@@ -114,12 +113,12 @@ export default function ShareManagement() {
       )
     )
 
-    toast(t.decrypted)
+    toast.success(t.decrypted)
     setPasswordDialogOpen(false)
     setDecryptingShare(null)
     setPasswordInput("")
   } catch (error) {
-    toast(t.decryptFailed, { variant: "destructive" })
+    toast.error(t.decryptFailed)
   } finally {
     setIsDecrypting(false)
   }

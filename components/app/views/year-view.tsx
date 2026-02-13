@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfWeek } from "date-fns"
-import { enUS, zhCN } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { isZhLanguage, translations, type Language } from "@/lib/i18n"
 import type { CalendarEvent } from "../calendar"
@@ -60,7 +59,6 @@ export default function YearView({
   const t = translations[language]
   const currentYear = date.getFullYear()
   const today = new Date()
-  const locale = isZhLanguage(language) ? zhCN : enUS
   const [openDayKey, setOpenDayKey] = useState<string | null>(null)
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark")
 
@@ -96,7 +94,7 @@ export default function YearView({
 
     return {
       monthIndex,
-      label: format(monthStart, isZhLanguage(language) ? "M月" : "LLLL", { locale }),
+      label: t.months[monthIndex] ?? format(monthStart, "LLLL"),
       days: monthDays,
     }
   })

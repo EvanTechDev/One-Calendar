@@ -21,7 +21,7 @@ import { zhCN, enUS } from "date-fns/locale";
 import { format } from "date-fns";
 import type { CalendarEvent } from "../calendar";
 import type { Language } from "@/lib/i18n";
-import { isZhLanguage } from "@/lib/i18n";
+import { isZhLanguage, translations } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/components/providers/calendar-context";
 import {
@@ -62,6 +62,7 @@ export default function EventPreview({
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
+  const t = translations[language];
   const locale = isZh ? zhCN : enUS;
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -92,12 +93,8 @@ export default function EventPreview({
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn) {
-        toast(isZh ? "请先登录" : "Please sign in", {
-          description:
-            isZh
-              ? "登录后才能使用分享功能"
-              : "Sign in required to use share function",
-          variant: "destructive",
+        toast.error(t.shareSignInRequiredTitle, {
+          description: t.shareSignInRequiredDescription,
         });
       } else {
         setShareDialogOpen(true);
@@ -203,7 +200,7 @@ export default function EventPreview({
 
     const qrBlob = await qrCode.getRawData("png");
     if (!qrBlob) {
-      throw new Error(isZh ? "二维码生成失败" : "Failed to generate QR code");
+      throw new Error(t.shareQrGenerateFailed);
     }
 
     if (qrCodeObjectURLRef.current) {
@@ -247,9 +244,8 @@ export default function EventPreview({
   const handleShare = async () => {
     if (!event) return;
     if (!user) {
-      toast(isZh ? "请先登录" : "Please sign in", {
-        description: isZh ? "分享功能仅对登录用户开放" : "Share function available to signed-in users only",
-        variant: "destructive",
+      toast.error(t.shareSignInRequiredTitle, {
+        description: t.shareSignedInOnlyDescription,
       });
       return;
     }
@@ -257,9 +253,8 @@ export default function EventPreview({
     if (passwordEnabled) {
       const pwd = sharePassword.trim();
       if (pwd.length < 4) {
-        toast(isZh ? "密码过短" : "Password too short", {
-          description: isZh ? "密码至少 4 位" : "Password must be at least 4 characters",
-          variant: "destructive",
+        toast.error(t.sharePasswordTooShortTitle, {
+          description: t.sharePasswordTooShortDescription,
         });
         return;
       }
@@ -285,7 +280,7 @@ export default function EventPreview({
 
       if (!response.ok) {
         const msg = await response.json().catch(() => null);
-        throw new Error(msg?.error || "Failed to share event");
+        throw new Error(msg?.error || t.shareFailedGeneric);
       }
 
       const result = await response.json();
@@ -344,27 +339,20 @@ export default function EventPreview({
         });
         await writeEncryptedLocalStorage("shared-events", storedShares);
 
-        toast(isZh ? "分享成功" : "Shared", {
+        toast.success(t.shareSuccessTitle, {
           description:
             passwordEnabled && burnAfterRead
-              ? isZh
-                ? "已启用密码保护 + 阅后即焚"
-                : "Password protected + burn after read"
+              ? t.shareSuccessPasswordAndBurn
               : passwordEnabled
-                ? isZh
-                  ? "该分享已启用密码保护"
-                  : "This share is password protected"
-                : isZh
-                  ? "分享链接已生成"
-                  : "Share link generated",
+                ? t.shareSuccessPasswordOnly
+                : t.shareSuccessLinkGenerated,
         });
       } else {
-        throw new Error("Failed to share event");
+        throw new Error(t.shareFailedGeneric);
       }
     } catch (error) {
-      toast(isZh ? "分享失败" : "Share Failed", {
-        description: error instanceof Error ? error.message : isZh ? "未知错误" : "Unknown error",
-        variant: "destructive",
+      toast.error(t.shareFailedTitle, {
+        description: error instanceof Error ? error.message : t.unknownError,
       });
     } finally {
       setIsSharing(false);
@@ -374,8 +362,8 @@ export default function EventPreview({
   const copyShareLink = () => {
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
-      toast(isZh ? "链接已复制" : "Link Copied", {
-        description: isZh ? "分享链接已复制到剪贴板" : "Share link copied to clipboard",
+      toast.success(t.shareLinkCopiedTitle, {
+        description: t.shareLinkCopiedDescription,
       });
     }
   };
@@ -388,8 +376,8 @@ export default function EventPreview({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast(isZh ? "二维码已下载" : "QR Code Downloaded", {
-        description: isZh ? "已保存到您的设备" : "Saved to your device",
+      toast.success(t.qrCodeDownloaded, {
+        description: t.savedToDevice,
       });
     }
   };
@@ -436,12 +424,8 @@ export default function EventPreview({
     );
 
     if (failed.length) {
-      toast(isZh ? "删除分享失败" : "Failed to delete shares", {
-        description:
-          isZh
-            ? "部分分享记录未能从服务器删除，但已从本地移除"
-            : "Some shares could not be deleted from server, but were removed locally",
-        variant: "destructive",
+      toast.error(t.shareDeleteFailed, {
+        description: t.shareDeletePartialFailedDescription,
       });
     }
   };
@@ -451,12 +435,8 @@ export default function EventPreview({
     try {
       await cleanupSharesForEvent();
     } catch {
-      toast(isZh ? "删除分享失败" : "Failed to delete shares", {
-        description:
-          isZh
-            ? "分享清理发生错误，但将继续删除事件"
-            : "Share cleanup encountered an error, but event deletion will continue",
-        variant: "destructive",
+      toast.error(t.shareDeleteFailed, {
+        description: t.shareCleanupErrorDescription,
       });
     } finally {
       onDelete();
@@ -481,9 +461,8 @@ export default function EventPreview({
               onClick={(e) => {
                 e.stopPropagation();
                 if (!isSignedIn) {
-                  toast(isZh ? "请先登录" : "Please sign in", {
-                    description: isZh ? "登录后才能使用分享功能" : "Sign in required to use share function",
-                    variant: "destructive",
+                  toast.error(t.shareSignInRequiredTitle, {
+                    description: t.shareSignInRequiredDescription,
                   });
                   return;
                 }
@@ -609,21 +588,21 @@ export default function EventPreview({
       <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
         <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
-            <DialogTitle>{isZh ? "分享事件" : "Share Event"}</DialogTitle>
+            <DialogTitle>{t.shareEvent}</DialogTitle>
           </DialogHeader>
 
           {!shareLink ? (
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="shared-by">{isZh ? "分享" : "Share"}</Label>
+                <Label htmlFor="shared-by">{t.share}</Label>
                 <p className="text-sm text-muted-foreground">
-                  {isZh ? "您将以当前登录身份进行事件分享。" : "You will share this event as your current logged-in identity."}
+                  {t.shareIdentityDescription}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="enable-password">{isZh ? "启用密码保护" : "Enable password protection"}</Label>
+                  <Label htmlFor="enable-password">{t.shareEnablePasswordProtection}</Label>
                   <input
                     id="enable-password"
                     type="checkbox"
@@ -642,22 +621,20 @@ export default function EventPreview({
 
                 {passwordEnabled && (
                   <div className="space-y-2">
-                    <Label htmlFor="share-password">{isZh ? "分享密码" : "Share password"}</Label>
+                    <Label htmlFor="share-password">{t.sharePasswordLabel}</Label>
                     <Input
                       id="share-password"
                       type="password"
                       value={sharePassword}
                       onChange={(e) => setSharePassword(e.target.value)}
-                      placeholder={isZh ? "至少 4 位" : "At least 4 characters"}
+                      placeholder={t.sharePasswordPlaceholder}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {isZh
-                        ? "服务器不会保存密码，访问者需要输入正确密码才能查看。"
-                        : "The server does not store the password. Viewers must enter it to see the event."}
+                      {t.sharePasswordHelp}
                     </p>
 
                     <div className="flex items-center justify-between pt-2">
-                      <Label htmlFor="burn-after-read">{isZh ? "阅后即焚" : "Burn after read"}</Label>
+                      <Label htmlFor="burn-after-read">{t.shareBurnAfterRead}</Label>
                       <input
                         id="burn-after-read"
                         type="checkbox"
@@ -667,9 +644,7 @@ export default function EventPreview({
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {isZh
-                        ? "访问者输入正确密码并成功解密后，该分享会自动从服务器删除。"
-                        : "After a viewer decrypts successfully, this share is automatically deleted from the server."}
+                      {t.shareBurnAfterReadHelp}
                     </p>
                   </div>
                 )}
@@ -683,7 +658,7 @@ export default function EventPreview({
                     handleShareDialogChange(false);
                   }}
                 >
-                  {isZh ? "取消" : "Cancel"}
+                  {t.cancel}
                 </Button>
                 <Button
                   onClick={(e) => {
@@ -707,10 +682,10 @@ export default function EventPreview({
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      {isZh ? "分享中..." : "Sharing..."}
+                      {t.shareSharing}
                     </span>
                   ) : (
-                    <>{isZh ? "分享" : "Share"}</>
+                    <>{t.share}</>
                   )}
                 </Button>
               </DialogFooter>
@@ -719,7 +694,7 @@ export default function EventPreview({
             <div className="space-y-4 py-2">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="share-link">{isZh ? "分享链接" : "Share Link"}</Label>
+                  <Label htmlFor="share-link">{t.shareLink}</Label>
                   <div className="flex items-center space-x-2">
                     <Input
                       id="share-link"
@@ -739,19 +714,17 @@ export default function EventPreview({
                         copyShareLink();
                       }}
                     >
-                      {isZh ? "复制" : "Copy"}
+                      {t.copy}
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {isZh
-                      ? "任何拥有此链接的人都可以访问分享页面。若启用密码保护，需要输入密码才能查看内容。"
-                      : "Anyone with this link can access the share page. If password protected, they must enter the password to view the content."}
+                    {t.shareLinkHelp}
                   </p>
                 </div>
 
                 {qrCodeDataURL && (
                   <div className="mt-4 flex flex-col items-center">
-                    <Label className="mb-2">{isZh ? "二维码" : "QR Code"}</Label>
+                    <Label className="mb-2">{t.qrCode}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
                       <img src={qrCodeDataURL || "/placeholder.svg"} alt="QR Code" className="w-full max-w-[200px] mx-auto" />
                     </div>
@@ -765,10 +738,10 @@ export default function EventPreview({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      {isZh ? "下载二维码" : "Download QR Code"}
+                      {t.downloadQRCode}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      {isZh ? "扫描此二维码可立即查看日程" : "Scan this QR code to view the event"}
+                      {t.scanQRCodeToView}
                     </p>
                   </div>
                 )}
@@ -781,7 +754,7 @@ export default function EventPreview({
                     handleShareDialogChange(false);
                   }}
                 >
-                  {isZh ? "完成" : "Done"}
+                  {t.done}
                 </Button>
               </DialogFooter>
             </div>
