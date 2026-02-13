@@ -95,3 +95,7 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
+
+
+export { translations }
+export type { Language }
