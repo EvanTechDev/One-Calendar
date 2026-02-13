@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "呢個操作係無得撤銷嘅。會刪除你嘅帳號，以及呢個用戶嘅 calendar_events、shares 同備份資料。請輸入 DELETE MY ACCOUNT 繼續。",
   "deleting": "刪除緊...",
   "confirmDeleteAccount": "確認刪除",
-  "verifying": "驗證緊..."
+  "verifying": "驗證緊...",
+  "dangerZone": "危險區域",
+  "shareManagementTitle": "分享管理",
+  "shareManagementDescription": "管理你分享咗嘅日曆事件",
+  "shareManagementLoadFailed": "載入分享事件失敗",
+  "shareDeleteFailed": "刪除失敗",
+  "sharedOn": "分享日期：",
+  "deleteShareConfirmDescription": "你確定要刪除此分享嗎？此操作無法復原，分享連結將無法再存取。",
+  "enterSharePassword": "輸入分享密碼",
+  "sharePasswordDescription": "此分享受密碼保護，請輸入密碼查看。",
+  "decrypt": "解密",
+  "decrypting": "解密中...",
+  "decrypted": "已解密",
+  "decryptFailed": "解密失敗",
+  "invalidPassword": "密碼錯誤",
+  "protected": "受保護"
 }

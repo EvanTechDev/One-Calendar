@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Ihr Konto sowie Ihre Ereignisse, Freigaben und Backups werden gelöscht. Geben Sie DELETE MY ACCOUNT ein, um fortzufahren.",
   "deleting": "Wird gelöscht...",
   "confirmDeleteAccount": "Löschen bestätigen",
-  "verifying": "Verifiziert..."
+  "verifying": "Verifiziert...",
+  "dangerZone": "Gefahrenbereich",
+  "shareManagementTitle": "Freigaben verwalten",
+  "shareManagementDescription": "Verwalten Sie Ihre geteilten Kalenderereignisse",
+  "shareManagementLoadFailed": "Geteilte Ereignisse konnten nicht geladen werden",
+  "shareDeleteFailed": "Löschen fehlgeschlagen",
+  "sharedOn": "Geteilt am:",
+  "deleteShareConfirmDescription": "Möchten Sie diese Freigabe wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden und der Freigabelink ist nicht mehr zugänglich.",
+  "enterSharePassword": "Freigabe-Passwort eingeben",
+  "sharePasswordDescription": "Diese Freigabe ist passwortgeschützt. Geben Sie das Passwort ein, um sie anzuzeigen.",
+  "decrypt": "Entschlüsseln",
+  "decrypting": "Wird entschlüsselt...",
+  "decrypted": "Entschlüsselt",
+  "decryptFailed": "Entschlüsselung fehlgeschlagen",
+  "invalidPassword": "Ungültiges Passwort",
+  "protected": "Geschützt"
 }

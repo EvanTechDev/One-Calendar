@@ -1,20 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { isZhLanguage, useLanguage } from '@/lib/i18n';
 
 export default function NotFound() {
-  const [lang, setLang] = useState<'zh' | 'en'>('en');
-
-  useEffect(() => {
-    const userLang = navigator.language || navigator.languages[0];
-    if (userLang.startsWith('zh')) {
-      setLang('zh');
-    } else {
-      setLang('en');
-    }
-  }, []);
+  const [language] = useLanguage();
+  const lang: 'zh' | 'en' = isZhLanguage(language) ? 'zh' : 'en';
 
   const messages = {
     zh: {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { format, addDays, subDays, startOfWeek, endOfWeek, isSameDay, isToday } from "date-fns"
-import { zhCN, enUS } from "date-fns/locale"
 import { CalendarDays, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -115,9 +114,7 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <span className="text-lg font-medium">
-                {format(currentDate, "MMMM", { locale: isZh ? zhCN : enUS })}
-              </span>
+              <span className="text-lg font-medium">{t.months[currentDate.getMonth()]}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" onClick={handleTodayClick}>
@@ -157,9 +154,11 @@ export default function MiniCalendarSheet({ open, onOpenChange, selectedDate, on
 
         <div className="p-4">
           <h3 className="text-lg font-medium mb-4">
-            {format(currentDate, isZh ? "M月d日 EEEE" : "EEEE, MMMM d", {
-              locale: isZh ? zhCN : enUS,
-            })}
+            {new Intl.DateTimeFormat(language, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            }).format(currentDate)}
           </h3>
 
           <ScrollArea className="h-[calc(100vh-300px)]">

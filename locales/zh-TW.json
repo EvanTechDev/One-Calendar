@@ -409,5 +409,20 @@
   "deleteAccountConfirmDescription": "此操作無法復原。將會刪除你的帳號，以及該用戶的 calendar_events、shares 和備份資料。請輸入 DELETE MY ACCOUNT 以繼續。",
   "deleting": "刪除中...",
   "confirmDeleteAccount": "確認刪除",
-  "verifying": "驗證中..."
+  "verifying": "驗證中...",
+  "dangerZone": "危險區域",
+  "shareManagementTitle": "分享管理",
+  "shareManagementDescription": "管理您分享的行事曆事件",
+  "shareManagementLoadFailed": "載入分享事件失敗",
+  "shareDeleteFailed": "刪除失敗",
+  "sharedOn": "分享日期：",
+  "deleteShareConfirmDescription": "確定要刪除此分享嗎？此操作無法復原，分享連結將不再可用。",
+  "enterSharePassword": "輸入分享密碼",
+  "sharePasswordDescription": "此分享受密碼保護，請輸入密碼以查看內容。",
+  "decrypt": "解密",
+  "decrypting": "解密中...",
+  "decrypted": "已解密",
+  "decryptFailed": "解密失敗",
+  "invalidPassword": "密碼錯誤",
+  "protected": "受保護"
 }

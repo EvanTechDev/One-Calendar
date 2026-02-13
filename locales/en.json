@@ -409,5 +409,22 @@
   "deleteAccountConfirmDescription": "This action cannot be undone. It deletes your account and removes your calendar_events, shares, and backups. Type DELETE MY ACCOUNT to continue.",
   "deleting": "Deleting...",
   "confirmDeleteAccount": "Confirm delete",
-  "verifying": "Verifying..."
+  "verifying": "Verifying...",
+  "dangerZone": "Danger Zone",
+  "shareManagementTitle": "Share Management",
+  "shareManagementDescription": "Manage your shared calendar events",
+  "shareManagementLoadFailed": "Failed to load shared events",
+  "shareDeleteFailed": "Delete Failed",
+  "sharedOn": "Shared on:",
+  "deleteShare": "Delete Share",
+  "deleteShareConfirmDescription": "Are you sure you want to delete this share? This action cannot be undone and the share link will no longer be accessible.",
+  "enterSharePassword": "Enter Share Password",
+  "sharePasswordDescription": "This share is password protected. Enter the password to view it.",
+  "enterPassword": "Enter password",
+  "decrypt": "Decrypt",
+  "decrypting": "Decrypting...",
+  "decrypted": "Decrypted",
+  "decryptFailed": "Failed to decrypt",
+  "invalidPassword": "Invalid password",
+  "protected": "Protected"
 }

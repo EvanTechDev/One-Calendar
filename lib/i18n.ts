@@ -7,21 +7,59 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from "@/hooks/useLocalStorage"
-import { translations, type Language } from "@/lib/locales"
+import { translations as localeTranslations, type Language } from "@/lib/locales"
 
 const LANGUAGE_STORAGE_KEY = "preferred-language"
 
+export const supportedLanguages = Object.keys(localeTranslations) as Language[]
+
+const baseLanguage = "en" as const
+
+export const translations = Object.fromEntries(
+  supportedLanguages.map((lang) => [
+    lang,
+    {
+      ...localeTranslations[baseLanguage],
+      ...localeTranslations[lang],
+    },
+  ]),
+) as typeof localeTranslations
+
+const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
+  en: "English",
+  de: "Deutsch",
+  es: "Español",
+  fr: "Français",
+  yue: "粵語",
+  "zh-CN": "简体中文",
+  "zh-HK": "繁體中文（香港）",
+  "zh-TW": "繁體中文（台灣）",
+}
+
+const byExactLowercase = new Map(
+  supportedLanguages.map((lang) => [lang.toLowerCase(), lang] as const),
+)
+
+const byBaseLowercase = new Map(
+  supportedLanguages.map((lang) => [lang.toLowerCase().split("-")[0], lang] as const),
+)
+
 const normalizeLanguage = (value: string | null | undefined): Language | null => {
   if (!value) return null
-  if (value in translations) {
-    return value as Language
-  }
-  const lower = value.toLowerCase()
-  if (lower.startsWith("zh-hk")) return "zh-HK"
-  if (lower.startsWith("zh-tw")) return "zh-TW"
-  if (lower.startsWith("zh")) return "zh-CN"
-  if (lower.startsWith("en")) return "en"
-  return null
+
+  const normalized = value.toLowerCase()
+  const exact = byExactLowercase.get(normalized)
+  if (exact) return exact
+
+  const base = normalized.split("-")[0]
+  return byBaseLowercase.get(base) ?? null
+}
+
+export const getLanguageAutonym = (language: Language) => {
+  const configured = LANGUAGE_AUTONYM[language]
+  if (configured) return configured
+
+  return new Intl.DisplayNames([language], { type: "language" }).of(language) ?? language
 }
 
 export const isZhLanguage = (language: Language) => language.startsWith("zh")
@@ -72,6 +110,14 @@ export function useLanguage(): [Language, (lang: Language) => void] {
       }
     }
 
+    const handleCustomLanguageChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ language?: string }>
+      const normalized = normalizeLanguage(customEvent.detail?.language)
+      if (normalized) {
+        setLanguageState(normalized)
+      }
+    }
+
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
         loadLanguage()
@@ -79,10 +125,12 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     })
 
     window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("languagechange", handleCustomLanguageChange)
     return () => {
       active = false
       unsubscribe()
       window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("languagechange", handleCustomLanguageChange)
     }
   }, [])
 
@@ -95,7 +143,4 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
-
-
-export { translations }
 export type { Language }
