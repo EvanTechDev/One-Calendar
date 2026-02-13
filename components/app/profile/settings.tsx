@@ -2,7 +2,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { translations, type Language } from "@/lib/i18n"
+import { getLanguageAutonym, supportedLanguages, translations, type Language } from "@/lib/i18n"
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import { Switch } from "@/components/ui/switch"
 import { Kbd } from "@/components/ui/kbd"
@@ -124,10 +124,11 @@ export default function Settings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">{t.languageEnglish}</SelectItem>
-              <SelectItem value="zh-CN">{t.languageChineseSimplified}</SelectItem>
-              <SelectItem value="zh-HK">{t.languageChineseHongKong}</SelectItem>
-              <SelectItem value="zh-TW">{t.languageChineseTaiwan}</SelectItem>
+              {supportedLanguages.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {getLanguageAutonym(lang)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
