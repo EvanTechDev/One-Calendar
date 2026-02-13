@@ -172,6 +172,48 @@ export default function EventPreview({
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen);
 
+  const generateStyledQRCode = async (link: string) => {
+    const { default: QRCodeStyling } = await import("qr-code-styling");
+    const qrCode = new QRCodeStyling({
+      width: 300,
+      height: 300,
+      type: "canvas",
+      data: link,
+      image: "/icons.svg",
+      margin: 8,
+      qrOptions: {
+        errorCorrectionLevel: "H",
+      },
+      dotsOptions: {
+        type: "extra-rounded",
+      },
+      cornersSquareOptions: {
+        type: "dot",
+      },
+      cornersDotOptions: {
+        type: "dot",
+      },
+      imageOptions: {
+        hideBackgroundDots: true,
+        imageSize: 0.4,
+        margin: 2,
+        crossOrigin: "anonymous",
+      },
+    });
+
+    const qrBlob = await qrCode.getRawData("png");
+    if (!qrBlob) {
+      throw new Error(isZh ? "二维码生成失败" : "Failed to generate QR code");
+    }
+
+    if (qrCodeObjectURLRef.current) {
+      URL.revokeObjectURL(qrCodeObjectURLRef.current);
+    }
+    const qrURL = URL.createObjectURL(qrBlob);
+    qrCodeObjectURLRef.current = qrURL;
+    setQRCodeDataURL(qrURL);
+  };
+
   const toggleBookmark = async () => {
     if (!event) return;
     if (isBookmarked) {
