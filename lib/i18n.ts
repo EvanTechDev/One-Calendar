@@ -34,7 +34,11 @@ const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   "zh-CN": "简体中文",
   "zh-HK": "繁體中文（香港）",
   "zh-TW": "繁體中文（台灣）",
-}
+  it: "Italiano",
+  ko: "한국어",
+  pt: "Português",
+  ru: "Русский",
+};
 
 const byExactLowercase = new Map(
   supportedLanguages.map((lang) => [lang.toLowerCase(), lang] as const),
