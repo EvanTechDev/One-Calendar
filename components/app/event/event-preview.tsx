@@ -34,7 +34,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import QRCode from "qrcode";
 import { useUser } from "@clerk/nextjs";
 
 interface EventPreviewProps {
@@ -69,6 +68,7 @@ export default function EventPreview({
   const [isSharing, setIsSharing] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [qrCodeDataURL, setQRCodeDataURL] = useState<string>("");
+  const qrCodeObjectURLRef = useRef<string | null>(null);
   const { isSignedIn, user } = useUser();
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
@@ -126,6 +126,14 @@ export default function EventPreview({
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (qrCodeObjectURLRef.current) {
+        URL.revokeObjectURL(qrCodeObjectURLRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (event) {
       const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id);
       setIsBookmarked(isCurrentEventBookmarked);
@@ -162,6 +170,48 @@ export default function EventPreview({
     event.participants.some((p) => p.trim() !== "");
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen);
+
+  const generateStyledQRCode = async (link: string) => {
+    const { default: QRCodeStyling } = await import("qr-code-styling");
+    const qrCode = new QRCodeStyling({
+      width: 300,
+      height: 300,
+      type: "canvas",
+      data: link,
+      image: "/icons.svg",
+      margin: 8,
+      qrOptions: {
+        errorCorrectionLevel: "H",
+      },
+      dotsOptions: {
+        type: "extra-rounded",
+      },
+      cornersSquareOptions: {
+        type: "dot",
+      },
+      cornersDotOptions: {
+        type: "dot",
+      },
+      imageOptions: {
+        hideBackgroundDots: true,
+        imageSize: 0.4,
+        margin: 2,
+        crossOrigin: "anonymous",
+      },
+    });
+
+    const qrBlob = await qrCode.getRawData("png");
+    if (!qrBlob) {
+      throw new Error(isZh ? "二维码生成失败" : "Failed to generate QR code");
+    }
+
+    if (qrCodeObjectURLRef.current) {
+      URL.revokeObjectURL(qrCodeObjectURLRef.current);
+    }
+    const qrURL = URL.createObjectURL(qrBlob);
+    qrCodeObjectURLRef.current = qrURL;
+    setQRCodeDataURL(qrURL);
+  };
 
   const toggleBookmark = async () => {
     if (!event) return;
@@ -244,13 +294,13 @@ export default function EventPreview({
         setShareLink(link);
 
         try {
-          const qrURL = await QRCode.toDataURL(link, {
-            width: 300,
-            margin: 2,
-            color: { dark: "#000000", light: "#ffffff" },
+          await generateStyledQRCode(link);
+        } catch (qrError) {
+          toast(isZh ? "二维码生成失败" : "QR code generation failed", {
+            description: qrError instanceof Error ? qrError.message : isZh ? "请稍后重试" : "Please try again later",
+            variant: "destructive",
           });
-          setQRCodeDataURL(qrURL);
-        } catch {}
+        }
 
         const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
         storedShares.push({
@@ -319,6 +369,10 @@ export default function EventPreview({
     if (!open) {
       setShareLink("");
       setQRCodeDataURL("");
+      if (qrCodeObjectURLRef.current) {
+        URL.revokeObjectURL(qrCodeObjectURLRef.current);
+        qrCodeObjectURLRef.current = null;
+      }
       setPasswordEnabled(false);
       setSharePassword("");
       setBurnAfterRead(false);
