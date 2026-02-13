@@ -63,7 +63,7 @@
     "ics": "latest",
     "framer-motion": "^12.7.4",
     "motion": "latest",
-    "qrcode": "latest",
+    "qr-code-styling": "latest",
     "@clerk/nextjs": "latest",
     "@clerk/localizations": "latest",
     "geist": "latest",
