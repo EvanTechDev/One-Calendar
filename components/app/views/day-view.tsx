@@ -95,7 +95,7 @@ export default function DayView({
       hour12: timeFormat === "12h",
       timeZone: timezone,
     }
-    return new Intl.DateTimeFormat(isZh ? "zh-CN" : "en-US", options).format(date)
+    return new Intl.DateTimeFormat(language, options).format(date)
   }
 
   function getDarkerColorClass(color: string) {
