@@ -625,7 +625,7 @@ export default function UserProfileButton({
                 </div>
 
                 <div className="rounded-md border border-destructive/40 p-3 space-y-3">
-                  <p className="text-sm font-semibold text-destructive">Danger Zone</p>
+                  <p className="text-sm font-semibold text-destructive">{t.dangerZone}</p>
                   <div className="space-y-3 rounded-md border border-destructive/20 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>

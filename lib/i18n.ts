@@ -7,11 +7,23 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from "@/hooks/useLocalStorage"
-import { translations, type Language } from "@/lib/locales"
+import { translations as localeTranslations, type Language } from "@/lib/locales"
 
 const LANGUAGE_STORAGE_KEY = "preferred-language"
 
-export const supportedLanguages = Object.keys(translations) as Language[]
+export const supportedLanguages = Object.keys(localeTranslations) as Language[]
+
+const baseLanguage = "en" as const
+
+export const translations = Object.fromEntries(
+  supportedLanguages.map((lang) => [
+    lang,
+    {
+      ...localeTranslations[baseLanguage],
+      ...localeTranslations[lang],
+    },
+  ]),
+) as typeof localeTranslations
 
 const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   en: "English",
@@ -98,6 +110,14 @@ export function useLanguage(): [Language, (lang: Language) => void] {
       }
     }
 
+    const handleCustomLanguageChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ language?: string }>
+      const normalized = normalizeLanguage(customEvent.detail?.language)
+      if (normalized) {
+        setLanguageState(normalized)
+      }
+    }
+
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
         loadLanguage()
@@ -105,10 +125,12 @@ export function useLanguage(): [Language, (lang: Language) => void] {
     })
 
     window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("languagechange", handleCustomLanguageChange)
     return () => {
       active = false
       unsubscribe()
       window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("languagechange", handleCustomLanguageChange)
     }
   }, [])
 
@@ -121,7 +143,4 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
-
-
-export { translations }
 export type { Language }

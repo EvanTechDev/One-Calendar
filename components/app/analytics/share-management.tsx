@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
-import { isZhLanguage, useLanguage } from "@/lib/i18n"
+import { translations, useLanguage } from "@/lib/i18n"
 
 interface SharedEvent {
   id: string;
@@ -20,7 +20,7 @@ interface SharedEvent {
 
 export default function ShareManagement() {
   const [language] = useLanguage();
-  const isZh = isZhLanguage(language);
+  const t = translations[language]
   const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([]);
   const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function ShareManagement() {
         setSharedEvents(data.shares || []);
       } catch (error) {
         console.error("Error fetching shared events:", error);
-        toast(isZh ? "获取分享列表失败" : "Failed to load shared events", {
+        toast(t.shareManagementLoadFailed, {
           variant: "destructive",
           description: error instanceof Error ? error.message : "",
         });
@@ -60,7 +60,7 @@ export default function ShareManagement() {
 
   const copyShareLink = (shareLink: string) => {
     navigator.clipboard.writeText(shareLink);
-    toast(isZh ? "链接已复制" : "Link Copied");
+    toast(t.linkCopied);
   };
 
   const openShareLink = (shareLink: string) => {
@@ -78,9 +78,9 @@ export default function ShareManagement() {
       });
       if (!res.ok) throw new Error("Failed to delete share");
       setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id));
-      toast(isZh ? "分享已删除" : "Share Deleted");
+      toast(t.shareDeleted);
     } catch (error) {
-      toast(isZh ? "删除失败" : "Delete Failed", { variant: "destructive" });
+      toast(t.shareDeleteFailed, { variant: "destructive" });
     } finally {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
@@ -100,7 +100,7 @@ export default function ShareManagement() {
     const data = await res.json()
 
     if (!data.success) {
-      toast(isZh ? "密码错误" : "Invalid password", { variant: "destructive" })
+      toast(t.invalidPassword, { variant: "destructive" })
       return
     }
 
@@ -114,12 +114,12 @@ export default function ShareManagement() {
       )
     )
 
-    toast(isZh ? "解密成功" : "Decrypted")
+    toast(t.decrypted)
     setPasswordDialogOpen(false)
     setDecryptingShare(null)
     setPasswordInput("")
   } catch (error) {
-    toast(isZh ? "解密失败" : "Failed to decrypt", { variant: "destructive" })
+    toast(t.decryptFailed, { variant: "destructive" })
   } finally {
     setIsDecrypting(false)
   }
@@ -131,9 +131,9 @@ export default function ShareManagement() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>{isZh ? "管理分享" : "Manage Shares"}</CardTitle>
+            <CardTitle>{t.shareManagementTitle}</CardTitle>
             <CardDescription>
-              {isZh ? "管理您分享的日历事件" : "Manage your shared calendar events"}
+              {t.shareManagementDescription}
             </CardDescription>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function ShareManagement() {
       <CardContent>
         {sharedEvents.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {isZh ? "暂无分享的事件" : "No shared events"}
+            {t.noShares}
           </div>
         ) : (
           <div className="space-y-4">
@@ -151,10 +151,10 @@ export default function ShareManagement() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-medium">
-                      {share.isProtected ? (isZh ? "受保护" : "Protected") : share.eventTitle}
+                      {share.isProtected ? t.protected : share.eventTitle}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {isZh ? "分享日期：" : "Shared on: "} {formatDate(share.shareDate)}
+                      {t.sharedOn} {formatDate(share.shareDate)}
                     </p>
                   </div>
                   <div className="flex space-x-2">
@@ -199,15 +199,13 @@ export default function ShareManagement() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{isZh ? "删除分享" : "Delete Share"}</AlertDialogTitle>
+            <AlertDialogTitle>{t.deleteShare}</AlertDialogTitle>
             <AlertDialogDescription>
-              {isZh
-                ? "确定要删除此分享吗？此操作无法撤销，分享链接将不再可用。"
-                : "Are you sure you want to delete this share? This action cannot be undone and the share link will no longer be accessible."}
+              {t.deleteShareConfirmDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{isZh ? "取消" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={deleteShare} disabled={isDeleting} variant="destructive">
               {isDeleting ? (
                 <span className="flex items-center">
@@ -224,10 +222,10 @@ export default function ShareManagement() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {isZh ? "删除中..." : "Deleting..."}
+                  {t.deleting}
                 </span>
               ) : (
-                <>{isZh ? "删除" : "Delete"}</>
+                <>{t.delete}</>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -235,15 +233,13 @@ export default function ShareManagement() {
       </AlertDialog>
 
       <AlertDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-  <AlertDialogContent>
+      <AlertDialogContent>
     <AlertDialogHeader>
       <AlertDialogTitle>
-        {isZh ? "输入分享密码" : "Enter Share Password"}
+        {t.enterSharePassword}
       </AlertDialogTitle>
       <AlertDialogDescription>
-        {isZh
-          ? "此分享受密码保护，请输入密码以查看内容。"
-          : "This share is password protected. Enter the password to view it."}
+        {t.sharePasswordDescription}
       </AlertDialogDescription>
     </AlertDialogHeader>
 
@@ -252,7 +248,7 @@ export default function ShareManagement() {
         type="password"
         value={passwordInput}
         onChange={(e) => setPasswordInput(e.target.value)}
-        placeholder={isZh ? "输入密码" : "Enter password"}
+        placeholder={t.enterPassword}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleDecrypt()
         }}
@@ -266,17 +262,13 @@ export default function ShareManagement() {
           setPasswordInput("")
         }}
       >
-        {isZh ? "取消" : "Cancel"}
+        {t.cancel}
       </AlertDialogCancel>
 
       <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
         {isDecrypting
-          ? isZh
-            ? "解密中..."
-            : "Decrypting..."
-          : isZh
-          ? "解密"
-          : "Decrypt"}
+          ? t.decrypting
+          : t.decrypt}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

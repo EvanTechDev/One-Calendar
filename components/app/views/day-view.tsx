@@ -10,10 +10,9 @@ import {
 } from "@/components/ui/context-menu"
 import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
 import { format, isSameDay, isWithinInterval, endOfDay, startOfDay, add } from "date-fns"
-import { zhCN, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent } from "../calendar"
-import { isZhLanguage, translations, type Language } from "@/lib/i18n"
+import { translations, type Language } from "@/lib/i18n"
 
 interface DayViewProps {
   date: Date
@@ -49,7 +48,6 @@ export default function DayView({
   const hasScrolledRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const t = translations[language]
-  const isZh = isZhLanguage(language)
   
   // 拖拽相关状态
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
@@ -556,7 +554,7 @@ export default function DayView({
       <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
         <div className="py-2 text-center">
           <div className="text-sm text-muted-foreground">
-            {format(date, "E", { locale: isZh ? zhCN : enUS })}
+            {t.weekdays[date.getDay()]}
           </div>
           <div className="text-3xl font-semibold text-[#0066ff] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">{format(date, "d")}</div>
         </div>
