@@ -1,12 +1,12 @@
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
+import { translations, useLanguage } from "@/lib/i18n"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
-import { translations, useLanguage } from "@/lib/i18n"
 
 interface SharedEvent {
   id: string;

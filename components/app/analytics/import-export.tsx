@@ -1,20 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Download, Upload, CalendarIcon, ExternalLink, AlertCircle } from 'lucide-react'
-import type { CalendarEvent } from "../calendar"
+import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { translations, useLanguage } from "@/lib/i18n"
-import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
+import { Checkbox } from "@/components/ui/checkbox"
+import type { CalendarEvent } from "../calendar"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react"
+import { toast } from "sonner"
 
 interface ImportExportProps {
   events: CalendarEvent[]
@@ -446,37 +446,34 @@ END:VEVENT
       let datePart, timePart
 
       if (hasOffset) {
-        // 处理带有明确时区偏移的格式 (如 20230101T120000+0800)
+        // 处理带有明确时区偏移的格式 (如 20230101T120000+0800 或 20230101T120000-0500)
         const offsetIndex = Math.max(dateString.lastIndexOf("+"), dateString.lastIndexOf("-"))
         datePart = dateString.substring(0, dateString.indexOf("T"))
         timePart = dateString.substring(dateString.indexOf("T") + 1, offsetIndex)
 
-        // 解析日期和时间
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1 // JavaScript月份从0开始
-        day = Number.parseInt(datePart.substring(6, 8), 10)
+        const offsetPart = dateString.substring(offsetIndex)
+        const isoDateString = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}T${timePart.substring(0, 2)}:${timePart.substring(2, 4)}:${timePart.substring(4, 6)}${offsetPart.substring(0, 3)}:${offsetPart.substring(3, 5)}`
+        const parsedDate = new Date(isoDateString)
 
-        if (timePart.length >= 6) {
-          hour = Number.parseInt(timePart.substring(0, 2), 10)
-          minute = Number.parseInt(timePart.substring(2, 4), 10)
-          second = Number.parseInt(timePart.substring(4, 6), 10)
+        if (!Number.isNaN(parsedDate.getTime())) {
+          return parsedDate
         }
 
-        // 创建日期对象，使用本地时间
-        const date = new Date(year, month, day, hour, minute, second)
+        // 兜底：按偏移手动转换到UTC时间，避免负时区偏移日期错误
+        year = Number.parseInt(datePart.substring(0, 4), 10)
+        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
+        day = Number.parseInt(datePart.substring(6, 8), 10)
+        hour = Number.parseInt(timePart.substring(0, 2), 10)
+        minute = Number.parseInt(timePart.substring(2, 4), 10)
+        second = Number.parseInt(timePart.substring(4, 6), 10)
 
-        // 解析时区偏移
-        const offsetStr = dateString.substring(offsetIndex)
-        const offsetSign = offsetStr.charAt(0) === "+" ? 1 : -1
-        const offsetHours = Number.parseInt(offsetStr.substring(1, 3), 10)
-        const offsetMinutes = Number.parseInt(offsetStr.substring(3, 5), 10)
+        const offsetSign = offsetPart.charAt(0) === "+" ? 1 : -1
+        const offsetHours = Number.parseInt(offsetPart.substring(1, 3), 10)
+        const offsetMinutes = Number.parseInt(offsetPart.substring(3, 5), 10)
         const totalOffsetMinutes = offsetSign * (offsetHours * 60 + offsetMinutes)
+        const utcTime = Date.UTC(year, month, day, hour, minute, second) - totalOffsetMinutes * 60 * 1000
 
-        // 调整时间以考虑时区偏移
-        const userTimezoneOffset = date.getTimezoneOffset()
-        date.setMinutes(date.getMinutes() + userTimezoneOffset + totalOffsetMinutes)
-
-        return date
+        return new Date(utcTime)
       } else if (isUTC) {
         // 处理UTC时间 (Z结尾)
         datePart = dateString.split("T")[0]

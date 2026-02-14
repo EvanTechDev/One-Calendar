@@ -1,9 +1,9 @@
 "use client"
 
+import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
+import { translations, useLanguage } from "@/lib/i18n"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { translations, useLanguage } from "@/lib/i18n"
-import { readEncryptedLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 
 export default function DailyToast() {
   const [ready, setReady] = useState(false)

@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { GithubIcon } from "lucide-react"
+import Link from "next/link"
 
 const privacyContent = {
   title: "One Calendar Privacy Policy",

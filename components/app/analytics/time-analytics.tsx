@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
-import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { CalendarEvent } from "../calendar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics"
 import type { CalendarCategory } from "../sidebar/sidebar"
+import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { translations, useLanguage } from "@/lib/i18n"
+import type { CalendarEvent } from "../calendar"
+import { useState, useEffect } from "react"
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]

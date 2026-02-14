@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
-import { GithubIcon } from "lucide-react"
 import { isZhLanguage, useLanguage } from "@/lib/i18n"
+import { GithubIcon } from "lucide-react"
+import Link from "next/link"
 
 export default function AboutPage() {
   const [language] = useLanguage()

@@ -1,19 +1,19 @@
-import { useState } from "react"
+import { User, BookText, Plus, ArrowLeft, Edit2, Trash2, Calendar, Bookmark, MessageSquare, Sun } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ClockDashed } from "@/components/icons/clock-dashed"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import MiniCalendarSheet from "./mini-calendar-sheet"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { ClockDashed } from "@/components/icons/clock-dashed"
-import { User, BookText, Plus, ArrowLeft, Edit2, Trash2, Calendar, Bookmark, MessageSquare, Sun } from 'lucide-react'
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import MiniCalendarSheet from "./mini-calendar-sheet"
 import BookmarkPanel from "./bookmark-panel"
 import { useRouter } from "next/navigation"
 import { CountdownTool } from "./countdown"
+import { useState } from "react"
+import { cn } from "@/lib/utils"
 
 const colorOptions = [
   { value: "bg-blue-500", label: "Blue" },
