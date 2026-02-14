@@ -1,58 +1,99 @@
-<div align="center">
-  <img src="public/icon.svg" width="72">
-  
 # One Calendar
 
-<p>
+> A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
-<a href="https://vercel.com/tech-art/one-calendar" target="_blank"><img src="https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?style=flat-square" alt="Vercel Project Status"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/blob/master/LICENSE" target="blank"><img src="https://img.shields.io/github/license/EvanTechDev/One-Calendar?style=flat-square" alt="license"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/fork" target="blank"><img src="https://img.shields.io/github/forks/EvanTechDev/One-Calendar?style=flat-square" alt="forks"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/stargazers" target="blank"><img src="https://img.shields.io/github/stars/EvanTechDev/One-Calendar?style=flat-square" alt="stars"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/issues" target="blank"><img src="https://img.shields.io/github/issues/EvanTechDev/One-Calendar?style=flat-square" alt="issues"></a>
-<a href="https://github.com/EvanTechDev/One-Calendar/pulls" target="blank"><img src="https://img.shields.io/github/issues-pr/EvanTechDev/One-Calendar?style=flat-square" alt="pull-requests"></a>
+![Preview](https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906)
 
-</p>
-
-A beautifully minimal open-source calendar app to plan your week and life
-
+- [Live Product](https://calendar.xyehr.cn)
+- [Status](https://calendarstatus.xyehr.cn)
+- [Bluesky](https://bsky.app/profile/calendar.xyehr.cn)
 
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,POSTGRES_URL,SALT&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
 
-</div>
-
-## What is One Calendar?
-
-**One Calendar** is a privacy-first, weekly-focused, open-source calendar app, designed to help individuals and teams plan, focus, and stay in sync.
-
-> Without *One Calendar*, your schedule is scattered. With it, your week feels intentional.
-
 <a href="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></img></a>
 
-## Why One Calendar?
+## Vision
 
-Most calendar tools are cluttered, over-engineered, or locked behind paywalls. One Calendar aims to be:
+Most modern calendar tools are overloaded with automation, notifications, and analytics.  
+**One Calendar** takes a different approach:
 
-- 🧠 **No AI** – No-AI app that can't track your data.
-- 🕹 **Interactive & Smooth** – Drag, drop, right-click, and edit with ease.
-- 🔐 **Private & Local** – Your data is yours. E2EE. Share, backup, and control.
-- ☁️ **Cloud Sync** – Optional sync via PostgreSQL.
-- 🌐 **Clerk Account** – Easily login with third-party.
-- 🌍 **International** – Automatically adapts to your language (English / 中文).
-- 🧱 **Customizable** – Tailor themes, default view, and integrations.
+- Respect user privacy.
+- Provide a smooth, local-first planning experience.
+- Keep the system understandable.
 
-## Tech Stack
-
-- **Frontend**: Next.js 16, Tailwind CSS, Shadcn UI, TypeScript
-- **Auth**: Clerk
-- **Storage**: PostgreSQL
-- **Deploy**: Vercel
-
-![TechStack](https://skills-icons.vercel.app/api/icons?i=nextjs,ts,tailwindcss,shadcnui,clerk,vercel,bun,postgresql)
+This project is built for individuals and small teams who value clarity over complexity.
 
 ## Preview
 
 ![App](/public/Banner.jpg)
+![Preview](https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906)
+
+## Features
+
+### Weekly planning
+
+- **Drag & drop scheduling** &ndash; move and resize events directly on the calendar  
+- **Inline editing** &ndash; create and update events without modal overload  
+- **Right-click actions** &ndash; fast contextual controls for power users  
+- **Keyboard-friendly interactions** &ndash; efficient navigation and editing workflows  
+
+### Event management
+
+- **Rich event metadata** &ndash; title, description, time range, and structured fields  
+- **Precise time control** &ndash; flexible duration handling and adjustments  
+- **Instant updates** &ndash; optimistic UI for a responsive experience  
+- **Event persistence** &ndash; reliable storage with PostgreSQL backend  
+- **Soft state handling** &ndash; controlled updates to avoid accidental data loss  
+
+### Privacy & security
+
+- **No AI tracking** &ndash; no behavioral profiling or data mining  
+- **No analytics by default** &ndash; zero third-party tracking scripts  
+- **End-to-end encryption (E2EE)** &ndash; optional encrypted data handling  
+- **User-controlled exports** &ndash; backup and portability without lock-in  
+- **Secure authentication** &ndash; hardened session management via Clerk  
+
+### Sync & collaboration
+
+- **Cloud sync (optional)** &ndash; multi-device synchronization using PostgreSQL  
+- **Account-based access** &ndash; sign in with third-party providers  
+- **Share-ready architecture** &ndash; designed for future team and shared calendar support  
+
+### Customization & UX
+
+- **Theme configuration** &ndash; adaptable visual styling  
+- **Default view control** &ndash; choose how your calendar opens  
+- **Locale-aware formatting** &ndash; proper date and time formatting per region  
+- **Internationalization (i18n)** &ndash; language support built-in  
+- **Composable UI system** &ndash; built with reusable components (shadcn/ui + Tailwind)
+
+### Comparison with other calendar tools
+
+| Feature                                      | One Calendar | Google Calendar | Apple Calendar | Outlook Calendar | Proton Calendar |
+| -------------------------------------------- | :----------: | :-------------: | :------------: | :--------------: | :-------------: |
+| Event creation & editing                     |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Drag & drop scheduling                       |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| All-day events                               |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Event reminders & notifications              |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Time zone support                            |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Calendar sharing                             |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Multiple calendar views (day/week/month)     |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Keyboard shortcuts                           |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
+| Search events                                |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Quick add / natural input                    |      ✅      |       ✅        |       ⚠️       |        ✅        |       ⚠️        |
+| Cloud sync                                   |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Web application                              |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
+| End-to-end encryption (E2EE)                 |      ✅      |       ❌        |       ❌       |        ❌        |       ✅        |
+| Privacy-first architecture                   |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
+| No analytics / tracking by default           |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
+| Open-source                                  |      ✅      |       ❌        |       ❌       |        ❌        |       ⚠️        |
+| Self-hostable                                |      ✅      |       ❌        |       ❌       |        ❌        |       ❌        |
+| Data export                                  |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| ICS import / export                          |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Custom themes                                |      ✅      |       ⚠️       |       ❌       |        ⚠️        |       ⚠️        |
+| Custom default view                          |      ✅      |       ⚠️       |       ❌       |        ⚠️        |       ⚠️        |
+
+⚠️ = limited or partial support  
 
 ## Getting Started
 
@@ -74,7 +115,7 @@ cd One-Calendar
 bun install
 
 # Start the app
-bun dev
+bun run dev
 ```
 
 Then visit `http://localhost:3000`
@@ -83,40 +124,27 @@ Then visit `http://localhost:3000`
 
 Copy `.env.example` to `.env` and fill in.
 
-## Star History
+## Tech Stack
 
-[![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
+- [Next.js](https://nextjs.org)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Shadcn/UI](https://ui.shadcn.com)
+- [PostgreSQL](https://www.postgresql.org/)
+- [Clerk](https://clerk.com)
 
-## The Team
+## Contributing
 
-Brought to you by a small team of makers who love clean tools and open-source.
+Contributions are welcome! Feel free to explore the project and submit improvements.
 
-Check out our [contributors](https://github.com/EvanTechDev/One-Calendar/graphs/contributors) ❤️
-
-## Sponsor
-
-BTC: `bc1qdhn6c7tlcaflzu3u5fva825l20k9eqnqag5xzj`
-
-## Acknowledgements
-
-This project wouldn't be possible without these awesome services:
-
-<div style="display: flex; justify-content: center;">
-  <a href="https://vercel.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/5107d47f-7ce9-425a-8e24-77c322205bd4" alt="Vercel" width="96"/></a>
-    <a href="https://cloudflare.com" style="text-decoraion: none;"><img width="96" alt="Cloudflare" src="https://github.com/user-attachments/assets/19c949e5-73b6-4ce6-9d9f-ba0739d0b2e0" /></a>
-  <a href="https://clerk.com" style="text-decoration: none;"><img src="https://github.com/user-attachments/assets/6f9fa5d7-e0c2-4c14-aef9-e39bd0465e23" alt="Clerk" width="96"/></a>
-    <a href="https://supabase.com" style="text-decoraion: none;"><img width="96" alt="Supabase" src="https://github.com/user-attachments/assets/8cce085f-1235-4bf7-9f7f-76182ddd58d4" /></a>
-  <a href="https://neon.com" style="text-decoraion: none;"><img width="96" alt="Neon" src="https://github.com/user-attachments/assets/a3862f39-69e2-43da-bba5-b821f502f8f8" /></a>
-</div>
+Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and contribution guidelines.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
-See the [LICENSE](./LICENSE) file for details.
+Made with ❤️
 
+Published under [GNU General Public License v3.0 (GPL-3.0)](./LICENSE).
 
+## Star History
 
-
-
-
-
+[![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
