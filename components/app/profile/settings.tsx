@@ -57,16 +57,32 @@ export default function Settings({
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone")
-    const now = new Date()
+
+    const getUTCOffset = (timeZone: string) => {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        timeZoneName: "shortOffset",
+      }).formatToParts(new Date())
+
+      const timeZoneName = parts.find((part) => part.type === "timeZoneName")?.value ?? ""
+
+      if (timeZoneName === "GMT" || timeZoneName === "UTC") {
+        return "UTC+00:00"
+      }
+
+      const match = timeZoneName.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/)
+      if (!match) {
+        return "UTC+00:00"
+      }
+
+      const [, sign, hours, minutes = "00"] = match
+      return `UTC${sign}${hours.padStart(2, "0")}:${minutes}`
+    }
 
     return timezones
       .map((tz) => {
         try {
-          const offsetMinutes = new Date(now.toLocaleString("en-US", { timeZone: tz })).getTimezoneOffset() * -1
-          const offsetHours = Math.abs(Math.floor(offsetMinutes / 60))
-          const offsetMins = Math.abs(offsetMinutes % 60)
-          const offsetSign = offsetMinutes >= 0 ? "+" : "-"
-          const offsetString = `GMT${offsetSign}${offsetHours.toString().padStart(2, "0")}:${offsetMins.toString().padStart(2, "0")}`
+          const offsetString = getUTCOffset(tz)
 
           return {
             value: tz,
