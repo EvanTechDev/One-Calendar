@@ -42,6 +42,14 @@ const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   nl: "Nederlands",
   pt: "Português",
   ru: "Русский",
+  sv: "Svenska",
+  fi: "Suomi",
+  hi: "हिन्दी",
+  nb: "Norsk bokmål",
+  vi: "Tiếng Việt",
+  ro: "Română",
+  uk: "Українська",
+  is: "Íslenska",
 };
 
 const byExactLowercase = new Map(
