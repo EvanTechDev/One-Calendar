@@ -1,17 +1,17 @@
 "use client"
 
+import UserProfileButton, { type UserProfileSection } from "@/components/app/profile/user-profile-button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import { getLanguageAutonym, supportedLanguages, translations, type Language } from "@/lib/i18n"
-import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
-import { Switch } from "@/components/ui/switch"
-import { Kbd } from "@/components/ui/kbd"
-import ImportExport from "@/components/app/analytics/import-export"
 import ShareManagement from "@/components/app/analytics/share-management"
 import BuildInfoCard from "@/components/app/analytics/build-info-card"
+import ImportExport from "@/components/app/analytics/import-export"
+import type { NOTIFICATION_SOUNDS } from "@/utils/notifications"
 import type { CalendarEvent } from "@/components/app/calendar"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Kbd } from "@/components/ui/kbd"
 import { useTheme } from "next-themes"
-import UserProfileButton, { type UserProfileSection } from "@/components/app/profile/user-profile-button"
 
 interface SettingsProps {
   language: Language

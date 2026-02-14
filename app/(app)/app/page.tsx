@@ -1,9 +1,9 @@
 "use client"
-import { useEffect } from "react"
-import { useUser } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
-import Calendar from "@/components/app/calendar"
 import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
+import Calendar from "@/components/app/calendar"
+import { useRouter } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
+import { useEffect } from "react"
 
 export default function Home() {
   const { isLoaded, isSignedIn } = useUser()

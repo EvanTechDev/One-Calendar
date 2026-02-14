@@ -1,8 +1,8 @@
 "use client"
 
-import Image from "next/image"
-import { useEffect, useState } from "react"
 import { translations, useLanguage } from "@/lib/i18n"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 
 export default function AuthWaitingLoading() {
   const [language] = useLanguage()

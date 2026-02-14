@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
 import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Edit2,
   Trash2,

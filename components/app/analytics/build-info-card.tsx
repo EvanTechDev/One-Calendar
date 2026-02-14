@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { translations, type Language } from "@/lib/i18n"
+import { useEffect, useMemo, useState } from "react"
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown"
 const COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT ?? "unknown"
