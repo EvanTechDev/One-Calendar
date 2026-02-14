@@ -27,15 +27,19 @@ export const translations = Object.fromEntries(
 
 const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   en: "English",
+  "en-GB": "British English",
   de: "Deutsch",
   es: "Español",
   fr: "Français",
+  ja: "日本語",
   yue: "粵語",
   "zh-CN": "简体中文",
   "zh-HK": "繁體中文（香港）",
   "zh-TW": "繁體中文（台灣）",
   it: "Italiano",
   ko: "한국어",
+  pl: "Polski",
+  nl: "Nederlands",
   pt: "Português",
   ru: "Русский",
 };
