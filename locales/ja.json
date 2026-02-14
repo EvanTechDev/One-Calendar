@@ -372,7 +372,7 @@
   "disconnectFailed": "切断に失敗しました",
   "accountDeleted": "アカウントが削除されました",
   "deleteAccountFailed": "アカウントの削除に失敗しました",
-  "deleteAccount": "DELETE MY ACCOUNT",
+  "deleteAccount": "アカウントを削除",
   "basicInfo": "基本情報",
   "editProfileDescription": "アバターとプロフィールの詳細を編集します。",
   "openBasicInfo": "基本情報を開く",
