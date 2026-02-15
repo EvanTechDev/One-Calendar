@@ -65,6 +65,7 @@ export default function WeekView({
       )
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
+  const gridTemplateColumns = `100px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[language]
 
@@ -636,7 +637,7 @@ export default function WeekView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[100px_repeat(7,1fr)] divide-x relative z-30 bg-background">
+      <div className="grid divide-x relative z-30 bg-background" style={{ gridTemplateColumns }}>
         <div className="sticky top-0 z-30 bg-background" />
         {weekDays.map((day) => {
           // 获取当天的事件
@@ -672,7 +673,7 @@ export default function WeekView({
         })}
       </div>
 
-      <div className="flex-1 grid grid-cols-[100px_repeat(7,1fr)] divide-x overflow-auto" ref={scrollContainerRef}>
+      <div className="flex-1 grid divide-x overflow-auto" style={{ gridTemplateColumns }} ref={scrollContainerRef}>
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative border-gray-200">
