@@ -668,7 +668,7 @@ export default function WeekView({
         <div className="text-sm text-muted-foreground">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative border-gray-200">
-              <span className="absolute top-0 right-4 -translate-y-1/2">{formatTime(hour)}</span>
+              <span className={cn("absolute right-4", hour === 0 ? "top-0" : "top-0 -translate-y-1/2")}>{formatTime(hour)}</span>
             </div>
           ))}
         </div>

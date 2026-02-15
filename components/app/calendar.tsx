@@ -5,8 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
 import { readEncryptedLocalStorage, useLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 import UserProfileButton, { type UserProfileSection } from "@/components/app/profile/user-profile-button"
-import { useState, useEffect, useRef, Suspense, useMemo } from "react"
-import EventUrlHandler from "@/components/app/event/event-url-handler"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useCalendar } from "@/components/providers/calendar-context"
 import AnalyticsView from "@/components/app/analytics/analytics-view"
 import RightSidebar from "@/components/app/sidebar/right-sidebar"
@@ -738,10 +737,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         language={language}
         timezone={timezone}
       />
-
-      <Suspense fallback={null}>
-        <EventUrlHandler />
-      </Suspense>
 
       <DailyToast />
 
