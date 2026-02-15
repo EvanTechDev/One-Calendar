@@ -851,7 +851,11 @@ export default function EventDialog({
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t.cancel}
+            </Button>
+            <Button type="submit">{event ? t.update : t.save}</Button>
             {event && (
               <Button
                 type="button"
@@ -864,12 +868,6 @@ export default function EventDialog({
                 {t.delete}
               </Button>
             )}
-            <div className="flex space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {t.cancel}
-              </Button>
-              <Button type="submit">{event ? t.update : t.save}</Button>
-            </div>
           </div>
         </form>
       </DialogContent>
