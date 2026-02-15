@@ -2,7 +2,11 @@
 
 > A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
-![Preview](https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906">
+  <source media="(prefers-color-scheme: light)" srcset="/public/Banner.jpg">
+  <img src="/public/Banner.jpg" alt="Image">
+</picture>
 
 - [Live Product](https://calendar.xyehr.cn)
 - [Status](https://calendarstatus.xyehr.cn)
@@ -22,11 +26,6 @@ Most modern calendar tools are overloaded with automation, notifications, and an
 - Keep the system understandable.
 
 This project is built for individuals and small teams who value clarity over complexity.
-
-## Preview
-
-![App](/public/Banner.jpg)
-![Preview](https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906)
 
 ## Features
 
@@ -148,3 +147,4 @@ Published under [GNU General Public License v3.0 (GPL-3.0)](./LICENSE).
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
+
