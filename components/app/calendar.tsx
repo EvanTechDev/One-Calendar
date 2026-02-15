@@ -214,7 +214,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDate((prevDate) => {
       if (view === "day") return subDays(prevDate, 1)
       if (view === "week") return subDays(prevDate, 7)
-      if (view === "four-day") return prevDate
+      if (view === "four-day") return subDays(prevDate, 4)
       if (view === "year") return subYears(prevDate, 1)
       return subDays(prevDate, 30)
     })
@@ -224,7 +224,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDate((prevDate) => {
       if (view === "day") return addDays(prevDate, 1)
       if (view === "week") return addDays(prevDate, 7)
-      if (view === "four-day") return prevDate
+      if (view === "four-day") return addDays(prevDate, 4)
       if (view === "year") return addYears(prevDate, 1)
       return addDays(prevDate, 30)
     })
@@ -237,10 +237,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
 
     if (view === "four-day") {
-      const today = new Date()
-      const endDate = addDays(today, 3)
+      const startDate = new Date(date)
+      const endDate = addDays(startDate, 3)
       const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }
-      return `${today.toLocaleDateString(language, options)} - ${endDate.toLocaleDateString(language, options)}`
+      return `${startDate.toLocaleDateString(language, options)} - ${endDate.toLocaleDateString(language, options)}`
     }
 
     if (language === "en") {
@@ -515,9 +515,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   <SelectGroup>
                     <SelectItem value="day">{t.day}</SelectItem>
                     <SelectItem value="week">{t.week}</SelectItem>
-                    <SelectItem value="four-day">{t.fourDay}</SelectItem>
                     <SelectItem value="month">{t.month}</SelectItem>
                     <SelectItem value="year">{t.year}</SelectItem>
+                    <SelectItem value="four-day">{t.fourDay}</SelectItem>
 
                   </SelectGroup>
                 </SelectContent>
@@ -684,7 +684,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 updateEvent(updatedEvent)
               }}
               daysToShow={4}
-              fixedStartDate={new Date()}
+              fixedStartDate={date}
             />
           )}
           {view === "month" && (
