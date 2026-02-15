@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type ViewType = "day" | "week" | "month" | "year" | "analytics" | "settings"
+type ViewType = "day" | "week" | "four-day" | "month" | "year" | "analytics" | "settings"
 
 export interface CalendarEvent {
   id: string
@@ -214,6 +214,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDate((prevDate) => {
       if (view === "day") return subDays(prevDate, 1)
       if (view === "week") return subDays(prevDate, 7)
+      if (view === "four-day") return prevDate
       if (view === "year") return subYears(prevDate, 1)
       return subDays(prevDate, 30)
     })
@@ -223,6 +224,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDate((prevDate) => {
       if (view === "day") return addDays(prevDate, 1)
       if (view === "week") return addDays(prevDate, 7)
+      if (view === "four-day") return prevDate
       if (view === "year") return addYears(prevDate, 1)
       return addDays(prevDate, 30)
     })
@@ -232,6 +234,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const formatDateDisplay = (date: Date) => {
     if (view === "year") {
       return date.getFullYear().toString()
+    }
+
+    if (view === "four-day") {
+      const today = new Date()
+      const endDate = addDays(today, 3)
+      const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }
+      return `${today.toLocaleDateString(language, options)} - ${endDate.toLocaleDateString(language, options)}`
     }
 
     if (language === "en") {
@@ -491,9 +500,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <div className="relative z-50">
               <Select
                 value={
-                  view === "day" || view === "week" || view === "month" || view === "year"
+                  view === "day" || view === "week" || view === "four-day" || view === "month" || view === "year"
                     ? view
-                    : defaultView === "day" || defaultView === "week" || defaultView === "month" || defaultView === "year"
+                    : defaultView === "day" || defaultView === "week" || defaultView === "four-day" || defaultView === "month" || defaultView === "year"
                       ? defaultView
                       : "week"
                 }
@@ -506,6 +515,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   <SelectGroup>
                     <SelectItem value="day">{t.day}</SelectItem>
                     <SelectItem value="week">{t.week}</SelectItem>
+                    <SelectItem value="four-day">{t.fourDay}</SelectItem>
                     <SelectItem value="month">{t.month}</SelectItem>
                     <SelectItem value="year">{t.year}</SelectItem>
 
@@ -645,6 +655,36 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                 updateEvent(updatedEvent)
               }}
+            />
+          )}
+          {view === "four-day" && (
+            <WeekView
+              date={date}
+              events={filteredEvents}
+              onEventClick={handleEventClick}
+              onTimeSlotClick={handleTimeSlotClick}
+              language={language}
+              firstDayOfWeek={firstDayOfWeek}
+              timezone={timezone}
+              timeFormat={timeFormat}
+              onEditEvent={handleEventEdit}
+              onDeleteEvent={(event) => handleEventDelete(event.id)}
+              onShareEvent={(event) => {
+                setPreviewEvent(event)
+                setPreviewOpen(true)
+                setOpenShareImmediately(true)}}
+              onBookmarkEvent={toggleBookmark}
+              onEventDrop={(event, newStartDate, newEndDate) => {
+                const updatedEvent = {
+                  ...event,
+                  startDate: newStartDate,
+                  endDate: newEndDate
+                }
+
+                updateEvent(updatedEvent)
+              }}
+              daysToShow={4}
+              fixedStartDate={new Date()}
             />
           )}
           {view === "month" && (

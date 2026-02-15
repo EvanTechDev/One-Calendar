@@ -269,13 +269,14 @@ export default function Sidebar({
                 ))}
               </div>
             </div>
-            <div>
+          </div>
+          <DialogFooter className="justify-end">
+            <Button variant="outline" onClick={() => setManageCategoriesOpen(false)}>{t.cancel}</Button>
             <Button onClick={addCategory} disabled={!newCategoryName}>
               <Plus className="mr-2 h-4 w-4" />
               {t.addCategory}
             </Button>
-            </div>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

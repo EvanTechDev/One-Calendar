@@ -9,7 +9,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react"
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval, add } from "date-fns"
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval, add, addDays, startOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { translations, type Language } from "@/lib/i18n"
 
@@ -27,6 +27,8 @@ interface WeekViewProps {
   onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDrop?: (event: CalendarEvent, newStartDate: Date, newEndDate: Date) => void // 新增拖拽事件处理函数
+  daysToShow?: number
+  fixedStartDate?: Date
 }
 
 interface CalendarEvent {
@@ -52,10 +54,16 @@ export default function WeekView({
   onShareEvent,
   onBookmarkEvent,
   onEventDrop, // 新增拖拽事件处理函数
+  daysToShow,
+  fixedStartDate,
 }: WeekViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const weekDays = daysToShow
+    ? Array.from({ length: daysToShow }, (_, index) =>
+        addDays(startOfDay(fixedStartDate ?? date), index),
+      )
+    : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const today = new Date()
   const t = translations[language]
