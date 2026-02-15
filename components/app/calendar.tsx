@@ -160,6 +160,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           e.preventDefault()
           setView("year")
           break
+        case "5":
+          e.preventDefault()
+          setView("four-day")
+          break
         case "ArrowRight":
           e.preventDefault()
           handleNext()
