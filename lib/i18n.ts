@@ -50,7 +50,17 @@ const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   ro: "Română",
   uk: "Українська",
   is: "Íslenska",
+  sw: "Kiswahili",
+  bn: "বাংলা",
+  el: "Ελληνικά",
+  sq: "Shqip",
+  lt: "Lietuvių",
+  lv: "Latviešu",
+  sl: "Slovenščina",
+  mk: "Македонски",
+  sr: "Српски",
 };
+
 
 const byExactLowercase = new Map(
   supportedLanguages.map((lang) => [lang.toLowerCase(), lang] as const),
