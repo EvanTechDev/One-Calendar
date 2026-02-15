@@ -1,0 +1,55 @@
+{
+  "version": "1.12",
+  "locale": {
+    "source": "en",
+    "targets": [
+      "bn",
+      "de",
+      "el",
+      "en-GB",
+      "es",
+      "fi",
+      "fr",
+      "hi",
+      "is",
+      "it",
+      "ja",
+      "ko",
+      "lt",
+      "lv",
+      "mk",
+      "nb",
+      "nl",
+      "pl",
+      "pt",
+      "ro",
+      "ru",
+      "sl",
+      "sq",
+      "sr",
+      "sv",
+      "sw",
+      "th",
+      "tr",
+      "uk",
+      "vi",
+      "yue",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW"
+    ]
+  },
+  "buckets": {
+    "json": {
+      "include": [
+        "locales/[locale].json"
+      ]
+    }
+  },
+  "$schema": "https://lingo.dev/schema/i18n.json",
+  "provider": {
+    "id": "mistral",
+    "model": "mistral-large-latest",
+    "prompt": "Your custom translation prompt with {source} and {target} placeholders, DO NOT use markdown and just reply the translated content. DO NOT translate One Calendar because that is brand name. DO NOT translate DELETE MY ACCOUNT in deleteAccountConfirmDescription key"
+  }
+}
