@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { Pool } from "pg"
+import { decryptPayload } from "@/lib/crypto"
+import { verifySessionToken } from "@/lib/session-jwt"
 
 export const runtime = "nodejs"
 
@@ -28,6 +30,16 @@ async function initDB() {
   } finally {
     client.release()
   }
+}
+
+function getSessionSecret() {
+  return process.env.BACKUP_JWT_SECRET
+}
+
+function getBearerToken(req: NextRequest) {
+  const auth = req.headers.get("authorization")
+  if (!auth?.startsWith("Bearer ")) return null
+  return auth.slice(7).trim()
 }
 
 export async function POST(req: NextRequest) {
@@ -69,7 +81,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await currentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -83,11 +95,33 @@ export async function GET() {
     )
     if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-    return NextResponse.json({
-      ciphertext: result.rows[0].encrypted_data,
-      iv: result.rows[0].iv,
-      timestamp: result.rows[0].timestamp,
-    })
+    const row = result.rows[0]
+    const token = getBearerToken(req)
+    if (!token) {
+      return NextResponse.json({
+        ciphertext: row.encrypted_data,
+        iv: row.iv,
+        timestamp: row.timestamp,
+      })
+    }
+
+    const secret = getSessionSecret()
+    if (!secret) {
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
+    }
+
+    const payload = verifySessionToken(token, secret)
+    if (!payload || payload.sub !== user.id) {
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 })
+    }
+
+    try {
+      const plain = await decryptPayload(payload.keyHash, row.encrypted_data, row.iv)
+      const data = JSON.parse(plain)
+      return NextResponse.json({ data, timestamp: row.timestamp })
+    } catch {
+      return NextResponse.json({ error: "Unable to decrypt data with current token" }, { status: 403 })
+    }
   } finally {
     client.release()
   }
