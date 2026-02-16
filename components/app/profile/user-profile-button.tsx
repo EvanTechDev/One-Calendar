@@ -118,21 +118,20 @@ function clearBackupSession() {
   localStorage.removeItem(SESSION_EXPIRES_AT_KEY)
 }
 
-function saveBackupSession(password: string, token?: string) {
-  const expiresAt = Date.now() + SESSION_TTL_MS
-  localStorage.setItem(SESSION_PASSWORD_KEY, password)
-  localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt))
-  if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
+function hasActiveBackupSession() {
+  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_AT_KEY) || "0")
+  if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
+    clearBackupSession()
+    return false
+  }
+  return true
 }
 
-function readActiveSessionPassword() {
-  const password = localStorage.getItem(SESSION_PASSWORD_KEY)
-  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_AT_KEY) || "0")
-  if (!password || !Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
-    clearBackupSession()
-    return null
-  }
-  return password
+function saveBackupSession(token?: string) {
+  const expiresAt = Date.now() + SESSION_TTL_MS
+  localStorage.removeItem(SESSION_PASSWORD_KEY)
+  localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt))
+  if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
 }
 
 function collectLocalStorage() {
@@ -267,6 +266,7 @@ export default function UserProfileButton({
 
   useEffect(() => {
     setEnabled(localStorage.getItem(AUTO_KEY) === "true")
+    localStorage.removeItem(SESSION_PASSWORD_KEY)
   }, [])
 
   useEffect(() => {
@@ -281,21 +281,12 @@ export default function UserProfileButton({
     apiGet().then(async (cloud) => {
       if (!cloud) return
 
-      const sessionPassword = readActiveSessionPassword()
-      if (!sessionPassword) {
+      if (!hasActiveBackupSession()) {
         setUnlockOpen(true)
         return
       }
 
-      try {
-        const plain = await decryptPayload(sessionPassword, cloud.ciphertext, cloud.iv)
-        const data = JSON.parse(plain)
-        await restoreFromCloudData(data, sessionPassword)
-        restoredRef.current = true
-      } catch {
-        clearBackupSession()
-        setUnlockOpen(true)
-      }
+      setUnlockOpen(true)
     })
   }, [isSignedIn, mode])
 
@@ -463,7 +454,7 @@ export default function UserProfileButton({
         return
       }
 
-      saveBackupSession(password, token)
+      saveBackupSession(token)
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
@@ -491,7 +482,7 @@ export default function UserProfileButton({
     } catch {
       // best-effort only
     }
-    saveBackupSession(password, token)
+    saveBackupSession(token)
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
     restoredRef.current = true
@@ -535,7 +526,7 @@ export default function UserProfileButton({
     } catch {
       // best-effort only
     }
-    saveBackupSession(password, nextToken)
+    saveBackupSession(nextToken)
     await setEncryptionPassword(password)
     keyRef.current = password
     setRotateOpen(false)
