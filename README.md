@@ -147,5 +147,3 @@ Published under [GNU General Public License v3.0 (GPL-3.0)](./LICENSE).
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
-
-
