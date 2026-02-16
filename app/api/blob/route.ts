@@ -83,10 +83,11 @@ export async function GET() {
     )
     if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+    const row = result.rows[0]
     return NextResponse.json({
-      ciphertext: result.rows[0].encrypted_data,
-      iv: result.rows[0].iv,
-      timestamp: result.rows[0].timestamp,
+      ciphertext: row.encrypted_data,
+      iv: row.iv,
+      timestamp: row.timestamp,
     })
   } finally {
     client.release()
