@@ -3,6 +3,7 @@
 import { zhCN, enUS } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { format } from "date-fns";
 import {
   MapPin,
@@ -310,9 +311,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
           <a href="/" className="flex items-center gap-2 self-center font-medium">
-          <Calendar className="size-4" color="#0066ff" />
-          One Calendar
-        </a>
+            <Image src="/icon.svg" alt="One Calendar" width={16} height={16} className="size-4" />
+            One Calendar
+          </a>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
@@ -414,9 +415,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
           <a href="/" className="flex items-center gap-2 self-center font-medium">
-          <Calendar className="size-4" color="#0066ff" />
-          One Calendar
-        </a>
+            <Image src="/icon.svg" alt="One Calendar" width={16} height={16} className="size-4" />
+            One Calendar
+          </a>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card className="max-w-md w-full overflow-hidden">
@@ -477,9 +478,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
 
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center gap-2 self-center font-medium">
-          <Calendar className="size-4" color="#0066ff" />
-          One Calendar
-        </a>
+            <Image src="/icon.svg" alt="One Calendar" width={16} height={16} className="size-4" />
+            One Calendar
+          </a>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Card className="max-w-md w-full overflow-hidden">

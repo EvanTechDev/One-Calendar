@@ -21,11 +21,17 @@ export async function generateMetadata(
 
     return {
       title: `${eventTitle} | One Calendar`,
+      icons: {
+        icon: "/icon.svg",
+      },
     }
   } catch (err) {
     console.error("[generateMetadata error]", err)
     return {
       title: "One Calendar",
+      icons: {
+        icon: "/icon.svg",
+      },
     }
   }
 }
