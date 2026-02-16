@@ -59,8 +59,6 @@ import {
 
 const AUTO_KEY = "auto-backup-enabled"
 const SESSION_TOKEN_KEY = "backup-session-token"
-const SESSION_PASSWORD_KEY = "backup-session-password"
-const SESSION_EXPIRES_KEY = "backup-session-expires-at"
 const BACKUP_VERSION = 1
 const BACKUP_KEYS = [
   "calendar-events",
@@ -83,6 +81,15 @@ async function apiGet() {
   if (r.status === 404) return null
   if (!r.ok) throw new Error()
   return r.json()
+}
+
+async function apiGetDecrypted(token: string) {
+  const r = await fetch("/api/blob", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!r.ok) throw new Error("decrypt-fetch-failed")
+  const body = await r.json()
+  return body.data
 }
 
 async function apiPost(body: any) {
@@ -111,32 +118,18 @@ async function createSession(keyHash: string, action: "verify" | "register") {
   return body.token as string
 }
 
-async function createSessionSafe(keyHash: string, action: "verify" | "register") {
+function keyHashFromToken(token: string) {
   try {
-    return await createSession(keyHash, action)
-  } catch (error: any) {
-    if (error?.message === "invalid-key") return null
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=")
+    const payload = JSON.parse(atob(padded))
+    if (typeof payload?.keyHash !== "string") return null
+    return payload.keyHash
+  } catch {
     return null
   }
-}
-
-function readSessionPassword() {
-  const password = localStorage.getItem(SESSION_PASSWORD_KEY)
-  const expiresAtRaw = localStorage.getItem(SESSION_EXPIRES_KEY)
-  if (!password || !expiresAtRaw) return null
-  const expiresAt = Number(expiresAtRaw)
-  if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
-    localStorage.removeItem(SESSION_PASSWORD_KEY)
-    localStorage.removeItem(SESSION_EXPIRES_KEY)
-    localStorage.removeItem(SESSION_TOKEN_KEY)
-    return null
-  }
-  return password
-}
-
-function saveSessionPassword(password: string) {
-  localStorage.setItem(SESSION_PASSWORD_KEY, password)
-  localStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + 24 * 60 * 60 * 1000))
 }
 
 function collectLocalStorage() {
@@ -285,23 +278,19 @@ export default function UserProfileButton({
     apiGet().then(async (cloud) => {
       if (!cloud) return
 
-      const cachedPassword = readSessionPassword()
-      if (!cachedPassword) {
+      const token = localStorage.getItem(SESSION_TOKEN_KEY)
+      if (!token) {
         setUnlockOpen(true)
         return
       }
 
       try {
-        const plain = await decryptPayload(cachedPassword, cloud.ciphertext, cloud.iv)
-        const data = JSON.parse(plain)
-        await restoreFromCloudData(data, cachedPassword)
-        const keyHash = await sha256Hex(cachedPassword)
-        const token = await createSessionSafe(keyHash, "verify")
-        if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
+        const keyHash = keyHashFromToken(token)
+        if (!keyHash) throw new Error("invalid-token-payload")
+        const data = await apiGetDecrypted(token)
+        await restoreFromCloudData(data, keyHash)
         restoredRef.current = true
       } catch {
-        localStorage.removeItem(SESSION_PASSWORD_KEY)
-        localStorage.removeItem(SESSION_EXPIRES_KEY)
         localStorage.removeItem(SESSION_TOKEN_KEY)
         setUnlockOpen(true)
       }
@@ -423,7 +412,7 @@ export default function UserProfileButton({
     }
   }
 
-  async function restoreFromCloudData(data: any, password: string) {
+  async function restoreFromCloudData(data: any, keyHash: string) {
     if (data?.storage) {
       applyLocalStorage(data.storage)
     } else if (data?.events || data?.calendars) {
@@ -433,9 +422,9 @@ export default function UserProfileButton({
       applyLocalStorage(fallbackStorage)
     }
 
-    if (password) {
-      await setEncryptionPassword(password)
-      keyRef.current = password
+    if (keyHash) {
+      await setEncryptionPassword(keyHash)
+      keyRef.current = keyHash
     }
 
     const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
@@ -449,26 +438,21 @@ export default function UserProfileButton({
 
     try {
       setIsUnlocking(true)
-      const cloud = await apiGet()
-      if (!cloud) return
-
-      let plain = ""
+      const keyHash = await sha256Hex(password)
+      let token = ""
       try {
-        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
+        token = await createSession(keyHash, "verify")
       } catch {
         toast(t.incorrectPassword)
         return
       }
 
       try {
-        const data = JSON.parse(plain)
-        await restoreFromCloudData(data, password)
+        const data = await apiGetDecrypted(token)
+        await restoreFromCloudData(data, keyHash)
       } catch {}
 
-      const keyHash = await sha256Hex(password)
-      const token = await createSessionSafe(keyHash, "verify")
-      if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
-      saveSessionPassword(password)
+      localStorage.setItem(SESSION_TOKEN_KEY, token)
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
@@ -487,15 +471,14 @@ export default function UserProfileButton({
       return
     }
     const keyHash = await sha256Hex(password)
-    await setEncryptionPassword(password)
-    await encryptLocalStorage(password)
-    const payload = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
+    await setEncryptionPassword(keyHash)
+    await encryptLocalStorage(keyHash)
+    const payload = await encryptPayload(keyHash, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(payload)
-    const token = await createSessionSafe(keyHash, "register")
-    if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
-    saveSessionPassword(password)
+    const token = await createSession(keyHash, "register")
+    localStorage.setItem(SESSION_TOKEN_KEY, token)
     localStorage.setItem(AUTO_KEY, "true")
-    keyRef.current = password
+    keyRef.current = keyHash
     restoredRef.current = true
     setEnabled(true)
     setPassword("")
@@ -509,25 +492,31 @@ export default function UserProfileButton({
       setError(t.passwordsDoNotMatch)
       return
     }
-    const cloud = await apiGet()
-    if (!cloud) return
+    const oldHash = await sha256Hex(oldPassword)
+    const nextHash = await sha256Hex(password)
 
+    let token = ""
     try {
-      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
+      token = await createSession(oldHash, "verify")
     } catch {
       toast(t.incorrectOldPassword)
       return
     }
 
-    await reencryptLocalStorage(oldPassword, password)
-    const next = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
+    try {
+      await apiGetDecrypted(token)
+    } catch {
+      toast(t.incorrectOldPassword)
+      return
+    }
+
+    await reencryptLocalStorage(oldHash, nextHash)
+    const next = await encryptPayload(nextHash, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(next)
-    const nextHash = await sha256Hex(password)
-    const nextToken = await createSessionSafe(nextHash, "register")
-    if (nextToken) localStorage.setItem(SESSION_TOKEN_KEY, nextToken)
-    saveSessionPassword(password)
-    await setEncryptionPassword(password)
-    keyRef.current = password
+    const nextToken = await createSession(nextHash, "register")
+    localStorage.setItem(SESSION_TOKEN_KEY, nextToken)
+    await setEncryptionPassword(nextHash)
+    keyRef.current = nextHash
     setRotateOpen(false)
     setOldPassword("")
     setPassword("")
@@ -546,8 +535,6 @@ export default function UserProfileButton({
     }
     clearEncryptionPassword()
     localStorage.removeItem(SESSION_TOKEN_KEY)
-    localStorage.removeItem(SESSION_PASSWORD_KEY)
-    localStorage.removeItem(SESSION_EXPIRES_KEY)
     toast(t.autoBackupDisabled)
   }
 
@@ -558,8 +545,6 @@ export default function UserProfileButton({
     restoredRef.current = false
     setEnabled(false)
     localStorage.removeItem(SESSION_TOKEN_KEY)
-    localStorage.removeItem(SESSION_PASSWORD_KEY)
-    localStorage.removeItem(SESSION_EXPIRES_KEY)
     toast(t.cloudDataDeleted)
   }
 
