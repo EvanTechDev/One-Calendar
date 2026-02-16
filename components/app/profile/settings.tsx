@@ -128,7 +128,6 @@ export default function Settings({
               <SelectItem value="green">{t.themeGreen}</SelectItem>
               <SelectItem value="orange">{t.themeOrange}</SelectItem>
               <SelectItem value="azalea">{t.themeAzalea}</SelectItem>
-              <SelectItem value="newyear">New Year</SelectItem>
               <SelectItem value="system">{t.themeSystem}</SelectItem>
             </SelectContent>
           </Select>

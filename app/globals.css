@@ -202,83 +202,41 @@ body {
 
 
 
-.newyear,
-.newyear .app-theme-scope {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 84.7% 64.1%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 84.7% 64.1%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 84.7% 64.1%;
-    --chart-1: 0 84.7% 64.1%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 0 84.7% 64.1%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 0 84.7% 64.1%;
-}
-
 
 .green,
 .green .app-theme-scope,
 .orange,
 .orange .app-theme-scope,
 .azalea,
-.azalea .app-theme-scope,
-.newyear,
-.newyear .app-theme-scope {
+.azalea .app-theme-scope {
     --card: var(--background);
     --popover: var(--background);
 }
 
 .green .app-theme-scope button[variant="outline"],
 .orange .app-theme-scope button[variant="outline"],
-.azalea .app-theme-scope button[variant="outline"],
-.newyear .app-theme-scope button[variant="outline"] {
+.azalea .app-theme-scope button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
 }
 
 .green .app-theme-scope button[variant="ghost"],
 .orange .app-theme-scope button[variant="ghost"],
-.azalea .app-theme-scope button[variant="ghost"],
-.newyear .app-theme-scope button[variant="ghost"] {
+.azalea .app-theme-scope button[variant="ghost"] {
     border: none;
     background: transparent;
 }
 
 .green .app-theme-scope hr, .green .app-theme-scope .divider,
 .orange .app-theme-scope hr, .orange .app-theme-scope .divider,
-.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider,
-.newyear .app-theme-scope hr, .newyear .app-theme-scope .divider {
+.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
 }
 
 .green .app-theme-scope .separator,
 .orange .app-theme-scope .separator,
-.azalea .app-theme-scope .separator,
-.newyear .app-theme-scope .separator {
+.azalea .app-theme-scope .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
