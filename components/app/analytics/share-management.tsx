@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { sha256Hex } from "@/lib/hash";
 
 interface SharedEvent {
   id: string;
@@ -93,12 +94,36 @@ export default function ShareManagement() {
   try {
     setIsDecrypting(true)
 
-    const res = await fetch(
-      `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`
-    )
+    const passwordHash = await sha256Hex(passwordInput)
+    const authRes = await fetch("/api/share/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: decryptingShare.id, passwordHash }),
+    })
+
+    if (!authRes.ok) {
+      toast.error(t.invalidPassword)
+      return
+    }
+
+    const authData = await authRes.json()
+    const token = authData?.token as string | undefined
+    if (!token) {
+      toast.error(t.decryptFailed)
+      return
+    }
+
+    window.localStorage.setItem(`share-access-token:${decryptingShare.id}`, token)
+
+    const res = await fetch(`/api/share/content?id=${encodeURIComponent(decryptingShare.id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     const data = await res.json()
 
     if (!data.success) {
+      if (res.status === 401) {
+        window.localStorage.removeItem(`share-access-token:${decryptingShare.id}`)
+      }
       toast.error(t.invalidPassword)
       return
     }

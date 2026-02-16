@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import QRCodeStyling from "qr-code-styling";
 import { useUser } from "@clerk/nextjs";
+import { sha256Hex } from "@/lib/hash";
 
 interface EventPreviewProps {
   event: CalendarEvent | null;
@@ -269,7 +270,7 @@ export default function EventPreview({
       const sharedEvent = { ...event, sharedBy: clerkUsername };
 
       const payload: any = { id: shareId, data: sharedEvent };
-      if (passwordEnabled) payload.password = sharePassword;
+      if (passwordEnabled) payload.password = await sha256Hex(sharePassword);
       if (passwordEnabled) payload.burnAfterRead = !!burnAfterRead;
 
       const response = await fetch("/api/share", {

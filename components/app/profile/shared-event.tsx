@@ -31,6 +31,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sha256Hex } from "@/lib/hash";
+
+const getShareTokenStorageKey = (shareId: string) => `share-access-token:${shareId}`;
 
 interface SharedEvent {
   id: string;
@@ -112,6 +115,23 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
             if (payload?.requiresPassword) {
               setRequiresPassword(true);
               setBurnAfterRead(!!payload?.burnAfterRead);
+
+              const storedToken = window.localStorage.getItem(getShareTokenStorageKey(shareId));
+              if (storedToken) {
+                const contentResponse = await fetch(`/api/share/content?id=${encodeURIComponent(shareId)}`, {
+                  headers: { Authorization: `Bearer ${storedToken}` },
+                });
+                if (contentResponse.ok) {
+                  const content = await contentResponse.json();
+                  const eventData = typeof content.data === "object" ? content.data : JSON.parse(content.data);
+                  setEvent(eventData);
+                  setBurnAfterRead(!!content?.burnAfterRead);
+                  setRequiresPassword(false);
+                  return;
+                }
+                window.localStorage.removeItem(getShareTokenStorageKey(shareId));
+              }
+
               return;
             }
           }
@@ -151,22 +171,45 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
       setPasswordSubmitting(true);
       setPasswordError(null);
 
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
-      const response = await fetch(url);
+      const passwordHash = await sha256Hex(pwd);
+      const authResponse = await fetch("/api/share/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shareId, passwordHash }),
+      });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          const payload = await response.json().catch(() => null);
-          setBurnAfterRead(!!payload?.burnAfterRead);
-          setPasswordError(isZh ? "需要密码" : "Password required");
-          setRequiresPassword(true);
-          return;
-        }
-        if (response.status === 403) {
+      if (!authResponse.ok) {
+        if (authResponse.status === 403) {
           setPasswordError(isZh ? "密码错误" : "Invalid password");
           setRequiresPassword(true);
           return;
         }
+        if (authResponse.status === 404) {
+          setPasswordError(isZh ? "分享不存在或已被销毁" : "Share not found or already destroyed");
+          setRequiresPassword(true);
+          return;
+        }
+        setPasswordError(isZh ? "解密失败" : "Failed to decrypt");
+        setRequiresPassword(true);
+        return;
+      }
+
+      const authData = await authResponse.json();
+      const token = authData?.token as string | undefined;
+      if (!token) {
+        setPasswordError(isZh ? "解密失败" : "Failed to decrypt");
+        setRequiresPassword(true);
+        return;
+      }
+
+      window.localStorage.setItem(getShareTokenStorageKey(shareId), token);
+
+      const response = await fetch(`/api/share/content?id=${encodeURIComponent(shareId)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) window.localStorage.removeItem(getShareTokenStorageKey(shareId));
         if (response.status === 404) {
           setPasswordError(isZh ? "分享不存在或已被销毁" : "Share not found or already destroyed");
           setRequiresPassword(true);
