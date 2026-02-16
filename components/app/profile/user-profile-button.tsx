@@ -61,6 +61,7 @@ const AUTO_KEY = "auto-backup-enabled"
 const SESSION_TOKEN_KEY = "backup-session-token"
 const SESSION_PASSWORD_KEY = "backup-session-password"
 const SESSION_EXPIRES_AT_KEY = "backup-session-expires-at"
+const SESSION_PASSWORD_WRAP_KEY = "backup-session-password-wrap-key"
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000
 const BACKUP_VERSION = 1
 const BACKUP_KEYS = [
@@ -116,23 +117,82 @@ function clearBackupSession() {
   localStorage.removeItem(SESSION_TOKEN_KEY)
   localStorage.removeItem(SESSION_PASSWORD_KEY)
   localStorage.removeItem(SESSION_EXPIRES_AT_KEY)
+  sessionStorage.removeItem(SESSION_PASSWORD_WRAP_KEY)
 }
 
-function saveBackupSession(password: string, token?: string) {
+function bytesToBase64(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes))
+}
+
+function base64ToBytes(base64: string) {
+  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+}
+
+async function getSessionWrapKey() {
+  const existing = sessionStorage.getItem(SESSION_PASSWORD_WRAP_KEY)
+  if (existing) return base64ToBytes(existing)
+
+  const keyBytes = crypto.getRandomValues(new Uint8Array(32))
+  sessionStorage.setItem(SESSION_PASSWORD_WRAP_KEY, bytesToBase64(keyBytes))
+  return keyBytes
+}
+
+async function encryptSessionPassword(password: string) {
+  const keyBytes = await getSessionWrapKey()
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const plainBytes = new TextEncoder().encode(password)
+  const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plainBytes)
+
+  return JSON.stringify({
+    ciphertext: bytesToBase64(new Uint8Array(cipherBuffer)),
+    iv: bytesToBase64(iv),
+  })
+}
+
+async function decryptSessionPassword(payload: string) {
+  const wrapKey = sessionStorage.getItem(SESSION_PASSWORD_WRAP_KEY)
+  if (!wrapKey) return null
+
+  const parsed = JSON.parse(payload) as { ciphertext?: string; iv?: string }
+  if (!parsed?.ciphertext || !parsed?.iv) return null
+
+  const key = await crypto.subtle.importKey("raw", base64ToBytes(wrapKey), { name: "AES-GCM" }, false, ["decrypt"])
+  const plainBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: base64ToBytes(parsed.iv) },
+    key,
+    base64ToBytes(parsed.ciphertext),
+  )
+
+  return new TextDecoder().decode(plainBuffer)
+}
+
+async function saveBackupSession(password: string, token?: string) {
   const expiresAt = Date.now() + SESSION_TTL_MS
-  localStorage.setItem(SESSION_PASSWORD_KEY, password)
+  localStorage.setItem(SESSION_PASSWORD_KEY, await encryptSessionPassword(password))
   localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt))
   if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
 }
 
-function readActiveSessionPassword() {
+async function readActiveSessionPassword() {
   const password = localStorage.getItem(SESSION_PASSWORD_KEY)
   const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_AT_KEY) || "0")
   if (!password || !Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
     clearBackupSession()
     return null
   }
-  return password
+
+  try {
+    const plainPassword = await decryptSessionPassword(password)
+    if (!plainPassword) {
+      clearBackupSession()
+      return null
+    }
+    return plainPassword
+  } catch {
+    clearBackupSession()
+    return null
+  }
 }
 
 function collectLocalStorage() {
@@ -281,7 +341,7 @@ export default function UserProfileButton({
     apiGet().then(async (cloud) => {
       if (!cloud) return
 
-      const sessionPassword = readActiveSessionPassword()
+      const sessionPassword = await readActiveSessionPassword()
       if (!sessionPassword) {
         setUnlockOpen(true)
         return
@@ -463,7 +523,7 @@ export default function UserProfileButton({
         return
       }
 
-      saveBackupSession(password, token)
+      await saveBackupSession(password, token)
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
@@ -491,7 +551,7 @@ export default function UserProfileButton({
     } catch {
       // best-effort only
     }
-    saveBackupSession(password, token)
+    await saveBackupSession(password, token)
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
     restoredRef.current = true
@@ -535,7 +595,7 @@ export default function UserProfileButton({
     } catch {
       // best-effort only
     }
-    saveBackupSession(password, nextToken)
+    await saveBackupSession(password, nextToken)
     await setEncryptionPassword(password)
     keyRef.current = password
     setRotateOpen(false)
