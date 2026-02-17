@@ -478,5 +478,5 @@
     "十一月",
     "十二月"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}月"
+  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}"
 }
