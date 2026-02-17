@@ -454,5 +454,29 @@
   "done": "Hecho",
   "protected": "Protegido",
   "colorAmber": "Ámbar",
-  "colorTeal": "Verde azulado"
+  "colorTeal": "Verde azulado",
+  "sidebarCalendarWeekdaysShort": [
+    "dom",
+    "lun",
+    "mar",
+    "mié",
+    "jue",
+    "vie",
+    "sáb"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} de {{year}}"
 }

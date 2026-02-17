@@ -454,5 +454,29 @@
   "done": "Fertig",
   "protected": "Geschützt",
   "colorAmber": "Bernstein",
-  "colorTeal": "Türkis"
+  "colorTeal": "Türkis",
+  "sidebarCalendarWeekdaysShort": [
+    "So",
+    "Mo",
+    "Di",
+    "Mi",
+    "Do",
+    "Fr",
+    "Sa"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

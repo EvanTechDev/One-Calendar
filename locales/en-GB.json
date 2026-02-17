@@ -454,5 +454,29 @@
   "done": "Done",
   "protected": "Protected",
   "colorAmber": "Amber",
-  "colorTeal": "Teal"
+  "colorTeal": "Teal",
+  "sidebarCalendarWeekdaysShort": [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

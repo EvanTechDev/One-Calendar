@@ -454,5 +454,29 @@
   "done": "Gata",
   "protected": "Protejat",
   "colorAmber": "Chihlimbar",
-  "colorTeal": "Turcoaz"
+  "colorTeal": "Turcoaz",
+  "sidebarCalendarWeekdaysShort": [
+    "dum.",
+    "lun.",
+    "mar.",
+    "mie.",
+    "joi",
+    "vin.",
+    "sâm."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "ianuarie",
+    "februarie",
+    "martie",
+    "aprilie",
+    "mai",
+    "iunie",
+    "iulie",
+    "august",
+    "septembrie",
+    "octombrie",
+    "noiembrie",
+    "decembrie"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

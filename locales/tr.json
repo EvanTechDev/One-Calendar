@@ -454,5 +454,29 @@
   "done": "Tamam",
   "protected": "Korumalı",
   "colorAmber": "Kehribar",
-  "colorTeal": "Camgöbeği"
+  "colorTeal": "Camgöbeği",
+  "sidebarCalendarWeekdaysShort": [
+    "Paz",
+    "Pzt",
+    "Sal",
+    "Çar",
+    "Per",
+    "Cum",
+    "Cmt"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "Ocak",
+    "Şubat",
+    "Mart",
+    "Nisan",
+    "Mayıs",
+    "Haziran",
+    "Temmuz",
+    "Ağustos",
+    "Eylül",
+    "Ekim",
+    "Kasım",
+    "Aralık"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

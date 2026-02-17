@@ -454,5 +454,29 @@
   "done": "Gotovo",
   "protected": "Zaštićeno",
   "colorAmber": "Ћилибар",
-  "colorTeal": "Тиркизна"
+  "colorTeal": "Тиркизна",
+  "sidebarCalendarWeekdaysShort": [
+    "нед",
+    "пон",
+    "уто",
+    "сре",
+    "чет",
+    "пет",
+    "суб"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "јануар",
+    "фебруар",
+    "март",
+    "април",
+    "мај",
+    "јун",
+    "јул",
+    "август",
+    "септембар",
+    "октобар",
+    "новембар",
+    "децембар"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}."
 }

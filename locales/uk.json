@@ -454,5 +454,29 @@
   "done": "Готово",
   "protected": "Захищено",
   "colorAmber": "Бурштиновий",
-  "colorTeal": "Бірюзовий"
+  "colorTeal": "Бірюзовий",
+  "sidebarCalendarWeekdaysShort": [
+    "нд",
+    "пн",
+    "вт",
+    "ср",
+    "чт",
+    "пт",
+    "сб"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "січень",
+    "лютий",
+    "березень",
+    "квітень",
+    "травень",
+    "червень",
+    "липень",
+    "серпень",
+    "вересень",
+    "жовтень",
+    "листопад",
+    "грудень"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} р."
 }

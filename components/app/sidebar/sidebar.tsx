@@ -69,6 +69,15 @@ export default function Sidebar({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const t = translations[language || "zh-CN"]
+  const weekdayNames = t.sidebarCalendarWeekdaysShort
+  const monthNames = t.sidebarCalendarMonthsLong
+  const monthYearTemplate = t.sidebarCalendarMonthYearFormat
+
+  const formatCalendarCaption = (date: Date) => {
+    const month = monthNames[date.getMonth()]
+    const year = new Intl.NumberFormat(language, { useGrouping: false }).format(date.getFullYear())
+    return monthYearTemplate.replace("{{month}}", month).replace("{{year}}", year)
+  }
 
   const deleteText = {
     title: t.deleteConfirmationTitle,
@@ -153,6 +162,10 @@ export default function Sidebar({
           <Calendar
             mode="single"
             selected={localSelectedDate}
+            formatters={{
+              formatCaption: (date) => formatCalendarCaption(date),
+              formatWeekdayName: (date) => weekdayNames[date.getDay()],
+            }}
             onSelect={(date) => {
               setLocalSelectedDate(date)
               date && onDateSelect(date)

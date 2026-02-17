@@ -454,5 +454,29 @@
   "done": "完了",
   "protected": "保護済み",
   "colorAmber": "琥珀色",
-  "colorTeal": "青緑"
+  "colorTeal": "青緑",
+  "sidebarCalendarWeekdaysShort": [
+    "日",
+    "月",
+    "火",
+    "水",
+    "木",
+    "金",
+    "土"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "1月",
+    "2月",
+    "3月",
+    "4月",
+    "5月",
+    "6月",
+    "7月",
+    "8月",
+    "9月",
+    "10月",
+    "11月",
+    "12月"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}月"
 }
