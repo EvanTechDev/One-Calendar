@@ -31,12 +31,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const DayView = dynamic(() => import("@/components/app/views/day-view"))
-const WeekView = dynamic(() => import("@/components/app/views/week-view"))
-const MonthView = dynamic(() => import("@/components/app/views/month-view"))
-const YearView = dynamic(() => import("@/components/app/views/year-view"))
-const AnalyticsView = dynamic(() => import("@/components/app/analytics/analytics-view"))
-const Settings = dynamic(() => import("@/components/app/profile/settings"))
+const loadDayView = () => import("@/components/app/views/day-view")
+const loadWeekView = () => import("@/components/app/views/week-view")
+const loadMonthView = () => import("@/components/app/views/month-view")
+const loadYearView = () => import("@/components/app/views/year-view")
+const loadAnalyticsView = () => import("@/components/app/analytics/analytics-view")
+const loadSettings = () => import("@/components/app/profile/settings")
+
+const DayView = dynamic(loadDayView)
+const WeekView = dynamic(loadWeekView)
+const MonthView = dynamic(loadMonthView)
+const YearView = dynamic(loadYearView)
+const AnalyticsView = dynamic(loadAnalyticsView)
+const Settings = dynamic(loadSettings)
 
 type ViewType = "day" | "week" | "four-day" | "month" | "year" | "analytics" | "settings"
 
@@ -109,6 +116,27 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (view !== defaultView) {
       setView(defaultView as ViewType)
     }
+  }, [])
+
+  useEffect(() => {
+    const prefetch = () => {
+      void loadDayView()
+      void loadWeekView()
+      void loadMonthView()
+      void loadYearView()
+      void loadAnalyticsView()
+      void loadSettings()
+    }
+
+    if (typeof window === "undefined") return
+
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(prefetch)
+      return () => window.cancelIdleCallback(id)
+    }
+
+    const timeoutId = window.setTimeout(prefetch, 800)
+    return () => window.clearTimeout(timeoutId)
   }, [])
 
   // Add the keyboard shortcut handler

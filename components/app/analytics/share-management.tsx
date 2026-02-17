@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { fetchJson } from "@/lib/fetch-json"
 
 interface SharedEvent {
   id: string;
@@ -35,10 +36,8 @@ export default function ShareManagement() {
   useEffect(() => {
     async function fetchSharedEvents() {
       try {
-        const res = await fetch("/api/share/list");
-        if (!res.ok) throw new Error("Failed to fetch shared events");
-        const data = await res.json();
-        setSharedEvents(data.shares || []);
+        const data = await fetchJson<{ shares?: SharedEvent[] }>("/api/share/list")
+        setSharedEvents(data.shares || [])
       } catch (error) {
         console.error("Error fetching shared events:", error);
         toast.error(t.shareManagementLoadFailed, {
@@ -93,10 +92,9 @@ export default function ShareManagement() {
   try {
     setIsDecrypting(true)
 
-    const res = await fetch(
+    const data = await fetchJson<{ success: boolean; data: string }>(
       `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`
     )
-    const data = await res.json()
 
     if (!data.success) {
       toast.error(t.invalidPassword)
