@@ -452,5 +452,7 @@
   "shareLinkHelp": "Svi sa ovim linkom mogu pristupiti stranici za deljenje. Ako je zaštićeno lozinkom, moraju uneti lozinku da bi videli sadržaj.",
   "shareQrGenerateFailed": "Generisanje QR koda nije uspelo",
   "done": "Gotovo",
-  "protected": "Zaštićeno"
+  "protected": "Zaštićeno",
+  "colorAmber": "Ћилибар",
+  "colorTeal": "Тиркизна"
 }

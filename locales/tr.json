@@ -452,5 +452,7 @@
   "shareLinkHelp": "Bu bağlantıya sahip herkes paylaşım sayfasına erişebilir. Parola korumalıysa, içeriği görmek için parolayı girmeleri gerekir.",
   "shareQrGenerateFailed": "QR kodu oluşturulamadı",
   "done": "Tamam",
-  "protected": "Korumalı"
+  "protected": "Korumalı",
+  "colorAmber": "Kehribar",
+  "colorTeal": "Camgöbeği"
 }

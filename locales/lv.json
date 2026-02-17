@@ -452,5 +452,7 @@
   "shareLinkHelp": "Ikviens, kam ir šī saite, varēs piekļūt koplietošanas lapai. Ja tā ir aizsargāta ar paroli, būs jāievada parole, lai skatītu saturu.",
   "shareQrGenerateFailed": "Neizdevās ģenerēt QR kodu",
   "done": "Pabeigts",
-  "protected": "Aizsargāts"
+  "protected": "Aizsargāts",
+  "colorAmber": "Dzintara",
+  "colorTeal": "Zilganzaļa"
 }

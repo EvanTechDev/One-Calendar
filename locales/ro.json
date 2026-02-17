@@ -452,5 +452,7 @@
   "shareLinkHelp": "Oricine are acest link poate accesa pagina de partajare. Dacă este protejată cu parolă, trebuie să introducă parola pentru a vedea conținutul.",
   "shareQrGenerateFailed": "Generarea codului QR a eșuat",
   "done": "Gata",
-  "protected": "Protejat"
+  "protected": "Protejat",
+  "colorAmber": "Chihlimbar",
+  "colorTeal": "Turcoaz"
 }

@@ -452,5 +452,7 @@
   "shareLinkHelp": "Cualquier persona con este enlace puede acceder a la página compartida. Si está protegida por contraseña, deberá introducirla para ver el contenido.",
   "shareQrGenerateFailed": "Error al generar el código QR",
   "done": "Hecho",
-  "protected": "Protegido"
+  "protected": "Protegido",
+  "colorAmber": "Ámbar",
+  "colorTeal": "Verde azulado"
 }

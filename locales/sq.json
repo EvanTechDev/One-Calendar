@@ -452,5 +452,7 @@
   "shareLinkHelp": "Çdokush me këtë lidhje mund të aksesojë faqen e ndarjes. Nëse është e mbrojtur me fjalëkalim, ata duhet ta fusin fjalëkalimin për të parë përmbajtjen.",
   "shareQrGenerateFailed": "Gjenerimi i kodit QR dështoi",
   "done": "Përfunduar",
-  "protected": "I mbrojtur"
+  "protected": "I mbrojtur",
+  "colorAmber": "Qelibar",
+  "colorTeal": "Blu-jeshile"
 }

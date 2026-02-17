@@ -452,5 +452,7 @@
   "shareLinkHelp": "擁有呢個連結嘅任何人都可以訪問分享頁面。如果已設定密碼保護,需要輸入密碼先可以睇到內容。",
   "shareQrGenerateFailed": "二維碼生成失敗",
   "done": "完成",
-  "protected": "已保護"
+  "protected": "已保護",
+  "colorAmber": "琥珀色",
+  "colorTeal": "藍綠色"
 }

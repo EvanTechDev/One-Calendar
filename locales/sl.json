@@ -452,5 +452,7 @@
   "shareLinkHelp": "Vsakdo s to povezavo lahko dostopa do strani za deljenje. Če je zaščiteno z geslom, morajo vnesti geslo za ogled vsebine.",
   "shareQrGenerateFailed": "Ustvarjanje QR kode ni uspelo",
   "done": "Končano",
-  "protected": "Zaščiteno"
+  "protected": "Zaščiteno",
+  "colorAmber": "Jantarna",
+  "colorTeal": "Modrozelena"
 }

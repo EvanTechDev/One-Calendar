@@ -1,24 +1,23 @@
-import { execSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-let userConfig = undefined
+let userConfig = undefined;
 try {
-  userConfig = await import("./next.config")
-} catch (e) {
+  userConfig = await import("./next.config");
+} catch (e) {}
 
-}
-
-const packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
+const packageJson = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+);
 
 const getGitCommit = () => {
   try {
-    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim()
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
   } catch {
-    return "unknown"
+    return "unknown";
   }
-}
+};
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -34,7 +33,12 @@ const nextConfig = {
   },
 
   experimental: {
-    optimizePackageImports: ["lucide-react", "date-fns", "@radix-ui/react-icons", "recharts"],
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "@radix-ui/react-icons",
+      "recharts",
+    ],
   },
 
   async headers() {
@@ -57,21 +61,15 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
- /* experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
-    adjustFontFallbacks: true,
-  },*/
-}
+};
 
-mergeConfig(nextConfig, userConfig)
+mergeConfig(nextConfig, userConfig);
 
 function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) {
-    return
+    return;
   }
 
   for (const key in userConfig) {
@@ -82,11 +80,11 @@ function mergeConfig(nextConfig, userConfig) {
       nextConfig[key] = {
         ...nextConfig[key],
         ...userConfig[key],
-      }
+      };
     } else {
-      nextConfig[key] = userConfig[key]
+      nextConfig[key] = userConfig[key];
     }
   }
 }
 
-export default nextConfig
+export default nextConfig;

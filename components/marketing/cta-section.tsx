@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
 export default function CTASection() {
   return (
     <div className="w-full relative overflow-hidden flex flex-col justify-center items-center gap-2">
-      {/* Content */}
+      {}
       <div className="self-stretch px-6 md:px-24 py-12 md:py-12 border-t border-b border-[rgba(55,50,47,0.12)] flex justify-center items-center gap-6 relative z-10">
         <div className="absolute inset-0 w-full h-full overflow-hidden">
           <div className="w-full h-full relative">
@@ -33,19 +33,19 @@ export default function CTASection() {
             </div>
           </div>
           <a href="/sign-up">
-          <div className="w-full max-w-[497px] flex flex-col justify-center items-center gap-12">
-            <div className="flex justify-start items-center gap-4">
-              <div className="h-10 px-12 py-[6px] relative bg-[#37322F] shadow-[0px_0px_0px_2.5px_rgba(255,255,255,0.08)_inset] overflow-hidden rounded-full flex justify-center items-center cursor-pointer hover:bg-[#2A2520] transition-colors">
-                <div className="w-44 h-[41px] absolute left-0 top-0 bg-gradient-to-b from-[rgba(255,255,255,0)] to-[rgba(0,0,0,0.10)] mix-blend-multiply"></div>
-                <div className="flex flex-col justify-center text-white text-[13px] font-medium leading-5 font-sans">
-                  Get Started
+            <div className="w-full max-w-[497px] flex flex-col justify-center items-center gap-12">
+              <div className="flex justify-start items-center gap-4">
+                <div className="h-10 px-12 py-[6px] relative bg-[#37322F] shadow-[0px_0px_0px_2.5px_rgba(255,255,255,0.08)_inset] overflow-hidden rounded-full flex justify-center items-center cursor-pointer hover:bg-[#2A2520] transition-colors">
+                  <div className="w-44 h-[41px] absolute left-0 top-0 bg-gradient-to-b from-[rgba(255,255,255,0)] to-[rgba(0,0,0,0.10)] mix-blend-multiply"></div>
+                  <div className="flex flex-col justify-center text-white text-[13px] font-medium leading-5 font-sans">
+                    Get Started
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </a>
         </div>
       </div>
     </div>
-  )
+  );
 }

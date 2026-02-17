@@ -168,7 +168,7 @@
   "restoreDescription": "Restore your calendar data from a previous backup. This will replace your current data.",
   "password": "Password",
   "confirmPassword": "Confirm Password",
-  "enterPassword": "Enter a password",
+  "enterPassword": "Enter password",
   "confirmYourPassword": "Confirm your password",
   "passwordRequirements": "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
   "passwordRequirementsHint": "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
@@ -418,11 +418,9 @@
   "shareManagementLoadFailed": "Failed to load shared events",
   "shareDeleteFailed": "Delete Failed",
   "sharedOn": "Shared on:",
-  "deleteShare": "Delete Share",
   "deleteShareConfirmDescription": "Are you sure you want to delete this share? This action cannot be undone and the share link will no longer be accessible.",
   "enterSharePassword": "Enter Share Password",
   "sharePasswordDescription": "This share is password protected. Enter the password to view it.",
-  "enterPassword": "Enter password",
   "decrypt": "Decrypt",
   "decrypting": "Decrypting...",
   "decrypted": "Decrypted",
@@ -454,5 +452,7 @@
   "shareLinkHelp": "Anyone with this link can access the share page. If password protected, they must enter the password to view the content.",
   "shareQrGenerateFailed": "Failed to generate QR code",
   "done": "Done",
-  "protected": "Protected"
+  "protected": "Protected",
+  "colorAmber": "Amber",
+  "colorTeal": "Teal"
 }
