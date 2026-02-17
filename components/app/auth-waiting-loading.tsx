@@ -22,7 +22,7 @@ export default function AuthWaitingLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-6 dark:bg-black">
       <div className="flex flex-col items-center gap-5 text-center">
-        <Image src="/icon.svg" alt="One Calendar" width={84} height={84} priority />
+        <Image src="/icon.svg" alt="One Calendar" width={128} height={128} priority />
         <p className="text-sm text-slate-700 dark:text-slate-300">
           {t.loadingCalendar}{".".repeat(dotCount)}
         </p>
