@@ -3,24 +3,19 @@
 import { checkPendingNotifications, clearAllNotificationTimers, type NOTIFICATION_SOUNDS } from "@/lib/notifications"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { ChevronLeft, ChevronRight, Search, PanelLeft, BarChart2, Settings as SettingsIcon } from 'lucide-react'
+import dynamic from "next/dynamic"
 import { readEncryptedLocalStorage, useLocalStorage, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage"
 import UserProfileButton, { type UserProfileSection } from "@/components/app/profile/user-profile-button"
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useCalendar } from "@/components/providers/calendar-context"
-import AnalyticsView from "@/components/app/analytics/analytics-view"
 import RightSidebar from "@/components/app/sidebar/right-sidebar"
 import { addDays, addYears, subDays, subYears } from "date-fns"
 import EventPreview from "@/components/app/event/event-preview"
 import EventDialog from "@/components/app/event/event-dialog"
 import DailyToast from "@/components/app/profile/daily-toast"
-import MonthView from "@/components/app/views/month-view"
-import Settings from "@/components/app/profile/settings"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import WeekView from "@/components/app/views/week-view"
-import YearView from "@/components/app/views/year-view"
 import Sidebar from "@/components/app/sidebar/sidebar"
 import { translations, useLanguage } from "@/lib/i18n"
-import DayView from "@/components/app/views/day-view"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -35,6 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+
+const DayView = dynamic(() => import("@/components/app/views/day-view"))
+const WeekView = dynamic(() => import("@/components/app/views/week-view"))
+const MonthView = dynamic(() => import("@/components/app/views/month-view"))
+const YearView = dynamic(() => import("@/components/app/views/year-view"))
+const AnalyticsView = dynamic(() => import("@/components/app/analytics/analytics-view"))
+const Settings = dynamic(() => import("@/components/app/profile/settings"))
 
 type ViewType = "day" | "week" | "four-day" | "month" | "year" | "analytics" | "settings"
 
