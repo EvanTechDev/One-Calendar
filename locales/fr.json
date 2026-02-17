@@ -452,5 +452,7 @@
   "shareLinkHelp": "Toute personne disposant de ce lien peut accéder à la page de partage. S'il est protégé par mot de passe, elle devra le saisir pour voir le contenu.",
   "shareQrGenerateFailed": "Échec de la génération du code QR",
   "done": "Terminé",
-  "protected": "Protégé"
+  "protected": "Protégé",
+  "colorAmber": "Ambre",
+  "colorTeal": "Turquoise"
 }

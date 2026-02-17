@@ -452,5 +452,7 @@
   "shareLinkHelp": "Jeder mit diesem Link kann auf die Freigabeseite zugreifen. Wenn diese passwortgeschützt ist, muss das Passwort eingegeben werden, um den Inhalt zu sehen.",
   "shareQrGenerateFailed": "QR-Code konnte nicht generiert werden",
   "done": "Fertig",
-  "protected": "Geschützt"
+  "protected": "Geschützt",
+  "colorAmber": "Bernstein",
+  "colorTeal": "Türkis"
 }

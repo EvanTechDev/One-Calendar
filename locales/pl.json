@@ -452,5 +452,7 @@
   "shareLinkHelp": "Każdy, kto ma ten link, może uzyskać dostęp do strony udostępnienia. Jeśli jest chronione hasłem, muszą wprowadzić hasło, aby zobaczyć treść.",
   "shareQrGenerateFailed": "Nie udało się wygenerować kodu QR",
   "done": "Gotowe",
-  "protected": "Chronione"
+  "protected": "Chronione",
+  "colorAmber": "Bursztynowy",
+  "colorTeal": "Turkusowy"
 }

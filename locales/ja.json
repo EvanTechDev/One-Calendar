@@ -452,5 +452,7 @@
   "shareLinkHelp": "このリンクを持つ人は誰でも共有ページにアクセスできます。パスワード保護が設定されている場合は、パスワードを入力して内容を表示する必要があります。",
   "shareQrGenerateFailed": "QRコードの生成に失敗しました",
   "done": "完了",
-  "protected": "保護済み"
+  "protected": "保護済み",
+  "colorAmber": "琥珀色",
+  "colorTeal": "青緑"
 }

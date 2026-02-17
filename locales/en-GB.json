@@ -452,5 +452,7 @@
   "shareLinkHelp": "Anyone with this link can access the share page. If password protected, they must enter the password to view the content.",
   "shareQrGenerateFailed": "Failed to generate QR code",
   "done": "Done",
-  "protected": "Protected"
+  "protected": "Protected",
+  "colorAmber": "Amber",
+  "colorTeal": "Teal"
 }

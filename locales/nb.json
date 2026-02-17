@@ -452,5 +452,7 @@
   "shareLinkHelp": "Alle med denne lenken kan få tilgang til delingssiden. Hvis passordbeskyttet, må de skrive inn passordet for å se innholdet.",
   "shareQrGenerateFailed": "Kunne ikke generere QR-kode",
   "done": "Ferdig",
-  "protected": "Beskyttet"
+  "protected": "Beskyttet",
+  "colorAmber": "Rav",
+  "colorTeal": "Blågrønn"
 }

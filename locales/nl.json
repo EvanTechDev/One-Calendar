@@ -452,5 +452,7 @@
   "shareLinkHelp": "Iedereen met deze link kan de deelpagina openen. Als het beveiligd is met een wachtwoord, moeten ze het wachtwoord invoeren om de inhoud te bekijken.",
   "shareQrGenerateFailed": "Genereren van QR-code mislukt",
   "done": "Klaar",
-  "protected": "Beveiligd"
+  "protected": "Beveiligd",
+  "colorAmber": "Amber",
+  "colorTeal": "Blauwgroen"
 }

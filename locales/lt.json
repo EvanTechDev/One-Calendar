@@ -452,5 +452,7 @@
   "shareLinkHelp": "Bet kas, turintis šią nuorodą, galės pasiekti dalijimosi puslapį. Jei yra slaptažodžio apsauga, reikės įvesti slaptažodį, kad peržiūrėtų turinį.",
   "shareQrGenerateFailed": "Nepavyko sugeneruoti QR kodo.",
   "done": "Baigta",
-  "protected": "Apsaugota"
+  "protected": "Apsaugota",
+  "colorAmber": "Gintarinė",
+  "colorTeal": "Žalsvai mėlyna"
 }

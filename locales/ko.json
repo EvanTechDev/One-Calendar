@@ -452,5 +452,7 @@
   "shareLinkHelp": "이 링크를 가진 모든 사람이 공유 페이지에 액세스할 수 있습니다. 암호로 보호된 경우 콘텐츠를 보려면 암호를 입력해야 합니다.",
   "shareQrGenerateFailed": "QR 코드 생성 실패",
   "done": "완료",
-  "protected": "보호됨"
+  "protected": "보호됨",
+  "colorAmber": "호박색",
+  "colorTeal": "청록색"
 }

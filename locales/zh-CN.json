@@ -452,5 +452,7 @@
   "shareLinkHelp": "拥有此链接的任何人都可以访问分享页面。如已设置密码保护，需输入密码才能查看内容。",
   "shareQrGenerateFailed": "二维码生成失败",
   "done": "完成",
-  "protected": "已保护"
+  "protected": "已保护",
+  "colorAmber": "琥珀色",
+  "colorTeal": "蓝绿色"
 }

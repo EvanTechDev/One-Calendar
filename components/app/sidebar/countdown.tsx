@@ -26,7 +26,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, ArrowLeft, Edit2, Trash2, Calendar as CalendarIcon, Clock, Search } from "lucide-react";
+import {
+  Plus,
+  ArrowLeft,
+  Edit2,
+  Trash2,
+  Calendar as CalendarIcon,
+  Clock,
+  Search,
+} from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -48,7 +56,7 @@ interface CountdownToolProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type TranslationKey = keyof typeof translations["en"]
+type TranslationKey = keyof (typeof translations)["en"];
 
 const colorOptions: { value: string; labelKey: TranslationKey }[] = [
   { value: "bg-red-500", labelKey: "colorRed" },
@@ -62,37 +70,42 @@ const colorOptions: { value: string; labelKey: TranslationKey }[] = [
 ];
 
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
-  const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>("countdowns", []);
-  const [selectedCountdown, setSelectedCountdown] = useState<Countdown | null>(null);
+  const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>(
+    "countdowns",
+    [],
+  );
+  const [selectedCountdown, setSelectedCountdown] = useState<Countdown | null>(
+    null,
+  );
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
-    color: "bg-blue-500"
+    color: "bg-blue-500",
   });
   const [view, setView] = useState<"list" | "detail" | "edit">("list");
   const [language] = useLanguage();
   const t = translations[language];
   const isZh = isZhLanguage(language);
   const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
   const [calendarOpen, setCalendarOpen] = useState(false);
-
-  // useLocalStorage handles persistence.
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     };
     return date.toLocaleDateString(isZh ? "zh-CN" : "en-US", options);
   };
 
   const formatDateLong = (dateStr: string) => {
     const date = new Date(dateStr);
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     };
     return date.toLocaleDateString(isZh ? "zh-CN" : "en-US", options);
   };
@@ -100,9 +113,13 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const calculateDaysLeft = (dateStr: string, repeat: Countdown["repeat"]) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const targetDate = new Date(dateStr);
-    let nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    let nextDate = new Date(
+      today.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
 
     if (repeat === "weekly") {
       const targetDay = targetDate.getDay();
@@ -111,10 +128,18 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       nextDate = new Date(today);
       nextDate.setDate(today.getDate() + daysToAdd);
     } else if (repeat === "monthly") {
-      nextDate = new Date(today.getFullYear(), today.getMonth(), targetDate.getDate());
+      nextDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        targetDate.getDate(),
+      );
       if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
     } else if (repeat === "yearly") {
-      nextDate = new Date(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      nextDate = new Date(
+        today.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
       if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
     }
 
@@ -124,7 +149,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const getTodayDateString = () => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    return today.toISOString().split("T")[0];
   };
 
   const tRepeat = (key: Countdown["repeat"]) =>
@@ -133,7 +158,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       weekly: t.countdownRepeatWeekly,
       monthly: t.countdownRepeatMonthly,
       yearly: t.countdownRepeatYearly,
-    }[key]);
+    })[key];
 
   const startAddCountdown = () => {
     const today = new Date();
@@ -142,7 +167,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       date: getTodayDateString(),
       repeat: "none",
       description: "",
-      color: "bg-blue-500"
+      color: "bg-blue-500",
     });
     setSelectedDate(today);
     setSelectedCountdown(null);
@@ -167,20 +192,22 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const saveCountdown = () => {
     if (!newCountdown.name || !selectedDate || !newCountdown.color) return;
-    
+
     const countdown: Countdown = {
       id: selectedCountdown?.id || Date.now().toString(),
       name: newCountdown.name,
-      date: selectedDate.toISOString().split('T')[0],
+      date: selectedDate.toISOString().split("T")[0],
       repeat: newCountdown.repeat || "none",
       description: newCountdown.description || "",
-      color: newCountdown.color
+      color: newCountdown.color,
     };
 
     if (selectedCountdown) {
-      setCountdowns(prev => prev.map(c => c.id === countdown.id ? countdown : c));
+      setCountdowns((prev) =>
+        prev.map((c) => (c.id === countdown.id ? countdown : c)),
+      );
     } else {
-      setCountdowns(prev => [...prev, countdown]);
+      setCountdowns((prev) => [...prev, countdown]);
     }
 
     setView("list");
@@ -190,17 +217,19 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   };
 
   const deleteCountdown = (id: string) => {
-    setCountdowns(prev => prev.filter(c => c.id !== id));
+    setCountdowns((prev) => prev.filter((c) => c.id !== id));
     setView("list");
     setSelectedCountdown(null);
   };
 
-  // 渲染倒数日列表视图
   const renderCountdownListView = () => (
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle className="flex items-center gap-2"><ClockDashed className="h-4 w-4" />{t.countdownTitle}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <ClockDashed className="h-4 w-4" />
+            {t.countdownTitle}
+          </SheetTitle>
         </div>
       </SheetHeader>
       <div className="p-4">
@@ -230,14 +259,22 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           ) : (
             <div className="space-y-2">
               {countdowns
-                .filter((countdown) =>
-                  countdown.name.toLowerCase().includes(search.toLowerCase()) ||
-                  countdown.description?.toLowerCase().includes(search.toLowerCase())
+                .filter(
+                  (countdown) =>
+                    countdown.name
+                      .toLowerCase()
+                      .includes(search.toLowerCase()) ||
+                    countdown.description
+                      ?.toLowerCase()
+                      .includes(search.toLowerCase()),
                 )
                 .map((countdown) => {
-                  const daysLeft = calculateDaysLeft(countdown.date, countdown.repeat);
+                  const daysLeft = calculateDaysLeft(
+                    countdown.date,
+                    countdown.repeat,
+                  );
                   const formattedDate = formatDate(countdown.date);
-                  
+
                   return (
                     <div
                       key={countdown.id}
@@ -259,7 +296,9 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-lg font-bold ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}>
+                        <div
+                          className={`text-lg font-bold ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}
+                        >
                           {Math.abs(daysLeft)}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -276,17 +315,24 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     </>
   );
 
-  // 渲染倒数日详情视图
   const renderCountdownDetailView = () => {
     if (!selectedCountdown) return null;
-    const daysLeft = calculateDaysLeft(selectedCountdown.date, selectedCountdown.repeat);
+    const daysLeft = calculateDaysLeft(
+      selectedCountdown.date,
+      selectedCountdown.repeat,
+    );
     const formattedDate = formatDateLong(selectedCountdown.date);
 
     return (
       <>
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="mr-2" onClick={backToCountdownList}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2"
+              onClick={backToCountdownList}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <SheetTitle>{t.countdownDetails}</SheetTitle>
@@ -303,7 +349,9 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             </Avatar>
             <div>
               <h2 className="text-xl font-bold">{selectedCountdown.name}</h2>
-              <div className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}>
+              <div
+                className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}
+              >
                 {Math.abs(daysLeft)} {t.countdownDaysLeft}
               </div>
             </div>
@@ -331,17 +379,27 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">
                   {t.countdownDescription}
                 </h3>
-                <p className="whitespace-pre-wrap text-base">{selectedCountdown.description}</p>
+                <p className="whitespace-pre-wrap text-base">
+                  {selectedCountdown.description}
+                </p>
               </div>
             )}
           </div>
 
           <div className="flex space-x-2 mt-8">
-            <Button variant="outline" className="flex-1" onClick={() => startEditCountdown(selectedCountdown)}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => startEditCountdown(selectedCountdown)}
+            >
               <Edit2 className="mr-2 h-4 w-4" />
               {t.countdownEdit}
             </Button>
-            <Button variant="destructive" className="flex-1" onClick={() => deleteCountdown(selectedCountdown.id)}>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => deleteCountdown(selectedCountdown.id)}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               {t.countdownDelete}
             </Button>
@@ -351,7 +409,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     );
   };
 
-  // 渲染倒数日编辑视图
   const renderCountdownEditView = () => (
     <div className="h-full flex flex-col">
       <SheetHeader className="p-4 border-b">
@@ -382,14 +439,21 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Input
               id="name"
               value={newCountdown.name || ""}
-              onChange={(e) => setNewCountdown({ ...newCountdown, name: e.target.value })}
+              onChange={(e) =>
+                setNewCountdown({ ...newCountdown, name: e.target.value })
+              }
               required
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="color">{t.countdownColor}*</Label>
-            <Select value={newCountdown.color} onValueChange={(value) => setNewCountdown({ ...newCountdown, color: value })}>
+            <Select
+              value={newCountdown.color}
+              onValueChange={(value) =>
+                setNewCountdown({ ...newCountdown, color: value })
+              }
+            >
               <SelectTrigger id="color">
                 <SelectValue placeholder={t.countdownColor} />
               </SelectTrigger>
@@ -397,7 +461,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 {colorOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
-                      <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                      <div
+                        className={cn(
+                          "w-4 h-4 rounded-full mr-2",
+                          option.value,
+                        )}
+                      />
                       {t[option.labelKey]}
                     </div>
                   </SelectItem>
@@ -414,13 +483,13 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
+                    !selectedDate && "text-muted-foreground",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? (
-                    format(selectedDate, "PPP", { 
-                      locale: isZh ? zhCN : enUS
+                    format(selectedDate, "PPP", {
+                      locale: isZh ? zhCN : enUS,
                     })
                   ) : (
                     <span>{t.countdownSelectDate}</span>
@@ -468,7 +537,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Textarea
               id="description"
               value={newCountdown.description || ""}
-              onChange={(e) => setNewCountdown({ ...newCountdown, description: e.target.value })}
+              onChange={(e) =>
+                setNewCountdown({
+                  ...newCountdown,
+                  description: e.target.value,
+                })
+              }
               rows={3}
             />
           </div>
@@ -476,7 +550,10 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       </div>
       <div className="p-4 border-t flex justify-between">
         {selectedCountdown && (
-          <Button variant="destructive" onClick={() => deleteCountdown(selectedCountdown.id)}>
+          <Button
+            variant="destructive"
+            onClick={() => deleteCountdown(selectedCountdown.id)}
+          >
             {t.countdownDelete}
           </Button>
         )}
@@ -493,9 +570,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           >
             {t.countdownCancel}
           </Button>
-          <Button 
-            onClick={saveCountdown} 
-            disabled={!newCountdown.name || !selectedDate || !newCountdown.color}
+          <Button
+            onClick={saveCountdown}
+            disabled={
+              !newCountdown.name || !selectedDate || !newCountdown.color
+            }
           >
             {t.countdownSave}
           </Button>

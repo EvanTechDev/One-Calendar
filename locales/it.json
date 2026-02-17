@@ -452,5 +452,7 @@
   "shareLinkHelp": "Chiunque abbia questo link può accedere alla pagina di condivisione. Se protetto da password, devono inserire la password per visualizzare il contenuto.",
   "shareQrGenerateFailed": "Generazione codice QR fallita",
   "done": "Fatto",
-  "protected": "Protetto"
+  "protected": "Protetto",
+  "colorAmber": "Ambra",
+  "colorTeal": "Verde petrolio"
 }

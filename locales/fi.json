@@ -452,5 +452,7 @@
   "shareLinkHelp": "Kuka tahansa, jolla on tämä linkki, voi käyttää jakosivua. Jos salasana on käytössä, heidän on syötettävä salasana nähdäkseen sisällön.",
   "shareQrGenerateFailed": "QR-koodin luonti epäonnistui",
   "done": "Valmis",
-  "protected": "Suojattu"
+  "protected": "Suojattu",
+  "colorAmber": "Meripihka",
+  "colorTeal": "Sinivihreä"
 }

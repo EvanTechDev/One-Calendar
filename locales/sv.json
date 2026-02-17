@@ -452,5 +452,7 @@
   "shareLinkHelp": "Vem som helst med denna länk kan komma åt delningssidan. Om lösenordsskyddad måste de ange lösenordet för att se innehållet.",
   "shareQrGenerateFailed": "Misslyckades med att generera QR-kod",
   "done": "Klar",
-  "protected": "Skyddad"
+  "protected": "Skyddad",
+  "colorAmber": "Bärnsten",
+  "colorTeal": "Blågrön"
 }

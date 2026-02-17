@@ -452,5 +452,7 @@
   "shareLinkHelp": "Bất kỳ ai có liên kết này đều có thể truy cập trang chia sẻ. Nếu được bảo vệ bằng mật khẩu, họ phải nhập mật khẩu để xem nội dung.",
   "shareQrGenerateFailed": "Không thể tạo mã QR",
   "done": "Hoàn tất",
-  "protected": "Được bảo vệ"
+  "protected": "Được bảo vệ",
+  "colorAmber": "Hổ phách",
+  "colorTeal": "Xanh mòng két"
 }

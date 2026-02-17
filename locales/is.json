@@ -452,5 +452,7 @@
   "shareLinkHelp": "Allir sem hafa þennan hlekk geta nálgast deilingarsíðuna. Ef lykilorðsvernd er virk, verða þeir að slá inn lykilorðið til að sjá innihaldið.",
   "shareQrGenerateFailed": "Tókst ekki að búa til QR-kóða",
   "done": "Lokið",
-  "protected": "Verndað"
+  "protected": "Verndað",
+  "colorAmber": "Rafgulur",
+  "colorTeal": "Blágrænn"
 }
