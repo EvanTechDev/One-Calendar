@@ -46,7 +46,6 @@ import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 import {
   clearEncryptionPassword,
@@ -509,7 +508,15 @@ export default function UserProfileButton({
           <DropdownMenuTrigger asChild>
             {isSignedIn && user?.imageUrl ? (
               <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
-                <Image src={user.imageUrl} alt="avatar" width={32} height={32} className="rounded-full object-cover" />
+                <img
+                  src={user.imageUrl}
+                  alt="avatar"
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
               </Button>
             ) : (
               <Button variant={variant} size="icon" className={`rounded-full h-10 w-10 ${className}`}>
@@ -573,12 +580,14 @@ export default function UserProfileButton({
           {isSignedIn ? (
             <>
               <div className="flex items-center gap-3">
-                <Image
+                <img
                   src={user?.imageUrl || "/placeholder.svg"}
                   alt="avatar"
                   width={40}
                   height={40}
                   className="h-10 w-10 rounded-full border object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0">
                   <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User"}</p>
@@ -667,12 +676,14 @@ export default function UserProfileButton({
                 <div className="space-y-2">
                   <Label>{t.avatar}</Label>
                   <div className="flex items-center gap-3">
-                    <Image
+                    <img
                       src={user?.imageUrl || "/placeholder.svg"}
                       alt="avatar"
                       width={52}
                       height={52}
                       className="h-12 w-12 rounded-full border object-cover"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
                     />
                     <Label
                       htmlFor="profile-avatar-input"
