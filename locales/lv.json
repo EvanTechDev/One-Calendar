@@ -454,5 +454,29 @@
   "done": "Pabeigts",
   "protected": "Aizsargāts",
   "colorAmber": "Dzintara",
-  "colorTeal": "Zilganzaļa"
+  "colorTeal": "Zilganzaļa",
+  "sidebarCalendarWeekdaysShort": [
+    "Svētd.",
+    "Pirmd.",
+    "Otrd.",
+    "Trešd.",
+    "Ceturtd.",
+    "Piektd.",
+    "Sestd."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "janvāris",
+    "februāris",
+    "marts",
+    "aprīlis",
+    "maijs",
+    "jūnijs",
+    "jūlijs",
+    "augusts",
+    "septembris",
+    "oktobris",
+    "novembris",
+    "decembris"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{year}}. g. {{month}}"
 }

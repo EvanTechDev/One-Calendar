@@ -454,5 +454,29 @@
   "done": "Lokið",
   "protected": "Verndað",
   "colorAmber": "Rafgulur",
-  "colorTeal": "Blágrænn"
+  "colorTeal": "Blágrænn",
+  "sidebarCalendarWeekdaysShort": [
+    "sun.",
+    "mán.",
+    "þri.",
+    "mið.",
+    "fim.",
+    "fös.",
+    "lau."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "janúar",
+    "febrúar",
+    "mars",
+    "apríl",
+    "maí",
+    "júní",
+    "júlí",
+    "ágúst",
+    "september",
+    "október",
+    "nóvember",
+    "desember"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

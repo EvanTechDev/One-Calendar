@@ -454,5 +454,29 @@
   "done": "Готово",
   "protected": "Заштитено",
   "colorAmber": "Килибарна",
-  "colorTeal": "Тиркизна"
+  "colorTeal": "Тиркизна",
+  "sidebarCalendarWeekdaysShort": [
+    "нед.",
+    "пон.",
+    "вто.",
+    "сре.",
+    "чет.",
+    "пет.",
+    "саб."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "јануари",
+    "февруари",
+    "март",
+    "април",
+    "мај",
+    "јуни",
+    "јули",
+    "август",
+    "септември",
+    "октомври",
+    "ноември",
+    "декември"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г."
 }

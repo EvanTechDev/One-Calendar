@@ -454,5 +454,29 @@
   "done": "Готово",
   "protected": "Защищено",
   "colorAmber": "Янтарный",
-  "colorTeal": "Бирюзовый"
+  "colorTeal": "Бирюзовый",
+  "sidebarCalendarWeekdaysShort": [
+    "вс",
+    "пн",
+    "вт",
+    "ср",
+    "чт",
+    "пт",
+    "сб"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г."
 }

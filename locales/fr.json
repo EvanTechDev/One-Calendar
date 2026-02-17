@@ -454,5 +454,29 @@
   "done": "Terminé",
   "protected": "Protégé",
   "colorAmber": "Ambre",
-  "colorTeal": "Turquoise"
+  "colorTeal": "Turquoise",
+  "sidebarCalendarWeekdaysShort": [
+    "dim.",
+    "lun.",
+    "mar.",
+    "mer.",
+    "jeu.",
+    "ven.",
+    "sam."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

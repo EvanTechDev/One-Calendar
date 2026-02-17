@@ -454,5 +454,29 @@
   "done": "Concluído",
   "protected": "Protegido",
   "colorAmber": "Âmbar",
-  "colorTeal": "Verde-azulado"
+  "colorTeal": "Verde-azulado",
+  "sidebarCalendarWeekdaysShort": [
+    "dom.",
+    "seg.",
+    "ter.",
+    "qua.",
+    "qui.",
+    "sex.",
+    "sáb."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} de {{year}}"
 }

@@ -454,5 +454,29 @@
   "done": "Baigta",
   "protected": "Apsaugota",
   "colorAmber": "Gintarinė",
-  "colorTeal": "Žalsvai mėlyna"
+  "colorTeal": "Žalsvai mėlyna",
+  "sidebarCalendarWeekdaysShort": [
+    "sk",
+    "pr",
+    "an",
+    "tr",
+    "kt",
+    "pn",
+    "št"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "sausis",
+    "vasaris",
+    "kovas",
+    "balandis",
+    "gegužė",
+    "birželis",
+    "liepa",
+    "rugpjūtis",
+    "rugsėjis",
+    "spalis",
+    "lapkritis",
+    "gruodis"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{year}} m. {{month}}"
 }

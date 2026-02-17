@@ -454,5 +454,29 @@
   "done": "Klar",
   "protected": "Skyddad",
   "colorAmber": "Bärnsten",
-  "colorTeal": "Blågrön"
+  "colorTeal": "Blågrön",
+  "sidebarCalendarWeekdaysShort": [
+    "sön",
+    "mån",
+    "tis",
+    "ons",
+    "tors",
+    "fre",
+    "lör"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "januari",
+    "februari",
+    "mars",
+    "april",
+    "maj",
+    "juni",
+    "juli",
+    "augusti",
+    "september",
+    "oktober",
+    "november",
+    "december"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

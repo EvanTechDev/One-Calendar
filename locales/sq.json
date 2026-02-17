@@ -454,5 +454,29 @@
   "done": "Përfunduar",
   "protected": "I mbrojtur",
   "colorAmber": "Qelibar",
-  "colorTeal": "Blu-jeshile"
+  "colorTeal": "Blu-jeshile",
+  "sidebarCalendarWeekdaysShort": [
+    "die",
+    "hën",
+    "mar",
+    "mër",
+    "enj",
+    "pre",
+    "sht"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "janar",
+    "shkurt",
+    "mars",
+    "prill",
+    "maj",
+    "qershor",
+    "korrik",
+    "gusht",
+    "shtator",
+    "tetor",
+    "nëntor",
+    "dhjetor"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

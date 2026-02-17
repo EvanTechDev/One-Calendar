@@ -454,5 +454,29 @@
   "done": "Gotowe",
   "protected": "Chronione",
   "colorAmber": "Bursztynowy",
-  "colorTeal": "Turkusowy"
+  "colorTeal": "Turkusowy",
+  "sidebarCalendarWeekdaysShort": [
+    "niedz.",
+    "pon.",
+    "wt.",
+    "śr.",
+    "czw.",
+    "pt.",
+    "sob."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "styczeń",
+    "luty",
+    "marzec",
+    "kwiecień",
+    "maj",
+    "czerwiec",
+    "lipiec",
+    "sierpień",
+    "wrzesień",
+    "październik",
+    "listopad",
+    "grudzień"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

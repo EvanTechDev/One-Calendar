@@ -454,5 +454,29 @@
   "done": "完成",
   "protected": "已保护",
   "colorAmber": "琥珀色",
-  "colorTeal": "蓝绿色"
+  "colorTeal": "蓝绿色",
+  "sidebarCalendarWeekdaysShort": [
+    "周日",
+    "周一",
+    "周二",
+    "周三",
+    "周四",
+    "周五",
+    "周六"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "一月",
+    "二月",
+    "三月",
+    "四月",
+    "五月",
+    "六月",
+    "七月",
+    "八月",
+    "九月",
+    "十月",
+    "十一月",
+    "十二月"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}月"
 }

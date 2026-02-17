@@ -454,5 +454,29 @@
   "done": "Fatto",
   "protected": "Protetto",
   "colorAmber": "Ambra",
-  "colorTeal": "Verde petrolio"
+  "colorTeal": "Verde petrolio",
+  "sidebarCalendarWeekdaysShort": [
+    "dom",
+    "lun",
+    "mar",
+    "mer",
+    "gio",
+    "ven",
+    "sab"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

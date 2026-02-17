@@ -454,5 +454,29 @@
   "done": "Ferdig",
   "protected": "Beskyttet",
   "colorAmber": "Rav",
-  "colorTeal": "Blågrønn"
+  "colorTeal": "Blågrønn",
+  "sidebarCalendarWeekdaysShort": [
+    "søn.",
+    "man.",
+    "tir.",
+    "ons.",
+    "tor.",
+    "fre.",
+    "lør."
+  ],
+  "sidebarCalendarMonthsLong": [
+    "januar",
+    "februar",
+    "mars",
+    "april",
+    "mai",
+    "juni",
+    "juli",
+    "august",
+    "september",
+    "oktober",
+    "november",
+    "desember"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }

@@ -454,5 +454,29 @@
   "done": "Valmis",
   "protected": "Suojattu",
   "colorAmber": "Meripihka",
-  "colorTeal": "Sinivihreä"
+  "colorTeal": "Sinivihreä",
+  "sidebarCalendarWeekdaysShort": [
+    "su",
+    "ma",
+    "ti",
+    "ke",
+    "to",
+    "pe",
+    "la"
+  ],
+  "sidebarCalendarMonthsLong": [
+    "tammikuu",
+    "helmikuu",
+    "maaliskuu",
+    "huhtikuu",
+    "toukokuu",
+    "kesäkuu",
+    "heinäkuu",
+    "elokuu",
+    "syyskuu",
+    "lokakuu",
+    "marraskuu",
+    "joulukuu"
+  ],
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
 }
