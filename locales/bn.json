@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "উপলব্ধ শর্টকাট",
   "commandDeleteCategory": "মুছুন ক্যাটাগরির নাম",
   "commandGroupHelp": "অ্যাকাউন্ট",
-  "commandContactSupport": "অ্যাকাউন্ট",
-  "commandSendFeedback": "বিবরণ",
-  "commandCalendarStatus": "ক্যালেন্ডার"
+  "commandContactSupport": "সাপোর্টে যোগাযোগ করুন",
+  "commandSendFeedback": "ফিডব্যাক পাঠান",
+  "commandCalendarStatus": "ক্যালেন্ডারের অবস্থা"
 }

@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Mevcut Kısayollar",
   "commandDeleteCategory": "Sil Kategori Adı",
   "commandGroupHelp": "Hesap",
-  "commandContactSupport": "Hesap",
-  "commandSendFeedback": "Açıklama",
-  "commandCalendarStatus": "Takvim"
+  "commandContactSupport": "Destek ile iletişime geç",
+  "commandSendFeedback": "Geri bildirim gönder",
+  "commandCalendarStatus": "Takvim durumu"
 }

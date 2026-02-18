@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Beschikbare sneltoetsen",
   "commandDeleteCategory": "Verwijderen Categorienaam",
   "commandGroupHelp": "Account",
-  "commandContactSupport": "Account",
-  "commandSendFeedback": "Beschrijving",
-  "commandCalendarStatus": "Agenda"
+  "commandContactSupport": "Contact opnemen met support",
+  "commandSendFeedback": "Feedback verzenden",
+  "commandCalendarStatus": "Kalenderstatus"
 }

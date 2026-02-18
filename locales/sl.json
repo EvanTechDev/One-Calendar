@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Razpoložljive bližnjice",
   "commandDeleteCategory": "Izbriši Ime kategorije",
   "commandGroupHelp": "Račun",
-  "commandContactSupport": "Račun",
-  "commandSendFeedback": "Opis",
-  "commandCalendarStatus": "Koledar"
+  "commandContactSupport": "Kontaktiraj podporo",
+  "commandSendFeedback": "Pošlji povratne informacije",
+  "commandCalendarStatus": "Stanje koledarja"
 }

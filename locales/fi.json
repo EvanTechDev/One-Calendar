@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Käytettävissä olevat pikanäppäimet",
   "commandDeleteCategory": "Poista Kategorian nimi",
   "commandGroupHelp": "Tili",
-  "commandContactSupport": "Tili",
-  "commandSendFeedback": "Kuvaus",
-  "commandCalendarStatus": "Kalenteri"
+  "commandContactSupport": "Ota yhteyttä tukeen",
+  "commandSendFeedback": "Lähetä palautetta",
+  "commandCalendarStatus": "Kalenterin tila"
 }

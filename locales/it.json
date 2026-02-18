@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Scorciatoie Disponibili",
   "commandDeleteCategory": "Elimina Nome Categoria",
   "commandGroupHelp": "Account",
-  "commandContactSupport": "Account",
-  "commandSendFeedback": "Descrizione",
-  "commandCalendarStatus": "Calendario"
+  "commandContactSupport": "Contatta il supporto",
+  "commandSendFeedback": "Invia feedback",
+  "commandCalendarStatus": "Stato del calendario"
 }

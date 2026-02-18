@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Доступні скорочення",
   "commandDeleteCategory": "Видалити Назва категорії",
   "commandGroupHelp": "Акаунт",
-  "commandContactSupport": "Акаунт",
-  "commandSendFeedback": "Опис",
-  "commandCalendarStatus": "Календар"
+  "commandContactSupport": "Зв’язатися з підтримкою",
+  "commandSendFeedback": "Надіслати відгук",
+  "commandCalendarStatus": "Статус календаря"
 }

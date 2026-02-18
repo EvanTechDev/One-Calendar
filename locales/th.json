@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "ทางลัดที่ใช้ได้",
   "commandDeleteCategory": "ลบ ชื่อหมวดหมู่",
   "commandGroupHelp": "บัญชี",
-  "commandContactSupport": "บัญชี",
-  "commandSendFeedback": "คำอธิบาย",
-  "commandCalendarStatus": "ปฏิทิน"
+  "commandContactSupport": "ติดต่อฝ่ายสนับสนุน",
+  "commandSendFeedback": "ส่งข้อเสนอแนะ",
+  "commandCalendarStatus": "สถานะปฏิทิน"
 }

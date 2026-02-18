@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Tillgängliga genvägar",
   "commandDeleteCategory": "Ta bort Kategorinamn",
   "commandGroupHelp": "Konto",
-  "commandContactSupport": "Konto",
-  "commandSendFeedback": "Beskrivning",
-  "commandCalendarStatus": "Kalender"
+  "commandContactSupport": "Kontakta support",
+  "commandSendFeedback": "Skicka feedback",
+  "commandCalendarStatus": "Kalenderstatus"
 }

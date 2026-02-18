@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Dostupne prečice",
   "commandDeleteCategory": "Obriši Naziv kategorije",
   "commandGroupHelp": "Nalog",
-  "commandContactSupport": "Nalog",
-  "commandSendFeedback": "Opis",
-  "commandCalendarStatus": "Kalendar"
+  "commandContactSupport": "Контактирај подршку",
+  "commandSendFeedback": "Пошаљи повратне информације",
+  "commandCalendarStatus": "Статус календара"
 }

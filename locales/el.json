@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Διαθέσιμες Συντμήσεις",
   "commandDeleteCategory": "Διαγραφή Όνομα Κατηγορίας",
   "commandGroupHelp": "Λογαριασμός",
-  "commandContactSupport": "Λογαριασμός",
-  "commandSendFeedback": "Περιγραφή",
-  "commandCalendarStatus": "Ημερολόγιο"
+  "commandContactSupport": "Επικοινωνία με υποστήριξη",
+  "commandSendFeedback": "Αποστολή σχολίων",
+  "commandCalendarStatus": "Κατάσταση ημερολογίου"
 }

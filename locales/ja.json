@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "利用可能なショートカット",
   "commandDeleteCategory": "削除 カテゴリ名",
   "commandGroupHelp": "アカウント",
-  "commandContactSupport": "アカウント",
-  "commandSendFeedback": "説明",
-  "commandCalendarStatus": "カレンダー"
+  "commandContactSupport": "サポートに連絡",
+  "commandSendFeedback": "フィードバックを送信",
+  "commandCalendarStatus": "カレンダーステータス"
 }

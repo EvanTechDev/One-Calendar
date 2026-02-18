@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Shkurtore të Disponueshme",
   "commandDeleteCategory": "Fshi Emri i Kategorisë",
   "commandGroupHelp": "Llogari",
-  "commandContactSupport": "Llogari",
-  "commandSendFeedback": "Përshkrimi",
-  "commandCalendarStatus": "Kalendari"
+  "commandContactSupport": "Kontakto mbështetjen",
+  "commandSendFeedback": "Dërgo komente",
+  "commandCalendarStatus": "Statusi i kalendarit"
 }

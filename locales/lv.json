@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Pieejamās saīsnes",
   "commandDeleteCategory": "Dzēst Kategorijas nosaukums",
   "commandGroupHelp": "Konts",
-  "commandContactSupport": "Konts",
-  "commandSendFeedback": "Apraksts",
-  "commandCalendarStatus": "Kalendārs"
+  "commandContactSupport": "Sazināties ar atbalstu",
+  "commandSendFeedback": "Nosūtīt atsauksmes",
+  "commandCalendarStatus": "Kalendāra statuss"
 }

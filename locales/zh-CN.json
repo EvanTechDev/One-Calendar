@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "可用快捷键",
   "commandDeleteCategory": "删除 分类名称",
   "commandGroupHelp": "账户",
-  "commandContactSupport": "账户",
-  "commandSendFeedback": "描述",
-  "commandCalendarStatus": "日历"
+  "commandContactSupport": "联系支持",
+  "commandSendFeedback": "发送反馈",
+  "commandCalendarStatus": "日历状态"
 }

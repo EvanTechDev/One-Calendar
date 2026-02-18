@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Достапни кратенки",
   "commandDeleteCategory": "Избриши Име на категорија",
   "commandGroupHelp": "Сметка",
-  "commandContactSupport": "Сметка",
-  "commandSendFeedback": "Опис",
-  "commandCalendarStatus": "Календар"
+  "commandContactSupport": "Контактирај поддршка",
+  "commandSendFeedback": "Испрати повратни информации",
+  "commandCalendarStatus": "Статус на календар"
 }

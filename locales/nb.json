@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Tilgjengelige hurtigtaster",
   "commandDeleteCategory": "Slett Kategorinavn",
   "commandGroupHelp": "Konto",
-  "commandContactSupport": "Konto",
-  "commandSendFeedback": "Beskrivelse",
-  "commandCalendarStatus": "Kalender"
+  "commandContactSupport": "Kontakt support",
+  "commandSendFeedback": "Send tilbakemelding",
+  "commandCalendarStatus": "Kalenderstatus"
 }

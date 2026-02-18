@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "उपलब्ध शॉर्टकट",
   "commandDeleteCategory": "हटाएं श्रेणी का नाम",
   "commandGroupHelp": "खाता",
-  "commandContactSupport": "खाता",
-  "commandSendFeedback": "विवरण",
-  "commandCalendarStatus": "कैलेंडर"
+  "commandContactSupport": "सपोर्ट से संपर्क करें",
+  "commandSendFeedback": "फ़ीडबैक भेजें",
+  "commandCalendarStatus": "कैलेंडर स्थिति"
 }

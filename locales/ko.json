@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "사용 가능한 단축키",
   "commandDeleteCategory": "삭제 카테고리 이름",
   "commandGroupHelp": "계정",
-  "commandContactSupport": "계정",
-  "commandSendFeedback": "설명",
-  "commandCalendarStatus": "달력"
+  "commandContactSupport": "지원팀에 문의",
+  "commandSendFeedback": "피드백 보내기",
+  "commandCalendarStatus": "캘린더 상태"
 }

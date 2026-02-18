@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Dostępne skróty",
   "commandDeleteCategory": "Usuń Nazwa kategorii",
   "commandGroupHelp": "Konto",
-  "commandContactSupport": "Konto",
-  "commandSendFeedback": "Opis",
-  "commandCalendarStatus": "Kalendarz"
+  "commandContactSupport": "Skontaktuj się ze wsparciem",
+  "commandSendFeedback": "Wyślij opinię",
+  "commandCalendarStatus": "Status kalendarza"
 }

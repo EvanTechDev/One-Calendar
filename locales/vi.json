@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Phím tắt khả dụng",
   "commandDeleteCategory": "Xóa Tên danh mục",
   "commandGroupHelp": "Tài khoản",
-  "commandContactSupport": "Tài khoản",
-  "commandSendFeedback": "Mô tả",
-  "commandCalendarStatus": "Lịch"
+  "commandContactSupport": "Liên hệ hỗ trợ",
+  "commandSendFeedback": "Gửi phản hồi",
+  "commandCalendarStatus": "Trạng thái lịch"
 }

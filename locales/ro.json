@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Comenzi rapide disponibile",
   "commandDeleteCategory": "Șterge Nume categorie",
   "commandGroupHelp": "Cont",
-  "commandContactSupport": "Cont",
-  "commandSendFeedback": "Descriere",
-  "commandCalendarStatus": "Calendar"
+  "commandContactSupport": "Contactează suportul",
+  "commandSendFeedback": "Trimite feedback",
+  "commandCalendarStatus": "Starea calendarului"
 }

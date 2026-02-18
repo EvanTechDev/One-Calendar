@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Verfügbare Tastenkürzel",
   "commandDeleteCategory": "Löschen Kategoriename",
   "commandGroupHelp": "Konto",
-  "commandContactSupport": "Konto",
-  "commandSendFeedback": "Beschreibung",
-  "commandCalendarStatus": "Kalender"
+  "commandContactSupport": "Support kontaktieren",
+  "commandSendFeedback": "Feedback senden",
+  "commandCalendarStatus": "Kalenderstatus"
 }

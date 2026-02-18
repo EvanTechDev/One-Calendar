@@ -43,6 +43,7 @@ import {
   Palette,
   SunMoon,
   Clock3,
+  SortAsc,
   BellRing,
   LogOut,
   LifeBuoy,
@@ -110,6 +111,17 @@ const MonthView = dynamic(loadMonthView);
 const YearView = dynamic(loadYearView);
 const AnalyticsView = dynamic(loadAnalyticsView);
 const Settings = dynamic(loadSettings);
+
+type EventCommandAction =
+  | "create-share"
+  | "edit"
+  | "delete"
+  | "duplicate"
+  | "copy-title"
+  | "bookmark-add"
+  | "bookmark-remove";
+
+type SharedCommandAction = "copy-shared-link" | "delete-share";
 
 type ViewType =
   | "day"
@@ -187,7 +199,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     | "default-view"
     | "shortcuts"
     | "calendar-view"
+    | "event-selector"
+    | "shared-selector"
   >("root");
+  const [eventCommandAction, setEventCommandAction] =
+    useState<EventCommandAction | null>(null);
+  const [sharedCommandAction, setSharedCommandAction] =
+    useState<SharedCommandAction | null>(null);
+  const [eventSortMode, setEventSortMode] = useState<"time" | "title">("time");
+  const [sharedEvents, setSharedEvents] = useState<any[]>([]);
+  const [sharedSortMode, setSharedSortMode] = useState<"time" | "title">("time");
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -421,8 +442,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setIsCommandOpen(false);
   };
 
-  const togglePrimaryBookmark = async (mode: "add" | "remove") => {
-    const event = getPrimaryEvent();
+  const togglePrimaryBookmark = async (mode: "add" | "remove", providedEvent?: CalendarEvent) => {
+    const event = providedEvent ?? getPrimaryEvent();
     if (!event) {
       toast.error(t.commandNeedEvent || "Please select an event first");
       return;
@@ -584,6 +605,131 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const openDefaultViewCommandMode = () => setCommandMode("default-view");
   const openShortcutsCommandMode = () => setCommandMode("shortcuts");
   const openCalendarViewCommandMode = () => setCommandMode("calendar-view");
+
+  const openEventSelector = (action: EventCommandAction) => {
+    setEventCommandAction(action);
+    setEventSortMode("time");
+    setCommandMode("event-selector");
+  };
+
+  const openSharedSelector = async (action: SharedCommandAction) => {
+    const storedShares = await readEncryptedLocalStorage<any[]>(
+      "shared-events",
+      [],
+    );
+    setSharedEvents(storedShares || []);
+    setSharedSortMode("time");
+    setSharedCommandAction(action);
+    setCommandMode("shared-selector");
+  };
+
+  const runEventCommandAction = async (event: CalendarEvent) => {
+    if (!eventCommandAction) return;
+
+    if (eventCommandAction === "create-share") {
+      openEventForShare(event);
+      return;
+    }
+
+    if (eventCommandAction === "edit") {
+      setPreviewEvent(event);
+      setSelectedEvent(event);
+      setQuickCreateStartTime(null);
+      setPreviewOpen(false);
+      setEventDialogOpen(true);
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (eventCommandAction === "delete") {
+      handleEventDelete(event.id);
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (eventCommandAction === "duplicate") {
+      handleEventDuplicate(event);
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (eventCommandAction === "copy-title") {
+      await navigator.clipboard.writeText(event.title || t.unnamedEvent);
+      toast.success(t.commandTitleCopied || "Event title copied");
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (eventCommandAction === "bookmark-add") {
+      await togglePrimaryBookmark("add", event);
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (eventCommandAction === "bookmark-remove") {
+      await togglePrimaryBookmark("remove", event);
+      setIsCommandOpen(false);
+    }
+  };
+
+  const runSharedCommandAction = async (share: any) => {
+    if (!sharedCommandAction) return;
+
+    if (sharedCommandAction === "copy-shared-link") {
+      if (!share?.shareLink) {
+        toast.error(t.commandNoSharedLink || "No shared link found for this event");
+        return;
+      }
+      await navigator.clipboard.writeText(share.shareLink);
+      toast.success(t.linkCopied);
+      setIsCommandOpen(false);
+      return;
+    }
+
+    if (sharedCommandAction === "delete-share") {
+      try {
+        const res = await fetch("/api/share", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: share.id }),
+        });
+        if (!res.ok) throw new Error("Failed to delete share");
+
+        const current = await readEncryptedLocalStorage<any[]>("shared-events", []);
+        const next = current.filter((item) => item.id !== share.id);
+        await writeEncryptedLocalStorage("shared-events", next);
+        setSharedEvents(next);
+        toast.success(t.shareDeleted);
+        setIsCommandOpen(false);
+      } catch {
+        toast.error(t.shareDeleteFailed || "Failed to delete share");
+      }
+    }
+  };
+
+  const sortedCommandEvents = useMemo(() => {
+    const items = [...events];
+    if (eventSortMode === "title") {
+      return items.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    }
+    return items.sort(
+      (a, b) =>
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+    );
+  }, [events, eventSortMode]);
+
+  const sortedSharedCommandEvents = useMemo(() => {
+    const items = [...sharedEvents];
+    if (sharedSortMode === "title") {
+      return items.sort((a, b) =>
+        (a.eventTitle || "").localeCompare(b.eventTitle || ""),
+      );
+    }
+    return items.sort(
+      (a, b) =>
+        new Date(a.shareDate || 0).getTime() - new Date(b.shareDate || 0).getTime(),
+    );
+  }, [sharedEvents, sharedSortMode]);
 
   const toggleShortcuts = (enabled: boolean) => {
     setEnableShortcuts(enabled);
@@ -1323,6 +1469,38 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <CommandItem onSelect={() => handleSetView("settings")}><UserRoundCog className="h-4 w-4" /><span>{t.settings}</span></CommandItem>
               </CommandGroup>
             </CommandList>
+          ) : commandMode === "event-selector" ? (
+            <CommandList>
+              <CommandGroup heading={t.events}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => setEventSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span></CommandItem>
+                <CommandItem onSelect={() => setEventSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span></CommandItem>
+              </CommandGroup>
+              <CommandGroup heading={t.selectCalendar}>
+                {sortedCommandEvents.map((event) => (
+                  <CommandItem key={event.id} onSelect={() => runEventCommandAction(event)}>
+                    <CalendarDays className="h-4 w-4" />
+                    <span>{event.title || t.unnamedEvent}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "shared-selector" ? (
+            <CommandList>
+              <CommandGroup heading={t.share}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => setSharedSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span></CommandItem>
+                <CommandItem onSelect={() => setSharedSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span></CommandItem>
+              </CommandGroup>
+              <CommandGroup heading={t.manageShares}>
+                {sortedSharedCommandEvents.map((share) => (
+                  <CommandItem key={share.id} onSelect={() => runSharedCommandAction(share)}>
+                    <Link2 className="h-4 w-4" />
+                    <span>{share.eventTitle || t.unnamedEvent}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
           ) : (
           <CommandList>
             <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
@@ -1337,45 +1515,45 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <FolderPlus className="h-4 w-4" />
                 <span>{t.addCategory}</span>
               </CommandItem>
-              <CommandItem onSelect={() => openEventForShare(getPrimaryEvent())}>
+              <CommandItem onSelect={() => openEventSelector("create-share")}>
                 <Share2 className="h-4 w-4" />
                 <span>{t.shareEvent}</span>
               </CommandItem>
             </CommandGroup>
 
             <CommandGroup heading={t.events}>
-              <CommandItem onSelect={editPrimaryEvent}>
+              <CommandItem onSelect={() => openEventSelector("edit")}>
                 <Pencil className="h-4 w-4" />
                 <span>{t.update}</span>
               </CommandItem>
-              <CommandItem onSelect={deletePrimaryEvent}>
+              <CommandItem onSelect={() => openEventSelector("delete")}>
                 <Trash2 className="h-4 w-4" />
                 <span>{t.delete}</span>
               </CommandItem>
-              <CommandItem onSelect={duplicatePrimaryEvent}>
+              <CommandItem onSelect={() => openEventSelector("duplicate")}>
                 <Copy className="h-4 w-4" />
                 <span>{t.copy || "Copy"} {t.title || "Title"}</span>
               </CommandItem>
-              <CommandItem onSelect={copyPrimaryEventTitle}>
+              <CommandItem onSelect={() => openEventSelector("copy-title")}>
                 <Copy className="h-4 w-4" />
                 <span>{`${t.copy} ${t.title}`}</span>
               </CommandItem>
-              <CommandItem onSelect={() => togglePrimaryBookmark("add")}>
+              <CommandItem onSelect={() => openEventSelector("bookmark-add")}>
                 <BookmarkPlus className="h-4 w-4" />
                 <span>{t.bookmark}</span>
               </CommandItem>
-              <CommandItem onSelect={() => togglePrimaryBookmark("remove")}>
+              <CommandItem onSelect={() => openEventSelector("bookmark-remove")}>
                 <BookmarkX className="h-4 w-4" />
                 <span>{t.unbookmark}</span>
               </CommandItem>
             </CommandGroup>
 
             <CommandGroup heading={t.share}>
-              <CommandItem onSelect={copyPrimarySharedLink}>
+              <CommandItem onSelect={() => openSharedSelector("copy-shared-link")}>
                 <Link2 className="h-4 w-4" />
                 <span>{t.copyLink}</span>
               </CommandItem>
-              <CommandItem onSelect={deletePrimaryShare}>
+              <CommandItem onSelect={() => openSharedSelector("delete-share")}>
                 <Trash2 className="h-4 w-4" />
                 <span>{t.deleteShare}</span>
               </CommandItem>

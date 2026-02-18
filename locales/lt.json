@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Prieinami spartieji klavišai",
   "commandDeleteCategory": "Ištrinti Kategorijos pavadinimas",
   "commandGroupHelp": "Paskyra",
-  "commandContactSupport": "Paskyra",
-  "commandSendFeedback": "Aprašymas",
-  "commandCalendarStatus": "Kalendorius"
+  "commandContactSupport": "Susisiekti su palaikymu",
+  "commandSendFeedback": "Siųsti atsiliepimą",
+  "commandCalendarStatus": "Kalendoriaus būsena"
 }

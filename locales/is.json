@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Tiltækir flýtilyklar",
   "commandDeleteCategory": "Eyða Nafn flokks",
   "commandGroupHelp": "Aðgangur",
-  "commandContactSupport": "Aðgangur",
-  "commandSendFeedback": "Lýsing",
-  "commandCalendarStatus": "Dagatal"
+  "commandContactSupport": "Hafa samband við stuðning",
+  "commandSendFeedback": "Senda ábendingu",
+  "commandCalendarStatus": "Staða dagatals"
 }

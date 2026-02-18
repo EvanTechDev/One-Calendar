@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "可用快速鍵",
   "commandDeleteCategory": "刪除 分類名稱",
   "commandGroupHelp": "帳戶",
-  "commandContactSupport": "帳戶",
-  "commandSendFeedback": "描述",
-  "commandCalendarStatus": "行事曆"
+  "commandContactSupport": "聯絡支援",
+  "commandSendFeedback": "傳送回饋",
+  "commandCalendarStatus": "日曆狀態"
 }

@@ -521,7 +521,7 @@
   "commandOpenShortcutGuide": "Доступные сочетания клавиш",
   "commandDeleteCategory": "Удалить Название категории",
   "commandGroupHelp": "Аккаунт",
-  "commandContactSupport": "Аккаунт",
-  "commandSendFeedback": "Описание",
-  "commandCalendarStatus": "Календарь"
+  "commandContactSupport": "Связаться с поддержкой",
+  "commandSendFeedback": "Отправить отзыв",
+  "commandCalendarStatus": "Статус календаря"
 }
