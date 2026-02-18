@@ -54,11 +54,13 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        <div className="sr-only">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </div>
-        {children}
+        <Command>
+          <div className="sr-only">
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </div>
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   )
