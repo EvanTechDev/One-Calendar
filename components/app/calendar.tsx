@@ -28,6 +28,29 @@ import {
   CalendarFold,
   ChartColumn,
   UserRoundCog,
+  PlusCircle,
+  FolderPlus,
+  FolderMinus,
+  Share2,
+  ShareX,
+  BookmarkPlus,
+  BookmarkX,
+  Pencil,
+  Copy,
+  Link2,
+  ChevronLeftCircle,
+  ChevronRightCircle,
+  Languages,
+  Palette,
+  SunMoon,
+  Clock3,
+  BellRing,
+  LogOut,
+  LifeBuoy,
+  MessageSquare,
+  Activity,
+  Keyboard,
+  Trash2,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -61,6 +84,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useClerk } from "@clerk/nextjs";
+import { useTheme } from "next-themes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,7 +146,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null,
   );
-  const { events, setEvents, calendars } = useCalendar();
+  const { events, setEvents, calendars, addCategory, removeCategory } = useCalendar();
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
@@ -130,6 +155,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null);
   const [language, setLanguage] = useLanguage();
   const t = translations[language];
+  const { signOut } = useClerk();
+  const { setTheme } = useTheme();
   const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>(
     "first-day-of-week",
     0,
@@ -319,6 +346,232 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const goToToday = () => {
     handleTodayClick();
+    setIsCommandOpen(false);
+  };
+
+  const getPrimaryEvent = () => {
+    if (previewEvent) return previewEvent;
+    if (searchResultEvents.length > 0) return searchResultEvents[0];
+    if (filteredEvents.length > 0) return filteredEvents[0];
+    return null;
+  };
+
+  const openEventForShare = (event: CalendarEvent | null) => {
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+    setPreviewEvent(event);
+    setPreviewOpen(true);
+    setOpenShareImmediately(true);
+    setIsCommandOpen(false);
+  };
+
+  const editPrimaryEvent = () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+    setPreviewEvent(event);
+    setSelectedEvent(event);
+    setQuickCreateStartTime(null);
+    setPreviewOpen(false);
+    setEventDialogOpen(true);
+    setIsCommandOpen(false);
+  };
+
+  const deletePrimaryEvent = () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+    handleEventDelete(event.id);
+    setIsCommandOpen(false);
+  };
+
+  const duplicatePrimaryEvent = () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+    handleEventDuplicate(event);
+    setIsCommandOpen(false);
+  };
+
+  const copyPrimaryEventTitle = async () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+    await navigator.clipboard.writeText(event.title || t.unnamedEvent);
+    toast.success(t.commandTitleCopied || "Event title copied");
+    setIsCommandOpen(false);
+  };
+
+  const togglePrimaryBookmark = async (mode: "add" | "remove") => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+
+    const bookmarks = await readEncryptedLocalStorage<any[]>("bookmarked-events", []);
+    const hasBookmark = bookmarks.some((b: any) => b.id === event.id);
+
+    if (mode === "add" && !hasBookmark) {
+      await toggleBookmark(event);
+      toast.success(t.bookmarkAdded);
+    } else if (mode === "remove" && hasBookmark) {
+      await toggleBookmark(event);
+      toast.success(t.bookmarkRemoved);
+    } else {
+      toast(t.commandNoChange || "No changes needed");
+    }
+
+    setIsCommandOpen(false);
+  };
+
+  const createCalendarCategoryFromPrompt = () => {
+    const name = window.prompt(t.commandCategoryNamePrompt || "Category name");
+    if (!name) return;
+
+    const id = `${name.toLowerCase().trim().replace(/\s+/g, "-")}-${Date.now()}`;
+    const colors = ["bg-blue-500", "bg-green-500", "bg-orange-500", "bg-purple-500", "bg-pink-500"];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    addCategory({ id, name: name.trim(), color, keywords: [] });
+    toast.success(t.commandCategoryCreated || "Calendar category created");
+    setIsCommandOpen(false);
+  };
+
+  const deleteCalendarCategoryFromPrompt = () => {
+    if (calendars.length === 0) {
+      toast.error(t.commandNoCategories || "No calendar categories to delete");
+      return;
+    }
+
+    const available = calendars.map((cal) => cal.name).join(", ");
+    const input = window.prompt(`${t.commandCategoryDeletePrompt || "Type category name to delete"}: ${available}`);
+    if (!input) return;
+
+    const target = calendars.find(
+      (cal) => cal.name.toLowerCase() === input.trim().toLowerCase(),
+    );
+
+    if (!target) {
+      toast.error(t.commandCategoryNotFound || "Category not found");
+      return;
+    }
+
+    removeCategory(target.id);
+    toast.success(t.commandCategoryDeleted || "Calendar category deleted");
+    setIsCommandOpen(false);
+  };
+
+  const copyPrimarySharedLink = async () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+
+    const shares = await readEncryptedLocalStorage<any[]>("shared-events", []);
+    const targetShare = [...shares].reverse().find((item) => item.eventId === event.id && item.shareLink);
+
+    if (!targetShare?.shareLink) {
+      toast.error(t.commandNoSharedLink || "No shared link found for this event");
+      return;
+    }
+
+    await navigator.clipboard.writeText(targetShare.shareLink);
+    toast.success(t.linkCopied);
+    setIsCommandOpen(false);
+  };
+
+  const deletePrimaryShare = async () => {
+    const event = getPrimaryEvent();
+    if (!event) {
+      toast.error(t.commandNeedEvent || "Please select an event first");
+      return;
+    }
+
+    const shares = await readEncryptedLocalStorage<any[]>("shared-events", []);
+    const targetShare = [...shares].reverse().find((item) => item.eventId === event.id);
+
+    if (!targetShare?.id) {
+      toast.error(t.commandNoSharedLink || "No shared link found for this event");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/share", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: targetShare.id }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete share");
+      }
+
+      await writeEncryptedLocalStorage(
+        "shared-events",
+        shares.filter((item) => item.id !== targetShare.id),
+      );
+      toast.success(t.shareDeleted);
+    } catch {
+      toast.error(t.shareDeleteFailed || "Failed to delete share");
+    }
+
+    setIsCommandOpen(false);
+  };
+
+  const openSupport = () => {
+    window.open("mailto:support@xyehr.cn", "_blank");
+    setIsCommandOpen(false);
+  };
+
+  const sendFeedback = () => {
+    const subject = encodeURIComponent("One Calendar Feedback");
+    window.open(`mailto:support@xyehr.cn?subject=${subject}`, "_blank");
+    setIsCommandOpen(false);
+  };
+
+  const openCalendarStatus = () => {
+    window.open("https://calendarstatus.xyehr.cn", "_blank");
+    setIsCommandOpen(false);
+  };
+
+  const openShortcutGuide = () => {
+    setEnableShortcuts(true);
+    setView("settings");
+    setIsCommandOpen(false);
+  };
+
+  const switchTheme = (nextTheme: string) => {
+    setTheme(nextTheme);
+    toast.success(t.commandThemeUpdated || "Theme updated");
+    setIsCommandOpen(false);
+  };
+
+  const switchLanguage = (nextLanguage: typeof language) => {
+    setLanguage(nextLanguage);
+    toast.success(t.commandLanguageUpdated || "Language updated");
+    setIsCommandOpen(false);
+  };
+
+  const toggleShortcuts = (enabled: boolean) => {
+    setEnableShortcuts(enabled);
+    toast.success(enabled ? t.commandShortcutsEnabled || "Shortcuts enabled" : t.commandShortcutsDisabled || "Shortcuts disabled");
+    setIsCommandOpen(false);
+  };
+
+  const doSignOut = async () => {
+    await signOut();
     setIsCommandOpen(false);
   };
 
@@ -962,19 +1215,73 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           <CommandList>
             <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
 
-            <CommandGroup heading={t.event || "Event"}>
+            <CommandGroup heading={t.commandGroupCreate || "Create"}>
               <CommandItem onSelect={openQuickCreateDialog}>
-                <CalendarPlus className="h-4 w-4" />
+                <PlusCircle className="h-4 w-4" />
                 <span>{t.newEvent}</span>
                 <CommandShortcut>N</CommandShortcut>
               </CommandItem>
+              <CommandItem onSelect={createCalendarCategoryFromPrompt}>
+                <FolderPlus className="h-4 w-4" />
+                <span>{t.commandCreateCategory || "Create calendar category"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => openEventForShare(getPrimaryEvent())}>
+                <Share2 className="h-4 w-4" />
+                <span>{t.commandCreateShare || "Create event share"}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.commandGroupEvent || "Event actions"}>
+              <CommandItem onSelect={editPrimaryEvent}>
+                <Pencil className="h-4 w-4" />
+                <span>{t.commandEditEvent || "Edit selected event"}</span>
+              </CommandItem>
+              <CommandItem onSelect={deletePrimaryEvent}>
+                <Trash2 className="h-4 w-4" />
+                <span>{t.commandDeleteEvent || "Delete selected event"}</span>
+              </CommandItem>
+              <CommandItem onSelect={duplicatePrimaryEvent}>
+                <Copy className="h-4 w-4" />
+                <span>{t.copy || "Copy"} {t.title || "Title"}</span>
+              </CommandItem>
+              <CommandItem onSelect={copyPrimaryEventTitle}>
+                <Copy className="h-4 w-4" />
+                <span>{t.commandCopyEventTitle || "Copy event title"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => togglePrimaryBookmark("add")}>
+                <BookmarkPlus className="h-4 w-4" />
+                <span>{t.commandAddBookmark || "Add bookmark"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => togglePrimaryBookmark("remove")}>
+                <BookmarkX className="h-4 w-4" />
+                <span>{t.commandRemoveBookmark || "Remove bookmark"}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.commandGroupShare || "Share actions"}>
+              <CommandItem onSelect={copyPrimarySharedLink}>
+                <Link2 className="h-4 w-4" />
+                <span>{t.commandCopySharedLink || "Copy shared link"}</span>
+              </CommandItem>
+              <CommandItem onSelect={deletePrimaryShare}>
+                <ShareX className="h-4 w-4" />
+                <span>{t.commandDeleteShare || "Delete share"}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.commandGroupNavigation || "Navigation"}>
               <CommandItem onSelect={goToToday}>
                 <CalendarIcon className="h-4 w-4" />
                 <span>{t.today}</span>
               </CommandItem>
-            </CommandGroup>
-
-            <CommandGroup heading={t.calendarView || "Views"}>
+              <CommandItem onSelect={handlePrevious}>
+                <ChevronLeftCircle className="h-4 w-4" />
+                <span>{t.previousPeriod}</span>
+              </CommandItem>
+              <CommandItem onSelect={handleNext}>
+                <ChevronRightCircle className="h-4 w-4" />
+                <span>{t.nextPeriod}</span>
+              </CommandItem>
               <CommandItem onSelect={() => handleSetView("day")}>
                 <CalendarDays className="h-4 w-4" />
                 <span>{t.day}</span>
@@ -995,9 +1302,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <CalendarDays className="h-4 w-4" />
                 <span>{t.year}</span>
               </CommandItem>
-            </CommandGroup>
-
-            <CommandGroup heading={t.quickActions || "Quick actions"}>
               <CommandItem onSelect={() => handleSetView("analytics")}>
                 <ChartColumn className="h-4 w-4" />
                 <span>{t.analytics}</span>
@@ -1005,6 +1309,88 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <CommandItem onSelect={() => handleSetView("settings")}>
                 <UserRoundCog className="h-4 w-4" />
                 <span>{t.settings}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.commandGroupSettings || "Settings"}>
+              <CommandItem onSelect={() => switchTheme("light")}>
+                <Palette className="h-4 w-4" />
+                <span>{t.themeLight}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => switchTheme("dark")}>
+                <Palette className="h-4 w-4" />
+                <span>{t.themeDark}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => switchTheme("system")}>
+                <SunMoon className="h-4 w-4" />
+                <span>{t.themeSystem}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => switchLanguage("en")}>
+                <Languages className="h-4 w-4" />
+                <span>{t.commandSwitchEnglish || "Switch language to English"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setFirstDayOfWeek(0); setIsCommandOpen(false); }}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.commandSetSunday || "Set first day to Sunday"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setFirstDayOfWeek(1); setIsCommandOpen(false); }}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.commandSetMonday || "Set first day to Monday"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setTimeFormat("24h"); setIsCommandOpen(false); }}>
+                <Clock3 className="h-4 w-4" />
+                <span>{t.timeFormat24h}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setTimeFormat("12h"); setIsCommandOpen(false); }}>
+                <Clock3 className="h-4 w-4" />
+                <span>{t.timeFormat12hWithMeridiem}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setDefaultView("week"); setIsCommandOpen(false); }}>
+                <CalendarRange className="h-4 w-4" />
+                <span>{t.commandDefaultWeek || "Set default view to week"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setDefaultView("month"); setIsCommandOpen(false); }}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.commandDefaultMonth || "Set default view to month"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => { setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone); setIsCommandOpen(false); }}>
+                <BellRing className="h-4 w-4" />
+                <span>{t.commandUseSystemTimezone || "Use system timezone"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => toggleShortcuts(true)}>
+                <Keyboard className="h-4 w-4" />
+                <span>{t.commandEnableShortcuts || "Enable shortcuts"}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => toggleShortcuts(false)}>
+                <Keyboard className="h-4 w-4" />
+                <span>{t.commandDisableShortcuts || "Disable shortcuts"}</span>
+              </CommandItem>
+              <CommandItem onSelect={openShortcutGuide}>
+                <Keyboard className="h-4 w-4" />
+                <span>{t.commandOpenShortcutGuide || "Open shortcut guide"}</span>
+              </CommandItem>
+              <CommandItem onSelect={deleteCalendarCategoryFromPrompt}>
+                <FolderMinus className="h-4 w-4" />
+                <span>{t.commandDeleteCategory || "Delete calendar category"}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.commandGroupHelp || "Help & account"}>
+              <CommandItem onSelect={openSupport}>
+                <LifeBuoy className="h-4 w-4" />
+                <span>{t.commandContactSupport || "Contact support"}</span>
+              </CommandItem>
+              <CommandItem onSelect={sendFeedback}>
+                <MessageSquare className="h-4 w-4" />
+                <span>{t.commandSendFeedback || "Send feedback"}</span>
+              </CommandItem>
+              <CommandItem onSelect={openCalendarStatus}>
+                <Activity className="h-4 w-4" />
+                <span>{t.commandCalendarStatus || "Calendar status"}</span>
+              </CommandItem>
+              <CommandItem onSelect={doSignOut}>
+                <LogOut className="h-4 w-4" />
+                <span>{t.logout}</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
