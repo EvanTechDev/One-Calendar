@@ -763,26 +763,34 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const sortedCommandEvents = useMemo(() => {
     const items = [...events];
     if (eventSortMode === "title") {
-      return items.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      return items.sort((a, b) => (a.title || "").localeCompare(b.title || "", language));
     }
     return items.sort(
       (a, b) =>
-        new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+        (() => {
+          const bt = new Date(b.startDate).getTime();
+          const at = new Date(a.startDate).getTime();
+          return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
+        })(),
     );
-  }, [events, eventSortMode]);
+  }, [events, eventSortMode, language]);
 
   const sortedSharedCommandEvents = useMemo(() => {
     const items = [...sharedEvents];
     if (sharedSortMode === "title") {
       return items.sort((a, b) =>
-        (a.eventTitle || "").localeCompare(b.eventTitle || ""),
+        (a.eventTitle || "").localeCompare(b.eventTitle || "", language),
       );
     }
     return items.sort(
       (a, b) =>
-        new Date(b.shareDate || 0).getTime() - new Date(a.shareDate || 0).getTime(),
+        (() => {
+          const bt = new Date(b.shareDate || 0).getTime();
+          const at = new Date(a.shareDate || 0).getTime();
+          return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
+        })(),
     );
-  }, [sharedEvents, sharedSortMode]);
+  }, [sharedEvents, sharedSortMode, language]);
 
   const toggleShortcuts = (enabled: boolean) => {
     setEnableShortcuts(enabled);
@@ -1026,7 +1034,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       })
       .sort(
         (a, b) =>
-          new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+          (() => {
+          const bt = new Date(b.startDate).getTime();
+          const at = new Date(a.startDate).getTime();
+          return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
+        })(),
       );
   }, [eventsByCategory, searchTerm]);
 
@@ -1509,7 +1521,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <CommandGroup heading={t.enableShortcuts}>
                 <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
                 <CommandItem onSelect={() => toggleShortcuts(true)}><Keyboard className="h-4 w-4" /><span>{t.enableShortcuts}</span></CommandItem>
-                <CommandItem onSelect={() => toggleShortcuts(false)}><Keyboard className="h-4 w-4" /><span>{"Disable shortcuts"}</span></CommandItem>
+                <CommandItem onSelect={() => toggleShortcuts(false)}><Keyboard className="h-4 w-4" /><span>{t.commandDisableShortcuts || "Disable shortcuts"}</span></CommandItem>
               </CommandGroup>
             </CommandList>
           ) : commandMode === "calendar-view" ? (
@@ -1675,7 +1687,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
               <CommandItem onSelect={deleteCalendarCategoryFromPrompt}>
                 <FolderMinus className="h-4 w-4" />
-                <span>{`${t.delete} ${t.categoryName}`}</span>
+                <span>{t.commandDeleteCategory}</span>
               </CommandItem>
             </CommandGroup>
 
