@@ -69,7 +69,7 @@ import EventDialog from "@/components/app/event/event-dialog";
 import DailyToast from "@/components/app/profile/daily-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Sidebar from "@/components/app/sidebar/sidebar";
-import { translations, useLanguage } from "@/lib/i18n";
+import { getLanguageAutonym, supportedLanguages, translations, type Language, useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -178,6 +178,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     useState<CalendarEvent | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [commandMode, setCommandMode] = useState<"root" | "language">("root");
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -557,10 +558,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setIsCommandOpen(false);
   };
 
-  const switchLanguage = (nextLanguage: typeof language) => {
+  const switchLanguage = (nextLanguage: Language) => {
     setLanguage(nextLanguage);
     toast.success(t.commandLanguageUpdated || "Language updated");
     setIsCommandOpen(false);
+    setCommandMode("root");
+  };
+
+  const openLanguageCommandMode = () => {
+    setCommandMode("language");
   };
 
   const toggleShortcuts = (enabled: boolean) => {
@@ -1198,7 +1204,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
         <CommandDialog
           open={isCommandOpen}
-          onOpenChange={setIsCommandOpen}
+          onOpenChange={(open) => {
+            setIsCommandOpen(open);
+            if (!open) {
+              setCommandMode("root");
+            }
+          }}
           title={t.commandPalette || "Command palette"}
           description={
             t.commandPaletteDescription ||
@@ -1207,10 +1218,35 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         >
           <CommandInput
             placeholder={
-              t.commandPalettePlaceholder ||
-              "Type a command or search for a feature..."
+              commandMode === "language"
+                ? `${t.language}...`
+                : t.commandPalettePlaceholder ||
+                  "Type a command or search for a feature..."
             }
           />
+          {commandMode === "language" ? (
+            <CommandList>
+              <CommandEmpty>{t.noData || "No data"}</CommandEmpty>
+              <CommandGroup heading={t.language}>
+                <CommandItem onSelect={() => setCommandMode("root")}>
+                  <ChevronLeftCircle className="h-4 w-4" />
+                  <span>{t.previousStep || "Back"}</span>
+                </CommandItem>
+                {supportedLanguages.map((langOption) => (
+                  <CommandItem
+                    key={langOption}
+                    onSelect={() => switchLanguage(langOption)}
+                  >
+                    <Languages className="h-4 w-4" />
+                    <span>{getLanguageAutonym(langOption)}</span>
+                    {langOption === language && (
+                      <CommandShortcut>✓</CommandShortcut>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          ) : (
           <CommandList>
             <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
 
@@ -1324,9 +1360,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <SunMoon className="h-4 w-4" />
                 <span>{t.themeSystem}</span>
               </CommandItem>
-              <CommandItem onSelect={() => switchLanguage("en")}>
+              <CommandItem onSelect={openLanguageCommandMode}>
                 <Languages className="h-4 w-4" />
-                <span>{t.commandSwitchEnglish || "Switch language to English"}</span>
+                <span>{t.language}</span>
               </CommandItem>
               <CommandItem onSelect={() => { setFirstDayOfWeek(0); setIsCommandOpen(false); }}>
                 <CalendarDays className="h-4 w-4" />
@@ -1393,6 +1429,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
             </CommandGroup>
           </CommandList>
+          )}
         </CommandDialog>
 
         <EventDialog
