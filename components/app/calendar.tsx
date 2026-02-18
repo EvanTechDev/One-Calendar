@@ -82,6 +82,15 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useClerk } from "@clerk/nextjs";
@@ -122,6 +131,36 @@ type EventCommandAction =
   | "bookmark-remove";
 
 type SharedCommandAction = "copy-shared-link" | "delete-share";
+
+const CATEGORY_COLOR_OPTIONS = [
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-orange-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-cyan-500",
+] as const;
+
+function getDarkerEventColor(color: string) {
+  const colorMapping: Record<string, string> = {
+    "bg-[#E6F6FD]": "#3B82F6",
+    "bg-[#E7F8F2]": "#10B981",
+    "bg-[#FEF5E6]": "#F59E0B",
+    "bg-[#FFE4E6]": "#EF4444",
+    "bg-[#F3EEFE]": "#8B5CF6",
+    "bg-[#FCE7F3]": "#EC4899",
+    "bg-[#EEF2FF]": "#6366F1",
+    "bg-[#FFF0E5]": "#FB923C",
+    "bg-[#E6FAF7]": "#14B8A6",
+    "bg-blue-500": "#3B82F6",
+    "bg-green-500": "#10B981",
+    "bg-orange-500": "#F97316",
+    "bg-purple-500": "#8B5CF6",
+    "bg-pink-500": "#EC4899",
+    "bg-cyan-500": "#06B6D4",
+  };
+  return colorMapping[color] || "#3A3A3A";
+}
 
 type ViewType =
   | "day"
@@ -209,6 +248,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [eventSortMode, setEventSortMode] = useState<"time" | "title">("time");
   const [sharedEvents, setSharedEvents] = useState<any[]>([]);
   const [sharedSortMode, setSharedSortMode] = useState<"time" | "title">("time");
+  const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0]);
+  const [bookmarkedEventIds, setBookmarkedEventIds] = useState<Set<string>>(new Set());
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -465,17 +508,21 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setIsCommandOpen(false);
   };
 
-  const createCalendarCategoryFromPrompt = () => {
-    const name = window.prompt(t.commandCategoryNamePrompt || "Category name");
+  const openAddCalendarCategoryDialog = () => {
+    setIsCommandOpen(false);
+    setNewCategoryName("");
+    setNewCategoryColor(CATEGORY_COLOR_OPTIONS[0]);
+    setAddCategoryDialogOpen(true);
+  };
+
+  const createCalendarCategoryFromDialog = () => {
+    const name = newCategoryName.trim();
     if (!name) return;
 
-    const id = `${name.toLowerCase().trim().replace(/\s+/g, "-")}-${Date.now()}`;
-    const colors = ["bg-blue-500", "bg-green-500", "bg-orange-500", "bg-purple-500", "bg-pink-500"];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-
-    addCategory({ id, name: name.trim(), color, keywords: [] });
-    toast.success(t.commandCategoryCreated || "Calendar category created");
-    setIsCommandOpen(false);
+    const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
+    addCategory({ id, name, color: newCategoryColor, keywords: [] });
+    toast.success(t.commandCategoryCreated || t.addCategory);
+    setAddCategoryDialogOpen(false);
   };
 
   const deleteCalendarCategoryFromPrompt = () => {
@@ -707,6 +754,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   };
 
+  useEffect(() => {
+    readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((items) => {
+      setBookmarkedEventIds(new Set((items || []).map((item) => item.id)));
+    });
+  }, [events]);
+
   const sortedCommandEvents = useMemo(() => {
     const items = [...events];
     if (eventSortMode === "title") {
@@ -714,7 +767,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
     return items.sort(
       (a, b) =>
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+        new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
     );
   }, [events, eventSortMode]);
 
@@ -727,7 +780,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
     return items.sort(
       (a, b) =>
-        new Date(a.shareDate || 0).getTime() - new Date(b.shareDate || 0).getTime(),
+        new Date(b.shareDate || 0).getTime() - new Date(a.shareDate || 0).getTime(),
     );
   }, [sharedEvents, sharedSortMode]);
 
@@ -973,7 +1026,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       })
       .sort(
         (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
       );
   }, [eventsByCategory, searchTerm]);
 
@@ -1163,7 +1216,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 variant="outline"
                 size="icon"
                 className="rounded-full h-8 w-8"
-                onClick={() => setIsCommandOpen(true)}
+                onClick={() => {
+                  setCommandMode("root");
+                  setIsCommandOpen(true);
+                }}
                 aria-label={t.commandPalette || "Command palette"}
               >
                 <CommandIcon className="h-4 w-4" />
@@ -1473,24 +1529,30 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <CommandList>
               <CommandGroup heading={t.events}>
                 <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
-                <CommandItem onSelect={() => setEventSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span></CommandItem>
-                <CommandItem onSelect={() => setEventSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span></CommandItem>
+                <CommandItem onSelect={() => setEventSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span>{eventSortMode === "time" && <CommandShortcut>✓</CommandShortcut>}</CommandItem>
+                <CommandItem onSelect={() => setEventSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span>{eventSortMode === "title" && <CommandShortcut>✓</CommandShortcut>}</CommandItem>
               </CommandGroup>
               <CommandGroup heading={t.selectCalendar}>
-                {sortedCommandEvents.map((event) => (
-                  <CommandItem key={event.id} onSelect={() => runEventCommandAction(event)}>
-                    <CalendarDays className="h-4 w-4" />
-                    <span>{event.title || t.unnamedEvent}</span>
-                  </CommandItem>
-                ))}
+                {sortedCommandEvents
+                  .filter((event) =>
+                    eventCommandAction === "bookmark-remove"
+                      ? bookmarkedEventIds.has(event.id)
+                      : true,
+                  )
+                  .map((event) => (
+                    <CommandItem key={event.id} onSelect={() => runEventCommandAction(event)}>
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: getDarkerEventColor(event.color) }} />
+                      <span>{event.title || t.unnamedEvent}</span>
+                    </CommandItem>
+                  ))}
               </CommandGroup>
             </CommandList>
           ) : commandMode === "shared-selector" ? (
             <CommandList>
               <CommandGroup heading={t.share}>
                 <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
-                <CommandItem onSelect={() => setSharedSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span></CommandItem>
-                <CommandItem onSelect={() => setSharedSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span></CommandItem>
+                <CommandItem onSelect={() => setSharedSortMode("time")}><Clock3 className="h-4 w-4" /><span>{t.dateAndTime}</span>{sharedSortMode === "time" && <CommandShortcut>✓</CommandShortcut>}</CommandItem>
+                <CommandItem onSelect={() => setSharedSortMode("title")}><SortAsc className="h-4 w-4" /><span>{t.title}</span>{sharedSortMode === "title" && <CommandShortcut>✓</CommandShortcut>}</CommandItem>
               </CommandGroup>
               <CommandGroup heading={t.manageShares}>
                 {sortedSharedCommandEvents.map((share) => (
@@ -1511,7 +1573,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <span>{t.newEvent}</span>
                 <CommandShortcut>N</CommandShortcut>
               </CommandItem>
-              <CommandItem onSelect={createCalendarCategoryFromPrompt}>
+              <CommandItem onSelect={openAddCalendarCategoryDialog}>
                 <FolderPlus className="h-4 w-4" />
                 <span>{t.addCategory}</span>
               </CommandItem>
@@ -1532,11 +1594,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
               <CommandItem onSelect={() => openEventSelector("duplicate")}>
                 <Copy className="h-4 w-4" />
-                <span>{t.copy || "Copy"} {t.title || "Title"}</span>
+                <span>{t.eventDuplicated || "Duplicate event"}</span>
               </CommandItem>
               <CommandItem onSelect={() => openEventSelector("copy-title")}>
                 <Copy className="h-4 w-4" />
-                <span>{`${t.copy} ${t.title}`}</span>
+                <span>{t.commandCopyEventTitle || "Copy event title"}</span>
               </CommandItem>
               <CommandItem onSelect={() => openEventSelector("bookmark-add")}>
                 <BookmarkPlus className="h-4 w-4" />
@@ -1620,15 +1682,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <CommandGroup heading={t.account}>
               <CommandItem onSelect={openSupport}>
                 <LifeBuoy className="h-4 w-4" />
-                <span>{t.commandContactSupport || "Contact support"}</span>
+                <span>{t.commandContactSupport}</span>
               </CommandItem>
               <CommandItem onSelect={sendFeedback}>
                 <MessageSquare className="h-4 w-4" />
-                <span>{t.commandSendFeedback || "Send feedback"}</span>
+                <span>{t.commandSendFeedback}</span>
               </CommandItem>
               <CommandItem onSelect={openCalendarStatus}>
                 <Activity className="h-4 w-4" />
-                <span>{t.commandCalendarStatus || "Calendar status"}</span>
+                <span>{t.commandCalendarStatus}</span>
               </CommandItem>
               <CommandItem onSelect={doSignOut}>
                 <LogOut className="h-4 w-4" />
@@ -1638,6 +1700,33 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           </CommandList>
           )}
         </CommandDialog>
+
+        <Dialog open={addCategoryDialogOpen} onOpenChange={setAddCategoryDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t.createCategories}</DialogTitle>
+              <DialogDescription>{t.addNewCalendar}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="command-category-name">{t.categoryName}</Label>
+                <Input id="command-category-name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder={t.categoryName} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t.color}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_COLOR_OPTIONS.map((option) => (
+                    <button key={option} type="button" className={cn(option, "h-6 w-6 rounded-full border", newCategoryColor === option ? "ring-2 ring-offset-2 ring-black" : "")} onClick={() => setNewCategoryColor(option)} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddCategoryDialogOpen(false)}>{t.cancel}</Button>
+              <Button onClick={createCalendarCategoryFromDialog} disabled={!newCategoryName.trim()}>{t.addCategory}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <EventDialog
           open={eventDialogOpen}
