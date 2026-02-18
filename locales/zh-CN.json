@@ -523,5 +523,7 @@
   "commandGroupHelp": "帮助与账户",
   "commandContactSupport": "联系支持",
   "commandSendFeedback": "发送反馈",
-  "commandCalendarStatus": "日历状态"
+  "commandCalendarStatus": "日历状态",
+  "commandSearchEvents": "搜索日程",
+  "commandDuplicateEvent": "重复日程"
 }

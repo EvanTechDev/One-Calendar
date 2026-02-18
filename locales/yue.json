@@ -523,5 +523,7 @@
   "commandGroupHelp": "幫助同帳戶",
   "commandContactSupport": "聯絡支援",
   "commandSendFeedback": "傳送回饋",
-  "commandCalendarStatus": "日曆狀態"
+  "commandCalendarStatus": "日曆狀態",
+  "commandSearchEvents": "搜尋行程",
+  "commandDuplicateEvent": "重複行程"
 }

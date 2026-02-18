@@ -523,5 +523,7 @@
   "commandGroupHelp": "Help & Account",
   "commandContactSupport": "Contact support",
   "commandSendFeedback": "Send feedback",
-  "commandCalendarStatus": "Calendar status"
+  "commandCalendarStatus": "Calendar status",
+  "commandSearchEvents": "Search events",
+  "commandDuplicateEvent": "Duplicate event"
 }

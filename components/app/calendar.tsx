@@ -197,8 +197,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     null,
   );
   const { events, setEvents, calendars, addCategory, removeCategory } = useCalendar();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
     string[]
   >([]);
@@ -240,6 +238,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     | "calendar-view"
     | "event-selector"
     | "shared-selector"
+    | "event-search"
   >("root");
   const [eventCommandAction, setEventCommandAction] =
     useState<EventCommandAction | null>(null);
@@ -334,13 +333,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           break;
         case "/":
           e.preventDefault();
-
-          const searchInput = document.querySelector(
-            'input[placeholder="' + t.searchEvents + '"]',
-          ) as HTMLInputElement;
-          if (searchInput) {
-            searchInput.focus();
-          }
+          setCommandMode("event-search");
+          setIsCommandOpen(true);
           break;
         case "t":
         case "T":
@@ -382,7 +376,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [enableShortcuts, t.searchEvents]);
+  }, [enableShortcuts]);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -424,7 +418,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const getPrimaryEvent = () => {
     if (previewEvent) return previewEvent;
-    if (searchResultEvents.length > 0) return searchResultEvents[0];
     if (filteredEvents.length > 0) return filteredEvents[0];
     return null;
   };
@@ -652,6 +645,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const openDefaultViewCommandMode = () => setCommandMode("default-view");
   const openShortcutsCommandMode = () => setCommandMode("shortcuts");
   const openCalendarViewCommandMode = () => setCommandMode("calendar-view");
+  const openEventSearchCommandMode = () => setCommandMode("event-search");
 
   const openEventSelector = (action: EventCommandAction) => {
     setEventCommandAction(action);
@@ -668,6 +662,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setSharedSortMode("time");
     setSharedCommandAction(action);
     setCommandMode("shared-selector");
+  };
+
+  const handleCommandSearchSelect = (event: CalendarEvent) => {
+    setPreviewEvent(event);
+    setPreviewOpen(true);
+    setIsCommandOpen(false);
   };
 
   const runEventCommandAction = async (event: CalendarEvent) => {
@@ -1018,34 +1018,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [events, selectedCategoryFilters, calendars]);
 
   const filteredEvents = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return eventsByCategory;
-
-    return eventsByCategory
-      .filter((event) => {
-        const title = event.title?.toLowerCase() || "";
-        const location = event.location?.toLowerCase() || "";
-        const description = event.description?.toLowerCase() || "";
-        return (
-          title.includes(keyword) ||
-          location.includes(keyword) ||
-          description.includes(keyword)
-        );
-      })
-      .sort(
-        (a, b) =>
-          (() => {
-          const bt = new Date(b.startDate).getTime();
-          const at = new Date(a.startDate).getTime();
-          return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
-        })(),
-      );
-  }, [eventsByCategory, searchTerm]);
-
-  const searchResultEvents = useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    return filteredEvents.slice(0, 8);
-  }, [filteredEvents, searchTerm]);
+    return [...eventsByCategory].sort(
+      (a, b) =>
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+    );
+  }, [eventsByCategory]);
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -1134,96 +1111,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             </div>
 
             <div className="flex items-center space-x-2">
-              <div className="relative z-50">
-                <Select
-                  value={
-                    view === "day" ||
-                    view === "week" ||
-                    view === "four-day" ||
-                    view === "month" ||
-                    view === "year"
-                      ? view
-                      : defaultView === "day" ||
-                          defaultView === "week" ||
-                          defaultView === "four-day" ||
-                          defaultView === "month" ||
-                          defaultView === "year"
-                        ? defaultView
-                        : "week"
-                  }
-                  onValueChange={(value: ViewType) => setView(value)}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="day">{t.day}</SelectItem>
-                      <SelectItem value="week">{t.week}</SelectItem>
-                      <SelectItem value="month">{t.month}</SelectItem>
-                      <SelectItem value="year">{t.year}</SelectItem>
-                      <SelectItem value="four-day">{t.fourDay}</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="relative z-50">
-                <Search className="pointer-events-none h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder={t.searchEvents}
-                  value={searchTerm}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setIsSearchFocused(false), 120);
-                  }}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchResultEvents.length > 0) {
-                      setPreviewEvent(searchResultEvents[0]);
-                      setPreviewOpen(true);
-                      setSearchTerm("");
-                      setIsSearchFocused(false);
-                    }
-                  }}
-                  className="pl-9 pr-4 py-2 w-48"
-                />
-                {isSearchFocused && !!searchTerm && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
-                    {searchResultEvents.length > 0 ? (
-                      <ScrollArea className="max-h-[320px]">
-                        <div className="space-y-1">
-                          {searchResultEvents.map((event) => (
-                            <button
-                              key={event.id}
-                              type="button"
-                              className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setPreviewEvent(event);
-                                setPreviewOpen(true);
-                                setSearchTerm("");
-                                setIsSearchFocused(false);
-                              }}
-                            >
-                              <div className="font-medium leading-none">
-                                {event.title || t.unnamedEvent}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {formatDateDisplay(new Date(event.startDate))}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        {t.noMatchingEvents}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
               <Button
                 variant="outline"
                 size="icon"
@@ -1537,6 +1424,18 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <CommandItem onSelect={() => handleSetView("settings")}><UserRoundCog className="h-4 w-4" /><span>{t.settings}</span></CommandItem>
               </CommandGroup>
             </CommandList>
+          ) : commandMode === "event-search" ? (
+            <CommandList>
+              <CommandGroup heading={t.searchEvents}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                {sortedCommandEvents.map((event) => (
+                  <CommandItem key={event.id} onSelect={() => handleCommandSearchSelect(event)}>
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: getDarkerEventColor(event.color) }} />
+                    <span>{event.title || t.unnamedEvent}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
           ) : commandMode === "event-selector" ? (
             <CommandList>
               <CommandGroup heading={t.events}>
@@ -1580,6 +1479,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
 
             <CommandGroup heading={t.createEvent}>
+              <CommandItem onSelect={openEventSearchCommandMode}>
+                <Search className="h-4 w-4" />
+                <span>{t.commandSearchEvents || t.searchEvents}</span>
+              </CommandItem>
               <CommandItem onSelect={openQuickCreateDialog}>
                 <PlusCircle className="h-4 w-4" />
                 <span>{t.newEvent}</span>
@@ -1606,7 +1509,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
               <CommandItem onSelect={() => openEventSelector("duplicate")}>
                 <Copy className="h-4 w-4" />
-                <span>{t.eventDuplicated || "Duplicate event"}</span>
+                <span>{t.commandDuplicateEvent || "Duplicate event"}</span>
               </CommandItem>
               <CommandItem onSelect={() => openEventSelector("copy-title")}>
                 <Copy className="h-4 w-4" />
