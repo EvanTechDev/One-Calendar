@@ -178,7 +178,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     useState<CalendarEvent | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
-  const [commandMode, setCommandMode] = useState<"root" | "language">("root");
+  const [commandMode, setCommandMode] = useState<
+    | "root"
+    | "language"
+    | "theme"
+    | "first-day"
+    | "time-format"
+    | "default-view"
+    | "shortcuts"
+    | "calendar-view"
+  >("root");
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -568,6 +577,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const openLanguageCommandMode = () => {
     setCommandMode("language");
   };
+
+  const openThemeCommandMode = () => setCommandMode("theme");
+  const openFirstDayCommandMode = () => setCommandMode("first-day");
+  const openTimeFormatCommandMode = () => setCommandMode("time-format");
+  const openDefaultViewCommandMode = () => setCommandMode("default-view");
+  const openShortcutsCommandMode = () => setCommandMode("shortcuts");
+  const openCalendarViewCommandMode = () => setCommandMode("calendar-view");
 
   const toggleShortcuts = (enabled: boolean) => {
     setEnableShortcuts(enabled);
@@ -1218,10 +1234,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         >
           <CommandInput
             placeholder={
-              commandMode === "language"
-                ? `${t.language}...`
-                : t.commandPalettePlaceholder ||
+              commandMode === "root"
+                ? t.commandPalettePlaceholder ||
                   "Type a command or search for a feature..."
+                : `${t.searchEvents}...`
             }
           />
           {commandMode === "language" ? (
@@ -1239,18 +1255,79 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   >
                     <Languages className="h-4 w-4" />
                     <span>{getLanguageAutonym(langOption)}</span>
-                    {langOption === language && (
-                      <CommandShortcut>✓</CommandShortcut>
-                    )}
+                    {langOption === language && <CommandShortcut>✓</CommandShortcut>}
                   </CommandItem>
                 ))}
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "theme" ? (
+            <CommandList>
+              <CommandGroup heading={t.theme}>
+                <CommandItem onSelect={() => setCommandMode("root")}>
+                  <ChevronLeftCircle className="h-4 w-4" />
+                  <span>{t.previousStep || "Back"}</span>
+                </CommandItem>
+                <CommandItem onSelect={() => switchTheme("light")}><Palette className="h-4 w-4" /><span>{t.themeLight}</span></CommandItem>
+                <CommandItem onSelect={() => switchTheme("dark")}><Palette className="h-4 w-4" /><span>{t.themeDark}</span></CommandItem>
+                <CommandItem onSelect={() => switchTheme("green")}><Palette className="h-4 w-4" /><span>{t.themeGreen}</span></CommandItem>
+                <CommandItem onSelect={() => switchTheme("orange")}><Palette className="h-4 w-4" /><span>{t.themeOrange}</span></CommandItem>
+                <CommandItem onSelect={() => switchTheme("azalea")}><Palette className="h-4 w-4" /><span>{t.themeAzalea}</span></CommandItem>
+                <CommandItem onSelect={() => switchTheme("system")}><SunMoon className="h-4 w-4" /><span>{t.themeSystem}</span></CommandItem>
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "first-day" ? (
+            <CommandList>
+              <CommandGroup heading={t.firstDayOfWeek}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => { setFirstDayOfWeek(0); setIsCommandOpen(false); }}><CalendarDays className="h-4 w-4" /><span>{t.sunday}</span></CommandItem>
+                <CommandItem onSelect={() => { setFirstDayOfWeek(1); setIsCommandOpen(false); }}><CalendarDays className="h-4 w-4" /><span>{t.monday}</span></CommandItem>
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "time-format" ? (
+            <CommandList>
+              <CommandGroup heading={t.timeFormat}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => { setTimeFormat("24h"); setIsCommandOpen(false); }}><Clock3 className="h-4 w-4" /><span>{t.timeFormat24h}</span></CommandItem>
+                <CommandItem onSelect={() => { setTimeFormat("12h"); setIsCommandOpen(false); }}><Clock3 className="h-4 w-4" /><span>{t.timeFormat12hWithMeridiem}</span></CommandItem>
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "default-view" ? (
+            <CommandList>
+              <CommandGroup heading={t.defaultView}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => { setDefaultView("day"); setIsCommandOpen(false); }}><CalendarDays className="h-4 w-4" /><span>{t.day}</span></CommandItem>
+                <CommandItem onSelect={() => { setDefaultView("week"); setIsCommandOpen(false); }}><CalendarRange className="h-4 w-4" /><span>{t.week}</span></CommandItem>
+                <CommandItem onSelect={() => { setDefaultView("four-day"); setIsCommandOpen(false); }}><CalendarFold className="h-4 w-4" /><span>{t.fourDay}</span></CommandItem>
+                <CommandItem onSelect={() => { setDefaultView("month"); setIsCommandOpen(false); }}><CalendarDays className="h-4 w-4" /><span>{t.month}</span></CommandItem>
+                <CommandItem onSelect={() => { setDefaultView("year"); setIsCommandOpen(false); }}><CalendarDays className="h-4 w-4" /><span>{t.year}</span></CommandItem>
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "shortcuts" ? (
+            <CommandList>
+              <CommandGroup heading={t.enableShortcuts}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => toggleShortcuts(true)}><Keyboard className="h-4 w-4" /><span>{t.enableShortcuts}</span></CommandItem>
+                <CommandItem onSelect={() => toggleShortcuts(false)}><Keyboard className="h-4 w-4" /><span>{"Disable shortcuts"}</span></CommandItem>
+              </CommandGroup>
+            </CommandList>
+          ) : commandMode === "calendar-view" ? (
+            <CommandList>
+              <CommandGroup heading={t.view}>
+                <CommandItem onSelect={() => setCommandMode("root")}><ChevronLeftCircle className="h-4 w-4" /><span>{t.previousStep || "Back"}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("day")}><CalendarDays className="h-4 w-4" /><span>{t.day}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("week")}><CalendarRange className="h-4 w-4" /><span>{t.week}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("four-day")}><CalendarFold className="h-4 w-4" /><span>{t.fourDay}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("month")}><CalendarDays className="h-4 w-4" /><span>{t.month}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("year")}><CalendarDays className="h-4 w-4" /><span>{t.year}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("analytics")}><ChartColumn className="h-4 w-4" /><span>{t.analytics}</span></CommandItem>
+                <CommandItem onSelect={() => handleSetView("settings")}><UserRoundCog className="h-4 w-4" /><span>{t.settings}</span></CommandItem>
               </CommandGroup>
             </CommandList>
           ) : (
           <CommandList>
             <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
 
-            <CommandGroup heading={t.commandGroupCreate || "Create"}>
+            <CommandGroup heading={t.createEvent}>
               <CommandItem onSelect={openQuickCreateDialog}>
                 <PlusCircle className="h-4 w-4" />
                 <span>{t.newEvent}</span>
@@ -1258,22 +1335,22 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
               <CommandItem onSelect={createCalendarCategoryFromPrompt}>
                 <FolderPlus className="h-4 w-4" />
-                <span>{t.commandCreateCategory || "Create calendar category"}</span>
+                <span>{t.addCategory}</span>
               </CommandItem>
               <CommandItem onSelect={() => openEventForShare(getPrimaryEvent())}>
                 <Share2 className="h-4 w-4" />
-                <span>{t.commandCreateShare || "Create event share"}</span>
+                <span>{t.shareEvent}</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandGroup heading={t.commandGroupEvent || "Event actions"}>
+            <CommandGroup heading={t.events}>
               <CommandItem onSelect={editPrimaryEvent}>
                 <Pencil className="h-4 w-4" />
-                <span>{t.commandEditEvent || "Edit selected event"}</span>
+                <span>{t.update}</span>
               </CommandItem>
               <CommandItem onSelect={deletePrimaryEvent}>
                 <Trash2 className="h-4 w-4" />
-                <span>{t.commandDeleteEvent || "Delete selected event"}</span>
+                <span>{t.delete}</span>
               </CommandItem>
               <CommandItem onSelect={duplicatePrimaryEvent}>
                 <Copy className="h-4 w-4" />
@@ -1281,30 +1358,30 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </CommandItem>
               <CommandItem onSelect={copyPrimaryEventTitle}>
                 <Copy className="h-4 w-4" />
-                <span>{t.commandCopyEventTitle || "Copy event title"}</span>
+                <span>{`${t.copy} ${t.title}`}</span>
               </CommandItem>
               <CommandItem onSelect={() => togglePrimaryBookmark("add")}>
                 <BookmarkPlus className="h-4 w-4" />
-                <span>{t.commandAddBookmark || "Add bookmark"}</span>
+                <span>{t.bookmark}</span>
               </CommandItem>
               <CommandItem onSelect={() => togglePrimaryBookmark("remove")}>
                 <BookmarkX className="h-4 w-4" />
-                <span>{t.commandRemoveBookmark || "Remove bookmark"}</span>
+                <span>{t.unbookmark}</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandGroup heading={t.commandGroupShare || "Share actions"}>
+            <CommandGroup heading={t.share}>
               <CommandItem onSelect={copyPrimarySharedLink}>
                 <Link2 className="h-4 w-4" />
-                <span>{t.commandCopySharedLink || "Copy shared link"}</span>
+                <span>{t.copyLink}</span>
               </CommandItem>
               <CommandItem onSelect={deletePrimaryShare}>
                 <Trash2 className="h-4 w-4" />
-                <span>{t.commandDeleteShare || "Delete share"}</span>
+                <span>{t.deleteShare}</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandGroup heading={t.commandGroupNavigation || "Navigation"}>
+            <CommandGroup heading={t.view}>
               <CommandItem onSelect={goToToday}>
                 <CalendarIcon className="h-4 w-4" />
                 <span>{t.today}</span>
@@ -1317,100 +1394,52 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <ChevronRightCircle className="h-4 w-4" />
                 <span>{t.nextPeriod}</span>
               </CommandItem>
-              <CommandItem onSelect={() => handleSetView("day")}>
-                <CalendarDays className="h-4 w-4" />
-                <span>{t.day}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("week")}>
+              <CommandItem onSelect={openCalendarViewCommandMode}>
                 <CalendarRange className="h-4 w-4" />
-                <span>{t.week}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("four-day")}>
-                <CalendarFold className="h-4 w-4" />
-                <span>{t.fourDay}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("month")}>
-                <CalendarDays className="h-4 w-4" />
-                <span>{t.month}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("year")}>
-                <CalendarDays className="h-4 w-4" />
-                <span>{t.year}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("analytics")}>
-                <ChartColumn className="h-4 w-4" />
-                <span>{t.analytics}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSetView("settings")}>
-                <UserRoundCog className="h-4 w-4" />
-                <span>{t.settings}</span>
+                <span>{t.view}</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandGroup heading={t.commandGroupSettings || "Settings"}>
-              <CommandItem onSelect={() => switchTheme("light")}>
+            <CommandGroup heading={t.settings}>
+              <CommandItem onSelect={openThemeCommandMode}>
                 <Palette className="h-4 w-4" />
-                <span>{t.themeLight}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => switchTheme("dark")}>
-                <Palette className="h-4 w-4" />
-                <span>{t.themeDark}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => switchTheme("system")}>
-                <SunMoon className="h-4 w-4" />
-                <span>{t.themeSystem}</span>
+                <span>{t.theme}</span>
               </CommandItem>
               <CommandItem onSelect={openLanguageCommandMode}>
                 <Languages className="h-4 w-4" />
                 <span>{t.language}</span>
               </CommandItem>
-              <CommandItem onSelect={() => { setFirstDayOfWeek(0); setIsCommandOpen(false); }}>
+              <CommandItem onSelect={openFirstDayCommandMode}>
                 <CalendarDays className="h-4 w-4" />
-                <span>{t.commandSetSunday || "Set first day to Sunday"}</span>
+                <span>{t.firstDayOfWeek}</span>
               </CommandItem>
-              <CommandItem onSelect={() => { setFirstDayOfWeek(1); setIsCommandOpen(false); }}>
-                <CalendarDays className="h-4 w-4" />
-                <span>{t.commandSetMonday || "Set first day to Monday"}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => { setTimeFormat("24h"); setIsCommandOpen(false); }}>
+              <CommandItem onSelect={openTimeFormatCommandMode}>
                 <Clock3 className="h-4 w-4" />
-                <span>{t.timeFormat24h}</span>
+                <span>{t.timeFormat}</span>
               </CommandItem>
-              <CommandItem onSelect={() => { setTimeFormat("12h"); setIsCommandOpen(false); }}>
-                <Clock3 className="h-4 w-4" />
-                <span>{t.timeFormat12hWithMeridiem}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => { setDefaultView("week"); setIsCommandOpen(false); }}>
+              <CommandItem onSelect={openDefaultViewCommandMode}>
                 <CalendarRange className="h-4 w-4" />
-                <span>{t.commandDefaultWeek || "Set default view to week"}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => { setDefaultView("month"); setIsCommandOpen(false); }}>
-                <CalendarDays className="h-4 w-4" />
-                <span>{t.commandDefaultMonth || "Set default view to month"}</span>
+                <span>{t.defaultView}</span>
               </CommandItem>
               <CommandItem onSelect={() => { setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone); setIsCommandOpen(false); }}>
                 <BellRing className="h-4 w-4" />
-                <span>{t.commandUseSystemTimezone || "Use system timezone"}</span>
+                <span>{t.timezone}</span>
               </CommandItem>
-              <CommandItem onSelect={() => toggleShortcuts(true)}>
+              <CommandItem onSelect={openShortcutsCommandMode}>
                 <Keyboard className="h-4 w-4" />
-                <span>{t.commandEnableShortcuts || "Enable shortcuts"}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => toggleShortcuts(false)}>
-                <Keyboard className="h-4 w-4" />
-                <span>{t.commandDisableShortcuts || "Disable shortcuts"}</span>
+                <span>{t.enableShortcuts}</span>
               </CommandItem>
               <CommandItem onSelect={openShortcutGuide}>
                 <Keyboard className="h-4 w-4" />
-                <span>{t.commandOpenShortcutGuide || "Open shortcut guide"}</span>
+                <span>{t.availableShortcuts}</span>
               </CommandItem>
               <CommandItem onSelect={deleteCalendarCategoryFromPrompt}>
                 <FolderMinus className="h-4 w-4" />
-                <span>{t.commandDeleteCategory || "Delete calendar category"}</span>
+                <span>{`${t.delete} ${t.categoryName}`}</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandGroup heading={t.commandGroupHelp || "Help & account"}>
+            <CommandGroup heading={t.account}>
               <CommandItem onSelect={openSupport}>
                 <LifeBuoy className="h-4 w-4" />
                 <span>{t.commandContactSupport || "Contact support"}</span>
