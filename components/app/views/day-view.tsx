@@ -752,12 +752,20 @@ export default function DayView({
             const topPosition = currentHours * 60 + currentMinutes;
 
             return (
-              <div
-                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B]"
-                style={{
-                  top: `${topPosition}px`,
-                }}
-              />
+              <>
+                <div
+                  className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-0 green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B]"
+                  style={{
+                    top: `${topPosition}px`,
+                  }}
+                />
+                <div
+                  className="absolute left-0 w-2.5 h-2.5 rounded-full bg-[#0066FF] -translate-x-1/2 -translate-y-1/2 z-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+                  style={{
+                    top: `${topPosition}px`,
+                  }}
+                />
+              </>
             );
           })()}
         </div>

@@ -11,7 +11,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
 } from "@/components/ui/select";
 import {
   ChevronLeft,
@@ -1111,6 +1110,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             </div>
 
             <div className="flex items-center space-x-2">
+              {view !== "analytics" && view !== "settings" && (
+                <Select
+                  value={view}
+                  onValueChange={(value) => handleViewChange(value as ViewType)}
+                >
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">{t.day}</SelectItem>
+                    <SelectItem value="week">{t.week}</SelectItem>
+                    <SelectItem value="four-day">{t.fourDay}</SelectItem>
+                    <SelectItem value="month">{t.month}</SelectItem>
+                    <SelectItem value="year">{t.year}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 variant="outline"
                 size="icon"
