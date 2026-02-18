@@ -32,7 +32,6 @@ import {
   FolderPlus,
   FolderMinus,
   Share2,
-  ShareX,
   BookmarkPlus,
   BookmarkX,
   Pencil,
@@ -1264,7 +1263,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <span>{t.commandCopySharedLink || "Copy shared link"}</span>
               </CommandItem>
               <CommandItem onSelect={deletePrimaryShare}>
-                <ShareX className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
                 <span>{t.commandDeleteShare || "Delete share"}</span>
               </CommandItem>
             </CommandGroup>
