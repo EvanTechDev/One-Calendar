@@ -20,6 +20,14 @@ import {
   PanelLeft,
   BarChart2,
   Settings as SettingsIcon,
+  Command as CommandIcon,
+  CalendarPlus,
+  Calendar as CalendarIcon,
+  CalendarDays,
+  CalendarRange,
+  CalendarFold,
+  ChartColumn,
+  UserRoundCog,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -41,6 +49,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Sidebar from "@/components/app/sidebar/sidebar";
 import { translations, useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -134,6 +151,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -200,6 +218,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       }
 
       switch (e.key) {
+        case "k":
+        case "K":
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            setIsCommandOpen((prev) => !prev);
+          }
+          break;
         case "n":
         case "N":
           e.preventDefault();
@@ -278,6 +303,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const handleViewChange = (newView: ViewType) => {
     setView(newView);
+  };
+
+  const openQuickCreateDialog = () => {
+    setSelectedEvent(null);
+    setQuickCreateStartTime(new Date());
+    setEventDialogOpen(true);
+    setIsCommandOpen(false);
+  };
+
+  const handleSetView = (nextView: ViewType) => {
+    setView(nextView);
+    setIsCommandOpen(false);
+  };
+
+  const goToToday = () => {
+    handleTodayClick();
+    setIsCommandOpen(false);
   };
 
   const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
@@ -701,6 +743,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 variant="outline"
                 size="icon"
                 className="rounded-full h-8 w-8"
+                onClick={() => setIsCommandOpen(true)}
+                aria-label={t.commandPalette || "Command palette"}
+              >
+                <CommandIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-8 w-8"
                 onClick={() => setView("analytics")}
                 aria-label={t.analytics}
               >
@@ -892,6 +943,72 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           timezone={timezone}
           openShareImmediately={openShareImmediately}
         />
+
+        <CommandDialog
+          open={isCommandOpen}
+          onOpenChange={setIsCommandOpen}
+          title={t.commandPalette || "Command palette"}
+          description={
+            t.commandPaletteDescription ||
+            "Quickly jump to any calendar feature"
+          }
+        >
+          <CommandInput
+            placeholder={
+              t.commandPalettePlaceholder ||
+              "Type a command or search for a feature..."
+            }
+          />
+          <CommandList>
+            <CommandEmpty>{t.noMatchingEvents || "No results found."}</CommandEmpty>
+
+            <CommandGroup heading={t.event || "Event"}>
+              <CommandItem onSelect={openQuickCreateDialog}>
+                <CalendarPlus className="h-4 w-4" />
+                <span>{t.newEvent}</span>
+                <CommandShortcut>N</CommandShortcut>
+              </CommandItem>
+              <CommandItem onSelect={goToToday}>
+                <CalendarIcon className="h-4 w-4" />
+                <span>{t.today}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.calendarView || "Views"}>
+              <CommandItem onSelect={() => handleSetView("day")}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.day}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSetView("week")}>
+                <CalendarRange className="h-4 w-4" />
+                <span>{t.week}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSetView("four-day")}>
+                <CalendarFold className="h-4 w-4" />
+                <span>{t.fourDay}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSetView("month")}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.month}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSetView("year")}>
+                <CalendarDays className="h-4 w-4" />
+                <span>{t.year}</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading={t.quickActions || "Quick actions"}>
+              <CommandItem onSelect={() => handleSetView("analytics")}>
+                <ChartColumn className="h-4 w-4" />
+                <span>{t.analytics}</span>
+              </CommandItem>
+              <CommandItem onSelect={() => handleSetView("settings")}>
+                <UserRoundCog className="h-4 w-4" />
+                <span>{t.settings}</span>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
 
         <EventDialog
           open={eventDialogOpen}
