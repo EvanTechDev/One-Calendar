@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
@@ -48,10 +47,6 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
           "rounded-xl! top-1/3 translate-y-0 overflow-hidden p-0",
@@ -59,6 +54,10 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
+        <div className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </div>
         {children}
       </DialogContent>
     </Dialog>
