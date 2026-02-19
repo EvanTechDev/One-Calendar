@@ -146,6 +146,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
   );
+  const [quickCreateEndTime, setQuickCreateEndTime] = useState<Date | null>(
+    null,
+  );
 
   const [defaultView, setDefaultView] = useLocalStorage<ViewType>(
     "default-view",
@@ -440,8 +443,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setPreviewOpen(false);
   };
 
-  const handleTimeSlotClick = (clickTime: Date) => {
-    setQuickCreateStartTime(clickTime);
+  const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
+    setQuickCreateStartTime(startTime);
+    setQuickCreateEndTime(endTime ?? null);
 
     setSelectedEvent(null);
     setEventDialogOpen(true);
@@ -728,7 +732,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeSlotClick}
+                onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
                 timezone={timezone}
                 timeFormat={timeFormat}
@@ -756,7 +760,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeSlotClick}
+                onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
                 firstDayOfWeek={firstDayOfWeek}
                 timezone={timezone}
@@ -785,7 +789,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeSlotClick}
+                onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
                 firstDayOfWeek={firstDayOfWeek}
                 timezone={timezone}
@@ -900,6 +904,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           onEventUpdate={handleEventUpdate}
           onEventDelete={handleEventDelete}
           initialDate={quickCreateStartTime || date}
+          initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           language={language}
           timezone={timezone}

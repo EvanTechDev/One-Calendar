@@ -27,7 +27,7 @@ interface WeekViewProps {
   date: Date;
   events: any[];
   onEventClick: (event: any) => void;
-  onTimeSlotClick: (date: Date) => void;
+  onTimeSlotClick: (startDate: Date, endDate?: Date) => void;
   language: Language;
   firstDayOfWeek: number;
   timezone: string;
@@ -105,6 +105,14 @@ export default function WeekView({
   const [dragEventDuration, setDragEventDuration] = useState<number>(0);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isDraggingRef = useRef(false);
+
+  const [createSelection, setCreateSelection] = useState<{
+    dayIndex: number;
+    startMinute: number;
+    endMinute: number;
+  } | null>(null);
+  const createStartRef = useRef<{ dayIndex: number; minute: number } | null>(null);
+  const isCreatingRef = useRef(false);
   const isDark =
     typeof document !== "undefined" &&
     document.documentElement.classList.contains("dark");
@@ -261,6 +269,50 @@ export default function WeekView({
     weekDays,
     dragEventDuration,
   ]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isCreatingRef.current || !createStartRef.current) return;
+      const endMinute = getMinutesFromMousePosition(event.clientY);
+      setCreateSelection({
+        dayIndex: createStartRef.current.dayIndex,
+        startMinute: createStartRef.current.minute,
+        endMinute,
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (!isCreatingRef.current || !createStartRef.current) return;
+
+      const { dayIndex, minute } = createStartRef.current;
+      const startMinute = Math.min(minute, createSelection?.endMinute ?? minute);
+      const endMinute = Math.max(minute, createSelection?.endMinute ?? minute);
+      const day = weekDays[dayIndex];
+
+      if (day) {
+        const startDate = new Date(day);
+        startDate.setHours(0, startMinute, 0, 0);
+
+        const effectiveEndMinute = endMinute === startMinute ? startMinute + 30 : endMinute;
+        const endDate = new Date(day);
+        endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0);
+
+        onTimeSlotClick(startDate, endDate);
+      }
+
+      isCreatingRef.current = false;
+      createStartRef.current = null;
+      setCreateSelection(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [createSelection, onTimeSlotClick, weekDays]);
 
   const formatTime = (hour: number) => {
     if (timeFormat === "12h") {
@@ -515,21 +567,29 @@ export default function WeekView({
     }
   };
 
-  const handleTimeSlotClick = (
-    day: Date,
-    hour: number,
+  const snapToQuarterHour = (minutes: number) => {
+    const clamped = Math.min(Math.max(minutes, 0), 24 * 60);
+    return Math.round(clamped / 15) * 15;
+  };
+
+  const getMinutesFromMousePosition = (clientY: number) => {
+    if (!scrollContainerRef.current) return 0;
+    const containerRect = scrollContainerRef.current.getBoundingClientRect();
+    return snapToQuarterHour(
+      clientY - containerRect.top + scrollContainerRef.current.scrollTop,
+    );
+  };
+
+  const handleGridMouseDown = (
+    dayIndex: number,
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const relativeY = event.clientY - rect.top;
-    const cellHeight = rect.height;
+    if (event.button !== 0 || draggingEvent) return;
 
-    const minutes = relativeY < cellHeight / 2 ? 0 : 30;
-
-    const clickTime = new Date(day);
-    clickTime.setHours(hour, minutes, 0, 0);
-
-    onTimeSlotClick(clickTime);
+    const startMinute = getMinutesFromMousePosition(event.clientY);
+    createStartRef.current = { dayIndex, minute: startMinute };
+    isCreatingRef.current = true;
+    setCreateSelection({ dayIndex, startMinute, endMinute: startMinute });
   };
 
   const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
@@ -736,12 +796,15 @@ export default function WeekView({
           const eventLayouts = layoutEventsForDay(regularEvents, day);
 
           return (
-            <div key={day.toString()} className="relative border-l grid-col">
+            <div
+              key={day.toString()}
+              className="relative border-l grid-col"
+              onMouseDown={(event) => handleGridMouseDown(dayIndex, event)}
+            >
               {hours.map((hour) => (
                 <div
                   key={hour}
                   className="h-[60px] border-t"
-                  onClick={(e) => handleTimeSlotClick(day, hour, e)}
                 />
               ))}
 
@@ -857,6 +920,17 @@ export default function WeekView({
                 },
               )}
 
+              {createSelection && createSelection.dayIndex === dayIndex && (
+                <div
+                  className="absolute left-0 right-0 bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none green:bg-[#24a854]/15 green:border-[#24a854]/40 orange:bg-[#e26912]/15 orange:border-[#e26912]/40 azalea:bg-[#CD2F7B]/15 azalea:border-[#CD2F7B]/40"
+                  style={{
+                    top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
+                    height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
+                    zIndex: 5,
+                  }}
+                />
+              )}
+
               {}
               {dragPreview &&
                 isSameDay(dragPreview.day, day) &&
@@ -878,7 +952,9 @@ export default function WeekView({
                       style={{
                         top: `${topPosition}px`,
                       }}
-                    />
+                    >
+                      <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]" />
+                    </div>
                   );
                 })()}
             </div>
