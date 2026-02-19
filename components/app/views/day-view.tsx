@@ -25,7 +25,7 @@ interface DayViewProps {
   date: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
-  onTimeSlotClick: (date: Date) => void;
+  onTimeSlotClick: (startDate: Date, endDate?: Date) => void;
   language: Language;
   timezone: string;
   timeFormat: "24h" | "12h";
@@ -77,6 +77,13 @@ export default function DayView({
   const [dragEventDuration, setDragEventDuration] = useState<number>(0);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isDraggingRef = useRef(false);
+
+  const [createSelection, setCreateSelection] = useState<{
+    startMinute: number;
+    endMinute: number;
+  } | null>(null);
+  const createStartMinuteRef = useRef<number | null>(null);
+  const isCreatingRef = useRef(false);
 
   const isDark =
     typeof document !== "undefined" &&
@@ -284,6 +291,51 @@ export default function DayView({
     dragEventDuration,
   ]);
 
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isCreatingRef.current || createStartMinuteRef.current === null) return;
+      const endMinute = getMinutesFromMousePosition(event.clientY);
+      setCreateSelection({
+        startMinute: createStartMinuteRef.current,
+        endMinute,
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (!isCreatingRef.current || createStartMinuteRef.current === null) return;
+
+      const startMinute = Math.min(
+        createStartMinuteRef.current,
+        createSelection?.endMinute ?? createStartMinuteRef.current,
+      );
+      const endMinute = Math.max(
+        createStartMinuteRef.current,
+        createSelection?.endMinute ?? createStartMinuteRef.current,
+      );
+
+      const startDate = new Date(date);
+      startDate.setHours(0, startMinute, 0, 0);
+
+      const effectiveEndMinute = endMinute === startMinute ? startMinute + 30 : endMinute;
+      const endDate = new Date(date);
+      endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0);
+
+      onTimeSlotClick(startDate, endDate);
+
+      isCreatingRef.current = false;
+      createStartMinuteRef.current = null;
+      setCreateSelection(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [createSelection, date, onTimeSlotClick]);
+
   const layoutEvents = (events: CalendarEvent[]) => {
     if (!events || events.length === 0) return [];
 
@@ -413,20 +465,26 @@ export default function DayView({
     }
   };
 
-  const handleTimeSlotClick = (
-    hour: number,
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const relativeY = event.clientY - rect.top;
-    const cellHeight = rect.height;
+  const snapToQuarterHour = (minutes: number) => {
+    const clamped = Math.min(Math.max(minutes, 0), 24 * 60);
+    return Math.round(clamped / 15) * 15;
+  };
 
-    const minutes = relativeY < cellHeight / 2 ? 0 : 30;
+  const getMinutesFromMousePosition = (clientY: number) => {
+    if (!scrollContainerRef.current) return 0;
+    const containerRect = scrollContainerRef.current.getBoundingClientRect();
+    return snapToQuarterHour(
+      clientY - containerRect.top + scrollContainerRef.current.scrollTop,
+    );
+  };
 
-    const clickTime = new Date(date);
-    clickTime.setHours(hour, minutes, 0, 0);
+  const handleGridMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || draggingEvent) return;
 
-    onTimeSlotClick(clickTime);
+    const startMinute = getMinutesFromMousePosition(event.clientY);
+    createStartMinuteRef.current = startMinute;
+    isCreatingRef.current = true;
+    setCreateSelection({ startMinute, endMinute: startMinute });
   };
 
   const renderAllDayEvents = (allDayEvents: CalendarEvent[]) => {
@@ -615,12 +673,11 @@ export default function DayView({
           ))}
         </div>
 
-        <div className="relative border-l">
+        <div className="relative border-l" onMouseDown={handleGridMouseDown}>
           {hours.map((hour) => (
             <div
               key={hour}
               className="h-[60px] border-t"
-              onClick={(e) => handleTimeSlotClick(hour, e)}
             />
           ))}
 
@@ -734,6 +791,17 @@ export default function DayView({
             );
           })}
 
+          {createSelection && (
+            <div
+              className="absolute left-0 right-0 bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none green:bg-[#24a854]/15 green:border-[#24a854]/40 orange:bg-[#e26912]/15 orange:border-[#e26912]/40 azalea:bg-[#CD2F7B]/15 azalea:border-[#CD2F7B]/40"
+              style={{
+                top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
+                height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
+                zIndex: 5,
+              }}
+            />
+          )}
+
           {}
           {dragPreview && renderDragPreview()}
 
@@ -757,7 +825,9 @@ export default function DayView({
                 style={{
                   top: `${topPosition}px`,
                 }}
-              />
+              >
+                <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]" />
+              </div>
             );
           })()}
         </div>

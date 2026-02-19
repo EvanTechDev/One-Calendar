@@ -100,6 +100,7 @@ interface EventDialogProps {
   onEventUpdate: (event: CalendarEvent) => void;
   onEventDelete: (eventId: string) => void;
   initialDate: Date;
+  initialEndDate?: Date | null;
   event: CalendarEvent | null;
   language: Language;
   timezone: string;
@@ -119,6 +120,7 @@ export default function EventDialog({
   onEventUpdate,
   onEventDelete,
   initialDate,
+  initialEndDate,
   event,
   language,
   timezone,
@@ -309,34 +311,38 @@ export default function EventDialog({
       } else {
         resetForm();
         if (initialDate) {
-          setStartDate(initialDate);
+          const dialogStartDate = new Date(initialDate);
+          const dialogEndDate =
+            initialEndDate && initialEndDate > initialDate
+              ? new Date(initialEndDate)
+              : new Date(initialDate.getTime() + 30 * 60000);
+
+          setStartDate(dialogStartDate);
           if (calendars.length > 0) {
             setColor(getEventColorByCalendarId(calendars[0].id));
           }
-          setEndDate(initialDate);
+          setEndDate(dialogEndDate);
 
-          const initialHour = getHours(initialDate);
-          const initialMinute = getMinutes(initialDate);
-          const endTime = new Date(initialDate);
-          endTime.setMinutes(initialMinute + 30);
+          const initialHour = getHours(dialogStartDate);
+          const initialMinute = getMinutes(dialogStartDate);
 
           setStartTime({
             hours: initialHour.toString().padStart(2, "0"),
             minutes: initialMinute.toString().padStart(2, "0"),
-            rawInput: format(initialDate, "HH:mm"),
+            rawInput: format(dialogStartDate, "HH:mm"),
             isCustomInput: false,
           });
 
           setEndTime({
-            hours: getHours(endTime).toString().padStart(2, "0"),
-            minutes: getMinutes(endTime).toString().padStart(2, "0"),
-            rawInput: format(endTime, "HH:mm"),
+            hours: getHours(dialogEndDate).toString().padStart(2, "0"),
+            minutes: getMinutes(dialogEndDate).toString().padStart(2, "0"),
+            rawInput: format(dialogEndDate, "HH:mm"),
             isCustomInput: false,
           });
         }
       }
     }
-  }, [event, calendars, initialDate, open]);
+  }, [event, calendars, initialDate, initialEndDate, open]);
 
   const resetForm = () => {
     const now = new Date();
