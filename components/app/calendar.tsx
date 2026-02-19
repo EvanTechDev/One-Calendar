@@ -580,7 +580,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col pr-14">
           {" "}
-          <header className="flex items-center justify-between px-4 h-16 border-b relative z-40 bg-background">
+          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
             <div className="flex items-center space-x-4">
               <Button variant="outline" onClick={toggleSidebar} size="sm">
                 <PanelLeft />
@@ -588,9 +588,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <Button variant="outline" size="sm" onClick={handleTodayClick}>
                 {t.today || "今天"}
               </Button>
-            </div>
-
-            <div className="flex items-center space-x-2">
               {view !== "analytics" && view !== "settings" && (
                 <>
                   <div className="flex items-center space-x-1">
@@ -610,7 +607,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               )}
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="ml-auto flex items-center space-x-2">
               <div className="relative z-50">
                 <Select
                   value={
