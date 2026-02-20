@@ -136,7 +136,7 @@ The app will auto-generate:
 
 You can still set `ATPROTO_OAUTH_CLIENT_ID` / `ATPROTO_OAUTH_REDIRECT_URI` manually if you already have a custom atproto OAuth client configuration.
 
-If your custom domain is protected by Cloudflare/WAF and PDS requests get 429 before reaching Vercel, set `ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL` to a publicly reachable host (for example your `*.vercel.app` deployment URL). The app will use `<ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL>/oauth/client-metadata` as the default client metadata URL.
+If your custom domain is protected by Cloudflare/WAF and PDS requests get 429 before reaching Vercel, set `ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL` to a publicly reachable host. The app will use `<ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL>/oauth/client-metadata` as the default client metadata URL. Do not use a protected Vercel preview URL that returns `Unauthorized` for anonymous requests.
 
 To get a valid setup:
 
