@@ -136,6 +136,8 @@ The app will auto-generate:
 
 You can still set `ATPROTO_OAUTH_CLIENT_ID` / `ATPROTO_OAUTH_REDIRECT_URI` manually if you already have a custom atproto OAuth client configuration.
 
+If your custom domain is protected by Cloudflare/WAF and PDS requests get 429 before reaching Vercel, set `ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL` to a publicly reachable host (for example your `*.vercel.app` deployment URL). The app will use `<ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL>/oauth/client-metadata` as the default client metadata URL.
+
 To get a valid setup:
 
 1. Deploy the app on a public HTTPS domain (local `localhost` may not work with every PDS).
@@ -143,7 +145,7 @@ To get a valid setup:
 3. Open `<BASE_URL>/oauth/client-metadata` and ensure it returns JSON.
 4. Use `/atproto` login flow with your Bluesky handle.
 
-If you see `Unable to obtain client metadata ... Too Many Requests`, make sure this endpoint can be heavily cached by public CDNs and does not require bot checks/firewall challenges. The app now returns cache headers for this route, but upstream protection (WAF/rate-limit) must still allow anonymous GET requests from PDS servers.
+If you see `Unable to obtain client metadata ... Too Many Requests`, make sure this endpoint can be heavily cached by public CDNs and does not require bot checks/firewall challenges. If Vercel logs show no request, the 429 is likely returned by an upstream layer (for example Cloudflare) before traffic reaches Vercel.
 
 ## Tech Stack
 

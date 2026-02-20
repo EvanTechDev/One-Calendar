@@ -17,7 +17,11 @@ export function getAtprotoOauthConfig(requestUrl?: string): AtprotoOauthConfig |
 
   const normalizedBaseUrl = trimTrailingSlash(baseUrl)
   const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI || `${normalizedBaseUrl}/api/atproto/oauth/callback`
-  const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID || `${normalizedBaseUrl}/oauth/client-metadata`
+  const explicitClientId = process.env.ATPROTO_OAUTH_CLIENT_ID
+  const metadataBaseUrl = process.env.ATPROTO_OAUTH_CLIENT_METADATA_BASE_URL
+  const vercelDeploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined
+  const fallbackMetadataBaseUrl = metadataBaseUrl || vercelDeploymentUrl || normalizedBaseUrl
+  const clientId = explicitClientId || `${trimTrailingSlash(fallbackMetadataBaseUrl)}/oauth/client-metadata`
 
   return {
     baseUrl: normalizedBaseUrl,
