@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -8,6 +9,7 @@ export default function AtprotoLoginPage() {
   const [handle, setHandle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
 
   const startLogin = async () => {
     setLoading(true);
@@ -36,7 +38,7 @@ export default function AtprotoLoginPage() {
       <p className="text-sm text-muted-foreground">输入你的 handle（例如 alice.bsky.social），系统会自动查询你的 PDS 并跳转到 OAuth 登录。</p>
       <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="alice.bsky.social" />
       <Button onClick={startLogin} disabled={!handle || loading}>{loading ? "Redirecting..." : "Continue with ATProto OAuth"}</Button>
-      {error ? <p className="text-sm text-red-500">{error}</p> : null}
+      {(error || searchParams.get("reason") || searchParams.get("error")) ? <p className="text-sm text-red-500">{error || searchParams.get("reason") || searchParams.get("error")}</p> : null}
     </div>
   );
 }

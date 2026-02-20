@@ -44,6 +44,7 @@ export function createDpopProof(params: {
   privateKeyPem: string;
   publicJwk: DpopPublicJwk;
   accessToken?: string;
+  nonce?: string;
 }) {
   const header = {
     typ: "dpop+jwt",
@@ -65,6 +66,10 @@ export function createDpopProof(params: {
 
   if (params.accessToken) {
     payload.ath = createHash("sha256").update(params.accessToken, "utf8").digest("base64url");
+  }
+
+  if (params.nonce) {
+    payload.nonce = params.nonce;
   }
 
   const encodedHeader = toBase64Url(JSON.stringify(header));

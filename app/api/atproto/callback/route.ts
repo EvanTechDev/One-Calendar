@@ -3,9 +3,18 @@ import { getProfile } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
 import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
+function parseJsonSafe<T>(value: string): T | null {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
+  const iss = request.nextUrl.searchParams.get("iss");
 
   const expectedState = request.cookies.get("atproto_oauth_state")?.value;
   const verifier = request.cookies.get("atproto_oauth_verifier")?.value;
@@ -22,35 +31,54 @@ export async function GET(request: NextRequest) {
   }
 
   const dpopPrivateKeyPem = Buffer.from(dpopPrivateRaw, "base64url").toString("utf8");
-  const dpopPublicJwk = JSON.parse(Buffer.from(dpopPublicRaw, "base64url").toString("utf8")) as DpopPublicJwk;
+  const dpopPublicJwk = parseJsonSafe<DpopPublicJwk>(Buffer.from(dpopPublicRaw, "base64url").toString("utf8"));
+  if (!dpopPublicJwk?.kty || !dpopPublicJwk?.crv || !dpopPublicJwk?.x || !dpopPublicJwk?.y) {
+    return NextResponse.redirect(`${baseUrl}/atproto?error=invalid_dpop_key`);
+  }
 
   const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
   const redirectUri = `${baseUrl}/api/atproto/callback`;
-  const tokenUrl = `${pds.replace(/\/$/, "")}/oauth/token`;
-  const dpopProof = createDpopProof({
-    htu: tokenUrl,
-    htm: "POST",
-    privateKeyPem: dpopPrivateKeyPem,
-    publicJwk: dpopPublicJwk,
-  });
+  const issuer = iss || pds;
+  const tokenUrl = `${issuer.replace(/\/$/, "")}/oauth/token`;
 
-  const tokenRes = await fetch(tokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      DPoP: dpopProof,
-    },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      client_id: clientId,
-      code_verifier: verifier,
-    }),
-  });
+  const makeTokenRequest = async (nonce?: string) => {
+    const dpopProof = createDpopProof({
+      htu: tokenUrl,
+      htm: "POST",
+      privateKeyPem: dpopPrivateKeyPem,
+      publicJwk: dpopPublicJwk,
+      nonce,
+    });
+
+    return fetch(tokenUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        DPoP: dpopProof,
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        client_id: clientId,
+        code_verifier: verifier,
+      }),
+    });
+  };
+
+  let tokenRes = await makeTokenRequest();
+  if (!tokenRes.ok) {
+    const nonce = tokenRes.headers.get("DPoP-Nonce") || tokenRes.headers.get("dpop-nonce");
+    if (nonce) {
+      tokenRes = await makeTokenRequest(nonce);
+    }
+  }
 
   if (!tokenRes.ok) {
-    return NextResponse.redirect(`${baseUrl}/atproto?error=token_exchange_failed`);
+    const detailText = await tokenRes.text();
+    const detailJson = parseJsonSafe<{ error?: string; error_description?: string }>(detailText);
+    const reason = detailJson?.error_description || detailJson?.error || detailText.slice(0, 160) || "token_exchange_failed";
+    return NextResponse.redirect(`${baseUrl}/atproto?error=token_exchange_failed&reason=${encodeURIComponent(reason)}`);
   }
 
   const tokenData = (await tokenRes.json()) as { access_token?: string; refresh_token?: string };
