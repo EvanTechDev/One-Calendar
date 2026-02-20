@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
         collection: ATPROTO_BACKUP_COLLECTION,
         rkey: ATPROTO_BACKUP_RKEY,
         accessToken: atproto.accessToken,
+        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+        dpopPublicJwk: atproto.dpopPublicJwk,
         record: {
           $type: ATPROTO_BACKUP_COLLECTION,
           ciphertext: encrypted_data,
@@ -101,6 +103,8 @@ export async function GET() {
         collection: ATPROTO_BACKUP_COLLECTION,
         rkey: ATPROTO_BACKUP_RKEY,
         accessToken: atproto.accessToken,
+        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+        dpopPublicJwk: atproto.dpopPublicJwk,
       });
       const value = record.value ?? {};
       return NextResponse.json({
@@ -147,6 +151,8 @@ export async function DELETE() {
       collection: ATPROTO_BACKUP_COLLECTION,
       rkey: ATPROTO_BACKUP_RKEY,
       accessToken: atproto.accessToken,
+      dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+      dpopPublicJwk: atproto.dpopPublicJwk,
     });
     return NextResponse.json({ success: true, backend: "atproto" });
   }

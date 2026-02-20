@@ -24,7 +24,7 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 export async function GET() {
   const atproto = await getAtprotoSession();
   if (atproto) {
-    const data = await listRecords({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, accessToken: atproto.accessToken });
+    const data = await listRecords({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     const shares = (data.records || []).map((record) => {
       const rkey = record.uri.split("/").pop() || "";
       const value = record.value ?? {};

@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
         collection: ATPROTO_SHARE_COLLECTION,
         rkey: id,
         accessToken: atproto.accessToken,
+        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+        dpopPublicJwk: atproto.dpopPublicJwk,
         record: {
           $type: ATPROTO_SHARE_COLLECTION,
           encryptedData,
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest) {
 async function getAtprotoShare(id: string, password: string, handleParam?: string) {
   const atproto = await getAtprotoSession();
   if (atproto) {
-    const record = await getRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+    const record = await getRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     const value = record.value ?? {};
     const isProtected = !!value.isProtected;
     if (isProtected && !password) {
@@ -154,7 +156,7 @@ async function getAtprotoShare(id: string, password: string, handleParam?: strin
     const decryptedData = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), key);
 
     if (value.isBurn) {
-      await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+      await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     }
 
     return NextResponse.json({ success: true, data: decryptedData, timestamp: value.timestamp, protected: isProtected, burnAfterRead: !!value.isBurn });
@@ -226,7 +228,7 @@ export async function DELETE(request: NextRequest) {
 
   const atproto = await getAtprotoSession();
   if (atproto) {
-    await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+    await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     return NextResponse.json({ success: true });
   }
 

@@ -1,3 +1,4 @@
+import type { DpopPublicJwk } from "@/lib/dpop";
 import { cookies } from "next/headers";
 
 export const ATPROTO_SESSION_COOKIE = "atproto_session";
@@ -10,6 +11,8 @@ export interface AtprotoSession {
   refreshToken?: string;
   displayName?: string;
   avatar?: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
 }
 
 function shouldUseSecureCookies() {

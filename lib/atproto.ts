@@ -1,4 +1,5 @@
 import { randomBytes, createHash } from "crypto";
+import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
 export interface DidDocService {
   id?: string;
@@ -10,7 +11,7 @@ export interface DidDoc {
   service?: DidDocService[];
 }
 
-export async function resolveHandle(handle: string): Promise<{ did: string; pds: string; }> {
+export async function resolveHandle(handle: string): Promise<{ did: string; pds: string }> {
   const normalized = handle.replace(/^@/, "").trim().toLowerCase();
   const didRes = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(normalized)}`, { cache: "no-store" });
   if (!didRes.ok) {
@@ -42,10 +43,47 @@ export function createPkcePair() {
   return { verifier, challenge };
 }
 
-export async function getProfile(pds: string, actor: string, accessToken: string) {
+async function createAuthHeaders(params: {
+  url: string;
+  method: string;
+  accessToken?: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
+  contentType?: string;
+}) {
+  const headers: Record<string, string> = {};
+  if (params.contentType) headers["Content-Type"] = params.contentType;
+
+  if (!params.accessToken) return headers;
+
+  if (params.dpopPrivateKeyPem && params.dpopPublicJwk) {
+    const dpopProof = createDpopProof({
+      htu: params.url,
+      htm: params.method,
+      privateKeyPem: params.dpopPrivateKeyPem,
+      publicJwk: params.dpopPublicJwk,
+      accessToken: params.accessToken,
+    });
+
+    headers.Authorization = `DPoP ${params.accessToken}`;
+    headers.DPoP = dpopProof;
+    return headers;
+  }
+
+  headers.Authorization = `Bearer ${params.accessToken}`;
+  return headers;
+}
+
+export async function getProfile(pds: string, actor: string, accessToken: string, dpop?: { privateKeyPem?: string; publicJwk?: DpopPublicJwk }) {
   const url = `${pds.replace(/\/$/, "")}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(actor)}`;
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: await createAuthHeaders({
+      url,
+      method: "GET",
+      accessToken,
+      dpopPrivateKeyPem: dpop?.privateKeyPem,
+      dpopPublicJwk: dpop?.publicJwk,
+    }),
     cache: "no-store",
   });
   if (!res.ok) return null;
@@ -59,14 +97,21 @@ export async function putRecord(params: {
   rkey: string;
   record: Record<string, unknown>;
   accessToken: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
 }) {
-  const { pds, accessToken, ...payload } = params;
-  const res = await fetch(`${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.putRecord`, {
+  const { pds, accessToken, dpopPrivateKeyPem, dpopPublicJwk, ...payload } = params;
+  const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.putRecord`;
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: await createAuthHeaders({
+      url,
+      method: "POST",
+      accessToken,
+      dpopPrivateKeyPem,
+      dpopPublicJwk,
+      contentType: "application/json",
+    }),
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -81,15 +126,21 @@ export async function getRecord(params: {
   collection: string;
   rkey: string;
   accessToken?: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
 }) {
-  const { pds, repo, collection, rkey, accessToken } = params;
-  const res = await fetch(
-    `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`,
-    {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      cache: "no-store",
-    },
-  );
+  const { pds, repo, collection, rkey, accessToken, dpopPrivateKeyPem, dpopPublicJwk } = params;
+  const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
+  const res = await fetch(url, {
+    headers: await createAuthHeaders({
+      url,
+      method: "GET",
+      accessToken,
+      dpopPrivateKeyPem,
+      dpopPublicJwk,
+    }),
+    cache: "no-store",
+  });
   if (!res.ok) {
     throw new Error(`getRecord failed: ${await res.text()}`);
   }
@@ -101,12 +152,21 @@ export async function listRecords(params: {
   repo: string;
   collection: string;
   accessToken: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
 }) {
-  const { pds, repo, collection, accessToken } = params;
-  const res = await fetch(
-    `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&limit=100`,
-    { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
-  );
+  const { pds, repo, collection, accessToken, dpopPrivateKeyPem, dpopPublicJwk } = params;
+  const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&limit=100`;
+  const res = await fetch(url, {
+    headers: await createAuthHeaders({
+      url,
+      method: "GET",
+      accessToken,
+      dpopPrivateKeyPem,
+      dpopPublicJwk,
+    }),
+    cache: "no-store",
+  });
 
   if (!res.ok) {
     throw new Error(`listRecords failed: ${await res.text()}`);
@@ -121,14 +181,21 @@ export async function deleteRecord(params: {
   collection: string;
   rkey: string;
   accessToken: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
 }) {
-  const { pds, accessToken, ...payload } = params;
-  const res = await fetch(`${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.deleteRecord`, {
+  const { pds, accessToken, dpopPrivateKeyPem, dpopPublicJwk, ...payload } = params;
+  const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.deleteRecord`;
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: await createAuthHeaders({
+      url,
+      method: "POST",
+      accessToken,
+      dpopPrivateKeyPem,
+      dpopPublicJwk,
+      contentType: "application/json",
+    }),
     body: JSON.stringify(payload),
   });
   if (!res.ok) {

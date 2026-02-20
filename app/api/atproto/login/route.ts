@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPkcePair, resolveHandle } from "@/lib/atproto";
+import { generateDpopKeyMaterial } from "@/lib/dpop";
 
 export async function POST(request: NextRequest) {
   const { handle } = (await request.json()) as { handle?: string };
@@ -8,6 +9,7 @@ export async function POST(request: NextRequest) {
   const { did, pds } = await resolveHandle(handle);
   const { verifier, challenge } = createPkcePair();
   const state = crypto.randomUUID();
+  const dpop = generateDpopKeyMaterial();
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const redirectUri = `${baseUrl}/api/atproto/callback`;
@@ -21,6 +23,7 @@ export async function POST(request: NextRequest) {
   authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("code_challenge", challenge);
   authUrl.searchParams.set("code_challenge_method", "S256");
+  authUrl.searchParams.set("dpop_jkt", dpop.jkt);
 
   const response = NextResponse.json({ authorizeUrl: authUrl.toString(), pds, did });
   const secure = request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
@@ -30,6 +33,8 @@ export async function POST(request: NextRequest) {
   response.cookies.set("atproto_oauth_handle", handle.replace(/^@/, "").toLowerCase(), cookieOptions);
   response.cookies.set("atproto_oauth_pds", pds, cookieOptions);
   response.cookies.set("atproto_oauth_did", did, cookieOptions);
+  response.cookies.set("atproto_oauth_dpop_private", Buffer.from(dpop.privateKeyPem, "utf8").toString("base64url"), cookieOptions);
+  response.cookies.set("atproto_oauth_dpop_public", Buffer.from(JSON.stringify(dpop.publicJwk), "utf8").toString("base64url"), cookieOptions);
 
   return response;
 }
