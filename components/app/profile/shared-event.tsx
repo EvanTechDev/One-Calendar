@@ -50,6 +50,7 @@ interface SharedEvent {
 
 interface SharedEventViewProps {
   shareId: string;
+  handle?: string;
 }
 
 function getDarkerColorClass(color: string) {
@@ -68,7 +69,7 @@ function getDarkerColorClass(color: string) {
   return colorMapping[color] || '#3A3A3A';
 }
 
-export default function SharedEventView({ shareId }: SharedEventViewProps) {
+export default function SharedEventView({ shareId, handle }: SharedEventViewProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [language] = useLanguage();
@@ -105,7 +106,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           return;
         }
 
-        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
+        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}${handle ? `&handle=${encodeURIComponent(handle)}` : ""}`);
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -137,7 +138,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
     };
 
     fetchSharedEvent();
-  }, [shareId]);
+  }, [shareId, handle]);
 
   const tryDecryptWithPassword = async () => {
     if (!shareId) return;
@@ -152,7 +153,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
       setPasswordSubmitting(true);
       setPasswordError(null);
 
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
+      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}${handle ? `&handle=${encodeURIComponent(handle)}` : ""}`;
       const response = await fetch(url);
 
       if (!response.ok) {

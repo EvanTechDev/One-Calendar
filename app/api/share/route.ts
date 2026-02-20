@@ -1,15 +1,13 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { Pool } from "pg";
-import crypto from "crypto";
+import { type NextRequest, NextResponse } from "next/server"
+import { currentUser } from "@clerk/nextjs/server"
+import { Pool } from "pg"
+import crypto from "crypto"
+import { deleteRecord, getAtprotoSession, getRecordFromPds, putRecord, resolveAtprotoHandle } from "@/lib/atproto"
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = new Pool({ connectionString: process.env.POSTGRES_URL, ssl: { rejectUnauthorized: false } })
 
 async function initializeDatabase() {
-  const client = await pool.connect();
+  const client = await pool.connect()
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS shares (
@@ -25,96 +23,90 @@ async function initializeDatabase() {
         enc_version INTEGER,
         UNIQUE(share_id)
       )
-    `);
-    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`);
-    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`);
-    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`);
-    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`);
-    await client.query(`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`);
+    `)
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`)
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`)
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`)
+    await client.query(`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`)
+    await client.query(`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`)
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`)
   } finally {
-    client.release();
+    client.release()
   }
 }
 
-const ALGORITHM = "aes-256-gcm";
+const ALGORITHM = "aes-256-gcm"
+const ATPROTO_SHARE_COLLECTION = "app.onecalendar.record.share"
 
 function keyV2Unprotected(shareId: string) {
-  return crypto.createHash("sha256").update(shareId, "utf8").digest();
+  return crypto.createHash("sha256").update(shareId, "utf8").digest()
 }
-
 function keyV3Password(password: string, shareId: string) {
-  return crypto.scryptSync(password, shareId, 32);
+  return crypto.scryptSync(password, shareId, 32)
 }
-
 function keyV1Legacy(shareId: string) {
-  const salt = process.env.SALT;
-  if (!salt) throw new Error("SALT environment variable is not set");
-  return crypto.scryptSync(shareId, salt, 32);
+  const salt = process.env.SALT
+  if (!salt) throw new Error("SALT environment variable is not set")
+  return crypto.scryptSync(shareId, salt, 32)
 }
 
-function encryptWithKey(data: string, key: Buffer): { encryptedData: string; iv: string; authTag: string } {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(data, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const authTag = cipher.getAuthTag();
-  return { encryptedData: encrypted, iv: iv.toString("hex"), authTag: authTag.toString("hex") };
+function encryptWithKey(data: string, key: Buffer) {
+  const iv = crypto.randomBytes(16)
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+  let encrypted = cipher.update(data, "utf8", "hex")
+  encrypted += cipher.final("hex")
+  const authTag = cipher.getAuthTag()
+  return { encryptedData: encrypted, iv: iv.toString("hex"), authTag: authTag.toString("hex") }
 }
 
 function decryptWithKey(encryptedData: string, iv: string, authTag: string, key: Buffer): string {
-  const ivBuffer = Buffer.from(iv, "hex");
-  const authTagBuffer = Buffer.from(authTag, "hex");
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBuffer);
-  decipher.setAuthTag(authTagBuffer);
-  let decrypted = decipher.update(encryptedData, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"))
+  decipher.setAuthTag(Buffer.from(authTag, "hex"))
+  let decrypted = decipher.update(encryptedData, "hex", "utf8")
+  decrypted += decipher.final("utf8")
+  return decrypted
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const atproto = await getAtprotoSession()
+    if (!user && !atproto) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { id, data, password, burnAfterRead } = await request.json() as { id?: string; data?: any; password?: string; burnAfterRead?: boolean }
+    if (!id || data === undefined || data === null) return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+
+    const hasPassword = typeof password === "string" && password.length > 0
+    const burn = !!burnAfterRead
+    if (burn && !hasPassword) return NextResponse.json({ error: "burnAfterRead requires password protection" }, { status: 400 })
+
+    const dataString = typeof data === "string" ? data : JSON.stringify(data)
+    const encVersion = hasPassword ? 3 : 2
+    const key = hasPassword ? keyV3Password(password as string, id) : keyV2Unprotected(id)
+    const { encryptedData, iv, authTag } = encryptWithKey(dataString, key)
+
+    if (atproto) {
+      await putRecord(atproto, ATPROTO_SHARE_COLLECTION, id, {
+        $type: ATPROTO_SHARE_COLLECTION,
+        shareId: id,
+        encryptedData,
+        iv,
+        authTag,
+        timestamp: new Date().toISOString(),
+        isProtected: hasPassword,
+        isBurn: burn,
+        encVersion,
+      })
+      return NextResponse.json({ success: true, id, protected: hasPassword, burnAfterRead: burn, link: `/${atproto.handle.replace(/^@/, "")}/${id}` })
     }
-    const body = await request.json();
-    const { id, data, password, burnAfterRead } = body as {
-      id?: string;
-      data?: any;
-      password?: string;
-      burnAfterRead?: boolean;
-    };
 
-    if (!id || data === undefined || data === null) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const hasPassword = typeof password === "string" && password.length > 0;
-    const burn = !!burnAfterRead;
-
-    if (burn && !hasPassword) {
-      return NextResponse.json({ error: "burnAfterRead requires password protection" }, { status: 400 });
-    }
-
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
-
-    await initializeDatabase();
-
-    const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const encVersion = hasPassword ? 3 : 2;
-    const key = hasPassword ? keyV3Password(password as string, id) : keyV2Unprotected(id);
-    const { encryptedData, iv, authTag } = encryptWithKey(dataString, key);
-
-    const client = await pool.connect();
+    await initializeDatabase()
+    const client = await pool.connect()
     try {
-      await client.query(
-        `
+      await client.query(`
         INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (share_id)
-        DO UPDATE SET
+        ON CONFLICT (share_id) DO UPDATE SET
           encrypted_data = EXCLUDED.encrypted_data,
           iv = EXCLUDED.iv,
           auth_tag = EXCLUDED.auth_tag,
@@ -123,172 +115,97 @@ export async function POST(request: NextRequest) {
           is_burn = EXCLUDED.is_burn,
           enc_version = EXCLUDED.enc_version,
           user_id = EXCLUDED.user_id
-        `,
-        [user.id, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
-      );
-
-      return NextResponse.json({
-        success: true,
-        path: `shares/${id}/data.json`,
-        id,
-        message: "Share created successfully.",
-        protected: hasPassword,
-        burnAfterRead: burn,
-      });
-    } finally {
-      client.release();
-    }
+      `, [user!.id, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion])
+      return NextResponse.json({ success: true, id, protected: hasPassword, burnAfterRead: burn })
+    } finally { client.release() }
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error occurred" }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get("id");
-  const password = request.nextUrl.searchParams.get("password") ?? "";
-
-  if (!id) {
-    return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
-  }
+  const id = request.nextUrl.searchParams.get("id")
+  const password = request.nextUrl.searchParams.get("password") ?? ""
+  const handle = request.nextUrl.searchParams.get("handle")
+  if (!id) return NextResponse.json({ error: "Missing share ID" }, { status: 400 })
 
   try {
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
+    if (handle) {
+      const normalized = handle.replace(/^@/, "").toLowerCase()
+      const { pds } = await resolveAtprotoHandle(normalized)
+      const record = await getRecordFromPds(pds, normalized, ATPROTO_SHARE_COLLECTION, id)
+      if (!record) return NextResponse.json({ error: "Share not found" }, { status: 404 })
 
-    await initializeDatabase();
-
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-
-      const result = await client.query(
-        "SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version FROM shares WHERE share_id = $1 FOR UPDATE",
-        [id]
-      );
-
-      if (result.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return NextResponse.json({ error: "Share not found" }, { status: 404 });
+      if (record.isProtected && !password) {
+        return NextResponse.json({ error: "Password required", requiresPassword: true, burnAfterRead: record.isBurn }, { status: 401 })
       }
 
-      const row = result.rows[0] as {
-        encrypted_data: string;
-        iv: string;
-        auth_tag: string;
-        timestamp: Date;
-        is_protected: boolean;
-        is_burn: boolean;
-        enc_version: number | null;
-      };
-
-      if (row.is_protected && !password) {
-        await client.query("COMMIT");
-        return NextResponse.json(
-          { error: "Password required", requiresPassword: true, burnAfterRead: row.is_burn },
-          { status: 401 }
-        );
-      }
-
-      const encVersion = row.enc_version ?? 1;
-
-      let key: Buffer;
-      if (row.is_protected) {
-        key = keyV3Password(password, id);
-      } else {
-        key = encVersion === 1 ? keyV1Legacy(id) : keyV2Unprotected(id);
-      }
-
-      let decryptedData: string;
+      const key = record.isProtected ? keyV3Password(password, id) : (record.encVersion === 1 ? keyV1Legacy(id) : keyV2Unprotected(id))
+      let decryptedData: string
       try {
-        decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key);
+        decryptedData = decryptWithKey(record.encryptedData, record.iv, record.authTag, key)
       } catch {
-        await client.query("COMMIT");
-        if (row.is_protected) return NextResponse.json({ error: "Invalid password" }, { status: 403 });
-        return NextResponse.json({ error: "Failed to decrypt share data." }, { status: 403 });
+        return NextResponse.json({ error: record.isProtected ? "Invalid password" : "Failed to decrypt share data." }, { status: 403 })
       }
 
-      if (row.is_burn) {
-        await client.query("DELETE FROM shares WHERE share_id = $1", [id]);
-      }
-
-      await client.query("COMMIT");
-
-      return NextResponse.json({
-        success: true,
-        data: decryptedData,
-        timestamp: row.timestamp.toISOString(),
-        protected: row.is_protected,
-        burnAfterRead: row.is_burn,
-      });
-    } catch (e) {
-      try {
-        await client.query("ROLLBACK");
-      } catch {}
-      throw e;
-    } finally {
-      client.release();
+      return NextResponse.json({ success: true, data: decryptedData, timestamp: record.timestamp, protected: record.isProtected, burnAfterRead: record.isBurn })
     }
+
+    await initializeDatabase()
+    const client = await pool.connect()
+    try {
+      await client.query("BEGIN")
+      const result = await client.query("SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version FROM shares WHERE share_id = $1 FOR UPDATE", [id])
+      if (result.rows.length === 0) {
+        await client.query("ROLLBACK")
+        return NextResponse.json({ error: "Share not found" }, { status: 404 })
+      }
+      const row = result.rows[0]
+      if (row.is_protected && !password) {
+        await client.query("COMMIT")
+        return NextResponse.json({ error: "Password required", requiresPassword: true, burnAfterRead: row.is_burn }, { status: 401 })
+      }
+      const encVersion = row.enc_version ?? 1
+      const key = row.is_protected ? keyV3Password(password, id) : (encVersion === 1 ? keyV1Legacy(id) : keyV2Unprotected(id))
+      let decryptedData: string
+      try {
+        decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key)
+      } catch {
+        await client.query("COMMIT")
+        return NextResponse.json({ error: row.is_protected ? "Invalid password" : "Failed to decrypt share data." }, { status: 403 })
+      }
+      if (row.is_burn) await client.query("DELETE FROM shares WHERE share_id = $1", [id])
+      await client.query("COMMIT")
+      return NextResponse.json({ success: true, data: decryptedData, timestamp: row.timestamp.toISOString(), protected: row.is_protected, burnAfterRead: row.is_burn })
+    } catch (e) {
+      try { await client.query("ROLLBACK") } catch {}
+      throw e
+    } finally { client.release() }
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error occurred" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
     const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const atproto = await getAtprotoSession()
+    if (!user && !atproto) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { id } = await request.json() as { id?: string }
+    if (!id) return NextResponse.json({ error: "Missing share ID" }, { status: 400 })
+
+    if (atproto) {
+      await deleteRecord(atproto, ATPROTO_SHARE_COLLECTION, id)
+      return NextResponse.json({ success: true })
     }
-    
-    const body = await request.json();
-    const { id } = body as { id?: string };
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
-    }
-
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
-
-    await initializeDatabase();
-
-    const client = await pool.connect();
+    await initializeDatabase()
+    const client = await pool.connect()
     try {
-      const result = await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2 RETURNING *", [id, user.id]);
-
-      if (result.rowCount === 0) {
-        return NextResponse.json({
-          success: true,
-          message: `No share found with ID: ${id}, nothing to delete.`,
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Successfully deleted share with ID: ${id}`,
-      });
-    } finally {
-      client.release();
-    }
+      await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2", [id, user!.id])
+      return NextResponse.json({ success: true })
+    } finally { client.release() }
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error occurred" }, { status: 500 })
   }
 }

@@ -230,6 +230,11 @@ export function LoginForm({
                 </Button>
               </div>
               <div className="text-center text-sm">
+                <a href="/atproto" className="underline underline-offset-4">
+                  Sign in with Bluesky / atproto
+                </a>
+              </div>
+              <div className="text-center text-sm">
                 Don't have an account?{" "}
                 <a href="/sign-up" className="underline underline-offset-4">
                   Sign up

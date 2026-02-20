@@ -72,6 +72,7 @@ export default function EventPreview({
   const [qrCodeDataURL, setQRCodeDataURL] = useState<string>("");
   const qrCodeObjectURLRef = useRef<string | null>(null);
   const { isSignedIn, user } = useUser();
+  const [atprotoProfile, setAtprotoProfile] = useState<{ handle: string; displayName?: string } | null>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [passwordEnabled, setPasswordEnabled] = useState(false);
@@ -91,8 +92,12 @@ export default function EventPreview({
 
   
   useEffect(() => {
+    fetch("/api/atproto/session").then((r) => r.json()).then((d) => { if (d?.authenticated) setAtprotoProfile({ handle: d.handle, displayName: d.displayName }); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (open && openShareImmediately) {
-      if (!isSignedIn) {
+      if (!isSignedIn && !atprotoProfile) {
         toast.error(t.shareSignInRequiredTitle, {
           description: t.shareSignInRequiredDescription,
         });
@@ -100,7 +105,7 @@ export default function EventPreview({
         setShareDialogOpen(true);
       }
     }
-  }, [open, openShareImmediately, isSignedIn, language]);
+  }, [open, openShareImmediately, isSignedIn, atprotoProfile, language]);
 
   useEffect(() => {
     let active = true;
@@ -243,7 +248,7 @@ export default function EventPreview({
 
   const handleShare = async () => {
     if (!event) return;
-    if (!user) {
+    if (!user && !atprotoProfile) {
       toast.error(t.shareSignInRequiredTitle, {
         description: t.shareSignedInOnlyDescription,
       });
@@ -265,8 +270,8 @@ export default function EventPreview({
     try {
       setIsSharing(true);
       const shareId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-      const clerkUsername = user.username || user.firstName || "Anonymous";
-      const sharedEvent = { ...event, sharedBy: clerkUsername };
+      const authorName = atprotoProfile?.handle || user?.username || user?.firstName || "Anonymous";
+      const sharedEvent = { ...event, sharedBy: authorName };
 
       const payload: any = { id: shareId, data: sharedEvent };
       if (passwordEnabled) payload.password = sharePassword;
@@ -286,7 +291,7 @@ export default function EventPreview({
       const result = await response.json();
 
       if (result.success) {
-        const link = `${window.location.origin}/share/${shareId}`;
+        const link = result?.link ? `${window.location.origin}${result.link}` : `${window.location.origin}/share/${shareId}`;
         setShareLink(link);
 
         try {
@@ -331,7 +336,7 @@ export default function EventPreview({
           id: shareId,
           eventId: event.id,
           eventTitle: event.title,
-          sharedBy: clerkUsername,
+          sharedBy: authorName,
           shareDate: new Date().toISOString(),
           shareLink: link,
           protected: !!passwordEnabled,
