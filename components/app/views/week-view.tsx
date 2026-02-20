@@ -627,7 +627,7 @@ export default function WeekView({
             }}
           >
             <div
-              className={cn("absolute left-0 top-0 w-2 h-full rounded-l-md")}
+              className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")}
               style={{ backgroundColor: getDarkerColorClass(event.color) }}
             />
             <div
