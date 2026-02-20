@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { Pool } from "pg"
+import { getAtprotoSession, getRecordFromPds, putRecord, deleteRecord } from "@/lib/atproto"
 
 export const runtime = "nodejs"
 
@@ -33,7 +34,8 @@ async function initDB() {
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const atproto = await getAtprotoSession()
+    if (!user && !atproto) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = await req.json()
     const encrypted_data = body?.ciphertext
@@ -41,6 +43,16 @@ export async function POST(req: NextRequest) {
 
     if (typeof encrypted_data !== "string" || typeof iv !== "string") {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+    }
+
+    if (atproto) {
+      await putRecord(atproto, "app.onecalendar.record.calendarEvents", "latest", {
+        $type: "app.onecalendar.record.calendarEvents",
+        ciphertext: encrypted_data,
+        iv,
+        timestamp: new Date().toISOString(),
+      })
+      return NextResponse.json({ success: true })
     }
 
     await initDB()
@@ -57,7 +69,7 @@ export async function POST(req: NextRequest) {
           iv = EXCLUDED.iv,
           timestamp = EXCLUDED.timestamp
         `,
-        [user.id, encrypted_data, iv, new Date().toISOString()],
+        [user!.id, encrypted_data, iv, new Date().toISOString()],
       )
       return NextResponse.json({ success: true })
     } finally {
@@ -71,7 +83,18 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   const user = await currentUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const atproto = await getAtprotoSession()
+  if (!user && !atproto) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  if (atproto) {
+    const record = await getRecordFromPds(atproto.pds, atproto.did, "app.onecalendar.record.calendarEvents", "latest")
+    if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    return NextResponse.json({
+      ciphertext: record.ciphertext,
+      iv: record.iv,
+      timestamp: record.timestamp,
+    })
+  }
 
   await initDB()
 
@@ -79,7 +102,7 @@ export async function GET() {
   try {
     const result = await client.query(
       `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-      [user.id],
+      [user!.id],
     )
     if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
@@ -95,13 +118,19 @@ export async function GET() {
 
 export async function DELETE() {
   const user = await currentUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const atproto = await getAtprotoSession()
+  if (!user && !atproto) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  if (atproto) {
+    await deleteRecord(atproto, "app.onecalendar.record.calendarEvents", "latest")
+    return NextResponse.json({ success: true })
+  }
 
   await initDB()
 
   const client = await pool.connect()
   try {
-    await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [user.id])
+    await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [user!.id])
     return NextResponse.json({ success: true })
   } finally {
     client.release()
