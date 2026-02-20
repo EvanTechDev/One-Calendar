@@ -50,6 +50,7 @@ async function createAuthHeaders(params: {
   dpopPrivateKeyPem?: string;
   dpopPublicJwk?: DpopPublicJwk;
   contentType?: string;
+  nonce?: string;
 }) {
   const headers: Record<string, string> = {};
   if (params.contentType) headers["Content-Type"] = params.contentType;
@@ -63,6 +64,7 @@ async function createAuthHeaders(params: {
       privateKeyPem: params.dpopPrivateKeyPem,
       publicJwk: params.dpopPublicJwk,
       accessToken: params.accessToken,
+      nonce: params.nonce,
     });
 
     headers.Authorization = `DPoP ${params.accessToken}`;
@@ -74,17 +76,62 @@ async function createAuthHeaders(params: {
   return headers;
 }
 
+async function fetchWithDpopNonceRetry(params: {
+  url: string;
+  method: "GET" | "POST";
+  accessToken?: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
+  contentType?: string;
+  body?: string;
+}) {
+  const doFetch = async (nonce?: string) =>
+    fetch(params.url, {
+      method: params.method,
+      headers: await createAuthHeaders({
+        url: params.url,
+        method: params.method,
+        accessToken: params.accessToken,
+        dpopPrivateKeyPem: params.dpopPrivateKeyPem,
+        dpopPublicJwk: params.dpopPublicJwk,
+        contentType: params.contentType,
+        nonce,
+      }),
+      body: params.body,
+      cache: "no-store",
+    });
+
+  let res = await doFetch();
+  if (res.ok) return res;
+
+  let nonce = res.headers.get("DPoP-Nonce") || res.headers.get("dpop-nonce");
+  const hasDpop = !!params.accessToken && !!params.dpopPrivateKeyPem && !!params.dpopPublicJwk;
+
+  if (hasDpop && !nonce) {
+    const body = await res.clone().text();
+    try {
+      const parsed = JSON.parse(body) as { dpop_nonce?: string; nonce?: string };
+      nonce = parsed.dpop_nonce || parsed.nonce;
+    } catch {
+      nonce = nonce || undefined;
+    }
+  }
+
+  if (hasDpop && nonce) {
+    res = await doFetch(nonce);
+  }
+
+  return res;
+}
+
 export async function getProfile(pds: string, actor: string, accessToken: string, dpop?: { privateKeyPem?: string; publicJwk?: DpopPublicJwk }) {
   const url = `${pds.replace(/\/$/, "")}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(actor)}`;
-  const res = await fetch(url, {
-    headers: await createAuthHeaders({
-      url,
-      method: "GET",
-      accessToken,
-      dpopPrivateKeyPem: dpop?.privateKeyPem,
-      dpopPublicJwk: dpop?.publicJwk,
-    }),
-    cache: "no-store",
+  const res = await fetchWithDpopNonceRetry({
+    url,
+    method: "GET",
+    accessToken,
+    dpopPrivateKeyPem: dpop?.privateKeyPem,
+    dpopPublicJwk: dpop?.publicJwk,
   });
   if (!res.ok) return null;
   return res.json() as Promise<{ displayName?: string; avatar?: string; handle?: string }>;
@@ -102,16 +149,13 @@ export async function putRecord(params: {
 }) {
   const { pds, accessToken, dpopPrivateKeyPem, dpopPublicJwk, ...payload } = params;
   const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.putRecord`;
-  const res = await fetch(url, {
+  const res = await fetchWithDpopNonceRetry({
+    url,
     method: "POST",
-    headers: await createAuthHeaders({
-      url,
-      method: "POST",
-      accessToken,
-      dpopPrivateKeyPem,
-      dpopPublicJwk,
-      contentType: "application/json",
-    }),
+    accessToken,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
+    contentType: "application/json",
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -131,15 +175,12 @@ export async function getRecord(params: {
 }) {
   const { pds, repo, collection, rkey, accessToken, dpopPrivateKeyPem, dpopPublicJwk } = params;
   const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
-  const res = await fetch(url, {
-    headers: await createAuthHeaders({
-      url,
-      method: "GET",
-      accessToken,
-      dpopPrivateKeyPem,
-      dpopPublicJwk,
-    }),
-    cache: "no-store",
+  const res = await fetchWithDpopNonceRetry({
+    url,
+    method: "GET",
+    accessToken,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
   });
   if (!res.ok) {
     throw new Error(`getRecord failed: ${await res.text()}`);
@@ -157,15 +198,12 @@ export async function listRecords(params: {
 }) {
   const { pds, repo, collection, accessToken, dpopPrivateKeyPem, dpopPublicJwk } = params;
   const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(repo)}&collection=${encodeURIComponent(collection)}&limit=100`;
-  const res = await fetch(url, {
-    headers: await createAuthHeaders({
-      url,
-      method: "GET",
-      accessToken,
-      dpopPrivateKeyPem,
-      dpopPublicJwk,
-    }),
-    cache: "no-store",
+  const res = await fetchWithDpopNonceRetry({
+    url,
+    method: "GET",
+    accessToken,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
   });
 
   if (!res.ok) {
@@ -186,16 +224,13 @@ export async function deleteRecord(params: {
 }) {
   const { pds, accessToken, dpopPrivateKeyPem, dpopPublicJwk, ...payload } = params;
   const url = `${pds.replace(/\/$/, "")}/xrpc/com.atproto.repo.deleteRecord`;
-  const res = await fetch(url, {
+  const res = await fetchWithDpopNonceRetry({
+    url,
     method: "POST",
-    headers: await createAuthHeaders({
-      url,
-      method: "POST",
-      accessToken,
-      dpopPrivateKeyPem,
-      dpopPublicJwk,
-      contentType: "application/json",
-    }),
+    accessToken,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
+    contentType: "application/json",
     body: JSON.stringify(payload),
   });
   if (!res.ok) {

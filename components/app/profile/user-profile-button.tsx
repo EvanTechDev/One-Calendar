@@ -185,6 +185,9 @@ export default function UserProfileButton({
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
   const router = useRouter()
+  const [atprotoHandle, setAtprotoHandle] = useState("")
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
+  const isAnySignedIn = isSignedIn || atprotoSignedIn
 
   const [enabled, setEnabled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -214,6 +217,16 @@ export default function UserProfileButton({
   const timerRef = useRef<any>(null)
 
   useEffect(() => {
+    fetch("/api/atproto/session")
+      .then((r) => r.json())
+      .then((data: { signedIn?: boolean; handle?: string }) => {
+        setAtprotoSignedIn(!!data.signedIn)
+        setAtprotoHandle(data.handle || "")
+      })
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
     if (mode !== "settings" || !focusSection) return
     const target = document.getElementById(`settings-account-${focusSection}`)
     target?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -237,11 +250,11 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (mode === "settings") return
-    if (!isSignedIn || keyRef.current || restoredRef.current) return
+    if (!isAnySignedIn || keyRef.current || restoredRef.current) return
     apiGet().then((cloud) => {
       if (cloud) setUnlockOpen(true)
     })
-  }, [isSignedIn, mode])
+  }, [isAnySignedIn, mode])
 
   useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return
@@ -526,7 +539,7 @@ export default function UserProfileButton({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end">
-            {isSignedIn ? (
+            {isAnySignedIn ? (
               <>
                 <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
                   <CircleUser className="mr-2 h-4 w-4" />
@@ -548,23 +561,37 @@ export default function UserProfileButton({
                   {t.deleteData}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t.deleteAccount}
-                </DropdownMenuItem>
-
-                {onNavigateToSettings ? (
-                  <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t.signOut}
+                {isSignedIn ? (
+                  <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t.deleteAccount}
                   </DropdownMenuItem>
-                ) : (
-                  <SignOutButton>
-                    <DropdownMenuItem>
+                ) : null}
+
+                {isSignedIn ? (
+                  onNavigateToSettings ? (
+                    <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
                       <LogOut className="mr-2 h-4 w-4" />
                       {t.signOut}
                     </DropdownMenuItem>
-                  </SignOutButton>
+                  ) : (
+                    <SignOutButton>
+                      <DropdownMenuItem>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {t.signOut}
+                      </DropdownMenuItem>
+                    </SignOutButton>
+                  )
+                ) : (
+                  <DropdownMenuItem onClick={async () => {
+                    await fetch("/api/atproto/logout", { method: "POST" })
+                    setAtprotoSignedIn(false)
+                    setAtprotoHandle("")
+                    router.refresh()
+                  }}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {t.signOut}
+                  </DropdownMenuItem>
                 )}
               </>
             ) : (
@@ -577,7 +604,7 @@ export default function UserProfileButton({
         </DropdownMenu>
       ) : (
         <div className="rounded-lg border p-4 space-y-4">
-          {isSignedIn ? (
+          {isAnySignedIn ? (
             <>
               <div className="flex items-center gap-3">
                 <img
@@ -590,8 +617,8 @@ export default function UserProfileButton({
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User"}</p>
-                  <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || atprotoHandle || "User"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress || (atprotoHandle ? `@${atprotoHandle}` : "")}</p>
                 </div>
               </div>
               <div className="space-y-4">
