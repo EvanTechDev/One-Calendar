@@ -3,11 +3,79 @@ import { Pool } from "pg";
 import { currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
 import { getAtprotoSession } from "@/lib/atproto-auth";
-import { listRecords } from "@/lib/atproto";
+import { deleteRecord, listRecords } from "@/lib/atproto";
+import type { DpopPublicJwk } from "@/lib/dpop";
 
 const pool = new Pool({ connectionString: process.env.POSTGRES_URL, ssl: { rejectUnauthorized: false } });
 const ALGORITHM = "aes-256-gcm";
 const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share.record";
+
+let burnTableReady = false;
+
+async function ensureBurnTable() {
+  if (burnTableReady) return;
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
+        handle TEXT NOT NULL,
+        owner_did TEXT,
+        share_id TEXT NOT NULL,
+        burned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
+        PRIMARY KEY (share_id, handle)
+      )
+    `);
+    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`);
+    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`);
+    burnTableReady = true;
+  } finally {
+    client.release();
+  }
+}
+
+async function syncBurnedAtprotoShares(ownerDid: string, handle: string, pds: string, accessToken: string, dpopPrivateKeyPem?: string, dpopPublicJwk?: DpopPublicJwk) {
+  await ensureBurnTable();
+
+  const client = await pool.connect();
+  try {
+    const pending = await client.query(
+      "SELECT share_id FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND pds_delete_synced = FALSE",
+      [ownerDid, handle],
+    );
+
+    if (!pending.rows.length) return;
+
+    const syncedIds: string[] = [];
+    for (const row of pending.rows) {
+      const shareId = String(row.share_id);
+      try {
+        await deleteRecord({
+          pds,
+          repo: ownerDid,
+          collection: ATPROTO_SHARE_COLLECTION,
+          rkey: shareId,
+          accessToken,
+          dpopPrivateKeyPem,
+          dpopPublicJwk,
+        });
+        syncedIds.push(shareId);
+      } catch {
+        // Keep pending rows for retry on next share management open.
+      }
+    }
+
+    if (syncedIds.length > 0) {
+      await client.query(
+        "UPDATE atproto_share_burn_reads SET pds_delete_synced = TRUE WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])",
+        [ownerDid, handle, syncedIds],
+      );
+    }
+  } finally {
+    client.release();
+  }
+}
 
 function keyV2Unprotected(shareId: string) {
   return crypto.createHash("sha256").update(shareId, "utf8").digest();
@@ -24,6 +92,15 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 export async function GET() {
   const atproto = await getAtprotoSession();
   if (atproto) {
+    await syncBurnedAtprotoShares(
+      atproto.did,
+      atproto.handle,
+      atproto.pds,
+      atproto.accessToken,
+      atproto.dpopPrivateKeyPem,
+      atproto.dpopPublicJwk,
+    );
+
     const data = await listRecords({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     const shares = (data.records || []).map((record) => {
       const rkey = record.uri.split("/").pop() || "";

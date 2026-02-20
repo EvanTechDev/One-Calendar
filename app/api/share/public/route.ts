@@ -22,33 +22,43 @@ async function ensureBurnTable() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
         handle TEXT NOT NULL,
+        owner_did TEXT,
         share_id TEXT NOT NULL,
         burned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (handle, share_id)
+        pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
+        PRIMARY KEY (share_id, handle)
       )
     `);
+    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`);
+    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`);
     burnTableReady = true;
   } finally {
     client.release();
   }
 }
 
-async function wasPublicBurnConsumed(handle: string, shareId: string) {
+async function wasPublicBurnConsumed(ownerDid: string, handle: string, shareId: string) {
   if (!burnPool) return false;
   await ensureBurnTable();
   const result = await burnPool.query(
-    "SELECT 1 FROM atproto_share_burn_reads WHERE handle = $1 AND share_id = $2 LIMIT 1",
-    [handle, shareId],
+    "SELECT 1 FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = $3 LIMIT 1",
+    [ownerDid, handle, shareId],
   );
   return result.rowCount > 0;
 }
 
-async function markPublicBurnConsumed(handle: string, shareId: string) {
+async function markPublicBurnConsumed(ownerDid: string, handle: string, shareId: string) {
   if (!burnPool) return;
   await ensureBurnTable();
   await burnPool.query(
-    "INSERT INTO atproto_share_burn_reads (handle, share_id) VALUES ($1, $2) ON CONFLICT (handle, share_id) DO NOTHING",
-    [handle, shareId],
+    `
+      INSERT INTO atproto_share_burn_reads (handle, owner_did, share_id, pds_delete_synced)
+      VALUES ($1, $2, $3, FALSE)
+      ON CONFLICT (share_id, handle)
+      DO UPDATE SET owner_did = EXCLUDED.owner_did, pds_delete_synced = FALSE, burned_at = NOW()
+    `,
+    [handle, ownerDid, shareId],
   );
 }
 
@@ -82,7 +92,7 @@ export async function GET(request: NextRequest) {
   const isProtected = !!value.isProtected;
   const isBurn = !!value.isBurn;
 
-  if (isBurn && (await wasPublicBurnConsumed(normalizedHandle, id))) {
+  if (isBurn && (await wasPublicBurnConsumed(resolved.did, normalizedHandle, id))) {
     return NextResponse.json({ error: "Share not found" }, { status: 404 });
   }
 
@@ -95,7 +105,7 @@ export async function GET(request: NextRequest) {
     const decryptedData = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), key);
 
     if (isBurn) {
-      await markPublicBurnConsumed(normalizedHandle, id);
+      await markPublicBurnConsumed(resolved.did, normalizedHandle, id);
     }
 
     return NextResponse.json({ success: true, data: decryptedData, protected: isProtected, burnAfterRead: isBurn, timestamp: value.timestamp });
