@@ -68,7 +68,7 @@ async function syncBurnedAtprotoShares(ownerDid: string, handle: string, pds: st
 
     if (syncedIds.length > 0) {
       await client.query(
-        "UPDATE atproto_share_burn_reads SET pds_delete_synced = TRUE WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])",
+        "DELETE FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])",
         [ownerDid, handle, syncedIds],
       );
     }
