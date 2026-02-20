@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 
 export const dynamic = "force-static"
-export const revalidate = 60 * 60 * 24
+export const revalidate = 86400
 
 export async function GET() {
   const oauthConfig = getAtprotoOauthConfig()
