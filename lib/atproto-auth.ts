@@ -12,6 +12,10 @@ export interface AtprotoSession {
   avatar?: string;
 }
 
+function shouldUseSecureCookies() {
+  return process.env.NODE_ENV === "production";
+}
+
 export async function getAtprotoSession(): Promise<AtprotoSession | null> {
   const store = await cookies();
   const raw = store.get(ATPROTO_SESSION_COOKIE)?.value;
@@ -28,7 +32,7 @@ export async function setAtprotoSession(session: AtprotoSession) {
   const store = await cookies();
   store.set(ATPROTO_SESSION_COOKIE, Buffer.from(JSON.stringify(session), "utf8").toString("base64url"), {
     httpOnly: true,
-    secure: true,
+    secure: shouldUseSecureCookies(),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,

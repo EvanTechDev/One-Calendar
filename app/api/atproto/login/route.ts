@@ -23,11 +23,13 @@ export async function POST(request: NextRequest) {
   authUrl.searchParams.set("code_challenge_method", "S256");
 
   const response = NextResponse.json({ authorizeUrl: authUrl.toString(), pds, did });
-  response.cookies.set("atproto_oauth_state", state, { httpOnly: true, secure: true, path: "/", sameSite: "lax", maxAge: 600 });
-  response.cookies.set("atproto_oauth_verifier", verifier, { httpOnly: true, secure: true, path: "/", sameSite: "lax", maxAge: 600 });
-  response.cookies.set("atproto_oauth_handle", handle.replace(/^@/, "").toLowerCase(), { httpOnly: true, secure: true, path: "/", sameSite: "lax", maxAge: 600 });
-  response.cookies.set("atproto_oauth_pds", pds, { httpOnly: true, secure: true, path: "/", sameSite: "lax", maxAge: 600 });
-  response.cookies.set("atproto_oauth_did", did, { httpOnly: true, secure: true, path: "/", sameSite: "lax", maxAge: 600 });
+  const secure = request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
+  const cookieOptions = { httpOnly: true, secure, path: "/", sameSite: "lax" as const, maxAge: 600 };
+  response.cookies.set("atproto_oauth_state", state, cookieOptions);
+  response.cookies.set("atproto_oauth_verifier", verifier, cookieOptions);
+  response.cookies.set("atproto_oauth_handle", handle.replace(/^@/, "").toLowerCase(), cookieOptions);
+  response.cookies.set("atproto_oauth_pds", pds, cookieOptions);
+  response.cookies.set("atproto_oauth_did", did, cookieOptions);
 
   return response;
 }
