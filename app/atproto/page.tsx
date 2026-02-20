@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function AtprotoLoginPage() {
+function AtprotoLoginContent() {
   const [handle, setHandle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,5 +40,13 @@ export default function AtprotoLoginPage() {
       <Button onClick={startLogin} disabled={!handle || loading}>{loading ? "Redirecting..." : "Continue with ATProto OAuth"}</Button>
       {(error || searchParams.get("reason") || searchParams.get("error")) ? <p className="text-sm text-red-500">{error || searchParams.get("reason") || searchParams.get("error")}</p> : null}
     </div>
+  );
+}
+
+export default function AtprotoLoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-lg py-16 px-4 text-sm text-muted-foreground">Loading...</div>}>
+      <AtprotoLoginContent />
+    </Suspense>
   );
 }
