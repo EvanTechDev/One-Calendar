@@ -1,7 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,16 +10,6 @@ export default function AtprotoLoginPage() {
   const [handle, setHandle] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const searchParams = useSearchParams()
-
-  const oauthError = useMemo(() => {
-    const code = searchParams.get("error")
-    if (!code) return ""
-    if (code === "oauth_state") return "OAuth state mismatch, please retry."
-    if (code === "oauth_token") return "Failed to exchange OAuth token."
-    if (code === "oauth_sub") return "OAuth response missing account DID."
-    return "OAuth login failed. Please try again."
-  }, [searchParams])
 
   const startOauth = async () => {
     try {
@@ -57,7 +46,6 @@ export default function AtprotoLoginPage() {
               <Label htmlFor="handle">Handle</Label>
               <Input id="handle" placeholder="alice.bsky.social" value={handle} onChange={(e) => setHandle(e.target.value)} />
             </div>
-            {oauthError ? <p className="text-sm text-red-500">{oauthError}</p> : null}
             {error ? <p className="text-sm text-red-500">{error}</p> : null}
             <Button disabled={!handle || loading} onClick={startOauth}>
               {loading ? "Redirecting..." : "Continue with atproto OAuth"}

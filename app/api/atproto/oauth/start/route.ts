@@ -11,9 +11,11 @@ export async function POST(request: NextRequest) {
     const { verifier, challenge, state } = createPkce()
     await setAtprotoOauthState({ handle: normalized, pds, verifier, state })
 
-    const origin = request.nextUrl.origin
-    const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI || `${origin}/api/atproto/oauth/callback`
-    const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID || process.env.NEXT_PUBLIC_BASE_URL || origin
+    const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID
+    const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI
+    if (!clientId || !redirectUri) {
+      return NextResponse.json({ error: "Missing ATPROTO_OAUTH_CLIENT_ID or ATPROTO_OAUTH_REDIRECT_URI" }, { status: 500 })
+    }
 
     const authUrl = `${pds}/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("atproto")}&state=${encodeURIComponent(state)}&code_challenge=${encodeURIComponent(challenge)}&code_challenge_method=S256`
 

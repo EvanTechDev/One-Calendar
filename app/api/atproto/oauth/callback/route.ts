@@ -11,9 +11,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_state", request.url))
     }
 
-    const origin = request.nextUrl.origin
-    const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI || `${origin}/api/atproto/oauth/callback`
-    const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID || process.env.NEXT_PUBLIC_BASE_URL || origin
+    const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID
+    const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI
+    if (!clientId || !redirectUri) {
+      return NextResponse.redirect(new URL("/atproto?error=oauth_config", request.url))
+    }
 
     const tokenRes = await fetch(`${oauth.pds}/oauth/token`, {
       method: "POST",
