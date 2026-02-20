@@ -6,8 +6,14 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code")
   const state = request.nextUrl.searchParams.get("state")
   const issuer = request.nextUrl.searchParams.get("iss")
+  const providerError = request.nextUrl.searchParams.get("error")
 
   try {
+    if (providerError) {
+      await clearAtprotoOauthState()
+      return NextResponse.redirect(new URL(`/atproto?error=${encodeURIComponent(`oauth_provider_${providerError}`)}`, request.url))
+    }
+
     const oauthFromState = state ? parseAtprotoStateToken(state) : null
     const oauthFromCookie = await getAtprotoOauthState()
 
@@ -19,7 +25,7 @@ export async function GET(request: NextRequest) {
           pds: normalizedIssuer || oauthFromCookie?.pds || "",
           verifier: oauthFromState.verifier,
         }
-      : (oauthFromCookie && state && oauthFromCookie.state === state
+      : (oauthFromCookie && (!state || oauthFromCookie.state === state)
           ? { handle: oauthFromCookie.handle, pds: oauthFromCookie.pds, verifier: oauthFromCookie.verifier }
           : null)
 
