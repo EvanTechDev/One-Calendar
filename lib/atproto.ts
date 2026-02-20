@@ -21,13 +21,6 @@ export type AtprotoOauthState = {
   verifier: string
 }
 
-type AtprotoStateTokenPayload = {
-  handle: string
-  pds: string
-  verifier: string
-  iat: number
-}
-
 function base64url(input: Buffer | string) {
   return Buffer.from(input).toString("base64url")
 }
@@ -118,22 +111,26 @@ export function createPkce() {
   return { verifier, challenge, state }
 }
 
-export function createAtprotoStateToken(payload: Omit<AtprotoStateTokenPayload, "iat">) {
-  return pack<AtprotoStateTokenPayload>({
-    ...payload,
-    iat: Date.now(),
-  })
+export function createAtprotoStateToken(verifier: string) {
+  const issuedAt = Date.now().toString(36)
+  const payload = `${issuedAt}.${verifier}`
+  const signature = sign(payload).slice(0, 22)
+  return `${payload}.${signature}`
 }
 
-export function parseAtprotoStateToken(token: string, maxAgeMs = 10 * 60 * 1000): Omit<AtprotoStateTokenPayload, "iat"> | null {
-  const unpacked = unpack<AtprotoStateTokenPayload>(token)
-  if (!unpacked) return null
-  if (Date.now() - unpacked.iat > maxAgeMs) return null
-  return {
-    handle: unpacked.handle,
-    pds: unpacked.pds,
-    verifier: unpacked.verifier,
-  }
+export function parseAtprotoStateToken(token: string, maxAgeMs = 10 * 60 * 1000): { verifier: string } | null {
+  const [issuedAt, verifier, signature] = token.split(".")
+  if (!issuedAt || !verifier || !signature) return null
+
+  const payload = `${issuedAt}.${verifier}`
+  const expectedSignature = sign(payload).slice(0, 22)
+  if (signature !== expectedSignature) return null
+
+  const issuedAtMs = parseInt(issuedAt, 36)
+  if (!Number.isFinite(issuedAtMs)) return null
+  if (Date.now() - issuedAtMs > maxAgeMs) return null
+
+  return { verifier }
 }
 
 export async function putRecord(session: AtprotoSession, collection: string, rkey: string, record: unknown) {

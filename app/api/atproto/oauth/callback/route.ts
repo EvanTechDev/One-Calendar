@@ -5,15 +5,25 @@ import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code")
   const state = request.nextUrl.searchParams.get("state")
+  const issuer = request.nextUrl.searchParams.get("iss")
 
   try {
     const oauthFromState = state ? parseAtprotoStateToken(state) : null
     const oauthFromCookie = await getAtprotoOauthState()
-    const oauth = oauthFromState || (oauthFromCookie && state && oauthFromCookie.state === state
-      ? { handle: oauthFromCookie.handle, pds: oauthFromCookie.pds, verifier: oauthFromCookie.verifier }
-      : null)
 
-    if (!oauth || !code) {
+    const normalizedIssuer = issuer?.replace(/\/$/, "")
+
+    const oauth = oauthFromState
+      ? {
+          handle: oauthFromCookie?.handle || "",
+          pds: normalizedIssuer || oauthFromCookie?.pds || "",
+          verifier: oauthFromState.verifier,
+        }
+      : (oauthFromCookie && state && oauthFromCookie.state === state
+          ? { handle: oauthFromCookie.handle, pds: oauthFromCookie.pds, verifier: oauthFromCookie.verifier }
+          : null)
+
+    if (!oauth || !oauth.pds || !code) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_state", request.url))
     }
 

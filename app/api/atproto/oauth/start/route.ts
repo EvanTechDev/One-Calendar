@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const normalized = handle.replace(/^@/, "").trim().toLowerCase()
     const { pds } = await resolveAtprotoHandle(normalized)
     const { verifier, challenge, state } = createPkce()
-    const stateToken = createAtprotoStateToken({ handle: normalized, pds, verifier })
+    const stateToken = createAtprotoStateToken(verifier)
     await setAtprotoOauthState({ handle: normalized, pds, verifier, state })
 
     const oauthConfig = getAtprotoOauthConfig(request.url)
