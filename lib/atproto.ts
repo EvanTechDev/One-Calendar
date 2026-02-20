@@ -19,6 +19,10 @@ export type AtprotoOauthState = {
   pds: string
   state: string
   verifier: string
+  issuer?: string
+  authorizationEndpoint?: string
+  tokenEndpoint?: string
+  parEndpoint?: string
 }
 
 function base64url(input: Buffer | string) {
@@ -92,6 +96,74 @@ export async function clearAtprotoOauthState() {
   store.delete(OAUTH_COOKIE)
 }
 
+
+export type AtprotoOauthEndpoints = {
+  issuer: string
+  authorizationEndpoint: string
+  tokenEndpoint: string
+  parEndpoint?: string
+}
+
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/$/, "")
+}
+
+export async function discoverAtprotoOauthEndpoints(pds: string): Promise<AtprotoOauthEndpoints> {
+  const normalizedPds = trimTrailingSlash(pds)
+
+  const issuerCandidates = new Set<string>([normalizedPds])
+  try {
+    const protectedResourceRes = await fetch(`${normalizedPds}/.well-known/oauth-protected-resource`)
+    if (protectedResourceRes.ok) {
+      const protectedResource = await protectedResourceRes.json() as {
+        authorization_servers?: string[]
+        issuer?: string
+      }
+
+      if (protectedResource.issuer) {
+        issuerCandidates.add(trimTrailingSlash(protectedResource.issuer))
+      }
+
+      for (const issuer of protectedResource.authorization_servers || []) {
+        if (issuer) issuerCandidates.add(trimTrailingSlash(issuer))
+      }
+    }
+  } catch {
+    // fall back to pds-based defaults below
+  }
+
+  for (const issuerCandidate of issuerCandidates) {
+    try {
+      const authServerRes = await fetch(`${issuerCandidate}/.well-known/oauth-authorization-server`)
+      if (!authServerRes.ok) continue
+
+      const authServer = await authServerRes.json() as {
+        issuer?: string
+        authorization_endpoint?: string
+        token_endpoint?: string
+        pushed_authorization_request_endpoint?: string
+      }
+
+      if (!authServer.authorization_endpoint || !authServer.token_endpoint) continue
+
+      return {
+        issuer: trimTrailingSlash(authServer.issuer || issuerCandidate),
+        authorizationEndpoint: authServer.authorization_endpoint,
+        tokenEndpoint: authServer.token_endpoint,
+        parEndpoint: authServer.pushed_authorization_request_endpoint,
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return {
+    issuer: normalizedPds,
+    authorizationEndpoint: `${normalizedPds}/oauth/authorize`,
+    tokenEndpoint: `${normalizedPds}/oauth/token`,
+    parEndpoint: `${normalizedPds}/oauth/par`,
+  }
+}
 export async function resolveAtprotoHandle(handle: string) {
   const resolved = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`)
   if (!resolved.ok) throw new Error("Failed to resolve handle")

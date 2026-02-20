@@ -28,14 +28,20 @@ export async function GET(request: NextRequest) {
     const oauth = oauthFromState
       ? {
           handle: oauthFromCookie?.handle || "",
-          pds: normalizedIssuer || oauthFromCookie?.pds || "",
+          pds: oauthFromCookie?.pds || "",
           verifier: oauthFromState.verifier,
+          tokenEndpoint: oauthFromCookie?.tokenEndpoint || `${normalizedIssuer || oauthFromCookie?.pds || ""}/oauth/token`,
         }
       : (oauthFromCookie && (!state || oauthFromCookie.state === state)
-          ? { handle: oauthFromCookie.handle, pds: oauthFromCookie.pds, verifier: oauthFromCookie.verifier }
+          ? {
+              handle: oauthFromCookie.handle,
+              pds: oauthFromCookie.pds,
+              verifier: oauthFromCookie.verifier,
+              tokenEndpoint: oauthFromCookie.tokenEndpoint || `${oauthFromCookie.pds}/oauth/token`,
+            }
           : null)
 
-    if (!oauth || !oauth.pds || !code) {
+    if (!oauth || !oauth.pds || !oauth.tokenEndpoint || !code) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_state", request.url))
     }
 
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     const { clientId, redirectUri } = oauthConfig
 
-    const tokenRes = await fetch(`${oauth.pds}/oauth/token`, {
+    const tokenRes = await fetch(oauth.tokenEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({

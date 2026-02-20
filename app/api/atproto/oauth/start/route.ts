@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAtprotoStateToken, createPkce, resolveAtprotoHandle, setAtprotoOauthState } from "@/lib/atproto"
+import { createAtprotoStateToken, createPkce, discoverAtprotoOauthEndpoints, resolveAtprotoHandle, setAtprotoOauthState } from "@/lib/atproto"
 import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 
 export async function POST(request: NextRequest) {
@@ -9,9 +9,19 @@ export async function POST(request: NextRequest) {
 
     const normalized = handle.replace(/^@/, "").trim().toLowerCase()
     const { pds } = await resolveAtprotoHandle(normalized)
+    const endpoints = await discoverAtprotoOauthEndpoints(pds)
     const { verifier, challenge } = createPkce()
     const stateToken = createAtprotoStateToken(verifier)
-    await setAtprotoOauthState({ handle: normalized, pds, verifier, state: stateToken })
+    await setAtprotoOauthState({
+      handle: normalized,
+      pds,
+      verifier,
+      state: stateToken,
+      issuer: endpoints.issuer,
+      authorizationEndpoint: endpoints.authorizationEndpoint,
+      tokenEndpoint: endpoints.tokenEndpoint,
+      parEndpoint: endpoints.parEndpoint,
+    })
 
     const oauthConfig = getAtprotoOauthConfig(request.url)
     if (!oauthConfig) {
@@ -20,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { clientId, redirectUri } = oauthConfig
 
-    const parRes = await fetch(`${pds}/oauth/par`, {
+    const parRes = endpoints.parEndpoint ? await fetch(endpoints.parEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -33,22 +43,19 @@ export async function POST(request: NextRequest) {
         code_challenge: challenge,
         code_challenge_method: "S256",
       }),
-    })
+    }) : null
 
-    if (!parRes.ok) {
-      const details = await parRes.text().catch(() => "")
-      return NextResponse.json(
-        { error: `PDS PAR request failed (${parRes.status}). ${details || "Please verify OAuth client metadata URL is publicly reachable."}` },
-        { status: 502 },
-      )
+    let authUrl: string
+
+    if (parRes?.ok) {
+      const payload = await parRes.json() as { request_uri?: string }
+      if (!payload.request_uri) {
+        return NextResponse.json({ error: "PDS did not return request_uri" }, { status: 502 })
+      }
+      authUrl = `${endpoints.authorizationEndpoint}?client_id=${encodeURIComponent(clientId)}&request_uri=${encodeURIComponent(payload.request_uri)}`
+    } else {
+      authUrl = `${endpoints.authorizationEndpoint}?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("atproto")}&state=${encodeURIComponent(stateToken)}&code_challenge=${encodeURIComponent(challenge)}&code_challenge_method=S256&login_hint=${encodeURIComponent(normalized)}`
     }
-
-    const payload = await parRes.json() as { request_uri?: string }
-    if (!payload.request_uri) {
-      return NextResponse.json({ error: "PDS did not return request_uri" }, { status: 502 })
-    }
-
-    const authUrl = `${pds}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&request_uri=${encodeURIComponent(payload.request_uri)}`
 
     return NextResponse.json({ authUrl, pds, handle: normalized })
   } catch (error) {
