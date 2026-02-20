@@ -123,6 +123,26 @@ Then visit `http://localhost:3000`
 
 Copy `.env.example` to `.env` and fill in.
 
+#### Bluesky / atproto OAuth
+
+`/atproto` now supports automatic OAuth client metadata, so in most cases you only need:
+
+- `ATPROTO_OAUTH_BASE_URL` (or `NEXT_PUBLIC_BASE_URL`) set to your public app URL.
+
+The app will auto-generate:
+
+- `ATPROTO_OAUTH_CLIENT_ID` => `<BASE_URL>/api/atproto/oauth/client-metadata`
+- `ATPROTO_OAUTH_REDIRECT_URI` => `<BASE_URL>/api/atproto/oauth/callback`
+
+You can still set `ATPROTO_OAUTH_CLIENT_ID` / `ATPROTO_OAUTH_REDIRECT_URI` manually if you already have a custom atproto OAuth client configuration.
+
+To get a valid setup:
+
+1. Deploy the app on a public HTTPS domain (local `localhost` may not work with every PDS).
+2. Set `ATPROTO_OAUTH_BASE_URL` to that public URL.
+3. Open `<BASE_URL>/api/atproto/oauth/client-metadata` and ensure it returns JSON.
+4. Use `/atproto` login flow with your Bluesky handle.
+
 ## Tech Stack
 
 - [Next.js](https://nextjs.org)
