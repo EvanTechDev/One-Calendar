@@ -143,6 +143,8 @@ To get a valid setup:
 3. Open `<BASE_URL>/api/atproto/oauth/client-metadata` and ensure it returns JSON.
 4. Use `/atproto` login flow with your Bluesky handle.
 
+If you see `Unable to obtain client metadata ... Too Many Requests`, make sure this endpoint can be heavily cached by public CDNs and does not require bot checks/firewall challenges. The app now returns cache headers for this route, but upstream protection (WAF/rate-limit) must still allow anonymous GET requests from PDS servers.
+
 ## Tech Stack
 
 - [Next.js](https://nextjs.org)
