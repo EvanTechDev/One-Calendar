@@ -142,8 +142,11 @@ Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and 
 
 Made with ❤️
 
-Published under [GNU General Public License v3.0 (GPL-3.0)](./LICENSE).
+Published under [MIT License](./LICENSE).
+
+This project is supported by [Cloudflare Project Alexandria](https://blog.cloudflare.com/expanding-our-support-for-oss-projects-with-project-alexandria/).
 
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
+
