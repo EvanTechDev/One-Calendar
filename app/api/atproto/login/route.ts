@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createPkcePair, resolveHandle } from "@/lib/atproto";
 import { generateDpopKeyMaterial } from "@/lib/dpop";
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
 
   const { did, pds } = await resolveHandle(handle);
   const { verifier, challenge } = createPkcePair();
-  const state = crypto.randomUUID();
+  const state = randomUUID();
   const dpop = generateDpopKeyMaterial();
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
