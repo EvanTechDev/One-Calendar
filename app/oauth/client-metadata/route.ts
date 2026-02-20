@@ -1,17 +1,18 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 
-export async function GET(request: NextRequest) {
-  const oauthConfig = getAtprotoOauthConfig(request.url)
+export const dynamic = "force-static"
+export const revalidate = 86400
+
+export async function GET() {
+  const oauthConfig = getAtprotoOauthConfig()
   if (!oauthConfig) {
     return NextResponse.json({ error: "Missing ATPROTO OAuth base URL" }, { status: 500 })
   }
 
-  const legacyClientId = process.env.ATPROTO_OAUTH_CLIENT_ID || `${oauthConfig.baseUrl}/api/atproto/oauth/client-metadata`
-
   return NextResponse.json(
     {
-      client_id: legacyClientId,
+      client_id: oauthConfig.clientId,
       client_name: "One Calendar",
       application_type: "web",
       grant_types: ["authorization_code", "refresh_token"],

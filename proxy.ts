@@ -8,6 +8,7 @@ export default clerkMiddleware({
     "/sign-up",
     "/reset-password",
     "/atproto",
+    "/oauth/client-metadata",
     "/api/blob",
     "/api/share",
     "/api/verify",

@@ -131,7 +131,7 @@ Copy `.env.example` to `.env` and fill in.
 
 The app will auto-generate:
 
-- `ATPROTO_OAUTH_CLIENT_ID` => `<BASE_URL>/api/atproto/oauth/client-metadata`
+- `ATPROTO_OAUTH_CLIENT_ID` => `<BASE_URL>/oauth/client-metadata`
 - `ATPROTO_OAUTH_REDIRECT_URI` => `<BASE_URL>/api/atproto/oauth/callback`
 
 You can still set `ATPROTO_OAUTH_CLIENT_ID` / `ATPROTO_OAUTH_REDIRECT_URI` manually if you already have a custom atproto OAuth client configuration.
@@ -140,7 +140,7 @@ To get a valid setup:
 
 1. Deploy the app on a public HTTPS domain (local `localhost` may not work with every PDS).
 2. Set `ATPROTO_OAUTH_BASE_URL` to that public URL.
-3. Open `<BASE_URL>/api/atproto/oauth/client-metadata` and ensure it returns JSON.
+3. Open `<BASE_URL>/oauth/client-metadata` and ensure it returns JSON.
 4. Use `/atproto` login flow with your Bluesky handle.
 
 If you see `Unable to obtain client metadata ... Too Many Requests`, make sure this endpoint can be heavily cached by public CDNs and does not require bot checks/firewall challenges. The app now returns cache headers for this route, but upstream protection (WAF/rate-limit) must still allow anonymous GET requests from PDS servers.

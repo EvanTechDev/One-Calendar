@@ -17,7 +17,7 @@ export function getAtprotoOauthConfig(requestUrl?: string): AtprotoOauthConfig |
 
   const normalizedBaseUrl = trimTrailingSlash(baseUrl)
   const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI || `${normalizedBaseUrl}/api/atproto/oauth/callback`
-  const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID || `${normalizedBaseUrl}/api/atproto/oauth/client-metadata`
+  const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID || `${normalizedBaseUrl}/oauth/client-metadata`
 
   return {
     baseUrl: normalizedBaseUrl,
