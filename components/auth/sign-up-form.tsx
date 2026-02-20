@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -221,9 +220,6 @@ export function SignUpForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Continue with Microsoft, Google, GitHub account
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -257,6 +253,17 @@ export function SignUpForm({
                     <path d="M1 1h22v22H1z" fill="none" />
                   </svg>
                   <span className="ml-2">Continue with Google</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                  onClick={() => (window.location.href = "/at-oauth")}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560" width="20" height="20" aria-hidden="true">
+                    <path fill="#0066ff" d="M133 47c74 56 152 169 197 260 45-91 123-204 197-260 53-40 140-70 140 28 0 20-11 170-18 194-22 85-103 106-175 93 124 22 156 91 87 161-131 134-188-34-203-75-2-6-3-12-3-18 0 6-1 12-3 18-15 41-72 209-203 75-69-70-37-139 87-161-72 13-153-8-175-93-7-24-18-174-18-194 0-98 87-68 140-28z"/>
+                  </svg>
+                  <span className="ml-2">Continue with Atmosphere</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -372,9 +379,6 @@ export function SignUpForm({
                 >
                   Sign in
                 </button>
-              </div>
-              <div className="text-center text-xs text-muted-foreground">
-                <a href="/at-oauth" className="underline underline-offset-4 hover:text-primary">Have an Atmosphere account? Go sign in</a>
               </div>
             </div>
           </form>
