@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { clearAtprotoOauthState, getAtprotoOauthState, setAtprotoSession } from "@/lib/atproto"
+import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code")
@@ -11,11 +12,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_state", request.url))
     }
 
-    const clientId = process.env.ATPROTO_OAUTH_CLIENT_ID
-    const redirectUri = process.env.ATPROTO_OAUTH_REDIRECT_URI
-    if (!clientId || !redirectUri) {
+    const oauthConfig = getAtprotoOauthConfig(request.url)
+    if (!oauthConfig) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_config", request.url))
     }
+
+    const { clientId, redirectUri } = oauthConfig
 
     const tokenRes = await fetch(`${oauth.pds}/oauth/token`, {
       method: "POST",
