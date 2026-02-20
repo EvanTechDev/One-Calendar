@@ -1,15 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useSearchParams } from "next/navigation"
 
 export default function AtprotoLoginPage() {
   const [handle, setHandle] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const queryError = searchParams.get("error") || ""
+  const queryErrorDescription = searchParams.get("error_description") || ""
+
+  const resolvedError = useMemo(() => {
+    if (error) return error
+    if (!queryError) return ""
+    if (queryErrorDescription) return `${queryError}: ${queryErrorDescription}`
+    return queryError
+  }, [error, queryError, queryErrorDescription])
 
   const startOauth = async () => {
     try {
@@ -46,7 +57,7 @@ export default function AtprotoLoginPage() {
               <Label htmlFor="handle">Handle</Label>
               <Input id="handle" placeholder="alice.bsky.social" value={handle} onChange={(e) => setHandle(e.target.value)} />
             </div>
-            {error ? <p className="text-sm text-red-500">{error}</p> : null}
+            {resolvedError ? <p className="text-sm text-red-500">{resolvedError}</p> : null}
             <Button disabled={!handle || loading} onClick={startOauth}>
               {loading ? "Redirecting..." : "Continue with atproto OAuth"}
             </Button>

@@ -29,21 +29,26 @@ export async function POST(request: NextRequest) {
         redirect_uri: redirectUri,
         scope: "atproto",
         state: stateToken,
+        login_hint: normalized,
         code_challenge: challenge,
         code_challenge_method: "S256",
       }),
     })
 
-    let authUrl: string
-    if (parRes.ok) {
-      const payload = await parRes.json() as { request_uri?: string }
-      if (!payload.request_uri) {
-        return NextResponse.json({ error: "PDS did not return request_uri" }, { status: 502 })
-      }
-      authUrl = `${pds}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&request_uri=${encodeURIComponent(payload.request_uri)}`
-    } else {
-      authUrl = `${pds}/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("atproto")}&state=${encodeURIComponent(stateToken)}&code_challenge=${encodeURIComponent(challenge)}&code_challenge_method=S256`
+    if (!parRes.ok) {
+      const details = await parRes.text().catch(() => "")
+      return NextResponse.json(
+        { error: `PDS PAR request failed (${parRes.status}). ${details || "Please verify OAuth client metadata URL is publicly reachable."}` },
+        { status: 502 },
+      )
     }
+
+    const payload = await parRes.json() as { request_uri?: string }
+    if (!payload.request_uri) {
+      return NextResponse.json({ error: "PDS did not return request_uri" }, { status: 502 })
+    }
+
+    const authUrl = `${pds}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&request_uri=${encodeURIComponent(payload.request_uri)}`
 
     return NextResponse.json({ authUrl, pds, handle: normalized })
   } catch (error) {

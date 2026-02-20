@@ -7,11 +7,17 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state")
   const issuer = request.nextUrl.searchParams.get("iss")
   const providerError = request.nextUrl.searchParams.get("error")
+  const providerErrorDescription = request.nextUrl.searchParams.get("error_description")
 
   try {
     if (providerError) {
       await clearAtprotoOauthState()
-      return NextResponse.redirect(new URL(`/atproto?error=${encodeURIComponent(`oauth_provider_${providerError}`)}`, request.url))
+      const redirectUrl = new URL("/atproto", request.url)
+      redirectUrl.searchParams.set("error", `oauth_provider_${providerError}`)
+      if (providerErrorDescription) {
+        redirectUrl.searchParams.set("error_description", providerErrorDescription)
+      }
+      return NextResponse.redirect(redirectUrl)
     }
 
     const oauthFromState = state ? parseAtprotoStateToken(state) : null
