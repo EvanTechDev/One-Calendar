@@ -157,14 +157,6 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => (window.location.href = "/atproto")}
-                >
-                  <span className="ml-2">Login with Bluesky ATProto</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
                   onClick={() => handleOAuthLogin("oauth_github")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -247,6 +239,9 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
+      <div className="text-center text-xs text-muted-foreground">
+        <a href="/at-oauth" className="underline underline-offset-4 hover:text-primary">Have an Atmosphere account? Go sign in</a>
+      </div>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
         By clicking continue, you agree to our <a href="/terms">Terms of Service</a>{" "}
         and <a href="/privacy">Privacy Policy</a>.

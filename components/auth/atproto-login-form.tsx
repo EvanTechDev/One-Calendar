@@ -38,10 +38,11 @@ function AtprotoLoginContent() {
   const queryError = searchParams.get("reason") || searchParams.get("error") || "";
 
   return (
-    <Card>
+    <div className="space-y-4">
+      <Card>
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Sign in with Bluesky</CardTitle>
-        <CardDescription>Enter your ATProto handle to continue with OAuth</CardDescription>
+        <CardTitle className="text-xl">Sign in with Atmosphere</CardTitle>
+        <CardDescription>Enter your Atmosphere handle to continue with OAuth</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Input
@@ -50,12 +51,24 @@ function AtprotoLoginContent() {
           placeholder="alice.bsky.social"
           autoComplete="username"
         />
-        <Button className="w-full" onClick={startLogin} disabled={!handle || loading}>
-          {loading ? "Redirecting..." : "Continue with ATProto OAuth"}
+        <Button className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white" onClick={startLogin} disabled={!handle || loading}>
+          {loading ? "Redirecting..." : "Continue with Atmosphere OAuth"}
         </Button>
         {error || queryError ? <p className="text-sm text-red-500">{error || queryError}</p> : null}
+        <Button
+          variant="outline"
+          className="w-full"
+          type="button"
+          onClick={() => (window.location.href = "https://bsky.app") }
+        >
+          Create an Atmosphere account
+        </Button>
       </CardContent>
-    </Card>
+      </Card>
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+        By continuing, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
+      </div>
+    </div>
   );
 }
 

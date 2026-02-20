@@ -37,10 +37,7 @@ export function SignUpForm({
   );
   const turnstileRef = useRef<any>(null);
 
-  console.log("Site Key:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "Missing");
-
   const handleTurnstileSuccess = async (token: string) => {
-    console.log("Turnstile token received:", token.slice(0, 10) + "...");
     try {
       const response = await fetch("/api/verify", {
         method: "POST",
@@ -49,7 +46,6 @@ export function SignUpForm({
       });
 
       if (!response.ok) {
-        console.error("API error:", response.status, response.statusText);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
@@ -58,11 +54,9 @@ export function SignUpForm({
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        console.error("JSON parse error:", parseErr.message, "Response text:", text);
         throw new Error("Invalid JSON response from server");
       }
 
-      console.log("Verification API response:", JSON.stringify(data, null, 2));
 
       if (data.success) {
         setIsCaptchaCompleted(true);
@@ -72,16 +66,13 @@ export function SignUpForm({
         setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
         if (turnstileRef.current) {
           turnstileRef.current.reset();
-          console.log("Turnstile widget reset");
         }
       }
     } catch (err) {
-      console.error("Error in handleTurnstileSuccess:", err.message);
       setIsCaptchaCompleted(false);
       setError("Error verifying CAPTCHA. Please try again.");
       if (turnstileRef.current) {
         turnstileRef.current.reset();
-        console.log("Turnstile widget reset");
       }
     }
   };
@@ -155,7 +146,6 @@ export function SignUpForm({
         setIsCaptchaCompleted(false);
         if (turnstileRef.current) {
           turnstileRef.current.reset();
-          console.log("Turnstile widget reset due to submission error");
         }
       }
     } finally {
@@ -359,9 +349,7 @@ export function SignUpForm({
                         }}
                       />
                     </div>
-                  ) : (
-                    <div className="text-sm text-yellow-500">CAPTCHA not configured: Missing site key</div>
-                  )}
+                  ) : null}
                 </div>
 
                 {error && <div className="text-sm text-red-500">{error}</div>}
@@ -384,6 +372,9 @@ export function SignUpForm({
                 >
                   Sign in
                 </button>
+              </div>
+              <div className="text-center text-xs text-muted-foreground">
+                <a href="/at-oauth" className="underline underline-offset-4 hover:text-primary">Have an Atmosphere account? Go sign in</a>
               </div>
             </div>
           </form>

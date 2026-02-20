@@ -10,7 +10,7 @@ export default clerkMiddleware({
     "/api/blob",
     "/api/share",
     "/api/verify",
-    "/atproto",
+    "/at-oauth",
     "/api/atproto/(.*)",
     "/oauth-client-metadata.json",
     "/api/share/public"

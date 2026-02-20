@@ -27,13 +27,13 @@ export async function GET(request: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
   if (!code || !state || !expectedState || state !== expectedState || !verifier || !pds || !did || !handle || !dpopPrivateRaw || !dpopPublicRaw) {
-    return NextResponse.redirect(`${baseUrl}/atproto?error=oauth_state_mismatch`);
+    return NextResponse.redirect(`${baseUrl}/at-oauth?error=oauth_state_mismatch`);
   }
 
   const dpopPrivateKeyPem = Buffer.from(dpopPrivateRaw, "base64url").toString("utf8");
   const dpopPublicJwk = parseJsonSafe<DpopPublicJwk>(Buffer.from(dpopPublicRaw, "base64url").toString("utf8"));
   if (!dpopPublicJwk?.kty || !dpopPublicJwk?.crv || !dpopPublicJwk?.x || !dpopPublicJwk?.y) {
-    return NextResponse.redirect(`${baseUrl}/atproto?error=invalid_dpop_key`);
+    return NextResponse.redirect(`${baseUrl}/at-oauth?error=invalid_dpop_key`);
   }
 
   const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
@@ -78,12 +78,12 @@ export async function GET(request: NextRequest) {
     const detailText = await tokenRes.text();
     const detailJson = parseJsonSafe<{ error?: string; error_description?: string }>(detailText);
     const reason = detailJson?.error_description || detailJson?.error || detailText.slice(0, 160) || "token_exchange_failed";
-    return NextResponse.redirect(`${baseUrl}/atproto?error=token_exchange_failed&reason=${encodeURIComponent(reason)}`);
+    return NextResponse.redirect(`${baseUrl}/at-oauth?error=token_exchange_failed&reason=${encodeURIComponent(reason)}`);
   }
 
   const tokenData = (await tokenRes.json()) as { access_token?: string; refresh_token?: string };
   if (!tokenData.access_token) {
-    return NextResponse.redirect(`${baseUrl}/atproto?error=missing_access_token`);
+    return NextResponse.redirect(`${baseUrl}/at-oauth?error=missing_access_token`);
   }
 
   const profile = await getProfile(pds, did, tokenData.access_token, {
