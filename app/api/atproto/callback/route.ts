@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProfile } from "@/lib/atproto";
+import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
 import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
@@ -91,14 +91,25 @@ export async function GET(request: NextRequest) {
     publicJwk: dpopPublicJwk,
   });
 
+  const actorProfile = await getActorProfileRecord({
+    pds,
+    repo: did,
+    accessToken: tokenData.access_token,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
+  }).catch(() => undefined);
+
+  const avatarCid = actorProfile?.avatar?.ref?.$link;
+  const avatarUrl = profileAvatarBlobUrl({ pds, did, cid: avatarCid }) || profile?.avatar;
+
   await setAtprotoSession({
     did,
     handle: profile?.handle || handle,
     pds,
     accessToken: tokenData.access_token,
     refreshToken: tokenData.refresh_token,
-    displayName: profile?.displayName,
-    avatar: profile?.avatar,
+    displayName: actorProfile?.displayName || profile?.displayName,
+    avatar: avatarUrl,
     dpopPrivateKeyPem,
     dpopPublicJwk,
   });
@@ -115,5 +126,10 @@ export async function GET(request: NextRequest) {
   ].forEach((key) => {
     response.cookies.delete(key);
   });
+
+  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
+    response.cookies.delete(key);
+  });
+
   return response;
 }

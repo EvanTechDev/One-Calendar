@@ -137,6 +137,37 @@ export async function getProfile(pds: string, actor: string, accessToken: string
   return res.json() as Promise<{ displayName?: string; avatar?: string; handle?: string }>;
 }
 
+
+export async function getActorProfileRecord(params: {
+  pds: string;
+  repo: string;
+  accessToken: string;
+  dpopPrivateKeyPem?: string;
+  dpopPublicJwk?: DpopPublicJwk;
+}) {
+  const record = await getRecord({
+    pds: params.pds,
+    repo: params.repo,
+    collection: "app.bsky.actor.profile",
+    rkey: "self",
+    accessToken: params.accessToken,
+    dpopPrivateKeyPem: params.dpopPrivateKeyPem,
+    dpopPublicJwk: params.dpopPublicJwk,
+  });
+
+  return record.value as
+    | {
+        displayName?: string;
+        avatar?: { ref?: { $link?: string } };
+      }
+    | undefined;
+}
+
+export function profileAvatarBlobUrl(params: { pds: string; did: string; cid?: string }) {
+  if (!params.cid) return undefined;
+  return `${params.pds.replace(/\/$/, "")}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(params.did)}&cid=${encodeURIComponent(params.cid)}`;
+}
+
 export async function putRecord(params: {
   pds: string;
   repo: string;

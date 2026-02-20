@@ -36,5 +36,9 @@ export async function POST(request: NextRequest) {
   response.cookies.set("atproto_oauth_dpop_private", Buffer.from(dpop.privateKeyPem, "utf8").toString("base64url"), cookieOptions);
   response.cookies.set("atproto_oauth_dpop_public", Buffer.from(JSON.stringify(dpop.publicJwk), "utf8").toString("base64url"), cookieOptions);
 
+  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
+    response.cookies.delete(key);
+  });
+
   return response;
 }

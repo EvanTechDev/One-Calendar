@@ -40,7 +40,7 @@ async function initializeDatabase() {
 }
 
 const ALGORITHM = "aes-256-gcm";
-const ATPROTO_SHARE_COLLECTION = "com.onecalendar.share.record";
+const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share.record";
 
 function keyV2Unprotected(shareId: string) {
   return crypto.createHash("sha256").update(shareId, "utf8").digest();

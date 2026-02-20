@@ -488,9 +488,9 @@ export default function SharedEventView({ shareId, handle }: SharedEventViewProp
           </a>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <Card className="max-w-md w-full overflow-hidden">
-            <div className="relative">
-              <div className={cn("absolute left-0 top-0 h-full w-1")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
+          <Card className="relative max-w-md w-full overflow-hidden">
+            <div className={cn("absolute inset-y-0 left-0 w-1")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
+            <div>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>

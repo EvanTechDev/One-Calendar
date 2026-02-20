@@ -31,7 +31,7 @@ async function initDB() {
   }
 }
 
-const ATPROTO_BACKUP_COLLECTION = "com.onecalendar.backup.blob";
+const ATPROTO_BACKUP_COLLECTION = "app.onecalendar.backup.blob";
 const ATPROTO_BACKUP_RKEY = "latest";
 
 export async function POST(req: NextRequest) {
