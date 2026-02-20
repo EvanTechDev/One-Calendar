@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { clearAtprotoOauthState, getAtprotoOauthState, setAtprotoSession } from "@/lib/atproto"
+import { clearAtprotoOauthState, getAtprotoOauthState, parseAtprotoStateToken, setAtprotoSession } from "@/lib/atproto"
 import { getAtprotoOauthConfig } from "@/lib/atproto-oauth"
 
 export async function GET(request: NextRequest) {
@@ -7,8 +7,13 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state")
 
   try {
-    const oauth = await getAtprotoOauthState()
-    if (!oauth || !code || !state || oauth.state !== state) {
+    const oauthFromState = state ? parseAtprotoStateToken(state) : null
+    const oauthFromCookie = await getAtprotoOauthState()
+    const oauth = oauthFromState || (oauthFromCookie && state && oauthFromCookie.state === state
+      ? { handle: oauthFromCookie.handle, pds: oauthFromCookie.pds, verifier: oauthFromCookie.verifier }
+      : null)
+
+    if (!oauth || !code) {
       return NextResponse.redirect(new URL("/atproto?error=oauth_state", request.url))
     }
 

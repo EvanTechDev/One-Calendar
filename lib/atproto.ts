@@ -21,6 +21,13 @@ export type AtprotoOauthState = {
   verifier: string
 }
 
+type AtprotoStateTokenPayload = {
+  handle: string
+  pds: string
+  verifier: string
+  iat: number
+}
+
 function base64url(input: Buffer | string) {
   return Buffer.from(input).toString("base64url")
 }
@@ -109,6 +116,24 @@ export function createPkce() {
   const challenge = base64url(crypto.createHash("sha256").update(verifier).digest())
   const state = base64url(crypto.randomBytes(16))
   return { verifier, challenge, state }
+}
+
+export function createAtprotoStateToken(payload: Omit<AtprotoStateTokenPayload, "iat">) {
+  return pack<AtprotoStateTokenPayload>({
+    ...payload,
+    iat: Date.now(),
+  })
+}
+
+export function parseAtprotoStateToken(token: string, maxAgeMs = 10 * 60 * 1000): Omit<AtprotoStateTokenPayload, "iat"> | null {
+  const unpacked = unpack<AtprotoStateTokenPayload>(token)
+  if (!unpacked) return null
+  if (Date.now() - unpacked.iat > maxAgeMs) return null
+  return {
+    handle: unpacked.handle,
+    pds: unpacked.pds,
+    verifier: unpacked.verifier,
+  }
 }
 
 export async function putRecord(session: AtprotoSession, collection: string, rkey: string, record: unknown) {
