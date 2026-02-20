@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { Pool } from "pg";
 import crypto from "crypto";
+import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
+import { getAtprotoSession } from "@/lib/atproto-auth";
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -38,6 +40,7 @@ async function initializeDatabase() {
 }
 
 const ALGORITHM = "aes-256-gcm";
+const ATPROTO_SHARE_COLLECTION = "com.onecalendar.share.record";
 
 function keyV2Unprotected(shareId: string) {
   return crypto.createHash("sha256").update(shareId, "utf8").digest();
@@ -45,12 +48,6 @@ function keyV2Unprotected(shareId: string) {
 
 function keyV3Password(password: string, shareId: string) {
   return crypto.scryptSync(password, shareId, 32);
-}
-
-function keyV1Legacy(shareId: string) {
-  const salt = process.env.SALT;
-  if (!salt) throw new Error("SALT environment variable is not set");
-  return crypto.scryptSync(shareId, salt, 32);
 }
 
 function encryptWithKey(data: string, key: Buffer): { encryptedData: string; iv: string; authTag: string } {
@@ -74,14 +71,10 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
     const body = await request.json();
     const { id, data, password, burnAfterRead } = body as {
       id?: string;
-      data?: any;
+      data?: unknown;
       password?: string;
       burnAfterRead?: boolean;
     };
@@ -92,20 +85,38 @@ export async function POST(request: NextRequest) {
 
     const hasPassword = typeof password === "string" && password.length > 0;
     const burn = !!burnAfterRead;
-
-    if (burn && !hasPassword) {
-      return NextResponse.json({ error: "burnAfterRead requires password protection" }, { status: 400 });
-    }
-
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
-
-    await initializeDatabase();
-
     const dataString = typeof data === "string" ? data : JSON.stringify(data);
-    const encVersion = hasPassword ? 3 : 2;
     const key = hasPassword ? keyV3Password(password as string, id) : keyV2Unprotected(id);
     const { encryptedData, iv, authTag } = encryptWithKey(dataString, key);
+
+    const atproto = await getAtprotoSession();
+    if (atproto) {
+      await putRecord({
+        pds: atproto.pds,
+        repo: atproto.did,
+        collection: ATPROTO_SHARE_COLLECTION,
+        rkey: id,
+        accessToken: atproto.accessToken,
+        record: {
+          $type: ATPROTO_SHARE_COLLECTION,
+          encryptedData,
+          iv,
+          authTag,
+          isProtected: hasPassword,
+          isBurn: burn,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return NextResponse.json({ success: true, id, protected: hasPassword, burnAfterRead: burn, shareLink: `/${atproto.handle}/${id}` });
+    }
+
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await initializeDatabase();
 
     const client = await pool.connect();
     try {
@@ -114,181 +125,120 @@ export async function POST(request: NextRequest) {
         INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (share_id)
-        DO UPDATE SET
-          encrypted_data = EXCLUDED.encrypted_data,
-          iv = EXCLUDED.iv,
-          auth_tag = EXCLUDED.auth_tag,
-          timestamp = EXCLUDED.timestamp,
-          is_protected = EXCLUDED.is_protected,
-          is_burn = EXCLUDED.is_burn,
-          enc_version = EXCLUDED.enc_version,
-          user_id = EXCLUDED.user_id
+        DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag,
+          timestamp = EXCLUDED.timestamp, is_protected = EXCLUDED.is_protected, is_burn = EXCLUDED.is_burn,
+          enc_version = EXCLUDED.enc_version, user_id = EXCLUDED.user_id
         `,
-        [user.id, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, encVersion]
+        [user.id, id, encryptedData, iv, authTag, new Date().toISOString(), hasPassword, burn, hasPassword ? 3 : 2],
       );
 
-      return NextResponse.json({
-        success: true,
-        path: `shares/${id}/data.json`,
-        id,
-        message: "Share created successfully.",
-        protected: hasPassword,
-        burnAfterRead: burn,
-      });
+      return NextResponse.json({ success: true, id, protected: hasPassword, burnAfterRead: burn, shareLink: `/share/${id}` });
     } finally {
       client.release();
     }
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error occurred" }, { status: 500 });
   }
+}
+
+async function getAtprotoShare(id: string, password: string, handleParam?: string) {
+  const atproto = await getAtprotoSession();
+  if (atproto) {
+    const record = await getRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+    const value = record.value ?? {};
+    const isProtected = !!value.isProtected;
+    if (isProtected && !password) {
+      return NextResponse.json({ error: "Password required", requiresPassword: true, burnAfterRead: value.isBurn }, { status: 401 });
+    }
+    const key = isProtected ? keyV3Password(password, id) : keyV2Unprotected(id);
+    const decryptedData = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), key);
+
+    if (value.isBurn) {
+      await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+    }
+
+    return NextResponse.json({ success: true, data: decryptedData, timestamp: value.timestamp, protected: isProtected, burnAfterRead: !!value.isBurn });
+  }
+
+  if (handleParam) {
+    return NextResponse.json({ error: "Public atproto retrieval requires owner session support not configured" }, { status: 400 });
+  }
+
+  return null;
 }
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   const password = request.nextUrl.searchParams.get("password") ?? "";
+  const handle = request.nextUrl.searchParams.get("handle") ?? undefined;
 
-  if (!id) {
-    return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
-  }
+  if (!id) return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
 
   try {
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
+    const atprotoResult = await getAtprotoShare(id, password, handle);
+    if (atprotoResult) return atprotoResult;
 
     await initializeDatabase();
-
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-
       const result = await client.query(
-        "SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version FROM shares WHERE share_id = $1 FOR UPDATE",
-        [id]
+        "SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = $1 FOR UPDATE",
+        [id],
       );
-
       if (result.rows.length === 0) {
         await client.query("ROLLBACK");
         return NextResponse.json({ error: "Share not found" }, { status: 404 });
       }
-
-      const row = result.rows[0] as {
-        encrypted_data: string;
-        iv: string;
-        auth_tag: string;
-        timestamp: Date;
-        is_protected: boolean;
-        is_burn: boolean;
-        enc_version: number | null;
-      };
-
+      const row = result.rows[0];
       if (row.is_protected && !password) {
         await client.query("COMMIT");
-        return NextResponse.json(
-          { error: "Password required", requiresPassword: true, burnAfterRead: row.is_burn },
-          { status: 401 }
-        );
+        return NextResponse.json({ error: "Password required", requiresPassword: true, burnAfterRead: row.is_burn }, { status: 401 });
       }
-
-      const encVersion = row.enc_version ?? 1;
-
-      let key: Buffer;
-      if (row.is_protected) {
-        key = keyV3Password(password, id);
-      } else {
-        key = encVersion === 1 ? keyV1Legacy(id) : keyV2Unprotected(id);
-      }
-
+      const key = row.is_protected ? keyV3Password(password, id) : keyV2Unprotected(id);
       let decryptedData: string;
       try {
         decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key);
       } catch {
         await client.query("COMMIT");
-        if (row.is_protected) return NextResponse.json({ error: "Invalid password" }, { status: 403 });
-        return NextResponse.json({ error: "Failed to decrypt share data." }, { status: 403 });
+        return NextResponse.json({ error: row.is_protected ? "Invalid password" : "Failed to decrypt share data." }, { status: 403 });
       }
-
       if (row.is_burn) {
         await client.query("DELETE FROM shares WHERE share_id = $1", [id]);
       }
-
       await client.query("COMMIT");
-
-      return NextResponse.json({
-        success: true,
-        data: decryptedData,
-        timestamp: row.timestamp.toISOString(),
-        protected: row.is_protected,
-        burnAfterRead: row.is_burn,
-      });
+      return NextResponse.json({ success: true, data: decryptedData, timestamp: row.timestamp.toISOString(), protected: row.is_protected, burnAfterRead: row.is_burn });
     } catch (e) {
-      try {
-        await client.query("ROLLBACK");
-      } catch {}
+      await client.query("ROLLBACK");
       throw e;
     } finally {
       client.release();
     }
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error occurred" }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const body = await request.json();
+  const { id } = body as { id?: string };
+  if (!id) return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
+
+  const atproto = await getAtprotoSession();
+  if (atproto) {
+    await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken });
+    return NextResponse.json({ success: true });
+  }
+
+  const user = await currentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await initializeDatabase();
+  const client = await pool.connect();
   try {
-    const user = await currentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    
-    const body = await request.json();
-    const { id } = body as { id?: string };
-
-    if (!id) {
-      return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
-    }
-
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) throw new Error("POSTGRES_URL is not set");
-
-    await initializeDatabase();
-
-    const client = await pool.connect();
-    try {
-      const result = await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2 RETURNING *", [id, user.id]);
-
-      if (result.rowCount === 0) {
-        return NextResponse.json({
-          success: true,
-          message: `No share found with ID: ${id}, nothing to delete.`,
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Successfully deleted share with ID: ${id}`,
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    await client.query("DELETE FROM shares WHERE share_id = $1 AND user_id = $2", [id, user.id]);
+    return NextResponse.json({ success: true });
+  } finally {
+    client.release();
   }
 }
