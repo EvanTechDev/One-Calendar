@@ -107,8 +107,7 @@ export async function resolveAtprotoHandle(handle: string) {
 export function createPkce() {
   const verifier = base64url(crypto.randomBytes(32))
   const challenge = base64url(crypto.createHash("sha256").update(verifier).digest())
-  const state = base64url(crypto.randomBytes(16))
-  return { verifier, challenge, state }
+  return { verifier, challenge }
 }
 
 export function createAtprotoStateToken(verifier: string) {
