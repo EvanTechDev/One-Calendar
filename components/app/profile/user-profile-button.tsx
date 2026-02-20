@@ -186,6 +186,7 @@ export default function UserProfileButton({
   const { user, isSignedIn } = useUser()
   const router = useRouter()
   const [atprotoHandle, setAtprotoHandle] = useState("")
+  const [atprotoDisplayName, setAtprotoDisplayName] = useState("")
   const [atprotoAvatar, setAtprotoAvatar] = useState("")
   const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
   const isAnySignedIn = isSignedIn || atprotoSignedIn
@@ -220,9 +221,10 @@ export default function UserProfileButton({
   useEffect(() => {
     fetch("/api/atproto/session")
       .then((r) => r.json())
-      .then((data: { signedIn?: boolean; handle?: string; avatar?: string }) => {
+      .then((data: { signedIn?: boolean; handle?: string; displayName?: string; avatar?: string }) => {
         setAtprotoSignedIn(!!data.signedIn)
         setAtprotoHandle(data.handle || "")
+        setAtprotoDisplayName(data.displayName || "")
         setAtprotoAvatar(data.avatar || "")
       })
       .catch(() => undefined)
@@ -591,6 +593,7 @@ export default function UserProfileButton({
                     await fetch("/api/atproto/logout", { method: "POST" })
                     setAtprotoSignedIn(false)
                     setAtprotoHandle("")
+                    setAtprotoDisplayName("")
                     setAtprotoAvatar("")
                     router.refresh()
                   }}>
@@ -622,7 +625,7 @@ export default function UserProfileButton({
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || atprotoHandle || "User"}</p>
+                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || atprotoDisplayName || atprotoHandle || "User"}</p>
                   <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress || (atprotoHandle ? `@${atprotoHandle}` : "")}</p>
                 </div>
               </div>
@@ -673,6 +676,7 @@ export default function UserProfileButton({
                     await fetch("/api/atproto/logout", { method: "POST" })
                     setAtprotoSignedIn(false)
                     setAtprotoHandle("")
+                    setAtprotoDisplayName("")
                     setAtprotoAvatar("")
                     router.refresh()
                   }}><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>

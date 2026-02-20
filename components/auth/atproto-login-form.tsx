@@ -63,11 +63,11 @@ function AtprotoLoginContent() {
         >
           Create an Atmosphere account
         </Button>
+        <p className="pt-1 text-center text-xs text-muted-foreground">
+          Not an Atmosphere user? Return to normal <a href="/sign-in" className="underline underline-offset-4 hover:text-primary">sign in</a>
+        </p>
       </CardContent>
       </Card>
-      <div className="text-center text-xs text-muted-foreground">
-        <a href="/sign-in" className="underline underline-offset-4 hover:text-primary">Not an Atmosphere user? Return to normal sign in</a>
-      </div>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
         By continuing, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
       </div>
