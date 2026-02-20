@@ -1,0 +1,10 @@
+{
+  "client_id": "https://calendar.xyehr.cn/oauth-client-metadata.json",
+  "application_type": "web",
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "redirect_uris": ["https://calendar.xyehr.cn/api/atproto/callback"],
+  "token_endpoint_auth_method": "none",
+  "scope": "atproto transition:generic",
+  "dpop_bound_access_tokens": false
+}
