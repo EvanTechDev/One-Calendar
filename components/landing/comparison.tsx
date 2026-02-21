@@ -1,4 +1,4 @@
-import { LandingTitle } from "./landing-title";
+import { LandingTitle } from "./title";
 
 const rows = [
   { label: "End-to-end encryption (E2EE)", one: "✅", google: "❌", proton: "✅" },

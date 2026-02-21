@@ -1,4 +1,4 @@
-import { LandingTitle } from "./landing-title";
+import { LandingTitle } from "./title";
 
 const highlights = [
   {

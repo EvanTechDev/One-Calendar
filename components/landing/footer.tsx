@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { LandingLogoIcon } from "./logo-icon";
 
 const footerColumns = [
   { title: "Product", links: [{ label: "Overview", href: "#features" }, { label: "About", href: "/about" }] },
@@ -27,7 +27,7 @@ export function LandingFooter() {
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <a href="#top" aria-label="One Calendar home" className="inline-flex items-center gap-2 text-white transition hover:brightness-110">
-              <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
+              <LandingLogoIcon className="h-5 w-5" />
               <span className="text-sm font-medium">One Calendar</span>
             </a>
           </div>

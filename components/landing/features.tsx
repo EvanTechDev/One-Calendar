@@ -1,4 +1,4 @@
-import { LandingTitle } from "./landing-title";
+import { LandingTitle } from "./title";
 
 const features = [
   {
@@ -16,6 +16,21 @@ const features = [
     description: "Import/export with .ics, .json, and .csv while keeping full control.",
     icon: <path d="M16 4v16m0 0-5-5m5 5 5-5M5 26h22" />,
   },
+  {
+    title: "Multi-view workflow",
+    description: "Switch between day, week, month, and year perspectives without losing context.",
+    icon: <path d="M5 8h22M5 16h22M5 24h22M10 4v24M22 4v24" />,
+  },
+  {
+    title: "Keyboard-first speed",
+    description: "Navigate and edit quickly with shortcuts designed for high-frequency planning.",
+    icon: <path d="M4 9h24v14H4zM8 13h4m4 0h8m-14 4h12" />,
+  },
+  {
+    title: "Cross-device consistency",
+    description: "A consistent experience across desktop and mobile layouts for daily reliability.",
+    icon: <path d="M10 5h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm4 15h4" />,
+  },
 ];
 
 export function LandingFeatures() {
@@ -32,9 +47,9 @@ export function LandingFeatures() {
         </p>
       </div>
 
-      <div className="mt-14 grid gap-8 md:grid-cols-3 md:gap-0">
-        {features.map((feature, index) => (
-          <article key={feature.title} className={`px-0 md:px-8 ${index !== 2 ? "md:border-r md:border-white/10" : ""}`}>
+      <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {features.map((feature) => (
+          <article key={feature.title} className="rounded-xl border border-white/10 p-6">
             <svg viewBox="0 0 32 32" aria-hidden="true" className="mb-5 h-9 w-9 stroke-white" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               {feature.icon}
             </svg>

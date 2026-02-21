@@ -1,4 +1,4 @@
-import { LandingTitle } from "./landing-title";
+import { LandingTitle } from "./title";
 
 const metrics = [
   { label: "Locale packs", value: "35" },
