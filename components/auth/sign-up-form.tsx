@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -37,10 +36,7 @@ export function SignUpForm({
   );
   const turnstileRef = useRef<any>(null);
 
-  console.log("Site Key:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "Missing");
-
   const handleTurnstileSuccess = async (token: string) => {
-    console.log("Turnstile token received:", token.slice(0, 10) + "...");
     try {
       const response = await fetch("/api/verify", {
         method: "POST",
@@ -49,7 +45,6 @@ export function SignUpForm({
       });
 
       if (!response.ok) {
-        console.error("API error:", response.status, response.statusText);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
@@ -58,11 +53,9 @@ export function SignUpForm({
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        console.error("JSON parse error:", parseErr.message, "Response text:", text);
         throw new Error("Invalid JSON response from server");
       }
 
-      console.log("Verification API response:", JSON.stringify(data, null, 2));
 
       if (data.success) {
         setIsCaptchaCompleted(true);
@@ -72,16 +65,13 @@ export function SignUpForm({
         setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
         if (turnstileRef.current) {
           turnstileRef.current.reset();
-          console.log("Turnstile widget reset");
         }
       }
     } catch (err) {
-      console.error("Error in handleTurnstileSuccess:", err.message);
       setIsCaptchaCompleted(false);
       setError("Error verifying CAPTCHA. Please try again.");
       if (turnstileRef.current) {
         turnstileRef.current.reset();
-        console.log("Turnstile widget reset");
       }
     }
   };
@@ -155,7 +145,6 @@ export function SignUpForm({
         setIsCaptchaCompleted(false);
         if (turnstileRef.current) {
           turnstileRef.current.reset();
-          console.log("Turnstile widget reset due to submission error");
         }
       }
     } finally {
@@ -231,9 +220,6 @@ export function SignUpForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Continue with Microsoft, Google, GitHub account
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -267,6 +253,22 @@ export function SignUpForm({
                     <path d="M1 1h22v22H1z" fill="none" />
                   </svg>
                   <span className="ml-2">Continue with Google</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                  onClick={() => (window.location.href = "/at-oauth")}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 640 560"
+                    className="h-5 w-auto shrink-0"
+                    aria-hidden="true"
+                  >
+                    <path fill="#0066ff" d="M133 47c74 56 152 169 197 260 45-91 123-204 197-260 53-40 140-70 140 28 0 20-11 170-18 194-22 85-103 106-175 93 124 22 156 91 87 161-131 134-188-34-203-75-2-6-3-12-3-18 0 6-1 12-3 18-15 41-72 209-203 75-69-70-37-139 87-161-72 13-153-8-175-93-7-24-18-174-18-194 0-98 87-68 140-28z"/>
+                  </svg>
+                  <span className="ml-2">Continue with Atmosphere</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -359,9 +361,7 @@ export function SignUpForm({
                         }}
                       />
                     </div>
-                  ) : (
-                    <div className="text-sm text-yellow-500">CAPTCHA not configured: Missing site key</div>
-                  )}
+                  ) : null}
                 </div>
 
                 {error && <div className="text-sm text-red-500">{error}</div>}
