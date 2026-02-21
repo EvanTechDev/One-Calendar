@@ -29,7 +29,7 @@ export function LandingFaq() {
     <section id="faq" className="border-b border-white/10 py-16 md:py-20">
       <div className="grid gap-8 md:grid-cols-[240px_1fr]">
         <h2 className="text-3xl font-semibold text-white md:text-5xl">FAQ</h2>
-        <div className="rounded-2xl border border-white/10 bg-[var(--landing-panel)] px-5 md:px-6">
+        <div className="px-0 md:px-2">
           <Accordion type="single" collapsible className="w-full">
             {faqItems.map((item, idx) => (
               <AccordionItem key={item.q} value={`faq-${idx}`} className="border-white/10">

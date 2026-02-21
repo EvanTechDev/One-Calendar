@@ -19,23 +19,22 @@ export function LandingDataShowcase() {
         Privacy-first, planning-focused, and designed to stay understandable while scaling to team workflows.
       </p>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <div className="mt-10 grid gap-6 md:grid-cols-3">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-5">
-            <p className="text-3xl font-semibold text-white">{metric.value}</p>
-            <p className="mt-2 text-sm text-[var(--landing-muted)]">{metric.label}</p>
+          <div key={metric.label} className="border-b border-white/15 pb-4">
+            <p className="text-4xl font-semibold text-white">{metric.value}</p>
+            <p className="mt-2 text-sm uppercase tracking-[0.12em] text-[var(--landing-subtle)]">{metric.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-6">
-        <ul className="grid gap-3 md:grid-cols-2">
-          {stack.map((item) => (
-            <li key={item} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-[var(--landing-muted)]">
-              {item}
-            </li>
-          ))}
-        </ul>
+      <div className="mt-10 grid gap-4 md:grid-cols-2">
+        {stack.map((item, idx) => (
+          <div key={item} className="flex items-start gap-3 border-l border-white/15 pl-4">
+            <span className="mt-0.5 text-xs text-[var(--landing-subtle)]">0{idx + 1}</span>
+            <p className="text-sm text-[var(--landing-muted)] md:text-base">{item}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
