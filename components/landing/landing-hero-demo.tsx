@@ -1,6 +1,5 @@
 "use client";
 
-import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 import { LandingTitle } from "./landing-title";
 
@@ -21,10 +20,14 @@ const demoEvents: DemoEvent[] = [
 ];
 
 const encryptedRows = [
-  ["2nd49snxieNwi29Dnejs", "4fK29xneJ2qLs09PzVaa"],
-  ["A0zX19pwQm7RtL2he81n", "n0Mqe28XvLp31sTTad90"],
-  ["dN7qa21PoxM44jvR8tyk", "Qv4mL2zPaa11Nwe8sX0t"],
-  ["T7ePq82sLmN4xR3vA11f", "zP8wN2kLmQ1vD45sA0xe"],
+  "2nd49snxieNwi29Dnejs",
+  "4fK29xneJ2qLs09PzVaa",
+  "A0zX19pwQm7RtL2he81n",
+  "n0Mqe28XvLp31sTTad90",
+  "dN7qa21PoxM44jvR8tyk",
+  "Qv4mL2zPaa11Nwe8sX0t",
+  "T7ePq82sLmN4xR3vA11f",
+  "zP8wN2kLmQ1vD45sA0xe",
 ];
 
 function WeekViewEventBlock({ event }: { event: DemoEvent }) {
@@ -51,13 +54,9 @@ export function LandingHeroDemo() {
 
       <div className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-4">
         <LandingTitle as="p" className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Encrypted Stream</LandingTitle>
-        <div className="grid grid-cols-[1fr_auto_1fr] gap-3 text-xs text-[var(--landing-muted)]">
-          {encryptedRows.map((row, idx) => (
-            <Fragment key={`${row[0]}-${idx}`}>
-              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-2 font-mono text-[11px] text-white/75">{row[0]}</div>
-              <div className="w-px bg-white/20" />
-              <div className="rounded-md border border-white/10 bg-black/10 px-2 py-2 font-mono text-[11px] text-white/75">{row[1]}</div>
-            </Fragment>
+        <div className="space-y-2 font-mono text-[12px] text-white/75">
+          {encryptedRows.map((line) => (
+            <p key={line}>{line}</p>
           ))}
         </div>
       </div>
