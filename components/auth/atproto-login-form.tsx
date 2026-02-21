@@ -10,6 +10,7 @@ function AtprotoLoginContent() {
   const [handle, setHandle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [registerLoading, setRegisterLoading] = useState(false);
   const searchParams = useSearchParams();
 
   const startLogin = async () => {
@@ -37,10 +38,27 @@ function AtprotoLoginContent() {
 
   const queryError = searchParams.get("reason") || searchParams.get("error") || "";
 
-  const appBaseUrl = (typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL || "https://calendar.xyehr.cn").replace(/\/$/, "");
-  const roseAccountOAuthUrl = `https://rose.madebydanny.uk/oauth/authorize?${new URLSearchParams({
-    client_id: `${appBaseUrl}/oauth-client-metadata.json`,
-  }).toString()}`;
+  const startRegister = async () => {
+    setRegisterLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/atproto/register-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = (await res.json()) as { authorizeUrl?: string; error?: string };
+      if (!res.ok || !data.authorizeUrl) {
+        throw new Error(data.error || "Failed to create registration OAuth URL");
+      }
+
+      window.location.href = data.authorizeUrl;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
 
 
   return (
@@ -65,9 +83,10 @@ function AtprotoLoginContent() {
           variant="outline"
           className="w-full"
           type="button"
-          onClick={() => (window.location.href = roseAccountOAuthUrl)}
+          onClick={startRegister}
+          disabled={registerLoading}
         >
-          Create an Atmosphere account
+          {registerLoading ? "Preparing..." : "Create an Atmosphere account"}
         </Button>
         <p className="pt-1 text-center text-xs text-muted-foreground">
           Not an Atmosphere user? Return to normal <a href="/sign-in" className="underline underline-offset-4 hover:text-primary">sign in</a>
