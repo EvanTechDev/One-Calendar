@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 
 type DemoEvent = {
@@ -38,7 +39,20 @@ const demoEvents: DemoEvent[] = [
   },
 ];
 
-const dayColumns = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const encryptedRows = [
+  {
+    cipher: "A9F4-77C1-98D2-E31B",
+    plain: "Project roadmap planning",
+  },
+  {
+    cipher: "7B22-4D11-C0EF-6A8A",
+    plain: "Design review with team",
+  },
+  {
+    cipher: "EE91-23AA-44B8-90F2",
+    plain: "Focus block: implementation",
+  },
+];
 
 function WeekViewEventBlock({ event }: { event: DemoEvent }) {
   return (
@@ -61,14 +75,7 @@ export function LandingHeroDemo() {
     <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
       <div className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-4">
         <p className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Week View</p>
-        <div className="grid grid-cols-5 gap-2">
-          {dayColumns.map((day) => (
-            <div key={day} className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-xs text-[var(--landing-muted)]">
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 space-y-2">
+        <div className="space-y-2">
           {demoEvents.map((event) => (
             <WeekViewEventBlock key={event.id} event={event} />
           ))}
@@ -76,35 +83,23 @@ export function LandingHeroDemo() {
       </div>
 
       <div className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-4">
-        <p className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Planning Insights</p>
-        <div className="space-y-3">
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs text-[var(--landing-muted)]">
-              <span>Focus time</span>
-              <span>68%</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10">
-              <div className="h-2 w-[68%] rounded-full bg-white/80" />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs text-[var(--landing-muted)]">
-              <span>Meetings</span>
-              <span>22%</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10">
-              <div className="h-2 w-[22%] rounded-full bg-white/60" />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs text-[var(--landing-muted)]">
-              <span>Buffer</span>
-              <span>10%</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10">
-              <div className="h-2 w-[10%] rounded-full bg-white/50" />
-            </div>
-          </div>
+        <p className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Encrypted vs Plain</p>
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-3 text-xs text-[var(--landing-muted)]">
+          <div className="mb-1 uppercase tracking-[0.12em]">Encrypted</div>
+          <div className="opacity-0">|</div>
+          <div className="mb-1 uppercase tracking-[0.12em]">Readable</div>
+
+          {encryptedRows.map((row) => (
+            <Fragment key={row.cipher}>
+              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-2 font-mono text-[11px] text-white/75">
+                {row.cipher}
+              </div>
+              <div className="w-px bg-white/20" />
+              <div className="rounded-md border border-white/10 bg-black/10 px-2 py-2 text-[11px] text-white/85">
+                {row.plain}
+              </div>
+            </Fragment>
+          ))}
         </div>
       </div>
     </div>

@@ -4,13 +4,13 @@ export function LandingHero() {
   return (
     <section id="top" className="py-14 md:py-20">
       <div className="mx-auto max-w-4xl text-center">
-        <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white md:text-5xl">
-          Plan smarter.
+        <h1 className="landing-hero-reveal text-4xl font-semibold leading-tight tracking-tight text-white md:text-[56px]">
+          The calendar that keeps
           <br />
-          Ship faster.
+          your life private
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-sm text-[var(--landing-muted)] md:text-base">
-          One Calendar keeps planning clear, collaborative, and calm across your product workflow.
+          Secure by design. Powerful by default.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <a href="/sign-up" aria-label="Get started" className="rounded-md bg-white px-5 py-2.5 text-sm font-medium text-black transition duration-200 hover:-translate-y-0.5 hover:brightness-110">
