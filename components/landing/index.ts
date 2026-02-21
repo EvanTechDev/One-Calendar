@@ -1,11 +1,12 @@
-export { LandingHeader } from "./landing-header";
-export { LandingHero } from "./landing-hero";
-export { LandingDataShowcase } from "./landing-data-showcase";
-export { LandingFeatures } from "./landing-features";
-export { LandingComparison } from "./landing-comparison";
-export { LandingTestimonials } from "./landing-testimonials";
-export { LandingFaq } from "./landing-faq";
-export { LandingCta } from "./landing-cta";
-export { LandingFooter } from "./landing-footer";
+export { LandingHeader } from "./header";
+export { LandingHero } from "./hero";
+export { LandingDataShowcase } from "./data-showcase";
+export { LandingFeatures } from "./features";
+export { LandingComparison } from "./comparison";
+export { LandingTestimonials } from "./testimonials";
+export { LandingDeepDive } from "./deep-dive";
+export { LandingFaq } from "./faq";
+export { LandingCta } from "./cta";
+export { LandingFooter } from "./footer";
 
-export { LandingTitle } from "./landing-title";
+export { LandingTitle } from "./title";

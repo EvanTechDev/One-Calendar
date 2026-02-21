@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { LandingTitle } from "./landing-title";
+import { LandingTitle } from "./title";
 
 type DemoEvent = {
   id: string;

@@ -5,6 +5,7 @@ import {
   LandingDataShowcase,
   LandingComparison,
   LandingTestimonials,
+  LandingDeepDive,
   LandingFaq,
   LandingCta,
   LandingFooter,
@@ -20,6 +21,7 @@ export default function LandingPage() {
         <LandingDataShowcase />
         <LandingComparison />
         <LandingTestimonials />
+        <LandingDeepDive />
         <LandingFaq />
         <LandingCta />
       </div>

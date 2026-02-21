@@ -1,7 +1,7 @@
 import Image from "next/image";
 import bannerDark from "@/public/Banner-dark.jpg";
-import { LandingHeroDemo } from "./landing-hero-demo";
-import { LandingTitle } from "./landing-title";
+import { LandingHeroDemo } from "./hero-demo";
+import { LandingTitle } from "./title";
 
 export function LandingHero() {
   return (
