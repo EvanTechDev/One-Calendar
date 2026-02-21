@@ -1,19 +1,26 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 const faqItems = [
   {
-    q: "Can I connect Google Calendar and Outlook together?",
-    a: "Yes. One Calendar syncs across Google, Outlook, and iCal with automatic updates.",
+    q: "What is One Calendar's product direction?",
+    a: "One Calendar is positioned as a privacy-first, weekly-focused open-source calendar built for clarity and control.",
   },
   {
-    q: "Do you support team permissions?",
-    a: "Yes. Admin roles, workspace-level controls, and sharing permissions are available.",
+    q: "Which import formats are supported?",
+    a: "The project documents support for iCalendar (.ics), JSON, and CSV import/export workflows.",
   },
   {
-    q: "How long does migration take?",
-    a: "Most teams migrate in under one day using our import wizard and guided setup.",
+    q: "Does One Calendar support encrypted data handling?",
+    a: "Yes. The README lists optional end-to-end encryption (E2EE) support for privacy-sensitive usage.",
   },
   {
-    q: "Is there an API?",
-    a: "Yes. You can read/write events, schedules, and metadata through our developer API.",
+    q: "What stack powers cloud sync and auth?",
+    a: "Cloud sync is described as optional and PostgreSQL-based, while authentication is handled through Clerk.",
   },
 ];
 
@@ -22,13 +29,19 @@ export function LandingFaq() {
     <section className="border-b border-white/10 py-16 md:py-20">
       <div className="grid gap-8 md:grid-cols-[240px_1fr]">
         <h2 className="text-3xl font-semibold text-white md:text-5xl">FAQ</h2>
-        <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-[var(--landing-panel)]">
-          {faqItems.map((item) => (
-            <article key={item.q} className="p-5 md:p-6">
-              <h3 className="text-lg font-medium text-white md:text-xl">{item.q}</h3>
-              <p className="mt-2 text-sm text-[var(--landing-muted)] md:text-base">{item.a}</p>
-            </article>
-          ))}
+        <div className="rounded-2xl border border-white/10 bg-[var(--landing-panel)] px-5 md:px-6">
+          <Accordion type="single" collapsible className="w-full">
+            {faqItems.map((item, idx) => (
+              <AccordionItem key={item.q} value={`faq-${idx}`} className="border-white/10">
+                <AccordionTrigger className="py-5 text-left text-base font-medium text-white hover:no-underline">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="pb-5 text-sm text-[var(--landing-muted)] md:text-base">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </div>
     </section>

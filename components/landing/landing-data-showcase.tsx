@@ -1,20 +1,23 @@
 const metrics = [
-  { label: "Connected calendars", value: "120,000+" },
-  { label: "Scheduling conflicts reduced", value: "38%" },
-  { label: "Weekly planning time saved", value: "6.4h" },
+  { label: "Locale packs", value: "35" },
+  { label: "Theme options", value: "5" },
+  { label: "Import formats", value: "3" },
+];
+
+const stack = [
+  "Open-source and privacy-first",
+  "Optional cloud sync with PostgreSQL",
+  "Authentication with Clerk",
+  "Import/export support for .ics, .json, .csv",
 ];
 
 export function LandingDataShowcase() {
   return (
     <section className="border-b border-white/10 py-16 md:py-20">
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl font-semibold leading-tight text-white md:text-5xl">Data that keeps your team on schedule</h2>
-          <p className="mt-4 max-w-2xl text-base text-[var(--landing-muted)] md:text-lg">
-            Built from real One Calendar usage patterns across product, design, and engineering teams.
-          </p>
-        </div>
-      </div>
+      <h2 className="text-3xl font-semibold leading-tight text-white md:text-5xl">Built from real One Calendar capabilities</h2>
+      <p className="mt-4 max-w-3xl text-base text-[var(--landing-muted)] md:text-lg">
+        Privacy-first, weekly-focused, and designed to stay understandable while scaling to team workflows.
+      </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {metrics.map((metric) => (
@@ -25,15 +28,14 @@ export function LandingDataShowcase() {
         ))}
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-5">
-        <svg viewBox="0 0 1000 260" aria-label="Weekly focus-time trend" role="img" className="h-auto w-full">
-          <rect x="1" y="1" width="998" height="258" rx="12" fill="none" stroke="rgba(255,255,255,0.12)" />
-          <path d="M70 190C140 170 170 120 250 135C330 150 360 80 430 90C500 100 540 165 610 150C680 135 730 70 810 85C890 100 920 130 950 120" stroke="white" strokeWidth="2" fill="none" />
-          <path d="M70 212h880" stroke="rgba(255,255,255,0.2)" />
-          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, idx) => (
-            <text key={day} x={90 + idx * 128} y="236" fill="rgba(155,155,155,1)" fontSize="14">{day}</text>
+      <div className="mt-8 rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-6">
+        <ul className="grid gap-3 md:grid-cols-2">
+          {stack.map((item) => (
+            <li key={item} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-[var(--landing-muted)]">
+              {item}
+            </li>
           ))}
-        </svg>
+        </ul>
       </div>
     </section>
   );
