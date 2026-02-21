@@ -4,10 +4,10 @@ export function LandingHero() {
   return (
     <section id="top" className="py-14 md:py-20">
       <div className="mx-auto max-w-4xl text-center">
-        <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white md:text-6xl">
-          The product development
+        <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white md:text-5xl">
+          Build products with less noise,
           <br />
-          system for teams and agents
+          more momentum for teams and agents.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-[var(--landing-muted)] md:text-lg">
           Purpose-built for planning and building products. Designed for the AI era.
