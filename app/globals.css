@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -10,6 +14,31 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+}
+
+@keyframes landing-title-in-view {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+
+.landing-title {
+  opacity: 0;
+  filter: blur(12px);
+  transform: translateY(10px);
+}
+
+.landing-title-visible {
+  animation: landing-title-in-view 1300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @layer components {
@@ -23,6 +52,11 @@ body {
 
 @layer base {
   :root {
+    --landing-bg: #080808;
+    --landing-panel: #0b0b0b;
+    --landing-text: #ffffff;
+    --landing-muted: #9b9b9b;
+    --landing-subtle: #6f6f6f;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
