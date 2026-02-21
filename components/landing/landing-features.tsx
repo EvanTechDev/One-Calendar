@@ -21,7 +21,7 @@ export function LandingFeatures() {
     <section id="features" className="border-y border-white/10 py-16 md:py-20">
       <div className="mb-10 max-w-3xl">
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--landing-subtle)]">Core capabilities</p>
-        <h2 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Designed for clarity, control, and speed</h2>
+        <h2 className="landing-title-reveal mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Designed for clarity, control, and speed</h2>
       </div>
 
       <div className="grid gap-8 md:grid-cols-3 md:gap-0">
@@ -38,7 +38,7 @@ export function LandingFeatures() {
             >
               {feature.icon}
             </svg>
-            <h3 className="text-xl font-medium text-white">{feature.title}</h3>
+            <h3 className="landing-title-reveal text-xl font-medium text-white">{feature.title}</h3>
             <p className="mt-3 text-sm leading-relaxed text-[var(--landing-subtle)]">{feature.description}</p>
           </article>
         ))}

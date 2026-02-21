@@ -2,7 +2,7 @@ export function LandingCta() {
   return (
     <section className="py-16 text-center md:py-20">
       <p className="text-xs uppercase tracking-[0.28em] text-[var(--landing-subtle)]">Ready to simplify planning</p>
-      <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-6xl">
+      <h2 className="landing-title-reveal mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-6xl">
         Move to a calmer,
         <br />
         focus-first workflow.

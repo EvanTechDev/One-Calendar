@@ -34,7 +34,7 @@ export function LandingFooter() {
 
           {footerColumns.map((column) => (
             <div key={column.title}>
-              <p className="text-sm font-medium text-white">{column.title}</p>
+              <p className="landing-title-reveal text-sm font-medium text-white">{column.title}</p>
               <ul className="mt-4 space-y-3 text-sm text-[var(--landing-muted)]">
                 {column.links.map((link) => (
                   <li key={link.label}>

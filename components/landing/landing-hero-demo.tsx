@@ -40,18 +40,9 @@ const demoEvents: DemoEvent[] = [
 ];
 
 const encryptedRows = [
-  {
-    cipher: "A9F4-77C1-98D2-E31B",
-    plain: "Project roadmap planning",
-  },
-  {
-    cipher: "7B22-4D11-C0EF-6A8A",
-    plain: "Design review with team",
-  },
-  {
-    cipher: "EE91-23AA-44B8-90F2",
-    plain: "Focus block: implementation",
-  },
+  { left: "2nd49snxieNwi29Dnejs", right: "4fK29xneJ2qLs09PzVaa" },
+  { left: "A0zX19pwQm7RtL2he81n", right: "n0Mqe28XvLp31sTTad90" },
+  { left: "dN7qa21PoxM44jvR8tyk", right: "Qv4mL2zPaa11Nwe8sX0t" },
 ];
 
 function WeekViewEventBlock({ event }: { event: DemoEvent }) {
@@ -74,7 +65,7 @@ export function LandingHeroDemo() {
   return (
     <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
       <div className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-4">
-        <p className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Week View</p>
+        <p className="landing-title-reveal mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Week View</p>
         <div className="space-y-2">
           {demoEvents.map((event) => (
             <WeekViewEventBlock key={event.id} event={event} />
@@ -83,20 +74,20 @@ export function LandingHeroDemo() {
       </div>
 
       <div className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-4">
-        <p className="mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Encrypted vs Plain</p>
+        <p className="landing-title-reveal mb-3 text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">Encrypted vs Encrypted</p>
         <div className="grid grid-cols-[1fr_auto_1fr] gap-3 text-xs text-[var(--landing-muted)]">
-          <div className="mb-1 uppercase tracking-[0.12em]">Encrypted</div>
+          <div className="mb-1 uppercase tracking-[0.12em]">Cipher A</div>
           <div className="opacity-0">|</div>
-          <div className="mb-1 uppercase tracking-[0.12em]">Readable</div>
+          <div className="mb-1 uppercase tracking-[0.12em]">Cipher B</div>
 
           {encryptedRows.map((row) => (
-            <Fragment key={row.cipher}>
+            <Fragment key={row.left}>
               <div className="rounded-md border border-white/10 bg-black/20 px-2 py-2 font-mono text-[11px] text-white/75">
-                {row.cipher}
+                {row.left}
               </div>
               <div className="w-px bg-white/20" />
-              <div className="rounded-md border border-white/10 bg-black/10 px-2 py-2 text-[11px] text-white/85">
-                {row.plain}
+              <div className="rounded-md border border-white/10 bg-black/10 px-2 py-2 font-mono text-[11px] text-white/75">
+                {row.right}
               </div>
             </Fragment>
           ))}

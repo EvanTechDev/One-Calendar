@@ -11,12 +11,12 @@ body {
     text-wrap: balance;
   }
 
-  .landing-hero-reveal {
-    animation: landing-hero-reveal 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  .landing-title-reveal {
+    animation: landing-title-reveal 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
 
-@keyframes landing-hero-reveal {
+@keyframes landing-title-reveal {
   from {
     opacity: 0;
     filter: blur(12px);

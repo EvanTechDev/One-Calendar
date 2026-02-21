@@ -1,10 +1,12 @@
+import Image from "next/image";
+import bannerDark from "@/public/Banner-dark.jpg";
 import { LandingHeroDemo } from "./landing-hero-demo";
 
 export function LandingHero() {
   return (
     <section id="top" className="py-14 md:py-20">
       <div className="mx-auto max-w-4xl text-center">
-        <h1 className="landing-hero-reveal text-4xl font-semibold leading-tight tracking-tight text-white md:text-[56px]">
+        <h1 className="landing-title-reveal text-4xl font-semibold leading-tight tracking-tight text-white md:text-[56px]">
           The calendar that keeps
           <br />
           your life private
@@ -23,10 +25,13 @@ export function LandingHero() {
       </div>
 
       <div className="mt-12 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-        <img
-          src="https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906"
+        <Image
+          src={bannerDark}
           alt="One Calendar dark preview"
           className="h-auto w-full rounded-xl border border-white/10"
+          priority
+          placeholder="blur"
+          sizes="(max-width: 1024px) 100vw, 1200px"
         />
       </div>
 

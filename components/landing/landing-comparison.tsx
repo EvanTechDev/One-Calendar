@@ -9,7 +9,7 @@ const rows = [
 export function LandingComparison() {
   return (
     <section className="border-b border-white/10 py-16 md:py-20">
-      <h2 className="text-3xl font-semibold text-white md:text-5xl">Feature comparison snapshot</h2>
+      <h2 className="landing-title-reveal text-3xl font-semibold text-white md:text-5xl">Feature comparison snapshot</h2>
       <p className="mt-4 max-w-3xl text-base text-[var(--landing-muted)] md:text-lg">
         Based on the comparison table documented in this repository README.
       </p>
