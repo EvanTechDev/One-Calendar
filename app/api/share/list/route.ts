@@ -8,7 +8,7 @@ import type { DpopPublicJwk } from "@/lib/dpop";
 
 const pool = new Pool({ connectionString: process.env.POSTGRES_URL, ssl: { rejectUnauthorized: false } });
 const ALGORITHM = "aes-256-gcm";
-const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share.record";
+const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
 
 let burnTableReady = false;
 

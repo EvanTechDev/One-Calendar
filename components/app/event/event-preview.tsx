@@ -464,7 +464,7 @@ export default function EventPreview({
         <div className="flex justify-between items-center p-5">
           <div className="w-24"></div>
           <div className="flex space-x-2 ml-auto">
-            <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
               <Edit2 className="h-5 w-5" />
             </Button>
             <Button

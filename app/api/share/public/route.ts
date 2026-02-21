@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { getRecord, resolveHandle } from "@/lib/atproto";
 
 const ALGORITHM = "aes-256-gcm";
-const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share.record";
+const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
 
 const burnPool = process.env.POSTGRES_URL
   ? new Pool({
