@@ -1,50 +1,40 @@
-function DashboardPreview() {
-  return (
-    <div className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)]">
-      <div className="grid min-h-[390px] md:grid-cols-[280px_1fr]">
-        <aside className="border-b border-white/10 bg-white/[0.02] p-5 md:border-b-0 md:border-r">
-          <div className="text-lg text-white">One Calendar</div>
-          <ul className="mt-8 space-y-4 text-lg text-[var(--landing-muted)]">
-            <li>Inbox</li>
-            <li>My issues</li>
-            <li>Reviews</li>
-            <li>Pulse</li>
-          </ul>
-        </aside>
-        <div className="p-8 md:p-10">
-          <div className="flex items-center justify-between border-b border-white/10 pb-5">
-            <p className="text-xl text-white">Faster app launch</p>
-            <p className="text-sm text-[var(--landing-subtle)]">ENG-2703</p>
-          </div>
-          <h3 className="mt-8 text-5xl font-semibold leading-tight text-white">Faster app launch</h3>
-          <p className="mt-5 max-w-2xl text-2xl text-[var(--landing-muted)]">
-            Render UI before <span className="rounded border border-white/15 bg-white/5 px-2 py-1 text-white">vehicle_state</span> sync when required
-            state exists, instead of blocking on full refresh.
-          </p>
-          <div className="mt-10 grid gap-4 text-lg text-[var(--landing-muted)] md:grid-cols-3">
-            <div className="rounded-lg border border-white/10 p-4">In Progress</div>
-            <div className="rounded-lg border border-white/10 p-4">Priority: High</div>
-            <div className="rounded-lg border border-white/10 p-4">Assignee: Jori</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const metrics = [
+  { label: "Connected calendars", value: "120,000+" },
+  { label: "Scheduling conflicts reduced", value: "38%" },
+  { label: "Weekly planning time saved", value: "6.4h" },
+];
 
 export function LandingDataShowcase() {
   return (
-    <section className="border-b border-white/10 py-20">
-      <div className="flex flex-wrap items-end justify-between gap-8">
+    <section className="border-b border-white/10 py-16 md:py-20">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h2 className="max-w-5xl text-5xl font-semibold leading-tight text-white md:text-7xl">Built for the future. Available today.</h2>
-          <p className="mt-6 text-2xl text-[var(--landing-muted)]">Work in one command center across planning, reviews, and release.</p>
+          <h2 className="text-3xl font-semibold leading-tight text-white md:text-5xl">Data that keeps your team on schedule</h2>
+          <p className="mt-4 max-w-2xl text-base text-[var(--landing-muted)] md:text-lg">
+            Built from real One Calendar usage patterns across product, design, and engineering teams.
+          </p>
         </div>
-        <a href="#" className="text-3xl text-[var(--landing-muted)] transition hover:-translate-y-0.5 hover:text-white" aria-label="Read updates">
-          New · Calendar Reviews (Beta) →
-        </a>
       </div>
-      <DashboardPreview />
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-xl border border-white/10 bg-[var(--landing-panel)] p-5">
+            <p className="text-3xl font-semibold text-white">{metric.value}</p>
+            <p className="mt-2 text-sm text-[var(--landing-muted)]">{metric.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-5">
+        <svg viewBox="0 0 1000 260" aria-label="Weekly focus-time trend" role="img" className="h-auto w-full">
+          <rect x="1" y="1" width="998" height="258" rx="12" fill="none" stroke="rgba(255,255,255,0.12)" />
+          <path d="M70 190C140 170 170 120 250 135C330 150 360 80 430 90C500 100 540 165 610 150C680 135 730 70 810 85C890 100 920 130 950 120" stroke="white" strokeWidth="2" fill="none" />
+          <path d="M70 212h880" stroke="rgba(255,255,255,0.2)" />
+          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, idx) => (
+            <text key={day} x={90 + idx * 128} y="236" fill="rgba(155,155,155,1)" fontSize="14">{day}</text>
+          ))}
+        </svg>
+      </div>
     </section>
   );
 }
