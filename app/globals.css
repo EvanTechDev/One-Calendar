@@ -11,12 +11,9 @@ body {
     text-wrap: balance;
   }
 
-  .landing-title-reveal {
-    animation: landing-title-reveal 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
 }
 
-@keyframes landing-title-reveal {
+@keyframes landing-title-in-view {
   from {
     opacity: 0;
     filter: blur(12px);
@@ -27,6 +24,17 @@ body {
     filter: blur(0);
     transform: translateY(0);
   }
+}
+
+
+.landing-title {
+  opacity: 0;
+  filter: blur(12px);
+  transform: translateY(10px);
+}
+
+.landing-title-visible {
+  animation: landing-title-in-view 1300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @layer components {

@@ -1,3 +1,5 @@
+import { LandingTitle } from "./landing-title";
+
 const features = [
   {
     title: "Fast planning",
@@ -18,24 +20,28 @@ const features = [
 
 export function LandingFeatures() {
   return (
-    <section id="features" className="flex min-h-screen items-center border-y border-white/10 py-12">
-      <div className="w-full">
-        <div className="mb-10 max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.24em] text-[var(--landing-subtle)]">Core capabilities</p>
-          <h2 className="landing-title-reveal mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Designed for clarity, control, and speed</h2>
-        </div>
+    <section id="features" className="border-y border-white/10 py-24 md:py-28">
+      <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
+        <LandingTitle as="h2" className="text-3xl font-semibold leading-tight text-white md:text-5xl">
+          Built to move planning forward
+          <br />
+          without adding noise.
+        </LandingTitle>
+        <p className="max-w-xl text-base text-[var(--landing-muted)] md:text-lg">
+          Every interaction is designed to keep flow intact: fast edits, secure defaults, and formats that remain portable across tools.
+        </p>
+      </div>
 
-        <div className="grid gap-8 md:grid-cols-3 md:gap-0">
-          {features.map((feature, index) => (
-            <article key={feature.title} className={`px-0 md:px-8 ${index !== 2 ? "md:border-r md:border-white/10" : ""}`}>
-              <svg viewBox="0 0 32 32" aria-hidden="true" className="mb-5 h-9 w-9 stroke-white" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                {feature.icon}
-              </svg>
-              <h3 className="landing-title-reveal text-xl font-medium text-white">{feature.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--landing-subtle)]">{feature.description}</p>
-            </article>
-          ))}
-        </div>
+      <div className="mt-14 grid gap-8 md:grid-cols-3 md:gap-0">
+        {features.map((feature, index) => (
+          <article key={feature.title} className={`px-0 md:px-8 ${index !== 2 ? "md:border-r md:border-white/10" : ""}`}>
+            <svg viewBox="0 0 32 32" aria-hidden="true" className="mb-5 h-9 w-9 stroke-white" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              {feature.icon}
+            </svg>
+            <LandingTitle as="h3" className="text-xl font-medium text-white">{feature.title}</LandingTitle>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--landing-subtle)]">{feature.description}</p>
+          </article>
+        ))}
       </div>
     </section>
   );

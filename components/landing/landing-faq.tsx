@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { LandingTitle } from "./landing-title";
 
 const faqItems = [
   {
@@ -26,9 +27,9 @@ const faqItems = [
 
 export function LandingFaq() {
   return (
-    <section id="faq" className="flex min-h-screen items-center border-b border-white/10 py-12">
-      <div className="grid w-full gap-8 md:grid-cols-[240px_1fr]">
-        <h2 className="landing-title-reveal text-3xl font-semibold text-white md:text-5xl">FAQ</h2>
+    <section id="faq" className="border-b border-white/10 py-24 md:py-28">
+      <div className="grid w-full gap-8 md:grid-cols-[300px_1fr]">
+        <LandingTitle as="h2" className="text-3xl font-semibold text-white md:text-5xl">FAQ</LandingTitle>
         <div className="px-0 md:px-2">
           <Accordion type="single" collapsible className="w-full">
             {faqItems.map((item, idx) => (

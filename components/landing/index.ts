@@ -7,3 +7,5 @@ export { LandingTestimonials } from "./landing-testimonials";
 export { LandingFaq } from "./landing-faq";
 export { LandingCta } from "./landing-cta";
 export { LandingFooter } from "./landing-footer";
+
+export { LandingTitle } from "./landing-title";
