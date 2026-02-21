@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { LandingLogoIcon } from "./logo-icon";
 
 const navLinks = [
   { label: "Overview", href: "#features" },
@@ -14,7 +14,7 @@ export function LandingHeader() {
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--landing-bg)]/90 py-4 backdrop-blur">
       <nav className="flex items-center justify-between gap-6">
         <a href="#top" aria-label="One Calendar home" className="flex items-center gap-2 text-white transition hover:brightness-110">
-          <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
+          <LandingLogoIcon className="h-5 w-5" />
           <span className="text-lg font-semibold tracking-tight">One Calendar</span>
         </a>
 

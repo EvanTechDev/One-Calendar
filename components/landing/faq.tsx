@@ -8,44 +8,44 @@ import { LandingTitle } from "./title";
 
 const faqItems = [
   {
-    q: "One Calendar 的核心定位是什么？",
-    a: "One Calendar 是一个以隐私为优先、以规划效率为核心的开源日历产品，强调简洁交互、稳定性能与可迁移数据。",
+    q: "What is One Calendar’s core product focus?",
+    a: "One Calendar is an open-source, privacy-first calendar focused on planning clarity, fast interaction, and long-term data control.",
   },
   {
-    q: "支持哪些导入导出格式？",
-    a: "目前支持 iCalendar（.ics）、JSON 与 CSV 的导入导出，方便你从其他平台迁移并保留历史数据。",
+    q: "Which import/export formats are supported?",
+    a: "The product supports iCalendar (.ics), JSON, and CSV import/export workflows for easier migration and backup.",
   },
   {
-    q: "是否支持端到端加密？",
-    a: "支持可选的端到端加密（E2EE）能力，适合处理更敏感的排程信息。",
+    q: "Does it support end-to-end encryption?",
+    a: "Yes. End-to-end encryption (E2EE) is available as an optional capability for privacy-sensitive schedules.",
   },
   {
-    q: "云同步和登录使用什么技术栈？",
-    a: "云同步可选并基于 PostgreSQL，认证流程由 Clerk 提供，兼顾稳定性与维护效率。",
+    q: "What powers cloud sync and authentication?",
+    a: "Cloud sync is optional and PostgreSQL-based, while authentication is handled through Clerk.",
   },
   {
-    q: "我能离开这个平台吗？",
-    a: "可以。产品设计强调数据可迁移性，导出格式对主流日历工具友好，避免平台锁定。",
+    q: "Can I move my data away from One Calendar?",
+    a: "Yes. Portability is a key principle, so your data can be exported and moved across tools without lock-in.",
   },
   {
-    q: "适合团队使用吗？",
-    a: "适合。你可以用它管理项目排期、团队例会、版本节奏、复盘节点，也适合跨时区协作。",
+    q: "Is it suitable for team workflows?",
+    a: "Yes. It works well for release planning, recurring team meetings, milestone tracking, and cross-time-zone coordination.",
   },
   {
-    q: "移动端体验如何？",
-    a: "Landing 与核心功能在响应式布局下均可访问，移动端聚焦关键任务与快速查看，桌面端提供更强的编辑效率。",
+    q: "How is the mobile experience?",
+    a: "The landing and core interfaces are responsive. Mobile prioritizes quick access, while desktop emphasizes editing speed.",
   },
   {
-    q: "有快捷键和快速编辑能力吗？",
-    a: "有。产品强调高频操作效率，包含快捷键操作和低阻力编辑流程。",
+    q: "Are keyboard shortcuts and fast editing supported?",
+    a: "Yes. One Calendar is designed for high-frequency operation with keyboard shortcuts and low-friction edits.",
   },
   {
-    q: "是否开源、能否自托管？",
-    a: "项目是开源的，代码可审计。你可以基于自身需求进行部署、扩展和二次开发。",
+    q: "Is the project open-source and self-hostable?",
+    a: "Yes. The codebase is open-source and can be reviewed, deployed, and extended according to your needs.",
   },
   {
-    q: "如果我只是个人用户，值得用吗？",
-    a: "非常适合。无论是学习计划、健身安排、家庭事务还是创作发布流程，都能用统一时间视图管理。",
+    q: "Is it a good fit for individual users?",
+    a: "Absolutely. It works for study plans, health routines, family schedules, travel planning, and personal project timelines.",
   },
 ];
 
