@@ -123,6 +123,28 @@ Then visit `http://localhost:3000`
 
 Copy `.env.example` to `.env` and fill in.
 
+Key variables:
+
+```env
+# Core
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+SALT=Backup-Salt
+
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+
+# ATProto / Atmosphere (required for /at-oauth)
+ATPROTO_SESSION_SECRET=...   # HMAC signing secret for atproto_session cookie
+ATPROTO_CLIENT_ID=           # optional override; defaults to ${NEXT_PUBLIC_APP_URL}/oauth-client-metadata.json
+# optional fallback if ATPROTO_SESSION_SECRET is unset
+NEXTAUTH_SECRET=
+
+# Optional DB (backup/share sync)
+POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
+```
+
 ## Tech Stack
 
 - [Next.js](https://nextjs.org)
