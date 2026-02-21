@@ -18,7 +18,7 @@ const feedback = [
 export function LandingTestimonials() {
   return (
     <section className="border-b border-white/10 py-24 md:py-28">
-      <LandingTitle as="h2" className="text-3xl font-semibold text-white md:text-5xl">Why users choose One Calendar</LandingTitle>
+      <LandingTitle as="h2" className="text-3xl font-semibold text-white md:text-5xl">Why One Calendar</LandingTitle>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {feedback.map((item) => (
           <article key={item.title} className="rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-6">

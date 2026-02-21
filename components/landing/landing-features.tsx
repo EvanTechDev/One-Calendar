@@ -23,9 +23,9 @@ export function LandingFeatures() {
     <section id="features" className="border-y border-white/10 py-24 md:py-28">
       <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
         <LandingTitle as="h2" className="text-3xl font-semibold leading-tight text-white md:text-5xl">
-          Built to move planning forward
+          Fast planning.
           <br />
-          without adding noise.
+          Less noise.
         </LandingTitle>
         <p className="max-w-xl text-base text-[var(--landing-muted)] md:text-lg">
           Every interaction is designed to keep flow intact: fast edits, secure defaults, and formats that remain portable across tools.

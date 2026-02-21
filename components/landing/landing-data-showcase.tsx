@@ -17,9 +17,9 @@ export function LandingDataShowcase() {
   return (
     <section id="data" className="border-b border-white/10 py-24 md:py-28">
       <LandingTitle as="h2" className="text-3xl font-semibold leading-tight text-white md:text-5xl">
-        Data and architecture
+        Trusted data.
         <br />
-        you can actually trust.
+        Clear architecture.
       </LandingTitle>
       <p className="mt-4 max-w-3xl text-base text-[var(--landing-muted)] md:text-lg">
         Practical metrics and straightforward infrastructure choices, without black-box behavior.

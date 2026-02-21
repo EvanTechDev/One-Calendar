@@ -13,9 +13,7 @@ export function LandingComparison() {
     <section className="border-b border-white/10 py-24 md:py-28">
       <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
         <LandingTitle as="h2" className="text-3xl font-semibold text-white md:text-5xl">
-          Privacy and control
-          <br />
-          at a glance.
+          Privacy at a glance.
         </LandingTitle>
         <p className="max-w-xl text-base text-[var(--landing-muted)] md:text-lg">
           A quick snapshot from the repository comparison table, focused on encryption, tracking defaults, and data portability.

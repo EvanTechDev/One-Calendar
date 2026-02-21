@@ -25,11 +25,11 @@ export function LandingHero() {
         </div>
       </div>
 
-      <div className="mt-12 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <div className="mt-12">
         <Image
           src={bannerDark}
           alt="One Calendar dark preview"
-          className="h-auto w-full rounded-xl border border-white/10"
+          className="h-auto w-full"
           priority
           placeholder="blur"
           sizes="(max-width: 1024px) 100vw, 1200px"

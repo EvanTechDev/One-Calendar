@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { LandingTitle } from "./landing-title";
 
 const footerColumns = [
   { title: "Product", links: [{ label: "Overview", href: "#features" }, { label: "About", href: "/about" }] },
@@ -35,7 +34,7 @@ export function LandingFooter() {
 
           {footerColumns.map((column) => (
             <div key={column.title}>
-              <LandingTitle as="p" className="text-sm font-medium text-white">{column.title}</LandingTitle>
+              <p className="text-sm font-medium text-white">{column.title}</p>
               <ul className="mt-4 space-y-3 text-sm text-[var(--landing-muted)]">
                 {column.links.map((link) => (
                   <li key={link.label}>
