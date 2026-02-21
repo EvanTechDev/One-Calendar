@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/db/tables",
+      "path": "/api/blob/check",
       "schedule": "0 0 * * *"
     }
   ]
