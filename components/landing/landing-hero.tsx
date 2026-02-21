@@ -1,44 +1,30 @@
-function HeroPreview() {
-  return (
-    <div className="relative w-full max-w-xl rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-      <div className="absolute inset-0 rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" />
-      <svg
-        viewBox="0 0 640 420"
-        role="img"
-        aria-label="Calendar dashboard preview"
-        className="h-auto w-full"
-      >
-        <rect x="1" y="1" width="638" height="418" rx="18" stroke="rgba(255,255,255,0.2)" fill="none" />
-        <rect x="30" y="32" width="170" height="20" rx="8" fill="rgba(255,255,255,0.08)" />
-        <rect x="30" y="72" width="580" height="1" fill="rgba(255,255,255,0.15)" />
-        {Array.from({ length: 5 }).map((_, row) => (
-          <g key={row}>
-            <rect x="30" y={100 + row * 58} width="580" height="42" rx="10" fill="none" stroke="rgba(255,255,255,0.14)" />
-            <rect x="48" y={116 + row * 58} width="120" height="10" rx="5" fill="rgba(255,255,255,0.12)" />
-            <rect x="470" y={116 + row * 58} width="120" height="10" rx="5" fill="rgba(255,255,255,0.08)" />
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
 export function LandingHero() {
   return (
-    <section className="grid gap-12 py-20 md:grid-cols-2 md:items-center md:py-28">
-      <div>
-        <h1 className="text-5xl font-semibold leading-tight tracking-tight text-white md:text-7xl">
-          Plan less.
-          <br />
-          Execute more.
-          <br />
-          Stay in sync.
-        </h1>
-        <p className="mt-6 max-w-md text-base text-[var(--landing-muted)] md:text-lg">
-          One Calendar unifies work and personal schedules into a single, elegant view built for teams that move fast.
-        </p>
+    <section className="flex min-h-[72vh] flex-col items-center justify-center border-b border-white/10 text-center">
+      <h1 className="max-w-5xl text-5xl font-semibold leading-tight tracking-tight text-white md:text-7xl xl:text-8xl">
+        The product development
+        <br />
+        system for teams and agents
+      </h1>
+      <p className="mt-8 max-w-2xl text-lg text-[var(--landing-muted)]">
+        Purpose-built for planning and building products. Designed for the AI era.
+      </p>
+      <div className="mt-12 flex flex-wrap justify-center gap-4">
+        <a
+          href="/sign-up"
+          aria-label="Get started with One Calendar"
+          className="rounded-md bg-white px-10 py-4 text-lg font-medium text-black transition duration-200 hover:-translate-y-0.5 hover:brightness-110"
+        >
+          Get started
+        </a>
+        <a
+          href="#"
+          aria-label="Contact sales"
+          className="rounded-md border border-white/15 bg-white/5 px-10 py-4 text-lg text-white transition duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10"
+        >
+          Contact sales
+        </a>
       </div>
-      <HeroPreview />
     </section>
   );
 }
