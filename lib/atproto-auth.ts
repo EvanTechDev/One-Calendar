@@ -25,40 +25,10 @@ function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
-function getRawLegacySecret() {
-  return process.env.ATPROTO_SESSION_SECRET || process.env.NEXTAUTH_SECRET || "";
-}
-
 export function getKeyEntries(): KeyEntry[] {
-  const configured = process.env.ATPROTO_SESSION_KEYS?.trim();
-  if (configured) {
-    const parsed = configured
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((pair) => {
-        const idx = pair.indexOf(":");
-        if (idx <= 0 || idx === pair.length - 1) return null;
-        return {
-          kid: pair.slice(0, idx).trim(),
-          secret: pair.slice(idx + 1).trim(),
-        };
-      })
-      .filter((v): v is KeyEntry => !!v && !!v.kid && !!v.secret);
-
-    if (parsed.length > 0) return parsed;
-  }
-
-  const current = process.env.ATPROTO_SESSION_SECRET_CURRENT?.trim();
-  const previous = process.env.ATPROTO_SESSION_SECRET_PREVIOUS?.trim();
-  const entries: KeyEntry[] = [];
-  if (current) entries.push({ kid: "v1", secret: current });
-  if (previous) entries.push({ kid: "v0", secret: previous });
-  if (entries.length > 0) return entries;
-
-  const legacy = getRawLegacySecret();
-  if (!legacy) return [];
-  return [{ kid: "legacy", secret: legacy }];
+  const secret = process.env.ATPROTO_SESSION_SECRET?.trim();
+  if (!secret) return [];
+  return [{ kid: "v1", secret }];
 }
 
 function deriveKey(secret: string, kid: string) {
@@ -129,7 +99,7 @@ function encodeSession(session: AtprotoSession) {
   const keys = getKeyEntries();
   const activeKey = keys[0];
   if (!activeKey) {
-    throw new Error("Missing ATProto cookie key. Set ATPROTO_SESSION_KEYS or ATPROTO_SESSION_SECRET_CURRENT/ATPROTO_SESSION_SECRET");
+    throw new Error("Missing ATProto cookie key. Set ATPROTO_SESSION_SECRET");
   }
 
   return sealJsonPayload(session, activeKey);

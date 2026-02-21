@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state");
   const iss = request.nextUrl.searchParams.get("iss");
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
   const txn = getAtprotoOAuthTxnFromRequest(request);
 
   if (!code || !state || !txn || state !== txn.state) {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     return redirectWithError(baseUrl, "invalid_issuer", "issuer_mismatch");
   }
 
-  const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
+  const clientId = `${baseUrl}/oauth-client-metadata.json`;
   const redirectUri = `${baseUrl}/api/atproto/callback`;
   const tokenUrl = `${issuerOrigin}/oauth/token`;
 

@@ -9,7 +9,7 @@ const LOGIN_RATE_LIMIT = 20;
 const loginRateCache = new Map<string, { count: number; resetAt: number }>();
 
 function getExpectedBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  return process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
 }
 
 function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   const dpop = generateDpopKeyMaterial();
 
   const redirectUri = `${expectedBaseUrl}/api/atproto/callback`;
-  const clientId = process.env.ATPROTO_CLIENT_ID || `${expectedBaseUrl}/oauth-client-metadata.json`;
+  const clientId = `${expectedBaseUrl}/oauth-client-metadata.json`;
 
   const authUrl = new URL(`${pds.replace(/\/$/, "")}/oauth/authorize`);
   authUrl.searchParams.set("client_id", clientId);

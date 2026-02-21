@@ -7,12 +7,12 @@ import { generateDpopKeyMaterial } from "@/lib/dpop";
 const ROSE_PDS_ORIGIN = "https://rose.madebydanny.uk";
 
 function getBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  return process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
 }
 
 export async function POST(request: NextRequest) {
   const baseUrl = getBaseUrl(request);
-  const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
+  const clientId = `${baseUrl}/oauth-client-metadata.json`;
   const authorizeUrl = new URL(`${ROSE_PDS_ORIGIN}/oauth/authorize`);
 
   const { verifier, challenge } = createPkcePair();
