@@ -4,18 +4,83 @@ import { createPkcePair, resolveHandle } from "@/lib/atproto";
 import { generateDpopKeyMaterial } from "@/lib/dpop";
 import { setAtprotoOAuthTxnCookie } from "@/lib/atproto-oauth-txn";
 
+const LOGIN_RATE_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_RATE_LIMIT = 20;
+const loginRateCache = new Map<string, { count: number; resetAt: number }>();
+
+function getExpectedBaseUrl(request: NextRequest) {
+  return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+}
+
+function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {
+  const expected = new URL(expectedBaseUrl);
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      if (parsed.origin !== expected.origin) return false;
+    } catch {
+      return false;
+    }
+  }
+
+  const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").toLowerCase();
+  if (host && host !== expected.host.toLowerCase()) {
+    return false;
+  }
+
+  return true;
+}
+
+function checkRateLimit(request: NextRequest, handle: string) {
+  const now = Date.now();
+  for (const [key, value] of loginRateCache.entries()) {
+    if (value.resetAt <= now) loginRateCache.delete(key);
+  }
+
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const key = `${ip}:${handle}`;
+  const record = loginRateCache.get(key);
+
+  if (!record || record.resetAt <= now) {
+    loginRateCache.set(key, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });
+    return true;
+  }
+
+  if (record.count >= LOGIN_RATE_LIMIT) {
+    return false;
+  }
+
+  record.count += 1;
+  loginRateCache.set(key, record);
+  return true;
+}
+
 export async function POST(request: NextRequest) {
+  const expectedBaseUrl = getExpectedBaseUrl(request);
+  if (!isAllowedOrigin(request, expectedBaseUrl)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { handle } = (await request.json()) as { handle?: string };
   if (!handle) return NextResponse.json({ error: "Missing handle" }, { status: 400 });
 
-  const { did, pds } = await resolveHandle(handle);
+  const normalizedHandle = handle.replace(/^@/, "").toLowerCase();
+  if (!/^[a-z0-9.-]{3,253}$/.test(normalizedHandle)) {
+    return NextResponse.json({ error: "Invalid handle" }, { status: 400 });
+  }
+
+  if (!checkRateLimit(request, normalizedHandle)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  const { did, pds } = await resolveHandle(normalizedHandle);
   const { verifier, challenge } = createPkcePair();
   const state = randomUUID();
   const dpop = generateDpopKeyMaterial();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-  const redirectUri = `${baseUrl}/api/atproto/callback`;
-  const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
+  const redirectUri = `${expectedBaseUrl}/api/atproto/callback`;
+  const clientId = process.env.ATPROTO_CLIENT_ID || `${expectedBaseUrl}/oauth-client-metadata.json`;
 
   const authUrl = new URL(`${pds.replace(/\/$/, "")}/oauth/authorize`);
   authUrl.searchParams.set("client_id", clientId);
@@ -32,9 +97,10 @@ export async function POST(request: NextRequest) {
   setAtprotoOAuthTxnCookie(
     response,
     {
+      jti: randomUUID(),
       state,
       verifier,
-      handle: handle.replace(/^@/, "").toLowerCase(),
+      handle: normalizedHandle,
       pds,
       did,
       dpopPrivateKeyPem: dpop.privateKeyPem,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
-import { clearAtprotoOAuthTxnCookie, getAtprotoOAuthTxnFromRequest } from "@/lib/atproto-oauth-txn";
+import { clearAtprotoOAuthTxnCookie, consumeAtprotoOAuthTxn, getAtprotoOAuthTxnFromRequest } from "@/lib/atproto-oauth-txn";
 import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
 function parseJsonSafe<T>(value: string): T | null {
@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
 
   if (!code || !state || !txn || state !== txn.state) {
     return redirectWithError(baseUrl, "oauth_state_mismatch");
+  }
+
+  if (!consumeAtprotoOAuthTxn(txn)) {
+    return redirectWithError(baseUrl, "oauth_state_mismatch", "transaction_already_used");
   }
 
   const { verifier, handle, pds, did, dpopPrivateKeyPem, dpopPublicJwk } = txn;

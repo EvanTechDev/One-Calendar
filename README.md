@@ -136,10 +136,12 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
 CLERK_SECRET_KEY=...
 
 # ATProto / Atmosphere (required for /at-oauth)
-ATPROTO_SESSION_SECRET=...   # HMAC signing secret for atproto_session cookie
-ATPROTO_CLIENT_ID=           # optional override; defaults to ${NEXT_PUBLIC_APP_URL}/oauth-client-metadata.json
-# optional fallback if ATPROTO_SESSION_SECRET is unset
-NEXTAUTH_SECRET=
+ATPROTO_SESSION_KEYS=v1:...,v0:...   # key rotation (first key is active)
+ATPROTO_SESSION_SECRET_CURRENT=...   # optional alt rotation vars
+ATPROTO_SESSION_SECRET_PREVIOUS=...
+ATPROTO_SESSION_SECRET=...           # legacy fallback
+ATPROTO_CLIENT_ID=                   # optional override; defaults to ${NEXT_PUBLIC_APP_URL}/oauth-client-metadata.json
+NEXTAUTH_SECRET=                     # optional legacy fallback
 
 # Optional DB (backup/share sync)
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createDecipheriv, createHash, createCipheriv, hkdfSync, randomBytes } from "node:crypto";
 import type { DpopPublicJwk } from "@/lib/dpop";
 import { cookies } from "next/headers";
 
@@ -16,59 +16,127 @@ export interface AtprotoSession {
   dpopPublicJwk?: DpopPublicJwk;
 }
 
+export interface KeyEntry {
+  kid: string;
+  secret: string;
+}
+
 function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
-export function getAtprotoCookieSecret() {
+function getRawLegacySecret() {
   return process.env.ATPROTO_SESSION_SECRET || process.env.NEXTAUTH_SECRET || "";
 }
 
-function deriveKey(secret: string) {
+export function getKeyEntries(): KeyEntry[] {
+  const configured = process.env.ATPROTO_SESSION_KEYS?.trim();
+  if (configured) {
+    const parsed = configured
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const idx = pair.indexOf(":");
+        if (idx <= 0 || idx === pair.length - 1) return null;
+        return {
+          kid: pair.slice(0, idx).trim(),
+          secret: pair.slice(idx + 1).trim(),
+        };
+      })
+      .filter((v): v is KeyEntry => !!v && !!v.kid && !!v.secret);
+
+    if (parsed.length > 0) return parsed;
+  }
+
+  const current = process.env.ATPROTO_SESSION_SECRET_CURRENT?.trim();
+  const previous = process.env.ATPROTO_SESSION_SECRET_PREVIOUS?.trim();
+  const entries: KeyEntry[] = [];
+  if (current) entries.push({ kid: "v1", secret: current });
+  if (previous) entries.push({ kid: "v0", secret: previous });
+  if (entries.length > 0) return entries;
+
+  const legacy = getRawLegacySecret();
+  if (!legacy) return [];
+  return [{ kid: "legacy", secret: legacy }];
+}
+
+function deriveKey(secret: string, kid: string) {
+  const salt = createHash("sha256").update(`atproto-cookie-salt:${kid}`, "utf8").digest();
+  const info = Buffer.from("one-calendar:atproto:cookie:v2", "utf8");
+  return Buffer.from(hkdfSync("sha256", Buffer.from(secret, "utf8"), salt, info, 32));
+}
+
+function deriveLegacyKey(secret: string) {
   return createHash("sha256").update(secret, "utf8").digest();
 }
 
-export function sealJsonPayload(payload: unknown, secret: string) {
+export function sealJsonPayload(payload: unknown, key: KeyEntry) {
   const iv = randomBytes(12);
-  const key = deriveKey(secret);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const derivedKey = deriveKey(key.secret, key.kid);
+  const cipher = createCipheriv("aes-256-gcm", derivedKey, iv);
   const ciphertext = Buffer.concat([cipher.update(JSON.stringify(payload), "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `v1.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
+  return `v2.${key.kid}.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
 }
 
-export function unsealJsonPayload<T>(raw: string, secret: string): T | null {
-  const parts = raw.split(".");
-  if (parts.length !== 4 || parts[0] !== "v1") return null;
+export function unsealJsonPayload<T>(raw: string): T | null {
+  const v2parts = raw.split(".");
+  if (v2parts.length === 5 && v2parts[0] === "v2") {
+    const [, kid, ivRaw, ciphertextRaw, tagRaw] = v2parts;
+    const keyEntry = getKeyEntries().find((entry) => entry.kid === kid);
+    if (!keyEntry) return null;
 
-  try {
-    const iv = Buffer.from(parts[1], "base64url");
-    const ciphertext = Buffer.from(parts[2], "base64url");
-    const tag = Buffer.from(parts[3], "base64url");
-    const key = deriveKey(secret);
+    try {
+      const iv = Buffer.from(ivRaw, "base64url");
+      const ciphertext = Buffer.from(ciphertextRaw, "base64url");
+      const tag = Buffer.from(tagRaw, "base64url");
+      const key = deriveKey(keyEntry.secret, keyEntry.kid);
 
-    const decipher = createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(tag);
-    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
-    return JSON.parse(plaintext) as T;
-  } catch {
-    return null;
+      const decipher = createDecipheriv("aes-256-gcm", key, iv);
+      decipher.setAuthTag(tag);
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+      return JSON.parse(plaintext) as T;
+    } catch {
+      return null;
+    }
   }
+
+  // Backward compatibility with previous v1 format: v1.iv.ciphertext.tag
+  if (v2parts.length === 4 && v2parts[0] === "v1") {
+    const keys = getKeyEntries();
+    for (const keyEntry of keys) {
+      try {
+        const iv = Buffer.from(v2parts[1], "base64url");
+        const ciphertext = Buffer.from(v2parts[2], "base64url");
+        const tag = Buffer.from(v2parts[3], "base64url");
+        const key = deriveLegacyKey(keyEntry.secret);
+
+        const decipher = createDecipheriv("aes-256-gcm", key, iv);
+        decipher.setAuthTag(tag);
+        const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+        return JSON.parse(plaintext) as T;
+      } catch {
+        // try next key
+      }
+    }
+  }
+
+  return null;
 }
 
 function encodeSession(session: AtprotoSession) {
-  const secret = getAtprotoCookieSecret();
-  if (!secret) {
-    throw new Error("Missing ATPROTO_SESSION_SECRET (or NEXTAUTH_SECRET) for ATProto session cookie protection");
+  const keys = getKeyEntries();
+  const activeKey = keys[0];
+  if (!activeKey) {
+    throw new Error("Missing ATProto cookie key. Set ATPROTO_SESSION_KEYS or ATPROTO_SESSION_SECRET_CURRENT/ATPROTO_SESSION_SECRET");
   }
 
-  return sealJsonPayload(session, secret);
+  return sealJsonPayload(session, activeKey);
 }
 
 function decodeSession(raw: string): AtprotoSession | null {
-  const secret = getAtprotoCookieSecret();
-  if (!secret) return null;
-  return unsealJsonPayload<AtprotoSession>(raw, secret);
+  return unsealJsonPayload<AtprotoSession>(raw);
 }
 
 export async function getAtprotoSession(): Promise<AtprotoSession | null> {
