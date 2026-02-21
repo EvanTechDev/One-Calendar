@@ -2,79 +2,57 @@ import { LandingTitle } from "./title";
 
 const useCases = [
   {
-    title: "个人深度工作规划",
+    title: "Deep work planning for individuals",
     detail:
-      "用 Focus Block、提醒和周视图管理整块时间，把真正重要的事情提前锁定，减少被临时会议打断的概率。",
+      "Use focus blocks, reminders, and weekly planning to protect meaningful work and reduce context-switching from unplanned meetings.",
   },
   {
-    title: "小团队协作排期",
+    title: "Small team release coordination",
     detail:
-      "用共享日历做版本发布、设计评审、复盘节奏管理，所有关键节点都能在同一个时间轴上清晰可见。",
+      "Run launch timelines, design reviews, retrospectives, and milestone checks on one shared timeline with less operational noise.",
   },
   {
-    title: "学习与考试管理",
+    title: "Study and exam scheduling",
     detail:
-      "把课程、作业、考试、复习计划拆分成可执行事件，支持跨月追踪，让长期目标变成每天可完成的小步骤。",
+      "Break long-term goals into daily executable events, then track classes, assignments, revision windows, and exam deadlines across months.",
   },
   {
-    title: "跨时区远程协作",
+    title: "Cross-time-zone collaboration",
     detail:
-      "统一查看不同时区的可用时间，减少来回沟通成本，快速找到双方都能接受的会议窗口。",
+      "Quickly find realistic meeting windows across regions and keep recurring coordination predictable for distributed teams.",
   },
   {
-    title: "内容创作发布流水线",
+    title: "Content production pipeline",
     detail:
-      "把选题、写作、设计、审核、发布和复盘做成连续时间链路，避免任务堆积和发布冲突。",
+      "Map ideation, writing, design, review, publishing, and post-launch analysis as one continuous flow to avoid delivery bottlenecks.",
   },
   {
-    title: "家庭事务与生活安排",
+    title: "Family and life operations",
     detail:
-      "把家庭活动、就医预约、孩子课程、旅行计划同步在一个视图中，减少遗漏和时间冲突。",
+      "Manage appointments, school activities, travel plans, and household commitments in a single view so critical events are not missed.",
   },
 ];
 
 const principles = [
-  "默认简洁：首屏信息克制，核心操作不被干扰。",
-  "默认可迁移：始终支持导入导出，不将用户锁在单一平台。",
-  "默认可审计：开源实现可被社区验证。",
-  "默认尊重隐私：以隐私优先作为产品前提，而不是付费附加项。",
-  "默认高效率：键盘快捷键、快速编辑、低阻力交互贯穿全流程。",
-  "默认可扩展：从个人安排到团队协作都能平滑演进。",
-];
-
-const roadmap = [
-  {
-    phase: "阶段 01",
-    title: "核心体验稳定化",
-    items: ["周/月/年视图精细优化", "交互延迟持续降低", "移动端排版完善"],
-  },
-  {
-    phase: "阶段 02",
-    title: "协作能力增强",
-    items: ["共享权限粒度增强", "多人编辑冲突提示", "团队模板预设"],
-  },
-  {
-    phase: "阶段 03",
-    title: "自动化与智能建议",
-    items: ["重复任务智能生成", "空闲时段推荐", "提醒策略自动化"],
-  },
-  {
-    phase: "阶段 04",
-    title: "生态整合扩展",
-    items: ["更多第三方同步入口", "企业身份体系接入", "开放 API 稳定发布"],
-  },
+  "Simplicity by default: keep first-view information clean and distraction-free.",
+  "Portability by default: always support import/export and avoid platform lock-in.",
+  "Auditability by default: open implementation that can be reviewed by the community.",
+  "Privacy by default: privacy-first design as a baseline, not a premium add-on.",
+  "Speed by default: keyboard shortcuts and low-friction editing for high-frequency workflows.",
+  "Scalability by default: grow smoothly from personal planning to team-level coordination.",
 ];
 
 export function LandingDeepDive() {
   return (
     <section id="deep-dive" className="border-b border-white/10 py-24 md:py-28">
       <LandingTitle as="h2" className="text-3xl font-semibold leading-tight text-white md:text-5xl">
-        更完整的落地场景
+        More complete real-world scenarios
         <br />
-        和产品路线
+        and product direction
       </LandingTitle>
       <p className="mt-4 max-w-3xl text-base text-[var(--landing-muted)] md:text-lg">
-        不只是“一个能记日程的日历”，而是从个人效率到团队协作都能长期使用的时间操作系统。
+        One Calendar is more than a place to store events. It is a practical time operating system for individual focus,
+        team execution, and long-term planning continuity.
       </p>
 
       <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -86,34 +64,15 @@ export function LandingDeepDive() {
         ))}
       </div>
 
-      <div className="mt-14 grid gap-10 lg:grid-cols-[1fr_1fr]">
-        <div>
-          <LandingTitle as="h3" className="text-2xl font-semibold text-white md:text-3xl">产品原则</LandingTitle>
-          <ul className="mt-5 space-y-3">
-            {principles.map((item) => (
-              <li key={item} className="rounded-lg border border-white/10 px-4 py-3 text-sm text-[var(--landing-muted)] md:text-base">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <LandingTitle as="h3" className="text-2xl font-semibold text-white md:text-3xl">路线图</LandingTitle>
-          <div className="mt-5 space-y-4">
-            {roadmap.map((step) => (
-              <article key={step.phase} className="rounded-lg border border-white/10 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--landing-subtle)]">{step.phase}</p>
-                <p className="mt-2 text-lg font-medium text-white">{step.title}</p>
-                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--landing-muted)]">
-                  {step.items.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </div>
+      <div className="mt-14">
+        <LandingTitle as="h3" className="text-2xl font-semibold text-white md:text-3xl">Product principles</LandingTitle>
+        <ul className="mt-5 grid gap-3 md:grid-cols-2">
+          {principles.map((item) => (
+            <li key={item} className="rounded-lg border border-white/10 px-4 py-3 text-sm text-[var(--landing-muted)] md:text-base">
+              {item}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
