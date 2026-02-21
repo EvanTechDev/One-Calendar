@@ -9,7 +9,11 @@ export default clerkMiddleware({
     "/reset-password",
     "/api/blob",
     "/api/share",
-    "/api/verify"
+    "/api/verify",
+    "/at-oauth",
+    "/api/atproto/(.*)",
+    "/oauth-client-metadata.json",
+    "/api/share/public"
   ],
 })
 

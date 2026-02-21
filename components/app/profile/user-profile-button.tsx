@@ -185,6 +185,11 @@ export default function UserProfileButton({
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
   const router = useRouter()
+  const [atprotoHandle, setAtprotoHandle] = useState("")
+  const [atprotoDisplayName, setAtprotoDisplayName] = useState("")
+  const [atprotoAvatar, setAtprotoAvatar] = useState("")
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
+  const isAnySignedIn = isSignedIn || atprotoSignedIn
 
   const [enabled, setEnabled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -214,6 +219,18 @@ export default function UserProfileButton({
   const timerRef = useRef<any>(null)
 
   useEffect(() => {
+    fetch("/api/atproto/session")
+      .then((r) => r.json())
+      .then((data: { signedIn?: boolean; handle?: string; displayName?: string; avatar?: string }) => {
+        setAtprotoSignedIn(!!data.signedIn)
+        setAtprotoHandle(data.handle || "")
+        setAtprotoDisplayName(data.displayName || "")
+        setAtprotoAvatar(data.avatar || "")
+      })
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
     if (mode !== "settings" || !focusSection) return
     const target = document.getElementById(`settings-account-${focusSection}`)
     target?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -237,11 +254,11 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (mode === "settings") return
-    if (!isSignedIn || keyRef.current || restoredRef.current) return
+    if (!isAnySignedIn || keyRef.current || restoredRef.current) return
     apiGet().then((cloud) => {
       if (cloud) setUnlockOpen(true)
     })
-  }, [isSignedIn, mode])
+  }, [isAnySignedIn, mode])
 
   useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return
@@ -506,10 +523,10 @@ export default function UserProfileButton({
       {mode === "dropdown" ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {isSignedIn && user?.imageUrl ? (
+            {(isSignedIn && user?.imageUrl) || (!isSignedIn && atprotoSignedIn && atprotoAvatar) ? (
               <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8 p-0">
                 <img
-                  src={user.imageUrl}
+                  src={isSignedIn ? user.imageUrl : atprotoAvatar}
                   alt="avatar"
                   width={32}
                   height={32}
@@ -526,12 +543,14 @@ export default function UserProfileButton({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end">
-            {isSignedIn ? (
+            {isAnySignedIn ? (
               <>
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
-                  <CircleUser className="mr-2 h-4 w-4" />
-                  {t.profile}
-                </DropdownMenuItem>
+                {isSignedIn ? (
+                  <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
+                    <CircleUser className="mr-2 h-4 w-4" />
+                    {t.profile}
+                  </DropdownMenuItem>
+                ) : null}
 
                 <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("backup") : setBackupOpen(true)}>
                   <CloudUpload className="mr-2 h-4 w-4" />
@@ -548,23 +567,39 @@ export default function UserProfileButton({
                   {t.deleteData}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t.deleteAccount}
-                </DropdownMenuItem>
-
-                {onNavigateToSettings ? (
-                  <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t.signOut}
+                {isSignedIn ? (
+                  <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t.deleteAccount}
                   </DropdownMenuItem>
-                ) : (
-                  <SignOutButton>
-                    <DropdownMenuItem>
+                ) : null}
+
+                {isSignedIn ? (
+                  onNavigateToSettings ? (
+                    <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
                       <LogOut className="mr-2 h-4 w-4" />
                       {t.signOut}
                     </DropdownMenuItem>
-                  </SignOutButton>
+                  ) : (
+                    <SignOutButton>
+                      <DropdownMenuItem>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {t.signOut}
+                      </DropdownMenuItem>
+                    </SignOutButton>
+                  )
+                ) : (
+                  <DropdownMenuItem onClick={async () => {
+                    await fetch("/api/atproto/logout", { method: "POST" })
+                    setAtprotoSignedIn(false)
+                    setAtprotoHandle("")
+                    setAtprotoDisplayName("")
+                    setAtprotoAvatar("")
+                    router.refresh()
+                  }}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {t.signOut}
+                  </DropdownMenuItem>
                 )}
               </>
             ) : (
@@ -577,11 +612,11 @@ export default function UserProfileButton({
         </DropdownMenu>
       ) : (
         <div className="rounded-lg border p-4 space-y-4">
-          {isSignedIn ? (
+          {isAnySignedIn ? (
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.imageUrl || "/placeholder.svg"}
+                  src={user?.imageUrl || atprotoAvatar || "/placeholder.svg"}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -590,28 +625,32 @@ export default function UserProfileButton({
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User"}</p>
-                  <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                  <p className="font-medium truncate">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || atprotoDisplayName || atprotoHandle || "User"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress || (atprotoHandle ? `@${atprotoHandle}` : "")}</p>
                 </div>
               </div>
               <div className="space-y-4">
-                <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{t.basicInfo}</p>
-                  <p className="text-xs text-muted-foreground">{t.editProfileDescription}</p>
-                  <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{t.openBasicInfo}</Button>
-                </div>
+                {isSignedIn ? (
+                  <>
+                    <div className="space-y-3 rounded-md border p-3">
+                      <p className="text-sm font-semibold">{t.basicInfo}</p>
+                      <p className="text-xs text-muted-foreground">{t.editProfileDescription}</p>
+                      <Button id="settings-account-profile" variant="outline" onClick={() => openProfileSection("basic")}><CircleUser className="h-4 w-4 mr-2" />{t.openBasicInfo}</Button>
+                    </div>
 
-                <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{t.emailManagement}</p>
-                  <p className="text-xs text-muted-foreground">{t.manageEmailAddressesDescription}</p>
-                  <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{t.openEmailSettings}</Button>
-                </div>
+                    <div className="space-y-3 rounded-md border p-3">
+                      <p className="text-sm font-semibold">{t.emailManagement}</p>
+                      <p className="text-xs text-muted-foreground">{t.manageEmailAddressesDescription}</p>
+                      <Button variant="outline" onClick={() => openProfileSection("emails")}><Mail className="h-4 w-4 mr-2" />{t.openEmailSettings}</Button>
+                    </div>
 
-                <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">OAuth</p>
-                  <p className="text-xs text-muted-foreground">{t.manageOauthDescription}</p>
-                  <Button variant="outline" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />{t.openOauthSettings}</Button>
-                </div>
+                    <div className="space-y-3 rounded-md border p-3">
+                      <p className="text-sm font-semibold">OAuth</p>
+                      <p className="text-xs text-muted-foreground">{t.manageOauthDescription}</p>
+                      <Button variant="outline" onClick={() => openProfileSection("oauth")}><LinkIcon className="h-4 w-4 mr-2" />{t.openOauthSettings}</Button>
+                    </div>
+                  </>
+                ) : null}
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.autoBackup}</p>
@@ -628,9 +667,20 @@ export default function UserProfileButton({
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.signOut}</p>
                   <p className="text-xs text-muted-foreground">{t.signOutHelp}</p>
+                  {isSignedIn ? (
                   <SignOutButton>
                     <Button id="settings-account-signout" variant="outline"><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
                   </SignOutButton>
+                  ) : (
+                  <Button id="settings-account-signout" variant="outline" onClick={async () => {
+                    await fetch("/api/atproto/logout", { method: "POST" })
+                    setAtprotoSignedIn(false)
+                    setAtprotoHandle("")
+                    setAtprotoDisplayName("")
+                    setAtprotoAvatar("")
+                    router.refresh()
+                  }}><LogOut className="h-4 w-4 mr-2" />{t.signOut}</Button>
+                  )}
                 </div>
 
                 <div className="rounded-md border border-destructive/70 p-3 space-y-3 bg-destructive/5">
@@ -640,7 +690,8 @@ export default function UserProfileButton({
                     <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>
                     <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                   </div>
-                  <div className="space-y-3 rounded-md border border-destructive/50 p-3">
+                  {isSignedIn ? (
+                    <div className="space-y-3 rounded-md border border-destructive/50 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteAccount}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountPermanentHelp}</p>
                     <Button variant="destructive" onClick={() => setDeleteAccountOpen(true)}>
@@ -648,6 +699,7 @@ export default function UserProfileButton({
                       {t.deleteAccount}
                     </Button>
                   </div>
+                  ) : null}
                 </div>
               </div>
             </>
@@ -677,7 +729,7 @@ export default function UserProfileButton({
                   <Label>{t.avatar}</Label>
                   <div className="flex items-center gap-3">
                     <img
-                      src={user?.imageUrl || "/placeholder.svg"}
+                      src={user?.imageUrl || atprotoAvatar || "/placeholder.svg"}
                       alt="avatar"
                       width={52}
                       height={52}

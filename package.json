@@ -1,17 +1,18 @@
 {
   "name": "one-calendar",
-  "version": "2.1.3",
+  "version": "2.2.0",
   "private": true,
   "packageManager": "bun@1.3.6",
   "scripts": {
-    "dev": "bun run generate:locales && next dev",
-    "build": "bun run generate:locales && next build",
+    "dev": "bun run generate:locales && bun run generate:oauth-metadata && next dev",
+    "build": "bun run generate:locales && bun run generate:oauth-metadata && next build",
     "start": "next start",
     "db": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:stop": "docker-compose stop",
     "db:clean": "docker-compose down -v",
-    "generate:locales": "bun lib/gen-locales.mjs"
+    "generate:locales": "bun lib/gen-locales.mjs",
+    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",

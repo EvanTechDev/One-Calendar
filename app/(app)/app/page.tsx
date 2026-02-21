@@ -14,9 +14,10 @@ function hasClerkSessionCookie() {
 }
 
 export default function Home() {
-  const { isLoaded } = useUser()
+  const { isLoaded, isSignedIn } = useUser()
   const [hasSessionCookie, setHasSessionCookie] = useState(hasClerkSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
+  const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
 
   useEffect(() => {
     const waitTimer = window.setTimeout(() => {
@@ -34,6 +35,13 @@ export default function Home() {
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
+    fetch("/api/atproto/logout", { method: "POST" })
+      .catch(() => undefined)
+      .finally(() => setAtprotoLogoutDone(true))
+  }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
