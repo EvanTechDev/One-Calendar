@@ -37,6 +37,12 @@ function AtprotoLoginContent() {
 
   const queryError = searchParams.get("reason") || searchParams.get("error") || "";
 
+  const appBaseUrl = (typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL || "https://calendar.xyehr.cn").replace(/\/$/, "");
+  const roseAccountOAuthUrl = `https://rose.madebydanny.uk/oauth/authorize?${new URLSearchParams({
+    client_id: `${appBaseUrl}/oauth-client-metadata.json`,
+  }).toString()}`;
+
+
   return (
     <div className="space-y-4">
       <Card>
@@ -59,7 +65,7 @@ function AtprotoLoginContent() {
           variant="outline"
           className="w-full"
           type="button"
-          onClick={() => (window.location.href = "https://bsky.app") }
+          onClick={() => (window.location.href = roseAccountOAuthUrl)}
         >
           Create an Atmosphere account
         </Button>
