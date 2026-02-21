@@ -1,24 +1,29 @@
 const features = [
   {
-    title: "Smart scheduling",
-    description: "Auto-arrange focus blocks and meetings based on your team priorities.",
-    icon: <path d="M4 9h24M4 16h24M9 4v10M22 4v10M7 23h8" />,
+    title: "Weekly-first planning",
+    description: "Drag, resize, and edit events inline without disruptive modal-heavy flows.",
+    icon: <path d="M4 10h24M8 4v8m16-8v8M5 18h22M5 24h12" />,
   },
   {
-    title: "Cross-platform sync",
-    description: "Keep Google Calendar, Outlook, and iCal in sync without manual cleanup.",
-    icon: <path d="M6 9h9l3-4 8 12h-9l-3 4L6 9Zm0 0h7m13 8h-7" />,
+    title: "Privacy by default",
+    description: "No analytics scripts by default, with optional end-to-end encrypted data handling.",
+    icon: <path d="M16 4 6 9v7c0 6 4 9 10 12 6-3 10-6 10-12V9L16 4Zm0 8v7m-3-4h6" />,
   },
   {
-    title: "Focus analytics",
-    description: "Track meeting load, deep-work hours, and planning quality week by week.",
-    icon: <path d="M5 24h22M9 20V9m7 11V6m7 14v-8" />,
+    title: "Open and portable",
+    description: "Import/export with .ics, .json, .csv and keep full control over your calendar data.",
+    icon: <path d="M16 4v16m0 0-5-5m5 5 5-5M5 26h22" />,
   },
 ];
 
 export function LandingFeatures() {
   return (
     <section className="border-y border-white/10 py-16 md:py-20">
+      <div className="mb-10 max-w-3xl">
+        <p className="text-xs uppercase tracking-[0.24em] text-[var(--landing-subtle)]">Core capabilities</p>
+        <h2 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Designed for clarity, control, and speed</h2>
+      </div>
+
       <div className="grid gap-8 md:grid-cols-3 md:gap-0">
         {features.map((feature, index) => (
           <article key={feature.title} className={`px-0 md:px-8 ${index !== 2 ? "md:border-r md:border-white/10" : ""}`}>

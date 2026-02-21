@@ -1,18 +1,11 @@
+import Image from "next/image";
+
 const footerColumns = [
   { title: "Product", links: ["Overview", "Integrations", "Security", "Changelog"] },
   { title: "Company", links: ["About", "Customers", "Careers", "Blog"] },
   { title: "Resources", links: ["Documentation", "API", "Status", "Support"] },
   { title: "Connect", links: ["Contact", "Community", "GitHub", "X (Twitter)"] },
 ];
-
-function LogoMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="11" fill="white" />
-      <path d="M4.5 8.4 15.6 19.5M4.5 12l7.5 7.5M4.5 15.5l4 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function LandingFooter() {
   return (
@@ -21,7 +14,7 @@ export function LandingFooter() {
         <div className="grid gap-10 md:grid-cols-5">
           <div>
             <a href="#" aria-label="One Calendar home" className="inline-flex items-center gap-2 text-white transition hover:brightness-110">
-              <LogoMark />
+              <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
               <span className="text-sm font-medium">One Calendar</span>
             </a>
           </div>

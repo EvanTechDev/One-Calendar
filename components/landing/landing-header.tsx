@@ -1,20 +1,13 @@
-const navLinks = ["Product", "Features", "Pricing", "FAQ"];
+import Image from "next/image";
 
-function LogoMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="11" fill="white" />
-      <path d="M4.5 8.4 15.6 19.5M4.5 12l7.5 7.5M4.5 15.5l4 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+const navLinks = ["Product", "Features", "Pricing", "FAQ"];
 
 export function LandingHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--landing-bg)]/90 py-4 backdrop-blur">
       <nav className="flex items-center justify-between gap-6">
         <a href="#" aria-label="One Calendar home" className="flex items-center gap-2 text-white transition hover:brightness-110">
-          <LogoMark />
+          <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
           <span className="text-lg font-semibold tracking-tight">One Calendar</span>
         </a>
 
