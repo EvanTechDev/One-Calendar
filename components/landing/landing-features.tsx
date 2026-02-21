@@ -1,6 +1,6 @@
 const features = [
   {
-    title: "Weekly-first planning",
+    title: "Fast planning",
     description: "Drag, resize, and edit events inline without disruptive modal-heavy flows.",
     icon: <path d="M4 10h24M8 4v8m16-8v8M5 18h22M5 24h12" />,
   },
@@ -18,7 +18,7 @@ const features = [
 
 export function LandingFeatures() {
   return (
-    <section className="border-y border-white/10 py-16 md:py-20">
+    <section id="features" className="border-y border-white/10 py-16 md:py-20">
       <div className="mb-10 max-w-3xl">
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--landing-subtle)]">Core capabilities</p>
         <h2 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Designed for clarity, control, and speed</h2>

@@ -1,19 +1,32 @@
 import Image from "next/image";
 
 const footerColumns = [
-  { title: "Product", links: ["Overview", "Integrations", "Security", "Changelog"] },
-  { title: "Company", links: ["About", "Customers", "Careers", "Blog"] },
-  { title: "Resources", links: ["Documentation", "API", "Status", "Support"] },
-  { title: "Connect", links: ["Contact", "Community", "GitHub", "X (Twitter)"] },
+  { title: "Product", links: [{ label: "Overview", href: "#features" }, { label: "About", href: "/about" }] },
+  {
+    title: "Resources",
+    links: [
+      { label: "Documentation", href: "https://docs.xyehr.cn/docs/one-calendar" },
+      { label: "Status", href: "https://calendarstatus.xyehr.cn" },
+      { label: "Support", href: "mailto:evan.huang000@proton.me" },
+    ],
+  },
+  {
+    title: "Connect",
+    links: [
+      { label: "Contact", href: "mailto:evan.huang000@proton.me" },
+      { label: "Bluesky", href: "https://bsky.app/profile/calendar.xyehr.cn" },
+      { label: "GitHub", href: "https://github.com/EvanTechDev/One-Calendar" },
+    ],
+  },
 ];
 
 export function LandingFooter() {
   return (
     <footer className="px-6 pb-10 pt-12 text-[var(--landing-subtle)] md:px-10">
       <div className="mx-auto max-w-7xl border-t border-white/10 pt-10">
-        <div className="grid gap-10 md:grid-cols-5">
+        <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <a href="#" aria-label="One Calendar home" className="inline-flex items-center gap-2 text-white transition hover:brightness-110">
+            <a href="#top" aria-label="One Calendar home" className="inline-flex items-center gap-2 text-white transition hover:brightness-110">
               <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
               <span className="text-sm font-medium">One Calendar</span>
             </a>
@@ -24,9 +37,9 @@ export function LandingFooter() {
               <p className="text-sm font-medium text-white">{column.title}</p>
               <ul className="mt-4 space-y-3 text-sm text-[var(--landing-muted)]">
                 {column.links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="transition duration-200 hover:-translate-y-0.5 hover:text-white">
-                      {link}
+                  <li key={link.label}>
+                    <a href={link.href} className="transition duration-200 hover:-translate-y-0.5 hover:text-white">
+                      {link.label}
                     </a>
                   </li>
                 ))}

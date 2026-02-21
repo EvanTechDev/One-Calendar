@@ -13,10 +13,10 @@ const stack = [
 
 export function LandingDataShowcase() {
   return (
-    <section className="border-b border-white/10 py-16 md:py-20">
+    <section id="data" className="border-b border-white/10 py-16 md:py-20">
       <h2 className="text-3xl font-semibold leading-tight text-white md:text-5xl">Built from real One Calendar capabilities</h2>
       <p className="mt-4 max-w-3xl text-base text-[var(--landing-muted)] md:text-lg">
-        Privacy-first, weekly-focused, and designed to stay understandable while scaling to team workflows.
+        Privacy-first, planning-focused, and designed to stay understandable while scaling to team workflows.
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">

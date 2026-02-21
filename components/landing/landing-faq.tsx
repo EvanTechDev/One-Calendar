@@ -8,7 +8,7 @@ import {
 const faqItems = [
   {
     q: "What is One Calendar's product direction?",
-    a: "One Calendar is positioned as a privacy-first, weekly-focused open-source calendar built for clarity and control.",
+    a: "One Calendar is positioned as a privacy-first, planning-focused open-source calendar built for clarity and control.",
   },
   {
     q: "Which import formats are supported?",
@@ -26,7 +26,7 @@ const faqItems = [
 
 export function LandingFaq() {
   return (
-    <section className="border-b border-white/10 py-16 md:py-20">
+    <section id="faq" className="border-b border-white/10 py-16 md:py-20">
       <div className="grid gap-8 md:grid-cols-[240px_1fr]">
         <h2 className="text-3xl font-semibold text-white md:text-5xl">FAQ</h2>
         <div className="rounded-2xl border border-white/10 bg-[var(--landing-panel)] px-5 md:px-6">

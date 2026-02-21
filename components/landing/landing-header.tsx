@@ -1,20 +1,26 @@
 import Image from "next/image";
 
-const navLinks = ["Product", "Features", "Pricing", "FAQ"];
+const navLinks = [
+  { label: "Overview", href: "#features" },
+  { label: "Features", href: "#features" },
+  { label: "Data", href: "#data" },
+  { label: "FAQ", href: "#faq" },
+  { label: "About", href: "/about" },
+];
 
 export function LandingHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--landing-bg)]/90 py-4 backdrop-blur">
       <nav className="flex items-center justify-between gap-6">
-        <a href="#" aria-label="One Calendar home" className="flex items-center gap-2 text-white transition hover:brightness-110">
+        <a href="#top" aria-label="One Calendar home" className="flex items-center gap-2 text-white transition hover:brightness-110">
           <Image src="/icon.svg" alt="One Calendar logo" width={20} height={20} className="h-5 w-5" />
           <span className="text-lg font-semibold tracking-tight">One Calendar</span>
         </a>
 
         <div className="hidden items-center gap-7 text-sm text-[var(--landing-muted)] md:flex">
           {navLinks.map((link) => (
-            <a key={link} href="#" className="transition duration-200 hover:-translate-y-0.5 hover:text-white">
-              {link}
+            <a key={link.label} href={link.href} className="transition duration-200 hover:-translate-y-0.5 hover:text-white">
+              {link.label}
             </a>
           ))}
         </div>
