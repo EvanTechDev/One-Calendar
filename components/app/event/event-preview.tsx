@@ -464,6 +464,9 @@ export default function EventPreview({
         <div className="flex justify-between items-center p-5">
           <div className="w-24"></div>
           <div className="flex space-x-2 ml-auto">
+            <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8 text-red-600 hover:text-red-600">
+              <Trash2 className="h-5 w-5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
               <Edit2 className="h-5 w-5" />
             </Button>
@@ -486,9 +489,6 @@ export default function EventPreview({
             </Button>
             <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
               <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
-              <Trash2 className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
               <X className="h-5 w-5" />
