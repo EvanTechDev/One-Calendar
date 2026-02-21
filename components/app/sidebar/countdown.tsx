@@ -69,6 +69,18 @@ const colorOptions: { value: string; labelKey: TranslationKey }[] = [
   { value: "bg-orange-500", labelKey: "colorOrange" },
 ];
 
+const parseDateString = (dateStr: string) => {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const toDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>(
     "countdowns",
@@ -91,7 +103,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseDateString(dateStr);
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
       month: "short",
@@ -101,7 +113,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   };
 
   const formatDateLong = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseDateString(dateStr);
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
       month: "long",
@@ -114,7 +126,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const targetDate = new Date(dateStr);
+    const targetDate = parseDateString(dateStr);
     let nextDate = new Date(
       today.getFullYear(),
       targetDate.getMonth(),
@@ -149,7 +161,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const getTodayDateString = () => {
     const today = new Date();
-    return today.toISOString().split("T")[0];
+    return toDateString(today);
   };
 
   const tRepeat = (key: Countdown["repeat"]) =>
@@ -181,7 +193,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const startEditCountdown = (countdown: Countdown) => {
     setNewCountdown(countdown);
-    setSelectedDate(new Date(countdown.date));
+    setSelectedDate(parseDateString(countdown.date));
     setView("edit");
   };
 
@@ -196,7 +208,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     const countdown: Countdown = {
       id: selectedCountdown?.id || Date.now().toString(),
       name: newCountdown.name,
-      date: selectedDate.toISOString().split("T")[0],
+      date: toDateString(selectedDate),
       repeat: newCountdown.repeat || "none",
       description: newCountdown.description || "",
       color: newCountdown.color,

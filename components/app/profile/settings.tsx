@@ -67,35 +67,45 @@ export default function Settings({
       const timeZoneName = parts.find((part) => part.type === "timeZoneName")?.value ?? ""
 
       if (timeZoneName === "GMT" || timeZoneName === "UTC") {
-        return "UTC+00:00"
+        return { offsetString: "UTC+00:00", offsetMinutes: 0 }
       }
 
       const match = timeZoneName.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/)
       if (!match) {
-        return "UTC+00:00"
+        return { offsetString: "UTC+00:00", offsetMinutes: 0 }
       }
 
       const [, sign, hours, minutes = "00"] = match
-      return `UTC${sign}${hours.padStart(2, "0")}:${minutes}`
+      const parsedHours = Number.parseInt(hours, 10)
+      const parsedMinutes = Number.parseInt(minutes, 10)
+      const totalMinutes = parsedHours * 60 + parsedMinutes
+      const offsetMinutes = sign === "-" ? -totalMinutes : totalMinutes
+
+      return {
+        offsetString: `UTC${sign}${hours.padStart(2, "0")}:${minutes}`,
+        offsetMinutes,
+      }
     }
 
     return timezones
       .map((tz) => {
         try {
-          const offsetString = getUTCOffset(tz)
+          const { offsetString, offsetMinutes } = getUTCOffset(tz)
 
           return {
             value: tz,
-            label: `${tz} (${offsetString})`,
+            label: `${offsetString} · ${tz}`,
+            offsetMinutes,
           }
         } catch {
           return {
             value: tz,
-            label: tz,
+            label: `UTC+00:00 · ${tz}`,
+            offsetMinutes: 0,
           }
         }
       })
-      .sort((a, b) => a.label.localeCompare(b.label))
+      .sort((a, b) => a.offsetMinutes - b.offsetMinutes || a.value.localeCompare(b.value))
   }
 
   const gmtTimezones = getGMTTimezones()
