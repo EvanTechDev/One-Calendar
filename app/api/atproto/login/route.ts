@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createPkcePair, resolveHandle } from "@/lib/atproto";
 import { generateDpopKeyMaterial } from "@/lib/dpop";
+import { setAtprotoOAuthTxnCookie } from "@/lib/atproto-oauth-txn";
 
 export async function POST(request: NextRequest) {
   const { handle } = (await request.json()) as { handle?: string };
@@ -28,14 +29,20 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ authorizeUrl: authUrl.toString(), pds, did });
   const secure = request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
-  const cookieOptions = { httpOnly: true, secure, path: "/", sameSite: "lax" as const, maxAge: 600 };
-  response.cookies.set("atproto_oauth_state", state, cookieOptions);
-  response.cookies.set("atproto_oauth_verifier", verifier, cookieOptions);
-  response.cookies.set("atproto_oauth_handle", handle.replace(/^@/, "").toLowerCase(), cookieOptions);
-  response.cookies.set("atproto_oauth_pds", pds, cookieOptions);
-  response.cookies.set("atproto_oauth_did", did, cookieOptions);
-  response.cookies.set("atproto_oauth_dpop_private", Buffer.from(dpop.privateKeyPem, "utf8").toString("base64url"), cookieOptions);
-  response.cookies.set("atproto_oauth_dpop_public", Buffer.from(JSON.stringify(dpop.publicJwk), "utf8").toString("base64url"), cookieOptions);
+  setAtprotoOAuthTxnCookie(
+    response,
+    {
+      state,
+      verifier,
+      handle: handle.replace(/^@/, "").toLowerCase(),
+      pds,
+      did,
+      dpopPrivateKeyPem: dpop.privateKeyPem,
+      dpopPublicJwk: dpop.publicJwk,
+      issuedAt: Math.floor(Date.now() / 1000),
+    },
+    secure,
+  );
 
   ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
     response.cookies.delete(key);

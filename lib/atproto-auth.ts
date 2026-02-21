@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import type { DpopPublicJwk } from "@/lib/dpop";
 import { cookies } from "next/headers";
 
@@ -20,46 +20,55 @@ function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
-function getSessionSigningSecret() {
+export function getAtprotoCookieSecret() {
   return process.env.ATPROTO_SESSION_SECRET || process.env.NEXTAUTH_SECRET || "";
 }
 
-function signPayload(payload: string, secret: string) {
-  return createHmac("sha256", secret).update(payload, "utf8").digest("base64url");
+function deriveKey(secret: string) {
+  return createHash("sha256").update(secret, "utf8").digest();
 }
 
-function encodeSession(session: AtprotoSession) {
-  const secret = getSessionSigningSecret();
-  if (!secret) {
-    throw new Error("Missing ATPROTO_SESSION_SECRET (or NEXTAUTH_SECRET) for ATProto session cookie signing");
-  }
-
-  const payload = Buffer.from(JSON.stringify(session), "utf8").toString("base64url");
-  const signature = signPayload(payload, secret);
-  return `${payload}.${signature}`;
+export function sealJsonPayload(payload: unknown, secret: string) {
+  const iv = randomBytes(12);
+  const key = deriveKey(secret);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(payload), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
 }
 
-function decodeSession(raw: string): AtprotoSession | null {
-  const secret = getSessionSigningSecret();
-  if (!secret) return null;
-
-  const dotIndex = raw.lastIndexOf(".");
-  if (dotIndex <= 0 || dotIndex === raw.length - 1) return null;
-
-  const payload = raw.slice(0, dotIndex);
-  const signature = raw.slice(dotIndex + 1);
-  const expectedSignature = signPayload(payload, secret);
-
-  const signatureBuffer = Buffer.from(signature, "utf8");
-  const expectedBuffer = Buffer.from(expectedSignature, "utf8");
-  if (signatureBuffer.length !== expectedBuffer.length) return null;
-  if (!timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+export function unsealJsonPayload<T>(raw: string, secret: string): T | null {
+  const parts = raw.split(".");
+  if (parts.length !== 4 || parts[0] !== "v1") return null;
 
   try {
-    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as AtprotoSession;
+    const iv = Buffer.from(parts[1], "base64url");
+    const ciphertext = Buffer.from(parts[2], "base64url");
+    const tag = Buffer.from(parts[3], "base64url");
+    const key = deriveKey(secret);
+
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+    return JSON.parse(plaintext) as T;
   } catch {
     return null;
   }
+}
+
+function encodeSession(session: AtprotoSession) {
+  const secret = getAtprotoCookieSecret();
+  if (!secret) {
+    throw new Error("Missing ATPROTO_SESSION_SECRET (or NEXTAUTH_SECRET) for ATProto session cookie protection");
+  }
+
+  return sealJsonPayload(session, secret);
+}
+
+function decodeSession(raw: string): AtprotoSession | null {
+  const secret = getAtprotoCookieSecret();
+  if (!secret) return null;
+  return unsealJsonPayload<AtprotoSession>(raw, secret);
 }
 
 export async function getAtprotoSession(): Promise<AtprotoSession | null> {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
+import { clearAtprotoOAuthTxnCookie, getAtprotoOAuthTxnFromRequest } from "@/lib/atproto-oauth-txn";
 import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
 function parseJsonSafe<T>(value: string): T | null {
@@ -11,42 +12,67 @@ function parseJsonSafe<T>(value: string): T | null {
   }
 }
 
+function redirectWithError(baseUrl: string, error: string, reason?: string) {
+  const url = new URL(`${baseUrl}/at-oauth`);
+  url.searchParams.set("error", error);
+  if (reason) {
+    url.searchParams.set("reason", reason);
+  }
+
+  const response = NextResponse.redirect(url.toString());
+  clearAtprotoOAuthTxnCookie(response);
+  return response;
+}
+
+function normalizeIssuerOrigin(value: string) {
+  const parsed = new URL(value);
+  if (parsed.protocol !== "https:") {
+    throw new Error("Issuer must use https");
+  }
+  return parsed.origin;
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const iss = request.nextUrl.searchParams.get("iss");
 
-  const expectedState = request.cookies.get("atproto_oauth_state")?.value;
-  const verifier = request.cookies.get("atproto_oauth_verifier")?.value;
-  const handle = request.cookies.get("atproto_oauth_handle")?.value;
-  const pds = request.cookies.get("atproto_oauth_pds")?.value;
-  const did = request.cookies.get("atproto_oauth_did")?.value;
-  const dpopPrivateRaw = request.cookies.get("atproto_oauth_dpop_private")?.value;
-  const dpopPublicRaw = request.cookies.get("atproto_oauth_dpop_public")?.value;
-
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const txn = getAtprotoOAuthTxnFromRequest(request);
 
-  if (!code || !state || !expectedState || state !== expectedState || !verifier || !pds || !did || !handle || !dpopPrivateRaw || !dpopPublicRaw) {
-    return NextResponse.redirect(`${baseUrl}/at-oauth?error=oauth_state_mismatch`);
+  if (!code || !state || !txn || state !== txn.state) {
+    return redirectWithError(baseUrl, "oauth_state_mismatch");
   }
 
-  const dpopPrivateKeyPem = Buffer.from(dpopPrivateRaw, "base64url").toString("utf8");
-  const dpopPublicJwk = parseJsonSafe<DpopPublicJwk>(Buffer.from(dpopPublicRaw, "base64url").toString("utf8"));
+  const { verifier, handle, pds, did, dpopPrivateKeyPem, dpopPublicJwk } = txn;
+
   if (!dpopPublicJwk?.kty || !dpopPublicJwk?.crv || !dpopPublicJwk?.x || !dpopPublicJwk?.y) {
-    return NextResponse.redirect(`${baseUrl}/at-oauth?error=invalid_dpop_key`);
+    return redirectWithError(baseUrl, "invalid_dpop_key");
+  }
+
+  let issuerOrigin: string;
+  let pdsOrigin: string;
+  try {
+    pdsOrigin = normalizeIssuerOrigin(pds);
+    issuerOrigin = iss ? normalizeIssuerOrigin(iss) : pdsOrigin;
+  } catch {
+    return redirectWithError(baseUrl, "invalid_issuer");
+  }
+
+  if (issuerOrigin !== pdsOrigin) {
+    return redirectWithError(baseUrl, "invalid_issuer", "issuer_mismatch");
   }
 
   const clientId = process.env.ATPROTO_CLIENT_ID || `${baseUrl}/oauth-client-metadata.json`;
   const redirectUri = `${baseUrl}/api/atproto/callback`;
-  const issuer = iss || pds;
-  const tokenUrl = `${issuer.replace(/\/$/, "")}/oauth/token`;
+  const tokenUrl = `${issuerOrigin}/oauth/token`;
 
   const makeTokenRequest = async (nonce?: string) => {
     const dpopProof = createDpopProof({
       htu: tokenUrl,
       htm: "POST",
       privateKeyPem: dpopPrivateKeyPem,
-      publicJwk: dpopPublicJwk,
+      publicJwk: dpopPublicJwk as DpopPublicJwk,
       nonce,
     });
 
@@ -78,12 +104,12 @@ export async function GET(request: NextRequest) {
     const detailText = await tokenRes.text();
     const detailJson = parseJsonSafe<{ error?: string; error_description?: string }>(detailText);
     const reason = detailJson?.error_description || detailJson?.error || detailText.slice(0, 160) || "token_exchange_failed";
-    return NextResponse.redirect(`${baseUrl}/at-oauth?error=token_exchange_failed&reason=${encodeURIComponent(reason)}`);
+    return redirectWithError(baseUrl, "token_exchange_failed", reason);
   }
 
   const tokenData = (await tokenRes.json()) as { access_token?: string; refresh_token?: string };
   if (!tokenData.access_token) {
-    return NextResponse.redirect(`${baseUrl}/at-oauth?error=missing_access_token`);
+    return redirectWithError(baseUrl, "missing_access_token");
   }
 
   const profile = await getProfile(pds, did, tokenData.access_token, {
@@ -115,17 +141,7 @@ export async function GET(request: NextRequest) {
   });
 
   const response = NextResponse.redirect(`${baseUrl}/app`);
-  [
-    "atproto_oauth_state",
-    "atproto_oauth_verifier",
-    "atproto_oauth_handle",
-    "atproto_oauth_pds",
-    "atproto_oauth_did",
-    "atproto_oauth_dpop_private",
-    "atproto_oauth_dpop_public",
-  ].forEach((key) => {
-    response.cookies.delete(key);
-  });
+  clearAtprotoOAuthTxnCookie(response);
 
   ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
     response.cookies.delete(key);
