@@ -931,14 +931,6 @@ export default function EventDialog({
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t.cancel}
-            </Button>
-            <Button type="submit">{event ? t.update : t.save}</Button>
             {event && (
               <Button
                 type="button"
@@ -951,6 +943,14 @@ export default function EventDialog({
                 {t.delete}
               </Button>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              {t.cancel}
+            </Button>
+            <Button type="submit">{event ? t.update : t.save}</Button>
           </div>
         </form>
       </DialogContent>
