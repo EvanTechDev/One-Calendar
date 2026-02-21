@@ -23,6 +23,11 @@ body {
 
 @layer base {
   :root {
+    --landing-bg: #080808;
+    --landing-panel: #0b0b0b;
+    --landing-text: #ffffff;
+    --landing-muted: #9b9b9b;
+    --landing-subtle: #6f6f6f;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
