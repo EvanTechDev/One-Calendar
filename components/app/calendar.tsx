@@ -425,9 +425,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) => [...prevEvents, ...newEvents]);
   };
 
-  const handleEventEdit = () => {
-    if (previewEvent) {
-      setSelectedEvent(previewEvent);
+  const handleEventEdit = (event?: CalendarEvent) => {
+    const targetEvent = event ?? previewEvent;
+    if (targetEvent) {
+      setSelectedEvent(targetEvent);
       setQuickCreateStartTime(null);
       setEventDialogOpen(true);
       setPreviewOpen(false);

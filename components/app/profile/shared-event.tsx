@@ -50,6 +50,7 @@ interface SharedEvent {
 
 interface SharedEventViewProps {
   shareId: string;
+  handle?: string;
 }
 
 function getDarkerColorClass(color: string) {
@@ -68,7 +69,7 @@ function getDarkerColorClass(color: string) {
   return colorMapping[color] || '#3A3A3A';
 }
 
-export default function SharedEventView({ shareId }: SharedEventViewProps) {
+export default function SharedEventView({ shareId, handle }: SharedEventViewProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [language] = useLanguage();
@@ -105,7 +106,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           return;
         }
 
-        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
+        const response = await fetch(handle
+          ? `/api/share/public?handle=${encodeURIComponent(handle)}&id=${encodeURIComponent(shareId)}`
+          : `/api/share?id=${encodeURIComponent(shareId)}`);
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -137,7 +140,7 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
     };
 
     fetchSharedEvent();
-  }, [shareId]);
+  }, [shareId, handle]);
 
   const tryDecryptWithPassword = async () => {
     if (!shareId) return;
@@ -152,7 +155,9 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
       setPasswordSubmitting(true);
       setPasswordError(null);
 
-      const url = `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
+      const url = handle
+        ? `/api/share/public?handle=${encodeURIComponent(handle)}&id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`
+        : `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -483,16 +488,16 @@ export default function SharedEventView({ shareId }: SharedEventViewProps) {
           </a>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <Card className="max-w-md w-full overflow-hidden">
-            <div className="relative">
-              <div className={cn("absolute left-0 top-0 h-full w-1")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
+          <Card className="relative max-w-md w-full overflow-hidden">
+            <div className={cn("absolute inset-y-0 left-0 w-1")} style={{ backgroundColor: getDarkerColorClass(event.color) }}/>
+            <div>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <CardTitle className="text-2xl font-bold mb-1">{event.title}</CardTitle>
                     <CardDescription>
                       {isZh ? "分享者：" : "Shared by: "}
-                      <span className="font-medium">{event.sharedBy}</span>
+                      <a className="font-medium underline underline-offset-4" href={`https://bsky.app/profile/${String(event.sharedBy || "").replace(/^@/, "")}`} target="_blank" rel="noreferrer">{event.sharedBy}</a>
                     </CardDescription>
                     {burnAfterRead && (
                       <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
