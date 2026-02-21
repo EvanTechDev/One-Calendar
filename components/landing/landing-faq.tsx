@@ -26,8 +26,8 @@ const faqItems = [
 
 export function LandingFaq() {
   return (
-    <section id="faq" className="border-b border-white/10 py-16 md:py-20">
-      <div className="grid gap-8 md:grid-cols-[240px_1fr]">
+    <section id="faq" className="flex min-h-screen items-center border-b border-white/10 py-12">
+      <div className="grid w-full gap-8 md:grid-cols-[240px_1fr]">
         <h2 className="landing-title-reveal text-3xl font-semibold text-white md:text-5xl">FAQ</h2>
         <div className="px-0 md:px-2">
           <Accordion type="single" collapsible className="w-full">

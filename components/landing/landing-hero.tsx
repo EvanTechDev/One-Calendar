@@ -4,7 +4,7 @@ import { LandingHeroDemo } from "./landing-hero-demo";
 
 export function LandingHero() {
   return (
-    <section id="top" className="py-14 md:py-20">
+    <section id="top" className="flex min-h-[calc(100svh-72px)] flex-col justify-center py-10">
       <div className="mx-auto max-w-4xl text-center">
         <h1 className="landing-title-reveal text-4xl font-semibold leading-tight tracking-tight text-white md:text-[56px]">
           The calendar that keeps
@@ -24,7 +24,7 @@ export function LandingHero() {
         </div>
       </div>
 
-      <div className="mt-12 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <div className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-[var(--landing-panel)] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <Image
           src={bannerDark}
           alt="One Calendar dark preview"
