@@ -1,6 +1,7 @@
 import { createDecipheriv, createHash, createCipheriv, hkdfSync, randomBytes } from "node:crypto";
 import type { DpopPublicJwk } from "@/lib/dpop";
 import { cookies } from "next/headers";
+import { ATPROTO_DISABLED } from "@/lib/atproto-feature";
 
 export const ATPROTO_SESSION_COOKIE = "atproto_session";
 
@@ -111,6 +112,10 @@ function decodeSession(raw: string): AtprotoSession | null {
 
 export async function getAtprotoSession(): Promise<AtprotoSession | null> {
   const store = await cookies();
+  if (ATPROTO_DISABLED) {
+    store.delete(ATPROTO_SESSION_COOKIE);
+    return null;
+  }
   const raw = store.get(ATPROTO_SESSION_COOKIE)?.value;
   if (!raw) return null;
 
@@ -124,6 +129,10 @@ export async function getAtprotoSession(): Promise<AtprotoSession | null> {
 
 export async function setAtprotoSession(session: AtprotoSession) {
   const store = await cookies();
+  if (ATPROTO_DISABLED) {
+    store.delete(ATPROTO_SESSION_COOKIE);
+    return;
+  }
   const value = encodeSession(session);
   store.set(ATPROTO_SESSION_COOKIE, value, {
     httpOnly: true,
