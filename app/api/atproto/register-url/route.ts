@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
 import { createPkcePair } from "@/lib/atproto";
 import { setAtprotoOAuthTxnCookie } from "@/lib/atproto-oauth-txn";
 import { generateDpopKeyMaterial } from "@/lib/dpop";
@@ -11,6 +12,7 @@ function getBaseUrl(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (ATPROTO_DISABLED) return atprotoDisabledResponse();
   const baseUrl = getBaseUrl(request);
   const clientId = `${baseUrl}/oauth-client-metadata.json`;
   const authorizeUrl = new URL(`${ROSE_PDS_ORIGIN}/oauth/authorize`);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ATPROTO_DISABLED } from "@/lib/atproto-feature";
 import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
 import { clearAtprotoOAuthTxnCookie, consumeAtprotoOAuthTxn, getAtprotoOAuthTxnFromRequest } from "@/lib/atproto-oauth-txn";
@@ -33,6 +34,7 @@ function normalizeIssuerOrigin(value: string) {
 }
 
 export async function GET(request: NextRequest) {
+  if (ATPROTO_DISABLED) return redirectWithError(process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin, "atproto_disabled");
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const iss = request.nextUrl.searchParams.get("iss");

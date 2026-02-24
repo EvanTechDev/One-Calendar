@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
 import { createPkcePair, resolveHandle } from "@/lib/atproto";
 import { generateDpopKeyMaterial } from "@/lib/dpop";
 import { setAtprotoOAuthTxnCookie } from "@/lib/atproto-oauth-txn";
@@ -57,6 +58,7 @@ function checkRateLimit(request: NextRequest, handle: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (ATPROTO_DISABLED) return atprotoDisabledResponse();
   const expectedBaseUrl = getExpectedBaseUrl(request);
   if (!isAllowedOrigin(request, expectedBaseUrl)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
 import { getActorProfileRecord, profileAvatarBlobUrl } from "@/lib/atproto";
 import { getAtprotoSession, setAtprotoSession } from "@/lib/atproto-auth";
 
 export async function GET() {
+  if (ATPROTO_DISABLED) return atprotoDisabledResponse();
   const session = await getAtprotoSession();
   if (!session) return NextResponse.json({ signedIn: false });
 
