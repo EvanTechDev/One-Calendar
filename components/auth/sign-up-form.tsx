@@ -5,15 +5,19 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { initializeE2EEAccount } from "@/lib/e2ee/client";
+import { generateRecoveryKey } from "@/lib/e2ee/webcrypto";
 
 export function SignUpForm({
   className,
@@ -31,10 +35,15 @@ export function SignUpForm({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [recoveryKeyConfirmed, setRecoveryKeyConfirmed] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState("");
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
   );
   const turnstileRef = useRef<any>(null);
+  const generatedRecoveryKey = useMemo(() => generateRecoveryKey(), []);
+
+  const activeRecoveryKey = recoveryKey || generatedRecoveryKey;
 
   const handleTurnstileSuccess = async (token: string) => {
     try {
@@ -97,6 +106,10 @@ export function SignUpForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
+    if (!recoveryKeyConfirmed) {
+      setError("Please confirm you have saved your recovery key.");
+      return;
+    }
     signUp.authenticateWithRedirect({
       strategy,
       redirectUrl: "/sign-up/sso-callback",
@@ -109,6 +122,10 @@ export function SignUpForm({
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
       setError("Please complete the CAPTCHA verification.");
+      return;
+    }
+    if (step === "initial" && !recoveryKeyConfirmed) {
+      setError("Please confirm you have saved your recovery key.");
       return;
     }
     setIsLoading(true);
@@ -136,6 +153,10 @@ export function SignUpForm({
         });
         if (completeSignUp.status === "complete") {
           await setActive({ session: completeSignUp.createdSessionId });
+          const userId = completeSignUp.createdUserId;
+          if (!userId) throw new Error("Failed to resolve user ID after signup");
+          const e2ee = await initializeE2EEAccount(userId);
+          setRecoveryKey(e2ee.recoveryKey);
           router.push("/");
         }
       }
@@ -346,6 +367,22 @@ export function SignUpForm({
                       />
                     </div>
                   ) : null}
+                </div>
+
+                <div className="grid gap-2 rounded-md border p-3">
+                  <Label>Recovery Key (required for E2EE recovery)</Label>
+                  <p className="break-all rounded bg-muted p-2 font-mono text-xs">{activeRecoveryKey}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Save this key now. It is the only way to recover your encrypted data on a new device.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="recovery-confirm"
+                      checked={recoveryKeyConfirmed}
+                      onCheckedChange={(value) => setRecoveryKeyConfirmed(Boolean(value))}
+                    />
+                    <Label htmlFor="recovery-confirm">I have saved my recovery key securely.</Label>
+                  </div>
                 </div>
 
                 {error && <div className="text-sm text-red-500">{error}</div>}

@@ -2,6 +2,7 @@
 
 import Calendar from "@/components/app/calendar"
 import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
+import UnlockGate from "@/components/e2ee/unlock-gate"
 import { useUser } from "@clerk/nextjs"
 import { useEffect, useMemo, useState } from "react"
 
@@ -52,5 +53,9 @@ export default function Home() {
     return <AuthWaitingLoading />
   }
 
-  return <Calendar />
+  return (
+    <UnlockGate>
+      <Calendar />
+    </UnlockGate>
+  )
 }
