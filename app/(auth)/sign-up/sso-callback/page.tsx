@@ -8,7 +8,7 @@ export default function SSOSignUpCallback() {
 
   useEffect(() => {
     fetch("/api/atproto/logout", { method: "POST" }).catch(() => undefined);
-    setSession?.({ forceRedirectUrl: '/app' });
+    setSession?.({ forceRedirectUrl: '/sign-up/key' });
   }, [setSession]);
 
   return <AuthenticateWithRedirectCallback />;

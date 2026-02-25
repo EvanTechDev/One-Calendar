@@ -2,7 +2,8 @@
 
 import Calendar from "@/components/app/calendar"
 import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
-import UnlockGate from "@/components/e2ee/unlock-gate"
+import { unlockAfterLogin } from "@/lib/e2ee/client"
+import { UnlockRequiredError } from "@/lib/e2ee/errors"
 import { useUser } from "@clerk/nextjs"
 import { useEffect, useMemo, useState } from "react"
 
@@ -15,10 +16,11 @@ function hasClerkSessionCookie() {
 }
 
 export default function Home() {
-  const { isLoaded, isSignedIn } = useUser()
+  const { isLoaded, isSignedIn, user } = useUser()
   const [hasSessionCookie, setHasSessionCookie] = useState(hasClerkSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
+  const [e2eeChecked, setE2eeChecked] = useState(false)
 
   useEffect(() => {
     const waitTimer = window.setTimeout(() => {
@@ -44,18 +46,37 @@ export default function Home() {
       .finally(() => setAtprotoLogoutDone(true))
   }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!isSignedIn || !user) {
+      setE2eeChecked(true)
+      return
+    }
+
+    unlockAfterLogin(user.id)
+      .catch((err) => {
+        if (err instanceof UnlockRequiredError) {
+          sessionStorage.setItem("e2ee-unlock-required", "1")
+          window.dispatchEvent(new Event("one-calendar:e2ee-unlock-required"))
+          return
+        }
+
+        if (err instanceof Error && "code" in err && err.code === "E2EE_NOT_INITIALIZED") {
+          return
+        }
+      })
+      .finally(() => setE2eeChecked(true))
+  }, [isLoaded, isSignedIn, user])
+
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
-    return hasSessionCookie && !isLoaded
-  }, [minimumWaitDone, hasSessionCookie, isLoaded])
+    if (hasSessionCookie && !isLoaded) return true
+    return isSignedIn && !e2eeChecked
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, e2eeChecked])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
   }
 
-  return (
-    <UnlockGate>
-      <Calendar />
-    </UnlockGate>
-  )
+  return <Calendar />
 }

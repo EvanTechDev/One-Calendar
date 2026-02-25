@@ -46,6 +46,7 @@ import { toast } from "sonner"
 import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton } from "@clerk/nextjs"
+import { unlockWithRecoveryKey } from "@/lib/e2ee/client"
 import { useRouter } from "next/navigation"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 import {
@@ -201,6 +202,10 @@ export default function UserProfileButton({
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
+  const [recoveryUnlockOpen, setRecoveryUnlockOpen] = useState(false)
+  const [recoveryKeyInput, setRecoveryKeyInput] = useState("")
+  const [recoveryUnlockError, setRecoveryUnlockError] = useState("")
+  const [isRecoveryUnlocking, setIsRecoveryUnlocking] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
@@ -252,6 +257,27 @@ export default function UserProfileButton({
     setFirstName(user.firstName || "")
     setLastName(user.lastName || "")
   }, [user])
+
+  const openRecoveryUnlock = () => {
+    setRecoveryUnlockError("")
+    setRecoveryKeyInput("")
+    setRecoveryUnlockOpen(true)
+  }
+
+  useEffect(() => {
+    const handleE2EEUnlockRequired = () => {
+      openRecoveryUnlock()
+    }
+
+    window.addEventListener("one-calendar:e2ee-unlock-required", handleE2EEUnlockRequired)
+    if (sessionStorage.getItem("e2ee-unlock-required") === "1") {
+      handleE2EEUnlockRequired()
+    }
+
+    return () => {
+      window.removeEventListener("one-calendar:e2ee-unlock-required", handleE2EEUnlockRequired)
+    }
+  }, [])
 
   useEffect(() => {
     if (mode === "settings") return
@@ -422,6 +448,24 @@ export default function UserProfileButton({
     }
   }
 
+  async function unlockE2EEWithRecoveryKey() {
+    if (!user || !recoveryKeyInput.trim()) return
+
+    try {
+      setIsRecoveryUnlocking(true)
+      setRecoveryUnlockError("")
+      await unlockWithRecoveryKey(user.id, recoveryKeyInput.trim())
+      sessionStorage.removeItem("e2ee-unlock-required")
+      setRecoveryUnlockOpen(false)
+      setRecoveryKeyInput("")
+      toast("Encrypted workspace unlocked")
+    } catch (e) {
+      setRecoveryUnlockError(e instanceof Error ? e.message : "Invalid recovery key")
+    } finally {
+      setIsRecoveryUnlocking(false)
+    }
+  }
+
   async function enable() {
     if (password !== confirm) {
       setError(t.passwordsDoNotMatch)
@@ -562,6 +606,13 @@ export default function UserProfileButton({
                   <KeyRound className="mr-2 h-4 w-4" />
                   {t.changeKey}
                 </DropdownMenuItem>
+
+                {isSignedIn ? (
+                  <DropdownMenuItem onClick={openRecoveryUnlock}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Unlock encrypted workspace
+                  </DropdownMenuItem>
+                ) : null}
 
                 <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("delete") : destroy()}>
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -916,6 +967,36 @@ export default function UserProfileButton({
           <DialogFooter>
             <Button onClick={unlock} disabled={isUnlocking}>
               {isUnlocking ? (
+                <span className="flex items-center">
+                  <Spinner className="mr-2" />
+                  {t.verifying}
+                </span>
+              ) : (
+                t.confirm
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      <Dialog open={recoveryUnlockOpen} onOpenChange={setRecoveryUnlockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unlock encrypted workspace</DialogTitle>
+            <DialogDescription>
+              Enter your recovery key to unlock encrypted data on this device.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={recoveryKeyInput}
+            onChange={(e) => setRecoveryKeyInput(e.target.value)}
+            placeholder="Paste your recovery key"
+          />
+          {recoveryUnlockError ? <p className="text-sm text-red-500">{recoveryUnlockError}</p> : null}
+          <DialogFooter>
+            <Button onClick={unlockE2EEWithRecoveryKey} disabled={isRecoveryUnlocking || !recoveryKeyInput.trim()}>
+              {isRecoveryUnlocking ? (
                 <span className="flex items-center">
                   <Spinner className="mr-2" />
                   {t.verifying}

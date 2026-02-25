@@ -11,13 +11,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { initializeE2EEAccount } from "@/lib/e2ee/client";
-import { generateRecoveryKey } from "@/lib/e2ee/webcrypto";
 
 export function SignUpForm({
   className,
@@ -35,15 +33,10 @@ export function SignUpForm({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [recoveryKeyConfirmed, setRecoveryKeyConfirmed] = useState(false);
-  const [recoveryKey, setRecoveryKey] = useState("");
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
   );
   const turnstileRef = useRef<any>(null);
-  const generatedRecoveryKey = useMemo(() => generateRecoveryKey(), []);
-
-  const activeRecoveryKey = recoveryKey || generatedRecoveryKey;
 
   const handleTurnstileSuccess = async (token: string) => {
     try {
@@ -106,14 +99,10 @@ export function SignUpForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    if (!recoveryKeyConfirmed) {
-      setError("Please confirm you have saved your recovery key.");
-      return;
-    }
     signUp.authenticateWithRedirect({
       strategy,
       redirectUrl: "/sign-up/sso-callback",
-      redirectUrlComplete: "/",
+      redirectUrlComplete: "/sign-up/key",
     });
   };
 
@@ -122,10 +111,6 @@ export function SignUpForm({
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
       setError("Please complete the CAPTCHA verification.");
-      return;
-    }
-    if (step === "initial" && !recoveryKeyConfirmed) {
-      setError("Please confirm you have saved your recovery key.");
       return;
     }
     setIsLoading(true);
@@ -156,8 +141,11 @@ export function SignUpForm({
           const userId = completeSignUp.createdUserId;
           if (!userId) throw new Error("Failed to resolve user ID after signup");
           const e2ee = await initializeE2EEAccount(userId);
-          setRecoveryKey(e2ee.recoveryKey);
-          router.push("/");
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("pending-signup-recovery-key", e2ee.recoveryKey);
+            sessionStorage.setItem("pending-signup-recovery-user", userId);
+          }
+          router.push("/sign-up/key");
         }
       }
     } catch (err: any) {
@@ -234,6 +222,13 @@ export function SignUpForm({
     );
   }
 
+  const handleOAuthSignUpClick = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("allow-signup-key-init", "1");
+    }
+    handleOAuthSignUp(strategy);
+  }
+
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
@@ -250,7 +245,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => handleOAuthSignUp("oauth_microsoft")}
+                  onClick={() => handleOAuthSignUpClick("oauth_microsoft")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="20" height="20">
                     <path fill="#f25022" d="M1 1h10v10H1z" />
@@ -264,7 +259,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => handleOAuthSignUp("oauth_google")}
+                  onClick={() => handleOAuthSignUpClick("oauth_google")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -279,7 +274,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => handleOAuthSignUp("oauth_github")}
+                  onClick={() => handleOAuthSignUpClick("oauth_github")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                     <path
@@ -367,22 +362,6 @@ export function SignUpForm({
                       />
                     </div>
                   ) : null}
-                </div>
-
-                <div className="grid gap-2 rounded-md border p-3">
-                  <Label>Recovery Key (required for E2EE recovery)</Label>
-                  <p className="break-all rounded bg-muted p-2 font-mono text-xs">{activeRecoveryKey}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Save this key now. It is the only way to recover your encrypted data on a new device.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="recovery-confirm"
-                      checked={recoveryKeyConfirmed}
-                      onCheckedChange={(value) => setRecoveryKeyConfirmed(Boolean(value))}
-                    />
-                    <Label htmlFor="recovery-confirm">I have saved my recovery key securely.</Label>
-                  </div>
                 </div>
 
                 {error && <div className="text-sm text-red-500">{error}</div>}
