@@ -129,10 +129,14 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     return target.slice(0, 200);
   }, [iconSearch]);
 
-  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 18) => {
+  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 20) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
     const IconComponent = lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ?? lucideIcons.Clock;
-    return <IconComponent size={size} style={{ color: iconColor }} />;
+    return (
+      <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
+        <IconComponent size={size} style={{ color: iconColor }} />
+      </div>
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -400,7 +404,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="flex items-center mb-6">
             <Avatar className="h-16 w-16 mr-4">
               <AvatarFallback className="bg-transparent">
-                {renderCountdownIcon(selectedCountdown.icon, selectedCountdown.color, 24)}
+                {renderCountdownIcon(selectedCountdown.icon, selectedCountdown.color, 26)}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -554,12 +558,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       <div
                         key={iconName}
                         className={cn(
-                          "h-7 w-7 flex items-center justify-center rounded-sm cursor-pointer hover:bg-accent",
+                          "h-11 w-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent",
                           newCountdown.icon === iconName && "ring-2 ring-primary bg-accent/60",
                         )}
                         onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
                       >
-                        {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 16)}
+                        {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 18)}
                       </div>
                     ))}
                   </div>
