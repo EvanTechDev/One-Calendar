@@ -129,14 +129,18 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     return target.slice(0, 200);
   }, [iconSearch]);
 
-  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 20) => {
+  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 20, withBackground = false) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
     const IconComponent = lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ?? lucideIcons.Clock;
-    return (
-      <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
-        <IconComponent size={size} style={{ color: iconColor }} />
-      </div>
-    );
+    if (withBackground) {
+      return (
+        <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
+          <IconComponent size={size} style={{ color: iconColor }} />
+        </div>
+      );
+    }
+
+    return <IconComponent size={size} style={{ color: iconColor }} />;
   };
 
   const formatDate = (dateStr: string) => {
@@ -347,7 +351,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     >
                       <Avatar className="h-12 w-12 mr-3">
                         <AvatarFallback className="bg-transparent">
-                          {renderCountdownIcon(countdown.icon, countdown.color)}
+                          {renderCountdownIcon(countdown.icon, countdown.color, 20, true)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">

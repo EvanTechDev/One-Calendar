@@ -1,6 +1,7 @@
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, type Language } from "@/lib/i18n"
 import { Calendar } from "@/components/ui/calendar"
@@ -35,14 +36,14 @@ export interface CalendarCategory {
 }
 
 const CALENDAR_COLOR_OPTIONS = [
-  { value: "bg-blue-500", hex: "#3b82f6" },
-  { value: "bg-green-500", hex: "#10b981" },
-  { value: "bg-yellow-500", hex: "#f59e0b" },
-  { value: "bg-red-500", hex: "#ef4444" },
-  { value: "bg-purple-500", hex: "#8b5cf6" },
-  { value: "bg-pink-500", hex: "#ec4899" },
-  { value: "bg-teal-500", hex: "#14b8a6" },
-]
+  { value: "bg-blue-500", hex: "#3b82f6", labelKey: "colorBlue" },
+  { value: "bg-green-500", hex: "#10b981", labelKey: "colorGreen" },
+  { value: "bg-yellow-500", hex: "#f59e0b", labelKey: "colorYellow" },
+  { value: "bg-red-500", hex: "#ef4444", labelKey: "colorRed" },
+  { value: "bg-purple-500", hex: "#8b5cf6", labelKey: "colorPurple" },
+  { value: "bg-pink-500", hex: "#ec4899", labelKey: "colorPink" },
+  { value: "bg-teal-500", hex: "#14b8a6", labelKey: "colorTeal" },
+] as const
 
 const CALENDAR_COLOR_MAP = Object.fromEntries(CALENDAR_COLOR_OPTIONS.map((option) => [option.value, option.hex]))
 
@@ -317,20 +318,22 @@ export default function Sidebar({
               />
             </div>
             <div className="space-y-2">
-              <Label>{t.color}</Label>
-              <div className="flex flex-wrap gap-2">
-                {CALENDAR_COLOR_OPTIONS.map((option) => (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      option.value,
-                      "w-6 h-6 rounded-full cursor-pointer",
-                      newCategoryColor === option.value ? "ring-2 ring-offset-2 ring-black" : "",
-                    )}
-                    onClick={() => setNewCategoryColor(option.value)}
-                  />
-                ))}
-              </div>
+              <Label htmlFor="category-color">{t.color}</Label>
+              <Select value={newCategoryColor} onValueChange={setNewCategoryColor}>
+                <SelectTrigger id="category-color">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CALENDAR_COLOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center">
+                        <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                        {t[option.labelKey]}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter className="justify-end">
@@ -359,20 +362,22 @@ export default function Sidebar({
               />
             </div>
             <div className="space-y-2">
-              <Label>{t.color}</Label>
-              <div className="flex flex-wrap gap-2">
-                {CALENDAR_COLOR_OPTIONS.map((option) => (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      option.value,
-                      "w-6 h-6 rounded-full cursor-pointer",
-                      editingCategoryColor === option.value ? "ring-2 ring-offset-2 ring-black" : "",
-                    )}
-                    onClick={() => setEditingCategoryColor(option.value)}
-                  />
-                ))}
-              </div>
+              <Label htmlFor="edit-category-color">{t.color}</Label>
+              <Select value={editingCategoryColor} onValueChange={setEditingCategoryColor}>
+                <SelectTrigger id="edit-category-color">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CALENDAR_COLOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center">
+                        <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                        {t[option.labelKey]}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
