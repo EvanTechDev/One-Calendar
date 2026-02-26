@@ -738,8 +738,8 @@ export default function DayView({
                     onMouseLeave={handleEventDragEnd}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (Date.now() - lastContextMenuActionAtRef.current < 400) return;
-                      if (!isDraggingRef.current && !suppressContextActionClickRef.current) {
+                      if (ignoreNextEventClickRef.current) return;
+                      if (!isDraggingRef.current) {
                         onEventClick(event);
                       }
                       
