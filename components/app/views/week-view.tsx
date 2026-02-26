@@ -104,6 +104,7 @@ export default function WeekView({
   } | null>(null);
   const [dragEventDuration, setDragEventDuration] = useState<number>(0);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const suppressContextActionClickRef = useRef(false);
   const isDraggingRef = useRef(false);
 
   const [createSelection, setCreateSelection] = useState<{
@@ -621,9 +622,10 @@ export default function WeekView({
             onMouseLeave={handleEventDragEnd}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isDraggingRef.current) {
+              if (!isDraggingRef.current && !suppressContextActionClickRef.current) {
                 onEventClick(event);
               }
+              suppressContextActionClickRef.current = false;
             }}
           >
             <div
@@ -640,20 +642,20 @@ export default function WeekView({
         </ContextMenuTrigger>
 
         <ContextMenuContent className="w-40">
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onEditEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onEditEvent?.(event); }}>
             <Edit3 className="mr-2 h-4 w-4" />
             {menuLabels.edit}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onShareEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onShareEvent?.(event); }}>
             <Share2 className="mr-2 h-4 w-4" />
             {menuLabels.share}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onBookmarkEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onBookmarkEvent?.(event); }}>
             <Bookmark className="mr-2 h-4 w-4" />
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onSelect={(e) => { e.preventDefault(); onDeleteEvent?.(event); }}
+            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onDeleteEvent?.(event); }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -893,22 +895,22 @@ export default function WeekView({
                       </ContextMenuTrigger>
 
                       <ContextMenuContent className="w-40">
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); onEditEvent?.(event); }}>
+                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onEditEvent?.(event); }}>
                           <Edit3 className="mr-2 h-4 w-4" />
                           {menuLabels.edit}
                         </ContextMenuItem>
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); onShareEvent?.(event); }}>
+                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onShareEvent?.(event); }}>
                           <Share2 className="mr-2 h-4 w-4" />
                           {menuLabels.share}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); onBookmarkEvent?.(event); }}
+                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onBookmarkEvent?.(event); }}
                         >
                           <Bookmark className="mr-2 h-4 w-4" />
                           {menuLabels.bookmark}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); onDeleteEvent?.(event); }}
+                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; onDeleteEvent?.(event); }}
                           className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />

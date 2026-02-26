@@ -31,6 +31,8 @@ interface SettingsProps {
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
   focusUserProfileSection?: UserProfileSection | null
+  toastPosition: "bottom-left" | "bottom-center" | "bottom-right"
+  setToastPosition: (position: "bottom-left" | "bottom-center" | "bottom-right") => void
 }
 
 export default function Settings({
@@ -51,6 +53,8 @@ export default function Settings({
   events,
   onImportEvents,
   focusUserProfileSection = null,
+  toastPosition,
+  setToastPosition,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
   const t = translations[language]
@@ -216,6 +220,20 @@ export default function Settings({
             <SelectContent>
               <SelectItem value="24h">{t.timeFormat24h}</SelectItem>
               <SelectItem value="12h">{t.timeFormat12hWithMeridiem}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="toast-position">{t.toastPosition}</Label>
+          <Select value={toastPosition} onValueChange={(value: "bottom-left" | "bottom-center" | "bottom-right") => setToastPosition(value)}>
+            <SelectTrigger id="toast-position">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bottom-left">{t.toastPositionBottomLeft}</SelectItem>
+              <SelectItem value="bottom-center">{t.toastPositionBottomCenter}</SelectItem>
+              <SelectItem value="bottom-right">{t.toastPositionBottomRight}</SelectItem>
             </SelectContent>
           </Select>
         </div>

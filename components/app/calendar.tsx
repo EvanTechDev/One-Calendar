@@ -169,6 +169,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "time-format",
     "24h",
   );
+  const [toastPosition, setToastPosition] = useLocalStorage<"bottom-left" | "bottom-center" | "bottom-right">(
+    "toast-position",
+    "bottom-right",
+  );
 
   useEffect(() => {
     if (view !== defaultView) {
@@ -899,6 +903,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
+                toastPosition={toastPosition}
+                setToastPosition={setToastPosition}
               />
             )}
           </div>

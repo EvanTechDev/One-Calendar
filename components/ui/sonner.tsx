@@ -3,9 +3,11 @@
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { useTheme } from "next-themes"
+import { useLocalStorage } from "@/hooks/useLocalStorage"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const [toastPosition] = useLocalStorage<"bottom-left" | "bottom-center" | "bottom-right">("toast-position", "bottom-right")
 
   return (
     <Sonner
@@ -36,6 +38,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      position={toastPosition}
       toastOptions={{
         classNames: {
           toast: "cn-toast",

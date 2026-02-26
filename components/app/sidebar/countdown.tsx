@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
+import { toast } from "sonner";
 import { ClockDashed } from "@/components/icons/clock-dashed";
 
 interface Countdown {
@@ -252,8 +253,10 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       setCountdowns((prev) =>
         prev.map((c) => (c.id === countdown.id ? countdown : c)),
       );
+      toast(t.countdownUpdated, { description: countdown.name });
     } else {
       setCountdowns((prev) => [...prev, countdown]);
+      toast(t.countdownAdded, { description: countdown.name });
     }
 
     setView("list");
@@ -263,9 +266,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   };
 
   const deleteCountdown = (id: string) => {
+    const target = countdowns.find((c) => c.id === id);
     setCountdowns((prev) => prev.filter((c) => c.id !== id));
     setView("list");
     setSelectedCountdown(null);
+    toast(t.countdownDeleted, { description: target?.name || "" });
   };
 
   const renderCountdownListView = () => (
@@ -537,16 +542,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 <ScrollArea className="h-56">
                   <div className="grid grid-cols-5 gap-2">
                     {filteredIcons.map((iconName) => (
-                      <Button
+                      <div
                         key={iconName}
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className={cn(newCountdown.icon === iconName && "ring-2 ring-primary")}
+                        className={cn(
+                          "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent",
+                          newCountdown.icon === iconName && "ring-2 ring-primary bg-accent/60",
+                        )}
                         onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
                       >
                         {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 16)}
-                      </Button>
+                      </div>
                     ))}
                   </div>
                 </ScrollArea>

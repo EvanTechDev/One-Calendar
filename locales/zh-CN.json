@@ -485,5 +485,12 @@
   "deleteCloudConfirmDescription": "此操作会永久删除你的加密云端备份。请输入 DELETE CLOUD DATA 以继续。",
   "confirmDeleteData": "确认删除数据",
   "countdownIcon": "图标",
-  "countdownSearchIcon": "搜索图标"
+  "countdownSearchIcon": "搜索图标",
+  "countdownAdded": "倒数日已添加",
+  "countdownUpdated": "倒数日已更新",
+  "countdownDeleted": "倒数日已删除",
+  "toastPosition": "通知位置",
+  "toastPositionBottomLeft": "左下",
+  "toastPositionBottomCenter": "中下",
+  "toastPositionBottomRight": "右下"
 }

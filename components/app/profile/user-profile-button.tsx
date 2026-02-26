@@ -76,6 +76,7 @@ const BACKUP_KEYS = [
   "preferred-language",
   "skip-landing",
   "today-toast",
+  "toast-position",
 ]
 
 async function apiGet() {

@@ -485,5 +485,12 @@
   "deleteCloudConfirmDescription": "This action permanently deletes your encrypted cloud backup. Type DELETE CLOUD DATA to continue.",
   "confirmDeleteData": "Confirm delete data",
   "countdownIcon": "Icon",
-  "countdownSearchIcon": "Search icons"
+  "countdownSearchIcon": "Search icons",
+  "countdownAdded": "Countdown added",
+  "countdownUpdated": "Countdown updated",
+  "countdownDeleted": "Countdown deleted",
+  "toastPosition": "Toast position",
+  "toastPositionBottomLeft": "Bottom left",
+  "toastPositionBottomCenter": "Bottom center",
+  "toastPositionBottomRight": "Bottom right"
 }
