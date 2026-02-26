@@ -104,9 +104,16 @@ export default function WeekView({
   } | null>(null);
   const [dragEventDuration, setDragEventDuration] = useState<number>(0);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const suppressContextActionClickRef = useRef(false);
-  const lastContextMenuActionAtRef = useRef(0);
+  const ignoreNextEventClickRef = useRef(false);
   const isDraggingRef = useRef(false);
+
+  const queueIgnoreEventClick = () => {
+    ignoreNextEventClickRef.current = true;
+    window.setTimeout(() => {
+      ignoreNextEventClickRef.current = false;
+    }, 0);
+  };
+
 
   const [createSelection, setCreateSelection] = useState<{
     dayIndex: number;
@@ -621,16 +628,18 @@ export default function WeekView({
             onMouseDown={(e) => handleEventDragStart(event, e)}
             onMouseUp={handleEventDragEnd}
             onMouseLeave={handleEventDragEnd}
-            onContextMenu={() => {
-              lastContextMenuActionAtRef.current = Date.now();
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
             }}
             onClick={(e) => {
               e.stopPropagation();
-              if (Date.now() - lastContextMenuActionAtRef.current < 400) return;
-              if (!isDraggingRef.current && !suppressContextActionClickRef.current) {
+              if (ignoreNextEventClickRef.current) return;
+              if (!isDraggingRef.current) {
                 onEventClick(event);
               }
-              suppressContextActionClickRef.current = false;
+              
             }}
           >
             <div
@@ -647,20 +656,20 @@ export default function WeekView({
         </ContextMenuTrigger>
 
         <ContextMenuContent className="w-40">
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onEditEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
             <Edit3 className="mr-2 h-4 w-4" />
             {menuLabels.edit}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onShareEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
             <Share2 className="mr-2 h-4 w-4" />
             {menuLabels.share}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onBookmarkEvent?.(event); }}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}>
             <Bookmark className="mr-2 h-4 w-4" />
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onDeleteEvent?.(event); }}
+            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -900,22 +909,22 @@ export default function WeekView({
                       </ContextMenuTrigger>
 
                       <ContextMenuContent className="w-40">
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onEditEvent?.(event); }}>
+                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
                           <Edit3 className="mr-2 h-4 w-4" />
                           {menuLabels.edit}
                         </ContextMenuItem>
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onShareEvent?.(event); }}>
+                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
                           <Share2 className="mr-2 h-4 w-4" />
                           {menuLabels.share}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onBookmarkEvent?.(event); }}
+                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}
                         >
                           <Bookmark className="mr-2 h-4 w-4" />
                           {menuLabels.bookmark}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressContextActionClickRef.current = true; lastContextMenuActionAtRef.current = Date.now(); onDeleteEvent?.(event); }}
+                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
                           className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
