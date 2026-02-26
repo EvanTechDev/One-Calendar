@@ -540,23 +540,20 @@ export default function UserProfileButton({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end">
-            {isAnySignedIn ? (
-              <>
-                <DropdownMenuItem onClick={() => onNavigateToView?.("settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  {t.settings}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
-                  <BarChart2 className="mr-2 h-4 w-4" />
-                  {t.analytics}
-                </DropdownMenuItem>
-              </>
-            ) : (
+            <DropdownMenuItem onClick={() => onNavigateToView?.("settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              {t.settings}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
+              <BarChart2 className="mr-2 h-4 w-4" />
+              {t.analytics}
+            </DropdownMenuItem>
+            {!isAnySignedIn ? (
               <>
                 <DropdownMenuItem onClick={() => router.push("/sign-in")}>{t.signIn}</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/sign-up")}>{t.signUp}</DropdownMenuItem>
               </>
-            )}
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (

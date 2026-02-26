@@ -492,5 +492,6 @@
   "toastPosition": "通知位置",
   "toastPositionBottomLeft": "左下",
   "toastPositionBottomCenter": "中下",
-  "toastPositionBottomRight": "右下"
+  "toastPositionBottomRight": "右下",
+  "countdownDaysAgo": "天前"
 }

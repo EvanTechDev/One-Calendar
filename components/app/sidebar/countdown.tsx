@@ -160,11 +160,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     today.setHours(0, 0, 0, 0);
 
     const targetDate = parseDateString(dateStr);
-    let nextDate = new Date(
-      today.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-    );
+
+    const daysInMonth = (year: number, monthIndex: number) =>
+      new Date(year, monthIndex + 1, 0).getDate();
+
+    const buildClampedDate = (year: number, monthIndex: number, day: number) => {
+      const clampedDay = Math.min(day, daysInMonth(year, monthIndex));
+      return new Date(year, monthIndex, clampedDay);
+    };
+
+    let nextDate = new Date(targetDate);
 
     if (repeat === "weekly") {
       const targetDay = targetDate.getDay();
@@ -173,19 +178,23 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       nextDate = new Date(today);
       nextDate.setDate(today.getDate() + daysToAdd);
     } else if (repeat === "monthly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        targetDate.getDate(),
-      );
-      if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate = buildClampedDate(today.getFullYear(), today.getMonth(), targetDate.getDate());
+      if (nextDate < today) {
+        const nextMonth = today.getMonth() + 1;
+        const year = today.getFullYear() + Math.floor(nextMonth / 12);
+        const month = nextMonth % 12;
+        nextDate = buildClampedDate(year, month, targetDate.getDate());
+      }
     } else if (repeat === "yearly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      );
-      if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
+      nextDate = buildClampedDate(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      if (nextDate < today) {
+        nextDate = buildClampedDate(today.getFullYear() + 1, targetDate.getMonth(), targetDate.getDate());
+      }
+    }
+
+    if (repeat === "none") {
+      const diffTime = targetDate.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
     const diffTime = nextDate.getTime() - today.getTime();
@@ -351,7 +360,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           {Math.abs(daysLeft)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {t.countdownDaysLeft}
+                          {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
                         </div>
                       </div>
                     </div>
@@ -399,7 +408,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               <div
                 className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}
               >
-                {Math.abs(daysLeft)} {t.countdownDaysLeft}
+                {Math.abs(daysLeft)} {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
               </div>
             </div>
           </div>
@@ -539,13 +548,13 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   onChange={(e) => setIconSearch(e.target.value)}
                   className="mb-2"
                 />
-                <ScrollArea className="h-56">
-                  <div className="grid grid-cols-5 gap-2">
+                <ScrollArea className="h-52">
+                  <div className="grid grid-cols-8 gap-1">
                     {filteredIcons.map((iconName) => (
                       <div
                         key={iconName}
                         className={cn(
-                          "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent",
+                          "h-7 w-7 flex items-center justify-center rounded-sm cursor-pointer hover:bg-accent",
                           newCountdown.icon === iconName && "ring-2 ring-primary bg-accent/60",
                         )}
                         onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
