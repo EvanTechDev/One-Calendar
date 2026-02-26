@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   User,
   LogOut,
@@ -47,14 +47,21 @@ import { useCalendar } from "@/components/providers/calendar-context"
 import { translations, useLanguage } from "@/lib/i18n"
 import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
-import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
+import { decryptPayload } from "@/lib/crypto"
+import {
+  clearDeviceTrust,
+  createInitialE2EEState,
+  decryptBackupWithDataKey,
+  encryptBackupWithDataKey,
+  hasTrustedDeviceRecord,
+  rotateRecoveryKey,
+  unlockDataKeyWithRecoveryKey,
+  type CloudKeyRecord,
+} from "@/lib/e2ee-client"
 import {
   clearEncryptionPassword,
-  encryptSnapshots,
   markEncryptedSnapshot,
-  persistEncryptedSnapshots,
   readEncryptedLocalStorage,
-  setEncryptionPassword,
 } from "@/hooks/useLocalStorage"
 
 const AUTO_KEY = "auto-backup-enabled"
@@ -75,7 +82,14 @@ const BACKUP_KEYS = [
   "today-toast",
 ]
 
-async function apiGet() {
+type CloudBackupRecord = {
+  ciphertext: string
+  iv: string
+  wrappedDataKey?: string | null
+  keyVersion?: number
+}
+
+async function apiGet(): Promise<CloudBackupRecord | null> {
   const r = await fetch("/api/blob")
   if (r.status === 404) return null
   if (!r.ok) throw new Error()
@@ -110,58 +124,6 @@ function applyLocalStorage(storage: Record<string, string>) {
     localStorage.setItem(key, value)
     markEncryptedSnapshot(key, value)
   })
-}
-
-async function encryptLocalStorage(password: string) {
-  BACKUP_KEYS.forEach((key) => {
-    const value = localStorage.getItem(key)
-    if (value !== null) markEncryptedSnapshot(key, value)
-  })
-  await encryptSnapshots(password)
-  await persistEncryptedSnapshots()
-}
-
-async function decryptLocalStorage(password: string) {
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
-      try {
-        const parsed = JSON.parse(value)
-        if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(password, parsed.ciphertext, parsed.iv)
-          localStorage.setItem(key, plain)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
-        }
-      } catch {
-        markEncryptedSnapshot(key, value)
-      }
-    }),
-  )
-}
-
-async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
-      try {
-        const parsed = JSON.parse(value)
-        if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(oldPassword, parsed.ciphertext, parsed.iv)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
-        }
-      } catch {
-        markEncryptedSnapshot(key, value)
-      }
-    }),
-  )
-  await encryptSnapshots(newPassword)
-  await persistEncryptedSnapshots()
 }
 
 export type UserProfileSection = "profile" | "backup" | "key" | "delete" | "signout"
@@ -201,13 +163,16 @@ export default function UserProfileButton({
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
+  const [showRecoveryKey, setShowRecoveryKey] = useState(false)
+  const [latestRecoveryKey, setLatestRecoveryKey] = useState("")
+  const [recoveryConfirmed, setRecoveryConfirmed] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
   const [password, setPassword] = useState("")
-  const [confirm, setConfirm] = useState("")
   const [oldPassword, setOldPassword] = useState("")
   const [error, setError] = useState("")
+  const [dataKey, setDataKey] = useState<CryptoKey | null>(null)
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -215,7 +180,6 @@ export default function UserProfileButton({
   const [profileSaving, setProfileSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
 
-  const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
 
@@ -248,6 +212,15 @@ export default function UserProfileButton({
   }, [])
 
   useEffect(() => {
+    if (!isAnySignedIn || mode === "settings") return
+    hasTrustedDeviceRecord().then((trusted) => {
+      if (!trusted) {
+        setUnlockOpen(true)
+      }
+    })
+  }, [isAnySignedIn, mode])
+
+  useEffect(() => {
     if (!user) return
     setFirstName(user.firstName || "")
     setLastName(user.lastName || "")
@@ -255,25 +228,34 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (mode === "settings") return
-    if (!isAnySignedIn || keyRef.current || restoredRef.current) return
+    if (!isAnySignedIn || restoredRef.current) return
     apiGet().then((cloud) => {
       if (cloud) setUnlockOpen(true)
     })
   }, [isAnySignedIn, mode])
 
   useEffect(() => {
-    if (!enabled || !keyRef.current || !restoredRef.current) return
+    if (!enabled || !dataKey || !restoredRef.current) return
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const payload = await encryptPayload(
-        keyRef.current!,
-        JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
-      )
+      const payload = await encryptBackupWithDataKey(dataKey, { v: BACKUP_VERSION, storage: collectLocalStorage() })
       await apiPost(payload)
       timerRef.current = null
     }, 800)
-  }, [events, calendars, enabled])
+  }, [events, calendars, enabled, dataKey])
+
+  async function bootstrapE2EE() {
+    const e2ee = await createInitialE2EEState()
+    setLatestRecoveryKey(e2ee.recoveryKey)
+    setShowRecoveryKey(true)
+    setDataKey(e2ee.dataKey)
+    restoredRef.current = true
+    localStorage.setItem(AUTO_KEY, "true")
+    setEnabled(true)
+    const payload = await encryptBackupWithDataKey(e2ee.dataKey, { v: BACKUP_VERSION, storage: collectLocalStorage() })
+    await apiPost({ ...payload, wrappedDataKey: e2ee.cloudRecord.wrappedDataKey, keyVersion: e2ee.cloudRecord.keyVersion })
+  }
 
   async function saveProfile() {
     if (!user) return
@@ -384,12 +366,30 @@ export default function UserProfileButton({
       const cloud = await apiGet()
       if (!cloud) return
 
-      let plain
-      try {
-        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
-      } catch {
-        toast(t.incorrectPassword)
-        return
+      let nextDataKey: CryptoKey | null = null
+      let plain = ""
+
+      if (cloud.wrappedDataKey) {
+        try {
+          nextDataKey = await unlockDataKeyWithRecoveryKey(password, {
+            wrappedDataKey: cloud.wrappedDataKey,
+            keyVersion: cloud.keyVersion ?? 1,
+            algorithm: "AES-GCM-256",
+            wrappedBy: "recovery-key",
+          } satisfies CloudKeyRecord)
+          const decoded = await decryptBackupWithDataKey(nextDataKey, cloud.ciphertext, cloud.iv)
+          plain = JSON.stringify(decoded)
+        } catch {
+          toast("Recovery key is incorrect")
+          return
+        }
+      } else {
+        try {
+          plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
+        } catch {
+          toast(t.incorrectPassword)
+          return
+        }
       }
 
       try {
@@ -402,14 +402,13 @@ export default function UserProfileButton({
           if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
           applyLocalStorage(fallbackStorage)
         }
-        await setEncryptionPassword(password)
         const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
         const restoredCalendars = await readEncryptedLocalStorage("calendar-categories", [])
         setEvents(restoredEvents)
         setCalendars(restoredCalendars)
       } catch {}
 
-      keyRef.current = password
+      if (nextDataKey) setDataKey(nextDataKey)
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
@@ -417,66 +416,61 @@ export default function UserProfileButton({
       setPassword("")
       setUnlockOpen(false)
       toast(t.dataRestoredAutoBackupEnabled)
+
+      if (!cloud.wrappedDataKey) {
+        await bootstrapE2EE()
+      }
     } finally {
       setIsUnlocking(false)
     }
   }
 
   async function enable() {
-    if (password !== confirm) {
-      setError(t.passwordsDoNotMatch)
+    if (!recoveryConfirmed) {
+      setError("Please confirm you have saved the recovery key.")
       return
     }
-    await setEncryptionPassword(password)
-    await encryptLocalStorage(password)
-    const payload = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
-    await apiPost(payload)
-    localStorage.setItem(AUTO_KEY, "true")
-    keyRef.current = password
-    restoredRef.current = true
-    setEnabled(true)
+    await bootstrapE2EE()
     setPassword("")
-    setConfirm("")
+    setRecoveryConfirmed(false)
     setSetPwdOpen(false)
-    toast(t.autoBackupEnabled)
+    toast("End-to-end encryption enabled")
   }
 
   async function rotate() {
-    if (password !== confirm) {
-      setError(t.passwordsDoNotMatch)
-      return
-    }
     const cloud = await apiGet()
-    if (!cloud) return
+    if (!cloud || !cloud.wrappedDataKey) return
 
     try {
-      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
+      const rotated = await rotateRecoveryKey(oldPassword, {
+        wrappedDataKey: cloud.wrappedDataKey,
+        keyVersion: cloud.keyVersion ?? 1,
+        algorithm: "AES-GCM-256",
+        wrappedBy: "recovery-key",
+      })
+
+      setLatestRecoveryKey(rotated.recoveryKey)
+      setShowRecoveryKey(true)
+      setDataKey(rotated.dataKey)
+      const nextPayload = await encryptBackupWithDataKey(rotated.dataKey, { v: BACKUP_VERSION, storage: collectLocalStorage() })
+      await apiPost({ ...nextPayload, wrappedDataKey: rotated.cloudRecord.wrappedDataKey, keyVersion: rotated.cloudRecord.keyVersion })
     } catch {
       toast(t.incorrectOldPassword)
       return
     }
 
-    await reencryptLocalStorage(oldPassword, password)
-    const next = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
-    await apiPost(next)
-    await setEncryptionPassword(password)
-    keyRef.current = password
     setRotateOpen(false)
     setOldPassword("")
     setPassword("")
-    setConfirm("")
-    toast(t.encryptionKeyUpdated)
+    toast("Recovery key updated")
   }
 
   function disableAutoBackup() {
-    const currentPassword = keyRef.current
     localStorage.removeItem(AUTO_KEY)
-    keyRef.current = null
     restoredRef.current = false
+    setDataKey(null)
     setEnabled(false)
-    if (currentPassword) {
-      void decryptLocalStorage(currentPassword)
-    }
+    void clearDeviceTrust()
     clearEncryptionPassword()
     toast(t.autoBackupDisabled)
   }
@@ -484,9 +478,10 @@ export default function UserProfileButton({
   async function destroy() {
     await apiDelete()
     localStorage.removeItem(AUTO_KEY)
-    keyRef.current = null
     restoredRef.current = false
+    setDataKey(null)
     setEnabled(false)
+    await clearDeviceTrust()
     toast(t.cloudDataDeleted)
   }
 
@@ -892,13 +887,13 @@ export default function UserProfileButton({
       <Dialog open={setPwdOpen} onOpenChange={setSetPwdOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t.setEncryptionPassword}</DialogTitle>
-            <DialogDescription>{t.setEncryptionPasswordDescription}</DialogDescription>
+            <DialogTitle>Enable end-to-end encryption</DialogTitle>
+            <DialogDescription>A recovery key will be generated automatically. Save it before continuing.</DialogDescription>
           </DialogHeader>
-          <Label>{t.password}</Label>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Label>{t.confirmPassword}</Label>
-          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={recoveryConfirmed} onChange={(e) => setRecoveryConfirmed(e.target.checked)} className="mt-1" />
+            I understand I must save my recovery key to decrypt data on new devices.
+          </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
             <Button onClick={enable}>{t.confirm}</Button>
@@ -929,17 +924,27 @@ export default function UserProfileButton({
       </Dialog>
 
 
+      <Dialog open={showRecoveryKey} onOpenChange={setShowRecoveryKey}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Your new recovery key</DialogTitle>
+            <DialogDescription>Store this key securely. It is the only way to recover encrypted data.</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border bg-muted p-3 text-sm font-mono break-all">{latestRecoveryKey}</div>
+          <DialogFooter>
+            <Button onClick={() => setShowRecoveryKey(false)}>I saved it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t.changeEncryptionKey}</DialogTitle>
+            <DialogDescription>Enter your current recovery key to rotate to a new one.</DialogDescription>
           </DialogHeader>
           <Label>{t.oldPassword}</Label>
           <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
-          <Label>{t.newPassword}</Label>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Label>{t.confirmNewPassword}</Label>
-          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
             <Button onClick={rotate}>{t.confirmChange}</Button>
