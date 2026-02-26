@@ -61,6 +61,8 @@ export default function Sidebar({
 
   const {
     calendars,
+    events,
+    setEvents,
     addCategory: addCategoryToContext,
     removeCategory: removeCategoryFromContext,
     updateCategory: updateCategoryInContext,
@@ -73,6 +75,7 @@ export default function Sidebar({
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
+  const [deleteCategoryEvents, setDeleteCategoryEvents] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [editingCategoryName, setEditingCategoryName] = useState("")
@@ -122,6 +125,7 @@ export default function Sidebar({
 
   const handleDeleteClick = (id: string) => {
     setCategoryToDelete(id)
+    setDeleteCategoryEvents(false)
     setDeleteDialogOpen(true)
   }
 
@@ -147,13 +151,17 @@ export default function Sidebar({
 
   const confirmDelete = () => {
   if (categoryToDelete) {
+    if (deleteCategoryEvents) {
+      setEvents(events.filter((event) => event.calendarId !== categoryToDelete))
+    }
     removeCategoryFromContext(categoryToDelete)
     toast(deleteText.toastSuccess, {
-      description: deleteText.toastDescription,
+      description: deleteCategoryEvents ? t.categoryDeletedWithEvents : deleteText.toastDescription,
     })
   }
   setDeleteDialogOpen(false)
   setCategoryToDelete(null)
+  setDeleteCategoryEvents(false)
 }
 
   return (
@@ -272,6 +280,14 @@ export default function Sidebar({
             <DialogTitle>{deleteText.title}</DialogTitle>
             <DialogDescription>
               {deleteText.description}
+              <div className="mt-3 flex items-center space-x-2">
+                <Checkbox
+                  id="delete-category-events"
+                  checked={deleteCategoryEvents}
+                  onCheckedChange={(checked) => setDeleteCategoryEvents(checked === true)}
+                />
+                <Label htmlFor="delete-category-events">{t.deleteCategoryEvents}</Label>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

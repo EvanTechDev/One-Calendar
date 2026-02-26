@@ -493,5 +493,8 @@
   "toastPositionBottomLeft": "左下",
   "toastPositionBottomCenter": "中下",
   "toastPositionBottomRight": "右下",
-  "countdownDaysAgo": "天前"
+  "countdownDaysAgo": "天前",
+  "deleteCategoryEvents": "同时删除此分类下的全部日程",
+  "categoryDeletedWithEvents": "分类及其全部日程已删除",
+  "importToCalendarCategory": "导入到日历分类"
 }

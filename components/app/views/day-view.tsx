@@ -2,12 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { Edit3, Share2, Bookmark, Trash2 } from "lucide-react";
 import {
   format,
@@ -20,6 +14,11 @@ import {
 import { cn } from "@/lib/utils";
 import type { CalendarEvent } from "../calendar";
 import { translations, type Language } from "@/lib/i18n";
+
+const ContextMenu = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+const ContextMenuTrigger = ({ children }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>;
+const ContextMenuContent = () => null;
+const ContextMenuItem = (_props: any) => null;
 
 interface DayViewProps {
   date: Date;

@@ -493,5 +493,8 @@
   "toastPositionBottomLeft": "Bottom left",
   "toastPositionBottomCenter": "Bottom center",
   "toastPositionBottomRight": "Bottom right",
-  "countdownDaysAgo": "days ago"
+  "countdownDaysAgo": "days ago",
+  "deleteCategoryEvents": "Delete all events under this category as well",
+  "categoryDeletedWithEvents": "Category and all its events were deleted",
+  "importToCalendarCategory": "Import into calendar category"
 }
