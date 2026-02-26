@@ -461,152 +461,163 @@ export default function EventPreview({
   return (
     <>
       {!shareOnlyMode && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => onOpenChange(false)}>
-      <div
-        className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-5">
-          <div className="w-24"></div>
-          <div className="flex space-x-2 ml-auto">
-            <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
-              <Edit2 className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!isSignedIn && !atprotoSignedIn) {
-                  toast.error(t.shareSignInRequiredTitle, {
-                    description: t.shareSignInRequiredDescription,
-                  });
-                  return;
-                }
-                handleShareDialogChange(true);
-              }}
-              className="h-8 w-8"
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
-              <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
-              <Trash2 className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="px-5 pb-5 flex">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => onOpenChange(false)}
+        >
           <div
-  className="w-2 self-stretch rounded-full mr-4"
-  style={{ backgroundColor: colorMapping[event.color] }}
-/>
-
-          <div className="flex-1">
-            <h2
-              className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-              }}
-            >
-              {event.title}
-            </h2>
-            <p className="text-muted-foreground">{formatDateRange()}</p>
-          </div>
-        </div>
-
-        <div className="px-5 pb-5 space-y-4">
-          {event.location && event.location.trim() !== "" && (
-            <div className="flex items-start">
-              <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p>{event.location}</p>
+            className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-5">
+              <div className="w-24" />
+              <div className="flex space-x-2 ml-auto">
+                <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
+                  <Edit2 className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isSignedIn && !atprotoSignedIn) {
+                      toast.error(t.shareSignInRequiredTitle, {
+                        description: t.shareSignInRequiredDescription,
+                      });
+                      return;
+                    }
+                    handleShareDialogChange(true);
+                  }}
+                  className="h-8 w-8"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
+                  <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             </div>
-          )}
 
-          {hasParticipants && (
-            <div className="flex items-start">
-              <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
-                  <p>
-                    {event.participants.filter((p) => p.trim() !== "").length}{" "}
-                    {isZh ? "参与者" : "participants"}
-                  </p>
-                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", participantsOpen ? "transform rotate-180" : "")} />
-                </div>
-                {participantsOpen && (
-                  <div className="mt-2 space-y-2">
-                    {event.participants
-                      .filter((p) => p.trim() !== "")
-                      .map((participant, index) => (
-                        <div key={index} className="flex items-center">
-                          <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
-                            <span className="font-medium">{getInitials(participant)}</span>
-                          </div>
-                          <p>{participant}</p>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            <div className="px-5 pb-5 flex">
+              <div className="w-2 self-stretch rounded-full mr-4" style={{ backgroundColor: colorMapping[event.color] }} />
 
-          {getCalendarName() && (
-            <div className="flex items-start">
-              <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <p>{getCalendarName()}</p>
-              </div>
-            </div>
-          )}
-
-          {event.notification > 0 && (
-            <div className="flex items-start">
-              <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p>{formatNotificationTime()}</p>
-                <p className="text-sm text-muted-foreground">
-                  {isZh ? `${event.notification} 分钟前 按电子邮件` : `${event.notification} minutes before by email`}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {event.description && event.description.trim() !== "" && (
-            <div className="flex items-start">
-              <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p
-                  className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                <h2
+                  className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
                   style={{
                     display: "-webkit-box",
-                    WebkitLineClamp: 4,
+                    WebkitLineClamp: 2,
                     WebkitBoxOrient: "vertical",
                   }}
                 >
-                  {event.description}
-                </p>
+                  {event.title}
+                </h2>
+                <p className="text-muted-foreground">{formatDateRange()}</p>
               </div>
             </div>
-          )}
+
+            <div className="px-5 pb-5 space-y-4">
+              {event.location && event.location.trim() !== "" && (
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{event.location}</p>
+                  </div>
+                </div>
+              )}
+
+              {hasParticipants && (
+                <div className="flex items-start">
+                  <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
+                      <p>
+                        {event.participants.filter((p) => p.trim() !== "").length}{" "}
+                        {isZh ? "参与者" : "participants"}
+                      </p>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          participantsOpen ? "transform rotate-180" : "",
+                        )}
+                      />
+                    </div>
+                    {participantsOpen && (
+                      <div className="mt-2 space-y-2">
+                        {event.participants
+                          .filter((p) => p.trim() !== "")
+                          .map((participant, index) => (
+                            <div key={index} className="flex items-center">
+                              <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
+                                <span className="font-medium">{getInitials(participant)}</span>
+                              </div>
+                              <p>{participant}</p>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {getCalendarName() && (
+                <div className="flex items-start">
+                  <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{getCalendarName()}</p>
+                  </div>
+                </div>
+              )}
+
+              {event.notification > 0 && (
+                <div className="flex items-start">
+                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{formatNotificationTime()}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isZh
+                        ? `${event.notification} 分钟前 按电子邮件`
+                        : `${event.notification} minutes before by email`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {event.description && event.description.trim() !== "" && (
+                <div className="flex items-start">
+                  <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p
+                      className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {event.description}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
       )}
 
-      <Dialog open={shareDialogOpen} onOpenChange={(nextOpen) => {
-        handleShareDialogChange(nextOpen);
-        if (!nextOpen && shareOnlyMode) onOpenChange(false);
-      }}>
+      <Dialog
+        open={shareDialogOpen}
+        onOpenChange={(nextOpen) => {
+          handleShareDialogChange(nextOpen);
+          if (!nextOpen && shareOnlyMode) onOpenChange(false);
+        }}
+      >
         <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
             <DialogTitle>{t.shareEvent}</DialogTitle>
