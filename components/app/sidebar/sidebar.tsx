@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Edit2 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -59,7 +59,13 @@ export default function Sidebar({
   onCollapseTransitionEnd,
 }: SidebarProps) {
 
-  const { calendars, addCategory: addCategoryToContext, removeCategory: removeCategoryFromContext } = useCalendar()
+  const {
+    calendars,
+    setEvents,
+    addCategory: addCategoryToContext,
+    removeCategory: removeCategoryFromContext,
+    updateCategory: updateCategoryInContext,
+  } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState("")
   const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500")
@@ -68,6 +74,10 @@ export default function Sidebar({
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [editingCategoryName, setEditingCategoryName] = useState("")
+  const [editingCategoryColor, setEditingCategoryColor] = useState("bg-blue-500")
   const t = translations[language || "zh-CN"]
   const weekdayNames = t.sidebarCalendarWeekdaysShort
   const monthNames = t.sidebarCalendarMonthsLong
@@ -114,6 +124,34 @@ export default function Sidebar({
   const handleDeleteClick = (id: string) => {
     setCategoryToDelete(id)
     setDeleteDialogOpen(true)
+  }
+
+  const handleEditClick = (id: string) => {
+    const category = calendars.find((calendar) => calendar.id === id)
+    if (!category) return
+    setEditingCategoryId(id)
+    setEditingCategoryName(category.name)
+    setEditingCategoryColor(category.color)
+    setEditDialogOpen(true)
+  }
+
+  const saveCategoryEdit = () => {
+    if (!editingCategoryId || !editingCategoryName.trim()) return
+    updateCategoryInContext(editingCategoryId, {
+      name: editingCategoryName.trim(),
+      color: editingCategoryColor,
+    })
+    setEvents((prevEvents) =>
+      prevEvents.map((event) =>
+        event.calendarId === editingCategoryId
+          ? { ...event, color: editingCategoryColor }
+          : event,
+      ),
+    )
+
+    setEditDialogOpen(false)
+    setEditingCategoryId(null)
+    toast(t.categoryUpdated || "分类已更新")
   }
 
   const confirmDelete = () => {
@@ -191,9 +229,14 @@ export default function Sidebar({
                 />
                 <span className="text-sm">{calendar.name}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center">
+                <Button variant="ghost" size="sm" onClick={() => handleEditClick(calendar.id)}>
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(calendar.id)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
           {calendars.length > 0 && (
@@ -289,6 +332,45 @@ export default function Sidebar({
               <Plus className="mr-2 h-4 w-4" />
               {t.addCategory}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.editCategory}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-name">{t.categoryName}</Label>
+              <Input
+                id="edit-category-name"
+                value={editingCategoryName}
+                onChange={(e) => setEditingCategoryName(e.target.value)}
+                placeholder={t.categoryName}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t.color}</Label>
+              <div className="flex flex-wrap gap-2">
+                {CALENDAR_COLOR_OPTIONS.map((option) => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      option.value,
+                      "w-6 h-6 rounded-full cursor-pointer",
+                      editingCategoryColor === option.value ? "ring-2 ring-offset-2 ring-black" : "",
+                    )}
+                    onClick={() => setEditingCategoryColor(option.value)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>{t.cancel}</Button>
+            <Button onClick={saveCategoryEdit} disabled={!editingCategoryName.trim()}>{t.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

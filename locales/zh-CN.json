@@ -478,5 +478,12 @@
     "十一月",
     "十二月"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}"
+  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}",
+  "editCategory": "编辑分类",
+  "categoryUpdated": "分类已更新",
+  "deleteCloudConfirmTitle": "删除云端备份数据",
+  "deleteCloudConfirmDescription": "此操作会永久删除你的加密云端备份。请输入 DELETE CLOUD DATA 以继续。",
+  "confirmDeleteData": "确认删除数据",
+  "countdownIcon": "图标",
+  "countdownSearchIcon": "搜索图标"
 }

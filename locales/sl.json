@@ -478,5 +478,12 @@
     "november",
     "december"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "This action permanently deletes your encrypted cloud backup. Type DELETE CLOUD DATA to continue.",
+  "confirmDeleteData": "Confirm delete data",
+  "countdownIcon": "Icon",
+  "countdownSearchIcon": "Search icons"
 }

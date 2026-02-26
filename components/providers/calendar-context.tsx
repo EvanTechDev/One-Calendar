@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { createContext, useContext } from "react";
+import { createContext, useContext, type Dispatch, type SetStateAction } from "react";
 import type React from "react";
 
 export interface CalendarCategory {
@@ -28,9 +28,9 @@ export interface CalendarEvent {
 
 interface CalendarContextType {
   calendars: CalendarCategory[];
-  setCalendars: (calendars: CalendarCategory[]) => void;
+  setCalendars: Dispatch<SetStateAction<CalendarCategory[]>>;
   events: CalendarEvent[];
-  setEvents: (events: CalendarEvent[]) => void;
+  setEvents: Dispatch<SetStateAction<CalendarEvent[]>>;
   addCategory: (category: CalendarCategory) => void;
   removeCategory: (id: string) => void;
   updateCategory: (id: string, category: Partial<CalendarCategory>) => void;

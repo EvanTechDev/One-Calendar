@@ -478,5 +478,12 @@
     "Tháng 11",
     "Tháng 12"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} năm {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} năm {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "This action permanently deletes your encrypted cloud backup. Type DELETE CLOUD DATA to continue.",
+  "confirmDeleteData": "Confirm delete data",
+  "countdownIcon": "Icon",
+  "countdownSearchIcon": "Search icons"
 }

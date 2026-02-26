@@ -532,20 +532,20 @@ export default function DayView({
         </ContextMenuTrigger>
 
         <ContextMenuContent className="w-40">
-          <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onEditEvent?.(event); }}>
             <Edit3 className="mr-2 h-4 w-4" />
             {menuLabels.edit}
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onShareEvent?.(event); }}>
             <Share2 className="mr-2 h-4 w-4" />
             {menuLabels.share}
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+          <ContextMenuItem onSelect={(e) => { e.preventDefault(); onBookmarkEvent?.(event); }}>
             <Bookmark className="mr-2 h-4 w-4" />
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onClick={() => onDeleteEvent?.(event)}
+            onSelect={(e) => { e.preventDefault(); onDeleteEvent?.(event); }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -767,20 +767,20 @@ export default function DayView({
                 </ContextMenuTrigger>
 
                 <ContextMenuContent className="w-40">
-                  <ContextMenuItem onClick={() => onEditEvent?.(event)}>
+                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); onEditEvent?.(event); }}>
                     <Edit3 className="mr-2 h-4 w-4" />
                     {menuLabels.edit}
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => onShareEvent?.(event)}>
+                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); onShareEvent?.(event); }}>
                     <Share2 className="mr-2 h-4 w-4" />
                     {menuLabels.share}
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => onBookmarkEvent?.(event)}>
+                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); onBookmarkEvent?.(event); }}>
                     <Bookmark className="mr-2 h-4 w-4" />
                     {menuLabels.bookmark}
                   </ContextMenuItem>
                   <ContextMenuItem
-                    onClick={() => onDeleteEvent?.(event)}
+                    onSelect={(e) => { e.preventDefault(); onDeleteEvent?.(event); }}
                     className="text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />

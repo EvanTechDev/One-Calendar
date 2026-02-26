@@ -18,6 +18,7 @@ export default function Home() {
   const [hasSessionCookie, setHasSessionCookie] = useState(hasClerkSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
+  const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
     const waitTimer = window.setTimeout(() => {
@@ -43,10 +44,45 @@ export default function Home() {
       .finally(() => setAtprotoLogoutDone(true))
   }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
+
+
+  useEffect(() => {
+    if (!isLoaded) return
+
+    if (!isSignedIn) {
+      setDbReady(true)
+      return
+    }
+
+    let active = true
+    const checkDbDataReady = async () => {
+      try {
+        const response = await fetch("/api/blob", { cache: "no-store" })
+        if (!active) return
+        if (response.status === 200 || response.status === 404) {
+          setDbReady(true)
+          return
+        }
+        setDbReady(false)
+      } catch {
+        if (active) {
+          setDbReady(false)
+        }
+      }
+    }
+
+    void checkDbDataReady()
+    return () => {
+      active = false
+    }
+  }, [isLoaded, isSignedIn])
+
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
-    return hasSessionCookie && !isLoaded
-  }, [minimumWaitDone, hasSessionCookie, isLoaded])
+    if (hasSessionCookie && !isLoaded) return true
+    if (isSignedIn && !dbReady) return true
+    return false
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />

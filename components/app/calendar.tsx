@@ -140,6 +140,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [backupSyncStatus, setBackupSyncStatus] = useState<
     "uploading" | "failed" | "done" | null
   >(null);
+  const [shareOnlyMode, setShareOnlyMode] = useState(false);
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -390,6 +391,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   };
 
   const handleEventClick = (event: CalendarEvent) => {
+    setShareOnlyMode(false);
     setPreviewEvent(event);
     setPreviewOpen(true);
   };
@@ -434,6 +436,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     const deletedEvent = pendingDeleteEvent;
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
+    );
+    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((bookmarks) =>
+      writeEncryptedLocalStorage(
+        "bookmarked-events",
+        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+      ),
     );
     setEventDialogOpen(false);
     setSelectedEvent(null);
@@ -523,8 +531,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   };
 
-  const handleShare = (event: CalendarEvent) => {
+  const handleShare = (event: CalendarEvent, shareOnly = false) => {
+    setShareOnlyMode(shareOnly);
     setPreviewEvent(event);
+    setOpenShareImmediately(true);
     setPreviewOpen(true);
   };
 
@@ -769,9 +779,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -798,9 +806,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -827,9 +833,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -925,6 +929,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           language={language}
           timezone={timezone}
           openShareImmediately={openShareImmediately}
+          shareOnlyMode={shareOnlyMode}
         />
 
         <EventDialog

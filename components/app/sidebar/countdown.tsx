@@ -2,7 +2,7 @@
 
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -35,6 +35,7 @@ import {
   Clock,
   Search,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -49,6 +50,7 @@ interface Countdown {
   repeat: "none" | "weekly" | "monthly" | "yearly";
   description?: string;
   color: string;
+  icon?: string;
 }
 
 interface CountdownToolProps {
@@ -74,6 +76,27 @@ const parseDateString = (dateStr: string) => {
   return new Date(year, month - 1, day);
 };
 
+
+const TEXT_COLOR_MAP: Record<string, string> = {
+  "bg-red-500": "#ef4444",
+  "bg-blue-500": "#3b82f6",
+  "bg-green-500": "#22c55e",
+  "bg-yellow-500": "#eab308",
+  "bg-purple-500": "#a855f7",
+  "bg-pink-500": "#ec4899",
+  "bg-indigo-500": "#6366f1",
+  "bg-orange-500": "#f97316",
+};
+
+const allIconNames = Object.entries(LucideIcons)
+  .filter(([name, value]) => {
+    if (!/^[A-Z]/.test(name)) return false;
+    if (name.endsWith("Icon")) return false;
+    return typeof value === "function";
+  })
+  .map(([name]) => name)
+  .sort((a, b) => a.localeCompare(b));
+
 const toDateString = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -91,6 +114,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   );
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
     color: "bg-blue-500",
+    icon: "Clock",
   });
   const [view, setView] = useState<"list" | "detail" | "edit">("list");
   const [language] = useLanguage();
@@ -101,6 +125,21 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     new Date(),
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
+
+  const filteredIcons = useMemo(() => {
+    const keyword = iconSearch.trim().toLowerCase();
+    const target = keyword
+      ? allIconNames.filter((name) => name.toLowerCase().includes(keyword))
+      : allIconNames;
+    return target.slice(0, 200);
+  }, [iconSearch]);
+
+  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 18) => {
+    const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
+    const IconComponent = (LucideIcons as Record<string, any>)[iconName || "Clock"] ?? LucideIcons.Clock;
+    return <IconComponent size={size} style={{ color: iconColor }} />;
+  };
 
   const formatDate = (dateStr: string) => {
     const date = parseDateString(dateStr);
@@ -180,6 +219,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       repeat: "none",
       description: "",
       color: "bg-blue-500",
+      icon: "Clock",
     });
     setSelectedDate(today);
     setSelectedCountdown(null);
@@ -212,6 +252,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       repeat: newCountdown.repeat || "none",
       description: newCountdown.description || "",
       color: newCountdown.color,
+      icon: newCountdown.icon || "Clock",
     };
 
     if (selectedCountdown) {
@@ -224,7 +265,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
     setView("list");
     setSelectedCountdown(null);
-    setNewCountdown({ color: "bg-blue-500" });
+    setNewCountdown({ color: "bg-blue-500", icon: "Clock" });
     setSelectedDate(new Date());
   };
 
@@ -294,10 +335,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       onClick={() => viewCountdownDetail(countdown)}
                     >
                       <Avatar className="h-12 w-12 mr-3">
-                        <AvatarFallback className={countdown.color}>
-                          <span className="text-white font-semibold">
-                            {countdown.name.charAt(0).toUpperCase()}
-                          </span>
+                        <AvatarFallback className="bg-transparent">
+                          {renderCountdownIcon(countdown.icon, countdown.color)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -353,10 +392,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         <div className="p-4">
           <div className="flex items-center mb-6">
             <Avatar className="h-16 w-16 mr-4">
-              <AvatarFallback className={selectedCountdown.color}>
-                <span className="text-white text-xl font-bold">
-                  {selectedCountdown.name.charAt(0).toUpperCase()}
-                </span>
+              <AvatarFallback className="bg-transparent">
+                {renderCountdownIcon(selectedCountdown.icon, selectedCountdown.color, 24)}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -485,6 +522,43 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+
+          <div className="space-y-2">
+            <Label>{t.countdownIcon}</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  {renderCountdownIcon(newCountdown.icon, newCountdown.color || "bg-blue-500")}
+                  <span>{newCountdown.icon || "Clock"}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[320px] p-3" align="start">
+                <Input
+                  placeholder={t.countdownSearchIcon}
+                  value={iconSearch}
+                  onChange={(e) => setIconSearch(e.target.value)}
+                  className="mb-2"
+                />
+                <ScrollArea className="h-56">
+                  <div className="grid grid-cols-5 gap-2">
+                    {filteredIcons.map((iconName) => (
+                      <Button
+                        key={iconName}
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className={cn(newCountdown.icon === iconName && "ring-2 ring-primary")}
+                        onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
+                      >
+                        {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 16)}
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">

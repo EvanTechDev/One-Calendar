@@ -48,6 +48,7 @@ interface EventPreviewProps {
   language: Language;
   timezone: string;
   openShareImmediately?: boolean;
+  shareOnlyMode?: boolean;
 }
 
 export default function EventPreview({
@@ -60,6 +61,7 @@ export default function EventPreview({
   language,
   timezone,
   openShareImmediately,
+  shareOnlyMode = false,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -151,7 +153,7 @@ export default function EventPreview({
     }
   }, [event, bookmarks]);
 
-  if (!event || !open) return null;
+  if (!event || (!open && !shareDialogOpen)) return null;
 
   const getCalendarName = () => {
     if (!event) return "";
@@ -457,6 +459,8 @@ export default function EventPreview({
   };
 
   return (
+    <>
+      {!shareOnlyMode && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => onOpenChange(false)}>
       <div
         className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
@@ -597,8 +601,12 @@ export default function EventPreview({
           )}
         </div>
       </div>
+      )}
 
-      <Dialog open={shareDialogOpen} onOpenChange={handleShareDialogChange}>
+      <Dialog open={shareDialogOpen} onOpenChange={(nextOpen) => {
+        handleShareDialogChange(nextOpen);
+        if (!nextOpen && shareOnlyMode) onOpenChange(false);
+      }}>
         <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
             <DialogTitle>{t.shareEvent}</DialogTitle>
@@ -762,6 +770,6 @@ export default function EventPreview({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

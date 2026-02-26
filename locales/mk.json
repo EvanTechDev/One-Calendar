@@ -478,5 +478,12 @@
     "ноември",
     "декември"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г."
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г.",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "This action permanently deletes your encrypted cloud backup. Type DELETE CLOUD DATA to continue.",
+  "confirmDeleteData": "Confirm delete data",
+  "countdownIcon": "Icon",
+  "countdownSearchIcon": "Search icons"
 }

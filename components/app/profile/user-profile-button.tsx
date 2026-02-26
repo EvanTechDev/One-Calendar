@@ -163,9 +163,11 @@ export default function UserProfileButton({
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [rotateOpen, setRotateOpen] = useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const [deleteCloudOpen, setDeleteCloudOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
+  const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
   const [password, setPassword] = useState("")
@@ -182,6 +184,7 @@ export default function UserProfileButton({
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
+  const [backupTick, setBackupTick] = useState(0)
 
   const broadcastBackupStatus = (status: "uploading" | "failed" | "done") => {
     localStorage.setItem(BACKUP_STATUS_KEY, status)
@@ -231,6 +234,24 @@ export default function UserProfileButton({
   }, [isAnySignedIn, mode])
 
   useEffect(() => {
+    const watchKeys = new Set(BACKUP_KEYS)
+    const handleLocalWrite = (event: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string }>
+      if (!customEvent.detail?.key || watchKeys.has(customEvent.detail.key)) {
+        setBackupTick((prev) => prev + 1)
+      }
+    }
+
+    window.addEventListener("local-storage-written", handleLocalWrite)
+    const handleLanguageChange = () => setBackupTick((prev) => prev + 1)
+    window.addEventListener("languagechange", handleLanguageChange)
+    return () => {
+      window.removeEventListener("local-storage-written", handleLocalWrite)
+      window.removeEventListener("languagechange", handleLanguageChange)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return
     if (timerRef.current) clearTimeout(timerRef.current)
 
@@ -249,7 +270,7 @@ export default function UserProfileButton({
         timerRef.current = null
       }
     }, 800)
-  }, [events, calendars, enabled])
+  }, [events, calendars, enabled, backupTick])
 
   async function saveProfile() {
     if (!user) return
@@ -615,7 +636,7 @@ export default function UserProfileButton({
                   <div className="space-y-3 rounded-md border border-destructive/50 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>
-                    <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                    <Button id="settings-account-delete" variant="destructive" onClick={() => setDeleteCloudOpen(true)}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                   </div>
                   {isSignedIn ? (
                     <div className="space-y-3 rounded-md border border-destructive/50 p-3">
@@ -799,6 +820,42 @@ export default function UserProfileButton({
         </AlertDialogContent>
       </AlertDialog>
 
+
+      <AlertDialog open={deleteCloudOpen} onOpenChange={setDeleteCloudOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteCloudConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.deleteCloudConfirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-cloud-confirm-input">DELETE CLOUD DATA</Label>
+            <Input
+              id="delete-cloud-confirm-input"
+              value={deleteCloudConfirmText}
+              onChange={(e) => setDeleteCloudConfirmText(e.target.value)}
+              placeholder="DELETE CLOUD DATA"
+              autoComplete="off"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault()
+                if (deleteCloudConfirmText !== "DELETE CLOUD DATA") return
+                void destroy().finally(() => {
+                  setDeleteCloudOpen(false)
+                  setDeleteCloudConfirmText("")
+                })
+              }}
+              disabled={deleteCloudConfirmText !== "DELETE CLOUD DATA"}
+            >
+              {t.confirmDeleteData}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
         <DialogContent>
           <DialogHeader>
