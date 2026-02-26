@@ -732,7 +732,7 @@ export default function WeekView({
   return (
     <div className="flex flex-col h-full">
       <div
-        className="grid divide-x relative z-30 bg-background"
+        className="grid divide-x relative z-30 bg-background border-b"
         style={{ gridTemplateColumns }}
       >
         <div className="sticky top-0 z-30 bg-background" />
