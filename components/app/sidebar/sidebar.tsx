@@ -100,6 +100,7 @@ export default function Sidebar({
     toastSuccess: t.categoryDeleted,
     toastDescription: t.categoryDeletedDescription,
   }
+  const deleteCategoryEventsLabel = t.deleteCategoryEvents || "同时删除此分类下的所有日程"
   
   if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
     setLocalSelectedDate(selectedDate)
@@ -287,7 +288,7 @@ export default function Sidebar({
                   checked={deleteCategoryEvents}
                   onCheckedChange={(checked) => setDeleteCategoryEvents(checked === true)}
                 />
-                <Label htmlFor="delete-category-events">{t.deleteCategoryEvents}</Label>
+                <Label htmlFor="delete-category-events">{deleteCategoryEventsLabel}</Label>
               </div>
             </DialogDescription>
           </DialogHeader>
@@ -321,13 +322,16 @@ export default function Sidebar({
               <Label htmlFor="category-color">{t.color}</Label>
               <Select value={newCategoryColor} onValueChange={setNewCategoryColor}>
                 <SelectTrigger id="category-color">
-                  <SelectValue />
+                  <SelectValue placeholder={t.selectColor} />
                 </SelectTrigger>
                 <SelectContent>
                   {CALENDAR_COLOR_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center">
-                        <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                        <div
+                          className="w-4 h-4 rounded-full mr-2"
+                          style={{ backgroundColor: CALENDAR_COLOR_MAP[option.value] }}
+                        />
                         {t[option.labelKey]}
                       </div>
                     </SelectItem>
@@ -365,13 +369,16 @@ export default function Sidebar({
               <Label htmlFor="edit-category-color">{t.color}</Label>
               <Select value={editingCategoryColor} onValueChange={setEditingCategoryColor}>
                 <SelectTrigger id="edit-category-color">
-                  <SelectValue />
+                  <SelectValue placeholder={t.selectColor} />
                 </SelectTrigger>
                 <SelectContent>
                   {CALENDAR_COLOR_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center">
-                        <div className={cn("w-4 h-4 rounded-full mr-2", option.value)} />
+                        <div
+                          className="w-4 h-4 rounded-full mr-2"
+                          style={{ backgroundColor: CALENDAR_COLOR_MAP[option.value] }}
+                        />
                         {t[option.labelKey]}
                       </div>
                     </SelectItem>
