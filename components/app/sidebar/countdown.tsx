@@ -35,7 +35,7 @@ import {
   Clock,
   Search,
 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { icons as lucideIcons } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -88,14 +88,7 @@ const TEXT_COLOR_MAP: Record<string, string> = {
   "bg-orange-500": "#f97316",
 };
 
-const allIconNames = Object.entries(LucideIcons)
-  .filter(([name, value]) => {
-    if (!/^[A-Z]/.test(name)) return false;
-    if (name.endsWith("Icon")) return false;
-    return typeof value === "function";
-  })
-  .map(([name]) => name)
-  .sort((a, b) => a.localeCompare(b));
+const allIconNames = Object.keys(lucideIcons).sort((a, b) => a.localeCompare(b));
 
 const toDateString = (date: Date) => {
   const year = date.getFullYear();
@@ -137,7 +130,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 18) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
-    const IconComponent = (LucideIcons as Record<string, any>)[iconName || "Clock"] ?? LucideIcons.Clock;
+    const IconComponent = lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ?? lucideIcons.Clock;
     return <IconComponent size={size} style={{ color: iconColor }} />;
   };
 

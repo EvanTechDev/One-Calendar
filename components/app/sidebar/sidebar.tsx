@@ -61,7 +61,6 @@ export default function Sidebar({
 
   const {
     calendars,
-    setEvents,
     addCategory: addCategoryToContext,
     removeCategory: removeCategoryFromContext,
     updateCategory: updateCategoryInContext,
@@ -141,14 +140,6 @@ export default function Sidebar({
       name: editingCategoryName.trim(),
       color: editingCategoryColor,
     })
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
-        event.calendarId === editingCategoryId
-          ? { ...event, color: editingCategoryColor }
-          : event,
-      ),
-    )
-
     setEditDialogOpen(false)
     setEditingCategoryId(null)
     toast(t.categoryUpdated || "分类已更新")
