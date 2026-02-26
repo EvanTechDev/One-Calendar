@@ -21,6 +21,7 @@ const ENCRYPTION_STATE: EncryptionState = {
 }
 
 const encryptedSnapshots = new Map<string, EncryptedSnapshot>()
+const inMemoryStorage = new Map<string, string>()
 const subscribers = new Set<() => void>()
 
 function tryParse(value: string) {
@@ -71,6 +72,7 @@ export function clearEncryptionPassword() {
   ENCRYPTION_STATE.enabled = false
   ENCRYPTION_STATE.ready = false
   encryptedSnapshots.clear()
+  inMemoryStorage.clear()
   notifySubscribers()
 }
 
@@ -85,6 +87,18 @@ export function markEncryptedSnapshot(key: string, value: string) {
 
 export function clearEncryptedSnapshots() {
   encryptedSnapshots.clear()
+}
+
+export function writeInMemoryStorage(key: string, value: string) {
+  inMemoryStorage.set(key, value)
+}
+
+export function readInMemoryStorage(key: string) {
+  return inMemoryStorage.get(key) ?? null
+}
+
+export function clearInMemoryStorage() {
+  inMemoryStorage.clear()
 }
 
 export async function decryptSnapshots(password: string) {
@@ -142,6 +156,10 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
     return initialValue
   }
   try {
+    const inMemoryValue = inMemoryStorage.get(key)
+    if (inMemoryValue !== undefined) {
+      return coerceStoredValue(inMemoryValue, initialValue)
+    }
     const snapshot = encryptedSnapshots.get(key)
     if (snapshot?.value) {
       const parsedSnapshot = tryParse(snapshot.value)
@@ -200,6 +218,10 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     return initialValue
   }
   try {
+    const inMemoryValue = inMemoryStorage.get(key)
+    if (inMemoryValue !== undefined) {
+      return coerceStoredValue(inMemoryValue, initialValue)
+    }
     const item = window.localStorage.getItem(key)
     if (!item) return initialValue
     const snapshot = encryptedSnapshots.get(key)

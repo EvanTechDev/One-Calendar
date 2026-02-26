@@ -49,12 +49,14 @@ import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 import {
+  readInMemoryStorage,
   clearEncryptionPassword,
   encryptSnapshots,
   markEncryptedSnapshot,
   persistEncryptedSnapshots,
   readEncryptedLocalStorage,
   setEncryptionPassword,
+  writeInMemoryStorage,
 } from "@/hooks/useLocalStorage"
 
 const AUTO_KEY = "auto-backup-enabled"
@@ -99,17 +101,28 @@ async function apiDelete() {
 function collectLocalStorage() {
   const storage: Record<string, string> = {}
   BACKUP_KEYS.forEach((key) => {
-    const value = localStorage.getItem(key)
+    const value = readInMemoryStorage(key) ?? localStorage.getItem(key)
     if (value !== null) storage[key] = value
   })
   return storage
 }
 
-function applyLocalStorage(storage: Record<string, string>) {
-  Object.entries(storage).forEach(([key, value]) => {
-    localStorage.setItem(key, value)
-    markEncryptedSnapshot(key, value)
-  })
+async function applyCloudStorageToMemory(storage: Record<string, string>, password: string) {
+  await Promise.all(
+    Object.entries(storage).map(async ([key, value]) => {
+      let normalized = value
+      try {
+        const parsed = JSON.parse(value)
+        if (isEncryptedPayload(parsed)) {
+          normalized = await decryptPayload(password, parsed.ciphertext, parsed.iv)
+        }
+      } catch {
+        normalized = value
+      }
+      writeInMemoryStorage(key, normalized)
+      markEncryptedSnapshot(key, normalized)
+    }),
+  )
 }
 
 async function encryptLocalStorage(password: string) {
@@ -395,12 +408,12 @@ export default function UserProfileButton({
       try {
         const data = JSON.parse(plain)
         if (data?.storage) {
-          applyLocalStorage(data.storage)
+          await applyCloudStorageToMemory(data.storage, password)
         } else if (data?.events || data?.calendars) {
           const fallbackStorage: Record<string, string> = {}
           if (data?.events) fallbackStorage["calendar-events"] = JSON.stringify(data.events)
           if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
-          applyLocalStorage(fallbackStorage)
+          await applyCloudStorageToMemory(fallbackStorage, password)
         }
         await setEncryptionPassword(password)
         const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
