@@ -12,6 +12,8 @@ import {
   Link as LinkIcon,
   RefreshCcw,
   Camera,
+  BarChart2,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,6 +60,7 @@ import {
 } from "@/hooks/useLocalStorage"
 
 const AUTO_KEY = "auto-backup-enabled"
+const BACKUP_STATUS_KEY = "auto-backup-sync-status"
 const BACKUP_VERSION = 1
 const BACKUP_KEYS = [
   "calendar-events",
@@ -130,6 +133,7 @@ type UserProfileButtonProps = {
   className?: string
   mode?: "dropdown" | "settings"
   onNavigateToSettings?: (section: UserProfileSection) => void
+  onNavigateToView?: (view: "analytics" | "settings") => void
   focusSection?: UserProfileSection | null
 }
 
@@ -138,6 +142,7 @@ export default function UserProfileButton({
   className = "",
   mode = "dropdown",
   onNavigateToSettings,
+  onNavigateToView,
   focusSection = null,
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
@@ -177,6 +182,11 @@ export default function UserProfileButton({
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
+
+  const broadcastBackupStatus = (status: "uploading" | "failed" | "done") => {
+    localStorage.setItem(BACKUP_STATUS_KEY, status)
+    window.dispatchEvent(new CustomEvent("backup-status-change", { detail: { status } }))
+  }
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -225,12 +235,19 @@ export default function UserProfileButton({
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const payload = await encryptPayload(
-        keyRef.current!,
-        JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
-      )
-      await apiPost(payload)
-      timerRef.current = null
+      try {
+        broadcastBackupStatus("uploading")
+        const payload = await encryptPayload(
+          keyRef.current!,
+          JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+        )
+        await apiPost(payload)
+        broadcastBackupStatus("done")
+      } catch {
+        broadcastBackupStatus("failed")
+      } finally {
+        timerRef.current = null
+      }
     }, 800)
   }, [events, calendars, enabled])
 
@@ -372,6 +389,7 @@ export default function UserProfileButton({
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
+      broadcastBackupStatus("done")
 
       setPassword("")
       setUnlockOpen(false)
@@ -393,6 +411,7 @@ export default function UserProfileButton({
     keyRef.current = password
     restoredRef.current = true
     setEnabled(true)
+    broadcastBackupStatus("done")
     setPassword("")
     setConfirm("")
     setSetPwdOpen(false)
@@ -427,6 +446,7 @@ export default function UserProfileButton({
 
   function disableAutoBackup() {
     localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
@@ -437,6 +457,7 @@ export default function UserProfileButton({
   async function destroy() {
     await apiDelete()
     localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
@@ -499,62 +520,14 @@ export default function UserProfileButton({
           <DropdownMenuContent align="end">
             {isAnySignedIn ? (
               <>
-                {isSignedIn ? (
-                  <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
-                    <CircleUser className="mr-2 h-4 w-4" />
-                    {t.profile}
-                  </DropdownMenuItem>
-                ) : null}
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("backup") : setBackupOpen(true)}>
-                  <CloudUpload className="mr-2 h-4 w-4" />
-                  {t.autoBackup}
+                <DropdownMenuItem onClick={() => onNavigateToView?.("settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t.settings}
                 </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("key") : setRotateOpen(true)}>
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  {t.changeKey}
+                <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  {t.analytics}
                 </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("delete") : destroy()}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t.deleteData}
-                </DropdownMenuItem>
-
-                {isSignedIn ? (
-                  <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t.deleteAccount}
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isSignedIn ? (
-                  onNavigateToSettings ? (
-                    <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t.signOut}
-                    </DropdownMenuItem>
-                  ) : (
-                    <SignOutButton>
-                      <DropdownMenuItem>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        {t.signOut}
-                      </DropdownMenuItem>
-                    </SignOutButton>
-                  )
-                ) : (
-                  <DropdownMenuItem onClick={async () => {
-                    await fetch("/api/atproto/logout", { method: "POST" })
-                    setAtprotoSignedIn(false)
-                    setAtprotoHandle("")
-                    setAtprotoDisplayName("")
-                    setAtprotoAvatar("")
-                    router.refresh()
-                  }}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t.signOut}
-                  </DropdownMenuItem>
-                )}
               </>
             ) : (
               <>
