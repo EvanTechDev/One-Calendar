@@ -15,6 +15,7 @@ const footerColumns = [
     links: [
       { label: "Contact", href: "mailto:evan.huang000@proton.me" },
       { label: "Bluesky", href: "https://bsky.app/profile/calendar.xyehr.cn" },
+      { label: "Tangled", href: "https://tangled.org/e.xyehr.cn/One-Calendar" },
       { label: "GitHub", href: "https://github.com/EvanTechDev/One-Calendar" },
     ],
   },
