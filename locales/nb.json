@@ -478,5 +478,23 @@
     "november",
     "desember"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "This action permanently deletes your encrypted cloud backup. Type DELETE CLOUD DATA to continue.",
+  "confirmDeleteData": "Confirm delete data",
+  "countdownIcon": "Icon",
+  "countdownSearchIcon": "Search icons",
+  "countdownAdded": "Countdown added",
+  "countdownUpdated": "Countdown updated",
+  "countdownDeleted": "Countdown deleted",
+  "toastPosition": "Toast position",
+  "toastPositionBottomLeft": "Bottom left",
+  "toastPositionBottomCenter": "Bottom center",
+  "toastPositionBottomRight": "Bottom right",
+  "countdownDaysAgo": "days ago",
+  "deleteCategoryEvents": "Delete all events under this category as well",
+  "categoryDeletedWithEvents": "Category and all its events were deleted",
+  "importToCalendarCategory": "Import into calendar category"
 }

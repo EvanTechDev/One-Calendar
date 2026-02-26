@@ -53,6 +53,11 @@ function notifySubscribers() {
   subscribers.forEach((callback) => callback())
 }
 
+function emitStorageWrite(key: string) {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent("local-storage-written", { detail: { key } }))
+}
+
 export function isSensitiveStorageKey(key: string) {
   return SENSITIVE_KEYS.has(key)
 }
@@ -221,16 +226,19 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
         inMemoryStorage.set(key, raw)
         encryptedSnapshots.set(key, { value: raw, failed: false })
         window.localStorage.removeItem(key)
+        emitStorageWrite(key)
         return
       }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
       encryptedSnapshots.set(key, { value: raw, failed: false })
+      emitStorageWrite(key)
       return
     }
     window.localStorage.setItem(key, raw)
     encryptedSnapshots.set(key, { value: raw, failed: false })
+    emitStorageWrite(key)
   } catch (error) {
     console.log(error)
   }
@@ -287,16 +295,19 @@ async function writeLocalStorage<T>(key: string, value: T) {
         inMemoryStorage.set(key, raw)
         encryptedSnapshots.set(key, { value: raw, failed: false })
         window.localStorage.removeItem(key)
+        emitStorageWrite(key)
         return
       }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
       encryptedSnapshots.set(key, { value: raw, failed: false })
+      emitStorageWrite(key)
       return
     }
     window.localStorage.setItem(key, raw)
     encryptedSnapshots.set(key, { value: raw, failed: false })
+    emitStorageWrite(key)
   } catch (error) {
     console.log(error)
   }

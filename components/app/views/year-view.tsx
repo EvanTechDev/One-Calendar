@@ -166,7 +166,7 @@ export default function YearView({
                                   "relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs",
                                   event.color,
                                 )}
-                                onClick={() => onEventClick(event)}
+                                onClick={() => { setOpenDayKey(null); onEventClick(event); }}
                                 style={{
                                   backgroundColor: isDark ? getDarkModeEventBackgroundColor(event.color) : undefined,
                                 }}
