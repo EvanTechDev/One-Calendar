@@ -51,9 +51,7 @@ import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto
 import {
   readInMemoryStorage,
   clearEncryptionPassword,
-  encryptSnapshots,
   markEncryptedSnapshot,
-  persistEncryptedSnapshots,
   readEncryptedLocalStorage,
   setEncryptionPassword,
   writeInMemoryStorage,
@@ -123,58 +121,6 @@ async function applyCloudStorageToMemory(storage: Record<string, string>, passwo
       markEncryptedSnapshot(key, normalized)
     }),
   )
-}
-
-async function encryptLocalStorage(password: string) {
-  BACKUP_KEYS.forEach((key) => {
-    const value = localStorage.getItem(key)
-    if (value !== null) markEncryptedSnapshot(key, value)
-  })
-  await encryptSnapshots(password)
-  await persistEncryptedSnapshots()
-}
-
-async function decryptLocalStorage(password: string) {
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
-      try {
-        const parsed = JSON.parse(value)
-        if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(password, parsed.ciphertext, parsed.iv)
-          localStorage.setItem(key, plain)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
-        }
-      } catch {
-        markEncryptedSnapshot(key, value)
-      }
-    }),
-  )
-}
-
-async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
-      try {
-        const parsed = JSON.parse(value)
-        if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(oldPassword, parsed.ciphertext, parsed.iv)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
-        }
-      } catch {
-        markEncryptedSnapshot(key, value)
-      }
-    }),
-  )
-  await encryptSnapshots(newPassword)
-  await persistEncryptedSnapshots()
 }
 
 export type UserProfileSection = "profile" | "backup" | "key" | "delete" | "signout"
@@ -441,7 +387,6 @@ export default function UserProfileButton({
       return
     }
     await setEncryptionPassword(password)
-    await encryptLocalStorage(password)
     const payload = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(payload)
     localStorage.setItem(AUTO_KEY, "true")
@@ -469,7 +414,6 @@ export default function UserProfileButton({
       return
     }
 
-    await reencryptLocalStorage(oldPassword, password)
     const next = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(next)
     await setEncryptionPassword(password)
@@ -482,14 +426,10 @@ export default function UserProfileButton({
   }
 
   function disableAutoBackup() {
-    const currentPassword = keyRef.current
     localStorage.removeItem(AUTO_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
-    if (currentPassword) {
-      void decryptLocalStorage(currentPassword)
-    }
     clearEncryptionPassword()
     toast(t.autoBackupDisabled)
   }

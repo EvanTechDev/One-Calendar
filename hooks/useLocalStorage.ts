@@ -24,6 +24,14 @@ const encryptedSnapshots = new Map<string, EncryptedSnapshot>()
 const inMemoryStorage = new Map<string, string>()
 const subscribers = new Set<() => void>()
 
+const SENSITIVE_KEYS = new Set([
+  "calendar-events",
+  "calendar-categories",
+  "bookmarked-events",
+  "shared-events",
+  "countdowns",
+])
+
 function tryParse(value: string) {
   try {
     return { ok: true, parsed: JSON.parse(value) }
@@ -43,6 +51,10 @@ function coerceStoredValue<T>(raw: string, initialValue: T): T {
 
 function notifySubscribers() {
   subscribers.forEach((callback) => callback())
+}
+
+export function isSensitiveStorageKey(key: string) {
+  return SENSITIVE_KEYS.has(key)
 }
 
 export function getEncryptionState() {
@@ -147,6 +159,7 @@ export async function encryptSnapshots(password: string) {
 export async function persistEncryptedSnapshots() {
   encryptedSnapshots.forEach((snapshot, key) => {
     if (!snapshot.value) return
+    if (isSensitiveStorageKey(key)) return
     window.localStorage.setItem(key, snapshot.value)
   })
 }
@@ -186,6 +199,10 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
         parsed.parsed.iv,
       )
       encryptedSnapshots.set(key, { value: plain, failed: false })
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, plain)
+        window.localStorage.removeItem(key)
+      }
       return coerceStoredValue<T>(plain, initialValue)
     }
     return coerceStoredValue(item, initialValue)
@@ -200,6 +217,12 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, raw)
+        encryptedSnapshots.set(key, { value: raw, failed: false })
+        window.localStorage.removeItem(key)
+        return
+      }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
@@ -243,6 +266,9 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     const parsed = tryParse(item)
     if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
       encryptedSnapshots.set(key, { value: item, failed: false })
+      if (isSensitiveStorageKey(key)) {
+        window.localStorage.removeItem(key)
+      }
       return initialValue
     }
     return coerceStoredValue(item, initialValue)
@@ -257,6 +283,12 @@ async function writeLocalStorage<T>(key: string, value: T) {
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, raw)
+        encryptedSnapshots.set(key, { value: raw, failed: false })
+        window.localStorage.removeItem(key)
+        return
+      }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
