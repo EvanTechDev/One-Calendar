@@ -43,6 +43,7 @@ import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 import { toast } from "sonner";
 import { ClockDashed } from "@/components/icons/clock-dashed";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 interface Countdown {
   id: string;
@@ -321,9 +322,15 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         </Button>
         <ScrollArea className="h-[calc(100vh-200px)]">
           {countdowns.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t.countdownNoEvents}
-            </div>
+            <Empty className="border-0 py-8">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ClockDashed className="h-4 w-4" />
+                </EmptyMedia>
+                <EmptyTitle>{t.countdownTitle}</EmptyTitle>
+                <EmptyDescription>{t.countdownNoEvents}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="space-y-2">
               {countdowns

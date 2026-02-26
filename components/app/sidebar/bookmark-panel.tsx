@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 import {
   getEncryptionState,
@@ -150,14 +151,17 @@ export default function BookmarkPanel({
 
           <ScrollArea className="h-[calc(100vh-180px)] pr-4">
             {filteredBookmarks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
-                <Bookmark className="h-10 w-10 mb-2 opacity-20" />
-                {searchTerm ? (
-                  <p>{t.noMatchingBookmarks}</p>
-                ) : (
-                  <p>{t.noBookmarks}</p>
-                )}
-              </div>
+              <Empty className="h-32 border-0 p-0">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Bookmark className="h-4 w-4" />
+                  </EmptyMedia>
+                  <EmptyTitle>{t.bookmarks}</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? t.noMatchingBookmarks : t.noBookmarks}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="space-y-3">
                 {filteredBookmarks.map((bookmark) => (

@@ -22,6 +22,7 @@ import type { CalendarEvent } from "../calendar";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 const getWeekStartsOn = (locale: string): 0 | 1 => {
   try {
@@ -218,9 +219,15 @@ export default function MiniCalendarSheet({
 
           <ScrollArea className="h-[calc(100vh-300px)]">
             {dayEvents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t.noEventsToday}
-              </div>
+              <Empty className="border-0 py-8">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <CalendarDays className="h-4 w-4" />
+                  </EmptyMedia>
+                  <EmptyTitle>{t.today}</EmptyTitle>
+                  <EmptyDescription>{t.noEventsToday}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="space-y-4">
                 {dayEvents.map((event) => (
