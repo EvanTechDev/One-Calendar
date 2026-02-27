@@ -15,6 +15,7 @@ import {
   startOfDay,
 } from "date-fns";
 import { cn } from "@/lib/utils";
+import { playEventShatterAnimation } from "@/lib/event-shatter";
 import { translations, type Language } from "@/lib/i18n";
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => <>{children}</>;
@@ -111,6 +112,11 @@ export default function WeekView({
     window.setTimeout(() => {
       ignoreNextEventClickRef.current = false;
     }, 0);
+  };
+
+  const handleDeleteEvent = async (event: CalendarEvent) => {
+    await playEventShatterAnimation(event.id);
+    onDeleteEvent?.(event);
   };
 
 
@@ -609,6 +615,7 @@ export default function WeekView({
       >
         <ContextMenuTrigger asChild>
           <div
+            data-event-shatter-id={event.id}
             className={cn(
               "relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden",
               event.color,
@@ -668,7 +675,7 @@ export default function WeekView({
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); void handleDeleteEvent(event); }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -842,6 +849,7 @@ export default function WeekView({
                     >
                       <ContextMenuTrigger asChild>
                         <div
+                          data-event-shatter-id={event.id}
                           className={cn(
                             "relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden",
                             event.color,
@@ -923,7 +931,7 @@ export default function WeekView({
                           {menuLabels.bookmark}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); void handleDeleteEvent(event); }}
                           className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
