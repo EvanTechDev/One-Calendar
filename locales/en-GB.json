@@ -496,5 +496,9 @@
   "countdownDaysAgo": "days ago",
   "deleteCategoryEvents": "Delete all events under this category as well",
   "categoryDeletedWithEvents": "Category and all its events were deleted",
-  "importToCalendarCategory": "Import into calendar category"
+  "importToCalendarCategory": "Import into calendar category",
+  "status": "Status",
+  "feedback": "Feedback",
+  "privacy": "Privacy",
+  "tos": "ToS"
 }
