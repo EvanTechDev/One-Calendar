@@ -496,5 +496,9 @@
   "countdownDaysAgo": "天前",
   "deleteCategoryEvents": "同时删除此分类下的全部日程",
   "categoryDeletedWithEvents": "分类及其全部日程已删除",
-  "importToCalendarCategory": "导入到日历分类"
+  "importToCalendarCategory": "导入到日历分类",
+  "status": "状态",
+  "feedback": "反馈",
+  "privacy": "隐私",
+  "tos": "服务条款"
 }
