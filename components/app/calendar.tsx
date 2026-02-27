@@ -152,6 +152,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "uploading" | "failed" | "done" | null
   >(null);
   const [shareOnlyMode, setShareOnlyMode] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const deleteAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -180,15 +182,22 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "time-format",
     "24h",
   );
-  const [toastPosition, setToastPosition] = useLocalStorage<"bottom-left" | "bottom-center" | "bottom-right">(
-    "toast-position",
-    "bottom-right",
-  );
+  const [toastPosition, setToastPosition] = useLocalStorage<
+    "bottom-left" | "bottom-center" | "bottom-right"
+  >("toast-position", "bottom-right");
 
   useEffect(() => {
     if (view !== defaultView) {
       setView(defaultView as ViewType);
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (deleteAnimationTimeoutRef.current) {
+        clearTimeout(deleteAnimationTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -449,39 +458,53 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (!pendingDeleteEvent) return;
 
     const deletedEvent = pendingDeleteEvent;
-    setEvents((prevEvents) =>
-      prevEvents.filter((event) => event.id !== deletedEvent.id),
-    );
-    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((bookmarks) =>
-      writeEncryptedLocalStorage(
-        "bookmarked-events",
-        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-      ),
-    );
+
+    setDeletingEventId(deletedEvent.id);
     setEventDialogOpen(false);
     setSelectedEvent(null);
     setPreviewOpen(false);
     setDeleteConfirmOpen(false);
     setPendingDeleteEvent(null);
 
-    toast(t.eventDeleted, {
-      description: deletedEvent.title,
-      action: {
-        label: t.undo,
-        onClick: () => {
-          setEvents((prevEvents) => {
-            if (prevEvents.some((event) => event.id === deletedEvent.id))
-              return prevEvents;
-            return [...prevEvents, deletedEvent].sort(
-              (a, b) =>
-                new Date(a.startDate).getTime() -
-                new Date(b.startDate).getTime(),
-            );
-          });
-          toast(t.deletionUndone);
+    if (deleteAnimationTimeoutRef.current) {
+      clearTimeout(deleteAnimationTimeoutRef.current);
+    }
+
+    deleteAnimationTimeoutRef.current = setTimeout(() => {
+      setEvents((prevEvents) =>
+        prevEvents.filter((event) => event.id !== deletedEvent.id),
+      );
+      void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+        (bookmarks) =>
+          writeEncryptedLocalStorage(
+            "bookmarked-events",
+            bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+          ),
+      );
+
+      setDeletingEventId((current) =>
+        current === deletedEvent.id ? null : current,
+      );
+
+      toast(t.eventDeleted, {
+        description: deletedEvent.title,
+        action: {
+          label: t.undo,
+          onClick: () => {
+            setEvents((prevEvents) => {
+              if (prevEvents.some((event) => event.id === deletedEvent.id))
+                return prevEvents;
+              return [...prevEvents, deletedEvent].sort(
+                (a, b) =>
+                  new Date(a.startDate).getTime() -
+                  new Date(b.startDate).getTime(),
+              );
+            });
+            toast(t.deletionUndone);
+          },
         },
-      },
-    });
+      });
+    }, 1450);
   };
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
@@ -769,7 +792,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 )}
               </div>
               {backupEnabled ? (
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full border" title="Backup status" aria-label="Backup status">
+                <div
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                  title="Backup status"
+                  aria-label="Backup status"
+                >
                   {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
                 </div>
               ) : null}
@@ -785,13 +812,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open("https://calendarstatus.xyehr.cn", "_blank", "noopener,noreferrer")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://calendarstatus.xyehr.cn",
+                        "_blank",
+                        "noopener,noreferrer",
+                      )
+                    }
+                  >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     {t.status}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    window.location.href = "mailto:evan.huang000@proton.me";
-                  }}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.location.href = "mailto:evan.huang000@proton.me";
+                    }}
+                  >
                     <MessageSquare className="mr-2 h-4 w-4" />
                     {t.feedback}
                   </DropdownMenuItem>
@@ -838,6 +875,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent);
                 }}
+                deletingEventId={deletingEventId}
               />
             )}
             {view === "week" && (
@@ -865,6 +903,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent);
                 }}
+                deletingEventId={deletingEventId}
               />
             )}
             {view === "four-day" && (
@@ -894,6 +933,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 }}
                 daysToShow={4}
                 fixedStartDate={date}
+                deletingEventId={deletingEventId}
               />
             )}
             {view === "month" && (
@@ -904,6 +944,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 language={language}
                 firstDayOfWeek={firstDayOfWeek}
                 timezone={timezone}
+                deletingEventId={deletingEventId}
               />
             )}
             {view === "year" && (

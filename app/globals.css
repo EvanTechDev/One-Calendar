@@ -14,7 +14,6 @@ body {
   .text-balance {
     text-wrap: balance;
   }
-
 }
 
 @keyframes landing-title-in-view {
@@ -29,7 +28,6 @@ body {
     transform: translateY(0);
   }
 }
-
 
 .landing-title {
   opacity: 0;
@@ -46,7 +44,9 @@ body {
     background-color: hsl(var(--popover));
     color: hsl(var(--popover-foreground));
     border: 1px solid hsl(var(--border));
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 }
 
@@ -125,9 +125,9 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-  
-.green,
-.green .app-theme-scope {
+
+  .green,
+  .green .app-theme-scope {
     --background: 142 35% 92%;
     --foreground: 140 20% 15%;
     --card: 142 30% 88%;
@@ -160,10 +160,10 @@ body {
     --sidebar-accent-foreground: 140 20% 15%;
     --sidebar-border: 141 32% 72%;
     --sidebar-ring: 142 65% 40%;
-}
+  }
 
-.orange,
-.orange .app-theme-scope {
+  .orange,
+  .orange .app-theme-scope {
     --background: 28 50% 92%;
     --foreground: 20 24% 15%;
     --card: 28 45% 88%;
@@ -196,10 +196,10 @@ body {
     --sidebar-accent-foreground: 20 24% 15%;
     --sidebar-border: 28 32% 72%;
     --sidebar-ring: 25 85% 48%;
-}
+  }
 
-.azalea,
-.azalea .app-theme-scope {
+  .azalea,
+  .azalea .app-theme-scope {
     --background: 331 25% 95%;
     --foreground: 331 15% 18%;
     --card: 331 20% 90%;
@@ -232,49 +232,49 @@ body {
     --sidebar-accent-foreground: 331 15% 18%;
     --sidebar-border: 331 20% 75%;
     --sidebar-ring: 331 63% 49%;
-}
+  }
 
-
-
-
-.green,
-.green .app-theme-scope,
-.orange,
-.orange .app-theme-scope,
-.azalea,
-.azalea .app-theme-scope {
+  .green,
+  .green .app-theme-scope,
+  .orange,
+  .orange .app-theme-scope,
+  .azalea,
+  .azalea .app-theme-scope {
     --card: var(--background);
     --popover: var(--background);
-}
+  }
 
-.green .app-theme-scope button[variant="outline"],
-.orange .app-theme-scope button[variant="outline"],
-.azalea .app-theme-scope button[variant="outline"] {
+  .green .app-theme-scope button[variant="outline"],
+  .orange .app-theme-scope button[variant="outline"],
+  .azalea .app-theme-scope button[variant="outline"] {
     border: 1px solid hsl(var(--border));
     background: transparent;
-}
+  }
 
-.green .app-theme-scope button[variant="ghost"],
-.orange .app-theme-scope button[variant="ghost"],
-.azalea .app-theme-scope button[variant="ghost"] {
+  .green .app-theme-scope button[variant="ghost"],
+  .orange .app-theme-scope button[variant="ghost"],
+  .azalea .app-theme-scope button[variant="ghost"] {
     border: none;
     background: transparent;
-}
+  }
 
-.green .app-theme-scope hr, .green .app-theme-scope .divider,
-.orange .app-theme-scope hr, .orange .app-theme-scope .divider,
-.azalea .app-theme-scope hr, .azalea .app-theme-scope .divider {
+  .green .app-theme-scope hr,
+  .green .app-theme-scope .divider,
+  .orange .app-theme-scope hr,
+  .orange .app-theme-scope .divider,
+  .azalea .app-theme-scope hr,
+  .azalea .app-theme-scope .divider {
     border-color: hsl(var(--border));
     opacity: 0.8;
-}
+  }
 
-.green .app-theme-scope .separator,
-.orange .app-theme-scope .separator,
-.azalea .app-theme-scope .separator {
+  .green .app-theme-scope .separator,
+  .orange .app-theme-scope .separator,
+  .azalea .app-theme-scope .separator {
     height: 1px;
     background: hsl(var(--border));
     opacity: 0.6;
-}
+  }
 }
 
 @layer base {
@@ -295,7 +295,6 @@ body {
   }
 }
 
-
 .text-balance {
   text-wrap: balance;
 }
@@ -305,7 +304,13 @@ body {
 }
 
 .font-inter {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--font-inter),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 .font-instrument-serif {
@@ -327,4 +332,28 @@ body {
 
 .backdrop-blur-custom {
   backdrop-filter: blur(8.25px);
+}
+
+@keyframes calendar-delete-particle {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate3d(var(--dx), var(--dy), 0)
+      scale(0.25);
+    opacity: 0;
+  }
+}
+
+.calendar-delete-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
+  animation: calendar-delete-particle var(--particle-duration, 1400ms)
+    cubic-bezier(0.22, 1, 0.36, 1) var(--particle-delay, 0ms) forwards;
 }

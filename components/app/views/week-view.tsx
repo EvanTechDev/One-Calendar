@@ -16,9 +16,17 @@ import {
 } from "date-fns";
 import { cn } from "@/lib/utils";
 import { translations, type Language } from "@/lib/i18n";
+import DeleteParticleLayer from "./delete-particle-layer";
 
-const ContextMenu = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-const ContextMenuTrigger = ({ children }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>;
+const ContextMenu = ({ children }: { children: React.ReactNode }) => (
+  <>{children}</>
+);
+const ContextMenuTrigger = ({
+  children,
+}: {
+  children: React.ReactNode;
+  asChild?: boolean;
+}) => <>{children}</>;
 const ContextMenuContent = () => null;
 const ContextMenuItem = (_props: any) => null;
 
@@ -42,6 +50,7 @@ interface WeekViewProps {
   ) => void;
   daysToShow?: number;
   fixedStartDate?: Date;
+  deletingEventId?: string | null;
 }
 
 interface CalendarEvent {
@@ -69,6 +78,7 @@ export default function WeekView({
   onEventDrop,
   daysToShow,
   fixedStartDate,
+  deletingEventId,
 }: WeekViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek });
   const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek });
@@ -113,13 +123,14 @@ export default function WeekView({
     }, 0);
   };
 
-
   const [createSelection, setCreateSelection] = useState<{
     dayIndex: number;
     startMinute: number;
     endMinute: number;
   } | null>(null);
-  const createStartRef = useRef<{ dayIndex: number; minute: number } | null>(null);
+  const createStartRef = useRef<{ dayIndex: number; minute: number } | null>(
+    null,
+  );
   const isCreatingRef = useRef(false);
   const isDark =
     typeof document !== "undefined" &&
@@ -293,7 +304,10 @@ export default function WeekView({
       if (!isCreatingRef.current || !createStartRef.current) return;
 
       const { dayIndex, minute } = createStartRef.current;
-      const startMinute = Math.min(minute, createSelection?.endMinute ?? minute);
+      const startMinute = Math.min(
+        minute,
+        createSelection?.endMinute ?? minute,
+      );
       const endMinute = Math.max(minute, createSelection?.endMinute ?? minute);
       const day = weekDays[dayIndex];
 
@@ -301,7 +315,8 @@ export default function WeekView({
         const startDate = new Date(day);
         startDate.setHours(0, startMinute, 0, 0);
 
-        const effectiveEndMinute = endMinute === startMinute ? startMinute + 30 : endMinute;
+        const effectiveEndMinute =
+          endMinute === startMinute ? startMinute + 30 : endMinute;
         const endDate = new Date(day);
         endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0);
 
@@ -638,37 +653,71 @@ export default function WeekView({
               if (!isDraggingRef.current) {
                 onEventClick(event);
               }
-              
             }}
           >
             <div
-              className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")}
-              style={{ backgroundColor: getDarkerColorClass(event.color) }}
-            />
-            <div
-              className="pl-1.5 truncate"
-              style={{ color: getDarkerColorClass(event.color) }}
+              className={cn(
+                "relative z-10",
+                deletingEventId === event.id &&
+                  "opacity-0 transition-opacity duration-200",
+              )}
             >
-              {event.title}
+              <div
+                className={cn("absolute left-0 top-0 w-1 h-full rounded-l-md")}
+                style={{ backgroundColor: getDarkerColorClass(event.color) }}
+              />
+              <div
+                className="pl-1.5 truncate"
+                style={{ color: getDarkerColorClass(event.color) }}
+              >
+                {event.title}
+              </div>
             </div>
+            {deletingEventId === event.id && <DeleteParticleLayer />}
           </div>
         </ContextMenuTrigger>
 
         <ContextMenuContent className="w-40">
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onEditEvent?.(event);
+            }}
+          >
             <Edit3 className="mr-2 h-4 w-4" />
             {menuLabels.edit}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onShareEvent?.(event);
+            }}
+          >
             <Share2 className="mr-2 h-4 w-4" />
             {menuLabels.share}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onBookmarkEvent?.(event);
+            }}
+          >
             <Bookmark className="mr-2 h-4 w-4" />
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onDeleteEvent?.(event);
+            }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -817,10 +866,7 @@ export default function WeekView({
               onMouseDown={(event) => handleGridMouseDown(dayIndex, event)}
             >
               {hours.map((hour) => (
-                <div
-                  key={hour}
-                  className="h-[60px] border-t"
-                />
+                <div key={hour} className="h-[60px] border-t" />
               ))}
 
               {eventLayouts.map(
@@ -869,61 +915,98 @@ export default function WeekView({
                         >
                           <div
                             className={cn(
-                              "absolute left-0 top-0 w-1 h-full rounded-l-md",
+                              "relative z-10",
+                              deletingEventId === event.id &&
+                                "opacity-0 transition-opacity duration-200",
                             )}
-                            style={{
-                              backgroundColor: getDarkerColorClass(event.color),
-                            }}
-                          />
-                          <div className="pl-1">
+                          >
                             <div
-                              className="font-medium leading-tight break-words"
+                              className={cn(
+                                "absolute left-0 top-0 w-1 h-full rounded-l-md",
+                              )}
                               style={{
-                                color: getDarkerColorClass(event.color),
-                                display: "-webkit-box",
-                                WebkitBoxOrient: "vertical",
-                                WebkitLineClamp: Math.max(
-                                  1,
-                                  Math.floor((height - 8) / 16),
+                                backgroundColor: getDarkerColorClass(
+                                  event.color,
                                 ),
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
                               }}
-                            >
-                              {event.title}
-                            </div>
-                            {height >= 40 && (
+                            />
+                            <div className="pl-1">
                               <div
-                                className="text-xs truncate"
+                                className="font-medium leading-tight break-words"
                                 style={{
                                   color: getDarkerColorClass(event.color),
+                                  display: "-webkit-box",
+                                  WebkitBoxOrient: "vertical",
+                                  WebkitLineClamp: Math.max(
+                                    1,
+                                    Math.floor((height - 8) / 16),
+                                  ),
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                 }}
                               >
-                                {formatDateWithTimezone(start)} -{" "}
-                                {formatDateWithTimezone(end)}
+                                {event.title}
                               </div>
-                            )}
+                              {height >= 40 && (
+                                <div
+                                  className="text-xs truncate"
+                                  style={{
+                                    color: getDarkerColorClass(event.color),
+                                  }}
+                                >
+                                  {formatDateWithTimezone(start)} -{" "}
+                                  {formatDateWithTimezone(end)}
+                                </div>
+                              )}
+                            </div>
                           </div>
+                          {deletingEventId === event.id && (
+                            <DeleteParticleLayer />
+                          )}
                         </div>
                       </ContextMenuTrigger>
 
                       <ContextMenuContent className="w-40">
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
+                        <ContextMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            queueIgnoreEventClick();
+                            onEditEvent?.(event);
+                          }}
+                        >
                           <Edit3 className="mr-2 h-4 w-4" />
                           {menuLabels.edit}
                         </ContextMenuItem>
-                        <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
+                        <ContextMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            queueIgnoreEventClick();
+                            onShareEvent?.(event);
+                          }}
+                        >
                           <Share2 className="mr-2 h-4 w-4" />
                           {menuLabels.share}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            queueIgnoreEventClick();
+                            onBookmarkEvent?.(event);
+                          }}
                         >
                           <Bookmark className="mr-2 h-4 w-4" />
                           {menuLabels.bookmark}
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            queueIgnoreEventClick();
+                            onDeleteEvent?.(event);
+                          }}
                           className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />

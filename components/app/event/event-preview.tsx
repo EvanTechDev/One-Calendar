@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  getEncryptionState,
-  readEncryptedLocalStorage,
-  subscribeEncryptionState,
-  writeEncryptedLocalStorage,
-} from "@/hooks/useLocalStorage";
+import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Edit2,
@@ -83,31 +78,23 @@ export default function EventPreview({
   const [atprotoSignedIn, setAtprotoSignedIn] = useState(false);
   const [atprotoHandle, setAtprotoHandle] = useState("");
   const dialogContentRef = useRef<HTMLDivElement>(null);
-  const previewCardRef = useRef<HTMLDivElement>(null);
-  const particleCanvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const animationResolverRef = useRef<(() => void) | null>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
-  const [isDeletingAnimating, setIsDeletingAnimating] = useState(false);
-  const [particleCanvasSize, setParticleCanvasSize] = useState({
-    width: 0,
-    height: 0,
-  });
   const colorMapping: Record<string, string> = {
-    "bg-[#E6F6FD]": "#3B82F6",
-    "bg-[#E7F8F2]": "#10B981",
-    "bg-[#FEF5E6]": "#F59E0B",
-    "bg-[#FFE4E6]": "#EF4444",
-    "bg-[#F3EEFE]": "#8B5CF6",
-    "bg-[#FCE7F3]": "#EC4899",
-    "bg-[#EEF2FF]": "#6366F1",
-    "bg-[#FFF0E5]": "#FB923C",
-    "bg-[#E6FAF7]": "#14B8A6",
-  };
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
 
+  
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn && !atprotoSignedIn) {
@@ -119,6 +106,7 @@ export default function EventPreview({
       }
     }
   }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
+
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -132,13 +120,11 @@ export default function EventPreview({
   useEffect(() => {
     let active = true;
     const loadBookmarks = () =>
-      readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
-        (stored) => {
-          if (active) {
-            setBookmarks(stored);
-          }
-        },
-      );
+      readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((stored) => {
+        if (active) {
+          setBookmarks(stored);
+        }
+      });
 
     loadBookmarks();
     const unsubscribe = subscribeEncryptionState(() => {
@@ -154,13 +140,6 @@ export default function EventPreview({
 
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (animationResolverRef.current) {
-        animationResolverRef.current();
-        animationResolverRef.current = null;
-      }
       if (qrCodeObjectURLRef.current) {
         URL.revokeObjectURL(qrCodeObjectURLRef.current);
       }
@@ -169,9 +148,7 @@ export default function EventPreview({
 
   useEffect(() => {
     if (event) {
-      const isCurrentEventBookmarked = bookmarks.some(
-        (bookmark: any) => bookmark.id === event.id,
-      );
+      const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id);
       setIsBookmarked(isCurrentEventBookmarked);
     }
   }, [event, bookmarks]);
@@ -194,11 +171,8 @@ export default function EventPreview({
   };
 
   const formatNotificationTime = () => {
-    if (event.notification === 0)
-      return isZh ? "事件开始时" : "At time of event";
-    return isZh
-      ? `${event.notification} 分钟前`
-      : `${event.notification} minutes before`;
+    if (event.notification === 0) return isZh ? "事件开始时" : "At time of event";
+    return isZh ? `${event.notification} 分钟前` : `${event.notification} minutes before`;
   };
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
@@ -255,16 +229,12 @@ export default function EventPreview({
   const toggleBookmark = async () => {
     if (!event) return;
     if (isBookmarked) {
-      const updatedBookmarks = bookmarks.filter(
-        (bookmark: any) => bookmark.id !== event.id,
-      );
+      const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id);
       await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
       toast(isZh ? "已取消收藏" : "Removed from bookmarks", {
-        description: isZh
-          ? "事件已从收藏夹中移除"
-          : "Event has been removed from your bookmarks",
+        description: isZh ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
       });
     } else {
       const bookmarkData = {
@@ -281,9 +251,7 @@ export default function EventPreview({
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
       toast(isZh ? "已收藏" : "Bookmarked", {
-        description: isZh
-          ? "事件已添加到收藏夹"
-          : "Event has been added to your bookmarks",
+        description: isZh ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
       });
     }
   };
@@ -311,10 +279,8 @@ export default function EventPreview({
 
     try {
       setIsSharing(true);
-      const shareId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9);
-      const clerkUsername =
-        user?.username || user?.firstName || atprotoHandle || "Anonymous";
+      const shareId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      const clerkUsername = (user?.username || user?.firstName || atprotoHandle || "Anonymous");
       const sharedEvent = { ...event, sharedBy: clerkUsername };
 
       const payload: any = { id: shareId, data: sharedEvent };
@@ -335,9 +301,7 @@ export default function EventPreview({
       const result = await response.json();
 
       if (result.success) {
-        const link = result?.shareLink
-          ? `${window.location.origin}${result.shareLink}`
-          : `${window.location.origin}/share/${shareId}`;
+        const link = result?.shareLink ? `${window.location.origin}${result.shareLink}` : `${window.location.origin}/share/${shareId}`;
         setShareLink(link);
 
         try {
@@ -377,10 +341,7 @@ export default function EventPreview({
           }
         } catch {}
 
-        const storedShares = await readEncryptedLocalStorage<any[]>(
-          "shared-events",
-          [],
-        );
+        const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
         storedShares.push({
           id: shareId,
           eventId: event.id,
@@ -454,13 +415,8 @@ export default function EventPreview({
   const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
 
   const cleanupSharesForEvent = async () => {
-    const storedShares = await readEncryptedLocalStorage<any[]>(
-      "shared-events",
-      [],
-    );
-    const relatedShares = storedShares.filter(
-      (s: any) => s?.eventId === event.id,
-    );
+    const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
+    const relatedShares = storedShares.filter((s: any) => s?.eventId === event.id);
     if (!relatedShares.length) return;
 
     const results = await Promise.allSettled(
@@ -469,8 +425,8 @@ export default function EventPreview({
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: s.id }),
-        }),
-      ),
+        })
+      )
     );
 
     await writeEncryptedLocalStorage(
@@ -479,9 +435,7 @@ export default function EventPreview({
     );
 
     const failed = results.filter(
-      (r) =>
-        r.status === "rejected" ||
-        (r.status === "fulfilled" && !(r.value as Response).ok),
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !(r.value as Response).ok)
     );
 
     if (failed.length) {
@@ -491,111 +445,8 @@ export default function EventPreview({
     }
   };
 
-  const playDeleteParticleAnimation = () =>
-    new Promise<void>((resolve) => {
-      const card = previewCardRef.current;
-      if (!card) {
-        resolve();
-        return;
-      }
-
-      const { width, height } = card.getBoundingClientRect();
-      const safeWidth = Math.max(1, Math.round(width));
-      const safeHeight = Math.max(1, Math.round(height));
-
-      setParticleCanvasSize({ width: safeWidth, height: safeHeight });
-      setIsDeletingAnimating(true);
-
-      const finishAnimation = () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        animationResolverRef.current = null;
-        setIsDeletingAnimating(false);
-        resolve();
-      };
-
-      animationResolverRef.current = finishAnimation;
-
-      requestAnimationFrame(() => {
-        const canvas = particleCanvasRef.current;
-        const ctx = canvas?.getContext("2d");
-
-        if (!canvas || !ctx) {
-          finishAnimation();
-          return;
-        }
-
-        type Particle = {
-          x: number;
-          y: number;
-          vx: number;
-          vy: number;
-          size: number;
-          wobble: number;
-        };
-
-        const particleCount = Math.max(
-          220,
-          Math.floor((safeWidth * safeHeight) / 28),
-        );
-        const colors = [
-          "255,255,255",
-          "244,244,245",
-          "226,232,240",
-          "209,213,219",
-        ];
-        const particles: Particle[] = Array.from(
-          { length: particleCount },
-          () => ({
-            x: Math.random() * safeWidth,
-            y: Math.random() * safeHeight,
-            vx: (Math.random() - 0.5) * 2.8,
-            vy: -(Math.random() * 2.8 + 1.2),
-            size: Math.random() * 2.2 + 0.8,
-            wobble: Math.random() * Math.PI * 2,
-          }),
-        );
-
-        const duration = 820;
-        const start = performance.now();
-
-        const drawFrame = (now: number) => {
-          const elapsed = now - start;
-          const progress = Math.min(1, elapsed / duration);
-
-          ctx.clearRect(0, 0, safeWidth, safeHeight);
-
-          particles.forEach((particle, index) => {
-            particle.x +=
-              particle.vx + Math.sin(progress * 10 + particle.wobble) * 0.12;
-            particle.y += particle.vy;
-            particle.vy += 0.02;
-
-            const alpha = Math.max(0, 1 - progress * 1.2);
-            const tint = colors[index % colors.length];
-            ctx.fillStyle = `rgba(${tint}, ${alpha})`;
-            ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
-          });
-
-          if (progress < 1) {
-            animationFrameRef.current = requestAnimationFrame(drawFrame);
-          } else {
-            finishAnimation();
-          }
-        };
-
-        animationFrameRef.current = requestAnimationFrame(drawFrame);
-      });
-    });
-
   const handleDeleteClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDeletingAnimating) return;
-
-    await playDeleteParticleAnimation();
-
     try {
       await cleanupSharesForEvent();
     } catch {
@@ -615,204 +466,147 @@ export default function EventPreview({
           onClick={() => onOpenChange(false)}
         >
           <div
-            ref={previewCardRef}
-            className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden relative"
+            className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className={cn(
-                "transition-opacity duration-150",
-                isDeletingAnimating && "opacity-0",
-              )}
-            >
-              <div className="flex justify-between items-center p-5">
-                <div className="w-24" />
-                <div className="flex space-x-2 ml-auto">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit()}
-                    className="h-8 w-8"
-                    disabled={isDeletingAnimating}
-                  >
-                    <Edit2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isSignedIn && !atprotoSignedIn) {
-                        toast.error(t.shareSignInRequiredTitle, {
-                          description: t.shareSignInRequiredDescription,
-                        });
-                        return;
-                      }
-                      handleShareDialogChange(true);
-                    }}
-                    className="h-8 w-8"
-                    disabled={isDeletingAnimating}
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleBookmark}
-                    className="h-8 w-8"
-                    disabled={isDeletingAnimating}
-                  >
-                    <Bookmark
-                      className={cn(
-                        "h-5 w-5",
-                        isBookmarked ? "fill-blue-500 text-blue-500" : "",
-                      )}
-                    />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDeleteClick}
-                    className="h-8 w-8"
-                    disabled={isDeletingAnimating}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onOpenChange(false)}
-                    className="h-8 w-8 ml-2"
-                    disabled={isDeletingAnimating}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="px-5 pb-5 flex">
-                <div
-                  className="w-2 self-stretch rounded-full mr-4"
-                  style={{ backgroundColor: colorMapping[event.color] }}
-                />
-
-                <div className="flex-1">
-                  <h2
-                    className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                    }}
-                  >
-                    {event.title}
-                  </h2>
-                  <p className="text-muted-foreground">{formatDateRange()}</p>
-                </div>
-              </div>
-
-              <div className="px-5 pb-5 space-y-4">
-                {event.location && event.location.trim() !== "" && (
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p>{event.location}</p>
-                    </div>
-                  </div>
-                )}
-
-                {hasParticipants && (
-                  <div className="flex items-start">
-                    <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={toggleParticipants}
-                      >
-                        <p>
-                          {
-                            event.participants.filter((p) => p.trim() !== "")
-                              .length
-                          }{" "}
-                          {isZh ? "参与者" : "participants"}
-                        </p>
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 transition-transform duration-200",
-                            participantsOpen ? "transform rotate-180" : "",
-                          )}
-                        />
-                      </div>
-                      {participantsOpen && (
-                        <div className="mt-2 space-y-2">
-                          {event.participants
-                            .filter((p) => p.trim() !== "")
-                            .map((participant, index) => (
-                              <div key={index} className="flex items-center">
-                                <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
-                                  <span className="font-medium">
-                                    {getInitials(participant)}
-                                  </span>
-                                </div>
-                                <p>{participant}</p>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {getCalendarName() && (
-                  <div className="flex items-start">
-                    <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p>{getCalendarName()}</p>
-                    </div>
-                  </div>
-                )}
-
-                {event.notification > 0 && (
-                  <div className="flex items-start">
-                    <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p>{formatNotificationTime()}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {isZh
-                          ? `${event.notification} 分钟前 按电子邮件`
-                          : `${event.notification} minutes before by email`}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {event.description && event.description.trim() !== "" && (
-                  <div className="flex items-start">
-                    <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p
-                        className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 4,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {event.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
+            <div className="flex justify-between items-center p-5">
+              <div className="w-24" />
+              <div className="flex space-x-2 ml-auto">
+                <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
+                  <Edit2 className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isSignedIn && !atprotoSignedIn) {
+                      toast.error(t.shareSignInRequiredTitle, {
+                        description: t.shareSignInRequiredDescription,
+                      });
+                      return;
+                    }
+                    handleShareDialogChange(true);
+                  }}
+                  className="h-8 w-8"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
+                  <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             </div>
-            {isDeletingAnimating && (
-              <canvas
-                ref={particleCanvasRef}
-                width={particleCanvasSize.width}
-                height={particleCanvasSize.height}
-                className="pointer-events-none absolute inset-0 h-full w-full"
-              />
-            )}
+
+            <div className="px-5 pb-5 flex">
+              <div className="w-2 self-stretch rounded-full mr-4" style={{ backgroundColor: colorMapping[event.color] }} />
+
+              <div className="flex-1">
+                <h2
+                  className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                  }}
+                >
+                  {event.title}
+                </h2>
+                <p className="text-muted-foreground">{formatDateRange()}</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 space-y-4">
+              {event.location && event.location.trim() !== "" && (
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{event.location}</p>
+                  </div>
+                </div>
+              )}
+
+              {hasParticipants && (
+                <div className="flex items-start">
+                  <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
+                      <p>
+                        {event.participants.filter((p) => p.trim() !== "").length}{" "}
+                        {isZh ? "参与者" : "participants"}
+                      </p>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          participantsOpen ? "transform rotate-180" : "",
+                        )}
+                      />
+                    </div>
+                    {participantsOpen && (
+                      <div className="mt-2 space-y-2">
+                        {event.participants
+                          .filter((p) => p.trim() !== "")
+                          .map((participant, index) => (
+                            <div key={index} className="flex items-center">
+                              <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
+                                <span className="font-medium">{getInitials(participant)}</span>
+                              </div>
+                              <p>{participant}</p>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {getCalendarName() && (
+                <div className="flex items-start">
+                  <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{getCalendarName()}</p>
+                  </div>
+                </div>
+              )}
+
+              {event.notification > 0 && (
+                <div className="flex items-start">
+                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{formatNotificationTime()}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isZh
+                        ? `${event.notification} 分钟前 按电子邮件`
+                        : `${event.notification} minutes before by email`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {event.description && event.description.trim() !== "" && (
+                <div className="flex items-start">
+                  <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p
+                      className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {event.description}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -824,11 +618,7 @@ export default function EventPreview({
           if (!nextOpen && shareOnlyMode) onOpenChange(false);
         }}
       >
-        <DialogContent
-          className="sm:max-w-md"
-          ref={dialogContentRef}
-          onClick={handleDialogClick}
-        >
+        <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
           <DialogHeader>
             <DialogTitle>{t.shareEvent}</DialogTitle>
           </DialogHeader>
@@ -844,9 +634,7 @@ export default function EventPreview({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="enable-password">
-                    {t.shareEnablePasswordProtection}
-                  </Label>
+                  <Label htmlFor="enable-password">{t.shareEnablePasswordProtection}</Label>
                   <input
                     id="enable-password"
                     type="checkbox"
@@ -865,9 +653,7 @@ export default function EventPreview({
 
                 {passwordEnabled && (
                   <div className="space-y-2">
-                    <Label htmlFor="share-password">
-                      {t.sharePasswordLabel}
-                    </Label>
+                    <Label htmlFor="share-password">{t.sharePasswordLabel}</Label>
                     <Input
                       id="share-password"
                       type="password"
@@ -880,9 +666,7 @@ export default function EventPreview({
                     </p>
 
                     <div className="flex items-center justify-between pt-2">
-                      <Label htmlFor="burn-after-read">
-                        {t.shareBurnAfterRead}
-                      </Label>
+                      <Label htmlFor="burn-after-read">{t.shareBurnAfterRead}</Label>
                       <input
                         id="burn-after-read"
                         type="checkbox"
@@ -962,11 +746,7 @@ export default function EventPreview({
                   <div className="mt-4 flex flex-col items-center">
                     <Label className="mb-2">{t.qrCode}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
-                      <img
-                        src={qrCodeDataURL || "/placeholder.svg"}
-                        alt="QR Code"
-                        className="w-full max-w-[200px] mx-auto"
-                      />
+                      <img src={qrCodeDataURL || "/placeholder.svg"} alt="QR Code" className="w-full max-w-[200px] mx-auto" />
                     </div>
                     <Button
                       variant="outline"
