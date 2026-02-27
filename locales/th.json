@@ -478,5 +478,27 @@
     "พฤศจิกายน",
     "ธันวาคม"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "การดำเนินการนี้จะลบข้อมูลสำรองคลาวด์ที่เข้ารหัสของคุณอย่างถาวร พิมพ์ DELETE CLOUD DATA เพื่อดำเนินการต่อ",
+  "confirmDeleteData": "ยืนยันการลบข้อมูล",
+  "countdownIcon": "ไอคอน",
+  "countdownSearchIcon": "ค้นหาไอคอน",
+  "countdownAdded": "เพิ่มการนับถอยหลังแล้ว",
+  "countdownUpdated": "อัปเดตการนับถอยหลังแล้ว",
+  "countdownDeleted": "ลบการนับถอยหลังแล้ว",
+  "toastPosition": "ตำแหน่งการแจ้งเตือน",
+  "toastPositionBottomLeft": "ล่างซ้าย",
+  "toastPositionBottomCenter": "ล่างกลาง",
+  "toastPositionBottomRight": "ล่างขวา",
+  "countdownDaysAgo": "วันที่แล้ว",
+  "deleteCategoryEvents": "ลบอีเวนต์ทั้งหมดในหมวดหมู่นี้ด้วย",
+  "categoryDeletedWithEvents": "ลบหมวดหมู่และอีเวนต์ทั้งหมดแล้ว",
+  "importToCalendarCategory": "นำเข้าไปยังหมวดหมู่ปฏิทิน",
+  "status": "สถานะ",
+  "feedback": "ข้อเสนอแนะ",
+  "privacy": "ความเป็นส่วนตัว",
+  "tos": "ข้อกำหนดการให้บริการ"
 }

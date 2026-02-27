@@ -478,5 +478,27 @@
     "nóvember",
     "desember"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Þessi aðgerð eyðir dulkóðuðu skýjaafriti þínu varanlega. Sláðu inn DELETE CLOUD DATA til að halda áfram.",
+  "confirmDeleteData": "Staðfesta eyðingu gagna",
+  "countdownIcon": "Tákn",
+  "countdownSearchIcon": "Leita að táknum",
+  "countdownAdded": "Niðurtalning bætt við",
+  "countdownUpdated": "Niðurtalning uppfærð",
+  "countdownDeleted": "Niðurtalning eytt",
+  "toastPosition": "Staðsetning tilkynningar",
+  "toastPositionBottomLeft": "Neðst til vinstri",
+  "toastPositionBottomCenter": "Neðst í miðju",
+  "toastPositionBottomRight": "Neðst til hægri",
+  "countdownDaysAgo": "dögum síðan",
+  "deleteCategoryEvents": "Eyða einnig öllum viðburðum í þessum flokki",
+  "categoryDeletedWithEvents": "Flokki og öllum viðburðum hans var eytt",
+  "importToCalendarCategory": "Flytja inn í dagatalflokk",
+  "status": "Staða",
+  "feedback": "Endurgjöf",
+  "privacy": "Persónuvernd",
+  "tos": "Notkunarskilmálar"
 }

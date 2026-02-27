@@ -478,5 +478,27 @@
     "Novemba",
     "Desemba"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Kitendo hiki kitafuta kabisa nakala yako fiche ya hifadhi ya wingu. Andika DELETE CLOUD DATA kuendelea.",
+  "confirmDeleteData": "Thibitisha kufuta data",
+  "countdownIcon": "Aikoni",
+  "countdownSearchIcon": "Tafuta aikoni",
+  "countdownAdded": "Hesabu ya kurudi nyuma imeongezwa",
+  "countdownUpdated": "Hesabu ya kurudi nyuma imesasishwa",
+  "countdownDeleted": "Hesabu ya kurudi nyuma imefutwa",
+  "toastPosition": "Nafasi ya arifa",
+  "toastPositionBottomLeft": "Chini kushoto",
+  "toastPositionBottomCenter": "Chini katikati",
+  "toastPositionBottomRight": "Chini kulia",
+  "countdownDaysAgo": "siku zilizopita",
+  "deleteCategoryEvents": "Futa pia matukio yote katika kategoria hii",
+  "categoryDeletedWithEvents": "Kategoria na matukio yake yote yamefutwa",
+  "importToCalendarCategory": "Ingiza kwenye kategoria ya kalenda",
+  "status": "Hali",
+  "feedback": "Maoni",
+  "privacy": "Faragha",
+  "tos": "Masharti ya Huduma"
 }

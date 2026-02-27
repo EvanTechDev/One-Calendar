@@ -478,5 +478,27 @@
     "Tháng 11",
     "Tháng 12"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} năm {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} năm {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Hành động này sẽ xóa vĩnh viễn bản sao lưu đám mây đã mã hóa của bạn. Nhập DELETE CLOUD DATA để tiếp tục.",
+  "confirmDeleteData": "Xác nhận xóa dữ liệu",
+  "countdownIcon": "Biểu tượng",
+  "countdownSearchIcon": "Tìm biểu tượng",
+  "countdownAdded": "Đã thêm đếm ngược",
+  "countdownUpdated": "Đã cập nhật đếm ngược",
+  "countdownDeleted": "Đã xóa đếm ngược",
+  "toastPosition": "Vị trí thông báo",
+  "toastPositionBottomLeft": "Dưới bên trái",
+  "toastPositionBottomCenter": "Dưới chính giữa",
+  "toastPositionBottomRight": "Dưới bên phải",
+  "countdownDaysAgo": "ngày trước",
+  "deleteCategoryEvents": "Đồng thời xóa tất cả sự kiện trong danh mục này",
+  "categoryDeletedWithEvents": "Danh mục và tất cả sự kiện của nó đã bị xóa",
+  "importToCalendarCategory": "Nhập vào danh mục lịch",
+  "status": "Trạng thái",
+  "feedback": "Phản hồi",
+  "privacy": "Quyền riêng tư",
+  "tos": "Điều khoản dịch vụ"
 }

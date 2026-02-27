@@ -478,5 +478,27 @@
     "novembro",
     "dezembro"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} de {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} de {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Esta ação exclui permanentemente seu backup em nuvem criptografado. Digite DELETE CLOUD DATA para continuar.",
+  "confirmDeleteData": "Confirmar exclusão de dados",
+  "countdownIcon": "Ícone",
+  "countdownSearchIcon": "Pesquisar ícones",
+  "countdownAdded": "Contagem regressiva adicionada",
+  "countdownUpdated": "Contagem regressiva atualizada",
+  "countdownDeleted": "Contagem regressiva excluída",
+  "toastPosition": "Posição da notificação",
+  "toastPositionBottomLeft": "Inferior esquerdo",
+  "toastPositionBottomCenter": "Inferior central",
+  "toastPositionBottomRight": "Inferior direito",
+  "countdownDaysAgo": "dias atrás",
+  "deleteCategoryEvents": "Excluir também todos os eventos desta categoria",
+  "categoryDeletedWithEvents": "A categoria e todos os eventos dela foram excluídos",
+  "importToCalendarCategory": "Importar para categoria do calendário",
+  "status": "Estado",
+  "feedback": "Feedback",
+  "privacy": "Privacidade",
+  "tos": "Termos de serviço"
 }

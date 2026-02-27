@@ -80,7 +80,7 @@ export function LoginForm({
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/");
+        router.push("/app");
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
@@ -104,7 +104,7 @@ export function LoginForm({
     signIn.authenticateWithRedirect({
       strategy,
       redirectUrl: "/sign-in/sso-callback",
-      redirectUrlComplete: "/",
+      redirectUrlComplete: "/app",
     });
   };
 

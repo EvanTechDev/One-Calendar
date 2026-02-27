@@ -2,7 +2,7 @@
 
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -35,12 +35,15 @@ import {
   Clock,
   Search,
 } from "lucide-react";
+import { icons as lucideIcons } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
+import { toast } from "sonner";
 import { ClockDashed } from "@/components/icons/clock-dashed";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 interface Countdown {
   id: string;
@@ -49,6 +52,7 @@ interface Countdown {
   repeat: "none" | "weekly" | "monthly" | "yearly";
   description?: string;
   color: string;
+  icon?: string;
 }
 
 interface CountdownToolProps {
@@ -74,6 +78,20 @@ const parseDateString = (dateStr: string) => {
   return new Date(year, month - 1, day);
 };
 
+
+const TEXT_COLOR_MAP: Record<string, string> = {
+  "bg-red-500": "#ef4444",
+  "bg-blue-500": "#3b82f6",
+  "bg-green-500": "#22c55e",
+  "bg-yellow-500": "#eab308",
+  "bg-purple-500": "#a855f7",
+  "bg-pink-500": "#ec4899",
+  "bg-indigo-500": "#6366f1",
+  "bg-orange-500": "#f97316",
+};
+
+const allIconNames = Object.keys(lucideIcons).sort((a, b) => a.localeCompare(b));
+
 const toDateString = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -91,6 +109,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   );
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
     color: "bg-blue-500",
+    icon: "Clock",
   });
   const [view, setView] = useState<"list" | "detail" | "edit">("list");
   const [language] = useLanguage();
@@ -101,6 +120,29 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     new Date(),
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
+
+  const filteredIcons = useMemo(() => {
+    const keyword = iconSearch.trim().toLowerCase();
+    const target = keyword
+      ? allIconNames.filter((name) => name.toLowerCase().includes(keyword))
+      : allIconNames;
+    return target.slice(0, 200);
+  }, [iconSearch]);
+
+  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 20, withBackground = false) => {
+    const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
+    const IconComponent = lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ?? lucideIcons.Clock;
+    if (withBackground) {
+      return (
+        <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
+          <IconComponent size={size} style={{ color: iconColor }} />
+        </div>
+      );
+    }
+
+    return <IconComponent size={size} style={{ color: iconColor }} />;
+  };
 
   const formatDate = (dateStr: string) => {
     const date = parseDateString(dateStr);
@@ -127,11 +169,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     today.setHours(0, 0, 0, 0);
 
     const targetDate = parseDateString(dateStr);
-    let nextDate = new Date(
-      today.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-    );
+
+    const daysInMonth = (year: number, monthIndex: number) =>
+      new Date(year, monthIndex + 1, 0).getDate();
+
+    const buildClampedDate = (year: number, monthIndex: number, day: number) => {
+      const clampedDay = Math.min(day, daysInMonth(year, monthIndex));
+      return new Date(year, monthIndex, clampedDay);
+    };
+
+    let nextDate = new Date(targetDate);
 
     if (repeat === "weekly") {
       const targetDay = targetDate.getDay();
@@ -140,19 +187,23 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       nextDate = new Date(today);
       nextDate.setDate(today.getDate() + daysToAdd);
     } else if (repeat === "monthly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        targetDate.getDate(),
-      );
-      if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate = buildClampedDate(today.getFullYear(), today.getMonth(), targetDate.getDate());
+      if (nextDate < today) {
+        const nextMonth = today.getMonth() + 1;
+        const year = today.getFullYear() + Math.floor(nextMonth / 12);
+        const month = nextMonth % 12;
+        nextDate = buildClampedDate(year, month, targetDate.getDate());
+      }
     } else if (repeat === "yearly") {
-      nextDate = new Date(
-        today.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      );
-      if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
+      nextDate = buildClampedDate(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      if (nextDate < today) {
+        nextDate = buildClampedDate(today.getFullYear() + 1, targetDate.getMonth(), targetDate.getDate());
+      }
+    }
+
+    if (repeat === "none") {
+      const diffTime = targetDate.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
     const diffTime = nextDate.getTime() - today.getTime();
@@ -180,6 +231,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       repeat: "none",
       description: "",
       color: "bg-blue-500",
+      icon: "Clock",
     });
     setSelectedDate(today);
     setSelectedCountdown(null);
@@ -212,26 +264,31 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       repeat: newCountdown.repeat || "none",
       description: newCountdown.description || "",
       color: newCountdown.color,
+      icon: newCountdown.icon || "Clock",
     };
 
     if (selectedCountdown) {
       setCountdowns((prev) =>
         prev.map((c) => (c.id === countdown.id ? countdown : c)),
       );
+      toast(t.countdownUpdated, { description: countdown.name });
     } else {
       setCountdowns((prev) => [...prev, countdown]);
+      toast(t.countdownAdded, { description: countdown.name });
     }
 
     setView("list");
     setSelectedCountdown(null);
-    setNewCountdown({ color: "bg-blue-500" });
+    setNewCountdown({ color: "bg-blue-500", icon: "Clock" });
     setSelectedDate(new Date());
   };
 
   const deleteCountdown = (id: string) => {
+    const target = countdowns.find((c) => c.id === id);
     setCountdowns((prev) => prev.filter((c) => c.id !== id));
     setView("list");
     setSelectedCountdown(null);
+    toast(t.countdownDeleted, { description: target?.name || "" });
   };
 
   const renderCountdownListView = () => (
@@ -265,9 +322,15 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         </Button>
         <ScrollArea className="h-[calc(100vh-200px)]">
           {countdowns.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t.countdownNoEvents}
-            </div>
+            <Empty className="border-0 py-8">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ClockDashed className="h-4 w-4" />
+                </EmptyMedia>
+                <EmptyTitle>{t.countdownTitle}</EmptyTitle>
+                <EmptyDescription>{t.countdownNoEvents}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="space-y-2">
               {countdowns
@@ -294,10 +357,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                       onClick={() => viewCountdownDetail(countdown)}
                     >
                       <Avatar className="h-12 w-12 mr-3">
-                        <AvatarFallback className={countdown.color}>
-                          <span className="text-white font-semibold">
-                            {countdown.name.charAt(0).toUpperCase()}
-                          </span>
+                        <AvatarFallback className="bg-transparent">
+                          {renderCountdownIcon(countdown.icon, countdown.color, 20, true)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -314,7 +375,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           {Math.abs(daysLeft)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {t.countdownDaysLeft}
+                          {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
                         </div>
                       </div>
                     </div>
@@ -353,10 +414,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         <div className="p-4">
           <div className="flex items-center mb-6">
             <Avatar className="h-16 w-16 mr-4">
-              <AvatarFallback className={selectedCountdown.color}>
-                <span className="text-white text-xl font-bold">
-                  {selectedCountdown.name.charAt(0).toUpperCase()}
-                </span>
+              <AvatarFallback className="bg-transparent">
+                {renderCountdownIcon(selectedCountdown.icon, selectedCountdown.color, 26)}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -364,7 +423,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               <div
                 className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}
               >
-                {Math.abs(daysLeft)} {t.countdownDaysLeft}
+                {Math.abs(daysLeft)} {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
               </div>
             </div>
           </div>
@@ -485,6 +544,43 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+
+          <div className="space-y-2">
+            <Label>{t.countdownIcon}</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  {renderCountdownIcon(newCountdown.icon, newCountdown.color || "bg-blue-500")}
+                  <span>{newCountdown.icon || "Clock"}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[320px] p-3" align="start">
+                <Input
+                  placeholder={t.countdownSearchIcon}
+                  value={iconSearch}
+                  onChange={(e) => setIconSearch(e.target.value)}
+                  className="mb-2"
+                />
+                <ScrollArea className="h-52">
+                  <div className="grid grid-cols-8 gap-1">
+                    {filteredIcons.map((iconName) => (
+                      <div
+                        key={iconName}
+                        className={cn(
+                          "h-11 w-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent",
+                          newCountdown.icon === iconName && "ring-2 ring-primary bg-accent/60",
+                        )}
+                        onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
+                      >
+                        {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 18)}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">

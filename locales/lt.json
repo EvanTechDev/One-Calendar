@@ -478,5 +478,27 @@
     "lapkritis",
     "gruodis"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}} m. {{month}}"
+  "sidebarCalendarMonthYearFormat": "{{year}} m. {{month}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Šis veiksmas visam laikui ištrins jūsų užšifruotą debesijos atsarginę kopiją. Norėdami tęsti, įveskite DELETE CLOUD DATA.",
+  "confirmDeleteData": "Patvirtinti duomenų ištrynimą",
+  "countdownIcon": "Piktograma",
+  "countdownSearchIcon": "Ieškoti piktogramų",
+  "countdownAdded": "Atgalinis skaičiavimas pridėtas",
+  "countdownUpdated": "Atgalinis skaičiavimas atnaujintas",
+  "countdownDeleted": "Atgalinis skaičiavimas ištrintas",
+  "toastPosition": "Pranešimo vieta",
+  "toastPositionBottomLeft": "Apačioje kairėje",
+  "toastPositionBottomCenter": "Apačioje centre",
+  "toastPositionBottomRight": "Apačioje dešinėje",
+  "countdownDaysAgo": "prieš dienas",
+  "deleteCategoryEvents": "Taip pat ištrinti visus šios kategorijos įvykius",
+  "categoryDeletedWithEvents": "Kategorija ir visi jos įvykiai buvo ištrinti",
+  "importToCalendarCategory": "Importuoti į kalendoriaus kategoriją",
+  "status": "Būsena",
+  "feedback": "Atsiliepimai",
+  "privacy": "Privatumas",
+  "tos": "Paslaugos sąlygos"
 }

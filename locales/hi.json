@@ -478,5 +478,27 @@
     "नवंबर",
     "दिसंबर"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "यह कार्रवाई आपके एन्क्रिप्टेड क्लाउड बैकअप को स्थायी रूप से हटाती है। जारी रखने के लिए DELETE CLOUD DATA टाइप करें।",
+  "confirmDeleteData": "डेटा हटाने की पुष्टि करें",
+  "countdownIcon": "आइकन",
+  "countdownSearchIcon": "आइकन खोजें",
+  "countdownAdded": "काउंटडाउन जोड़ा गया",
+  "countdownUpdated": "काउंटडाउन अपडेट किया गया",
+  "countdownDeleted": "काउंटडाउन हटाया गया",
+  "toastPosition": "सूचना स्थिति",
+  "toastPositionBottomLeft": "नीचे बायाँ",
+  "toastPositionBottomCenter": "नीचे मध्य",
+  "toastPositionBottomRight": "नीचे दायाँ",
+  "countdownDaysAgo": "दिन पहले",
+  "deleteCategoryEvents": "इस श्रेणी के सभी इवेंट भी हटाएँ",
+  "categoryDeletedWithEvents": "श्रेणी और उसके सभी इवेंट हटा दिए गए",
+  "importToCalendarCategory": "कैलेंडर श्रेणी में आयात करें",
+  "status": "स्थिति",
+  "feedback": "प्रतिक्रिया",
+  "privacy": "गोपनीयता",
+  "tos": "सेवा की शर्तें"
 }

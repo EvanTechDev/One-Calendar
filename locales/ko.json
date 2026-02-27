@@ -478,5 +478,27 @@
     "11월",
     "12월"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}}년 {{month}}"
+  "sidebarCalendarMonthYearFormat": "{{year}}년 {{month}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "이 작업은 암호화된 클라우드 백업을 영구적으로 삭제합니다. 계속하려면 DELETE CLOUD DATA를 입력하세요.",
+  "confirmDeleteData": "데이터 삭제 확인",
+  "countdownIcon": "아이콘",
+  "countdownSearchIcon": "아이콘 검색",
+  "countdownAdded": "카운트다운이 추가되었습니다",
+  "countdownUpdated": "카운트다운이 업데이트되었습니다",
+  "countdownDeleted": "카운트다운이 삭제되었습니다",
+  "toastPosition": "알림 위치",
+  "toastPositionBottomLeft": "왼쪽 아래",
+  "toastPositionBottomCenter": "하단 중앙",
+  "toastPositionBottomRight": "오른쪽 아래",
+  "countdownDaysAgo": "일 전",
+  "deleteCategoryEvents": "이 카테고리의 모든 일정도 삭제",
+  "categoryDeletedWithEvents": "카테고리와 모든 일정이 삭제되었습니다",
+  "importToCalendarCategory": "캘린더 카테고리로 가져오기",
+  "status": "상태",
+  "feedback": "피드백",
+  "privacy": "개인정보",
+  "tos": "이용약관"
 }

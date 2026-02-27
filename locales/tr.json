@@ -478,5 +478,27 @@
     "Kasım",
     "Aralık"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Bu işlem şifrelenmiş bulut yedeğinizi kalıcı olarak siler. Devam etmek için DELETE CLOUD DATA yazın.",
+  "confirmDeleteData": "Veri silmeyi onayla",
+  "countdownIcon": "Simge",
+  "countdownSearchIcon": "Simgeleri ara",
+  "countdownAdded": "Geri sayım eklendi",
+  "countdownUpdated": "Geri sayım güncellendi",
+  "countdownDeleted": "Geri sayım silindi",
+  "toastPosition": "Bildirim konumu",
+  "toastPositionBottomLeft": "Sol alt",
+  "toastPositionBottomCenter": "Alt orta",
+  "toastPositionBottomRight": "Sağ alt",
+  "countdownDaysAgo": "gün önce",
+  "deleteCategoryEvents": "Bu kategorideki tüm etkinlikleri de sil",
+  "categoryDeletedWithEvents": "Kategori ve tüm etkinlikleri silindi",
+  "importToCalendarCategory": "Takvim kategorisine aktar",
+  "status": "Durum",
+  "feedback": "Geri Bildirim",
+  "privacy": "Gizlilik",
+  "tos": "Hizmet Şartları"
 }

@@ -478,5 +478,27 @@
     "November",
     "Dezember"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Diese Aktion löscht Ihr verschlüsseltes Cloud-Backup dauerhaft. Geben Sie zum Fortfahren DELETE CLOUD DATA ein.",
+  "confirmDeleteData": "Datenlöschung bestätigen",
+  "countdownIcon": "Symbol",
+  "countdownSearchIcon": "Symbole suchen",
+  "countdownAdded": "Countdown hinzugefügt",
+  "countdownUpdated": "Countdown aktualisiert",
+  "countdownDeleted": "Countdown gelöscht",
+  "toastPosition": "Toast-Position",
+  "toastPositionBottomLeft": "Unten links",
+  "toastPositionBottomCenter": "Unten mittig",
+  "toastPositionBottomRight": "Unten rechts",
+  "countdownDaysAgo": "Tage zuvor",
+  "deleteCategoryEvents": "Alle Ereignisse in dieser Kategorie ebenfalls löschen",
+  "categoryDeletedWithEvents": "Kategorie und alle zugehörigen Ereignisse wurden gelöscht",
+  "importToCalendarCategory": "In Kalenderkategorie importieren",
+  "status": "Status",
+  "feedback": "Feedback",
+  "privacy": "Datenschutz",
+  "tos": "Nutzungsbedingungen"
 }

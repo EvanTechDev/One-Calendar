@@ -478,5 +478,27 @@
     "noiembrie",
     "decembrie"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Această acțiune șterge definitiv backupul tău cloud criptat. Tastează DELETE CLOUD DATA pentru a continua.",
+  "confirmDeleteData": "Confirmă ștergerea datelor",
+  "countdownIcon": "Pictogramă",
+  "countdownSearchIcon": "Caută pictograme",
+  "countdownAdded": "Numărătoare adăugată",
+  "countdownUpdated": "Numărătoare actualizată",
+  "countdownDeleted": "Numărătoare ștearsă",
+  "toastPosition": "Poziția notificării",
+  "toastPositionBottomLeft": "Jos stânga",
+  "toastPositionBottomCenter": "Jos centru",
+  "toastPositionBottomRight": "Jos dreapta",
+  "countdownDaysAgo": "zile în urmă",
+  "deleteCategoryEvents": "Șterge și toate evenimentele din această categorie",
+  "categoryDeletedWithEvents": "Categoria și toate evenimentele sale au fost șterse",
+  "importToCalendarCategory": "Importă în categoria calendarului",
+  "status": "Stare",
+  "feedback": "Feedback",
+  "privacy": "Confidențialitate",
+  "tos": "Termeni de utilizare"
 }

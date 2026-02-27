@@ -12,6 +12,12 @@ import {
   Link as LinkIcon,
   RefreshCcw,
   Camera,
+  BarChart2,
+  Settings,
+  ShieldCheck,
+  MessageSquare,
+  FileText,
+  ScrollText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,15 +55,16 @@ import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 import {
+  readInMemoryStorage,
   clearEncryptionPassword,
-  encryptSnapshots,
   markEncryptedSnapshot,
-  persistEncryptedSnapshots,
   readEncryptedLocalStorage,
   setEncryptionPassword,
+  writeInMemoryStorage,
 } from "@/hooks/useLocalStorage"
 
 const AUTO_KEY = "auto-backup-enabled"
+const BACKUP_STATUS_KEY = "auto-backup-sync-status"
 const BACKUP_VERSION = 1
 const BACKUP_KEYS = [
   "calendar-events",
@@ -73,6 +80,7 @@ const BACKUP_KEYS = [
   "preferred-language",
   "skip-landing",
   "today-toast",
+  "toast-position",
 ]
 
 async function apiGet() {
@@ -99,69 +107,28 @@ async function apiDelete() {
 function collectLocalStorage() {
   const storage: Record<string, string> = {}
   BACKUP_KEYS.forEach((key) => {
-    const value = localStorage.getItem(key)
+    const value = readInMemoryStorage(key) ?? localStorage.getItem(key)
     if (value !== null) storage[key] = value
   })
   return storage
 }
 
-function applyLocalStorage(storage: Record<string, string>) {
-  Object.entries(storage).forEach(([key, value]) => {
-    localStorage.setItem(key, value)
-    markEncryptedSnapshot(key, value)
-  })
-}
-
-async function encryptLocalStorage(password: string) {
-  BACKUP_KEYS.forEach((key) => {
-    const value = localStorage.getItem(key)
-    if (value !== null) markEncryptedSnapshot(key, value)
-  })
-  await encryptSnapshots(password)
-  await persistEncryptedSnapshots()
-}
-
-async function decryptLocalStorage(password: string) {
+async function applyCloudStorageToMemory(storage: Record<string, string>, password: string) {
   await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
+    Object.entries(storage).map(async ([key, value]) => {
+      let normalized = value
       try {
         const parsed = JSON.parse(value)
         if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(password, parsed.ciphertext, parsed.iv)
-          localStorage.setItem(key, plain)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
+          normalized = await decryptPayload(password, parsed.ciphertext, parsed.iv)
         }
       } catch {
-        markEncryptedSnapshot(key, value)
+        normalized = value
       }
+      writeInMemoryStorage(key, normalized)
+      markEncryptedSnapshot(key, normalized)
     }),
   )
-}
-
-async function reencryptLocalStorage(oldPassword: string, newPassword: string) {
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const value = localStorage.getItem(key)
-      if (!value) return
-      try {
-        const parsed = JSON.parse(value)
-        if (isEncryptedPayload(parsed)) {
-          const plain = await decryptPayload(oldPassword, parsed.ciphertext, parsed.iv)
-          markEncryptedSnapshot(key, plain)
-        } else {
-          markEncryptedSnapshot(key, value)
-        }
-      } catch {
-        markEncryptedSnapshot(key, value)
-      }
-    }),
-  )
-  await encryptSnapshots(newPassword)
-  await persistEncryptedSnapshots()
 }
 
 export type UserProfileSection = "profile" | "backup" | "key" | "delete" | "signout"
@@ -171,6 +138,7 @@ type UserProfileButtonProps = {
   className?: string
   mode?: "dropdown" | "settings"
   onNavigateToSettings?: (section: UserProfileSection) => void
+  onNavigateToView?: (view: "analytics" | "settings") => void
   focusSection?: UserProfileSection | null
 }
 
@@ -179,6 +147,7 @@ export default function UserProfileButton({
   className = "",
   mode = "dropdown",
   onNavigateToSettings,
+  onNavigateToView,
   focusSection = null,
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
@@ -199,9 +168,11 @@ export default function UserProfileButton({
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [rotateOpen, setRotateOpen] = useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const [deleteCloudOpen, setDeleteCloudOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isUnlocking, setIsUnlocking] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("")
+  const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState("")
   const [profileSection, setProfileSection] = useState<"basic" | "emails" | "oauth">("basic")
 
   const [password, setPassword] = useState("")
@@ -218,6 +189,12 @@ export default function UserProfileButton({
   const keyRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const timerRef = useRef<any>(null)
+  const [backupTick, setBackupTick] = useState(0)
+
+  const broadcastBackupStatus = (status: "uploading" | "failed" | "done") => {
+    localStorage.setItem(BACKUP_STATUS_KEY, status)
+    window.dispatchEvent(new CustomEvent("backup-status-change", { detail: { status } }))
+  }
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -262,18 +239,43 @@ export default function UserProfileButton({
   }, [isAnySignedIn, mode])
 
   useEffect(() => {
+    const watchKeys = new Set(BACKUP_KEYS)
+    const handleLocalWrite = (event: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string }>
+      if (!customEvent.detail?.key || watchKeys.has(customEvent.detail.key)) {
+        setBackupTick((prev) => prev + 1)
+      }
+    }
+
+    window.addEventListener("local-storage-written", handleLocalWrite)
+    const handleLanguageChange = () => setBackupTick((prev) => prev + 1)
+    window.addEventListener("languagechange", handleLanguageChange)
+    return () => {
+      window.removeEventListener("local-storage-written", handleLocalWrite)
+      window.removeEventListener("languagechange", handleLanguageChange)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const payload = await encryptPayload(
-        keyRef.current!,
-        JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
-      )
-      await apiPost(payload)
-      timerRef.current = null
+      try {
+        broadcastBackupStatus("uploading")
+        const payload = await encryptPayload(
+          keyRef.current!,
+          JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+        )
+        await apiPost(payload)
+        broadcastBackupStatus("done")
+      } catch {
+        broadcastBackupStatus("failed")
+      } finally {
+        timerRef.current = null
+      }
     }, 800)
-  }, [events, calendars, enabled])
+  }, [events, calendars, enabled, backupTick])
 
   async function saveProfile() {
     if (!user) return
@@ -395,12 +397,12 @@ export default function UserProfileButton({
       try {
         const data = JSON.parse(plain)
         if (data?.storage) {
-          applyLocalStorage(data.storage)
+          await applyCloudStorageToMemory(data.storage, password)
         } else if (data?.events || data?.calendars) {
           const fallbackStorage: Record<string, string> = {}
           if (data?.events) fallbackStorage["calendar-events"] = JSON.stringify(data.events)
           if (data?.calendars) fallbackStorage["calendar-categories"] = JSON.stringify(data.calendars)
-          applyLocalStorage(fallbackStorage)
+          await applyCloudStorageToMemory(fallbackStorage, password)
         }
         await setEncryptionPassword(password)
         const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
@@ -413,6 +415,7 @@ export default function UserProfileButton({
       restoredRef.current = true
       localStorage.setItem(AUTO_KEY, "true")
       setEnabled(true)
+      broadcastBackupStatus("done")
 
       setPassword("")
       setUnlockOpen(false)
@@ -428,13 +431,13 @@ export default function UserProfileButton({
       return
     }
     await setEncryptionPassword(password)
-    await encryptLocalStorage(password)
     const payload = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(payload)
     localStorage.setItem(AUTO_KEY, "true")
     keyRef.current = password
     restoredRef.current = true
     setEnabled(true)
+    broadcastBackupStatus("done")
     setPassword("")
     setConfirm("")
     setSetPwdOpen(false)
@@ -456,7 +459,6 @@ export default function UserProfileButton({
       return
     }
 
-    await reencryptLocalStorage(oldPassword, password)
     const next = await encryptPayload(password, JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }))
     await apiPost(next)
     await setEncryptionPassword(password)
@@ -469,14 +471,11 @@ export default function UserProfileButton({
   }
 
   function disableAutoBackup() {
-    const currentPassword = keyRef.current
     localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
-    if (currentPassword) {
-      void decryptLocalStorage(currentPassword)
-    }
     clearEncryptionPassword()
     toast(t.autoBackupDisabled)
   }
@@ -484,6 +483,7 @@ export default function UserProfileButton({
   async function destroy() {
     await apiDelete()
     localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
     restoredRef.current = false
     setEnabled(false)
@@ -544,71 +544,36 @@ export default function UserProfileButton({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end">
-            {isAnySignedIn ? (
-              <>
-                {isSignedIn ? (
-                  <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("profile") : setProfileOpen(true)}>
-                    <CircleUser className="mr-2 h-4 w-4" />
-                    {t.profile}
-                  </DropdownMenuItem>
-                ) : null}
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("backup") : setBackupOpen(true)}>
-                  <CloudUpload className="mr-2 h-4 w-4" />
-                  {t.autoBackup}
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("key") : setRotateOpen(true)}>
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  {t.changeKey}
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => onNavigateToSettings ? onNavigateToSettings("delete") : destroy()}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t.deleteData}
-                </DropdownMenuItem>
-
-                {isSignedIn ? (
-                  <DropdownMenuItem onClick={() => setDeleteAccountOpen(true)} className="text-red-600 focus:text-red-600">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t.deleteAccount}
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isSignedIn ? (
-                  onNavigateToSettings ? (
-                    <DropdownMenuItem onClick={() => onNavigateToSettings("signout")}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t.signOut}
-                    </DropdownMenuItem>
-                  ) : (
-                    <SignOutButton>
-                      <DropdownMenuItem>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        {t.signOut}
-                      </DropdownMenuItem>
-                    </SignOutButton>
-                  )
-                ) : (
-                  <DropdownMenuItem onClick={async () => {
-                    await fetch("/api/atproto/logout", { method: "POST" })
-                    setAtprotoSignedIn(false)
-                    setAtprotoHandle("")
-                    setAtprotoDisplayName("")
-                    setAtprotoAvatar("")
-                    router.refresh()
-                  }}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t.signOut}
-                  </DropdownMenuItem>
-                )}
-              </>
-            ) : (
+            {!isAnySignedIn ? (
               <>
                 <DropdownMenuItem onClick={() => router.push("/sign-in")}>{t.signIn}</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/sign-up")}>{t.signUp}</DropdownMenuItem>
               </>
-            )}
+            ) : null}
+            <DropdownMenuItem onClick={() => onNavigateToView?.("settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              {t.settings}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
+              <BarChart2 className="mr-2 h-4 w-4" />
+              {t.analytics}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.open("https://calendarstatus.xyehr.cn", "_blank", "noopener,noreferrer")}>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              {t.status}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.location.href = "mailto:evan.huang000@proton.me"}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t.feedback}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/privacy")}>
+              <FileText className="mr-2 h-4 w-4" />
+              {t.privacy}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/terms")}>
+              <ScrollText className="mr-2 h-4 w-4" />
+              {t.tos}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
@@ -689,7 +654,7 @@ export default function UserProfileButton({
                   <div className="space-y-3 rounded-md border border-destructive/50 p-3">
                     <p className="text-sm font-semibold text-destructive">{t.deleteData}</p>
                     <p className="text-xs text-muted-foreground">{t.deleteAccountDataHelp}</p>
-                    <Button id="settings-account-delete" variant="destructive" onClick={destroy}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
+                    <Button id="settings-account-delete" variant="destructive" onClick={() => setDeleteCloudOpen(true)}><Trash2 className="h-4 w-4 mr-2" />{t.deleteData}</Button>
                   </div>
                   {isSignedIn ? (
                     <div className="space-y-3 rounded-md border border-destructive/50 p-3">
@@ -873,6 +838,42 @@ export default function UserProfileButton({
         </AlertDialogContent>
       </AlertDialog>
 
+
+      <AlertDialog open={deleteCloudOpen} onOpenChange={setDeleteCloudOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteCloudConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.deleteCloudConfirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-cloud-confirm-input">DELETE CLOUD DATA</Label>
+            <Input
+              id="delete-cloud-confirm-input"
+              value={deleteCloudConfirmText}
+              onChange={(e) => setDeleteCloudConfirmText(e.target.value)}
+              placeholder="DELETE CLOUD DATA"
+              autoComplete="off"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault()
+                if (deleteCloudConfirmText !== "DELETE CLOUD DATA") return
+                void destroy().finally(() => {
+                  setDeleteCloudOpen(false)
+                  setDeleteCloudConfirmText("")
+                })
+              }}
+              disabled={deleteCloudConfirmText !== "DELETE CLOUD DATA"}
+            >
+              {t.confirmDeleteData}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
         <DialogContent>
           <DialogHeader>

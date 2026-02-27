@@ -478,5 +478,27 @@
     "Νοεμβρίου",
     "Δεκεμβρίου"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Αυτή η ενέργεια διαγράφει οριστικά το κρυπτογραφημένο αντίγραφο ασφαλείας cloud. Πληκτρολογήστε DELETE CLOUD DATA για συνέχεια.",
+  "confirmDeleteData": "Επιβεβαίωση διαγραφής δεδομένων",
+  "countdownIcon": "Εικονίδιο",
+  "countdownSearchIcon": "Αναζήτηση εικονιδίων",
+  "countdownAdded": "Η αντίστροφη μέτρηση προστέθηκε",
+  "countdownUpdated": "Η αντίστροφη μέτρηση ενημερώθηκε",
+  "countdownDeleted": "Η αντίστροφη μέτρηση διαγράφηκε",
+  "toastPosition": "Θέση ειδοποίησης",
+  "toastPositionBottomLeft": "Κάτω αριστερά",
+  "toastPositionBottomCenter": "Κάτω κέντρο",
+  "toastPositionBottomRight": "Κάτω δεξιά",
+  "countdownDaysAgo": "ημέρες πριν",
+  "deleteCategoryEvents": "Διαγραφή και όλων των συμβάντων αυτής της κατηγορίας",
+  "categoryDeletedWithEvents": "Η κατηγορία και όλα τα συμβάντα της διαγράφηκαν",
+  "importToCalendarCategory": "Εισαγωγή σε κατηγορία ημερολογίου",
+  "status": "Κατάσταση",
+  "feedback": "Σχόλια",
+  "privacy": "Απόρρητο",
+  "tos": "Όροι χρήσης"
 }

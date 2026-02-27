@@ -478,5 +478,27 @@
     "ноябрь",
     "декабрь"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г."
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}} г.",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Это действие навсегда удалит вашу зашифрованную облачную резервную копию. Введите DELETE CLOUD DATA, чтобы продолжить.",
+  "confirmDeleteData": "Подтвердить удаление данных",
+  "countdownIcon": "Иконка",
+  "countdownSearchIcon": "Поиск иконок",
+  "countdownAdded": "Обратный отсчёт добавлен",
+  "countdownUpdated": "Обратный отсчёт обновлён",
+  "countdownDeleted": "Обратный отсчёт удалён",
+  "toastPosition": "Позиция уведомления",
+  "toastPositionBottomLeft": "Внизу слева",
+  "toastPositionBottomCenter": "Внизу по центру",
+  "toastPositionBottomRight": "Внизу справа",
+  "countdownDaysAgo": "дней назад",
+  "deleteCategoryEvents": "Также удалить все события в этой категории",
+  "categoryDeletedWithEvents": "Категория и все её события были удалены",
+  "importToCalendarCategory": "Импортировать в категорию календаря",
+  "status": "Статус",
+  "feedback": "Обратная связь",
+  "privacy": "Конфиденциальность",
+  "tos": "Условия использования"
 }

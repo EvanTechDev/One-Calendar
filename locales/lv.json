@@ -478,5 +478,27 @@
     "novembris",
     "decembris"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}}. g. {{month}}"
+  "sidebarCalendarMonthYearFormat": "{{year}}. g. {{month}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Šī darbība neatgriezeniski dzēsīs jūsu šifrēto mākoņdublējumu. Lai turpinātu, ierakstiet DELETE CLOUD DATA.",
+  "confirmDeleteData": "Apstiprināt datu dzēšanu",
+  "countdownIcon": "Ikona",
+  "countdownSearchIcon": "Meklēt ikonas",
+  "countdownAdded": "Atpakaļskaitīšana pievienota",
+  "countdownUpdated": "Atpakaļskaitīšana atjaunināta",
+  "countdownDeleted": "Atpakaļskaitīšana dzēsta",
+  "toastPosition": "Paziņojuma pozīcija",
+  "toastPositionBottomLeft": "Apakšā pa kreisi",
+  "toastPositionBottomCenter": "Apakšā centrā",
+  "toastPositionBottomRight": "Apakšā pa labi",
+  "countdownDaysAgo": "dienas atpakaļ",
+  "deleteCategoryEvents": "Dzēst arī visus šīs kategorijas notikumus",
+  "categoryDeletedWithEvents": "Kategorija un visi tās notikumi tika dzēsti",
+  "importToCalendarCategory": "Importēt kalendāra kategorijā",
+  "status": "Statuss",
+  "feedback": "Atsauksmes",
+  "privacy": "Privātums",
+  "tos": "Pakalpojuma noteikumi"
 }

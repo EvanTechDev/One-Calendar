@@ -478,5 +478,27 @@
     "november",
     "december"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "To dejanje trajno izbriše vašo šifrirano varnostno kopijo v oblaku. Za nadaljevanje vnesite DELETE CLOUD DATA.",
+  "confirmDeleteData": "Potrdi brisanje podatkov",
+  "countdownIcon": "Ikona",
+  "countdownSearchIcon": "Išči ikone",
+  "countdownAdded": "Odštevanje dodano",
+  "countdownUpdated": "Odštevanje posodobljeno",
+  "countdownDeleted": "Odštevanje izbrisano",
+  "toastPosition": "Položaj obvestila",
+  "toastPositionBottomLeft": "Spodaj levo",
+  "toastPositionBottomCenter": "Spodaj na sredini",
+  "toastPositionBottomRight": "Spodaj desno",
+  "countdownDaysAgo": "dni nazaj",
+  "deleteCategoryEvents": "Izbriši tudi vse dogodke v tej kategoriji",
+  "categoryDeletedWithEvents": "Kategorija in vsi njeni dogodki so bili izbrisani",
+  "importToCalendarCategory": "Uvozi v kategorijo koledarja",
+  "status": "Stanje",
+  "feedback": "Povratne informacije",
+  "privacy": "Zasebnost",
+  "tos": "Pogoji storitve"
 }

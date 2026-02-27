@@ -478,5 +478,27 @@
     "nëntor",
     "dhjetor"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Ky veprim fshin përgjithmonë kopjen rezervë të koduar në cloud. Shkruani DELETE CLOUD DATA për të vazhduar.",
+  "confirmDeleteData": "Konfirmo fshirjen e të dhënave",
+  "countdownIcon": "Ikona",
+  "countdownSearchIcon": "Kërko ikona",
+  "countdownAdded": "Numërimi mbrapsht u shtua",
+  "countdownUpdated": "Numërimi mbrapsht u përditësua",
+  "countdownDeleted": "Numërimi mbrapsht u fshi",
+  "toastPosition": "Pozicioni i njoftimit",
+  "toastPositionBottomLeft": "Poshtë majtas",
+  "toastPositionBottomCenter": "Poshtë në qendër",
+  "toastPositionBottomRight": "Poshtë djathtas",
+  "countdownDaysAgo": "ditë më parë",
+  "deleteCategoryEvents": "Fshi edhe të gjitha ngjarjet në këtë kategori",
+  "categoryDeletedWithEvents": "Kategoria dhe të gjitha ngjarjet e saj u fshinë",
+  "importToCalendarCategory": "Importo në kategorinë e kalendarit",
+  "status": "Statusi",
+  "feedback": "Komentet",
+  "privacy": "Privatësia",
+  "tos": "Kushtet e shërbimit"
 }

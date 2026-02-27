@@ -478,5 +478,27 @@
     "11月",
     "12月"
   ],
-  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}月"
+  "sidebarCalendarMonthYearFormat": "{{year}}年{{month}}月",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "この操作により暗号化されたクラウドバックアップが完全に削除されます。続行するには DELETE CLOUD DATA と入力してください。",
+  "confirmDeleteData": "データ削除を確認",
+  "countdownIcon": "アイコン",
+  "countdownSearchIcon": "アイコンを検索",
+  "countdownAdded": "カウントダウンを追加しました",
+  "countdownUpdated": "カウントダウンを更新しました",
+  "countdownDeleted": "カウントダウンを削除しました",
+  "toastPosition": "通知位置",
+  "toastPositionBottomLeft": "左下",
+  "toastPositionBottomCenter": "下中央",
+  "toastPositionBottomRight": "右下",
+  "countdownDaysAgo": "日前",
+  "deleteCategoryEvents": "このカテゴリ内のすべての予定も削除する",
+  "categoryDeletedWithEvents": "カテゴリとそのすべての予定を削除しました",
+  "importToCalendarCategory": "カレンダーカテゴリにインポート",
+  "status": "ステータス",
+  "feedback": "フィードバック",
+  "privacy": "プライバシー",
+  "tos": "利用規約"
 }

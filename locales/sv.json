@@ -478,5 +478,27 @@
     "november",
     "december"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Denna åtgärd tar permanent bort din krypterade molnbackup. Skriv DELETE CLOUD DATA för att fortsätta.",
+  "confirmDeleteData": "Bekräfta radering av data",
+  "countdownIcon": "Ikon",
+  "countdownSearchIcon": "Sök ikoner",
+  "countdownAdded": "Nedräkning tillagd",
+  "countdownUpdated": "Nedräkning uppdaterad",
+  "countdownDeleted": "Nedräkning borttagen",
+  "toastPosition": "Notifieringsposition",
+  "toastPositionBottomLeft": "Nedre vänster",
+  "toastPositionBottomCenter": "Nedre mitten",
+  "toastPositionBottomRight": "Nedre höger",
+  "countdownDaysAgo": "dagar sedan",
+  "deleteCategoryEvents": "Radera även alla händelser i denna kategori",
+  "categoryDeletedWithEvents": "Kategori och alla dess händelser togs bort",
+  "importToCalendarCategory": "Importera till kalenderkategori",
+  "status": "Status",
+  "feedback": "Feedback",
+  "privacy": "Integritet",
+  "tos": "Användarvillkor"
 }

@@ -18,8 +18,10 @@ import {
   ChevronRight,
   Search,
   PanelLeft,
-  BarChart2,
-  Settings as SettingsIcon,
+  CloudUpload,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -134,6 +136,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [backupEnabled, setBackupEnabled] = useState(false);
+  const [backupSyncStatus, setBackupSyncStatus] = useState<
+    "uploading" | "failed" | "done" | null
+  >(null);
+  const [shareOnlyMode, setShareOnlyMode] = useState(false);
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
@@ -162,12 +169,54 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "time-format",
     "24h",
   );
+  const [toastPosition, setToastPosition] = useLocalStorage<"bottom-left" | "bottom-center" | "bottom-right">(
+    "toast-position",
+    "bottom-right",
+  );
 
   useEffect(() => {
     if (view !== defaultView) {
       setView(defaultView as ViewType);
     }
   }, []);
+
+  useEffect(() => {
+    const refreshBackupState = () => {
+      const enabled = localStorage.getItem("auto-backup-enabled") === "true";
+      setBackupEnabled(enabled);
+      if (!enabled) {
+        setBackupSyncStatus(null);
+        return;
+      }
+
+      const status = localStorage.getItem("auto-backup-sync-status");
+      if (status === "uploading" || status === "failed" || status === "done") {
+        setBackupSyncStatus(status);
+      } else {
+        setBackupSyncStatus("done");
+      }
+    };
+
+    refreshBackupState();
+    window.addEventListener("backup-status-change", refreshBackupState);
+    window.addEventListener("storage", refreshBackupState);
+    return () => {
+      window.removeEventListener("backup-status-change", refreshBackupState);
+      window.removeEventListener("storage", refreshBackupState);
+    };
+  }, []);
+
+  const backupStatusIcon = useMemo(() => {
+    if (!backupEnabled) return null;
+
+    if (backupSyncStatus === "uploading") {
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+    }
+    if (backupSyncStatus === "failed") {
+      return <AlertCircle className="h-4 w-4 text-destructive" />;
+    }
+    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+  }, [backupEnabled, backupSyncStatus]);
 
   useEffect(() => {
     const prefetch = () => {
@@ -346,6 +395,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   };
 
   const handleEventClick = (event: CalendarEvent) => {
+    setShareOnlyMode(false);
     setPreviewEvent(event);
     setPreviewOpen(true);
   };
@@ -390,6 +440,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     const deletedEvent = pendingDeleteEvent;
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
+    );
+    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((bookmarks) =>
+      writeEncryptedLocalStorage(
+        "bookmarked-events",
+        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+      ),
     );
     setEventDialogOpen(false);
     setSelectedEvent(null);
@@ -479,8 +535,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   };
 
-  const handleShare = (event: CalendarEvent) => {
+  const handleShare = (event: CalendarEvent, shareOnly = false) => {
+    setShareOnlyMode(shareOnly);
     setPreviewEvent(event);
+    setOpenShareImmediately(true);
     setPreviewOpen(true);
   };
 
@@ -699,28 +757,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </div>
                 )}
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={() => setView("analytics")}
-                aria-label={t.analytics}
-              >
-                <BarChart2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={() => setView("settings")}
-                aria-label={t.settings}
-              >
-                <SettingsIcon className="h-4 w-4" />
-              </Button>
+              {backupEnabled ? (
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full border" title="Backup status" aria-label="Backup status">
+                  {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
+                </div>
+              ) : null}
               <UserProfileButton
                 variant="outline"
                 className="rounded-full h-8 w-8"
                 onNavigateToSettings={handleUserProfileSectionNavigate}
+                onNavigateToView={setView}
               />
             </div>
           </header>
@@ -737,9 +783,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -766,9 +810,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -795,9 +837,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  setPreviewEvent(event);
-                  setPreviewOpen(true);
-                  setOpenShareImmediately(true);
+                  handleShare(event, true);
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -863,6 +903,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
+                toastPosition={toastPosition}
+                setToastPosition={setToastPosition}
               />
             )}
           </div>
@@ -893,6 +935,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           language={language}
           timezone={timezone}
           openShareImmediately={openShareImmediately}
+          shareOnlyMode={shareOnlyMode}
         />
 
         <EventDialog

@@ -478,5 +478,27 @@
     "november",
     "december"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Deze actie verwijdert permanent je versleutelde cloudback-up. Typ DELETE CLOUD DATA om door te gaan.",
+  "confirmDeleteData": "Gegevens verwijderen bevestigen",
+  "countdownIcon": "Pictogram",
+  "countdownSearchIcon": "Pictogrammen zoeken",
+  "countdownAdded": "Aftellen toegevoegd",
+  "countdownUpdated": "Aftellen bijgewerkt",
+  "countdownDeleted": "Aftellen verwijderd",
+  "toastPosition": "Meldingspositie",
+  "toastPositionBottomLeft": "Linksonder",
+  "toastPositionBottomCenter": "Midden onder",
+  "toastPositionBottomRight": "Rechtsonder",
+  "countdownDaysAgo": "dagen geleden",
+  "deleteCategoryEvents": "Verwijder ook alle gebeurtenissen in deze categorie",
+  "categoryDeletedWithEvents": "Categorie en alle bijbehorende gebeurtenissen zijn verwijderd",
+  "importToCalendarCategory": "Importeren in kalendercategorie",
+  "status": "Status",
+  "feedback": "Feedback",
+  "privacy": "Privacy",
+  "tos": "Servicevoorwaarden"
 }

@@ -478,5 +478,27 @@
     "november",
     "desember"
   ],
-  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}"
+  "sidebarCalendarMonthYearFormat": "{{month}} {{year}}",
+  "editCategory": "Edit category",
+  "categoryUpdated": "Category updated",
+  "deleteCloudConfirmTitle": "Delete cloud backup data",
+  "deleteCloudConfirmDescription": "Denne handlingen sletter den krypterte skylagringskopien din permanent. Skriv DELETE CLOUD DATA for å fortsette.",
+  "confirmDeleteData": "Bekreft sletting av data",
+  "countdownIcon": "Ikon",
+  "countdownSearchIcon": "Søk ikoner",
+  "countdownAdded": "Nedtelling lagt til",
+  "countdownUpdated": "Nedtelling oppdatert",
+  "countdownDeleted": "Nedtelling slettet",
+  "toastPosition": "Varselposisjon",
+  "toastPositionBottomLeft": "Nederst til venstre",
+  "toastPositionBottomCenter": "Nederst i midten",
+  "toastPositionBottomRight": "Nederst til høyre",
+  "countdownDaysAgo": "dager siden",
+  "deleteCategoryEvents": "Slett også alle hendelser i denne kategorien",
+  "categoryDeletedWithEvents": "Kategori og alle hendelser i den ble slettet",
+  "importToCalendarCategory": "Importer til kalenderkategori",
+  "status": "Status",
+  "feedback": "Tilbakemelding",
+  "privacy": "Personvern",
+  "tos": "Vilkår for bruk"
 }

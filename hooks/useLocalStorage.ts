@@ -21,7 +21,16 @@ const ENCRYPTION_STATE: EncryptionState = {
 }
 
 const encryptedSnapshots = new Map<string, EncryptedSnapshot>()
+const inMemoryStorage = new Map<string, string>()
 const subscribers = new Set<() => void>()
+
+const SENSITIVE_KEYS = new Set([
+  "calendar-events",
+  "calendar-categories",
+  "bookmarked-events",
+  "shared-events",
+  "countdowns",
+])
 
 function tryParse(value: string) {
   try {
@@ -42,6 +51,15 @@ function coerceStoredValue<T>(raw: string, initialValue: T): T {
 
 function notifySubscribers() {
   subscribers.forEach((callback) => callback())
+}
+
+function emitStorageWrite(key: string) {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent("local-storage-written", { detail: { key } }))
+}
+
+export function isSensitiveStorageKey(key: string) {
+  return SENSITIVE_KEYS.has(key)
 }
 
 export function getEncryptionState() {
@@ -71,6 +89,7 @@ export function clearEncryptionPassword() {
   ENCRYPTION_STATE.enabled = false
   ENCRYPTION_STATE.ready = false
   encryptedSnapshots.clear()
+  inMemoryStorage.clear()
   notifySubscribers()
 }
 
@@ -85,6 +104,18 @@ export function markEncryptedSnapshot(key: string, value: string) {
 
 export function clearEncryptedSnapshots() {
   encryptedSnapshots.clear()
+}
+
+export function writeInMemoryStorage(key: string, value: string) {
+  inMemoryStorage.set(key, value)
+}
+
+export function readInMemoryStorage(key: string) {
+  return inMemoryStorage.get(key) ?? null
+}
+
+export function clearInMemoryStorage() {
+  inMemoryStorage.clear()
 }
 
 export async function decryptSnapshots(password: string) {
@@ -133,6 +164,7 @@ export async function encryptSnapshots(password: string) {
 export async function persistEncryptedSnapshots() {
   encryptedSnapshots.forEach((snapshot, key) => {
     if (!snapshot.value) return
+    if (isSensitiveStorageKey(key)) return
     window.localStorage.setItem(key, snapshot.value)
   })
 }
@@ -142,6 +174,10 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
     return initialValue
   }
   try {
+    const inMemoryValue = inMemoryStorage.get(key)
+    if (inMemoryValue !== undefined) {
+      return coerceStoredValue(inMemoryValue, initialValue)
+    }
     const snapshot = encryptedSnapshots.get(key)
     if (snapshot?.value) {
       const parsedSnapshot = tryParse(snapshot.value)
@@ -168,6 +204,10 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
         parsed.parsed.iv,
       )
       encryptedSnapshots.set(key, { value: plain, failed: false })
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, plain)
+        window.localStorage.removeItem(key)
+      }
       return coerceStoredValue<T>(plain, initialValue)
     }
     return coerceStoredValue(item, initialValue)
@@ -182,14 +222,23 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, raw)
+        encryptedSnapshots.set(key, { value: raw, failed: false })
+        window.localStorage.removeItem(key)
+        emitStorageWrite(key)
+        return
+      }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
       encryptedSnapshots.set(key, { value: raw, failed: false })
+      emitStorageWrite(key)
       return
     }
     window.localStorage.setItem(key, raw)
     encryptedSnapshots.set(key, { value: raw, failed: false })
+    emitStorageWrite(key)
   } catch (error) {
     console.log(error)
   }
@@ -200,6 +249,10 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     return initialValue
   }
   try {
+    const inMemoryValue = inMemoryStorage.get(key)
+    if (inMemoryValue !== undefined) {
+      return coerceStoredValue(inMemoryValue, initialValue)
+    }
     const item = window.localStorage.getItem(key)
     if (!item) return initialValue
     const snapshot = encryptedSnapshots.get(key)
@@ -221,6 +274,9 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     const parsed = tryParse(item)
     if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
       encryptedSnapshots.set(key, { value: item, failed: false })
+      if (isSensitiveStorageKey(key)) {
+        window.localStorage.removeItem(key)
+      }
       return initialValue
     }
     return coerceStoredValue(item, initialValue)
@@ -235,14 +291,23 @@ async function writeLocalStorage<T>(key: string, value: T) {
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
+      if (isSensitiveStorageKey(key)) {
+        inMemoryStorage.set(key, raw)
+        encryptedSnapshots.set(key, { value: raw, failed: false })
+        window.localStorage.removeItem(key)
+        emitStorageWrite(key)
+        return
+      }
       const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
       const payload = JSON.stringify(encrypted)
       window.localStorage.setItem(key, payload)
       encryptedSnapshots.set(key, { value: raw, failed: false })
+      emitStorageWrite(key)
       return
     }
     window.localStorage.setItem(key, raw)
     encryptedSnapshots.set(key, { value: raw, failed: false })
+    emitStorageWrite(key)
   } catch (error) {
     console.log(error)
   }

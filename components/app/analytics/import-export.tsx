@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { translations, useLanguage } from "@/lib/i18n";
+import { useCalendar } from "@/components/providers/calendar-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { CalendarEvent } from "../calendar";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ export default function ImportExport({
   const [debugInfo, setDebugInfo] = useState<string>("");
   const [language] = useLanguage();
   const t = translations[language];
+  const { calendars } = useCalendar();
+  const [importCalendarId, setImportCalendarId] = useState<string>("__uncategorized__");
 
   const [forceUpdate, setForceUpdate] = useState(0);
 
@@ -171,6 +174,32 @@ export default function ImportExport({
     }
   };
 
+
+  const mapCalendarColorToEventColor = (calendarColor?: string) => {
+    const mapping: Record<string, string> = {
+      "bg-blue-500": "bg-[#E6F6FD]",
+      "bg-green-500": "bg-[#E7F8F2]",
+      "bg-yellow-500": "bg-[#FEF5E6]",
+      "bg-red-500": "bg-[#FFE4E6]",
+      "bg-purple-500": "bg-[#F3EEFE]",
+      "bg-pink-500": "bg-[#FCE7F3]",
+      "bg-teal-500": "bg-[#E6FAF7]",
+    };
+    return mapping[calendarColor || ""] || "bg-[#E6F6FD]";
+  };
+
+  const applyImportCategory = (eventsToImport: CalendarEvent[]) => {
+    const targetCategory = calendars.find((calendar) => calendar.id === importCalendarId);
+    const categoryId = importCalendarId === "__uncategorized__" ? "" : importCalendarId;
+    const color = mapCalendarColorToEventColor(targetCategory?.color);
+
+    return eventsToImport.map((event) => ({
+      ...event,
+      calendarId: categoryId,
+      color,
+    }));
+  };
+
   const handleImport = async () => {
     try {
       setIsLoading(true);
@@ -219,7 +248,8 @@ ${rawContent.substring(0, 500)}...`);
         return;
       }
 
-      onImportEvents(importedEvents);
+      const normalizedImportedEvents = applyImportCategory(importedEvents);
+      onImportEvents(normalizedImportedEvents);
 
       toast(
         t.importSuccess.replace("{count}", importedEvents.length.toString()),
@@ -408,8 +438,8 @@ END:VEVENT
           recurrence: "none",
           participants: [],
           notification: 0,
-          color: "bg-blue-500",
-          calendarId: "1",
+          color: "bg-[#E6F6FD]",
+          calendarId: "",
         };
         inEvent = true;
       } else if (line.startsWith("END:VEVENT")) {
@@ -651,8 +681,8 @@ END:VEVENT
           color:
             colorIndex >= 0 && colorIndex < values.length
               ? values[colorIndex]
-              : "bg-blue-500",
-          calendarId: "1",
+              : "bg-[#E6F6FD]",
+          calendarId: "",
         });
       }
     }
@@ -776,6 +806,24 @@ END:VEVENT
                 <p className="text-xs text-muted-foreground">
                   {t.supportedFormats}
                 </p>
+              </div>
+
+              
+              <div className="space-y-2">
+                <Label htmlFor="import-calendar-category">{t.importToCalendarCategory}</Label>
+                <Select value={importCalendarId} onValueChange={setImportCalendarId}>
+                  <SelectTrigger id="import-calendar-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__uncategorized__">{t.uncategorized}</SelectItem>
+                    {calendars.map((calendar) => (
+                      <SelectItem key={calendar.id} value={calendar.id}>
+                        {calendar.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <Alert variant="outline">
