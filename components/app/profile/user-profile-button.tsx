@@ -14,10 +14,6 @@ import {
   Camera,
   BarChart2,
   Settings,
-  ShieldCheck,
-  MessageSquare,
-  FileText,
-  ScrollText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -557,22 +553,6 @@ export default function UserProfileButton({
             <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
               <BarChart2 className="mr-2 h-4 w-4" />
               {t.analytics}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => window.open("https://calendarstatus.xyehr.cn", "_blank", "noopener,noreferrer")}>
-              <ShieldCheck className="mr-2 h-4 w-4" />
-              {t.status}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => window.location.href = "mailto:evan.huang000@proton.me"}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              {t.feedback}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/privacy")}>
-              <FileText className="mr-2 h-4 w-4" />
-              {t.privacy}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/terms")}>
-              <ScrollText className="mr-2 h-4 w-4" />
-              {t.tos}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

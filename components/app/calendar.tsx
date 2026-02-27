@@ -22,6 +22,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  CircleHelp,
+  ShieldCheck,
+  MessageSquare,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -46,6 +51,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -762,6 +773,38 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
                 </div>
               ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full h-8 w-8"
+                    aria-label="Help"
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => window.open("https://calendarstatus.xyehr.cn", "_blank", "noopener,noreferrer")}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    {t.status}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    window.location.href = "mailto:evan.huang000@proton.me";
+                  }}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {t.feedback}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/privacy")}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    {t.privacy}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/terms")}>
+                    <ScrollText className="mr-2 h-4 w-4" />
+                    {t.tos}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <UserProfileButton
                 variant="outline"
                 className="rounded-full h-8 w-8"
