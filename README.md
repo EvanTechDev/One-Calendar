@@ -3,7 +3,7 @@
 > A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/cb179685-f792-42c8-bad8-ef1739659906">
+  <source media="(prefers-color-scheme: dark)" srcset="/public/Banner-dark.jpg">
   <source media="(prefers-color-scheme: light)" srcset="/public/Banner.jpg">
   <img src="/public/Banner.jpg" alt="Image">
 </picture>
