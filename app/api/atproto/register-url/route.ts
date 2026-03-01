@@ -1,3 +1,10 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(request: NextRequest) {
+  return NextResponse.redirect(new URL("/", request.url));
+}
+
+/*
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
@@ -73,3 +80,5 @@ export async function POST(request: NextRequest) {
 
   return response;
 }
+
+*/
