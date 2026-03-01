@@ -1,3 +1,10 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest) {
+  return NextResponse.redirect(new URL("/", request.url));
+}
+
+/*
 import { NextResponse } from "next/server";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
 import { getActorProfileRecord, profileAvatarBlobUrl } from "@/lib/atproto";
@@ -43,3 +50,5 @@ export async function GET() {
     avatar,
   });
 }
+
+*/
