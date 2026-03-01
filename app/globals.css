@@ -2,12 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "San Francisco";
+  src: url("/sf.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, Helvetica, "San Francisco", sans-serif;
 }
 
 @layer utilities {

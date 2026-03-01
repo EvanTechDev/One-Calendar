@@ -47,7 +47,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={GeistSans.className}> 
+      <body className="font-sf"> 
       <ClerkProvider 
         localization={enUS}
         fallbackRedirectUrl="/"
