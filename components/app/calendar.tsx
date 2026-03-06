@@ -189,7 +189,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (view !== defaultView) {
       setView(defaultView as ViewType);
     }
-  }, []);
+  }, [defaultView]);
 
   useEffect(() => {
     const refreshBackupState = () => {

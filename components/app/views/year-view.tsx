@@ -62,7 +62,10 @@ export default function YearView({
   const [openDayKey, setOpenDayKey] = useState<string | null>(null)
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark")
 
-  const weekdayLabels = [...t.weekdays.slice(firstDayOfWeek), ...t.weekdays.slice(0, firstDayOfWeek)]
+  const weekdayLabels = useMemo(
+    () => [...t.weekdays.slice(firstDayOfWeek), ...t.weekdays.slice(0, firstDayOfWeek)],
+    [firstDayOfWeek, t.weekdays],
+  )
 
   const eventsByDayKey = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -81,23 +84,31 @@ export default function YearView({
     return grouped
   }, [events])
 
-  const months = Array.from({ length: 12 }, (_, monthIndex) => {
-    const monthStart = new Date(currentYear, monthIndex, 1)
-    const monthEnd = endOfMonth(monthStart)
-    const gridStart = startOfWeek(monthStart, { weekStartsOn: firstDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6 })
-    const monthDays = eachDayOfInterval({ start: gridStart, end: monthEnd })
+  const months = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, monthIndex) => {
+        const monthStart = new Date(currentYear, monthIndex, 1)
+        const monthEnd = endOfMonth(monthStart)
+        const gridStart = startOfWeek(monthStart, {
+          weekStartsOn: firstDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+        })
+        const monthDays = eachDayOfInterval({ start: gridStart, end: monthEnd })
 
-    while (monthDays.length < 42) {
-      const lastDay = monthDays[monthDays.length - 1]
-      monthDays.push(new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate() + 1))
-    }
+        while (monthDays.length < 42) {
+          const lastDay = monthDays[monthDays.length - 1]
+          monthDays.push(
+            new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate() + 1),
+          )
+        }
 
-    return {
-      monthIndex,
-      label: t.months[monthIndex] ?? format(monthStart, "LLLL"),
-      days: monthDays,
-    }
-  })
+        return {
+          monthIndex,
+          label: t.months[monthIndex] ?? format(monthStart, "LLLL"),
+          days: monthDays,
+        }
+      }),
+    [currentYear, firstDayOfWeek, t.months],
+  )
 
   return (
     <div className="p-3 md:p-4">
@@ -139,7 +150,7 @@ export default function YearView({
                           "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent",
                           !isCurrentMonth && "text-muted-foreground",
                           dayEvents.length > 0 && "font-semibold",
-                          isToday &&
+                          isToday && isCurrentMonth &&
                             "bg-[#0066FF] text-white green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                         )}
                       >

@@ -403,8 +403,14 @@ export default function UserProfileButton({
         await setEncryptionPassword(password)
         const restoredEvents = await readEncryptedLocalStorage("calendar-events", [])
         const restoredCalendars = await readEncryptedLocalStorage("calendar-categories", [])
+        const restoredLanguage = await readEncryptedLocalStorage<string | null>("preferred-language", null)
         setEvents(restoredEvents)
         setCalendars(restoredCalendars)
+        if (restoredLanguage) {
+          window.dispatchEvent(
+            new CustomEvent("languagechange", { detail: { language: restoredLanguage } }),
+          )
+        }
       } catch {}
 
       keyRef.current = password

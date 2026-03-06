@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format, parse, isValid, set, getHours, getMinutes } from "date-fns";
+import { addDays, format, parse, isValid, set, getHours, getMinutes } from "date-fns";
 import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { isZhLanguage, translations, type Language } from "@/lib/i18n";
 import { useCalendar } from "@/components/providers/calendar-context";
@@ -452,6 +452,22 @@ export default function EventDialog({
 
     const fullStartDate = getFullStartDate();
     const fullEndDate = getFullEndDate();
+    const normalizedStartDate = isAllDay
+      ? set(new Date(startDate), {
+          hours: 0,
+          minutes: 0,
+          seconds: 0,
+          milliseconds: 0,
+        })
+      : fullStartDate;
+    const normalizedEndDate = isAllDay
+      ? set(addDays(new Date(endDate), 1), {
+          hours: 0,
+          minutes: 0,
+          seconds: 0,
+          milliseconds: 0,
+        })
+      : fullEndDate;
 
     const eventData: CalendarEvent = {
       id:
@@ -459,8 +475,8 @@ export default function EventDialog({
         Date.now().toString() + Math.random().toString(36).substring(2, 9),
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
-      startDate: fullStartDate,
-      endDate: fullEndDate,
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       recurrence: "none",
       location,
       participants: participants
@@ -660,12 +676,6 @@ export default function EventDialog({
                 setIsAllDay(isChecked);
 
                 if (isChecked) {
-                  const startOfDay = new Date(startDate);
-                  startOfDay.setHours(0, 0, 0, 0);
-
-                  const endOfDay = new Date(startDate);
-                  endOfDay.setHours(23, 59, 59, 999);
-
                   setStartTime({
                     hours: "00",
                     minutes: "00",

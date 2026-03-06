@@ -284,7 +284,7 @@ export default function SharedEventView({ shareId, handle }: SharedEventViewProp
             />
           </div>
         </div>
-        <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
+        <Loader2 className="h-16 w-16 animate-spin text-black dark:text-white" />
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
           {isZh ? "加载中..." : "Loading..."}
         </p>
@@ -453,8 +453,11 @@ export default function SharedEventView({ shareId, handle }: SharedEventViewProp
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   const durationMs = endDate.getTime() - startDate.getTime();
-  const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-  const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+  const normalizedDurationMs = event.isAllDay
+    ? Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24))) * 24 * 60 * 60 * 1000
+    : durationMs;
+  const durationHours = Math.floor(normalizedDurationMs / (1000 * 60 * 60));
+  const durationMinutes = Math.floor((normalizedDurationMs % (1000 * 60 * 60)) / (1000 * 60));
   const durationText =
     isZh
       ? `${durationHours > 0 ? `${durationHours}小时` : ""}${durationMinutes > 0 ? ` ${durationMinutes}分钟` : ""}`
