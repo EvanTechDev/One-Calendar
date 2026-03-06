@@ -90,7 +90,7 @@ export default function MonthView({ date, events, onEventClick, language, firstD
               className={cn(
                 "font-medium text-sm",
                 isSameMonth(day, date) ? "" : "text-gray-400",
-                isSameDay(day, today)
+                isSameMonth(day, date) && isSameDay(day, today)
                   ? "text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]"
                   : "",
               )}

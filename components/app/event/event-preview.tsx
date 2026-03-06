@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import QRCodeStyling from "qr-code-styling";
 import { useUser } from "@clerk/nextjs";
@@ -624,7 +625,7 @@ export default function EventPreview({
           </DialogHeader>
 
           {!shareLink ? (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label htmlFor="shared-by">{t.share}</Label>
                 <p className="text-sm text-muted-foreground">
@@ -635,19 +636,17 @@ export default function EventPreview({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="enable-password">{t.shareEnablePasswordProtection}</Label>
-                  <input
+                  <Checkbox
                     id="enable-password"
-                    type="checkbox"
                     checked={passwordEnabled}
-                    onChange={(e) => {
-                      const v = e.target.checked;
+                    onCheckedChange={(checked) => {
+                      const v = checked === true;
                       setPasswordEnabled(v);
                       if (!v) {
                         setSharePassword("");
                         setBurnAfterRead(false);
                       }
                     }}
-                    className="h-4 w-4"
                   />
                 </div>
 
@@ -667,12 +666,10 @@ export default function EventPreview({
 
                     <div className="flex items-center justify-between pt-2">
                       <Label htmlFor="burn-after-read">{t.shareBurnAfterRead}</Label>
-                      <input
+                      <Checkbox
                         id="burn-after-read"
-                        type="checkbox"
                         checked={burnAfterRead}
-                        onChange={(e) => setBurnAfterRead(e.target.checked)}
-                        className="h-4 w-4"
+                        onCheckedChange={(checked) => setBurnAfterRead(checked === true)}
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -711,7 +708,7 @@ export default function EventPreview({
               </DialogFooter>
             </div>
           ) : (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 pt-2">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="share-link">{t.shareLink}</Label>

@@ -53,8 +53,15 @@ export function analyzeTimeUsage(
   events.forEach((event) => {
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
-    const durationHours =
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const normalizedDurationMs = event.isAllDay
+      ? Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24))) *
+        24 *
+        60 *
+        60 *
+        1000
+      : durationMs;
+    const durationHours = normalizedDurationMs / (1000 * 60 * 60);
 
     result.totalHours += durationHours;
 

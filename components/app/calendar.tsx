@@ -43,6 +43,7 @@ import RightSidebar from "@/components/app/sidebar/right-sidebar";
 import { addDays, addYears, subDays, subYears } from "date-fns";
 import EventPreview from "@/components/app/event/event-preview";
 import EventDialog from "@/components/app/event/event-dialog";
+import YearView from "@/components/app/views/year-view";
 import DailyToast from "@/components/app/profile/daily-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Sidebar from "@/components/app/sidebar/sidebar";
@@ -71,7 +72,6 @@ import {
 const loadDayView = () => import("@/components/app/views/day-view");
 const loadWeekView = () => import("@/components/app/views/week-view");
 const loadMonthView = () => import("@/components/app/views/month-view");
-const loadYearView = () => import("@/components/app/views/year-view");
 const loadAnalyticsView = () =>
   import("@/components/app/analytics/analytics-view");
 const loadSettings = () => import("@/components/app/profile/settings");
@@ -79,7 +79,6 @@ const loadSettings = () => import("@/components/app/profile/settings");
 const DayView = dynamic(loadDayView);
 const WeekView = dynamic(loadWeekView);
 const MonthView = dynamic(loadMonthView);
-const YearView = dynamic(loadYearView);
 const AnalyticsView = dynamic(loadAnalyticsView);
 const Settings = dynamic(loadSettings);
 
@@ -189,7 +188,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (view !== defaultView) {
       setView(defaultView as ViewType);
     }
-  }, []);
+  }, [defaultView]);
 
   useEffect(() => {
     const refreshBackupState = () => {
@@ -234,7 +233,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       void loadDayView();
       void loadWeekView();
       void loadMonthView();
-      void loadYearView();
       void loadAnalyticsView();
       void loadSettings();
     };
