@@ -150,7 +150,7 @@ export default function YearView({
                           "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent",
                           !isCurrentMonth && "text-muted-foreground",
                           dayEvents.length > 0 && "font-semibold",
-                          isToday &&
+                          isToday && isCurrentMonth &&
                             "bg-[#0066FF] text-white green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
                         )}
                       >
