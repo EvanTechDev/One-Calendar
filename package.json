@@ -60,7 +60,7 @@
     "qr-code-styling": "latest",
     "radix-ui": "latest",
     "react": "^18",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "9.14.0",
     "react-dom": "^18",
     "react-hook-form": "^7.54.1",
     "react-markdown": "latest",
