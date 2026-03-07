@@ -456,13 +456,13 @@
   "colorAmber": "Ambre",
   "colorTeal": "Turquoise",
   "sidebarCalendarWeekdaysShort": [
-    "dim.",
-    "lun.",
-    "mar.",
-    "mer.",
-    "jeu.",
-    "ven.",
-    "sam."
+    "dim",
+    "lun",
+    "mar",
+    "mer",
+    "jeu",
+    "ven",
+    "sam"
   ],
   "sidebarCalendarMonthsLong": [
     "janvier",

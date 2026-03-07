@@ -456,13 +456,13 @@
   "colorAmber": "Rafgulur",
   "colorTeal": "Blágrænn",
   "sidebarCalendarWeekdaysShort": [
-    "sun.",
-    "mán.",
-    "þri.",
-    "mið.",
-    "fim.",
-    "fös.",
-    "lau."
+    "sun",
+    "mán",
+    "þri",
+    "mið",
+    "fim",
+    "fös",
+    "lau"
   ],
   "sidebarCalendarMonthsLong": [
     "janúar",

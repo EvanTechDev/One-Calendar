@@ -456,13 +456,13 @@
   "colorAmber": "สีอำพัน",
   "colorTeal": "สีเขียวน้ำทะเล",
   "sidebarCalendarWeekdaysShort": [
-    "อา.",
-    "จ.",
-    "อ.",
-    "พ.",
-    "พฤ.",
-    "ศ.",
-    "ส."
+    "อา",
+    "จ",
+    "อ",
+    "พ",
+    "พฤ",
+    "ศ",
+    "ส"
   ],
   "sidebarCalendarMonthsLong": [
     "มกราคม",

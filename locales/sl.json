@@ -456,13 +456,13 @@
   "colorAmber": "Jantarna",
   "colorTeal": "Modrozelena",
   "sidebarCalendarWeekdaysShort": [
-    "ned.",
-    "pon.",
-    "tor.",
-    "sre.",
-    "čet.",
-    "pet.",
-    "sob."
+    "ned",
+    "pon",
+    "tor",
+    "sre",
+    "čet",
+    "pet",
+    "sob"
   ],
   "sidebarCalendarMonthsLong": [
     "januar",

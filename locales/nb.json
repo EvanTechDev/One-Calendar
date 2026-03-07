@@ -456,13 +456,13 @@
   "colorAmber": "Rav",
   "colorTeal": "Blågrønn",
   "sidebarCalendarWeekdaysShort": [
-    "søn.",
-    "man.",
-    "tir.",
-    "ons.",
-    "tor.",
-    "fre.",
-    "lør."
+    "søn",
+    "man",
+    "tir",
+    "ons",
+    "tor",
+    "fre",
+    "lør"
   ],
   "sidebarCalendarMonthsLong": [
     "januar",

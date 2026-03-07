@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, X, Edit2 } from "lucide-react"
-import { useState, type CSSProperties } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import Image from "next/image"
@@ -102,9 +102,16 @@ export default function Sidebar({
   }
   const deleteCategoryEventsLabel = t.deleteCategoryEvents || "同时删除此分类下的所有日程"
   
-  if (selectedDate && (!localSelectedDate || selectedDate.getTime() !== localSelectedDate.getTime())) {
-    setLocalSelectedDate(selectedDate)
-  }
+  useEffect(() => {
+    if (selectedDate) {
+      setLocalSelectedDate((prev) => {
+        if (!prev || prev.getTime() !== selectedDate.getTime()) {
+          return selectedDate
+        }
+        return prev
+      })
+    }
+  }, [selectedDate])
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
