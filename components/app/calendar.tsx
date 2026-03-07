@@ -650,7 +650,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {" "}
-          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
+          <header className="relative z-40 flex h-16 items-center bg-background px-4">
             <div className="flex items-center space-x-4">
               <Button variant="outline" onClick={toggleSidebar} size="sm">
                 <PanelLeft />
@@ -812,6 +812,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onNavigateToView={setView}
               />
             </div>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-14 rounded-br-xl border-b" />
           </header>
           <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
             {view === "day" && (
