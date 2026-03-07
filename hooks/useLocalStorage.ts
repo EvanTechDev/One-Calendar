@@ -329,13 +329,29 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   }, [key])
 
   useEffect(() => {
+    const refreshValue = () => {
+      readLocalStorage(key, initialValue).then((value) => setStoredValue(value))
+    }
+
     const unsubscribe = subscribeEncryptionState(() => {
       const state = getEncryptionState()
       if (state.ready) {
-        readLocalStorage(key, initialValue).then((value) => setStoredValue(value))
+        refreshValue()
       }
     })
-    return unsubscribe
+
+    const handleStorageWritten = (event: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string }>
+      if (customEvent.detail?.key === key) {
+        refreshValue()
+      }
+    }
+
+    window.addEventListener("local-storage-written", handleStorageWritten)
+    return () => {
+      unsubscribe()
+      window.removeEventListener("local-storage-written", handleStorageWritten)
+    }
   }, [key, initialValue])
 
   useEffect(() => {
