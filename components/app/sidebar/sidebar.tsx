@@ -173,7 +173,7 @@ export default function Sidebar({
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
         isCollapsed
           ? "w-0 opacity-0 overflow-hidden"
-          : "w-[calc(var(--sidebar-calendar-width)+2rem)] opacity-100",
+          : "w-60 opacity-100",
       )}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget && event.propertyName === "width") {
@@ -194,7 +194,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="mx-auto mb-4 h-10 justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+          className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}
