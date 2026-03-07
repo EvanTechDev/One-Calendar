@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, X, Edit2 } from "lucide-react"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import Image from "next/image"
@@ -168,9 +168,12 @@ export default function Sidebar({
 
   return (
     <div
+      style={{ "--sidebar-calendar-width": "17rem" } as CSSProperties}
       className={cn(
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-72 opacity-100",
+        isCollapsed
+          ? "w-0 opacity-0 overflow-hidden"
+          : "w-60 opacity-100",
       )}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget && event.propertyName === "width") {
@@ -191,7 +194,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+          className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}

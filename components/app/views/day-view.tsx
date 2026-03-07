@@ -654,7 +654,13 @@ export default function DayView({
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}
           </div>
-          <div className="text-3xl font-semibold text-[#0066ff] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">
+          <div
+            className={cn(
+              "text-3xl font-semibold text-foreground",
+              isSameDay(date, new Date()) &&
+                "text-[#0066ff] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]",
+            )}
+          >
             {format(date, "d")}
           </div>
         </div>
