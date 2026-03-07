@@ -3,8 +3,8 @@
 import * as React from "react"
 import {
   DayPicker,
-  DayButton,
   getDefaultClassNames,
+  type DayButton,
   type Locale,
 } from "react-day-picker"
 import {
@@ -151,18 +151,18 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("cn-rtl-flip h-4 w-4", className)} {...props} />
+              <ChevronLeftIcon className={cn("cn-rtl-flip size-4", className)} {...props} />
             )
           }
 
           if (orientation === "right") {
             return (
-              <ChevronRightIcon className={cn("cn-rtl-flip h-4 w-4", className)} {...props} />
+              <ChevronRightIcon className={cn("cn-rtl-flip size-4", className)} {...props} />
             )
           }
 
           return (
-            <ChevronDownIcon className={cn("h-4 w-4", className)} {...props} />
+            <ChevronDownIcon className={cn("size-4", className)} {...props} />
           )
         },
         DayButton: ({ ...props }) => (
@@ -190,7 +190,7 @@ function CalendarDayButton({
   modifiers,
   locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
+}: React.ComponentProps<DayButton> & { locale?: Partial<Locale> }) {
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)
