@@ -651,6 +651,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {" "}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
+            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
             <div className="flex items-center space-x-4">
               <Button variant="outline" onClick={toggleSidebar} size="sm">
                 <PanelLeft />
