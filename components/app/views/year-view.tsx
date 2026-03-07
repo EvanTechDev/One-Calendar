@@ -151,7 +151,7 @@ export default function YearView({
                           !isCurrentMonth && "text-muted-foreground",
                           dayEvents.length > 0 && "font-semibold",
                           isToday && isCurrentMonth &&
-                            "bg-[#0066FF] text-white green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]",
+                            "bg-[#0052CC] text-white hover:bg-[#0047B3] data-[state=open]:bg-[#0047B3] green:bg-[#24a854] green:hover:bg-[#1f9249] green:data-[state=open]:bg-[#1f9249] orange:bg-[#e26912] orange:hover:bg-[#c85a0f] orange:data-[state=open]:bg-[#c85a0f] azalea:bg-[#CD2F7B] azalea:hover:bg-[#b2266b] azalea:data-[state=open]:bg-[#b2266b]",
                         )}
                       >
                         {format(day, "d")}

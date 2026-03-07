@@ -170,7 +170,7 @@ export default function Sidebar({
     <div
       className={cn(
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-72 opacity-100",
+        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-76 opacity-100",
       )}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget && event.propertyName === "width") {
@@ -191,7 +191,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] mb-4 h-10 green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+          className="mx-auto mb-4 h-10 w-[17rem] justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}
@@ -209,7 +209,7 @@ export default function Sidebar({
               setLocalSelectedDate(date)
               date && onDateSelect(date)
             }}
-            className="rounded-lg border"
+            className="w-[17rem] rounded-lg border"
           />
         </div>
 
