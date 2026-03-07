@@ -456,13 +456,13 @@
   "colorAmber": "Chihlimbar",
   "colorTeal": "Turcoaz",
   "sidebarCalendarWeekdaysShort": [
-    "dum.",
-    "lun.",
-    "mar.",
-    "mie.",
+    "dum",
+    "lun",
+    "mar",
+    "mie",
     "joi",
-    "vin.",
-    "sâm."
+    "vin",
+    "sâm"
   ],
   "sidebarCalendarMonthsLong": [
     "ianuarie",

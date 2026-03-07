@@ -456,13 +456,13 @@
   "colorAmber": "Âmbar",
   "colorTeal": "Verde-azulado",
   "sidebarCalendarWeekdaysShort": [
-    "dom.",
-    "seg.",
-    "ter.",
-    "qua.",
-    "qui.",
-    "sex.",
-    "sáb."
+    "dom",
+    "seg",
+    "ter",
+    "qua",
+    "qui",
+    "sex",
+    "sáb"
   ],
   "sidebarCalendarMonthsLong": [
     "janeiro",
