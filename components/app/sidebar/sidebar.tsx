@@ -194,7 +194,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="mx-auto mb-4 h-10 w-[var(--sidebar-calendar-width)] justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+          className="mx-auto mb-4 h-10 justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}
@@ -212,7 +212,7 @@ export default function Sidebar({
               setLocalSelectedDate(date)
               date && onDateSelect(date)
             }}
-            className="w-[var(--sidebar-calendar-width)] rounded-lg border"
+            className="rounded-lg border"
           />
         </div>
 
