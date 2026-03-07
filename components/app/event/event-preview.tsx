@@ -415,48 +415,9 @@ export default function EventPreview({
 
   const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
 
-  const cleanupSharesForEvent = async () => {
-    const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
-    const relatedShares = storedShares.filter((s: any) => s?.eventId === event.id);
-    if (!relatedShares.length) return;
-
-    const results = await Promise.allSettled(
-      relatedShares.map((s: any) =>
-        fetch("/api/share", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: s.id }),
-        })
-      )
-    );
-
-    await writeEncryptedLocalStorage(
-      "shared-events",
-      storedShares.filter((s: any) => s?.eventId !== event.id),
-    );
-
-    const failed = results.filter(
-      (r) => r.status === "rejected" || (r.status === "fulfilled" && !(r.value as Response).ok)
-    );
-
-    if (failed.length) {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareDeletePartialFailedDescription,
-      });
-    }
-  };
-
-  const handleDeleteClick = async (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await cleanupSharesForEvent();
-    } catch {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareCleanupErrorDescription,
-      });
-    } finally {
-      onDelete();
-    }
+    onDelete();
   };
 
   return (

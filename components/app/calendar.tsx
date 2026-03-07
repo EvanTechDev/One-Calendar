@@ -445,10 +445,53 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDeleteConfirmOpen(true);
   };
 
-  const confirmEventDelete = () => {
+
+
+  const cleanupSharesForEvent = async (eventId: string) => {
+    const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
+    const relatedShares = storedShares.filter((share: any) => share?.eventId === eventId);
+    if (!relatedShares.length) return;
+
+    const results = await Promise.allSettled(
+      relatedShares.map((share: any) =>
+        fetch("/api/share", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: share.id }),
+        }),
+      ),
+    );
+
+    await writeEncryptedLocalStorage(
+      "shared-events",
+      storedShares.filter((share: any) => share?.eventId !== eventId),
+    );
+
+    const failed = results.filter(
+      (result) =>
+        result.status === "rejected" ||
+        (result.status === "fulfilled" && !result.value.ok),
+    );
+
+    if (failed.length) {
+      toast.error(t.shareDeleteFailed, {
+        description: t.shareDeletePartialFailedDescription,
+      });
+    }
+  };
+
+  const confirmEventDelete = async () => {
     if (!pendingDeleteEvent) return;
 
     const deletedEvent = pendingDeleteEvent;
+    try {
+      await cleanupSharesForEvent(deletedEvent.id);
+    } catch {
+      toast.error(t.shareDeleteFailed, {
+        description: t.shareCleanupErrorDescription,
+      });
+    }
+
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     );
