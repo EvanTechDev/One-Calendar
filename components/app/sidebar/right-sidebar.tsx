@@ -70,7 +70,7 @@ export default function RightSidebar({
 
   return (
     <>
-      <div className="absolute right-0 top-16 bottom-0 z-30 flex w-14 flex-col items-center rounded-tl-xl border-l bg-background py-4">
+      <div className="absolute right-0 top-16 bottom-0 z-30 flex w-14 flex-col items-center border-l bg-background py-4">
         <div className="flex flex-col items-center space-y-6 flex-1">
           {}
           <Button
