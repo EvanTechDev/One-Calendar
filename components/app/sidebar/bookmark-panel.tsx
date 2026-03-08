@@ -17,7 +17,13 @@ import { format } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 import {
   getEncryptionState,

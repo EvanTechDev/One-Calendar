@@ -1,11 +1,20 @@
 import { LandingLogoIcon } from "./logo-icon";
 
 const footerColumns = [
-  { title: "Product", links: [{ label: "Overview", href: "#features" }, { label: "About", href: "/about" }] },
+  {
+    title: "Product",
+    links: [
+      { label: "Overview", href: "#features" },
+      { label: "About", href: "/about" },
+    ],
+  },
   {
     title: "Resources",
     links: [
-      { label: "Documentation", href: "https://docs.xyehr.cn/docs/one-calendar" },
+      {
+        label: "Documentation",
+        href: "https://docs.xyehr.cn/docs/one-calendar",
+      },
       { label: "Status", href: "https://calendarstatus.xyehr.cn" },
       { label: "Support", href: "mailto:evan.huang000@proton.me" },
     ],
@@ -27,7 +36,11 @@ export function LandingFooter() {
       <div className="mx-auto max-w-7xl border-t border-white/10 pt-10">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <a href="#top" aria-label="One Calendar home" className="inline-flex items-center gap-2 text-white transition hover:brightness-110">
+            <a
+              href="#top"
+              aria-label="One Calendar home"
+              className="inline-flex items-center gap-2 text-white transition hover:brightness-110"
+            >
               <LandingLogoIcon className="h-5 w-5" />
               <span className="text-sm font-medium">One Calendar</span>
             </a>
@@ -39,7 +52,10 @@ export function LandingFooter() {
               <ul className="mt-4 space-y-3 text-sm text-[var(--landing-muted)]">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="transition duration-200 hover:-translate-y-0.5 hover:text-white">
+                    <a
+                      href={link.href}
+                      className="transition duration-200 hover:-translate-y-0.5 hover:text-white"
+                    >
                       {link.label}
                     </a>
                   </li>
@@ -50,8 +66,12 @@ export function LandingFooter() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center gap-6 border-t border-white/10 pt-5 text-xs text-[var(--landing-subtle)]">
-          <a href="#" className="transition hover:text-white">Privacy</a>
-          <a href="#" className="transition hover:text-white">Terms</a>
+          <a href="#" className="transition hover:text-white">
+            Privacy
+          </a>
+          <a href="#" className="transition hover:text-white">
+            Terms
+          </a>
           <p>© {new Date().getFullYear()} One Calendar. All rights reserved.</p>
         </div>
       </div>

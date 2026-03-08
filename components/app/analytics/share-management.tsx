@@ -1,13 +1,28 @@
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
-import { translations, useLanguage } from "@/lib/i18n"
+import { translations, useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { fetchJson } from "@/lib/fetch-json"
+import { fetchJson } from "@/lib/fetch-json";
 
 interface SharedEvent {
   id: string;
@@ -21,23 +36,26 @@ interface SharedEvent {
 
 export default function ShareManagement() {
   const [language] = useLanguage();
-  const t = translations[language]
+  const t = translations[language];
   const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([]);
   const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingDecrypt, setLoadingDecrypt] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
-  const [passwordInput, setPasswordInput] = useState("")
-  const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(null)
-  const [isDecrypting, setIsDecrypting] = useState(false)
-
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(
+    null,
+  );
+  const [isDecrypting, setIsDecrypting] = useState(false);
 
   useEffect(() => {
     async function fetchSharedEvents() {
       try {
-        const data = await fetchJson<{ shares?: SharedEvent[] }>("/api/share/list")
-        setSharedEvents(data.shares || [])
+        const data = await fetchJson<{ shares?: SharedEvent[] }>(
+          "/api/share/list",
+        );
+        setSharedEvents(data.shares || []);
       } catch (error) {
         console.error("Error fetching shared events:", error);
         toast.error(t.shareManagementLoadFailed, {
@@ -87,41 +105,45 @@ export default function ShareManagement() {
   };
 
   const handleDecrypt = async () => {
-  if (!decryptingShare || !passwordInput) return
+    if (!decryptingShare || !passwordInput) return;
 
-  try {
-    setIsDecrypting(true)
+    try {
+      setIsDecrypting(true);
 
-    const data = await fetchJson<{ success: boolean; data: string }>(
-      `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`
-    )
+      const data = await fetchJson<{ success: boolean; data: string }>(
+        `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`,
+      );
 
-    if (!data.success) {
-      toast.error(t.invalidPassword)
-      return
+      if (!data.success) {
+        toast.error(t.invalidPassword);
+        return;
+      }
+
+      const parsed = JSON.parse(data.data);
+
+      setSharedEvents((prev) =>
+        prev.map((s) =>
+          s.id === decryptingShare.id
+            ? {
+                ...s,
+                eventId: parsed.id,
+                eventTitle: parsed.title,
+                isProtected: false,
+              }
+            : s,
+        ),
+      );
+
+      toast.success(t.decrypted);
+      setPasswordDialogOpen(false);
+      setDecryptingShare(null);
+      setPasswordInput("");
+    } catch (error) {
+      toast.error(t.decryptFailed);
+    } finally {
+      setIsDecrypting(false);
     }
-
-    const parsed = JSON.parse(data.data)
-
-    setSharedEvents((prev) =>
-      prev.map((s) =>
-        s.id === decryptingShare.id
-          ? { ...s, eventId: parsed.id, eventTitle: parsed.title, isProtected: false }
-          : s
-      )
-    )
-
-    toast.success(t.decrypted)
-    setPasswordDialogOpen(false)
-    setDecryptingShare(null)
-    setPasswordInput("")
-  } catch (error) {
-    toast.error(t.decryptFailed)
-  } finally {
-    setIsDecrypting(false)
-  }
-}
-
+  };
 
   return (
     <Card className="w-full">
@@ -129,9 +151,7 @@ export default function ShareManagement() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>{t.shareManagementTitle}</CardTitle>
-            <CardDescription>
-              {t.shareManagementDescription}
-            </CardDescription>
+            <CardDescription>{t.shareManagementDescription}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -155,10 +175,18 @@ export default function ShareManagement() {
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="icon" onClick={() => copyShareLink(share.shareLink)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyShareLink(share.shareLink)}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => openShareLink(share.shareLink)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => openShareLink(share.shareLink)}
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                     {share.isProtected && (
@@ -166,10 +194,10 @@ export default function ShareManagement() {
                         variant="outline"
                         size="icon"
                         onClick={() => {
-  setDecryptingShare(share)
-  setPasswordInput("")
-  setPasswordDialogOpen(true)
-}}
+                          setDecryptingShare(share);
+                          setPasswordInput("");
+                          setPasswordDialogOpen(true);
+                        }}
                         disabled={loadingDecrypt}
                       >
                         <Lock className="h-4 w-4" />
@@ -203,7 +231,11 @@ export default function ShareManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteShare} disabled={isDeleting} variant="destructive">
+            <AlertDialogAction
+              onClick={deleteShare}
+              disabled={isDeleting}
+              variant="destructive"
+            >
               {isDeleting ? (
                 <span className="flex items-center">
                   <svg
@@ -212,7 +244,14 @@ export default function ShareManagement() {
                     fill="none"
                     viewBox="0 0 24 24"
                   >
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
                     <path
                       className="opacity-75"
                       fill="currentColor"
@@ -229,48 +268,46 @@ export default function ShareManagement() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-      <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>
-        {t.enterSharePassword}
-      </AlertDialogTitle>
-      <AlertDialogDescription>
-        {t.sharePasswordDescription}
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-
-    <div className="py-2">
-      <Input
-        type="password"
-        value={passwordInput}
-        onChange={(e) => setPasswordInput(e.target.value)}
-        placeholder={t.enterPassword}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleDecrypt()
-        }}
-      />
-    </div>
-
-    <AlertDialogFooter>
-      <AlertDialogCancel
-        onClick={() => {
-          setDecryptingShare(null)
-          setPasswordInput("")
-        }}
+      <AlertDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
       >
-        {t.cancel}
-      </AlertDialogCancel>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.enterSharePassword}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t.sharePasswordDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-      <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
-        {isDecrypting
-          ? t.decrypting
-          : t.decrypt}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+          <div className="py-2">
+            <Input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder={t.enterPassword}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleDecrypt();
+              }}
+            />
+          </div>
 
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setDecryptingShare(null);
+                setPasswordInput("");
+              }}
+            >
+              {t.cancel}
+            </AlertDialogCancel>
+
+            <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
+              {isDecrypting ? t.decrypting : t.decrypt}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

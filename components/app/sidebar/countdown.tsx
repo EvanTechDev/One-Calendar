@@ -43,7 +43,13 @@ import { zhCN, enUS } from "date-fns/locale";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
 import { toast } from "sonner";
 import { ClockDashed } from "@/components/icons/clock-dashed";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface Countdown {
   id: string;
@@ -78,7 +84,6 @@ const parseDateString = (dateStr: string) => {
   return new Date(year, month - 1, day);
 };
 
-
 const TEXT_COLOR_MAP: Record<string, string> = {
   "bg-red-500": "#ef4444",
   "bg-blue-500": "#3b82f6",
@@ -90,7 +95,9 @@ const TEXT_COLOR_MAP: Record<string, string> = {
   "bg-orange-500": "#f97316",
 };
 
-const allIconNames = Object.keys(lucideIcons).sort((a, b) => a.localeCompare(b));
+const allIconNames = Object.keys(lucideIcons).sort((a, b) =>
+  a.localeCompare(b),
+);
 
 const toDateString = (date: Date) => {
   const year = date.getFullYear();
@@ -130,9 +137,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     return target.slice(0, 200);
   }, [iconSearch]);
 
-  const renderCountdownIcon = (iconName: string | undefined, colorClass: string, size = 20, withBackground = false) => {
+  const renderCountdownIcon = (
+    iconName: string | undefined,
+    colorClass: string,
+    size = 20,
+    withBackground = false,
+  ) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? "#3b82f6";
-    const IconComponent = lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ?? lucideIcons.Clock;
+    const IconComponent =
+      lucideIcons[(iconName || "Clock") as keyof typeof lucideIcons] ??
+      lucideIcons.Clock;
     if (withBackground) {
       return (
         <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
@@ -173,7 +187,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     const daysInMonth = (year: number, monthIndex: number) =>
       new Date(year, monthIndex + 1, 0).getDate();
 
-    const buildClampedDate = (year: number, monthIndex: number, day: number) => {
+    const buildClampedDate = (
+      year: number,
+      monthIndex: number,
+      day: number,
+    ) => {
       const clampedDay = Math.min(day, daysInMonth(year, monthIndex));
       return new Date(year, monthIndex, clampedDay);
     };
@@ -187,7 +205,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       nextDate = new Date(today);
       nextDate.setDate(today.getDate() + daysToAdd);
     } else if (repeat === "monthly") {
-      nextDate = buildClampedDate(today.getFullYear(), today.getMonth(), targetDate.getDate());
+      nextDate = buildClampedDate(
+        today.getFullYear(),
+        today.getMonth(),
+        targetDate.getDate(),
+      );
       if (nextDate < today) {
         const nextMonth = today.getMonth() + 1;
         const year = today.getFullYear() + Math.floor(nextMonth / 12);
@@ -195,9 +217,17 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         nextDate = buildClampedDate(year, month, targetDate.getDate());
       }
     } else if (repeat === "yearly") {
-      nextDate = buildClampedDate(today.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      nextDate = buildClampedDate(
+        today.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
       if (nextDate < today) {
-        nextDate = buildClampedDate(today.getFullYear() + 1, targetDate.getMonth(), targetDate.getDate());
+        nextDate = buildClampedDate(
+          today.getFullYear() + 1,
+          targetDate.getMonth(),
+          targetDate.getDate(),
+        );
       }
     }
 
@@ -358,7 +388,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     >
                       <Avatar className="h-12 w-12 mr-3">
                         <AvatarFallback className="bg-transparent">
-                          {renderCountdownIcon(countdown.icon, countdown.color, 20, true)}
+                          {renderCountdownIcon(
+                            countdown.icon,
+                            countdown.color,
+                            20,
+                            true,
+                          )}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -375,7 +410,9 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           {Math.abs(daysLeft)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
+                          {daysLeft < 0
+                            ? t.countdownDaysAgo
+                            : t.countdownDaysLeft}
                         </div>
                       </div>
                     </div>
@@ -415,7 +452,11 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="flex items-center mb-6">
             <Avatar className="h-16 w-16 mr-4">
               <AvatarFallback className="bg-transparent">
-                {renderCountdownIcon(selectedCountdown.icon, selectedCountdown.color, 26)}
+                {renderCountdownIcon(
+                  selectedCountdown.icon,
+                  selectedCountdown.color,
+                  26,
+                )}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -423,7 +464,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
               <div
                 className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? "text-red-500" : "text-primary"}`}
               >
-                {Math.abs(daysLeft)} {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
+                {Math.abs(daysLeft)}{" "}
+                {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
               </div>
             </div>
           </div>
@@ -546,13 +588,18 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             </Select>
           </div>
 
-
           <div className="space-y-2">
             <Label>{t.countdownIcon}</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start gap-2">
-                  {renderCountdownIcon(newCountdown.icon, newCountdown.color || "bg-blue-500")}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                >
+                  {renderCountdownIcon(
+                    newCountdown.icon,
+                    newCountdown.color || "bg-blue-500",
+                  )}
                   <span>{newCountdown.icon || "Clock"}</span>
                 </Button>
               </PopoverTrigger>
@@ -570,11 +617,18 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                         key={iconName}
                         className={cn(
                           "h-11 w-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent",
-                          newCountdown.icon === iconName && "ring-2 ring-primary bg-accent/60",
+                          newCountdown.icon === iconName &&
+                            "ring-2 ring-primary bg-accent/60",
                         )}
-                        onClick={() => setNewCountdown({ ...newCountdown, icon: iconName })}
+                        onClick={() =>
+                          setNewCountdown({ ...newCountdown, icon: iconName })
+                        }
                       >
-                        {renderCountdownIcon(iconName, newCountdown.color || "bg-blue-500", 18)}
+                        {renderCountdownIcon(
+                          iconName,
+                          newCountdown.color || "bg-blue-500",
+                          18,
+                        )}
                       </div>
                     ))}
                   </div>

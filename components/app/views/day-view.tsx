@@ -15,8 +15,15 @@ import { cn } from "@/lib/utils";
 import type { CalendarEvent } from "../calendar";
 import { translations, type Language } from "@/lib/i18n";
 
-const ContextMenu = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-const ContextMenuTrigger = ({ children }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>;
+const ContextMenu = ({ children }: { children: React.ReactNode }) => (
+  <>{children}</>
+);
+const ContextMenuTrigger = ({
+  children,
+}: {
+  children: React.ReactNode;
+  asChild?: boolean;
+}) => <>{children}</>;
 const ContextMenuContent = () => null;
 const ContextMenuItem = (_props: any) => null;
 
@@ -84,7 +91,6 @@ export default function DayView({
       ignoreNextEventClickRef.current = false;
     }, 0);
   };
-
 
   const [createSelection, setCreateSelection] = useState<{
     startMinute: number;
@@ -301,7 +307,8 @@ export default function DayView({
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (!isCreatingRef.current || createStartMinuteRef.current === null) return;
+      if (!isCreatingRef.current || createStartMinuteRef.current === null)
+        return;
       const endMinute = getMinutesFromMousePosition(event.clientY);
       setCreateSelection({
         startMinute: createStartMinuteRef.current,
@@ -310,7 +317,8 @@ export default function DayView({
     };
 
     const handleMouseUp = () => {
-      if (!isCreatingRef.current || createStartMinuteRef.current === null) return;
+      if (!isCreatingRef.current || createStartMinuteRef.current === null)
+        return;
 
       const startMinute = Math.min(
         createStartMinuteRef.current,
@@ -324,7 +332,8 @@ export default function DayView({
       const startDate = new Date(date);
       startDate.setHours(0, startMinute, 0, 0);
 
-      const effectiveEndMinute = endMinute === startMinute ? startMinute + 30 : endMinute;
+      const effectiveEndMinute =
+        endMinute === startMinute ? startMinute + 30 : endMinute;
       const endDate = new Date(date);
       endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0);
 
@@ -530,7 +539,6 @@ export default function DayView({
               if (!isDraggingRef.current) {
                 onEventClick(event);
               }
-              
             }}
           >
             <div
@@ -547,20 +555,46 @@ export default function DayView({
         </ContextMenuTrigger>
 
         <ContextMenuContent className="w-40">
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onEditEvent?.(event);
+            }}
+          >
             <Edit3 className="mr-2 h-4 w-4" />
             {menuLabels.edit}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onShareEvent?.(event);
+            }}
+          >
             <Share2 className="mr-2 h-4 w-4" />
             {menuLabels.share}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}>
+          <ContextMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onBookmarkEvent?.(event);
+            }}
+          >
             <Bookmark className="mr-2 h-4 w-4" />
             {menuLabels.bookmark}
           </ContextMenuItem>
           <ContextMenuItem
-            onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+            onSelect={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              queueIgnoreEventClick();
+              onDeleteEvent?.(event);
+            }}
             className="text-red-600"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -696,10 +730,7 @@ export default function DayView({
 
         <div className="relative border-l" onMouseDown={handleGridMouseDown}>
           {hours.map((hour) => (
-            <div
-              key={hour}
-              className="h-[60px] border-t"
-            />
+            <div key={hour} className="h-[60px] border-t" />
           ))}
 
           {eventLayouts.map(({ event, column, totalColumns }) => {
@@ -748,7 +779,6 @@ export default function DayView({
                       if (!isDraggingRef.current) {
                         onEventClick(event);
                       }
-                      
                     }}
                   >
                     <div
@@ -790,20 +820,46 @@ export default function DayView({
                 </ContextMenuTrigger>
 
                 <ContextMenuContent className="w-40">
-                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onEditEvent?.(event); }}>
+                  <ContextMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      queueIgnoreEventClick();
+                      onEditEvent?.(event);
+                    }}
+                  >
                     <Edit3 className="mr-2 h-4 w-4" />
                     {menuLabels.edit}
                   </ContextMenuItem>
-                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onShareEvent?.(event); }}>
+                  <ContextMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      queueIgnoreEventClick();
+                      onShareEvent?.(event);
+                    }}
+                  >
                     <Share2 className="mr-2 h-4 w-4" />
                     {menuLabels.share}
                   </ContextMenuItem>
-                  <ContextMenuItem onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onBookmarkEvent?.(event); }}>
+                  <ContextMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      queueIgnoreEventClick();
+                      onBookmarkEvent?.(event);
+                    }}
+                  >
                     <Bookmark className="mr-2 h-4 w-4" />
                     {menuLabels.bookmark}
                   </ContextMenuItem>
                   <ContextMenuItem
-                    onSelect={(e) => { e.preventDefault(); e.stopPropagation(); queueIgnoreEventClick(); onDeleteEvent?.(event); }}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      queueIgnoreEventClick();
+                      onDeleteEvent?.(event);
+                    }}
                     className="text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />

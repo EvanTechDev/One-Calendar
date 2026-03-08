@@ -1,12 +1,15 @@
 export function LandingCta() {
   return (
     <section className="py-24 text-center md:py-28">
-      <p className="text-xs uppercase tracking-[0.28em] text-[var(--landing-subtle)]">Ready to simplify planning</p>
+      <p className="text-xs uppercase tracking-[0.28em] text-[var(--landing-subtle)]">
+        Ready to simplify planning
+      </p>
       <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-6xl">
         Your time. Your data. Yours.
       </h2>
       <p className="mx-auto mt-4 max-w-2xl text-sm text-[var(--landing-muted)] md:text-base">
-        Keep your schedule clear with privacy-first defaults, portable formats, and dependable sync.
+        Keep your schedule clear with privacy-first defaults, portable formats,
+        and dependable sync.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <a
