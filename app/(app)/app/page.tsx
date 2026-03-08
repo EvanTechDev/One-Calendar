@@ -25,6 +25,7 @@ export default function Home() {
       setMinimumWaitDone(true)
     }, 500)
 
+
     const cookieCheckTimer = window.setInterval(() => {
       if (hasClerkSessionCookie()) {
         setHasSessionCookie(true)

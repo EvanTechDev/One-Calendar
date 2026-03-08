@@ -315,13 +315,20 @@ async function writeLocalStorage<T>(key: string, value: T) {
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(initialValue)
+  const [serializedValue, setSerializedValue] = useState(() => JSON.stringify(initialValue))
 
   useEffect(() => {
     let cancelled = false
     readLocalStorage(key, initialValue).then((value) => {
-      if (!cancelled) {
-        setStoredValue(value)
-      }
+      if (cancelled) return
+      const nextSerializedValue = JSON.stringify(value)
+      setSerializedValue(nextSerializedValue)
+      setStoredValue((prev) => {
+        if (JSON.stringify(prev) === nextSerializedValue) {
+          return prev
+        }
+        return value
+      })
     })
     return () => {
       cancelled = true
@@ -330,7 +337,16 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   useEffect(() => {
     const refreshValue = () => {
-      readLocalStorage(key, initialValue).then((value) => setStoredValue(value))
+      readLocalStorage(key, initialValue).then((value) => {
+        const nextSerializedValue = JSON.stringify(value)
+        setSerializedValue(nextSerializedValue)
+        setStoredValue((prev) => {
+          if (JSON.stringify(prev) === nextSerializedValue) {
+            return prev
+          }
+          return value
+        })
+      })
     }
 
     const unsubscribe = subscribeEncryptionState(() => {
@@ -355,8 +371,14 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   }, [key, initialValue])
 
   useEffect(() => {
+    const nextSerializedValue = JSON.stringify(storedValue)
+    if (nextSerializedValue === serializedValue) {
+      return
+    }
+
+    setSerializedValue(nextSerializedValue)
     void writeLocalStorage(key, storedValue)
-  }, [key, storedValue])
+  }, [key, serializedValue, storedValue])
 
   return [storedValue, setStoredValue] as const
 }
