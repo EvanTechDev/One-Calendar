@@ -14,7 +14,7 @@ export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { signUp, setActive } = useSignUp();
+  const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
   const [step, setStep] = useState<"initial" | "verification">("initial");
   const [formData, setFormData] = useState({
@@ -135,7 +135,22 @@ export function SignUpForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    signUp.authenticateWithRedirect({
+    if (!isLoaded || !signUp) {
+      setError("Auth service is still loading. Please try again in a moment.");
+      return;
+    }
+
+    const redirect =
+      signUp.authenticateWithRedirect ??
+      (signUp as unknown as { authWithRedirect?: typeof signUp.authenticateWithRedirect })
+        .authWithRedirect;
+
+    if (!redirect) {
+      setError("OAuth is unavailable right now. Please refresh and try again.");
+      return;
+    }
+
+    redirect.call(signUp, {
       strategy,
       redirectUrl: "/sign-up/sso-callback",
       redirectUrlComplete: "/app",
@@ -153,6 +168,11 @@ export function SignUpForm({
     setError("");
 
     try {
+      if (!isLoaded || !signUp) {
+        setError("Auth service is still loading. Please try again in a moment.");
+        return;
+      }
+
       if (step === "initial") {
         if (!isEmailDomainAllowed(formData.email)) {
           setError(
