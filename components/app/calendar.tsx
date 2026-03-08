@@ -92,6 +92,12 @@ type ViewType =
   | "analytics"
   | "settings";
 
+const isCalendarView = (
+  view: string,
+): view is "day" | "week" | "four-day" | "month" | "year" => {
+  return ["day", "week", "four-day", "month", "year"].includes(view);
+};
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -183,11 +189,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [toastPosition, setToastPosition] = useLocalStorage<
     "bottom-left" | "bottom-center" | "bottom-right"
   >("toast-position", "bottom-right");
+  const hasAppliedDefaultView = useRef(false);
 
   useEffect(() => {
-    if (view !== defaultView) {
-      setView(defaultView as ViewType);
-    }
+    if (hasAppliedDefaultView.current) return;
+    setView(isCalendarView(defaultView) ? defaultView : "week");
+    hasAppliedDefaultView.current = true;
   }, [defaultView]);
 
   useEffect(() => {
