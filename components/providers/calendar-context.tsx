@@ -1,7 +1,12 @@
 "use client";
 
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { createContext, useContext, type Dispatch, type SetStateAction } from "react";
+import {
+  createContext,
+  useContext,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type React from "react";
 
 export interface CalendarCategory {

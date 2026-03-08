@@ -71,7 +71,8 @@ export default function ImportExport({
   const [language] = useLanguage();
   const t = translations[language];
   const { calendars } = useCalendar();
-  const [importCalendarId, setImportCalendarId] = useState<string>("__uncategorized__");
+  const [importCalendarId, setImportCalendarId] =
+    useState<string>("__uncategorized__");
 
   const [forceUpdate, setForceUpdate] = useState(0);
 
@@ -174,7 +175,6 @@ export default function ImportExport({
     }
   };
 
-
   const mapCalendarColorToEventColor = (calendarColor?: string) => {
     const mapping: Record<string, string> = {
       "bg-blue-500": "bg-[#E6F6FD]",
@@ -189,8 +189,11 @@ export default function ImportExport({
   };
 
   const applyImportCategory = (eventsToImport: CalendarEvent[]) => {
-    const targetCategory = calendars.find((calendar) => calendar.id === importCalendarId);
-    const categoryId = importCalendarId === "__uncategorized__" ? "" : importCalendarId;
+    const targetCategory = calendars.find(
+      (calendar) => calendar.id === importCalendarId,
+    );
+    const categoryId =
+      importCalendarId === "__uncategorized__" ? "" : importCalendarId;
     const color = mapCalendarColorToEventColor(targetCategory?.color);
 
     return eventsToImport.map((event) => ({
@@ -808,15 +811,21 @@ END:VEVENT
                 </p>
               </div>
 
-              
               <div className="space-y-2">
-                <Label htmlFor="import-calendar-category">{t.importToCalendarCategory}</Label>
-                <Select value={importCalendarId} onValueChange={setImportCalendarId}>
+                <Label htmlFor="import-calendar-category">
+                  {t.importToCalendarCategory}
+                </Label>
+                <Select
+                  value={importCalendarId}
+                  onValueChange={setImportCalendarId}
+                >
                   <SelectTrigger id="import-calendar-category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__uncategorized__">{t.uncategorized}</SelectItem>
+                    <SelectItem value="__uncategorized__">
+                      {t.uncategorized}
+                    </SelectItem>
                     {calendars.map((calendar) => (
                       <SelectItem key={calendar.id} value={calendar.id}>
                         {calendar.name}

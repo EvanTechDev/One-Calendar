@@ -1,7 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { type ElementType, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ElementType,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type LandingTitleProps<T extends ElementType> = {
   as?: T;
@@ -36,7 +42,14 @@ export function LandingTitle<T extends ElementType = "h2">({
   }, []);
 
   return (
-    <Tag ref={ref} className={cn("landing-title", visible && "landing-title-visible", className)}>
+    <Tag
+      ref={ref}
+      className={cn(
+        "landing-title",
+        visible && "landing-title-visible",
+        className,
+      )}
+    >
       {children}
     </Tag>
   );

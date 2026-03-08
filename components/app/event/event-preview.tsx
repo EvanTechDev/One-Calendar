@@ -1,6 +1,11 @@
 "use client";
 
-import { getEncryptionState, readEncryptedLocalStorage, subscribeEncryptionState, writeEncryptedLocalStorage } from "@/hooks/useLocalStorage";
+import {
+  getEncryptionState,
+  readEncryptedLocalStorage,
+  subscribeEncryptionState,
+  writeEncryptedLocalStorage,
+} from "@/hooks/useLocalStorage";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Edit2,
@@ -84,18 +89,17 @@ export default function EventPreview({
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
   const colorMapping: Record<string, string> = {
-  'bg-[#E6F6FD]': '#3B82F6',
-  'bg-[#E7F8F2]': '#10B981',
-  'bg-[#FEF5E6]': '#F59E0B',
-  'bg-[#FFE4E6]': '#EF4444',
-  'bg-[#F3EEFE]': '#8B5CF6',
-  'bg-[#FCE7F3]': '#EC4899',
-  'bg-[#EEF2FF]': '#6366F1',
-  'bg-[#FFF0E5]': '#FB923C',
-  'bg-[#E6FAF7]': '#14B8A6',
-}
+    "bg-[#E6F6FD]": "#3B82F6",
+    "bg-[#E7F8F2]": "#10B981",
+    "bg-[#FEF5E6]": "#F59E0B",
+    "bg-[#FFE4E6]": "#EF4444",
+    "bg-[#F3EEFE]": "#8B5CF6",
+    "bg-[#FCE7F3]": "#EC4899",
+    "bg-[#EEF2FF]": "#6366F1",
+    "bg-[#FFF0E5]": "#FB923C",
+    "bg-[#E6FAF7]": "#14B8A6",
+  };
 
-  
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn && !atprotoSignedIn) {
@@ -107,7 +111,6 @@ export default function EventPreview({
       }
     }
   }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
-
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -121,11 +124,13 @@ export default function EventPreview({
   useEffect(() => {
     let active = true;
     const loadBookmarks = () =>
-      readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((stored) => {
-        if (active) {
-          setBookmarks(stored);
-        }
-      });
+      readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+        (stored) => {
+          if (active) {
+            setBookmarks(stored);
+          }
+        },
+      );
 
     loadBookmarks();
     const unsubscribe = subscribeEncryptionState(() => {
@@ -149,7 +154,9 @@ export default function EventPreview({
 
   useEffect(() => {
     if (event) {
-      const isCurrentEventBookmarked = bookmarks.some((bookmark: any) => bookmark.id === event.id);
+      const isCurrentEventBookmarked = bookmarks.some(
+        (bookmark: any) => bookmark.id === event.id,
+      );
       setIsBookmarked(isCurrentEventBookmarked);
     }
   }, [event, bookmarks]);
@@ -172,8 +179,11 @@ export default function EventPreview({
   };
 
   const formatNotificationTime = () => {
-    if (event.notification === 0) return isZh ? "事件开始时" : "At time of event";
-    return isZh ? `${event.notification} 分钟前` : `${event.notification} minutes before`;
+    if (event.notification === 0)
+      return isZh ? "事件开始时" : "At time of event";
+    return isZh
+      ? `${event.notification} 分钟前`
+      : `${event.notification} minutes before`;
   };
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
@@ -230,12 +240,16 @@ export default function EventPreview({
   const toggleBookmark = async () => {
     if (!event) return;
     if (isBookmarked) {
-      const updatedBookmarks = bookmarks.filter((bookmark: any) => bookmark.id !== event.id);
+      const updatedBookmarks = bookmarks.filter(
+        (bookmark: any) => bookmark.id !== event.id,
+      );
       await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
       setBookmarks(updatedBookmarks);
       setIsBookmarked(false);
       toast(isZh ? "已取消收藏" : "Removed from bookmarks", {
-        description: isZh ? "事件已从收藏夹中移除" : "Event has been removed from your bookmarks",
+        description: isZh
+          ? "事件已从收藏夹中移除"
+          : "Event has been removed from your bookmarks",
       });
     } else {
       const bookmarkData = {
@@ -252,7 +266,9 @@ export default function EventPreview({
       setBookmarks(updatedBookmarks);
       setIsBookmarked(true);
       toast(isZh ? "已收藏" : "Bookmarked", {
-        description: isZh ? "事件已添加到收藏夹" : "Event has been added to your bookmarks",
+        description: isZh
+          ? "事件已添加到收藏夹"
+          : "Event has been added to your bookmarks",
       });
     }
   };
@@ -280,8 +296,10 @@ export default function EventPreview({
 
     try {
       setIsSharing(true);
-      const shareId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-      const clerkUsername = (user?.username || user?.firstName || atprotoHandle || "Anonymous");
+      const shareId =
+        Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      const clerkUsername =
+        user?.username || user?.firstName || atprotoHandle || "Anonymous";
       const sharedEvent = { ...event, sharedBy: clerkUsername };
 
       const payload: any = { id: shareId, data: sharedEvent };
@@ -302,7 +320,9 @@ export default function EventPreview({
       const result = await response.json();
 
       if (result.success) {
-        const link = result?.shareLink ? `${window.location.origin}${result.shareLink}` : `${window.location.origin}/share/${shareId}`;
+        const link = result?.shareLink
+          ? `${window.location.origin}${result.shareLink}`
+          : `${window.location.origin}/share/${shareId}`;
         setShareLink(link);
 
         try {
@@ -342,7 +362,10 @@ export default function EventPreview({
           }
         } catch {}
 
-        const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
+        const storedShares = await readEncryptedLocalStorage<any[]>(
+          "shared-events",
+          [],
+        );
         storedShares.push({
           id: shareId,
           eventId: event.id,
@@ -434,7 +457,12 @@ export default function EventPreview({
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />
               <div className="flex space-x-2 ml-auto">
-                <Button variant="ghost" size="icon" onClick={() => onEdit()} className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit()}
+                  className="h-8 w-8"
+                >
                   <Edit2 className="h-5 w-5" />
                 </Button>
                 <Button
@@ -454,20 +482,43 @@ export default function EventPreview({
                 >
                   <Share2 className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-8 w-8">
-                  <Bookmark className={cn("h-5 w-5", isBookmarked ? "fill-blue-500 text-blue-500" : "")} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleBookmark}
+                  className="h-8 w-8"
+                >
+                  <Bookmark
+                    className={cn(
+                      "h-5 w-5",
+                      isBookmarked ? "fill-blue-500 text-blue-500" : "",
+                    )}
+                  />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleDeleteClick} className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDeleteClick}
+                  className="h-8 w-8"
+                >
                   <Trash2 className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 ml-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onOpenChange(false)}
+                  className="h-8 w-8 ml-2"
+                >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
             <div className="px-5 pb-5 flex">
-              <div className="w-2 self-stretch rounded-full mr-4" style={{ backgroundColor: colorMapping[event.color] }} />
+              <div
+                className="w-2 self-stretch rounded-full mr-4"
+                style={{ backgroundColor: colorMapping[event.color] }}
+              />
 
               <div className="flex-1">
                 <h2
@@ -498,9 +549,15 @@ export default function EventPreview({
                 <div className="flex items-start">
                   <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                   <div className="flex-1">
-                    <div className="flex items-center justify-between cursor-pointer" onClick={toggleParticipants}>
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={toggleParticipants}
+                    >
                       <p>
-                        {event.participants.filter((p) => p.trim() !== "").length}{" "}
+                        {
+                          event.participants.filter((p) => p.trim() !== "")
+                            .length
+                        }{" "}
                         {isZh ? "参与者" : "participants"}
                       </p>
                       <ChevronDown
@@ -517,7 +574,9 @@ export default function EventPreview({
                           .map((participant, index) => (
                             <div key={index} className="flex items-center">
                               <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
-                                <span className="font-medium">{getInitials(participant)}</span>
+                                <span className="font-medium">
+                                  {getInitials(participant)}
+                                </span>
                               </div>
                               <p>{participant}</p>
                             </div>
@@ -580,7 +639,11 @@ export default function EventPreview({
           if (!nextOpen && shareOnlyMode) onOpenChange(false);
         }}
       >
-        <DialogContent className="sm:max-w-md" ref={dialogContentRef} onClick={handleDialogClick}>
+        <DialogContent
+          className="sm:max-w-md"
+          ref={dialogContentRef}
+          onClick={handleDialogClick}
+        >
           <DialogHeader>
             <DialogTitle>{t.shareEvent}</DialogTitle>
           </DialogHeader>
@@ -596,7 +659,9 @@ export default function EventPreview({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="enable-password">{t.shareEnablePasswordProtection}</Label>
+                  <Label htmlFor="enable-password">
+                    {t.shareEnablePasswordProtection}
+                  </Label>
                   <Checkbox
                     id="enable-password"
                     checked={passwordEnabled}
@@ -613,7 +678,9 @@ export default function EventPreview({
 
                 {passwordEnabled && (
                   <div className="space-y-2">
-                    <Label htmlFor="share-password">{t.sharePasswordLabel}</Label>
+                    <Label htmlFor="share-password">
+                      {t.sharePasswordLabel}
+                    </Label>
                     <Input
                       id="share-password"
                       type="password"
@@ -626,11 +693,15 @@ export default function EventPreview({
                     </p>
 
                     <div className="flex items-center justify-between pt-2">
-                      <Label htmlFor="burn-after-read">{t.shareBurnAfterRead}</Label>
+                      <Label htmlFor="burn-after-read">
+                        {t.shareBurnAfterRead}
+                      </Label>
                       <Checkbox
                         id="burn-after-read"
                         checked={burnAfterRead}
-                        onCheckedChange={(checked) => setBurnAfterRead(checked === true)}
+                        onCheckedChange={(checked) =>
+                          setBurnAfterRead(checked === true)
+                        }
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -704,7 +775,11 @@ export default function EventPreview({
                   <div className="mt-4 flex flex-col items-center">
                     <Label className="mb-2">{t.qrCode}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
-                      <img src={qrCodeDataURL || "/placeholder.svg"} alt="QR Code" className="w-full max-w-[200px] mx-auto" />
+                      <img
+                        src={qrCodeDataURL || "/placeholder.svg"}
+                        alt="QR Code"
+                        className="w-full max-w-[200px] mx-auto"
+                      />
                     </div>
                     <Button
                       variant="outline"

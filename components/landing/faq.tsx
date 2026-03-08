@@ -53,11 +53,20 @@ export function LandingFaq() {
   return (
     <section id="faq" className="border-b border-white/10 py-24 md:py-28">
       <div className="grid w-full gap-8 md:grid-cols-[300px_1fr]">
-        <LandingTitle as="h2" className="text-3xl font-semibold text-white md:text-5xl">FAQ</LandingTitle>
+        <LandingTitle
+          as="h2"
+          className="text-3xl font-semibold text-white md:text-5xl"
+        >
+          FAQ
+        </LandingTitle>
         <div className="px-0 md:px-2">
           <Accordion type="single" collapsible className="w-full">
             {faqItems.map((item, idx) => (
-              <AccordionItem key={item.q} value={`faq-${idx}`} className="border-white/10">
+              <AccordionItem
+                key={item.q}
+                value={`faq-${idx}`}
+                className="border-white/10"
+              >
                 <AccordionTrigger className="py-5 text-left text-base font-medium text-white hover:no-underline">
                   {item.q}
                 </AccordionTrigger>

@@ -180,10 +180,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "time-format",
     "24h",
   );
-  const [toastPosition, setToastPosition] = useLocalStorage<"bottom-left" | "bottom-center" | "bottom-right">(
-    "toast-position",
-    "bottom-right",
-  );
+  const [toastPosition, setToastPosition] = useLocalStorage<
+    "bottom-left" | "bottom-center" | "bottom-right"
+  >("toast-position", "bottom-right");
 
   useEffect(() => {
     if (view !== defaultView) {
@@ -445,11 +444,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setDeleteConfirmOpen(true);
   };
 
-
-
   const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<any[]>("shared-events", []);
-    const relatedShares = storedShares.filter((share: any) => share?.eventId === eventId);
+    const storedShares = await readEncryptedLocalStorage<any[]>(
+      "shared-events",
+      [],
+    );
+    const relatedShares = storedShares.filter(
+      (share: any) => share?.eventId === eventId,
+    );
     if (!relatedShares.length) return;
 
     const results = await Promise.allSettled(
@@ -495,11 +497,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     );
-    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then((bookmarks) =>
-      writeEncryptedLocalStorage(
-        "bookmarked-events",
-        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-      ),
+    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+      (bookmarks) =>
+        writeEncryptedLocalStorage(
+          "bookmarked-events",
+          bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+        ),
     );
     setEventDialogOpen(false);
     setSelectedEvent(null);
@@ -813,7 +816,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 )}
               </div>
               {backupEnabled ? (
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full border" title="Backup status" aria-label="Backup status">
+                <div
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                  title="Backup status"
+                  aria-label="Backup status"
+                >
                   {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
                 </div>
               ) : null}
@@ -829,13 +836,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open("https://calendarstatus.xyehr.cn", "_blank", "noopener,noreferrer")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://calendarstatus.xyehr.cn",
+                        "_blank",
+                        "noopener,noreferrer",
+                      )
+                    }
+                  >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     {t.status}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    window.location.href = "mailto:evan.huang000@proton.me";
-                  }}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.location.href = "mailto:evan.huang000@proton.me";
+                    }}
+                  >
                     <MessageSquare className="mr-2 h-4 w-4" />
                     {t.feedback}
                   </DropdownMenuItem>

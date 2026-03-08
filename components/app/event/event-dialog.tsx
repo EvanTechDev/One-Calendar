@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { addDays, format, parse, isValid, set, getHours, getMinutes } from "date-fns";
-import { ArrowRight, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { addDays, format, getHours, getMinutes, set } from "date-fns";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { isZhLanguage, translations, type Language } from "@/lib/i18n";
 import { useCalendar } from "@/components/providers/calendar-context";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -126,12 +126,25 @@ export default function EventDialog({
   timezone,
 }: EventDialogProps) {
   const { calendars } = useCalendar();
+  const [participants, setParticipants] = useState("");
+  const [customNotificationTime, setCustomNotificationTime] = useState("10");
+  const [selectedCalendar, setSelectedCalendar] = useState("");
+  const [notification, setNotification] = useState("0");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
   const [title, setTitle] = useState("");
+  const [color, setColor] = useState(colorOptions[0].value);
+
   const [isAllDay, setIsAllDay] = useState(false);
+  const [endTimeError, setEndTimeError] = useState(false);
+  const [startTimeError, setStartTimeError] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endTimeOpen, setEndTimeOpen] = useState(false);
+  const [startTimeOpen, setStartTimeOpen] = useState(false);
 
   const [startDate, setStartDate] = useState(initialDate);
   const [endDate, setEndDate] = useState(initialDate);
-
   const [startTime, setStartTime] = useState<TimeInput>({
     hours: "00",
     minutes: "00",
@@ -145,29 +158,11 @@ export default function EventDialog({
     isCustomInput: false,
   });
 
-  const [startTimeOpen, setStartTimeOpen] = useState(false);
-  const [endTimeOpen, setEndTimeOpen] = useState(false);
-
-  const [startDateOpen, setStartDateOpen] = useState(false);
-  const [endDateOpen, setEndDateOpen] = useState(false);
-
-  const [location, setLocation] = useState("");
-  const [participants, setParticipants] = useState("");
-  const [notification, setNotification] = useState("0");
-  const [customNotificationTime, setCustomNotificationTime] = useState("10");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState(colorOptions[0].value);
-  const [selectedCalendar, setSelectedCalendar] = useState("");
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [isAiLoading, setIsAiLoading] = useState(false);
-
-  const [startTimeError, setStartTimeError] = useState(false);
-  const [endTimeError, setEndTimeError] = useState(false);
-
-  const t = translations[language];
-  const isZh = isZhLanguage(language);
   const calendarSelectValue =
     selectedCalendar || (calendars.length > 0 ? "__uncategorized__" : "");
+  const isZh = isZhLanguage(language);
+  const t = translations[language];
+
   const getEventColorByCalendarId = (calendarId: string) => {
     const calendar = calendars.find((item) => item.id === calendarId);
     if (!calendar) return colorOptions[0].value;
@@ -391,8 +386,8 @@ export default function EventDialog({
     });
 
     const newStartDate = set(new Date(startDate), {
-      hours: parseInt(hours),
-      minutes: parseInt(minutes),
+      hours: parseInt(hours, 10),
+      minutes: parseInt(minutes, 10),
       seconds: 0,
       milliseconds: 0,
     });
@@ -496,67 +491,6 @@ export default function EventDialog({
       onEventAdd(eventData);
     }
     onOpenChange(false);
-  };
-
-  const handleAiSubmit = async () => {
-    if (!aiPrompt.trim()) return;
-    setIsAiLoading(true);
-
-    try {
-      const response = await fetch("/api/chat/schedule", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: aiPrompt,
-          currentValues: {
-            title,
-            startDate: format(getFullStartDate(), "yyyy-MM-dd'T'HH:mm"),
-            endDate: format(getFullEndDate(), "yyyy-MM-dd'T'HH:mm"),
-            location,
-            participants,
-            description,
-          },
-        }),
-      });
-
-      if (!response.ok) throw new Error("AI请求失败");
-
-      const result = await response.json();
-      if (result.data) {
-        const {
-          title: newTitle,
-          startDate: newStart,
-          endDate: newEnd,
-          location: newLocation,
-          participants: newParticipants,
-          description: newDescription,
-        } = result.data;
-
-        if (newTitle) setTitle(newTitle);
-
-        if (newStart) {
-          const startDateObj = new Date(newStart);
-          setStartDate(startDateObj);
-          setStartTime(extractTimeFromDate(startDateObj));
-        }
-
-        if (newEnd) {
-          const endDateObj = new Date(newEnd);
-          setEndDate(endDateObj);
-          setEndTime(extractTimeFromDate(endDateObj));
-        }
-
-        if (newLocation) setLocation(newLocation);
-        if (newParticipants) setParticipants(newParticipants);
-        if (newDescription) setDescription(newDescription);
-      }
-    } catch (error) {
-      console.error("AI错误:", error);
-    } finally {
-      setIsAiLoading(false);
-    }
   };
 
   const renderTimeSelector = (
@@ -790,8 +724,8 @@ export default function EventDialog({
 
                       const fullStartDate = getFullStartDate();
                       const possibleEndDate = set(new Date(endDate), {
-                        hours: parseInt(hours),
-                        minutes: parseInt(minutes),
+                        hours: parseInt(hours, 10),
+                        minutes: parseInt(minutes, 10),
                         seconds: 0,
                       });
 

@@ -2,7 +2,13 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -23,7 +29,10 @@ function AtprotoLoginContent() {
         body: JSON.stringify({ handle }),
       });
 
-      const data = (await res.json()) as { authorizeUrl?: string; error?: string };
+      const data = (await res.json()) as {
+        authorizeUrl?: string;
+        error?: string;
+      };
       if (!res.ok || !data.authorizeUrl) {
         throw new Error(data.error || "Failed to start OAuth login");
       }
@@ -36,7 +45,8 @@ function AtprotoLoginContent() {
     }
   };
 
-  const queryError = searchParams.get("reason") || searchParams.get("error") || "";
+  const queryError =
+    searchParams.get("reason") || searchParams.get("error") || "";
 
   const startRegister = async () => {
     setRegisterLoading(true);
@@ -47,9 +57,14 @@ function AtprotoLoginContent() {
         headers: { "Content-Type": "application/json" },
       });
 
-      const data = (await res.json()) as { authorizeUrl?: string; error?: string };
+      const data = (await res.json()) as {
+        authorizeUrl?: string;
+        error?: string;
+      };
       if (!res.ok || !data.authorizeUrl) {
-        throw new Error(data.error || "Failed to create registration OAuth URL");
+        throw new Error(
+          data.error || "Failed to create registration OAuth URL",
+        );
       }
 
       window.location.href = data.authorizeUrl;
@@ -60,41 +75,55 @@ function AtprotoLoginContent() {
     }
   };
 
-
   return (
     <div className="space-y-4">
       <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">Sign in with Atmosphere</CardTitle>
-        <CardDescription>Enter your Atmosphere handle to continue with OAuth</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Input
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
-          placeholder="alice.bsky.social"
-          autoComplete="username"
-        />
-        <Button className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white" onClick={startLogin} disabled={!handle || loading}>
-          {loading ? "Redirecting..." : "Continue with Atmosphere OAuth"}
-        </Button>
-        {error || queryError ? <p className="text-sm text-red-500">{error || queryError}</p> : null}
-        <Button
-          variant="outline"
-          className="w-full"
-          type="button"
-          onClick={startRegister}
-          disabled={registerLoading}
-        >
-          {registerLoading ? "Preparing..." : "Create an Atmosphere account"}
-        </Button>
-        <p className="pt-1 text-center text-xs text-muted-foreground">
-          Not an Atmosphere user? Return to normal <a href="/sign-in" className="underline underline-offset-4 hover:text-primary">sign in</a>
-        </p>
-      </CardContent>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Sign in with Atmosphere</CardTitle>
+          <CardDescription>
+            Enter your Atmosphere handle to continue with OAuth
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="alice.bsky.social"
+            autoComplete="username"
+          />
+          <Button
+            className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white"
+            onClick={startLogin}
+            disabled={!handle || loading}
+          >
+            {loading ? "Redirecting..." : "Continue with Atmosphere OAuth"}
+          </Button>
+          {error || queryError ? (
+            <p className="text-sm text-red-500">{error || queryError}</p>
+          ) : null}
+          <Button
+            variant="outline"
+            className="w-full"
+            type="button"
+            onClick={startRegister}
+            disabled={registerLoading}
+          >
+            {registerLoading ? "Preparing..." : "Create an Atmosphere account"}
+          </Button>
+          <p className="pt-1 text-center text-xs text-muted-foreground">
+            Not an Atmosphere user? Return to normal{" "}
+            <a
+              href="/sign-in"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              sign in
+            </a>
+          </p>
+        </CardContent>
       </Card>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
+        By continuing, you agree to our <a href="/terms">Terms of Service</a>{" "}
+        and <a href="/privacy">Privacy Policy</a>.
       </div>
     </div>
   );
@@ -102,7 +131,13 @@ function AtprotoLoginContent() {
 
 export function AtprotoLoginForm() {
   return (
-    <Suspense fallback={<div className="text-sm text-muted-foreground text-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="text-sm text-muted-foreground text-center">
+          Loading...
+        </div>
+      }
+    >
       <AtprotoLoginContent />
     </Suspense>
   );
