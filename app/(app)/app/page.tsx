@@ -19,16 +19,12 @@ export default function Home() {
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
-  const [bootGuardExpired, setBootGuardExpired] = useState(false)
 
   useEffect(() => {
     const waitTimer = window.setTimeout(() => {
       setMinimumWaitDone(true)
     }, 500)
 
-    const bootGuardTimer = window.setTimeout(() => {
-      setBootGuardExpired(true)
-    }, 10000)
 
     const cookieCheckTimer = window.setInterval(() => {
       if (hasClerkSessionCookie()) {
@@ -38,7 +34,6 @@ export default function Home() {
 
     return () => {
       window.clearTimeout(waitTimer)
-      window.clearTimeout(bootGuardTimer)
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
@@ -84,12 +79,11 @@ export default function Home() {
   }, [isLoaded, isSignedIn])
 
   const shouldShowAuthWait = useMemo(() => {
-    if (bootGuardExpired) return false
     if (!minimumWaitDone) return true
     if (hasSessionCookie && !isLoaded) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [bootGuardExpired, minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
