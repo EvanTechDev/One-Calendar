@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { CalendarProvider } from "@/components/providers/calendar-context"
@@ -7,10 +7,12 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { PwaProvider } from "@/components/providers/pwa-provider"
 
 export const metadata: Metadata = {
   title: "One Calendar",
   description: "All your events in one place, beautifully organized.",
+  manifest: "/manifest.webmanifest",
   openGraph: {
     title: "One Calendar",
     description: "All your events in one place, beautifully organized.",
@@ -40,6 +42,10 @@ export const metadata: Metadata = {
   },
 }
 
+
+export const viewport: Viewport = {
+  themeColor: "#0b0f1a",
+}
 export default function RootLayout({
   children,
 }: {
@@ -63,6 +69,7 @@ export default function RootLayout({
             disableTransitionOnChange
         >
         <CalendarProvider>
+          <PwaProvider />
           {children}
           <Toaster />
         </CalendarProvider> 

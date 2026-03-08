@@ -68,6 +68,23 @@ const showToast = async (event: any) => {
   });
 };
 
+const getServiceWorkerRegistration = async () => {
+  if (typeof window === "undefined") return null;
+  if (!("serviceWorker" in navigator)) return null;
+
+  try {
+    const currentRegistration = await navigator.serviceWorker.getRegistration();
+    if (currentRegistration) return currentRegistration;
+
+    return await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
+      updateViaCache: "none",
+    });
+  } catch {
+    return null;
+  }
+};
+
 const showSystemNotification = async (event: any) => {
   if (typeof window === "undefined") return;
   if (!("Notification" in window)) return;
@@ -96,13 +113,11 @@ const showSystemNotification = async (event: any) => {
     badge: "/favicon.ico",
   };
 
-  if ("serviceWorker" in navigator) {
+  const registration = await getServiceWorkerRegistration();
+  if (registration) {
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration) {
-        await registration.showNotification(title, options);
-        return;
-      }
+      await registration.showNotification(title, options);
+      return;
     } catch {}
   }
 
