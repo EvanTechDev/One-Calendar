@@ -1,5 +1,5 @@
 const CACHE_NAME = "one-calendar-shell-v1";
-const OFFLINE_URLS = ["/", "/icon.svg"];
+const OFFLINE_URLS = ["/app", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -46,7 +46,7 @@ self.addEventListener("fetch", (event) => {
 
           return networkResponse;
         })
-        .catch(() => caches.match("/"));
+        .catch(() => caches.match("/app"));
     }),
   );
 });
@@ -64,7 +64,7 @@ self.addEventListener("notificationclick", (event) => {
       }
 
       if (self.clients.openWindow) {
-        return self.clients.openWindow("/");
+        return self.clients.openWindow("/app");
       }
     }),
   );
