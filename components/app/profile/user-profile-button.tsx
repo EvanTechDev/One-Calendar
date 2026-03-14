@@ -62,6 +62,7 @@ import {
   removeInMemoryStorage,
   readEncryptedLocalStorage,
   setEncryptionPassword,
+  writeEncryptedLocalStorage,
   writeInMemoryStorage,
 } from "@/hooks/useLocalStorage";
 
@@ -85,6 +86,23 @@ const BACKUP_KEYS = [
   "toast-position",
 ];
 
+const BACKUP_KEY_DEFAULTS: Record<string, unknown> = {
+  "calendar-events": [],
+  "calendar-categories": [],
+  "bookmarked-events": [],
+  "shared-events": [],
+  countdowns: [],
+  "first-day-of-week": 0,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  "notification-sound": "telegram",
+  "default-view": "week",
+  "enable-shortcuts": true,
+  "preferred-language": null,
+  "skip-landing": false,
+  "today-toast": null,
+  "toast-position": "bottom-right",
+};
+
 async function apiGet() {
   const r = await fetch("/api/blob");
   if (r.status === 404) return null;
@@ -106,43 +124,66 @@ async function apiDelete() {
   if (!r.ok) throw new Error();
 }
 
-function collectLocalStorage() {
+async function collectLocalStorage() {
   const storage: Record<string, string> = {};
-  BACKUP_KEYS.forEach((key) => {
-    const value = readInMemoryStorage(key) ?? localStorage.getItem(key);
-    if (value !== null) storage[key] = value;
-  });
+
+  await Promise.all(
+    BACKUP_KEYS.map(async (key) => {
+      const fallback = BACKUP_KEY_DEFAULTS[key] ?? null;
+      const inMemoryValue = readInMemoryStorage(key);
+      if (inMemoryValue !== null) {
+        storage[key] = inMemoryValue;
+        return;
+      }
+
+      const hasRawItem = localStorage.getItem(key) !== null;
+      const value = await readEncryptedLocalStorage(key, fallback);
+      if (value === null && !hasRawItem) return;
+      storage[key] = JSON.stringify(value);
+    }),
+  );
+
   return storage;
 }
 
-async function applyCloudStorageToMemory(
-  storage: Record<string, string>,
+async function normalizeCloudStorageValue(
+  value: string,
   password: string,
-) {
+): Promise<string> {
+  try {
+    const parsed = JSON.parse(value);
+    if (!isEncryptedPayload(parsed)) {
+      return value;
+    }
+
+    return await decryptPayload(password, parsed.ciphertext, parsed.iv);
+  } catch {
+    return value;
+  }
+}
+
+async function applyCloudStorageToMemory(storage: Record<string, string>) {
   await Promise.all(
     Object.entries(storage).map(async ([key, value]) => {
-      let normalized = value;
+      let parsedValue: unknown = value;
       try {
-        const parsed = JSON.parse(value);
-        if (isEncryptedPayload(parsed)) {
-          normalized = await decryptPayload(
-            password,
-            parsed.ciphertext,
-            parsed.iv,
-          );
-        }
+        parsedValue = JSON.parse(value);
       } catch {
-        normalized = value;
+        parsedValue = value;
       }
-      writeInMemoryStorage(key, normalized);
-      markEncryptedSnapshot(key, normalized);
-      if (!isSensitiveStorageKey(key)) {
+
+      await writeEncryptedLocalStorage(key, parsedValue);
+
+      if (isSensitiveStorageKey(key)) {
+        const normalized =
+          typeof parsedValue === "string"
+            ? parsedValue
+            : JSON.stringify(parsedValue);
+        writeInMemoryStorage(key, normalized);
+        markEncryptedSnapshot(key, normalized);
+      } else {
         removeInMemoryStorage(key);
-        localStorage.setItem(key, normalized);
       }
-      window.dispatchEvent(
-        new CustomEvent("local-storage-written", { detail: { key } }),
-      );
     }),
   );
 }
@@ -295,9 +336,10 @@ export default function UserProfileButton({
     timerRef.current = setTimeout(async () => {
       try {
         broadcastBackupStatus("uploading");
+        const storage = await collectLocalStorage();
         const payload = await encryptPayload(
           keyRef.current!,
-          JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+          JSON.stringify({ v: BACKUP_VERSION, storage }),
         );
         await apiPost(payload);
         broadcastBackupStatus("done");
@@ -435,7 +477,16 @@ export default function UserProfileButton({
       try {
         const data = JSON.parse(plain);
         if (data?.storage) {
-          await applyCloudStorageToMemory(data.storage, password);
+          const normalizedStorage = Object.fromEntries(
+            await Promise.all(
+              Object.entries(data.storage).map(async ([key, value]) => [
+                key,
+                await normalizeCloudStorageValue(String(value), password),
+              ]),
+            ),
+          );
+          await setEncryptionPassword(password);
+          await applyCloudStorageToMemory(normalizedStorage);
         } else if (data?.events || data?.calendars) {
           const fallbackStorage: Record<string, string> = {};
           if (data?.events)
@@ -444,9 +495,12 @@ export default function UserProfileButton({
             fallbackStorage["calendar-categories"] = JSON.stringify(
               data.calendars,
             );
-          await applyCloudStorageToMemory(fallbackStorage, password);
+          await setEncryptionPassword(password);
+          await applyCloudStorageToMemory(fallbackStorage);
+        } else {
+          await setEncryptionPassword(password);
         }
-        await setEncryptionPassword(password);
+
         const restoredEvents = await readEncryptedLocalStorage(
           "calendar-events",
           [],
@@ -468,6 +522,7 @@ export default function UserProfileButton({
             }),
           );
         }
+        window.dispatchEvent(new CustomEvent("backup-restored"));
       } catch {}
 
       keyRef.current = password;
@@ -492,7 +547,7 @@ export default function UserProfileButton({
     await setEncryptionPassword(password);
     const payload = await encryptPayload(
       password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+      JSON.stringify({ v: BACKUP_VERSION, storage: await collectLocalStorage() }),
     );
     await apiPost(payload);
     localStorage.setItem(AUTO_KEY, "true");
@@ -523,7 +578,7 @@ export default function UserProfileButton({
 
     const next = await encryptPayload(
       password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: collectLocalStorage() }),
+      JSON.stringify({ v: BACKUP_VERSION, storage: await collectLocalStorage() }),
     );
     await apiPost(next);
     await setEncryptionPassword(password);

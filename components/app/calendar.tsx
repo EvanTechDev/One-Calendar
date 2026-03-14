@@ -199,6 +199,26 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [defaultView]);
 
   useEffect(() => {
+    const applyRestoredPreferences = () => {
+      void Promise.all([
+        readEncryptedLocalStorage<number>("first-day-of-week", 0),
+        readEncryptedLocalStorage<ViewType>("default-view", "week"),
+      ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
+        setFirstDayOfWeek(restoredFirstDayOfWeek === 1 ? 1 : 0);
+        if (isCalendarView(restoredDefaultView)) {
+          setDefaultView(restoredDefaultView);
+          setView(restoredDefaultView);
+        }
+      });
+    };
+
+    window.addEventListener("backup-restored", applyRestoredPreferences);
+    return () => {
+      window.removeEventListener("backup-restored", applyRestoredPreferences);
+    };
+  }, [setDefaultView, setFirstDayOfWeek]);
+
+  useEffect(() => {
     const refreshBackupState = () => {
       const enabled = localStorage.getItem("auto-backup-enabled") === "true";
       setBackupEnabled(enabled);
