@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState, type SetStateAction } from "react"
 import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
 
 type EncryptionState = {
@@ -320,11 +320,19 @@ async function writeLocalStorage<T>(key: string, value: T) {
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(initialValue)
   const [serializedValue, setSerializedValue] = useState(() => JSON.stringify(initialValue))
+  const localWriteVersionRef = useRef(0)
+
+  const updateStoredValue = (value: SetStateAction<T>) => {
+    localWriteVersionRef.current += 1
+    setStoredValue(value)
+  }
 
   useEffect(() => {
     let cancelled = false
+    const writeVersionWhenReadStarted = localWriteVersionRef.current
     readLocalStorage(key, initialValue).then((value) => {
       if (cancelled) return
+      if (localWriteVersionRef.current !== writeVersionWhenReadStarted) return
       const nextSerializedValue = JSON.stringify(value)
       setSerializedValue(nextSerializedValue)
       setStoredValue((prev) => {
@@ -341,7 +349,9 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   useEffect(() => {
     const refreshValue = () => {
+      const writeVersionWhenReadStarted = localWriteVersionRef.current
       readLocalStorage(key, initialValue).then((value) => {
+        if (localWriteVersionRef.current !== writeVersionWhenReadStarted) return
         const nextSerializedValue = JSON.stringify(value)
         setSerializedValue(nextSerializedValue)
         setStoredValue((prev) => {
@@ -384,5 +394,5 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     void writeLocalStorage(key, storedValue)
   }, [key, serializedValue, storedValue])
 
-  return [storedValue, setStoredValue] as const
+  return [storedValue, updateStoredValue] as const
 }
