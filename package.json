@@ -7,10 +7,6 @@
     "dev": "bun run generate:locales && next dev",
     "build": "bun run generate:locales && next build",
     "start": "next start",
-    "db": "docker-compose up -d",
-    "db:down": "docker-compose down",
-    "db:stop": "docker-compose stop",
-    "db:clean": "docker-compose down -v",
     "generate:locales": "bun lib/gen-locales.mjs",
     "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
@@ -80,7 +76,6 @@
     "@types/react-dom": "^18",
     "postcss": "8.5.6",
     "tailwindcss": "4.2.1",
-    "turbo": "2.8.7",
     "typescript": "5.9.3"
   }
 }
