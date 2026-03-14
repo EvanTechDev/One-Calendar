@@ -110,6 +110,10 @@ export function writeInMemoryStorage(key: string, value: string) {
   inMemoryStorage.set(key, value)
 }
 
+export function removeInMemoryStorage(key: string) {
+  inMemoryStorage.delete(key)
+}
+
 export function readInMemoryStorage(key: string) {
   return inMemoryStorage.get(key) ?? null
 }
@@ -175,7 +179,7 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
   }
   try {
     const inMemoryValue = inMemoryStorage.get(key)
-    if (inMemoryValue !== undefined) {
+    if (isSensitiveStorageKey(key) && inMemoryValue !== undefined) {
       return coerceStoredValue(inMemoryValue, initialValue)
     }
     const snapshot = encryptedSnapshots.get(key)
@@ -250,7 +254,7 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
   }
   try {
     const inMemoryValue = inMemoryStorage.get(key)
-    if (inMemoryValue !== undefined) {
+    if (isSensitiveStorageKey(key) && inMemoryValue !== undefined) {
       return coerceStoredValue(inMemoryValue, initialValue)
     }
     const item = window.localStorage.getItem(key)
