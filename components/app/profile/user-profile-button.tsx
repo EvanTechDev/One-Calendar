@@ -59,6 +59,7 @@ import {
   clearEncryptionPassword,
   isSensitiveStorageKey,
   markEncryptedSnapshot,
+  removeInMemoryStorage,
   readEncryptedLocalStorage,
   setEncryptionPassword,
   writeInMemoryStorage,
@@ -136,6 +137,7 @@ async function applyCloudStorageToMemory(
       writeInMemoryStorage(key, normalized);
       markEncryptedSnapshot(key, normalized);
       if (!isSensitiveStorageKey(key)) {
+        removeInMemoryStorage(key);
         localStorage.setItem(key, normalized);
       }
       window.dispatchEvent(
