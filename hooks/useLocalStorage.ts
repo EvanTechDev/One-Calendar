@@ -221,9 +221,9 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
   if (typeof window === "undefined") return
   try {
     const raw = JSON.stringify(value)
+    inMemoryStorage.set(key, raw)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
       if (isSensitiveStorageKey(key)) {
-        inMemoryStorage.set(key, raw)
         encryptedSnapshots.set(key, { value: raw, failed: false })
         window.localStorage.removeItem(key)
         emitStorageWrite(key)
@@ -290,9 +290,9 @@ async function writeLocalStorage<T>(key: string, value: T) {
   if (typeof window === "undefined") return
   try {
     const raw = JSON.stringify(value)
+    inMemoryStorage.set(key, raw)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
       if (isSensitiveStorageKey(key)) {
-        inMemoryStorage.set(key, raw)
         encryptedSnapshots.set(key, { value: raw, failed: false })
         window.localStorage.removeItem(key)
         emitStorageWrite(key)
