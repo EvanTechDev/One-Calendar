@@ -136,6 +136,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     "first-day-of-week",
     0,
   );
+  const normalizedFirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0;
+
+  const handleFirstDayOfWeekChange = (day: number) => {
+    setFirstDayOfWeek(day === 1 ? 1 : 0);
+  };
   const [timezone, setTimezone] = useLocalStorage<string>(
     "timezone",
     Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -189,12 +194,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [toastPosition, setToastPosition] = useLocalStorage<
     "bottom-left" | "bottom-center" | "bottom-right"
   >("toast-position", "bottom-right");
-  const hasAppliedDefaultView = useRef(false);
-
   useEffect(() => {
-    if (hasAppliedDefaultView.current) return;
     setView(isCalendarView(defaultView) ? defaultView : "week");
-    hasAppliedDefaultView.current = true;
   }, [defaultView]);
 
   useEffect(() => {
@@ -915,7 +916,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
-                firstDayOfWeek={firstDayOfWeek}
+                firstDayOfWeek={normalizedFirstDayOfWeek}
                 timezone={timezone}
                 timeFormat={timeFormat}
                 onEditEvent={handleEventEdit}
@@ -942,7 +943,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
-                firstDayOfWeek={firstDayOfWeek}
+                firstDayOfWeek={normalizedFirstDayOfWeek}
                 timezone={timezone}
                 timeFormat={timeFormat}
                 onEditEvent={handleEventEdit}
@@ -970,7 +971,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 language={language}
-                firstDayOfWeek={firstDayOfWeek}
+                firstDayOfWeek={normalizedFirstDayOfWeek}
                 timezone={timezone}
               />
             )}
@@ -980,7 +981,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 language={language}
-                firstDayOfWeek={firstDayOfWeek}
+                firstDayOfWeek={normalizedFirstDayOfWeek}
                 isSidebarCollapsed={isSidebarCollapsed}
                 isSidebarExpanding={isSidebarExpanding}
               />
@@ -999,8 +1000,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <Settings
                 language={language}
                 setLanguage={setLanguage}
-                firstDayOfWeek={firstDayOfWeek}
-                setFirstDayOfWeek={setFirstDayOfWeek}
+                firstDayOfWeek={normalizedFirstDayOfWeek}
+                setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
                 setTimezone={setTimezone}
                 notificationSound={notificationSound}
