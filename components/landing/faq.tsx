@@ -1,81 +1,55 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { LandingTitle } from "./title";
 
 const faqItems = [
   {
-    q: "What is One Calendar’s core product focus?",
-    a: "One Calendar is an open-source, privacy-first calendar focused on planning clarity, fast interaction, and long-term data control.",
+    q: "One Calendar 最核心解决什么问题？",
+    a: "它把排程做回基础动作：快、清楚、可迁移。你不必先学习一套复杂系统。",
   },
   {
-    q: "Which import/export formats are supported?",
-    a: "The product supports iCalendar (.ics), JSON, and CSV import/export workflows for easier migration and backup.",
+    q: "支持哪些导入导出格式？",
+    a: "支持 .ics、JSON、CSV。迁移和备份都可以直接做。",
   },
   {
-    q: "Does it support end-to-end encryption?",
-    a: "Yes. End-to-end encryption (E2EE) is available as an optional capability for privacy-sensitive schedules.",
+    q: "隐私是可选项还是默认项？",
+    a: "默认不追踪。端到端加密可以按需开启，用于敏感日程。",
   },
   {
-    q: "What powers cloud sync and authentication?",
-    a: "Cloud sync is optional and PostgreSQL-based, while authentication is handled through Clerk.",
+    q: "是否适合团队协作？",
+    a: "适合。发布节奏、里程碑、跨时区会议都能在同一时间线上管理。",
   },
   {
-    q: "Can I move my data away from One Calendar?",
-    a: "Yes. Portability is a key principle, so your data can be exported and moved across tools without lock-in.",
-  },
-  {
-    q: "Is it suitable for team workflows?",
-    a: "Yes. It works well for release planning, recurring team meetings, milestone tracking, and cross-time-zone coordination.",
-  },
-  {
-    q: "How is the mobile experience?",
-    a: "The landing and core interfaces are responsive. Mobile prioritizes quick access, while desktop emphasizes editing speed.",
-  },
-  {
-    q: "Are keyboard shortcuts and fast editing supported?",
-    a: "Yes. One Calendar is designed for high-frequency operation with keyboard shortcuts and low-friction edits.",
-  },
-  {
-    q: "Is the project open-source and self-hostable?",
-    a: "Yes. The codebase is open-source and can be reviewed, deployed, and extended according to your needs.",
-  },
-  {
-    q: "Is it a good fit for individual users?",
-    a: "Absolutely. It works for study plans, health routines, family schedules, travel planning, and personal project timelines.",
+    q: "可以自托管或二次开发吗？",
+    a: "可以。项目开源，你可以审查、部署和扩展。",
   },
 ];
 
 export function LandingFaq() {
   return (
-    <section id="faq" className="border-b border-white/10 py-24 md:py-28">
-      <div className="grid w-full gap-8 md:grid-cols-[300px_1fr]">
+    <section id="faq" className="border-b border-[var(--landing-line)] py-24 md:py-28">
+      <div className="grid w-full gap-10 md:grid-cols-[0.65fr_1.35fr]">
         <LandingTitle
           as="h2"
-          className="text-3xl font-semibold text-white md:text-5xl"
+          className="text-3xl font-semibold text-[var(--landing-text)] md:text-5xl"
         >
           FAQ
         </LandingTitle>
-        <div className="px-0 md:px-2">
-          <Accordion type="single" collapsible className="w-full">
-            {faqItems.map((item, idx) => (
-              <AccordionItem
-                key={item.q}
-                value={`faq-${idx}`}
-                className="border-white/10"
-              >
-                <AccordionTrigger className="py-5 text-left text-base font-medium text-white hover:no-underline">
-                  {item.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-5 text-sm text-[var(--landing-muted)] md:text-base">
-                  {item.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+        <div className="space-y-3">
+          {faqItems.map((item) => (
+            <details
+              key={item.q}
+              className="group border border-[var(--landing-line)] bg-[var(--landing-panel-soft)] p-5"
+            >
+              <summary className="cursor-pointer list-none pr-8 text-base font-medium text-[var(--landing-text)] marker:hidden">
+                {item.q}
+                <span className="float-right text-[var(--landing-subtle)] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0.9,0.2,1)] group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--landing-muted)] md:text-base">
+                {item.a}
+              </p>
+            </details>
+          ))}
         </div>
       </div>
     </section>
