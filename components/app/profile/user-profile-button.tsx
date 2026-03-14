@@ -61,6 +61,7 @@ import {
   readEncryptedLocalStorage,
   setEncryptionPassword,
   writeInMemoryStorage,
+  isSensitiveStorageKey,
 } from "@/hooks/useLocalStorage";
 
 const AUTO_KEY = "auto-backup-enabled";
@@ -134,6 +135,26 @@ async function applyCloudStorageToMemory(
       }
       writeInMemoryStorage(key, normalized);
       markEncryptedSnapshot(key, normalized);
+      if (!isSensitiveStorageKey(key)) {
+        localStorage.setItem(key, normalized);
+      }
+      window.dispatchEvent(
+        new CustomEvent("local-storage-written", { detail: { key } }),
+      );
+      if (key === "preferred-language") {
+        try {
+          const language = JSON.parse(normalized);
+          if (typeof language === "string") {
+            window.dispatchEvent(
+              new CustomEvent("languagechange", {
+                detail: { language },
+              }),
+            );
+          }
+        } catch {
+          // Ignore invalid language payloads
+        }
+      }
     }),
   );
 }

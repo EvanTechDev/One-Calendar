@@ -189,12 +189,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [toastPosition, setToastPosition] = useLocalStorage<
     "bottom-left" | "bottom-center" | "bottom-right"
   >("toast-position", "bottom-right");
-  const hasAppliedDefaultView = useRef(false);
-
   useEffect(() => {
-    if (hasAppliedDefaultView.current) return;
     setView(isCalendarView(defaultView) ? defaultView : "week");
-    hasAppliedDefaultView.current = true;
   }, [defaultView]);
 
   useEffect(() => {
