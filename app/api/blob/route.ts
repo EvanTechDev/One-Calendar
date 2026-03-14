@@ -6,34 +6,16 @@ import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
 
 export const runtime = "nodejs";
 
-let pool: Pool | null = null;
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 let inited = false;
 
-const ATPROTO_BACKUP_COLLECTION = "app.onecalendar.backup";
-const ATPROTO_BACKUP_RKEY = "latest";
-
-function getPool() {
-  if (pool) return pool;
-
-  const connectionString = process.env.POSTGRES_URL;
-  if (!connectionString) {
-    return null;
-  }
-
-  pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
-
-  return pool;
-}
-
 async function initDB() {
-  if (inited) return true;
-  const currentPool = getPool();
-  if (!currentPool) return false;
-
-  const client = await currentPool.connect();
+  if (inited) return;
+  const client = await pool.connect();
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS calendar_backups (
@@ -44,11 +26,13 @@ async function initDB() {
       )
     `);
     inited = true;
-    return true;
   } finally {
     client.release();
   }
 }
+
+const ATPROTO_BACKUP_COLLECTION = "app.onecalendar.backup";
+const ATPROTO_BACKUP_RKEY = "latest";
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,26 +65,11 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const dbReady = await initDB();
-    if (!dbReady) {
-      return NextResponse.json(
-        { error: "Backup storage is not configured" },
-        { status: 503 },
-      );
-    }
+    await initDB();
 
-    const currentPool = getPool();
-    if (!currentPool) {
-      return NextResponse.json(
-        { error: "Backup storage is not configured" },
-        { status: 503 },
-      );
-    }
-
-    const client = await currentPool.connect();
+    const client = await pool.connect();
     try {
       await client.query(
         `
@@ -152,86 +121,52 @@ export async function GET() {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  await initDB();
+
+  const client = await pool.connect();
   try {
-    const dbReady = await initDB();
-    if (!dbReady) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    const result = await client.query(
+      `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
+      [user.id],
+    );
+    if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const currentPool = getPool();
-    if (!currentPool) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    const client = await currentPool.connect();
-    try {
-      const result = await client.query(
-        `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-        [user.id],
-      );
-      if (result.rowCount === 0)
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-      return NextResponse.json({
-        ciphertext: result.rows[0].encrypted_data,
-        iv: result.rows[0].iv,
-        timestamp: result.rows[0].timestamp,
-        backend: "postgres",
-      });
-    } finally {
-      client.release();
-    }
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Internal error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({
+      ciphertext: result.rows[0].encrypted_data,
+      iv: result.rows[0].iv,
+      timestamp: result.rows[0].timestamp,
+      backend: "postgres",
+    });
+  } finally {
+    client.release();
   }
 }
 
 export async function DELETE() {
   const atproto = await getAtprotoSession();
   if (atproto) {
-    try {
-      await deleteRecord({
-        pds: atproto.pds,
-        repo: atproto.did,
-        collection: ATPROTO_BACKUP_COLLECTION,
-        rkey: ATPROTO_BACKUP_RKEY,
-        accessToken: atproto.accessToken,
-        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-        dpopPublicJwk: atproto.dpopPublicJwk,
-      });
-    } catch {
-      return NextResponse.json({ success: true, backend: "atproto" });
-    }
-
+    await deleteRecord({
+      pds: atproto.pds,
+      repo: atproto.did,
+      collection: ATPROTO_BACKUP_COLLECTION,
+      rkey: ATPROTO_BACKUP_RKEY,
+      accessToken: atproto.accessToken,
+      dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+      dpopPublicJwk: atproto.dpopPublicJwk,
+    });
     return NextResponse.json({ success: true, backend: "atproto" });
   }
 
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  await initDB();
+
+  const client = await pool.connect();
   try {
-    const dbReady = await initDB();
-    if (!dbReady) {
-      return NextResponse.json({ success: true, backend: "postgres" });
-    }
-
-    const currentPool = getPool();
-    if (!currentPool) {
-      return NextResponse.json({ success: true, backend: "postgres" });
-    }
-
-    const client = await currentPool.connect();
-    try {
-      await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [
-        user.id,
-      ]);
-      return NextResponse.json({ success: true, backend: "postgres" });
-    } finally {
-      client.release();
-    }
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Internal error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [user.id]);
+    return NextResponse.json({ success: true, backend: "postgres" });
+  } finally {
+    client.release();
   }
 }
