@@ -57,6 +57,7 @@ import {
 import {
   readInMemoryStorage,
   clearEncryptionPassword,
+  isSensitiveStorageKey,
   markEncryptedSnapshot,
   readEncryptedLocalStorage,
   setEncryptionPassword,
@@ -134,6 +135,12 @@ async function applyCloudStorageToMemory(
       }
       writeInMemoryStorage(key, normalized);
       markEncryptedSnapshot(key, normalized);
+      if (!isSensitiveStorageKey(key)) {
+        localStorage.setItem(key, normalized);
+      }
+      window.dispatchEvent(
+        new CustomEvent("local-storage-written", { detail: { key } }),
+      );
     }),
   );
 }
