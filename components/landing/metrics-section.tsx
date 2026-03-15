@@ -49,25 +49,25 @@ const metrics = [
     value: 2847392, 
     suffix: "", 
     prefix: "",
-    label: "API requests today",
+    label: "Locale packs available",
   },
   { 
     value: 99, 
     suffix: ".99%", 
     prefix: "",
-    label: "Uptime this quarter",
+    label: "Theme options built-in",
   },
   { 
     value: 23, 
     suffix: "ms", 
     prefix: "",
-    label: "Average response time",
+    label: "Import/export formats",
   },
   { 
     value: 184, 
     suffix: "", 
     prefix: "",
-    label: "Countries served",
+    label: "Optional E2EE mode",
   },
 ];
 
@@ -101,16 +101,16 @@ export function MetricsSection() {
           <div>
             <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
               <span className="w-8 h-px bg-foreground/30" />
-              Live metrics
+              Project metrics
             </span>
             <h2
               className={`text-4xl lg:text-6xl font-display tracking-tight transition-all duration-700 ${
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
             >
-              Performance you
+              Practical details
               <br />
-              can measure.
+              you can verify.
             </h2>
           </div>
           <div className="flex items-center gap-4 font-mono text-sm text-muted-foreground">

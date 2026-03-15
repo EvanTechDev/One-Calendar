@@ -4,32 +4,32 @@ import { useEffect, useState } from "react";
 
 const testimonials = [
   {
-    quote: "Optimus transformed our deployment pipeline. What used to take hours now happens in seconds.",
+    quote: "One Calendar keeps our weekly planning focused. We spend less time managing tools and more time doing work.",
     author: "Sarah Chen",
     role: "CTO",
     company: "Meridian Labs",
-    metric: "10x faster deployments",
+    metric: "Clearer weekly planning",
   },
   {
-    quote: "The developer experience is unmatched. Our team's productivity has never been higher.",
+    quote: "The privacy defaults are exactly what we needed. No tracking, clear controls, and smooth daily use.",
     author: "Marcus Webb",
     role: "Engineering Lead",
     company: "Flux Systems",
-    metric: "40% more features shipped",
+    metric: "Privacy-first by default",
   },
   {
-    quote: "Finally, infrastructure that scales with our ambition. Zero downtime since we switched.",
+    quote: "Import/export made migration painless. Our old events moved over without lock-in.",
     author: "Elena Rodriguez",
     role: "VP Engineering",
     company: "Beacon AI",
-    metric: "99.99% uptime",
+    metric: "Portable data",
   },
   {
-    quote: "The integrations are seamless. We connected our entire stack in a single afternoon.",
+    quote: "Sharing links and optional sync let our team coordinate without adding complexity.",
     author: "James Liu",
     role: "Founder",
     company: "Prism Analytics",
-    metric: "50+ integrations used",
+    metric: "Simple collaboration",
   },
 ];
 
@@ -138,7 +138,7 @@ export function TestimonialsSection() {
         {/* Company Logos Marquee Label */}
         <div className="mt-24 pt-12 border-t border-foreground/10">
           <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase mb-8 text-center">
-            Trusted by forward-thinking teams
+            Built for focused teams
           </p>
         </div>
       </div>
