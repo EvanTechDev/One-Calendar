@@ -397,7 +397,7 @@ body {
 
 @layer utilities {
   .font-display {
-    font-family: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+    font-family: var(--font-instrument), "Instrument Sans", system-ui, sans-serif;
   }
 
   .text-stroke {
@@ -421,6 +421,28 @@ body {
   @keyframes marquee-reverse {
     0% { transform: translateX(-50%); }
     100% { transform: translateX(0); }
+  }
+
+
+
+  .animate-char-in {
+    animation: char-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0;
+    filter: blur(40px);
+    transform: translateY(100%);
+  }
+
+  @keyframes char-in {
+    0% {
+      opacity: 0;
+      filter: blur(40px);
+      transform: translateY(100%);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0);
+    }
   }
 
   .noise-overlay {
