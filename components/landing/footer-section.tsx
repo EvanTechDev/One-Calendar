@@ -31,6 +31,8 @@ const footerSections = [
 ];
 
 export function FooterSection() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="relative border-t border-foreground/10">
       <div className="absolute inset-0 h-64 opacity-20 pointer-events-none overflow-hidden">
@@ -73,7 +75,7 @@ export function FooterSection() {
 
         <div className="py-8 border-t border-foreground/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            2025 One Calendar. All rights reserved.
+            {currentYear} One Calendar. All rights reserved.
           </p>
 
           <a className="text-sm text-muted-foreground hover:text-foreground" href="https://calendarstatus.xyehr.cn">

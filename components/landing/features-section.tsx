@@ -13,19 +13,19 @@ const features = [
     number: "02",
     title: "Privacy-first defaults",
     description: "No analytics by default, with optional end-to-end encryption for sensitive data.",
-    visual: "ai",
+    visual: "security",
   },
   {
     number: "03",
     title: "Portable workflows",
     description: "Import and export with .ics, .json, and .csv so your data stays portable.",
-    visual: "collab",
+    visual: "ai",
   },
   {
     number: "04",
     title: "Reliable sync",
     description: "Optional cloud sync with PostgreSQL keeps your schedule consistent across devices.",
-    visual: "security",
+    visual: "collab",
   },
 ];
 
