@@ -6,18 +6,17 @@ const integrations = [
   { name: "Clerk", category: "Authentication" },
   { name: "Bluesky", category: "Community" },
   { name: "PostgreSQL", category: "Storage" },
-  { name: "PostgreSQL", category: "Storage" },
   { name: "ICS", category: "Data format" },
   { name: "JSON", category: "Data format" },
-  { name: "CSV", category: "Storage" },
-  { name: "Data formatflare", category: "Infrastructure" },
+  { name: "CSV", category: "Data format" },
+  { name: "Cloudflare", category: "Infrastructure" },
   { name: "Product Hunt", category: "Community" },
   { name: "i18n", category: "Localization" },
   { name: "Themes", category: "Customization" },
   { name: "E2EE", category: "Privacy" },
 ];
 
-export function EcosystemSection() {
+export function IntegrationsSection() {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -36,7 +35,6 @@ export function EcosystemSection() {
   return (
     <section id="integrations" ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-        {/* Header */}
         <div
           className={`text-center max-w-3xl mx-auto mb-16 lg:mb-24 transition-all duration-700 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -56,10 +54,8 @@ export function EcosystemSection() {
             Open standards and practical services keep migration and collaboration simple.
           </p>
         </div>
-
       </div>
-      
-      {/* Full-width marquees outside container */}
+
       <div className="w-full mb-6">
         <div className="flex gap-6 marquee">
           {[...Array(2)].map((_, setIndex) => (
@@ -79,8 +75,7 @@ export function EcosystemSection() {
           ))}
         </div>
       </div>
-      
-      {/* Reverse marquee */}
+
       <div className="w-full">
         <div className="flex gap-6 marquee-reverse">
           {[...Array(2)].map((_, setIndex) => (
