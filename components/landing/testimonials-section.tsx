@@ -4,32 +4,32 @@ import { useEffect, useState } from "react";
 
 const testimonials = [
   {
-    quote: "Optimus transformed our deployment pipeline. What used to take hours now happens in seconds.",
+    quote: "One Calendar keeps our weekly planning focused. We spend less time managing tools and more time doing work.",
     author: "Sarah Chen",
     role: "CTO",
     company: "Meridian Labs",
-    metric: "10x faster deployments",
+    metric: "Clearer weekly planning",
   },
   {
-    quote: "The developer experience is unmatched. Our team's productivity has never been higher.",
+    quote: "The privacy defaults are exactly what we needed. No tracking, clear controls, and smooth daily use.",
     author: "Marcus Webb",
     role: "Engineering Lead",
     company: "Flux Systems",
-    metric: "40% more features shipped",
+    metric: "Privacy-first by default",
   },
   {
-    quote: "Finally, infrastructure that scales with our ambition. Zero downtime since we switched.",
+    quote: "Import/export made migration painless. Our old events moved over without lock-in.",
     author: "Elena Rodriguez",
     role: "VP Engineering",
     company: "Beacon AI",
-    metric: "99.99% uptime",
+    metric: "Portable data",
   },
   {
-    quote: "The integrations are seamless. We connected our entire stack in a single afternoon.",
+    quote: "Sharing links and optional sync let our team coordinate without adding complexity.",
     author: "James Liu",
     role: "Founder",
     company: "Prism Analytics",
-    metric: "50+ integrations used",
+    metric: "Simple collaboration",
   },
 ];
 
@@ -51,9 +51,8 @@ export function TestimonialsSection() {
   const activeTestimonial = testimonials[activeIndex];
 
   return (
-    <section className="relative py-32 lg:py-40 border-t border-foreground/10 lg:pb-14">
+    <section className="relative py-32 lg:py-40 border-t border-foreground/10">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        {/* Section Label */}
         <div className="flex items-center gap-4 mb-16">
           <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
             What people say
@@ -64,7 +63,6 @@ export function TestimonialsSection() {
           </span>
         </div>
 
-        {/* Main Quote */}
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-20">
           <div className="lg:col-span-8">
             <blockquote
@@ -77,7 +75,6 @@ export function TestimonialsSection() {
               </p>
             </blockquote>
 
-            {/* Author */}
             <div
               className={`mt-12 flex items-center gap-6 transition-all duration-300 delay-100 ${
                 isAnimating ? "opacity-0" : "opacity-100"
@@ -97,7 +94,6 @@ export function TestimonialsSection() {
             </div>
           </div>
 
-          {/* Metric Highlight */}
           <div className="lg:col-span-4 flex flex-col justify-center">
             <div
               className={`p-8 border border-foreground/10 transition-all duration-300 ${
@@ -112,7 +108,6 @@ export function TestimonialsSection() {
               </p>
             </div>
 
-            {/* Navigation Dots */}
             <div className="flex gap-2 mt-8">
               {testimonials.map((_, idx) => (
                 <button
@@ -133,33 +128,6 @@ export function TestimonialsSection() {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Company Logos Marquee Label */}
-        <div className="mt-24 pt-12 border-t border-foreground/10">
-          <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase mb-8 text-center">
-            Trusted by forward-thinking teams
-          </p>
-        </div>
-      </div>
-      
-      {/* Full-width marquee outside container */}
-      <div className="w-full">
-        <div className="flex gap-16 items-center marquee">
-          {[...Array(2)].map((_, setIdx) => (
-            <div key={setIdx} className="flex gap-16 items-center shrink-0">
-              {["Meridian Labs", "Flux Systems", "Beacon AI", "Prism Analytics", "Nova Tech", "Quantum Corp", "Atlas Digital", "Vertex Labs"].map(
-                (company) => (
-                  <span
-                    key={`${setIdx}-${company}`}
-                    className="font-display text-xl md:text-2xl text-foreground/30 whitespace-nowrap hover:text-foreground transition-colors duration-300"
-                  >
-                    {company}
-                  </span>
-                )
-              )}
-            </div>
-          ))}
         </div>
       </div>
     </section>

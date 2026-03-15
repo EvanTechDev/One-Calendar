@@ -6,49 +6,49 @@ import { ArrowRight, Check } from "lucide-react";
 const plans = [
   {
     name: "Starter",
-    description: "For individuals and small projects",
+    description: "For personal planning",
     price: { monthly: 0, annual: 0 },
     features: [
-      "Up to 3 projects",
-      "1GB storage",
-      "Community support",
-      "Basic analytics",
-      "SSL certificates",
+      "Unlimited personal events",
+      "Week/day/month views",
+      "Local-first experience",
+      "No analytics by default",
+      "ICS import/export",
     ],
     cta: "Start free",
     popular: false,
   },
   {
     name: "Pro",
-    description: "For growing teams and businesses",
+    description: "For small teams",
     price: { monthly: 29, annual: 24 },
     features: [
-      "Unlimited projects",
-      "100GB storage",
+      "Shared calendars",
+      "Optional cloud sync",
       "Priority support",
-      "Advanced analytics",
-      "Custom domains",
+      "Role permissions",
+      "Theme customization",
       "Team collaboration",
-      "API access",
+      "Export controls",
     ],
-    cta: "Start trial",
+    cta: "Start team trial",
     popular: true,
   },
   {
     name: "Enterprise",
-    description: "For large-scale operations",
+    description: "For organizations",
     price: { monthly: null, annual: null },
     features: [
-      "Everything in Pro",
-      "Unlimited storage",
-      "24/7 dedicated support",
-      "Custom integrations",
+      "Everything in Team",
+      "Enterprise sync policies",
+      "Dedicated support",
+      "Custom onboarding",
       "SLA guarantee",
-      "On-premise option",
-      "Security audit",
+      "Self-host options",
+      "Security review",
       "Custom contracts",
     ],
-    cta: "Contact sales",
+    cta: "Contact us",
     popular: false,
   },
 ];
@@ -70,7 +70,7 @@ export function PricingSection() {
             <span className="text-stroke">pricing</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl">
-            Start free and scale as you grow. No hidden fees, no surprises.
+            Start free and choose the plan that matches your workflow.
           </p>
         </div>
 
@@ -172,9 +172,9 @@ export function PricingSection() {
 
         {/* Bottom Note */}
         <p className="mt-12 text-center text-sm text-muted-foreground">
-          All plans include automatic updates, HTTPS, and DDoS protection.{" "}
+          All plans include import/export support and privacy-first defaults.{" "}
           <a href="#" className="underline underline-offset-4 hover:text-foreground transition-colors">
-            Compare all features
+            Compare plans
           </a>
         </p>
       </div>

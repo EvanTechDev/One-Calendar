@@ -5,38 +5,36 @@ import { useEffect, useRef, useState } from "react";
 const steps = [
   {
     number: "I",
-    title: "Connect your tools",
-    description: "Integrate with your existing stack in minutes. We support 200+ data sources out of the box.",
-    code: `import { optimus } from '@optimus/core'
+    title: "Create your schedule",
+    description: "Add events with title, description, time range, and reminders without leaving context.",
+    code: `const event = {
+  title: 'Design review',
+  start: '09:30',
+  end: '10:30'
+}
 
-optimus.connect({
-  source: 'your-database',
-  sync: true
-})`,
+calendar.create(event)`,
   },
   {
     number: "II",
-    title: "Build your workflow",
-    description: "Design powerful automations with our visual builder or write code directly.",
-    code: `optimus.workflow('process', {
-  trigger: 'event',
-  actions: [
-    'validate',
-    'transform', 
-    'deliver'
-  ]
+    title: "Adjust in real time",
+    description: "Move and resize events directly on the calendar with keyboard-friendly shortcuts.",
+    code: `calendar.update(eventId, {
+  start: '10:00',
+  end: '11:00',
+  notes: 'bring agenda'
 })`,
   },
   {
     number: "III",
-    title: "Ship to production",
-    description: "Deploy globally with zero configuration. Your app goes live in under 30 seconds.",
-    code: `optimus.deploy({
-  target: 'production',
-  regions: 'auto'
+    title: "Sync and share",
+    description: "Use optional cloud sync and share links to coordinate with your team when needed.",
+    code: `calendar.share({
+  visibility: 'team',
+  expires: '7d'
 })
 
-// Deployed to 12 regions`,
+// Shared successfully`,
   },
 ];
 
@@ -88,16 +86,16 @@ export function HowItWorksSection() {
         <div className="mb-16 lg:mb-24">
           <span className="inline-flex items-center gap-3 text-sm font-mono text-background/50 mb-6">
             <span className="w-8 h-px bg-background/30" />
-            Process
+            Workflow
           </span>
           <h2
             className={`text-4xl lg:text-6xl font-display tracking-tight transition-all duration-700 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
-            Three steps.
+            Three simple steps.
             <br />
-            <span className="text-background/50">Infinite possibilities.</span>
+            <span className="text-background/50">Predictable planning.</span>
           </h2>
         </div>
 
@@ -151,7 +149,7 @@ export function HowItWorksSection() {
                   <div className="w-3 h-3 rounded-full bg-background/20" />
                   <div className="w-3 h-3 rounded-full bg-background/20" />
                 </div>
-                <span className="text-xs font-mono text-background/40">workflow.ts</span>
+                <span className="text-xs font-mono text-background/40">calendar.ts</span>
               </div>
 
               {/* Code content */}

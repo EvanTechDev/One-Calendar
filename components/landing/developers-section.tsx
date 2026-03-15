@@ -6,51 +6,44 @@ import { Copy, Check } from "lucide-react";
 const codeExamples = [
   {
     label: "Install",
-    code: `npm install @optimus/sdk
-
-# or
-yarn add @optimus/sdk
-pnpm add @optimus/sdk`,
+    code: `bun install`,
   },
   {
     label: "Initialize",
-    code: `import { Optimus } from '@optimus/sdk'
+    code: `import { OneCalendar } from 'one-calendar'
 
-const optimus = new Optimus({
-  apiKey: process.env.OPTIMUS_KEY
+const calendar = new OneCalendar({
+  locale: 'en-US'
 })`,
   },
   {
     label: "Deploy",
-    code: `const app = await optimus.deploy({
-  name: 'my-app',
-  region: 'auto',
-  scaling: {
-    min: 1,
-    max: 100
-  }
+    code: `const event = await calendar.create({
+  title: 'Weekly planning',
+  start: '2026-01-01T09:00:00Z',
+  end: '2026-01-01T10:00:00Z'
 })
 
-console.log('Live at:', app.url)`,
+console.log('Created:', event.id)`,
   },
 ];
 
 const features = [
   { 
-    title: "TypeScript native", 
-    description: "Full type safety with auto-generated types."
+    title: "Weekly-first UX", 
+    description: "Optimized for weekly planning and quick edits."
   },
   { 
-    title: "Zero config", 
-    description: "Sensible defaults that just work."
+    title: "Privacy-first", 
+    description: "No analytics by default, optional E2EE when needed."
   },
   { 
-    title: "Edge-ready", 
-    description: "Runs anywhere: Node, Deno, Bun, browsers."
+    title: "Portable data", 
+    description: "Import and export with .ics, .json, and .csv."
   },
   { 
-    title: "12KB gzipped", 
-    description: "Lightweight with zero dependencies."
+    title: "Open-source", 
+    description: "Transparent architecture and self-host friendly."
   },
 ];
 
@@ -119,16 +112,15 @@ export function DevelopersSection() {
           >
             <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
               <span className="w-8 h-px bg-foreground/30" />
-              For developers
+              For builders
             </span>
             <h2 className="text-4xl lg:text-6xl font-display tracking-tight mb-8">
-              Built by devs.
+              Built for clarity.
               <br />
-              <span className="text-muted-foreground">For devs.</span>
+              <span className="text-muted-foreground">For real schedules.</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 leading-relaxed">
-              A thoughtfully designed SDK that gets out of your way. 
-              Ship faster with intuitive APIs and exceptional documentation.
+              Practical defaults make planning reliable: clean interactions, predictable behavior, and docs that explain the system.
             </p>
             
             {/* Features */}
@@ -220,11 +212,11 @@ export function DevelopersSection() {
             {/* Links */}
             <div className="mt-6 flex items-center gap-6 text-sm">
               <a href="#" className="text-foreground hover:underline underline-offset-4">
-                Read the docs
+                Read docs
               </a>
               <span className="text-foreground/20">|</span>
               <a href="#" className="text-muted-foreground hover:text-foreground">
-                View on GitHub
+                View repository
               </a>
             </div>
           </div>

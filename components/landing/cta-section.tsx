@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -39,43 +40,44 @@ export function CtaSection() {
           }`}
           onMouseMove={handleMouseMove}
         >
-          {/* Spotlight effect */}
-          <div 
+          <div
             className="absolute inset-0 opacity-10 pointer-events-none transition-opacity duration-300"
             style={{
               background: `radial-gradient(600px circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(0,0,0,0.15), transparent 40%)`
             }}
           />
-          
+
           <div className="relative z-10 px-8 lg:px-16 py-16 lg:py-24">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-              {/* Left content */}
               <div className="flex-1">
                 <h2 className="text-4xl lg:text-7xl font-display tracking-tight mb-8 leading-[0.95]">
-                  Ready to build
+                  Ready to simplify
                   <br />
-                  something great?
+                  planning?
                 </h2>
 
                 <p className="text-xl text-muted-foreground mb-12 leading-relaxed max-w-xl">
-                  Join thousands of teams shipping faster with Optimus. 
-                  Start free, scale infinitely.
+                  Keep your schedule clear with privacy-first defaults, portable formats, and dependable sync.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <Button
                     size="lg"
+                    asChild
                     className="bg-foreground hover:bg-foreground/90 text-background px-8 h-14 text-base rounded-full group"
                   >
-                    Start building free
-                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    <Link href="/sign-up">
+                      Start free
+                      <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </Link>
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
+                    asChild
                     className="h-14 px-8 text-base rounded-full border-foreground/20 hover:bg-foreground/5"
                   >
-                    Talk to sales
+                    <a href="https://docs.xyehr.cn/docs/one-calendar" target="_blank" rel="noreferrer">Read docs</a>
                   </Button>
                 </div>
 
@@ -84,14 +86,12 @@ export function CtaSection() {
                 </p>
               </div>
 
-              {/* Right animation */}
               <div className="hidden lg:flex items-center justify-center w-[500px] h-[500px] -mr-16">
                 <AnimatedTetrahedron />
               </div>
             </div>
           </div>
 
-          {/* Decorative corner */}
           <div className="absolute top-0 right-0 w-32 h-32 border-b border-l border-foreground/10" />
           <div className="absolute bottom-0 left-0 w-32 h-32 border-t border-r border-foreground/10" />
         </div>

@@ -3,18 +3,17 @@
 import { useEffect, useState, useRef } from "react";
 
 const integrations = [
-  { name: "GitHub", category: "Version Control" },
-  { name: "Slack", category: "Communication" },
-  { name: "Stripe", category: "Payments" },
-  { name: "PostgreSQL", category: "Database" },
-  { name: "Redis", category: "Cache" },
-  { name: "AWS", category: "Cloud" },
-  { name: "MongoDB", category: "Database" },
-  { name: "Vercel", category: "Hosting" },
-  { name: "Figma", category: "Design" },
-  { name: "Linear", category: "Project Management" },
-  { name: "Notion", category: "Documentation" },
-  { name: "OpenAI", category: "AI/ML" },
+  { name: "Clerk", category: "Authentication" },
+  { name: "Bluesky", category: "Community" },
+  { name: "PostgreSQL", category: "Storage" },
+  { name: "ICS", category: "Data format" },
+  { name: "JSON", category: "Data format" },
+  { name: "CSV", category: "Data format" },
+  { name: "Cloudflare", category: "Infrastructure" },
+  { name: "Product Hunt", category: "Community" },
+  { name: "i18n", category: "Localization" },
+  { name: "Themes", category: "Customization" },
+  { name: "E2EE", category: "Privacy" },
 ];
 
 export function IntegrationsSection() {
@@ -36,7 +35,6 @@ export function IntegrationsSection() {
   return (
     <section id="integrations" ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-        {/* Header */}
         <div
           className={`text-center max-w-3xl mx-auto mb-16 lg:mb-24 transition-all duration-700 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -44,22 +42,20 @@ export function IntegrationsSection() {
         >
           <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
             <span className="w-8 h-px bg-foreground/30" />
-            Integrations
+            Ecosystem
             <span className="w-8 h-px bg-foreground/30" />
           </span>
           <h2 className="text-4xl lg:text-6xl font-display tracking-tight mb-6">
-            Works with everything
+            Built around formats
             <br />
-            you already use.
+            and tools you trust.
           </h2>
           <p className="text-xl text-muted-foreground">
-            200+ pre-built integrations. Connect your entire stack in minutes.
+            Open standards and practical services keep migration and collaboration simple.
           </p>
         </div>
-
       </div>
-      
-      {/* Full-width marquees outside container */}
+
       <div className="w-full mb-6">
         <div className="flex gap-6 marquee">
           {[...Array(2)].map((_, setIndex) => (
@@ -79,8 +75,7 @@ export function IntegrationsSection() {
           ))}
         </div>
       </div>
-      
-      {/* Reverse marquee */}
+
       <div className="w-full">
         <div className="flex gap-6 marquee-reverse">
           {[...Array(2)].map((_, setIndex) => (
