@@ -8,7 +8,6 @@ import {
   IntegrationsSection,
   DevelopersSection,
   TestimonialsSection,
-  PricingSection,
   CtaSection,
   FooterSection,
 } from "@/components/landing";
@@ -25,7 +24,6 @@ export default function LandingPage() {
       <IntegrationsSection />
       <DevelopersSection />
       <TestimonialsSection />
-      <PricingSection />
       <CtaSection />
       <FooterSection />
     </main>

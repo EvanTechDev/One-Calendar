@@ -7,6 +7,5 @@ export { MetricsSection } from "./metrics-section";
 export { IntegrationsSection } from "./integrations-section";
 export { DevelopersSection } from "./developers-section";
 export { TestimonialsSection } from "./testimonials-section";
-export { PricingSection } from "./pricing-section";
 export { CtaSection } from "./cta-section";
 export { FooterSection } from "./footer-section";

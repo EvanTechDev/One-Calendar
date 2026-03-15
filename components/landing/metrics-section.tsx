@@ -12,7 +12,6 @@ function AnimatedCounter({ end, suffix = "", prefix = "" }: { end: number; suffi
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
           setHasAnimated(true);
-          let start = 0;
           const duration = 2000;
           const startTime = performance.now();
 
@@ -45,27 +44,27 @@ function AnimatedCounter({ end, suffix = "", prefix = "" }: { end: number; suffi
 }
 
 const metrics = [
-  { 
-    value: 2847392, 
-    suffix: "", 
+  {
+    value: 35,
+    suffix: "",
     prefix: "",
     label: "Locale packs available",
   },
-  { 
-    value: 99, 
-    suffix: ".99%", 
+  {
+    value: 5,
+    suffix: "",
     prefix: "",
     label: "Theme options built-in",
   },
-  { 
-    value: 23, 
-    suffix: "ms", 
+  {
+    value: 3,
+    suffix: "",
     prefix: "",
     label: "Import/export formats",
   },
-  { 
-    value: 184, 
-    suffix: "", 
+  {
+    value: 1,
+    suffix: "",
     prefix: "",
     label: "Optional E2EE mode",
   },
@@ -96,7 +95,6 @@ export function MetricsSection() {
   return (
     <section id="studio" ref={sectionRef} className="relative py-24 lg:py-32 border-y border-foreground/10">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-        {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-16 lg:mb-24">
           <div>
             <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
@@ -122,8 +120,7 @@ export function MetricsSection() {
             <span>{time.toLocaleTimeString()}</span>
           </div>
         </div>
-        
-        {/* Metrics Grid */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/10">
           {metrics.map((metric, index) => (
             <div
@@ -133,9 +130,9 @@ export function MetricsSection() {
               }`}
               style={{ transitionDelay: `${index * 100}ms` }}
             >
-              <AnimatedCounter 
-                end={typeof metric.value === 'number' ? metric.value : 0} 
-                suffix={metric.suffix} 
+              <AnimatedCounter
+                end={metric.value}
+                suffix={metric.suffix}
                 prefix={metric.prefix}
               />
               <div className="mt-4 text-lg text-muted-foreground">{metric.label}</div>
