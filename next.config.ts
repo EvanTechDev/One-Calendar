@@ -1,14 +1,6 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-
-let userConfig = undefined;
-try {
-  userConfig = await import("./next.config");
-} catch (e) {}
-
-const packageJson = JSON.parse(
-  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
-);
+import type { NextConfig } from "next";
+import packageJson from "./package.json";
 
 const getGitCommit = () => {
   try {
@@ -18,7 +10,7 @@ const getGitCommit = () => {
   }
 };
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -31,7 +23,6 @@ const nextConfig = {
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
-
   experimental: {
     optimizePackageImports: [
       "lucide-react",
@@ -41,27 +32,5 @@ const nextConfig = {
     ],
   },
 };
-
-mergeConfig(nextConfig, userConfig);
-
-function mergeConfig(nextConfig, userConfig) {
-  if (!userConfig) {
-    return;
-  }
-
-  for (const key in userConfig) {
-    if (
-      typeof nextConfig[key] === "object" &&
-      !Array.isArray(nextConfig[key])
-    ) {
-      nextConfig[key] = {
-        ...nextConfig[key],
-        ...userConfig[key],
-      };
-    } else {
-      nextConfig[key] = userConfig[key];
-    }
-  }
-}
 
 export default nextConfig;
