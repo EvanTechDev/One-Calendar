@@ -1,32 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { checkBotId } from "botid/server";
 
-type BotIdChallenge = {
-  b?: number;
-  d?: number;
-};
+export async function POST() {
+  const { isBot } = await checkBotId();
 
-function parseChallenge(rawHeader: string | null): BotIdChallenge | null {
-  if (!rawHeader) return null;
-
-  try {
-    const parsed = JSON.parse(rawHeader) as BotIdChallenge;
-    if (typeof parsed !== "object" || parsed === null) return null;
-    return parsed;
-  } catch {
-    return null;
+  if (isBot) {
+    return NextResponse.json(
+      { success: false, error: "Access denied" },
+      { status: 403 },
+    );
   }
-}
 
-export async function POST(request: NextRequest) {
-  const challenge = parseChallenge(request.headers.get("x-is-human"));
-
-  // Login / sign-up / reset flows must never be hard-blocked by BotID,
-  // because false positives on this endpoint prevent legitimate users from authenticating.
-  // We still expose whether the client challenge was present for future debugging.
-  return NextResponse.json({
-    success: true,
-    skipped: true,
-    hasChallenge: challenge !== null,
-    challengeRequiresAnalysis: challenge?.d === 1,
-  });
+  return NextResponse.json({ success: true }, { status: 200 });
 }
