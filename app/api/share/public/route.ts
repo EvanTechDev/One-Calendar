@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { Pool } from "pg";
 import { getRecord, resolveHandle } from "@/lib/atproto";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
+import { checkBotId } from "botid/server";
 
 const ALGORITHM = "aes-256-gcm";
 const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
@@ -80,6 +81,15 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 }
 
 export async function GET(request: NextRequest) {
+  const verification = await checkBotId();
+
+  if (verification.isBot) {
+    return NextResponse.json(
+      { error: "Bot detected. Access denied." },
+      { status: 403 },
+    );
+  }
+
   if (ATPROTO_DISABLED) return atprotoDisabledResponse();
   const handle = request.nextUrl.searchParams.get("handle");
   const id = request.nextUrl.searchParams.get("id");
