@@ -7,12 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type React from "react";
 
@@ -29,44 +30,59 @@ export function ResetPasswordForm({
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingBot, setIsCheckingBot] = useState(false);
   const [error, setError] = useState("");
+  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
+  );
+  const turnstileRef = useRef<any>(null);
 
-  const verifyHuman = async () => {
-    setIsCheckingBot(true);
+  const handleTurnstileSuccess = async (token: string) => {
     try {
-      const response = await fetch("/api/botid", {
+      const response = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset-password" }),
+        body: JSON.stringify({ token, action: "reset-password" }),
       });
 
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "Bot verification failed. Please try again.");
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      setError("");
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsCaptchaCompleted(true);
+        setError("");
+      } else {
+        setIsCaptchaCompleted(false);
+        setError(
+          `CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`,
+        );
+        if (turnstileRef.current) {
+          turnstileRef.current.reset();
+        }
+      }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Bot verification failed. Please try again.",
-      );
-      throw err;
-    } finally {
-      setIsCheckingBot(false);
+      setIsCaptchaCompleted(false);
+      setError("Error verifying CAPTCHA. Please try again.");
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaCompleted && step === "email") {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
     setIsLoading(true);
     setError("");
 
     try {
       if (step === "email") {
-        await verifyHuman();
         await signIn?.create({
           strategy: "reset_password_email_code",
           identifier: formData.email,
@@ -89,11 +105,14 @@ export function ResetPasswordForm({
         }
       }
     } catch (err: any) {
-      if (err?.errors) {
-        setError(
-          err.errors?.[0]?.longMessage ||
-            "An error occurred. Please try again.",
-        );
+      setError(
+        err.errors?.[0]?.longMessage || "An error occurred. Please try again.",
+      );
+      if (siteKey && err.errors && step === "email") {
+        setIsCaptchaCompleted(false);
+        if (turnstileRef.current) {
+          turnstileRef.current.reset();
+        }
       }
     } finally {
       setIsLoading(false);
@@ -125,7 +144,7 @@ export function ResetPasswordForm({
                 required
                 value={formData.email}
                 onChange={handleChange}
-                disabled={isLoading || isCheckingBot}
+                disabled={isLoading}
               />
             </div>
           ),
@@ -175,6 +194,7 @@ export function ResetPasswordForm({
   };
 
   const stepContent = getStepContent();
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -188,16 +208,41 @@ export function ResetPasswordForm({
             <div className="grid gap-6">
               {stepContent.fields}
 
+              {step === "email" && siteKey && (
+                <div className="turnstile-container">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={siteKey}
+                    onSuccess={handleTurnstileSuccess}
+                    onError={() => {
+                      setIsCaptchaCompleted(false);
+                      setError(
+                        "CAPTCHA initialization failed. Please try again.",
+                      );
+                    }}
+                    options={{
+                      theme: "auto",
+                      action: "reset-password",
+                      cData: "reset-password-page",
+                      refreshExpired: "auto",
+                      size: "flexible",
+                    }}
+                  />
+                </div>
+              )}
+
               {error && <div className="text-sm text-red-500">{error}</div>}
 
               <Button
                 type="submit"
                 className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                disabled={isLoading || (step === "email" && isCheckingBot)}
+                disabled={
+                  siteKey && step === "email"
+                    ? !isCaptchaCompleted || isLoading
+                    : isLoading
+                }
               >
-                {isLoading || (step === "email" && isCheckingBot)
-                  ? "Processing..."
-                  : stepContent.buttonText}
+                {isLoading ? "Processing..." : stepContent.buttonText}
               </Button>
 
               <div className="text-center text-sm">

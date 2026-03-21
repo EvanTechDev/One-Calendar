@@ -11,8 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignIn } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export function LoginForm({
   className,
@@ -22,45 +23,56 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingBot, setIsCheckingBot] = useState(false);
   const [error, setError] = useState("");
+  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true
+  );
+  const turnstileRef = useRef<any>(null);
   const router = useRouter();
 
-  const verifyHuman = async (action: string) => {
-    setIsCheckingBot(true);
+  const handleTurnstileSuccess = async (token: string) => {
+    console.log("Turnstile token received:", token.slice(0, 10) + "...");
     try {
-      const response = await fetch("/api/botid", {
+      const response = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ token, action: "login" }),
       });
+      const data = await response.json();
+      console.log("Verification API response:", JSON.stringify(data, null, 2));
 
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "Bot verification failed. Please try again.");
+      if (data.success) {
+        setIsCaptchaCompleted(true);
+        setError("");
+      } else {
+        setIsCaptchaCompleted(false);
+        setError(`CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`);
+        if (turnstileRef.current) {
+          turnstileRef.current.reset();
+        }
       }
-      setError("");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Bot verification failed. Please try again.",
-      );
-      throw err;
-    } finally {
-      setIsCheckingBot(false);
+      console.error("Error in handleTurnstileSuccess:", err);
+      setIsCaptchaCompleted(false);
+      setError("Error verifying CAPTCHA. Please try again.");
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
     }
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaCompleted) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      await verifyHuman("login");
-
       const result = await signIn.create({
         identifier: email,
         password,
@@ -71,26 +83,32 @@ export function LoginForm({
         router.push("/app");
       }
     } catch (err: any) {
-      if (err?.errors) {
-        setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
+      setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
+      if (siteKey) {
+        setIsCaptchaCompleted(false);
+        if (turnstileRef.current) {
+          turnstileRef.current.reset();
+        }
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOAuthLogin = async (
-    strategy: "oauth_google" | "oauth_microsoft" | "oauth_github",
-  ) => {
-    try {
-      await verifyHuman(`login:${strategy}`);
-      signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: "/sign-in/sso-callback",
-        redirectUrlComplete: "/app",
-      });
-    } catch {}
+  const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !isCaptchaCompleted) {
+      setError("Please complete the CAPTCHA verification.");
+      return;
+    }
+    signIn.authenticateWithRedirect({
+      strategy,
+      redirectUrl: "/sign-in/sso-callback",
+      redirectUrlComplete: "/app",
+    });
   };
+
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -107,7 +125,6 @@ export function LoginForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthLogin("oauth_microsoft")}
-                  disabled={isLoading || isCheckingBot}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="20" height="20">
                     <path fill="#f25022" d="M1 1h10v10H1z"/>
@@ -122,7 +139,6 @@ export function LoginForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthLogin("oauth_google")}
-                  disabled={isLoading || isCheckingBot}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -138,7 +154,6 @@ export function LoginForm({
                   className="w-full"
                   type="button"
                   onClick={() => handleOAuthLogin("oauth_github")}
-                  disabled={isLoading || isCheckingBot}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                     <path
@@ -184,15 +199,30 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+                {siteKey && (
+                    <div className="turnstile-container">
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={siteKey}
+                        onSuccess={handleTurnstileSuccess}
+                        onError={() => {
+                          console.error("Turnstile widget error");
+                          setIsCaptchaCompleted(false);
+                          setError("CAPTCHA initialization failed. Please try again.");
+                        }}
+                        options={{ theme: "auto", action: "login", cData: "login-page", refreshExpired: "auto", size: "flexible" }}
+                      />
+                    </div>
+                  )}
                 {error && (
                   <div className="text-sm text-red-500">{error}</div>
                 )}
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={isLoading || isCheckingBot}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
-                  {isLoading || isCheckingBot ? "Signing in..." : "Sign in"}
+                  {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </div>
               <div className="text-center text-sm">

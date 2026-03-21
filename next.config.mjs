@@ -1,4 +1,3 @@
-import { withBotId } from "botid/next/config";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -65,4 +64,4 @@ function mergeConfig(nextConfig, userConfig) {
   }
 }
 
-export default withBotId(nextConfig);
+export default nextConfig;

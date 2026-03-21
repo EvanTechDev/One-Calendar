@@ -13,8 +13,7 @@ export default clerkMiddleware({
     "/at-oauth",
     "/api/atproto/(.*)",
     "/oauth-client-metadata.json",
-    "/api/share/public",
-    "/api/botid"
+    "/api/share/public"
   ],
 })
 
