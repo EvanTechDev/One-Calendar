@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import crypto from "crypto";
 import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
 import { getAtprotoSession } from "@/lib/atproto-auth";
+import { checkBotId } from "botid/server";
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -70,6 +71,15 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 }
 
 export async function POST(request: NextRequest) {
+  const verification = await checkBotId();
+
+  if (verification.isBot) {
+    return NextResponse.json(
+      { error: "Bot detected. Access denied." },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
     const { id, data, password, burnAfterRead } = body as {
@@ -170,6 +180,15 @@ async function getAtprotoShare(id: string, password: string, handleParam?: strin
 }
 
 export async function GET(request: NextRequest) {
+  const verification = await checkBotId();
+
+  if (verification.isBot) {
+    return NextResponse.json(
+      { error: "Bot detected. Access denied." },
+      { status: 403 },
+    );
+  }
+
   const id = request.nextUrl.searchParams.get("id");
   const password = request.nextUrl.searchParams.get("password") ?? "";
   const handle = request.nextUrl.searchParams.get("handle") ?? undefined;
