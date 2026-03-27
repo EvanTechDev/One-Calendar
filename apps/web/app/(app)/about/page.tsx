@@ -1,7 +1,7 @@
 "use client"
 
 import { isZhLanguage, useLanguage } from "@/lib/i18n"
-import { GithubIcon } from "lucide-react"
+import { Github } from "lucide-react"
 import Link from "next/link"
 
 export default function AboutPage() {
@@ -75,7 +75,7 @@ export default function AboutPage() {
               target="_blank"
               className="flex items-center gap-2 text-blue-600 hover:underline"
             >
-              <GithubIcon className="w-4 h-4" />
+              <Github className="w-4 h-4" />
               GitHub
             </Link>
             <Link href="/" className="text-sm text-gray-500 underline hover:text-black">
@@ -93,7 +93,7 @@ export default function AboutPage() {
             <a href="/privacy" className="hover:text-gray-900 dark:hover:text-white">Privacy</a>
             <a href="/terms" className="hover:text-gray-900 dark:hover:text-white">Terms</a>
             <a href="https://github.com/EvanTechDev/One-Calendar" target="_blank" rel="noopener" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
-              <GithubIcon className="w-4 h-4" />
+              <Github className="w-4 h-4" />
             </a>
             <a href="https://x.com/One__Cal" target="_blank" className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 32 32">
