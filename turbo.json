@@ -12,6 +12,14 @@
       "outputs": [
         ".next/**",
         "!.next/cache/**"
+      ],
+      "env": [
+        "CLERK_SECRET_KEY",
+        "CLERK_FRONTEND_API",
+        "SALT",
+        "POSTGRES_URL",
+        "CRON_SECRET",
+        "ATPROTO_SESSION_SECRET"
       ]
     },
     "start": {
