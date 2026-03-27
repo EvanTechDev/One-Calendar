@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+
 @custom-variant dark (&:is(.dark *));
 @custom-variant green (&:is(.green *));
 @custom-variant orange (&:is(.orange *));
