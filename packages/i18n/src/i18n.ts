@@ -10,7 +10,7 @@ import {
 import {
   translations as localeTranslations,
   type Language,
-} from "@/lib/locales";
+} from "./locales";
 
 const LANGUAGE_STORAGE_KEY = "preferred-language";
 

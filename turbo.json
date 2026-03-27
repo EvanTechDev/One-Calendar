@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "generate:locales": {
+      "outputs": [
+        "src/locales.ts"
+      ]
+    },
+    "generate:oauth-metadata": {
+      "outputs": [
+        "public/oauth-client-metadata.json"
+      ]
+    }
+  }
+}

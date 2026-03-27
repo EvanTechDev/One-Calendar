@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/apps/web/.next/
 /out/
 
 # production
@@ -44,4 +45,4 @@ next-env.d.ts
 .turbo
 
 # generated locale map
-/lib/locales.ts
+/packages/i18n/src/locales.ts
