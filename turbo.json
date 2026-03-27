@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "POSTGRES_URL",
+    "NEXT_PUBLIC_DS_URL",
+    "ATPROTO_DID_PRIVATE_KEY",
+    "ATPROTO_DEMO_DID",
+    "ATPROTO_DEMO_HANDLE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

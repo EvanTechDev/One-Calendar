@@ -4,7 +4,10 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@onecalendar/types": ["../../packages/types/src/index.ts"],
+      "@onecalendar/crypto": ["../../packages/crypto/src/index.ts"],
+      "@onecalendar/i18n": ["../../packages/i18n/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
