@@ -27,13 +27,16 @@ async function initDB() {
   const client = await pool.connect();
   try {
     await client.query(`
-      CREATE TABLE IF NOT EXISTS calendar_backups (
-        user_id TEXT PRIMARY KEY,
-        encrypted_data TEXT NOT NULL,
+      CREATE TABLE IF NOT EXISTS calendar_data (
+        did TEXT PRIMARY KEY,
+        user_id TEXT,
+        ciphertext TEXT NOT NULL,
         iv TEXT NOT NULL,
-        timestamp TIMESTAMP NOT NULL
+        timestamp TIMESTAMPTZ NOT NULL
       )
     `);
+    await client.query(`ALTER TABLE calendar_data ADD COLUMN IF NOT EXISTS did TEXT`);
+    await client.query(`ALTER TABLE calendar_data ADD COLUMN IF NOT EXISTS user_id TEXT`);
     inited = true;
   } finally {
     client.release();
@@ -82,15 +85,12 @@ export async function POST(req: NextRequest) {
     try {
       await client.query(
         `
-        INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id)
-        DO UPDATE SET
-          encrypted_data = EXCLUDED.encrypted_data,
-          iv = EXCLUDED.iv,
-          timestamp = EXCLUDED.timestamp
+        INSERT INTO calendar_data (did, user_id, ciphertext, iv, timestamp)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (did)
+        DO UPDATE SET ciphertext = EXCLUDED.ciphertext, iv = EXCLUDED.iv, timestamp = EXCLUDED.timestamp, user_id = EXCLUDED.user_id
         `,
-        [user.id, encrypted_data, iv, new Date().toISOString()],
+        [user.id, user.id, encrypted_data, iv, new Date().toISOString()],
       );
       return NextResponse.json({ success: true, backend: "postgres" });
     } finally {
@@ -129,22 +129,17 @@ export async function GET() {
     }
 
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await initDB();
 
     const client = await pool.connect();
     try {
-      const result = await client.query(
-        `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-        [user.id],
-      );
-      if (result.rowCount === 0)
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const result = await client.query(`SELECT ciphertext, iv, timestamp FROM calendar_data WHERE did = $1`, [user.id]);
+      if (result.rowCount === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
       return NextResponse.json({
-        ciphertext: result.rows[0].encrypted_data,
+        ciphertext: result.rows[0].ciphertext,
         iv: result.rows[0].iv,
         timestamp: result.rows[0].timestamp,
         backend: "postgres",
@@ -175,16 +170,13 @@ export async function DELETE() {
     }
 
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await initDB();
 
     const client = await pool.connect();
     try {
-      await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [
-        user.id,
-      ]);
+      await client.query(`DELETE FROM calendar_data WHERE did = $1`, [user.id]);
       return NextResponse.json({ success: true, backend: "postgres" });
     } finally {
       client.release();

@@ -1,11 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
-export async function GET(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
-}
-
-/*
-import { NextRequest, NextResponse } from "next/server";
 import { ATPROTO_DISABLED } from "@/lib/atproto-feature";
 import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
@@ -167,5 +160,3 @@ export async function GET(request: NextRequest) {
 
   return response;
 }
-
-*/

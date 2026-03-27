@@ -19,6 +19,7 @@ import {
 import ShareManagement from "@/components/app/analytics/share-management";
 import BuildInfoCard from "@/components/app/analytics/build-info-card";
 import ImportExport from "@/components/app/analytics/import-export";
+import DsMigration from "@/components/app/profile/ds-migration";
 import type { NOTIFICATION_SOUNDS } from "@/utils/notifications";
 import type { CalendarEvent } from "@/components/app/calendar";
 import { Switch } from "@/components/ui/switch";
@@ -337,6 +338,7 @@ export default function Settings({
       </div>
 
       <ShareManagement />
+      <DsMigration />
       <ImportExport events={events} onImportEvents={onImportEvents} />
       <BuildInfoCard language={language} />
     </div>

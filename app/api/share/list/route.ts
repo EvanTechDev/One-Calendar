@@ -109,8 +109,7 @@ export async function GET() {
       let eventTitle = "";
       if (!value.isProtected) {
         try {
-          const decrypted = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), keyV2Unprotected(rkey));
-          const parsed = JSON.parse(decrypted) as { id?: string; title?: string };
+          const parsed = JSON.parse(String(value.plainData || "{}")) as { id?: string; title?: string };
           eventId = parsed.id || "";
           eventTitle = parsed.title || "";
         } catch {
@@ -137,7 +136,7 @@ export async function GET() {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT share_id, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = $1 ORDER BY timestamp DESC`,
+      `SELECT share_id, plain_data, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = $1 ORDER BY timestamp DESC`,
       [user.id],
     );
 
@@ -146,8 +145,7 @@ export async function GET() {
       let eventTitle = "";
       if (!row.is_protected) {
         try {
-          const decrypted = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, keyV2Unprotected(row.share_id));
-          const dataObj = JSON.parse(decrypted);
+          const dataObj = JSON.parse(row.plain_data || "{}");
           eventId = dataObj.id ?? "";
           eventTitle = dataObj.title ?? "";
         } catch {}
