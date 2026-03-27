@@ -9,13 +9,34 @@ import {
 } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import { useTheme } from "next-themes";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useEffect, useState } from "react";
+
+const TOAST_POSITION_KEY = "toast-position";
+
+type ToastPosition = "bottom-left" | "bottom-center" | "bottom-right";
+
+const getInitialPosition = (): ToastPosition => {
+  if (typeof window === "undefined") return "bottom-right";
+  const saved = window.localStorage.getItem(TOAST_POSITION_KEY);
+  if (
+    saved === "bottom-left" ||
+    saved === "bottom-center" ||
+    saved === "bottom-right"
+  ) {
+    return saved;
+  }
+  return "bottom-right";
+};
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
-  const [toastPosition] = useLocalStorage<
-    "bottom-left" | "bottom-center" | "bottom-right"
-  >("toast-position", "bottom-right");
+  const [toastPosition, setToastPosition] = useState<ToastPosition>(
+    "bottom-right",
+  );
+
+  useEffect(() => {
+    setToastPosition(getInitialPosition());
+  }, []);
 
   return (
     <Sonner
