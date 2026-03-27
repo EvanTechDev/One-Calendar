@@ -1,0 +1,22 @@
+{
+  "name": "@onecalendar/ds",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3010",
+    "build": "next build",
+    "start": "next start -p 3010",
+    "db:migrate": "node scripts/migrate.mjs"
+  },
+  "dependencies": {
+    "@onecalendar/types": "workspace:*",
+    "next": "16.2.1",
+    "pg": "^8.16.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.3"
+  }
+}
