@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import crypto from "crypto";
 import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
 import { getAtprotoSession } from "@/lib/atproto-auth";
+import { signedDsFetch } from "@/lib/ds-signed-request";
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -41,6 +42,29 @@ async function initializeDatabase() {
 
 const ALGORITHM = "aes-256-gcm";
 const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
+const ATPROTO_DS_COLLECTION = "app.onecalendar.ds";
+const ATPROTO_DS_RKEY = "self";
+
+async function getAtprotoDsSession() {
+  const atproto = await getAtprotoSession();
+  if (!atproto) return { atproto: null, ds: null as string | null };
+
+  try {
+    const dsRecord = await getRecord({
+      pds: atproto.pds,
+      repo: atproto.did,
+      collection: ATPROTO_DS_COLLECTION,
+      rkey: ATPROTO_DS_RKEY,
+      accessToken: atproto.accessToken,
+      dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+      dpopPublicJwk: atproto.dpopPublicJwk,
+    });
+    const ds = (dsRecord.value?.ds as string | undefined)?.trim() || null;
+    return { atproto, ds };
+  } catch {
+    return { atproto, ds: null as string | null };
+  }
+}
 
 function keyV2Unprotected(shareId: string) {
   return crypto.createHash("sha256").update(shareId, "utf8").digest();
@@ -89,8 +113,43 @@ export async function POST(request: NextRequest) {
     const key = hasPassword ? keyV3Password(password as string, id) : keyV2Unprotected(id);
     const { encryptedData, iv, authTag } = encryptWithKey(dataString, key);
 
-    const atproto = await getAtprotoSession();
+    const { atproto, ds } = await getAtprotoDsSession();
     if (atproto) {
+      if (!ds) {
+        return NextResponse.json(
+          { error: "ATProto DS is not configured" },
+          { status: 400 },
+        );
+      }
+
+      const dsPayload = {
+        encryptedData,
+        iv,
+        authTag,
+        isProtected: hasPassword,
+        isBurn: burn,
+        timestamp: new Date().toISOString(),
+      };
+
+      const dsRes = await signedDsFetch({
+        session: atproto,
+        ds,
+        path: "/api/share",
+        method: "POST",
+        body: {
+          share_id: id,
+          data: JSON.stringify(dsPayload),
+          timestamp: Date.now(),
+        },
+      });
+      if (!dsRes.ok) {
+        const detail = await dsRes.text();
+        return NextResponse.json(
+          { error: `DS share write failed: ${detail}` },
+          { status: dsRes.status },
+        );
+      }
+
       await putRecord({
         pds: atproto.pds,
         repo: atproto.did,
@@ -110,7 +169,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return NextResponse.json({ success: true, id, protected: hasPassword, burnAfterRead: burn, shareLink: `/${atproto.handle}/${id}` });
+      return NextResponse.json({
+        success: true,
+        id,
+        protected: hasPassword,
+        burnAfterRead: burn,
+        shareLink: `/${atproto.handle}/${id}`,
+      });
     }
 
     const user = await currentUser();
@@ -144,10 +209,46 @@ export async function POST(request: NextRequest) {
 }
 
 async function getAtprotoShare(id: string, password: string, handleParam?: string) {
-  const atproto = await getAtprotoSession();
+  const { atproto, ds } = await getAtprotoDsSession();
   if (atproto) {
-    const record = await getRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
-    const value = record.value ?? {};
+    if (!ds) {
+      return NextResponse.json(
+        { error: "ATProto DS is not configured" },
+        { status: 400 },
+      );
+    }
+
+    const dsRes = await signedDsFetch({
+      session: atproto,
+      ds,
+      path: `/api/share/${encodeURIComponent(id)}`,
+      method: "GET",
+    });
+    if (dsRes.status === 404) {
+      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    }
+    if (!dsRes.ok) {
+      const detail = await dsRes.text();
+      return NextResponse.json(
+        { error: `DS share read failed: ${detail}` },
+        { status: dsRes.status },
+      );
+    }
+
+    const dsPayload = (await dsRes.json()) as { share?: { data?: string } };
+    const dsShareRaw = dsPayload.share?.data;
+    if (!dsShareRaw) {
+      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    }
+
+    const value = JSON.parse(dsShareRaw) as {
+      encryptedData?: string;
+      iv?: string;
+      authTag?: string;
+      isProtected?: boolean;
+      isBurn?: boolean;
+      timestamp?: string;
+    };
     const isProtected = !!value.isProtected;
     if (isProtected && !password) {
       return NextResponse.json({ error: "Password required", requiresPassword: true, burnAfterRead: value.isBurn }, { status: 401 });
@@ -156,7 +257,14 @@ async function getAtprotoShare(id: string, password: string, handleParam?: strin
     const decryptedData = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), key);
 
     if (value.isBurn) {
-      await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
+      await signedDsFetch({
+        session: atproto,
+        ds,
+        path: "/api/share",
+        method: "DELETE",
+        body: { share_id: id },
+      });
+      await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk }).catch(() => undefined);
     }
 
     return NextResponse.json({ success: true, data: decryptedData, timestamp: value.timestamp, protected: isProtected, burnAfterRead: !!value.isBurn });
@@ -226,8 +334,21 @@ export async function DELETE(request: NextRequest) {
   const { id } = body as { id?: string };
   if (!id) return NextResponse.json({ error: "Missing share ID" }, { status: 400 });
 
-  const atproto = await getAtprotoSession();
+  const { atproto, ds } = await getAtprotoDsSession();
   if (atproto) {
+    if (!ds) {
+      return NextResponse.json(
+        { error: "ATProto DS is not configured" },
+        { status: 400 },
+      );
+    }
+    await signedDsFetch({
+      session: atproto,
+      ds,
+      path: "/api/share",
+      method: "DELETE",
+      body: { share_id: id },
+    });
     await deleteRecord({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
     return NextResponse.json({ success: true });
   }

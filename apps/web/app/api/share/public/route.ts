@@ -6,6 +6,8 @@ import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature
 
 const ALGORITHM = "aes-256-gcm";
 const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
+const ATPROTO_DS_COLLECTION = "app.onecalendar.ds";
+const ATPROTO_DS_RKEY = "self";
 
 const burnPool = process.env.POSTGRES_URL
   ? new Pool({
@@ -89,8 +91,66 @@ export async function GET(request: NextRequest) {
 
   const normalizedHandle = handle.replace(/^@/, "").toLowerCase();
   const resolved = await resolveHandle(normalizedHandle);
-  const record = await getRecord({ pds: resolved.pds, repo: resolved.did, collection: ATPROTO_SHARE_COLLECTION, rkey: id });
-  const value = record.value ?? {};
+  const dsRecord = await getRecord({
+    pds: resolved.pds,
+    repo: resolved.did,
+    collection: ATPROTO_DS_COLLECTION,
+    rkey: ATPROTO_DS_RKEY,
+  }).catch(() => null);
+  const ds = (dsRecord?.value?.ds as string | undefined)?.trim() || null;
+
+  let value:
+    | {
+        encryptedData?: string;
+        iv?: string;
+        authTag?: string;
+        isProtected?: boolean;
+        isBurn?: boolean;
+        timestamp?: string;
+      }
+    | null = null;
+
+  if (ds) {
+    const dsRes = await fetch(
+      `${ds.replace(/\/$/, "")}/api/share/${encodeURIComponent(id)}`,
+      { cache: "no-store" },
+    );
+    if (dsRes.status === 404) {
+      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    }
+    if (!dsRes.ok) {
+      return NextResponse.json(
+        { error: "Failed to load share from DS" },
+        { status: dsRes.status },
+      );
+    }
+
+    const dsPayload = (await dsRes.json()) as { share?: { data?: string } };
+    const shareData = dsPayload.share?.data;
+    if (!shareData) {
+      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    }
+    value = JSON.parse(shareData) as {
+      encryptedData?: string;
+      iv?: string;
+      authTag?: string;
+      isProtected?: boolean;
+      isBurn?: boolean;
+      timestamp?: string;
+    };
+  } else {
+    const record = await getRecord({
+      pds: resolved.pds,
+      repo: resolved.did,
+      collection: ATPROTO_SHARE_COLLECTION,
+      rkey: id,
+    });
+    value = record.value ?? null;
+  }
+
+  if (!value) {
+    return NextResponse.json({ error: "Share not found" }, { status: 404 });
+  }
   const isProtected = !!value.isProtected;
   const isBurn = !!value.isBurn;
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { Pool } from "pg";
 import { getAtprotoSession } from "@/lib/atproto-auth";
-import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
+import { getRecord } from "@/lib/atproto";
 import { signedDsFetch } from "@/lib/ds-signed-request";
 
 export const runtime = "nodejs";
@@ -41,8 +41,6 @@ async function initDB() {
   }
 }
 
-const ATPROTO_BACKUP_COLLECTION = "app.onecalendar.backup";
-const ATPROTO_BACKUP_RKEY = "latest";
 const ATPROTO_DS_COLLECTION = "app.onecalendar.ds";
 const ATPROTO_DS_RKEY = "self";
 
@@ -79,45 +77,32 @@ export async function POST(req: NextRequest) {
 
     const { atproto, ds } = await getDsEndpointFromAtproto();
     if (atproto) {
-      if (ds) {
-        const dsRes = await signedDsFetch({
-          session: atproto,
-          ds,
-          path: "/api/blob",
-          method: "POST",
-          body: {
-            encrypted_data,
-            iv,
-            timestamp: Date.now(),
-          },
-        });
-
-        if (!dsRes.ok) {
-          const detail = await dsRes.text();
-          return NextResponse.json(
-            { error: `DS write failed: ${detail}` },
-            { status: dsRes.status },
-          );
-        }
-        return NextResponse.json({ success: true, backend: "ds", ds });
+      if (!ds) {
+        return NextResponse.json(
+          { error: "ATProto DS is not configured" },
+          { status: 400 },
+        );
       }
 
-      await putRecord({
-        pds: atproto.pds,
-        repo: atproto.did,
-        collection: ATPROTO_BACKUP_COLLECTION,
-        rkey: ATPROTO_BACKUP_RKEY,
-        accessToken: atproto.accessToken,
-        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-        dpopPublicJwk: atproto.dpopPublicJwk,
-        record: {
-          $type: ATPROTO_BACKUP_COLLECTION,
-          ciphertext: encrypted_data,
+      const dsRes = await signedDsFetch({
+        session: atproto,
+        ds,
+        path: "/api/blob",
+        method: "POST",
+        body: {
+          encrypted_data,
           iv,
-          updatedAt: new Date().toISOString(),
+          timestamp: Date.now(),
         },
       });
-      return NextResponse.json({ success: true, backend: "atproto" });
+      if (!dsRes.ok) {
+        const detail = await dsRes.text();
+        return NextResponse.json(
+          { error: `DS write failed: ${detail}` },
+          { status: dsRes.status },
+        );
+      }
+      return NextResponse.json({ success: true, backend: "ds", ds });
     }
 
     const user = await currentUser();
@@ -153,68 +138,49 @@ export async function GET() {
   try {
     const { atproto, ds } = await getDsEndpointFromAtproto();
     if (atproto) {
-      if (ds) {
-        const dsRes = await signedDsFetch({
-          session: atproto,
-          ds,
-          path: "/api/blob",
-          method: "GET",
-        });
-
-        if (dsRes.status === 404) {
-          return NextResponse.json({ error: "Not found" }, { status: 404 });
-        }
-
-        if (!dsRes.ok) {
-          const detail = await dsRes.text();
-          return NextResponse.json(
-            { error: `DS read failed: ${detail}` },
-            { status: dsRes.status },
-          );
-        }
-
-        const payload = (await dsRes.json()) as {
-          data?: { encrypted_data?: string; iv?: string; timestamp?: string };
-        };
-        const data = payload.data;
-        if (!data) {
-          return NextResponse.json({ error: "Not found" }, { status: 404 });
-        }
-
-        return NextResponse.json({
-          ciphertext: data.encrypted_data,
-          iv: data.iv,
-          timestamp: data.timestamp,
-          backend: "ds",
-          ds,
-        });
+      if (!ds) {
+        return NextResponse.json(
+          { error: "ATProto DS is not configured" },
+          { status: 404 },
+        );
       }
 
-      try {
-        const record = await getRecord({
-          pds: atproto.pds,
-          repo: atproto.did,
-          collection: ATPROTO_BACKUP_COLLECTION,
-          rkey: ATPROTO_BACKUP_RKEY,
-          accessToken: atproto.accessToken,
-          dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-          dpopPublicJwk: atproto.dpopPublicJwk,
-        });
-        const value = record.value ?? {};
-        return NextResponse.json({
-          ciphertext: value.ciphertext,
-          iv: value.iv,
-          timestamp: value.updatedAt,
-          backend: "atproto",
-        });
-      } catch {
+      const dsRes = await signedDsFetch({
+        session: atproto,
+        ds,
+        path: "/api/blob",
+        method: "GET",
+      });
+      if (dsRes.status === 404) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
+      if (!dsRes.ok) {
+        const detail = await dsRes.text();
+        return NextResponse.json(
+          { error: `DS read failed: ${detail}` },
+          { status: dsRes.status },
+        );
+      }
+
+      const payload = (await dsRes.json()) as {
+        data?: { encrypted_data?: string; iv?: string; timestamp?: string };
+      };
+      const data = payload.data;
+      if (!data) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        ciphertext: data.encrypted_data,
+        iv: data.iv,
+        timestamp: data.timestamp,
+        backend: "ds",
+        ds,
+      });
     }
 
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await initDB();
 
@@ -246,35 +212,28 @@ export async function DELETE() {
   try {
     const { atproto, ds } = await getDsEndpointFromAtproto();
     if (atproto) {
-      if (ds) {
-        const dsRes = await signedDsFetch({
-          session: atproto,
-          ds,
-          path: "/api/blob",
-          method: "DELETE",
-        });
-
-        if (!dsRes.ok) {
-          const detail = await dsRes.text();
-          return NextResponse.json(
-            { error: `DS delete failed: ${detail}` },
-            { status: dsRes.status },
-          );
-        }
-
-        return NextResponse.json({ success: true, backend: "ds", ds });
+      if (!ds) {
+        return NextResponse.json(
+          { error: "ATProto DS is not configured" },
+          { status: 400 },
+        );
       }
 
-      await deleteRecord({
-        pds: atproto.pds,
-        repo: atproto.did,
-        collection: ATPROTO_BACKUP_COLLECTION,
-        rkey: ATPROTO_BACKUP_RKEY,
-        accessToken: atproto.accessToken,
-        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-        dpopPublicJwk: atproto.dpopPublicJwk,
+      const dsRes = await signedDsFetch({
+        session: atproto,
+        ds,
+        path: "/api/blob",
+        method: "DELETE",
       });
-      return NextResponse.json({ success: true, backend: "atproto" });
+      if (!dsRes.ok) {
+        const detail = await dsRes.text();
+        return NextResponse.json(
+          { error: `DS delete failed: ${detail}` },
+          { status: dsRes.status },
+        );
+      }
+
+      return NextResponse.json({ success: true, backend: "ds", ds });
     }
 
     const user = await currentUser();
