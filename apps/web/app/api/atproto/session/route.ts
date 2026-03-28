@@ -1,10 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-
-export async function GET(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
-}
-
-/*
 import { NextResponse } from "next/server";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
 import { getActorProfileRecord, profileAvatarBlobUrl } from "@/lib/atproto";
@@ -28,7 +21,11 @@ export async function GET() {
     }).catch(() => undefined);
 
     const avatarCid = actorProfile?.avatar?.ref?.$link;
-    const resolvedAvatar = profileAvatarBlobUrl({ pds: session.pds, did: session.did, cid: avatarCid });
+    const resolvedAvatar = profileAvatarBlobUrl({
+      pds: session.pds,
+      did: session.did,
+      cid: avatarCid,
+    });
 
     if (resolvedAvatar || actorProfile?.displayName) {
       avatar = resolvedAvatar || avatar;
@@ -50,5 +47,3 @@ export async function GET() {
     avatar,
   });
 }
-
-*/
