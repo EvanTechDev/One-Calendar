@@ -64,12 +64,10 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (!isLoaded) return
-
     let active = true
     const checkDbDataReady = async () => {
       try {
-        if (!isSignedIn) {
+        if (!isLoaded || !isSignedIn) {
           const sessionRes = await fetch("/api/atproto/session", {
             cache: "no-store",
           })
