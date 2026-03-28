@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { ensureTables, pool } from "@/lib/db";
 import { requireSignedRequest } from "@/lib/signature";
 
+function statusForError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  if (
+    message.includes("Missing signature headers") ||
+    message.includes("Expired timestamp") ||
+    message.includes("Invalid signature") ||
+    message.includes("Failed to resolve DID") ||
+    message.includes("Missing DID public key")
+  ) {
+    return 401;
+  }
+  return 500;
+}
+
 export async function POST(request: Request) {
   const raw = await request.text();
   try {
@@ -22,7 +36,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 401 });
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: statusForError(error) },
+    );
   }
 }
 
@@ -38,6 +55,9 @@ export async function DELETE(request: Request) {
     ]);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 401 });
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: statusForError(error) },
+    );
   }
 }
