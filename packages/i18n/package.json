@@ -1,0 +1,8 @@
+{
+  "name": "@repo/i18n",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate:locales": "bun scripts/gen-locales.mjs"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "ds",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3010",
+    "build": "next build",
+    "start": "next start --port 3010"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.2.3",
+    "@scure/base": "^1.2.6",
+    "next": "16.2.1",
+    "pg": "latest",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "5.9.3",
+    "@types/pg": "^8.15.6"
+  }
+}

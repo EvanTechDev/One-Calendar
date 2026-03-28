@@ -1,0 +1,11 @@
+{
+  "name": "@repo/config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./postcss": "./postcss.config.mjs",
+    "./tailwind": "./tailwind.config.ts",
+    "./tsconfig": "./tsconfig.base.json"
+  }
+}
