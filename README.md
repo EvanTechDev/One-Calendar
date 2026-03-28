@@ -3,9 +3,9 @@
 > A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/public/Banner-dark.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="/public/Banner.jpg">
-  <img src="/public/Banner.jpg" alt="Image">
+  <source media="(prefers-color-scheme: dark)" srcset="./apps/web/public/Banner-dark.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="./apps/web/public/Banner.jpg">
+  <img src="./apps/web/public/Banner.jpg" alt="Image">
 </picture>
 
 - [Live Product](https://calendar.xyehr.cn)
@@ -96,6 +96,34 @@ This project is built for individuals and small teams who value clarity over com
 
 ## Getting Started
 
+## Monorepo Structure
+
+This repository uses a standard **Turborepo** layout:
+
+- `apps/web`: Next.js application
+- `apps/ds`: decentralized storage server (Next.js API + PostgreSQL)
+- `packages/config`: shared ts/postcss/tailwind config
+- `packages/ui`: shared shadcn ui components
+- `packages/i18n`: locales + i18n runtime helpers
+- `turbo.json`: task pipeline and cache settings
+
+Useful commands:
+
+```bash
+# run the web app through Turbo
+bun run dev
+
+# run decentralized storage server
+bun run dev:ds
+
+# build all workspaces
+bun run build
+
+# run a task only for web
+bun run generate:locales
+```
+
+
 ### Prerequisites
 
 Required Versions:
@@ -115,13 +143,15 @@ bun install
 
 # Start the app
 bun run dev
+# or run directly in the web workspace
+bun run --cwd apps/web dev
 ```
 
 Then visit `http://localhost:3000`
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in.
+Copy `apps/web/.env.example` to `apps/web/.env` and fill in.
 
 Key variables:
 

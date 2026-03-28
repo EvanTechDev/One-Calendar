@@ -1,0 +1,40 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ],
+      "env": [
+        "CLERK_SECRET_KEY",
+        "CLERK_FRONTEND_API",
+        "SALT",
+        "POSTGRES_URL",
+        "CRON_SECRET",
+        "ATPROTO_SESSION_SECRET"
+      ]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "generate:locales": {
+      "outputs": [
+        "src/locales.ts"
+      ]
+    },
+    "generate:oauth-metadata": {
+      "outputs": [
+        "public/oauth-client-metadata.json"
+      ]
+    }
+  }
+}
