@@ -1,6 +1,6 @@
 import { verify } from "@noble/ed25519";
 import { base58 } from "@scure/base";
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify as verifyNode } from "node:crypto";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
 
@@ -49,8 +49,24 @@ export async function requireSignedRequest(request: Request, body = "") {
   const msg = new TextEncoder().encode(payload);
 
   const signature = Buffer.from(signatureHeader.replace(/^base64:/, ""), "base64");
-  const pub = await resolveDidPublicKey(did);
-  const ok = await verify(signature, msg, pub);
+
+  let ok = false;
+  const dpopJwkHeader = request.headers.get("x-dpop-jwk");
+  if (dpopJwkHeader) {
+    try {
+      const jwk = JSON.parse(dpopJwkHeader);
+      const key = createPublicKey({ key: jwk, format: "jwk" });
+      ok = verifyNode("sha256", Buffer.from(payload, "utf8"), key, signature);
+    } catch {
+      ok = false;
+    }
+  }
+
+  if (!ok) {
+    const pub = await resolveDidPublicKey(did);
+    ok = await verify(signature, msg, pub);
+  }
+
   if (!ok) throw new Error("Invalid signature");
 
   return { did };

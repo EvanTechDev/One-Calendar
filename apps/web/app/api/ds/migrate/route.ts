@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRecord, putRecord } from "@/lib/atproto";
 import { getAtprotoSession } from "@/lib/atproto-auth";
+import { signedDsFetch } from "@/lib/ds-signed-request";
 
 const DS_COLLECTION = "app.onecalendar.ds";
 const DS_RKEY = "self";
@@ -40,11 +41,12 @@ export async function POST(request: Request) {
   }
 
   // Atomic-like flow: export -> import -> cleanup -> update DS record.
-  const exportRes = await fetch(`${fromDs.replace(/\/$/, "")}/api/migrate/export`, {
+  const exportRes = await signedDsFetch({
+    session: atproto,
+    ds: fromDs,
+    path: "/api/migrate/export",
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ did: atproto.did }),
-    cache: "no-store",
+    body: { did: atproto.did },
   });
 
   if (!exportRes.ok) {
@@ -53,22 +55,24 @@ export async function POST(request: Request) {
 
   const payload = await exportRes.json();
 
-  const importRes = await fetch(`${toDs.replace(/\/$/, "")}/api/migrate/import`, {
+  const importRes = await signedDsFetch({
+    session: atproto,
+    ds: toDs,
+    path: "/api/migrate/import",
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    cache: "no-store",
+    body: payload,
   });
 
   if (!importRes.ok) {
     return NextResponse.json({ error: "Failed to import into target DS" }, { status: 502 });
   }
 
-  const cleanupRes = await fetch(`${fromDs.replace(/\/$/, "")}/api/migrate/cleanup`, {
+  const cleanupRes = await signedDsFetch({
+    session: atproto,
+    ds: fromDs,
+    path: "/api/migrate/cleanup",
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ did: atproto.did }),
-    cache: "no-store",
+    body: { did: atproto.did },
   });
 
   if (!cleanupRes.ok) {
