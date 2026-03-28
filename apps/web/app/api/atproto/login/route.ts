@@ -15,11 +15,21 @@ function getExpectedBaseUrl(request: NextRequest) {
 
 function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {
   const expected = new URL(expectedBaseUrl);
+  const current = request.nextUrl;
+  const allowedHosts = new Set([
+    expected.host.toLowerCase(),
+    current.host.toLowerCase(),
+  ]);
+  const allowedOrigins = new Set([
+    expected.origin,
+    current.origin,
+  ]);
+
   const origin = request.headers.get("origin");
   if (origin) {
     try {
       const parsed = new URL(origin);
-      if (parsed.origin !== expected.origin) return false;
+      if (!allowedOrigins.has(parsed.origin)) return false;
     } catch {
       return false;
     }
@@ -30,7 +40,7 @@ function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {
     request.headers.get("host") ||
     ""
   ).toLowerCase();
-  if (host && host !== expected.host.toLowerCase()) {
+  if (host && !allowedHosts.has(host)) {
     return false;
   }
 
