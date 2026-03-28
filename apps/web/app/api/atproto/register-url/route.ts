@@ -1,10 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-
-export async function POST(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
-}
-
-/*
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
@@ -49,19 +42,26 @@ export async function POST(request: NextRequest) {
 
   if (!parRes.ok) {
     const detail = (await parRes.text()).slice(0, 200) || "par_failed";
-    return NextResponse.json({ error: `Rose PAR failed: ${detail}` }, { status: 502 });
+    return NextResponse.json(
+      { error: `Rose PAR failed: ${detail}` },
+      { status: 502 },
+    );
   }
 
   const parJson = (await parRes.json()) as { request_uri?: string };
   if (!parJson.request_uri) {
-    return NextResponse.json({ error: "Rose PAR response missing request_uri" }, { status: 502 });
+    return NextResponse.json(
+      { error: "Rose PAR response missing request_uri" },
+      { status: 502 },
+    );
   }
 
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("request_uri", parJson.request_uri);
 
   const response = NextResponse.json({ authorizeUrl: authorizeUrl.toString() });
-  const secure = request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
+  const secure =
+    request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
   setAtprotoOAuthTxnCookie(
     response,
     {
@@ -80,5 +80,3 @@ export async function POST(request: NextRequest) {
 
   return response;
 }
-
-*/

@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-
-export async function GET(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
-}
-
-/*
-import { NextRequest, NextResponse } from "next/server";
 import { ATPROTO_DISABLED } from "@/lib/atproto-feature";
-import { getActorProfileRecord, getProfile, profileAvatarBlobUrl } from "@/lib/atproto";
+import {
+  getActorProfileRecord,
+  getProfile,
+  profileAvatarBlobUrl,
+} from "@/lib/atproto";
 import { setAtprotoSession } from "@/lib/atproto-auth";
-import { clearAtprotoOAuthTxnCookie, consumeAtprotoOAuthTxn, getAtprotoOAuthTxnFromRequest } from "@/lib/atproto-oauth-txn";
+import {
+  clearAtprotoOAuthTxnCookie,
+  consumeAtprotoOAuthTxn,
+  getAtprotoOAuthTxnFromRequest,
+} from "@/lib/atproto-oauth-txn";
 import { createDpopProof, type DpopPublicJwk } from "@/lib/dpop";
 
 function parseJsonSafe<T>(value: string): T | null {
@@ -41,7 +42,11 @@ function normalizeIssuerOrigin(value: string) {
 }
 
 export async function GET(request: NextRequest) {
-  if (ATPROTO_DISABLED) return redirectWithError(process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin, "atproto_disabled");
+  if (ATPROTO_DISABLED)
+    return redirectWithError(
+      process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin,
+      "atproto_disabled",
+    );
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const iss = request.nextUrl.searchParams.get("iss");
@@ -54,12 +59,28 @@ export async function GET(request: NextRequest) {
   }
 
   if (!consumeAtprotoOAuthTxn(txn)) {
-    return redirectWithError(baseUrl, "oauth_state_mismatch", "transaction_already_used");
+    return redirectWithError(
+      baseUrl,
+      "oauth_state_mismatch",
+      "transaction_already_used",
+    );
   }
 
-  const { verifier, handle, pds, did, dpopPrivateKeyPem, dpopPublicJwk } = txn;
+  const {
+    verifier,
+    handle,
+    pds,
+    did,
+    dpopPrivateKeyPem,
+    dpopPublicJwk,
+  } = txn;
 
-  if (!dpopPublicJwk?.kty || !dpopPublicJwk?.crv || !dpopPublicJwk?.x || !dpopPublicJwk?.y) {
+  if (
+    !dpopPublicJwk?.kty ||
+    !dpopPublicJwk?.crv ||
+    !dpopPublicJwk?.x ||
+    !dpopPublicJwk?.y
+  ) {
     return redirectWithError(baseUrl, "invalid_dpop_key");
   }
 
@@ -107,7 +128,8 @@ export async function GET(request: NextRequest) {
 
   let tokenRes = await makeTokenRequest();
   if (!tokenRes.ok) {
-    const nonce = tokenRes.headers.get("DPoP-Nonce") || tokenRes.headers.get("dpop-nonce");
+    const nonce =
+      tokenRes.headers.get("DPoP-Nonce") || tokenRes.headers.get("dpop-nonce");
     if (nonce) {
       tokenRes = await makeTokenRequest(nonce);
     }
@@ -115,12 +137,23 @@ export async function GET(request: NextRequest) {
 
   if (!tokenRes.ok) {
     const detailText = await tokenRes.text();
-    const detailJson = parseJsonSafe<{ error?: string; error_description?: string }>(detailText);
-    const reason = detailJson?.error_description || detailJson?.error || detailText.slice(0, 160) || "token_exchange_failed";
+    const detailJson = parseJsonSafe<{
+      error?: string;
+      error_description?: string;
+    }>(detailText);
+    const reason =
+      detailJson?.error_description ||
+      detailJson?.error ||
+      detailText.slice(0, 160) ||
+      "token_exchange_failed";
     return redirectWithError(baseUrl, "token_exchange_failed", reason);
   }
 
-  const tokenData = (await tokenRes.json()) as { access_token?: string; refresh_token?: string; sub?: string };
+  const tokenData = (await tokenRes.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    sub?: string;
+  };
   if (!tokenData.access_token) {
     return redirectWithError(baseUrl, "missing_access_token");
   }
@@ -144,7 +177,8 @@ export async function GET(request: NextRequest) {
   }).catch(() => undefined);
 
   const avatarCid = actorProfile?.avatar?.ref?.$link;
-  const avatarUrl = profileAvatarBlobUrl({ pds, did: actorDid, cid: avatarCid }) || profile?.avatar;
+  const avatarUrl =
+    profileAvatarBlobUrl({ pds, did: actorDid, cid: avatarCid }) || profile?.avatar;
 
   await setAtprotoSession({
     did: actorDid,
@@ -161,11 +195,11 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(`${baseUrl}/app`);
   clearAtprotoOAuthTxnCookie(response);
 
-  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
-    response.cookies.delete(key);
-  });
+  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach(
+    (key) => {
+      response.cookies.delete(key);
+    },
+  );
 
   return response;
 }
-
-*/

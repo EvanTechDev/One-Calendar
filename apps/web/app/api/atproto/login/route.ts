@@ -1,10 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-
-export async function POST(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
-}
-
-/*
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ATPROTO_DISABLED, atprotoDisabledResponse } from "@/lib/atproto-feature";
@@ -32,7 +25,11 @@ function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {
     }
   }
 
-  const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").toLowerCase();
+  const host = (
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    ""
+  ).toLowerCase();
   if (host && host !== expected.host.toLowerCase()) {
     return false;
   }
@@ -46,7 +43,8 @@ function checkRateLimit(request: NextRequest, handle: string) {
     if (value.resetAt <= now) loginRateCache.delete(key);
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const key = `${ip}:${handle}`;
   const record = loginRateCache.get(key);
 
@@ -102,7 +100,8 @@ export async function POST(request: NextRequest) {
   authUrl.searchParams.set("dpop_jkt", dpop.jkt);
 
   const response = NextResponse.json({ authorizeUrl: authUrl.toString(), pds, did });
-  const secure = request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
+  const secure =
+    request.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
   setAtprotoOAuthTxnCookie(
     response,
     {
@@ -119,11 +118,11 @@ export async function POST(request: NextRequest) {
     secure,
   );
 
-  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach((key) => {
-    response.cookies.delete(key);
-  });
+  ["__session", "__client_uat", "__clerk_db_jwt", "__clerk_handshake"].forEach(
+    (key) => {
+      response.cookies.delete(key);
+    },
+  );
 
   return response;
 }
-
-*/
