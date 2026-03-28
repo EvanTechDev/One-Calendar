@@ -1,0 +1,24 @@
+{
+  "extends": "../../packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/ui/*": ["../../packages/ui/src/*"],
+      "@/lib/i18n": ["../../packages/i18n/src/i18n.ts"],
+      "@/lib/locales": ["../../packages/i18n/src/locales.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
