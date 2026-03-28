@@ -10,7 +10,7 @@ const LOGIN_RATE_LIMIT = 20;
 const loginRateCache = new Map<string, { count: number; resetAt: number }>();
 
 function getExpectedBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+  return request.nextUrl.origin;
 }
 
 function isAllowedOrigin(request: NextRequest, expectedBaseUrl: string) {

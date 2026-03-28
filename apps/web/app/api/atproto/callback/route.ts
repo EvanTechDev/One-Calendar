@@ -44,14 +44,14 @@ function normalizeIssuerOrigin(value: string) {
 export async function GET(request: NextRequest) {
   if (ATPROTO_DISABLED)
     return redirectWithError(
-      process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin,
+      request.nextUrl.origin,
       "atproto_disabled",
     );
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const iss = request.nextUrl.searchParams.get("iss");
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+  const baseUrl = request.nextUrl.origin;
   const txn = getAtprotoOAuthTxnFromRequest(request);
 
   if (!code || !state || !txn || state !== txn.state) {
