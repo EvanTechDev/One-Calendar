@@ -25,6 +25,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Kbd } from "@/components/ui/kbd";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface SettingsProps {
   language: Language;
@@ -73,6 +76,20 @@ export default function Settings({
 }: SettingsProps) {
   const { theme, setTheme } = useTheme();
   const t = translations[language];
+  const [dsAddress, setDsAddress] = useState("");
+  const [targetDsAddress, setTargetDsAddress] = useState("");
+  const [dsMessage, setDsMessage] = useState("");
+  const [dsMigrationProgress, setDsMigrationProgress] = useState("");
+  const [dsBusy, setDsBusy] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/ds/config", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.ds) setDsAddress(data.ds);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone");
@@ -144,6 +161,53 @@ export default function Settings({
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
+  };
+
+  const saveDsAddress = async () => {
+    setDsBusy(true);
+    setDsMessage("");
+    try {
+      const r = await fetch("/api/ds/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ds: dsAddress }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || "failed to save ds");
+      }
+      setDsMessage("DS address saved.");
+    } catch (error) {
+      setDsMessage((error as Error).message || "Failed to save DS");
+    } finally {
+      setDsBusy(false);
+    }
+  };
+
+  const migrateDs = async () => {
+    setDsBusy(true);
+    setDsMigrationProgress("migrating...");
+    setDsMessage("");
+    try {
+      const r = await fetch("/api/ds/migrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toDs: targetDsAddress }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || "migration failed");
+      }
+      setDsAddress(targetDsAddress);
+      setTargetDsAddress("");
+      setDsMigrationProgress("migration completed");
+      setDsMessage("DS switched successfully.");
+    } catch (error) {
+      setDsMigrationProgress("");
+      setDsMessage((error as Error).message || "migration failed");
+    } finally {
+      setDsBusy(false);
+    }
   };
 
   return (
@@ -278,6 +342,50 @@ export default function Settings({
               </SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ds-address">ATProto DS Address</Label>
+          <div className="flex gap-2">
+            <Input
+              id="ds-address"
+              placeholder="https://your-ds.example.com"
+              value={dsAddress}
+              onChange={(e) => setDsAddress(e.target.value)}
+            />
+            <Button type="button" onClick={saveDsAddress} disabled={dsBusy}>
+              save
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This writes app.onecalendar.ds for your Bluesky DID.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="target-ds-address">Migrate DS</Label>
+          <div className="flex gap-2">
+            <Input
+              id="target-ds-address"
+              placeholder="https://new-ds.example.com"
+              value={targetDsAddress}
+              onChange={(e) => setTargetDsAddress(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={dsBusy || !targetDsAddress}
+              onClick={migrateDs}
+            >
+              migrate
+            </Button>
+          </div>
+          {dsMigrationProgress ? (
+            <p className="text-xs text-muted-foreground">{dsMigrationProgress}</p>
+          ) : null}
+          {dsMessage ? (
+            <p className="text-xs text-muted-foreground">{dsMessage}</p>
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-2">

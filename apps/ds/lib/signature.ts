@@ -1,5 +1,5 @@
 import { verify } from "@noble/ed25519";
-import { base58btc } from "@scure/base";
+import { base58 } from "@scure/base";
 import { createHash } from "node:crypto";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
@@ -27,7 +27,7 @@ async function resolveDidPublicKey(did: string) {
   if (!multibase || !multibase.startsWith("z")) {
     throw new Error("Missing DID public key");
   }
-  return base58btc.decode(multibase.slice(1));
+  return base58.decode(multibase.slice(1));
 }
 
 export async function requireSignedRequest(request: Request, body = "") {
