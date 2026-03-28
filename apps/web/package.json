@@ -4,8 +4,8 @@
   "private": true,
   "packageManager": "bun@1.3.8",
   "scripts": {
-    "dev": "(cd ../../packages/i18n && bun run generate:locales) && next dev",
-    "build": "(cd ../../packages/i18n && bun run generate:locales) && next build",
+    "dev": "(cd ../../packages/i18n && bun run generate:locales) && bun run generate:oauth-metadata && next dev",
+    "build": "(cd ../../packages/i18n && bun run generate:locales) && bun run generate:oauth-metadata && next build",
     "start": "next start",
     "generate:locales": "(cd ../../packages/i18n && bun run generate:locales)",
     "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
