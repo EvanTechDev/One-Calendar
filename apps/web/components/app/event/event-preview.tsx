@@ -113,7 +113,7 @@ export default function EventPreview({
   }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
 
   useEffect(() => {
-    fetch("/api/atproto/session")
+    fetch("/api/atproto/session", { cache: "no-store" })
       .then((r) => r.json())
       .then((data: { signedIn?: boolean; handle?: string }) => {
         setAtprotoSignedIn(!!data.signedIn);

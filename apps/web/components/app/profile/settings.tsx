@@ -28,6 +28,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@clerk/nextjs";
 
 interface SettingsProps {
   language: Language;
@@ -74,8 +75,10 @@ export default function Settings({
   toastPosition,
   setToastPosition,
 }: SettingsProps) {
+  const { isSignedIn } = useUser();
   const { theme, setTheme } = useTheme();
   const t = translations[language];
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false);
   const [dsAddress, setDsAddress] = useState("");
   const [targetDsAddress, setTargetDsAddress] = useState("");
   const [dsMessage, setDsMessage] = useState("");
@@ -83,13 +86,27 @@ export default function Settings({
   const [dsBusy, setDsBusy] = useState(false);
 
   useEffect(() => {
+    fetch("/api/atproto/session", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { signedIn?: boolean }) => {
+        setAtprotoSignedIn(!!data.signedIn);
+      })
+      .catch(() => setAtprotoSignedIn(false));
+  }, []);
+
+  useEffect(() => {
+    if (!atprotoSignedIn) {
+      setDsAddress("");
+      return;
+    }
+
     fetch("/api/ds/config", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.ds) setDsAddress(data.ds);
       })
       .catch(() => undefined);
-  }, []);
+  }, [atprotoSignedIn]);
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf("timeZone");
@@ -344,49 +361,59 @@ export default function Settings({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="ds-address">ATProto DS Address</Label>
-          <div className="flex gap-2">
-            <Input
-              id="ds-address"
-              placeholder="https://your-ds.example.com"
-              value={dsAddress}
-              onChange={(e) => setDsAddress(e.target.value)}
-            />
-            <Button type="button" onClick={saveDsAddress} disabled={dsBusy}>
-              save
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            This writes app.onecalendar.ds for your Bluesky DID.
-          </p>
-        </div>
+        {atprotoSignedIn ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="ds-address">ATProto DS Address</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="ds-address"
+                  placeholder="https://your-ds.example.com"
+                  value={dsAddress}
+                  onChange={(e) => setDsAddress(e.target.value)}
+                />
+                <Button type="button" onClick={saveDsAddress} disabled={dsBusy}>
+                  save
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This writes app.onecalendar.ds for your Bluesky DID.
+              </p>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="target-ds-address">Migrate DS</Label>
-          <div className="flex gap-2">
-            <Input
-              id="target-ds-address"
-              placeholder="https://new-ds.example.com"
-              value={targetDsAddress}
-              onChange={(e) => setTargetDsAddress(e.target.value)}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={dsBusy || !targetDsAddress}
-              onClick={migrateDs}
-            >
-              migrate
-            </Button>
-          </div>
-          {dsMigrationProgress ? (
-            <p className="text-xs text-muted-foreground">{dsMigrationProgress}</p>
-          ) : null}
-          {dsMessage ? (
-            <p className="text-xs text-muted-foreground">{dsMessage}</p>
-          ) : null}
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="target-ds-address">Migrate DS</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="target-ds-address"
+                  placeholder="https://new-ds.example.com"
+                  value={targetDsAddress}
+                  onChange={(e) => setTargetDsAddress(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={dsBusy || !targetDsAddress}
+                  onClick={migrateDs}
+                >
+                  migrate
+                </Button>
+              </div>
+              {dsMigrationProgress ? (
+                <p className="text-xs text-muted-foreground">
+                  {dsMigrationProgress}
+                </p>
+              ) : null}
+              {dsMessage ? (
+                <p className="text-xs text-muted-foreground">{dsMessage}</p>
+              ) : null}
+            </div>
+          </>
+        ) : isSignedIn ? (
+          <p className="text-xs text-muted-foreground">
+            Custom DS is available for ATProto accounts only.
+          </p>
+        ) : null}
 
         <div className="flex items-center space-x-2">
           <Switch

@@ -263,7 +263,7 @@ export default function UserProfileButton({
   };
 
   useEffect(() => {
-    fetch("/api/atproto/session")
+    fetch("/api/atproto/session", { cache: "no-store" })
       .then((r) => r.json())
       .then(
         (data: {
