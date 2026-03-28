@@ -27,7 +27,6 @@ export default function Home() {
   const { isLoaded, isSignedIn } = useUser()
   const [hasSessionCookie, setHasSessionCookie] = useState(hasClerkSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
-  const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
   const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
   const [atprotoDs, setAtprotoDs] = useState<string | null>(null)
@@ -55,35 +54,21 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
-    fetch("/api/atproto/logout", { method: "POST" })
-      .catch(() => undefined)
-      .finally(() => setAtprotoLogoutDone(true))
-  }, [isLoaded, isSignedIn, atprotoLogoutDone])
-
-
-
-  useEffect(() => {
     let active = true
     const checkDbDataReady = async () => {
       try {
-        if (!isLoaded || !isSignedIn) {
-          const sessionRes = await fetch("/api/atproto/session", {
-            cache: "no-store",
-          })
-          const sessionData = await sessionRes
-            .json()
-            .catch(() => ({ signedIn: false })) as { signedIn?: boolean }
+        const sessionRes = await fetch("/api/atproto/session", {
+          cache: "no-store",
+        })
+        const sessionData = await sessionRes
+          .json()
+          .catch(() => ({ signedIn: false })) as { signedIn?: boolean }
 
-          if (active) {
-            setAtprotoSignedIn(!!sessionData.signedIn)
-          }
+        if (active) {
+          setAtprotoSignedIn(!!sessionData.signedIn)
+        }
 
-          if (!sessionData.signedIn) {
-            if (active) setDbReady(true)
-            return
-          }
-
+        if (sessionData.signedIn) {
           const dsRes = await fetch("/api/ds/config", { cache: "no-store" })
           const dsData = await dsRes
             .json()
@@ -100,6 +85,9 @@ export default function Home() {
               }),
             )
           }
+        } else if (!isSignedIn) {
+          if (active) setDbReady(true)
+          return
         }
 
         const response = await fetch("/api/blob", { cache: "no-store" })
