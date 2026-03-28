@@ -8,7 +8,7 @@ import { generateDpopKeyMaterial } from "@/lib/dpop";
 const ROSE_PDS_ORIGIN = "https://rose.madebydanny.uk";
 
 function getBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+  return request.nextUrl.origin;
 }
 
 export async function POST(request: NextRequest) {
