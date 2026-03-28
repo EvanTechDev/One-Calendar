@@ -11,7 +11,10 @@
     "build": "turbo build",
     "start": "turbo start --filter=web",
     "generate:locales": "turbo generate:locales --filter=@repo/i18n",
-    "generate:oauth-metadata": "turbo generate:oauth-metadata --filter=web"
+    "generate:oauth-metadata": "turbo generate:oauth-metadata --filter=web",
+    "dev:web": "turbo dev --filter=web",
+    "dev:ds": "turbo dev --filter=ds",
+    "start:ds": "turbo start --filter=ds"
   },
   "devDependencies": {
     "turbo": "^2.5.8"

@@ -101,6 +101,7 @@ This project is built for individuals and small teams who value clarity over com
 This repository uses a standard **Turborepo** layout:
 
 - `apps/web`: Next.js application
+- `apps/ds`: decentralized storage server (Next.js API + PostgreSQL)
 - `packages/config`: shared ts/postcss/tailwind config
 - `packages/ui`: shared shadcn ui components
 - `packages/i18n`: locales + i18n runtime helpers
@@ -111,6 +112,9 @@ Useful commands:
 ```bash
 # run the web app through Turbo
 bun run dev
+
+# run decentralized storage server
+bun run dev:ds
 
 # build all workspaces
 bun run build
