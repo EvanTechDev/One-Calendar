@@ -19,6 +19,8 @@ export default function Home() {
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
+  const [atprotoDs, setAtprotoDs] = useState<string | null>(null)
 
   useEffect(() => {
     const waitTimer = window.setTimeout(() => {
@@ -50,14 +52,40 @@ export default function Home() {
   useEffect(() => {
     if (!isLoaded) return
 
-    if (!isSignedIn) {
-      setDbReady(true)
-      return
-    }
-
     let active = true
     const checkDbDataReady = async () => {
       try {
+        if (!isSignedIn) {
+          const sessionRes = await fetch("/api/atproto/session", {
+            cache: "no-store",
+          })
+          const sessionData = await sessionRes
+            .json()
+            .catch(() => ({ signedIn: false })) as { signedIn?: boolean }
+
+          if (active) {
+            setAtprotoSignedIn(!!sessionData.signedIn)
+          }
+
+          if (!sessionData.signedIn) {
+            if (active) setDbReady(true)
+            return
+          }
+
+          const dsRes = await fetch("/api/ds/config", { cache: "no-store" })
+          const dsData = await dsRes
+            .json()
+            .catch(() => ({ ds: null })) as { ds?: string | null }
+          if (active) {
+            setAtprotoDs(dsData.ds || null)
+            window.dispatchEvent(
+              new CustomEvent("atproto-ds-updated", {
+                detail: { ds: dsData.ds || null },
+              }),
+            )
+          }
+        }
+
         const response = await fetch("/api/blob", { cache: "no-store" })
         if (!active) return
         if (response.status === 200 || response.status === 404) {
