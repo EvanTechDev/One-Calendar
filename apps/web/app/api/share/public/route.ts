@@ -111,20 +111,10 @@ export async function GET(request: NextRequest) {
     | null = null;
 
   if (ds) {
-    const appToken = process.env.DS_APP_TOKEN;
-    if (!appToken) {
-      return NextResponse.json(
-        { error: "DS_APP_TOKEN is not configured" },
-        { status: 500 },
-      );
-    }
     const dsRes = await fetch(
       `${ds.replace(/\/$/, "")}/api/share/${encodeURIComponent(id)}`,
       {
         cache: "no-store",
-        headers: {
-          "x-app-token": appToken,
-        },
       },
     );
     if (dsRes.status === 404) {

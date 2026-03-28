@@ -25,18 +25,11 @@ export default async function ShareByDidPage({
   if (!ds) {
     notFound();
   }
-  const appToken = process.env.DS_APP_TOKEN;
-  if (!appToken) {
-    notFound();
-  }
 
   const shareRes = await fetch(
     `${ds.replace(/\/$/, "")}/api/share/${encodeURIComponent(shareId)}`,
     {
       cache: "no-store",
-      headers: {
-        "x-app-token": appToken,
-      },
     },
   );
 

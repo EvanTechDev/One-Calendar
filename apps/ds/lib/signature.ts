@@ -16,6 +16,29 @@ function createPayload(method: string, path: string, timestamp: string, body: st
   return `${method.toUpperCase()}\n${path}\n${timestamp}\n${digest(body)}`;
 }
 
+function trimInteger(bytes: Buffer) {
+  let i = 0;
+  while (i < bytes.length - 1 && bytes[i] === 0) i += 1;
+  let out = bytes.slice(i);
+  if (out[0] & 0x80) {
+    out = Buffer.concat([Buffer.from([0]), out]);
+  }
+  return out;
+}
+
+function p1363ToDer(signature: Buffer) {
+  if (signature.length !== 64) return null;
+  const r = trimInteger(signature.subarray(0, 32));
+  const s = trimInteger(signature.subarray(32, 64));
+  const sequenceLength = 2 + r.length + 2 + s.length;
+  return Buffer.concat([
+    Buffer.from([0x30, sequenceLength, 0x02, r.length]),
+    r,
+    Buffer.from([0x02, s.length]),
+    s,
+  ]);
+}
+
 async function resolveDidPublicKey(did: string) {
   const res = await fetch(`https://plc.directory/${encodeURIComponent(did)}`, {
     cache: "no-store",
@@ -31,15 +54,6 @@ async function resolveDidPublicKey(did: string) {
 }
 
 export async function requireSignedRequest(request: Request, body = "") {
-  const appToken = process.env.DS_APP_TOKEN;
-  if (!appToken) {
-    throw new Error("DS_APP_TOKEN is not configured");
-  }
-  const incomingToken = request.headers.get("x-app-token");
-  if (incomingToken !== appToken) {
-    throw new Error("Invalid app token");
-  }
-
   const did = request.headers.get("x-did");
   const timestamp = request.headers.get("x-timestamp");
   const signatureHeader = request.headers.get("x-signature");
@@ -61,6 +75,11 @@ export async function requireSignedRequest(request: Request, body = "") {
     .replace(/^base64:/, "")
     .replace(/ /g, "+");
   const signature = Buffer.from(encodedSignature, "base64url");
+  const signatureCandidates = [signature];
+  const derFromP1363 = p1363ToDer(signature);
+  if (derFromP1363) {
+    signatureCandidates.push(derFromP1363);
+  }
 
   let ok = false;
   const dpopJwkHeader = request.headers.get("x-dpop-jwk");
@@ -68,7 +87,9 @@ export async function requireSignedRequest(request: Request, body = "") {
     try {
       const jwk = JSON.parse(dpopJwkHeader);
       const key = createPublicKey({ key: jwk, format: "jwk" });
-      ok = verifyNode("sha256", Buffer.from(payload, "utf8"), key, signature);
+      ok = signatureCandidates.some((candidate) =>
+        verifyNode("sha256", Buffer.from(payload, "utf8"), key, candidate),
+      );
     } catch {
       ok = false;
     }

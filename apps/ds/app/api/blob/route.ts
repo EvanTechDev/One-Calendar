@@ -8,7 +8,6 @@ function statusForError(error: unknown) {
     message.includes("Missing signature headers") ||
     message.includes("Expired timestamp") ||
     message.includes("Invalid signature") ||
-    message.includes("Invalid app token") ||
     message.includes("Failed to resolve DID") ||
     message.includes("Missing DID public key")
   ) {

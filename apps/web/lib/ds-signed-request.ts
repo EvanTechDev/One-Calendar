@@ -44,11 +44,6 @@ export async function signedDsFetch(params: {
     "x-signature": signature,
     "x-dpop-jwk": JSON.stringify(params.session.dpopPublicJwk),
   };
-  const appToken = process.env.DS_APP_TOKEN;
-  if (!appToken) {
-    throw new Error("DS_APP_TOKEN is not configured");
-  }
-  headers["x-app-token"] = appToken;
 
   if (params.method !== "GET") {
     headers["Content-Type"] = "application/json";
