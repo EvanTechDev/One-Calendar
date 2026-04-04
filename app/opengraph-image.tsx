@@ -8,6 +8,8 @@ export const size = {
 
 export const contentType = "image/png"
 
+const iconUrl = new URL("../public/icon.svg", import.meta.url).toString()
+
 export default function OpenGraphImage() {
   return new ImageResponse(
     (
@@ -25,7 +27,7 @@ export default function OpenGraphImage() {
         }}
       >
         <img
-          src="/icon.svg"
+          src={iconUrl}
           width={120}
           height={120}
           alt="One Calendar icon"
