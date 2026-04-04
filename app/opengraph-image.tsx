@@ -8,7 +8,32 @@ export const size = {
 
 export const contentType = "image/png"
 
-export default function OpenGraphImage() {
+let instrumentSans500Promise: Promise<ArrayBuffer> | null = null
+
+async function loadInstrumentSans500() {
+  if (!instrumentSans500Promise) {
+    instrumentSans500Promise = (async () => {
+      const cssResponse = await fetch(
+        "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500&display=swap",
+      )
+      const css = await cssResponse.text()
+      const fontUrlMatch = css.match(/src: url\(([^)]+)\) format\('(opentype|truetype|woff2)'\)/)
+
+      if (!fontUrlMatch?.[1]) {
+        throw new Error("Unable to resolve Instrument Sans font URL")
+      }
+
+      const fontResponse = await fetch(fontUrlMatch[1])
+      return fontResponse.arrayBuffer()
+    })()
+  }
+
+  return instrumentSans500Promise
+}
+
+export default async function OpenGraphImage() {
+  const instrumentSans500 = await loadInstrumentSans500()
+
   return new ImageResponse(
     (
       <div
@@ -44,8 +69,8 @@ export default function OpenGraphImage() {
         <div
           style={{
             fontSize: 72,
-            fontWeight: 400,
-            fontFamily: '"Instrument Sans", sans-serif',
+            fontWeight: 500,
+            fontFamily: "Instrument Sans",
             lineHeight: 1.1,
           }}
         >
@@ -55,6 +80,14 @@ export default function OpenGraphImage() {
     ),
     {
       ...size,
+      fonts: [
+        {
+          name: "Instrument Sans",
+          data: instrumentSans500,
+          style: "normal",
+          weight: 500,
+        },
+      ],
     },
   )
 }
