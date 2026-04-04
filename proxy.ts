@@ -7,7 +7,6 @@ export default clerkMiddleware({
     "/sign-in",
     "/sign-up",
     "/reset-password",
-    "/api/blob",
     "/api/share",
     "/api/verify",
     "/at-oauth",
