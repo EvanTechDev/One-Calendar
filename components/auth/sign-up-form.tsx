@@ -142,6 +142,10 @@ export function SignUpForm({
 
     const redirect =
       signUp.authenticateWithRedirect ??
+      (signUp as unknown as {
+        authenticateWIthRedirect?: typeof signUp.authenticateWithRedirect;
+        authWithRedirect?: typeof signUp.authenticateWithRedirect;
+      }).authenticateWIthRedirect ??
       (signUp as unknown as { authWithRedirect?: typeof signUp.authenticateWithRedirect })
         .authWithRedirect;
 

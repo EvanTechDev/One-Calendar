@@ -19,7 +19,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { signIn, setActive } = useSignIn();
+  const { isLoaded, signIn, setActive } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -95,13 +95,42 @@ export function LoginForm({
     }
   };
 
+
+  const getOAuthRedirect = () => {
+    if (!signIn) return null;
+
+    const candidate = (signIn as unknown as {
+      authenticateWithRedirect?: typeof signIn.authenticateWithRedirect;
+      authenticateWIthRedirect?: typeof signIn.authenticateWithRedirect;
+      authWithRedirect?: typeof signIn.authenticateWithRedirect;
+    });
+
+    return (
+      candidate.authenticateWithRedirect ??
+      candidate.authenticateWIthRedirect ??
+      candidate.authWithRedirect ??
+      null
+    );
+  };
+
   const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    signIn.authenticateWithRedirect({
+    if (!isLoaded || !signIn) {
+      setError("Auth service is still loading. Please try again in a moment.");
+      return;
+    }
+
+    const redirect = getOAuthRedirect();
+    if (!redirect) {
+      setError("OAuth is unavailable right now. Please refresh and try again.");
+      return;
+    }
+
+    redirect.call(signIn, {
       strategy,
       redirectUrl: "/sign-in/sso-callback",
       redirectUrlComplete: "/app",
