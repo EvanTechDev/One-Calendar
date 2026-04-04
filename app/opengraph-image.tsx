@@ -8,31 +8,38 @@ export const size = {
 
 export const contentType = "image/png"
 
-let instrumentSans500Promise: Promise<ArrayBuffer> | null = null
+const instrumentSansPromises = new Map<number, Promise<ArrayBuffer>>()
 
-async function loadInstrumentSans500() {
-  if (!instrumentSans500Promise) {
-    instrumentSans500Promise = (async () => {
-      const cssResponse = await fetch(
-        "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500&display=swap",
-      )
-      const css = await cssResponse.text()
-      const fontUrlMatch = css.match(/src: url\(([^)]+)\) format\('(opentype|truetype|woff2)'\)/)
-
-      if (!fontUrlMatch?.[1]) {
-        throw new Error("Unable to resolve Instrument Sans font URL")
-      }
-
-      const fontResponse = await fetch(fontUrlMatch[1])
-      return fontResponse.arrayBuffer()
-    })()
+async function loadInstrumentSans(weight: 400 | 500) {
+  const cached = instrumentSansPromises.get(weight)
+  if (cached) {
+    return cached
   }
 
-  return instrumentSans500Promise
+  const promise = (async () => {
+    const cssResponse = await fetch(
+      `https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@${weight}&display=swap`,
+    )
+    const css = await cssResponse.text()
+    const fontUrlMatch = css.match(/src: url\(([^)]+)\) format\('(opentype|truetype|woff2)'\)/)
+
+    if (!fontUrlMatch?.[1]) {
+      throw new Error(`Unable to resolve Instrument Sans ${weight} font URL`)
+    }
+
+    const fontResponse = await fetch(fontUrlMatch[1])
+    return fontResponse.arrayBuffer()
+  })()
+
+  instrumentSansPromises.set(weight, promise)
+  return promise
 }
 
 export default async function OpenGraphImage() {
-  const instrumentSans500 = await loadInstrumentSans500()
+  const [instrumentSans400, instrumentSans500] = await Promise.all([
+    loadInstrumentSans(400),
+    loadInstrumentSans(500),
+  ])
 
   return new ImageResponse(
     (
@@ -87,8 +94,8 @@ export default async function OpenGraphImage() {
           </div>
           <div
             style={{
-              fontSize: 32,
-              fontWeight: 500,
+              fontSize: 36,
+              fontWeight: 400,
               fontFamily: "Instrument Sans",
               lineHeight: 1.2,
             }}
@@ -101,6 +108,12 @@ export default async function OpenGraphImage() {
     {
       ...size,
       fonts: [
+        {
+          name: "Instrument Sans",
+          data: instrumentSans400,
+          style: "normal",
+          weight: 400,
+        },
         {
           name: "Instrument Sans",
           data: instrumentSans500,
