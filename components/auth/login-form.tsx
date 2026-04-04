@@ -101,13 +101,11 @@ export function LoginForm({
 
     const candidate = (signIn as unknown as {
       authenticateWithRedirect?: typeof signIn.authenticateWithRedirect;
-      authenticateWIthRedirect?: typeof signIn.authenticateWithRedirect;
       authWithRedirect?: typeof signIn.authenticateWithRedirect;
     });
 
     return (
       candidate.authenticateWithRedirect ??
-      candidate.authenticateWIthRedirect ??
       candidate.authWithRedirect ??
       null
     );
