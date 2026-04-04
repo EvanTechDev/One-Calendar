@@ -19,7 +19,7 @@ export default function OpenGraphImage() {
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
-          justifyContent: "flex-start",
+          justifyContent: "space-between",
           padding: "72px",
           color: "#000000",
         }}
@@ -29,7 +29,6 @@ export default function OpenGraphImage() {
           height="120"
           viewBox="0 0 1000 1000"
           xmlns="http://www.w3.org/2000/svg"
-          style={{ marginBottom: "24px" }}
         >
           <g transform="translate(0,1000) scale(0.1,-0.1)" fill="#000000" stroke="none">
             <path d="M4960 8206 c-87 -24 -164 -70 -231 -136 -101 -101 -149 -217 -149 -360 0 -144 48 -259 150 -360 102 -102 218 -150 360 -150 140 0 264 53 365 156 194 198 194 508 0 709 -67 69 -165 125 -253 144 -68 14 -184 13 -242 -3z" />
