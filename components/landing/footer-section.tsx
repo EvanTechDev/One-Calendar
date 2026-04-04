@@ -8,7 +8,8 @@ const footerSections = [
     title: "Product",
     links: [
       { label: "Overview", href: "#features" },
-      { label: "About", href: "/about" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
     ],
   },
   {

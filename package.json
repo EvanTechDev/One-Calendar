@@ -50,7 +50,7 @@
     "input-otp": "1.4.2",
     "lucide-react": "latest",
     "motion": "latest",
-    "next": "16.2.1",
+    "next": "16.2.2",
     "next-themes": "latest",
     "pg": "latest",
     "qr-code-styling": "latest",
@@ -60,22 +60,23 @@
     "react-dom": "^18",
     "react-hook-form": "^7.54.1",
     "react-markdown": "latest",
-    "react-resizable-panels": "^2.1.7",
-    "recharts": "3.7.0",
+    "react-resizable-panels": "4.9.0",
+    "recharts": "3.8.1",
     "remark-gfm": "latest",
     "sonner": "2.0.7",
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "1.1.2",
-    "zod": "4.3.6"
+    "zod": "4.3.6",
+    "react-icons": "5.5.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.2.1",
-    "@types/node": "25.2.3",
+    "@tailwindcss/postcss": "4.2.2",
+    "@types/node": "25.5.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "postcss": "8.5.6",
-    "tailwindcss": "4.2.1",
-    "typescript": "5.9.3"
+    "postcss": "8.5.8",
+    "tailwindcss": "4.2.2",
+    "typescript": "6.0.2"
   }
 }
