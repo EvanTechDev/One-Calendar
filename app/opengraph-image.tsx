@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og"
-import { APP_TITLE } from "@/app/layout"
+import { APP_SUBTITLE, APP_TITLE } from "@/app/layout"
 
 export const size = {
   width: 1200,
@@ -68,13 +68,33 @@ export default async function OpenGraphImage() {
         </svg>
         <div
           style={{
-            fontSize: 72,
-            fontWeight: 500,
-            fontFamily: "Instrument Sans",
-            lineHeight: 1.1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "12px",
+            marginBottom: "20px",
           }}
         >
-          {APP_TITLE}
+          <div
+            style={{
+              fontSize: 72,
+              fontWeight: 500,
+              fontFamily: "Instrument Sans",
+              lineHeight: 1.1,
+            }}
+          >
+            {APP_TITLE}
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 500,
+              fontFamily: "Instrument Sans",
+              lineHeight: 1.2,
+            }}
+          >
+            {APP_SUBTITLE}
+          </div>
         </div>
       </div>
     ),

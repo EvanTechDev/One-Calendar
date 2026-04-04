@@ -27,21 +27,22 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const APP_TITLE = "One Calendar"
+export const APP_SUBTITLE = "Your life, stay safe."
 
 export const metadata: Metadata = {
   title: APP_TITLE,
-  description: "All your events in one place, beautifully organized.",
+  description: APP_SUBTITLE,
   manifest: "/manifest.webmanifest",
   openGraph: {
     title: APP_TITLE,
-    description: "All your events in one place, beautifully organized.",
+    description: APP_SUBTITLE,
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
     site: "@One__Cal",
     title: APP_TITLE,
-    description: "All your events in one place, beautifully organized.",
+    description: APP_SUBTITLE,
   },
 }
 
