@@ -26,36 +26,22 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
 })
 
+export const APP_TITLE = "One Calendar"
+
 export const metadata: Metadata = {
-  title: "One Calendar",
+  title: APP_TITLE,
   description: "All your events in one place, beautifully organized.",
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "One Calendar",
+    title: APP_TITLE,
     description: "All your events in one place, beautifully organized.",
     url: "/",
-    images: [
-      {
-        url: "https://calendar.xyehr.cn/og.png",
-        width: 1200,
-        height: 630,
-        alt: "PreviewImage",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     site: "@One__Cal",
-    title: "One Calendar",
+    title: APP_TITLE,
     description: "All your events in one place, beautifully organized.",
-    images: [
-      {
-        url: `https://calendar.xyehr.cn/og.png`,
-        width: 1200,
-        height: 630,
-        alt: "Preview",
-      },
-    ],
   },
 }
 
