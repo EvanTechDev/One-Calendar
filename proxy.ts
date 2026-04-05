@@ -12,11 +12,13 @@ const isPublicRoute = createRouteMatcher([
   "/api/atproto/(.*)",
   "/oauth-client-metadata.json",
   "/api/share/public",
+  "/privacy",
+  "/terms",
 ])
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    await auth.protect()
+    await auth.protect({ unauthenticatedUrl: "/sign-in" })
   }
 })
 
