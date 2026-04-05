@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUp } from "@clerk/nextjs";
@@ -14,7 +14,7 @@ export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { signUp } = useSignUp();
   const router = useRouter();
   const [step, setStep] = useState<"initial" | "verification">("initial");
   const [formData, setFormData] = useState({
@@ -135,14 +135,11 @@ export function SignUpForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    if (!isLoaded || !signUp) {
-      return;
-    }
     signUp
-      .authenticateWithRedirect({
+      .sso({
         strategy,
-        redirectUrl: "/sign-up/sso-callback",
-        redirectUrlComplete: "/app",
+        redirectUrl: "/app",
+        redirectCallbackUrl: "/sign-up/sso-callback",
       })
       .catch((err: any) => {
         setError(err.errors?.[0]?.longMessage || "OAuth sign up failed. Please try again.");
@@ -160,10 +157,6 @@ export function SignUpForm({
     setError("");
 
     try {
-      if (!isLoaded || !signUp) {
-        return;
-      }
-
       if (step === "initial") {
         if (!isEmailDomainAllowed(formData.email)) {
           setError(
@@ -173,21 +166,46 @@ export function SignUpForm({
           return;
         }
 
-        await signUp.create({
+        const { error: passwordError } = await signUp.password({
           firstName: formData.firstName,
           lastName: formData.lastName,
           emailAddress: formData.email,
           password: formData.password,
         });
-        await signUp.prepareEmailAddressVerification();
+        if (passwordError) {
+          setError(
+            passwordError.longMessage || passwordError.message || "An error occurred. Please try again.",
+          );
+          return;
+        }
+        await signUp.verifications.sendEmailCode();
         setStep("verification");
       } else {
-        const completeSignUp = await signUp.attemptEmailAddressVerification({
+        const { error: verifyError } = await signUp.verifications.verifyEmailCode({
           code: formData.code,
         });
-        if (completeSignUp.status === "complete") {
-          await setActive({ session: completeSignUp.createdSessionId });
-          router.push("/app");
+        if (verifyError) {
+          setError(
+            verifyError.longMessage || verifyError.message || "An error occurred. Please try again.",
+          );
+          return;
+        }
+        if (signUp.status === "complete") {
+          const { error: finalizeError } = await signUp.finalize({
+            navigate: ({ decorateUrl }) => {
+              const url = decorateUrl("/app");
+              if (url.startsWith("http")) {
+                window.location.href = url;
+                return;
+              }
+              router.push(url);
+            },
+          });
+          if (finalizeError) {
+            setError(
+              finalizeError.longMessage || finalizeError.message || "An error occurred. Please try again.",
+            );
+          }
         }
       }
     } catch (err: any) {
@@ -251,7 +269,7 @@ export function SignUpForm({
                     type="button"
                     onClick={async () => {
                       try {
-                        await signUp?.prepareEmailAddressVerification();
+                        await signUp.verifications.sendEmailCode();
                       } catch (err) {
                         setError("Failed to resend code. Please try again.");
                       }
@@ -271,6 +289,7 @@ export function SignUpForm({
   }
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasCaptcha = Boolean(siteKey);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -286,7 +305,6 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_microsoft")}
                 >
                   <svg
@@ -306,7 +324,6 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_google")}
                 >
                   <svg
@@ -339,7 +356,6 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_github")}
                 >
                   <svg
@@ -412,11 +428,11 @@ export function SignUpForm({
                     value={formData.password}
                     onChange={handleChange}
                   />
-                  {siteKey ? (
+                  {hasCaptcha ? (
                     <div className="turnstile-container">
                       <Turnstile
                         ref={turnstileRef}
-                        siteKey={siteKey}
+                        siteKey={siteKey!}
                         onSuccess={handleTurnstileSuccess}
                         onError={() => {
                           console.error("Turnstile widget error");
@@ -442,9 +458,9 @@ export function SignUpForm({
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={!isLoaded || (siteKey && (!isCaptchaCompleted || isLoading))}
+                  disabled={hasCaptcha ? !isCaptchaCompleted || isLoading : isLoading}
                 >
-                  {!isLoaded ? "Loading auth..." : isLoading ? "Creating account..." : "Create account"}
+                  {isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </div>
 

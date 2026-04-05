@@ -20,7 +20,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { signIn, setActive } = useSignIn();
+  const { signIn } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -74,14 +74,29 @@ export function LoginForm({
     setError("");
 
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const { error } = await signIn.password({
+        emailAddress: email,
         password,
       });
+      if (error) {
+        setError(error.longMessage || error.message || "Login failed. Please try again.");
+        return;
+      }
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/");
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl("/");
+            if (url.startsWith("http")) {
+              window.location.href = url;
+              return;
+            }
+            router.push(url);
+          },
+        });
+        if (finalizeError) {
+          setError(finalizeError.longMessage || finalizeError.message || "Login failed. Please try again.");
+        }
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
@@ -102,14 +117,15 @@ export function LoginForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    signIn.authenticateWithRedirect({
+    signIn.sso({
       strategy,
-      redirectUrl: "/sign-in/sso-callback",
-      redirectUrlComplete: "/",
+      redirectUrl: "/",
+      redirectCallbackUrl: "/sign-in/sso-callback",
     });
   };
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasCaptcha = Boolean(siteKey);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -203,11 +219,11 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
-                {siteKey && (
+                {hasCaptcha && (
                     <div className="turnstile-container">
                       <Turnstile
                         ref={turnstileRef}
-                        siteKey={siteKey}
+                        siteKey={siteKey!}
                         onSuccess={handleTurnstileSuccess}
                         onError={() => {
                           console.error("Turnstile widget error");
@@ -224,7 +240,7 @@ export function LoginForm({
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
+                  disabled={hasCaptcha ? !isCaptchaCompleted || isLoading : isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign in"}
                 </Button>

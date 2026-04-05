@@ -66,8 +66,10 @@ export default function RootLayout({
         <ClerkProvider
           publishableKey={clerkPublishableKey}
           localization={enUS}
-          fallbackRedirectUrl="/"
-          forceRedirectUrl="/"
+          signInFallbackRedirectUrl="/app"
+          signUpFallbackRedirectUrl="/app"
+          signInForceRedirectUrl="/"
+          signUpForceRedirectUrl="/"
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
         >
