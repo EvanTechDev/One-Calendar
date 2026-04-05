@@ -523,6 +523,9 @@ export default function EventPreview({
             sideOffset={12}
             className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
             onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+              if (!modal) e.preventDefault();
+            }}
           >
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />

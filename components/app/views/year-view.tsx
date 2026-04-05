@@ -218,7 +218,6 @@ export default function YearView({
                                   event.color,
                                 )}
                                 onClick={(e) => {
-                                  setOpenDayKey(null);
                                   onEventClick(event, e.currentTarget);
                                 }}
                                 style={{
