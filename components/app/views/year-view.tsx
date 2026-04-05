@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { isZhLanguage, translations, type Language } from "@/lib/i18n";
 import type { CalendarEvent } from "../calendar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface YearViewProps {
@@ -26,6 +26,7 @@ interface YearViewProps {
   firstDayOfWeek: number;
   isSidebarCollapsed?: boolean;
   isSidebarExpanding?: boolean;
+  eventPreviewOpen?: boolean;
 }
 
 function getDarkerColorClass(color: string) {
@@ -66,6 +67,7 @@ export default function YearView({
   firstDayOfWeek,
   isSidebarCollapsed = false,
   isSidebarExpanding = false,
+  eventPreviewOpen = false,
 }: YearViewProps) {
   const t = translations[language];
   const currentYear = date.getFullYear();
@@ -136,6 +138,12 @@ export default function YearView({
     [currentYear, firstDayOfWeek, t.months],
   );
 
+  useEffect(() => {
+    if (eventPreviewOpen && openDayKey !== null) {
+      setOpenDayKey(null);
+    }
+  }, [eventPreviewOpen, openDayKey]);
+
   return (
     <div className="p-3 md:p-4">
       <div
@@ -174,9 +182,9 @@ export default function YearView({
                 return (
                   <Popover
                     key={`${month.label}-${day.toISOString()}`}
-                    open={openDayKey === popoverKey}
+                    open={!eventPreviewOpen && openDayKey === popoverKey}
                     onOpenChange={(open) =>
-                      setOpenDayKey(open ? popoverKey : null)
+                      setOpenDayKey(open && !eventPreviewOpen ? popoverKey : null)
                     }
                   >
                     <PopoverTrigger asChild>
