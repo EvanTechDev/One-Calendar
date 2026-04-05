@@ -219,7 +219,7 @@ export default function EventPreview({
       imageOptions: {
         hideBackgroundDots: true,
         imageSize: 0.4,
-        margin: 2,
+        margin: 10,
         crossOrigin: "anonymous",
       },
     });
@@ -348,7 +348,7 @@ export default function EventPreview({
             imageOptions: {
               hideBackgroundDots: true,
               imageSize: 0.4,
-              margin: 2,
+              margin: 10,
             },
           });
           const qrBlob = await qrCode.getRawData("png");

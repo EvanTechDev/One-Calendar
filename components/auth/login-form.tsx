@@ -19,7 +19,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { signIn, setActive } = useSignIn();
+  const { isLoaded, signIn, setActive } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +73,11 @@ export function LoginForm({
     setError("");
 
     try {
+      if (!isLoaded || !signIn) {
+        setError("Auth service is still loading. Please try again in a moment.");
+        return;
+      }
+
       const result = await signIn.create({
         identifier: email,
         password,
@@ -80,7 +85,9 @@ export function LoginForm({
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/app");
+        router.replace("/app");
+        router.refresh();
+        window.location.href = "/app";
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
@@ -101,7 +108,24 @@ export function LoginForm({
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    signIn.authenticateWithRedirect({
+    if (!isLoaded || !signIn) {
+      setError("Auth service is still loading. Please try again in a moment.");
+      return;
+    }
+
+    const redirect =
+      signIn.authenticateWithRedirect ??
+      (signIn as unknown as { authWithRedirect?: typeof signIn.authenticateWithRedirect })
+        .authWithRedirect ??
+      (signIn as unknown as { authenticatorWithRedirect?: typeof signIn.authenticateWithRedirect })
+        .authenticatorWithRedirect;
+
+    if (!redirect) {
+      setError("OAuth is unavailable right now. Please refresh and try again.");
+      return;
+    }
+
+    redirect.call(signIn, {
       strategy,
       redirectUrl: "/sign-in/sso-callback",
       redirectUrlComplete: "/app",
