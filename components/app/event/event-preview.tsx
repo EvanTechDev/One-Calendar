@@ -516,7 +516,7 @@ export default function EventPreview({
   return (
     <>
       {!shareOnlyMode && (
-        <Popover open={open} onOpenChange={onOpenChange}>
+        <Popover open={open} onOpenChange={onOpenChange} modal={false}>
           <PopoverAnchor asChild>
             <div style={anchorStyle} />
           </PopoverAnchor>
