@@ -472,28 +472,6 @@ export default function EventPreview({
     onDelete();
   };
 
-  const anchorStyle: React.CSSProperties = liveAnchorRect
-    ? {
-        position: "fixed",
-        left: liveAnchorRect.left + liveAnchorRect.width / 2,
-        top: liveAnchorRect.top + liveAnchorRect.height / 2,
-        width: 0,
-        height: 0,
-        pointerEvents: "none",
-      }
-    : {
-        position: "fixed",
-        left:
-          typeof window === "undefined" ? 0 : Math.round(window.innerWidth / 2),
-        top:
-          typeof window === "undefined"
-            ? 0
-            : Math.round(window.innerHeight / 2),
-        width: 0,
-        height: 0,
-        pointerEvents: "none",
-      };
-
   const popoverSide: "top" | "right" | "bottom" | "left" = liveAnchorRect
     ? (() => {
         const viewportWidth =
@@ -506,12 +484,51 @@ export default function EventPreview({
           bottom: viewportHeight - liveAnchorRect.bottom,
           left: liveAnchorRect.left,
         };
+        const estimatedWidth = 460;
+        const estimatedHeight = 520;
+        if (spaces.right >= estimatedWidth) return "right";
+        if (spaces.left >= estimatedWidth) return "left";
+        if (spaces.bottom >= estimatedHeight) return "bottom";
+        if (spaces.top >= estimatedHeight) return "top";
         const entries = Object.entries(spaces) as Array<
           ["top" | "right" | "bottom" | "left", number]
         >;
         return entries.sort((a, b) => b[1] - a[1])[0][0];
       })()
     : "bottom";
+
+  const anchorStyle: React.CSSProperties = (() => {
+    if (liveAnchorRect) {
+      const midX = liveAnchorRect.left + liveAnchorRect.width / 2;
+      const midY = liveAnchorRect.top + liveAnchorRect.height / 2;
+      const edgePoint =
+        popoverSide === "right"
+          ? { left: liveAnchorRect.right, top: midY }
+          : popoverSide === "left"
+            ? { left: liveAnchorRect.left, top: midY }
+            : popoverSide === "top"
+              ? { left: midX, top: liveAnchorRect.top }
+              : { left: midX, top: liveAnchorRect.bottom };
+      return {
+        position: "fixed",
+        left: edgePoint.left,
+        top: edgePoint.top,
+        width: 0,
+        height: 0,
+        pointerEvents: "none",
+      };
+    }
+
+    return {
+      position: "fixed",
+      left: typeof window === "undefined" ? 0 : Math.round(window.innerWidth / 2),
+      top:
+        typeof window === "undefined" ? 0 : Math.round(window.innerHeight / 2),
+      width: 0,
+      height: 0,
+      pointerEvents: "none",
+    };
+  })();
 
   return (
     <>
