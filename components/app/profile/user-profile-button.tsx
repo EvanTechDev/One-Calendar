@@ -252,6 +252,7 @@ export default function UserProfileButton({
 
   const keyRef = useRef<string | null>(null);
   const restoredRef = useRef(false);
+  const skipNextAutoBackupRef = useRef(false);
   const timerRef = useRef<any>(null);
   const [backupTick, setBackupTick] = useState(0);
 
@@ -331,6 +332,10 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (!enabled || !keyRef.current || !restoredRef.current) return;
+    if (skipNextAutoBackupRef.current) {
+      skipNextAutoBackupRef.current = false;
+      return;
+    }
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(async () => {
@@ -527,6 +532,7 @@ export default function UserProfileButton({
 
       keyRef.current = password;
       restoredRef.current = true;
+      skipNextAutoBackupRef.current = true;
       localStorage.setItem(AUTO_KEY, "true");
       setEnabled(true);
       broadcastBackupStatus("done");
