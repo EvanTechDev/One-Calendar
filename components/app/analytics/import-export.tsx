@@ -8,13 +8,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -737,15 +730,15 @@ END:VEVENT
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <div className="w-full rounded-lg border p-4 space-y-6">
+      <div>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>{t.importExport}</CardTitle>
-            <CardDescription>
+            <h2 className="text-base font-semibold">{t.importExport}</h2>
+            <p className="text-sm text-muted-foreground">
               {t.importExportDesc ||
                 "Exchange data with other calendar applications"}
-            </CardDescription>
+            </p>
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
@@ -758,9 +751,9 @@ END:VEVENT
             </Button>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent>
+      <div>
         <div className="space-y-6">
           <Alert>
             <AlertCircle className="h-4 w-4" />
@@ -778,7 +771,7 @@ END:VEVENT
             </ul>
           </div>
         </div>
-      </CardContent>
+      </div>
 
       {}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
@@ -1027,6 +1020,6 @@ END:VEVENT
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

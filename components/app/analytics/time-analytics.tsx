@@ -19,13 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics";
 import type { CalendarCategory } from "../sidebar/sidebar";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -168,14 +161,14 @@ export default function TimeAnalyticsComponent({
   })();
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <div className="w-full rounded-lg border p-4 space-y-6">
+      <div>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle>{t.timeAnalytics}</CardTitle>
-            <CardDescription>
+            <h2 className="text-base font-semibold">{t.timeAnalytics}</h2>
+            <p className="text-sm text-muted-foreground">
               {t.timeAnalyticsDesc || "Analyze how you spend your time"}
-            </CardDescription>
+            </p>
           </div>
           <Select
             value={timeRange}
@@ -195,8 +188,8 @@ export default function TimeAnalyticsComponent({
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="text-lg font-medium mb-2">{t.timeDistribution}</h3>
@@ -252,84 +245,70 @@ export default function TimeAnalyticsComponent({
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.totalEvents}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.totalEvents}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.mostProductiveDay}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.mostProductiveDay
-                    ? new Date(analytics.mostProductiveDay).toLocaleDateString()
-                    : t.noData}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">{t.mostProductiveHour}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.mostProductiveHour !== undefined
-                    ? `${analytics.mostProductiveHour}:00`
-                    : t.noData}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">{t.totalEvents}</h3>
+              <p className="text-3xl font-bold mt-2">{analytics.totalEvents}</p>
+            </div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">{t.mostProductiveDay}</h3>
+              <p className="text-3xl font-bold mt-2">
+                {analytics.mostProductiveDay
+                  ? new Date(analytics.mostProductiveDay).toLocaleDateString()
+                  : t.noData}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">{t.mostProductiveHour}</h3>
+              <p className="text-3xl font-bold mt-2">
+                {analytics.mostProductiveHour !== undefined
+                  ? `${analytics.mostProductiveHour}:00`
+                  : t.noData}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">
-                  {t.totalHours || "Total Hours"}
-                </h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.totalHours.toFixed(1)}h
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">
-                  {t.averageEventDuration || "Average Event Duration"}
-                </h3>
-                <p className="text-3xl font-bold mt-2">
-                  {analytics.averageEventDuration.toFixed(1)}h
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">
-                  {t.busiestCategory || "Busiest Category"}
-                </h3>
-                <p className="text-2xl font-bold mt-2">
-                  {busiestCategoryName || t.noData}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t.activeDays || "Active Days"}: {analytics.activeDays}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">
+                {t.totalHours || "Total Hours"}
+              </h3>
+              <p className="text-3xl font-bold mt-2">
+                {analytics.totalHours.toFixed(1)}h
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">
+                {t.averageEventDuration || "Average Event Duration"}
+              </h3>
+              <p className="text-3xl font-bold mt-2">
+                {analytics.averageEventDuration.toFixed(1)}h
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">
+                {t.busiestCategory || "Busiest Category"}
+              </h3>
+              <p className="text-2xl font-bold mt-2">
+                {busiestCategoryName || t.noData}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t.activeDays || "Active Days"}: {analytics.activeDays}
+              </p>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -8,13 +8,6 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
 import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
 import { translations, useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -146,17 +139,19 @@ export default function ShareManagement() {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <div className="w-full rounded-lg border p-4 space-y-6">
+      <div>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>{t.shareManagementTitle}</CardTitle>
-            <CardDescription>{t.shareManagementDescription}</CardDescription>
+            <h2 className="text-base font-semibold">{t.shareManagementTitle}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t.shareManagementDescription}
+            </p>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent>
+      <div>
         {sharedEvents.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {t.noShares}
@@ -219,7 +214,7 @@ export default function ShareManagement() {
             ))}
           </div>
         )}
-      </CardContent>
+      </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -308,6 +303,6 @@ export default function ShareManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }

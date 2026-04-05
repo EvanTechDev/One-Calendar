@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { translations, type Language } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 
@@ -55,11 +54,9 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.buildInfoTitle}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+    <div className="rounded-lg border p-4 space-y-3">
+      <h2 className="text-base font-semibold">{t.buildInfoTitle}</h2>
+      <div className="space-y-3 text-sm">
         <div className="flex items-center justify-between gap-4">
           <span className="text-muted-foreground">{t.buildInfoVersion}</span>
           <span className="font-mono">{APP_VERSION}</span>
@@ -72,7 +69,7 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
           <span className="text-muted-foreground">{t.buildInfoDeployment}</span>
           <span>{t.buildInfoDeployedAgo.replace("{time}", deployedAgo)}</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
