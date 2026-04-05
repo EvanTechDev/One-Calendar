@@ -1016,7 +1016,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 firstDayOfWeek={normalizedFirstDayOfWeek}
                 isSidebarCollapsed={isSidebarCollapsed}
                 isSidebarExpanding={isSidebarExpanding}
-                eventPreviewOpen={previewOpen}
               />
             )}
             {view === "analytics" && (
