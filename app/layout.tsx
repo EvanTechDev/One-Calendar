@@ -55,12 +55,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const clerkPublishableKey =
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <ClerkProvider
+          publishableKey={clerkPublishableKey}
           localization={enUS}
           fallbackRedirectUrl="/"
           forceRedirectUrl="/"
