@@ -57,8 +57,8 @@ export default async function OpenGraphImage() {
         }}
       >
         <svg
-          width="69"
-          height="120"
+          width="57"
+          height="100"
           viewBox="324.5 178.12 367.99 643.88"
           xmlns="http://www.w3.org/2000/svg"
         >
