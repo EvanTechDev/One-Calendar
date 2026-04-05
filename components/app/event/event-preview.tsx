@@ -30,6 +30,11 @@ import { isZhLanguage, translations } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/components/providers/calendar-context";
 import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,6 +60,7 @@ interface EventPreviewProps {
   timezone: string;
   openShareImmediately?: boolean;
   shareOnlyMode?: boolean;
+  anchorRect?: DOMRect | null;
 }
 
 export default function EventPreview({
@@ -68,6 +74,7 @@ export default function EventPreview({
   timezone,
   openShareImmediately,
   shareOnlyMode = false,
+  anchorRect = null,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -443,16 +450,42 @@ export default function EventPreview({
     onDelete();
   };
 
+  const anchorStyle: React.CSSProperties = anchorRect
+    ? {
+        position: "fixed",
+        left: anchorRect.right,
+        top: anchorRect.top + anchorRect.height / 2,
+        width: 0,
+        height: 0,
+        pointerEvents: "none",
+      }
+    : {
+        position: "fixed",
+        left:
+          typeof window === "undefined" ? 0 : Math.round(window.innerWidth / 2),
+        top:
+          typeof window === "undefined"
+            ? 0
+            : Math.round(window.innerHeight / 2),
+        width: 0,
+        height: 0,
+        pointerEvents: "none",
+      };
+
   return (
     <>
       {!shareOnlyMode && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10"
-          onClick={() => onOpenChange(false)}
+        <Popover open={open} onOpenChange={onOpenChange}
         >
-          <div
-            className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+          <PopoverAnchor asChild>
+            <div style={anchorStyle} />
+          </PopoverAnchor>
+          <PopoverContent
+            side={anchorRect ? "right" : "bottom"}
+            align={anchorRect ? "start" : "center"}
+            sideOffset={12}
+            className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />
@@ -628,8 +661,8 @@ export default function EventPreview({
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </PopoverContent>
+        </Popover>
       )}
 
       <Dialog

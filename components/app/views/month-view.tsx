@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 interface MonthViewProps {
   date: Date;
   events: CalendarEvent[];
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void;
   language: Language;
   firstDayOfWeek: number;
   timezone: string;
@@ -124,7 +124,9 @@ export default function MonthView({
                     "relative text-xs truncate rounded-md p-1 cursor-pointer text-white",
                     event.color,
                   )}
-                  onClick={() => onEventClick(event)}
+                  onClick={(e) =>
+                    onEventClick(event, e.currentTarget as HTMLElement)
+                  }
                   style={{
                     opacity: 1,
                     backgroundColor: isDark

@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 interface YearViewProps {
   date: Date;
   events: CalendarEvent[];
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void;
   language: Language;
   firstDayOfWeek: number;
   isSidebarCollapsed?: boolean;
@@ -217,9 +217,9 @@ export default function YearView({
                                   "relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs",
                                   event.color,
                                 )}
-                                onClick={() => {
+                                onClick={(e) => {
                                   setOpenDayKey(null);
-                                  onEventClick(event);
+                                  onEventClick(event, e.currentTarget);
                                 }}
                                 style={{
                                   backgroundColor: isDark

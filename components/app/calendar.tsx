@@ -21,7 +21,7 @@ import {
   CloudUpload,
   CheckCircle2,
   AlertCircle,
-  Loader2,
+  LoaderIcon,
   CircleHelp,
   ShieldCheck,
   MessageSquare,
@@ -152,6 +152,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const notificationsInitializedRef = useRef(false);
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
+    null,
+  );
   const [focusUserProfileSection, setFocusUserProfileSection] =
     useState<UserProfileSection | null>(null);
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date());
@@ -248,7 +251,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     if (!backupEnabled) return null;
 
     if (backupSyncStatus === "uploading") {
-      return <Loader2 className="h-4 w-4 animate-spin" />;
+      return <LoaderIcon className="h-4 w-4 animate-spin" />;
     }
     if (backupSyncStatus === "failed") {
       return <AlertCircle className="h-4 w-4 text-destructive" />;
@@ -432,9 +435,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   };
 
-  const handleEventClick = (event: CalendarEvent) => {
+  const handleEventClick = (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+  ) => {
     setShareOnlyMode(false);
     setPreviewEvent(event);
+    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null);
     setPreviewOpen(true);
   };
 
@@ -573,6 +580,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       setQuickCreateStartTime(null);
       setEventDialogOpen(true);
       setPreviewOpen(false);
+      setPreviewAnchorRect(null);
     }
   };
 
@@ -583,6 +591,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     };
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent]);
     setPreviewOpen(false);
+    setPreviewAnchorRect(null);
   };
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
@@ -623,6 +632,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const handleShare = (event: CalendarEvent, shareOnly = false) => {
     setShareOnlyMode(shareOnly);
     setPreviewEvent(event);
+    setPreviewAnchorRect(null);
     setOpenShareImmediately(true);
     setPreviewOpen(true);
   };
@@ -800,6 +810,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchResultEvents.length > 0) {
                       setPreviewEvent(searchResultEvents[0]);
+                      setPreviewAnchorRect(null);
                       setPreviewOpen(true);
                       setSearchTerm("");
                       setIsSearchFocused(false);
@@ -820,6 +831,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setPreviewEvent(event);
+                                setPreviewAnchorRect(null);
                                 setPreviewOpen(true);
                                 setSearchTerm("");
                                 setIsSearchFocused(false);
@@ -1054,13 +1066,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           open={previewOpen}
           onOpenChange={(open) => {
             setPreviewOpen(open);
-            if (!open) setOpenShareImmediately(false);
+            if (!open) {
+              setOpenShareImmediately(false);
+              setPreviewAnchorRect(null);
+            }
           }}
           onEdit={handleEventEdit}
           onDelete={() => {
             if (previewEvent) {
               handleEventDelete(previewEvent.id);
               setPreviewOpen(false);
+              setPreviewAnchorRect(null);
             }
           }}
           onDuplicate={handleEventDuplicate}
@@ -1068,6 +1084,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           timezone={timezone}
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
+          anchorRect={previewAnchorRect}
         />
 
         <EventDialog
