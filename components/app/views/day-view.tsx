@@ -30,7 +30,7 @@ const ContextMenuItem = (_props: any) => null;
 interface DayViewProps {
   date: Date;
   events: CalendarEvent[];
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void;
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void;
   language: Language;
   timezone: string;
@@ -537,7 +537,7 @@ export default function DayView({
               e.stopPropagation();
               if (ignoreNextEventClickRef.current) return;
               if (!isDraggingRef.current) {
-                onEventClick(event);
+                onEventClick(event, e.currentTarget as HTMLElement);
               }
             }}
           >
@@ -777,7 +777,7 @@ export default function DayView({
                       e.stopPropagation();
                       if (ignoreNextEventClickRef.current) return;
                       if (!isDraggingRef.current) {
-                        onEventClick(event);
+                        onEventClick(event, e.currentTarget as HTMLElement);
                       }
                     }}
                   >

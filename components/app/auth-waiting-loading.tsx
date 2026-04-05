@@ -25,8 +25,8 @@ export default function AuthWaitingLoading() {
         <Image
           src="/icon.svg"
           alt="One Calendar"
-          width={128}
-          height={128}
+          width={96}
+          height={96}
           priority
         />
         <p className="text-sm text-slate-700 dark:text-slate-300">

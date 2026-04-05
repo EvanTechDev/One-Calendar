@@ -32,7 +32,7 @@ const ContextMenuItem = (_props: any) => null;
 interface WeekViewProps {
   date: Date;
   events: any[];
-  onEventClick: (event: any) => void;
+  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void;
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void;
   language: Language;
   firstDayOfWeek: number;
@@ -648,7 +648,7 @@ export default function WeekView({
               e.stopPropagation();
               if (ignoreNextEventClickRef.current) return;
               if (!isDraggingRef.current) {
-                onEventClick(event);
+                onEventClick(event, e.currentTarget as HTMLElement);
               }
             }}
           >
@@ -897,7 +897,7 @@ export default function WeekView({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isDraggingRef.current) {
-                              onEventClick(event);
+                              onEventClick(event, e.currentTarget as HTMLElement);
                             }
                           }}
                         >

@@ -30,6 +30,11 @@ import { isZhLanguage, translations } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/components/providers/calendar-context";
 import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,6 +60,8 @@ interface EventPreviewProps {
   timezone: string;
   openShareImmediately?: boolean;
   shareOnlyMode?: boolean;
+  anchorRect?: DOMRect | null;
+  modal?: boolean;
 }
 
 export default function EventPreview({
@@ -68,6 +75,8 @@ export default function EventPreview({
   timezone,
   openShareImmediately,
   shareOnlyMode = false,
+  anchorRect = null,
+  modal = true,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -88,6 +97,7 @@ export default function EventPreview({
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
+  const ignoreOutsideUntilRef = useRef(0);
   const colorMapping: Record<string, string> = {
     "bg-[#E6F6FD]": "#3B82F6",
     "bg-[#E7F8F2]": "#10B981",
@@ -111,6 +121,12 @@ export default function EventPreview({
       }
     }
   }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
+
+  useEffect(() => {
+    if (open && !modal) {
+      ignoreOutsideUntilRef.current = Date.now() + 150;
+    }
+  }, [open, modal]);
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -443,16 +459,86 @@ export default function EventPreview({
     onDelete();
   };
 
+  const popoverSide: "top" | "right" | "bottom" | "left" = anchorRect
+    ? (() => {
+        const viewportWidth =
+          typeof window === "undefined" ? 0 : window.innerWidth;
+        const viewportHeight =
+          typeof window === "undefined" ? 0 : window.innerHeight;
+        const spaces = {
+          top: anchorRect.top,
+          right: viewportWidth - anchorRect.right,
+          bottom: viewportHeight - anchorRect.bottom,
+          left: anchorRect.left,
+        };
+        const estimatedWidth = 460;
+        const estimatedHeight = 520;
+        if (spaces.right >= estimatedWidth) return "right";
+        if (spaces.left >= estimatedWidth) return "left";
+        if (spaces.bottom >= estimatedHeight) return "bottom";
+        if (spaces.top >= estimatedHeight) return "top";
+        const entries = Object.entries(spaces) as Array<
+          ["top" | "right" | "bottom" | "left", number]
+        >;
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
+      })()
+    : "bottom";
+
+  const anchorStyle: React.CSSProperties = (() => {
+    if (anchorRect) {
+      const midX = anchorRect.left + anchorRect.width / 2;
+      const midY = anchorRect.top + anchorRect.height / 2;
+      const edgePoint =
+        popoverSide === "right"
+          ? { left: anchorRect.right, top: midY }
+          : popoverSide === "left"
+            ? { left: anchorRect.left, top: midY }
+            : popoverSide === "top"
+              ? { left: midX, top: anchorRect.top }
+              : { left: midX, top: anchorRect.bottom };
+      return {
+        position: "fixed",
+        left: edgePoint.left,
+        top: edgePoint.top,
+        width: 0,
+        height: 0,
+        pointerEvents: "none",
+      };
+    }
+
+    return {
+      position: "fixed",
+      left: typeof window === "undefined" ? 0 : Math.round(window.innerWidth / 2),
+      top:
+        typeof window === "undefined" ? 0 : Math.round(window.innerHeight / 2),
+      width: 0,
+      height: 0,
+      pointerEvents: "none",
+    };
+  })();
+
   return (
     <>
       {!shareOnlyMode && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10"
-          onClick={() => onOpenChange(false)}
-        >
-          <div
-            className="bg-background rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+        <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
+          <PopoverAnchor asChild>
+            <div style={anchorStyle} />
+          </PopoverAnchor>
+          <PopoverContent
+            side={popoverSide}
+            align="center"
+            sideOffset={12}
+            className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+              if (!modal) {
+                if (Date.now() < ignoreOutsideUntilRef.current) {
+                  e.preventDefault();
+                  return;
+                }
+                onOpenChange(false);
+              }
+            }}
           >
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />
@@ -628,8 +714,8 @@ export default function EventPreview({
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </PopoverContent>
+        </Popover>
       )}
 
       <Dialog

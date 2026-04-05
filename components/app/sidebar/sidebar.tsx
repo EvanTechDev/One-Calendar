@@ -206,7 +206,7 @@ export default function Sidebar({
       style={{ "--sidebar-calendar-width": "17rem" } as CSSProperties}
       className={cn(
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-[248px] opacity-100",
+        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-[247px] opacity-100",
       )}
       onTransitionEnd={(event) => {
         if (
