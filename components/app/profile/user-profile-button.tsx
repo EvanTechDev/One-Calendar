@@ -104,7 +104,7 @@ const BACKUP_KEY_DEFAULTS: Record<string, unknown> = {
 };
 
 async function apiGet() {
-  const r = await fetch("/api/blob");
+  const r = await fetch("/api/blob", { cache: "no-store" });
   if (r.status === 404) return null;
   if (!r.ok) throw new Error();
   return r.json();
