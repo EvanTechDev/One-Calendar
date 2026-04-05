@@ -159,6 +159,17 @@ export default function SharedEventView({
     fetchSharedEvent();
   }, [shareId, handle]);
 
+  useEffect(() => {
+    if (event?.title) {
+      document.title = `${event.title} | One Calendar`;
+      return;
+    }
+
+    if (requiresPassword) {
+      document.title = "Protected | One Calendar";
+    }
+  }, [event, requiresPassword]);
+
   const tryDecryptWithPassword = async () => {
     if (!shareId) return;
 
