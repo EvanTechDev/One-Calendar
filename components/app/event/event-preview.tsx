@@ -60,7 +60,7 @@ interface EventPreviewProps {
   timezone: string;
   openShareImmediately?: boolean;
   shareOnlyMode?: boolean;
-  anchorEl?: HTMLElement | null;
+  anchorRect?: DOMRect | null;
 }
 
 export default function EventPreview({
@@ -74,7 +74,7 @@ export default function EventPreview({
   timezone,
   openShareImmediately,
   shareOnlyMode = false,
-  anchorEl = null,
+  anchorRect = null,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -95,7 +95,6 @@ export default function EventPreview({
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
-  const [liveAnchorRect, setLiveAnchorRect] = useState<DOMRect | null>(null);
   const colorMapping: Record<string, string> = {
     "bg-[#E6F6FD]": "#3B82F6",
     "bg-[#E7F8F2]": "#10B981",
@@ -168,27 +167,6 @@ export default function EventPreview({
       setIsBookmarked(isCurrentEventBookmarked);
     }
   }, [event, bookmarks]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const updateAnchorRect = () => {
-      if (anchorEl && anchorEl.isConnected) {
-        setLiveAnchorRect(anchorEl.getBoundingClientRect());
-        return;
-      }
-      setLiveAnchorRect(null);
-    };
-
-    updateAnchorRect();
-    window.addEventListener("scroll", updateAnchorRect, true);
-    window.addEventListener("resize", updateAnchorRect);
-
-    return () => {
-      window.removeEventListener("scroll", updateAnchorRect, true);
-      window.removeEventListener("resize", updateAnchorRect);
-    };
-  }, [open, anchorEl]);
 
   if (!event || (!open && !shareDialogOpen)) return null;
 
@@ -472,17 +450,17 @@ export default function EventPreview({
     onDelete();
   };
 
-  const popoverSide: "top" | "right" | "bottom" | "left" = liveAnchorRect
+  const popoverSide: "top" | "right" | "bottom" | "left" = anchorRect
     ? (() => {
         const viewportWidth =
           typeof window === "undefined" ? 0 : window.innerWidth;
         const viewportHeight =
           typeof window === "undefined" ? 0 : window.innerHeight;
         const spaces = {
-          top: liveAnchorRect.top,
-          right: viewportWidth - liveAnchorRect.right,
-          bottom: viewportHeight - liveAnchorRect.bottom,
-          left: liveAnchorRect.left,
+          top: anchorRect.top,
+          right: viewportWidth - anchorRect.right,
+          bottom: viewportHeight - anchorRect.bottom,
+          left: anchorRect.left,
         };
         const estimatedWidth = 460;
         const estimatedHeight = 520;
@@ -498,17 +476,17 @@ export default function EventPreview({
     : "bottom";
 
   const anchorStyle: React.CSSProperties = (() => {
-    if (liveAnchorRect) {
-      const midX = liveAnchorRect.left + liveAnchorRect.width / 2;
-      const midY = liveAnchorRect.top + liveAnchorRect.height / 2;
+    if (anchorRect) {
+      const midX = anchorRect.left + anchorRect.width / 2;
+      const midY = anchorRect.top + anchorRect.height / 2;
       const edgePoint =
         popoverSide === "right"
-          ? { left: liveAnchorRect.right, top: midY }
+          ? { left: anchorRect.right, top: midY }
           : popoverSide === "left"
-            ? { left: liveAnchorRect.left, top: midY }
+            ? { left: anchorRect.left, top: midY }
             : popoverSide === "top"
-              ? { left: midX, top: liveAnchorRect.top }
-              : { left: midX, top: liveAnchorRect.bottom };
+              ? { left: midX, top: anchorRect.top }
+              : { left: midX, top: anchorRect.bottom };
       return {
         position: "fixed",
         left: edgePoint.left,
