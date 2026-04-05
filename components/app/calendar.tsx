@@ -152,7 +152,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const notificationsInitializedRef = useRef(false);
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
+  const [previewAnchorEl, setPreviewAnchorEl] = useState<HTMLElement | null>(
     null,
   );
   const [focusUserProfileSection, setFocusUserProfileSection] =
@@ -441,7 +441,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   ) => {
     setShareOnlyMode(false);
     setPreviewEvent(event);
-    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null);
+    setPreviewAnchorEl(anchorEl ?? null);
     setPreviewOpen(true);
   };
 
@@ -580,7 +580,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       setQuickCreateStartTime(null);
       setEventDialogOpen(true);
       setPreviewOpen(false);
-      setPreviewAnchorRect(null);
+      setPreviewAnchorEl(null);
     }
   };
 
@@ -591,7 +591,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     };
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent]);
     setPreviewOpen(false);
-    setPreviewAnchorRect(null);
+    setPreviewAnchorEl(null);
   };
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
@@ -632,7 +632,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const handleShare = (event: CalendarEvent, shareOnly = false) => {
     setShareOnlyMode(shareOnly);
     setPreviewEvent(event);
-    setPreviewAnchorRect(null);
+    setPreviewAnchorEl(null);
     setOpenShareImmediately(true);
     setPreviewOpen(true);
   };
@@ -810,7 +810,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchResultEvents.length > 0) {
                       setPreviewEvent(searchResultEvents[0]);
-                      setPreviewAnchorRect(null);
+                      setPreviewAnchorEl(null);
                       setPreviewOpen(true);
                       setSearchTerm("");
                       setIsSearchFocused(false);
@@ -831,7 +831,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setPreviewEvent(event);
-                                setPreviewAnchorRect(null);
+                                setPreviewAnchorEl(null);
                                 setPreviewOpen(true);
                                 setSearchTerm("");
                                 setIsSearchFocused(false);
@@ -1068,7 +1068,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             setPreviewOpen(open);
             if (!open) {
               setOpenShareImmediately(false);
-              setPreviewAnchorRect(null);
+              setPreviewAnchorEl(null);
             }
           }}
           onEdit={handleEventEdit}
@@ -1076,7 +1076,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             if (previewEvent) {
               handleEventDelete(previewEvent.id);
               setPreviewOpen(false);
-              setPreviewAnchorRect(null);
+              setPreviewAnchorEl(null);
             }
           }}
           onDuplicate={handleEventDuplicate}
@@ -1084,7 +1084,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           timezone={timezone}
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
-          anchorRect={previewAnchorRect}
+          anchorEl={previewAnchorEl}
         />
 
         <EventDialog

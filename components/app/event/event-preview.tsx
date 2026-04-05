@@ -60,7 +60,7 @@ interface EventPreviewProps {
   timezone: string;
   openShareImmediately?: boolean;
   shareOnlyMode?: boolean;
-  anchorRect?: DOMRect | null;
+  anchorEl?: HTMLElement | null;
 }
 
 export default function EventPreview({
@@ -74,7 +74,7 @@ export default function EventPreview({
   timezone,
   openShareImmediately,
   shareOnlyMode = false,
-  anchorRect = null,
+  anchorEl = null,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -95,6 +95,7 @@ export default function EventPreview({
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
+  const [liveAnchorRect, setLiveAnchorRect] = useState<DOMRect | null>(null);
   const colorMapping: Record<string, string> = {
     "bg-[#E6F6FD]": "#3B82F6",
     "bg-[#E7F8F2]": "#10B981",
@@ -450,11 +451,32 @@ export default function EventPreview({
     onDelete();
   };
 
-  const anchorStyle: React.CSSProperties = anchorRect
+  useEffect(() => {
+    if (!open) return;
+
+    const updateAnchorRect = () => {
+      if (anchorEl && anchorEl.isConnected) {
+        setLiveAnchorRect(anchorEl.getBoundingClientRect());
+        return;
+      }
+      setLiveAnchorRect(null);
+    };
+
+    updateAnchorRect();
+    window.addEventListener("scroll", updateAnchorRect, true);
+    window.addEventListener("resize", updateAnchorRect);
+
+    return () => {
+      window.removeEventListener("scroll", updateAnchorRect, true);
+      window.removeEventListener("resize", updateAnchorRect);
+    };
+  }, [open, anchorEl]);
+
+  const anchorStyle: React.CSSProperties = liveAnchorRect
     ? {
         position: "fixed",
-        left: anchorRect.right,
-        top: anchorRect.top + anchorRect.height / 2,
+        left: liveAnchorRect.left + liveAnchorRect.width / 2,
+        top: liveAnchorRect.top + liveAnchorRect.height / 2,
         width: 0,
         height: 0,
         pointerEvents: "none",
@@ -472,17 +494,35 @@ export default function EventPreview({
         pointerEvents: "none",
       };
 
+  const popoverSide: "top" | "right" | "bottom" | "left" = liveAnchorRect
+    ? (() => {
+        const viewportWidth =
+          typeof window === "undefined" ? 0 : window.innerWidth;
+        const viewportHeight =
+          typeof window === "undefined" ? 0 : window.innerHeight;
+        const spaces = {
+          top: liveAnchorRect.top,
+          right: viewportWidth - liveAnchorRect.right,
+          bottom: viewportHeight - liveAnchorRect.bottom,
+          left: liveAnchorRect.left,
+        };
+        const entries = Object.entries(spaces) as Array<
+          ["top" | "right" | "bottom" | "left", number]
+        >;
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
+      })()
+    : "bottom";
+
   return (
     <>
       {!shareOnlyMode && (
-        <Popover open={open} onOpenChange={onOpenChange}
-        >
+        <Popover open={open} onOpenChange={onOpenChange}>
           <PopoverAnchor asChild>
             <div style={anchorStyle} />
           </PopoverAnchor>
           <PopoverContent
-            side={anchorRect ? "right" : "bottom"}
-            align={anchorRect ? "start" : "center"}
+            side={popoverSide}
+            align="center"
             sideOffset={12}
             className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
             onOpenAutoFocus={(e) => e.preventDefault()}
