@@ -61,6 +61,7 @@ interface EventPreviewProps {
   openShareImmediately?: boolean;
   shareOnlyMode?: boolean;
   anchorRect?: DOMRect | null;
+  modal?: boolean;
 }
 
 export default function EventPreview({
@@ -75,6 +76,7 @@ export default function EventPreview({
   openShareImmediately,
   shareOnlyMode = false,
   anchorRect = null,
+  modal = true,
 }: EventPreviewProps) {
   const { calendars } = useCalendar();
   const isZh = isZhLanguage(language);
@@ -511,7 +513,7 @@ export default function EventPreview({
   return (
     <>
       {!shareOnlyMode && (
-        <Popover open={open} onOpenChange={onOpenChange} modal>
+        <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
           <PopoverAnchor asChild>
             <div style={anchorStyle} />
           </PopoverAnchor>

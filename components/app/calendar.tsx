@@ -1085,6 +1085,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
+          modal={view !== "year"}
         />
 
         <EventDialog
