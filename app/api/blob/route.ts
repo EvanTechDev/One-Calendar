@@ -5,6 +5,7 @@ import { getAtprotoSession } from "@/lib/atproto-auth";
 import { deleteRecord, getRecord, putRecord } from "@/lib/atproto";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const postgresUrl = process.env.POSTGRES_URL;
 const useSsl =
@@ -42,6 +43,14 @@ async function initDB() {
 
 const ATPROTO_BACKUP_COLLECTION = "app.onecalendar.backup";
 const ATPROTO_BACKUP_RKEY = "latest";
+
+function jsonNoStore(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -117,20 +126,19 @@ export async function GET() {
           dpopPublicJwk: atproto.dpopPublicJwk,
         });
         const value = record.value ?? {};
-        return NextResponse.json({
+        return jsonNoStore({
           ciphertext: value.ciphertext,
           iv: value.iv,
           timestamp: value.updatedAt,
           backend: "atproto",
         });
       } catch {
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return jsonNoStore({ error: "Not found" }, { status: 404 });
       }
     }
 
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
 
     await initDB();
 
@@ -141,9 +149,9 @@ export async function GET() {
         [user.id],
       );
       if (result.rowCount === 0)
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return jsonNoStore({ error: "Not found" }, { status: 404 });
 
-      return NextResponse.json({
+      return jsonNoStore({
         ciphertext: result.rows[0].encrypted_data,
         iv: result.rows[0].iv,
         timestamp: result.rows[0].timestamp,
@@ -154,7 +162,7 @@ export async function GET() {
     }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonNoStore({ error: message }, { status: 500 });
   }
 }
 
