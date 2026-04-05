@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "2.2.7",
+  "version": "2.2.9",
   "private": true,
   "packageManager": "bun@1.3.8",
   "scripts": {
@@ -11,8 +11,8 @@
     "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
   "dependencies": {
-    "@clerk/localizations": "latest",
-    "@clerk/nextjs": "latest",
+    "@clerk/localizations": "4.3.0",
+    "@clerk/nextjs": "6.39.1",
     "@hookform/resolvers": "5.2.2",
     "@marsidev/react-turnstile": "latest",
     "@radix-ui/react-accordion": "latest",
