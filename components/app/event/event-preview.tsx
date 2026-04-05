@@ -97,6 +97,7 @@ export default function EventPreview({
   const [passwordEnabled, setPasswordEnabled] = useState(false);
   const [sharePassword, setSharePassword] = useState("");
   const [burnAfterRead, setBurnAfterRead] = useState(false);
+  const ignoreOutsideUntilRef = useRef(0);
   const colorMapping: Record<string, string> = {
     "bg-[#E6F6FD]": "#3B82F6",
     "bg-[#E7F8F2]": "#10B981",
@@ -120,6 +121,12 @@ export default function EventPreview({
       }
     }
   }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
+
+  useEffect(() => {
+    if (open && !modal) {
+      ignoreOutsideUntilRef.current = Date.now() + 150;
+    }
+  }, [open, modal]);
 
   useEffect(() => {
     fetch("/api/atproto/session")
@@ -524,7 +531,13 @@ export default function EventPreview({
             className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
             onOpenAutoFocus={(e) => e.preventDefault()}
             onInteractOutside={(e) => {
-              if (!modal) e.preventDefault();
+              if (!modal) {
+                if (Date.now() < ignoreOutsideUntilRef.current) {
+                  e.preventDefault();
+                  return;
+                }
+                onOpenChange(false);
+              }
             }}
           >
             <div className="flex justify-between items-center p-5">
