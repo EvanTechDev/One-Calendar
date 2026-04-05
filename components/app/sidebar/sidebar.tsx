@@ -206,7 +206,7 @@ export default function Sidebar({
       style={{ "--sidebar-calendar-width": "17rem" } as CSSProperties}
       className={cn(
         "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-80 opacity-100",
+        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-64 opacity-100",
       )}
       onTransitionEnd={(event) => {
         if (
@@ -230,13 +230,13 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="mx-auto mb-4 h-10 w-[var(--sidebar-calendar-width)] justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+          className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
           onClick={onCreateEvent}
         >
           {t.createEvent}
         </Button>
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4">
           <Calendar
             mode="single"
             selected={localSelectedDate}
@@ -248,7 +248,7 @@ export default function Sidebar({
               setLocalSelectedDate(date);
               date && onDateSelect(date);
             }}
-            className="w-[var(--sidebar-calendar-width)] rounded-lg border"
+            className="rounded-lg border"
           />
         </div>
 
