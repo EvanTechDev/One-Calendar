@@ -18,7 +18,7 @@ const isPublicRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    await auth.protect({ unauthenticatedUrl: "/sign-in" })
+    await auth.protect()
   }
 })
 

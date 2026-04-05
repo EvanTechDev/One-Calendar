@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
-import { Card, CardContent } from "@/components/ui/card";
 import React, { useEffect, useState } from "react";
 
 interface CalendarEvent {
@@ -286,9 +285,7 @@ const EventsCalendar: React.FC = () => {
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="pt-4">{renderCalendarGrid()}</CardContent>
-    </Card>
+    <div className="rounded-lg border p-4">{renderCalendarGrid()}</div>
   );
 };
 
