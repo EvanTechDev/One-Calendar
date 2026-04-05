@@ -21,7 +21,7 @@ export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { signIn } = useSignIn();
+  const { isLoaded, signIn } = useSignIn();
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [formData, setFormData] = useState({
@@ -82,14 +82,17 @@ export function ResetPasswordForm({
     setError("");
 
     try {
+      if (!isLoaded || !signIn) {
+        return;
+      }
       if (step === "email") {
-        await signIn?.create({
+        await signIn.create({
           strategy: "reset_password_email_code",
           identifier: formData.email,
         });
         setStep("code");
       } else if (step === "code") {
-        const result = await signIn?.attemptFirstFactor({
+        const result = await signIn.attemptFirstFactor({
           strategy: "reset_password_email_code",
           code: formData.code,
         });
@@ -97,7 +100,7 @@ export function ResetPasswordForm({
           setStep("password");
         }
       } else {
-        const result = await signIn?.resetPassword({
+        const result = await signIn.resetPassword({
           password: formData.password,
         });
         if (result?.status === "complete") {
@@ -237,12 +240,14 @@ export function ResetPasswordForm({
                 type="submit"
                 className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
                 disabled={
-                  siteKey && step === "email"
+                  !isLoaded
+                    ? true
+                    : siteKey && step === "email"
                     ? !isCaptchaCompleted || isLoading
                     : isLoading
                 }
               >
-                {isLoading ? "Processing..." : stepContent.buttonText}
+                {!isLoaded ? "Loading auth..." : isLoading ? "Processing..." : stepContent.buttonText}
               </Button>
 
               <div className="text-center text-sm">

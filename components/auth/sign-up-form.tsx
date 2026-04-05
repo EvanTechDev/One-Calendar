@@ -136,25 +136,17 @@ export function SignUpForm({
       return;
     }
     if (!isLoaded || !signUp) {
-      setError("Auth service is still loading. Please try again in a moment.");
       return;
     }
-
-    const redirect =
-      signUp.authenticateWithRedirect ??
-      (signUp as unknown as { authWithRedirect?: typeof signUp.authenticateWithRedirect })
-        .authWithRedirect;
-
-    if (!redirect) {
-      setError("OAuth is unavailable right now. Please refresh and try again.");
-      return;
-    }
-
-    redirect.call(signUp, {
-      strategy,
-      redirectUrl: "/sign-up/sso-callback",
-      redirectUrlComplete: "/app",
-    });
+    signUp
+      .authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sign-up/sso-callback",
+        redirectUrlComplete: "/app",
+      })
+      .catch((err: any) => {
+        setError(err.errors?.[0]?.longMessage || "OAuth sign up failed. Please try again.");
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,7 +161,6 @@ export function SignUpForm({
 
     try {
       if (!isLoaded || !signUp) {
-        setError("Auth service is still loading. Please try again in a moment.");
         return;
       }
 
@@ -295,6 +286,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
+                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_microsoft")}
                 >
                   <svg
@@ -314,6 +306,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
+                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_google")}
                 >
                   <svg
@@ -346,6 +339,7 @@ export function SignUpForm({
                   variant="outline"
                   className="w-full"
                   type="button"
+                  disabled={!isLoaded}
                   onClick={() => handleOAuthSignUp("oauth_github")}
                 >
                   <svg
@@ -448,9 +442,9 @@ export function SignUpForm({
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
+                  disabled={!isLoaded || (siteKey && (!isCaptchaCompleted || isLoading))}
                 >
-                  {isLoading ? "Creating account..." : "Create account"}
+                  {!isLoaded ? "Loading auth..." : isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </div>
 
