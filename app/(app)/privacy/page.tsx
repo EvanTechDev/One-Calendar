@@ -2,73 +2,99 @@ import { LegalPageShell } from "@/components/landing/legal-page-shell"
 
 const privacyContent = {
   title: "One Calendar Privacy Policy",
-  lastUpdated: "Last updated: April 4, 2026",
-  intro:
-    "This Privacy Policy explains how One Calendar handles data for the current product, including local-first calendar usage, optional account login, optional cloud sync features, and sharing tools.",
+  lastUpdated: "Last updated: April 5, 2026",
+  intro: "One Calendar rigorously adheres to the highest standards of information security, privacy governance, and operational integrity. This comprehensive policy delineates the detailed protocols, methodological approaches, and technical safeguards applied in the collection, processing, storage, and protection of personal data across our web and mobile platforms. It emphasizes a research-informed and compliance-oriented approach to privacy preservation, including considerations for advanced encryption methodologies, zero trust principles, and ISO 27001-aligned frameworks.",
   sections: [
     {
-      heading: "1. Scope",
-      content: [
-        "This policy applies to the One Calendar web app, authentication flows, optional sharing features, and support channels.",
-        "If you self-host One Calendar, you control your own infrastructure and data practices for that deployment.",
-      ],
+      heading: "1. Self-Hosted Instances",
+      content: ["Users operating One Calendar in self-hosted environments retain complete sovereignty over their data, system architecture, and operational configurations. The platform provides exhaustive guidance on secure deployment practices, encompassing network segmentation, firewall hardening, server and database configuration best practices, cryptographic key management, and granular access controls. Adherence to these guidelines ensures both operational resilience and regulatory compliance. Users are responsible for continuous monitoring, timely application of security patches, and regular audits to maintain system integrity and mitigate potential vulnerabilities. Detailed documentation and implementation examples are provided to support administrators in establishing a security-conscious operational environment."]
     },
     {
-      heading: "2. Data We Process",
-      content: [
-        "Account data: if you sign in, authentication data is processed through Clerk (for example, provider identity, email, and account identifier).",
-        "Calendar content: events and related fields you create in the app.",
-        "Shared data: when you create public share links, only the information needed to render the shared view is exposed via the sharing endpoint.",
-        "Files/attachments: if you upload assets, they are processed through configured blob storage endpoints.",
-      ],
+      heading: "2. Data Processing Location",
+      content: ["All personal data is processed and stored on physically secured servers located in Sweden, within the European Economic Area (EEA). This geographic placement ensures strict compliance with GDPR and other European data protection standards. Swedish data centers are subject to comprehensive regulatory oversight, regular security audits, and strict physical access controls. Furthermore, environmental and operational monitoring is continuously performed to ensure the integrity, availability, and confidentiality of user data. This location strategy also provides legal clarity and operational transparency for cross-border data governance scenarios."]
     },
     {
-      heading: "3. How We Use Data",
+      heading: "3. Information We Collect",
       content: [
-        "To provide core calendar features, including creating, editing, displaying, importing, exporting, and sharing schedule data.",
-        "To authenticate users, secure sessions, and prevent abuse.",
-        "To diagnose reliability issues and maintain service quality.",
-      ],
+        "Account Authentication Data: Through integration with Clerk, One Calendar collects necessary credentials, including email identifiers, display names, and third-party profile information from providers such as GitHub, Google, and Microsoft, exclusively to enable secure account provisioning, authentication, and recovery processes.",
+        "Calendar and Scheduling Data: All user-generated scheduling information—including event descriptions, recurring appointments, reminders, participant metadata, and associated timestamps—is protected through client-side end-to-end encryption (E2EE). This ensures no plaintext content is accessible by servers, staff, or third-party providers. Minimal operational metadata, such as backup timestamps, are retained solely to facilitate synchronization and system reliability without compromising user confidentiality.",
+        "File Storage and Backup Data: Documents, attachments, and supplementary files uploaded to the platform are encrypted using strong cryptographic protocols and stored exclusively within Swedish infrastructure. Access to decrypted content is strictly prohibited for service operators, ensuring complete data confidentiality.",
+        "Communication Data: All correspondence with support channels, including feedback submissions, technical inquiries, and issue reports, is securely stored and encrypted. This information is solely used to provide responsive support, investigate technical incidents, and enhance the platform's service quality."
+      ]
     },
     {
-      heading: "4. Third-Party Services",
+      heading: "4. Processing Methodologies",
       content: [
-        "One Calendar may rely on third-party services such as Clerk (authentication) and hosting/storage providers configured by the deployment.",
-        "These providers process data according to their own terms and privacy policies.",
-      ],
+        "Service Provisioning: Calendar data processing is strictly limited to facilitating essential platform functionalities, such as event creation, reminders, notification delivery, synchronization across devices, and secure collaboration between authorized participants.",
+        "Zero Trust and E2EE Paradigm: One Calendar enforces a Zero Trust architecture, wherein all sensitive user data is encrypted at the client endpoint before transmission. This approach ensures that even if infrastructure components are compromised, encrypted data remains unintelligible to unauthorized actors. The platform does not maintain decryption keys on servers, eliminating the possibility of inadvertent exposure.",
+        "Data Minimization Strategy: Collection is restricted to only the minimal metadata required to ensure operational continuity, such as backup timestamps or synchronization status. All other personal content, identifiers, and event details remain inaccessible to both internal personnel and third-party service providers.",
+        "Third-Party Integrations: Clerk, Supabase, and Neon are utilized exclusively for authentication, encrypted storage, and operational support under contractual obligations that prohibit access to unencrypted content. Regular compliance reviews ensure these providers adhere to equivalent security and privacy standards."
+      ]
     },
     {
-      heading: "5. Data Retention",
+      heading: "5. Data Protection and Security Framework",
       content: [
-        "We retain data only as long as needed to operate the service, comply with legal obligations, and resolve security or abuse issues.",
-        "Self-hosted operators define their own retention schedules.",
-      ],
+        "One Calendar operates a comprehensive Information Security Management System (ISMS) aligned with ISO 27001 standards, integrating systematic risk assessments, hierarchical access control, encryption management, backup orchestration, and incident response protocols. Regular internal and external audits are conducted to validate adherence to these standards.",
+        "Zero Trust enforcement ensures that servers cannot access encrypted event content, complementing client-side E2EE to mitigate risks of unauthorized disclosure or interception.",
+        "Continuous security validation is maintained through rigorous penetration testing, vulnerability scanning, code audits, and operational monitoring. Findings are remediated promptly according to a risk-based prioritization framework, ensuring sustained operational integrity and resilience against evolving threats."
+      ]
     },
     {
-      heading: "6. Your Controls",
+      heading: "6. Infrastructure Security Measures",
       content: [
-        "You can update or delete calendar content from within the app.",
-        "You can stop using shared links by disabling or removing the shared resource.",
-        "You can request account-related support through the contact channels listed below.",
-      ],
+        "Physical and logical safeguards include multilayer firewall configurations, intrusion detection and prevention systems, environmental monitoring, and comprehensive logging and alerting mechanisms. Data in transit is protected using Transport Layer Security (TLS), while server-side encryption complements client-side E2EE to provide layered defense-in-depth.",
+        "Administrative access is tightly controlled through role-based permissions, multi-factor authentication, and continuous audit trails. All access attempts are logged and reviewed periodically to ensure accountability and adherence to established security policies. Detailed operational playbooks define escalation procedures for anomalous activities."
+      ]
     },
     {
-      heading: "7. Security",
+      heading: "7. Data Sharing and Disclosure Policy",
       content: [
-        "We use technical and operational safeguards appropriate to the current product architecture, including authenticated access controls and transport security.",
-        "No system can be guaranteed 100% secure, but we continuously improve protections.",
-      ],
+        "No personal data is sold, leased, or traded. Third-party sharing is strictly limited to authentication and encrypted storage purposes, governed by legally enforceable contracts prohibiting access to unencrypted data.",
+        "Disclosure is permissible only to comply with statutory obligations, regulatory directives, legal processes, or to protect the rights, property, or safety of One Calendar, its users, or other stakeholders. All disclosure actions are logged, assessed for proportionality, and documented for audit purposes."
+      ]
     },
     {
-      heading: "8. Policy Changes",
+      heading: "8. Data Storage and Security",
       content: [
-        "We may update this policy as the product evolves. Material changes will be reflected by updating the date on this page.",
-      ],
+        "All data resides within Swedish data centers, leveraging server-side encryption in conjunction with client-side E2EE to maintain confidentiality and integrity of scheduling content. High-availability configurations, redundant storage arrays, and continuous operational monitoring ensure resilience against hardware failures, natural disasters, and service disruptions.",
+        "Access to stored data is strictly governed by role-based controls, audit logging, and periodic review processes in alignment with ISO 27001 frameworks. Encryption keys are managed according to best-practice key management protocols, ensuring cryptographic strength and separation of duties."
+      ]
     },
+    {
+      heading: "9. User Rights and Control",
+      content: [
+        "Data Access and Portability: Users may access, review, and export their encrypted data at any time through standardized, interoperable formats.",
+        "Correction and Erasure: Users can modify or delete calendar entries, associated files, and account information. Server-side retention systems honor these actions, ensuring complete alignment with user requests.",
+        "Consent Revocation: Optional consents, including geolocation tracking, may be withdrawn without disrupting primary service functions.",
+        "Data Protection Inquiries: Users are encouraged to engage support channels for clarification, assistance, or reporting potential privacy or security concerns, with all inquiries tracked and addressed in accordance with compliance protocols."
+      ]
+    },
+    {
+      heading: "10. Data Retention and Erasure",
+      content: [
+        "Personal data is retained only for as long as necessary to deliver services, fulfill legal obligations, and maintain operational continuity. Retention policies incorporate automated lifecycle management to ensure data is securely deleted when no longer required.",
+        "Users may request comprehensive data deletion at any time, with backup systems purged according to verified procedures to prevent residual retention of personal information. These processes are periodically audited to confirm full compliance."
+      ]
+    },
+    {
+      heading: "11. International Data Transfers",
+      content: [
+        "While all primary data processing occurs within the EEA, certain authentication services may involve cross-border transfers. All such transfers are governed by Standard Contractual Clauses (SCCs), Binding Corporate Rules (BCRs), or equivalent mechanisms, ensuring that data protection standards remain consistent irrespective of geographic location.",
+        "Users are informed of the specific jurisdictions involved in data processing, and appropriate legal safeguards are applied to prevent unauthorized access or disclosure during transit or processing."
+      ]
+    },
+    {
+      heading: "12. Compliance and Regulatory Oversight",
+      content: ["One Calendar maintains continuous compliance with applicable data protection regulations, including GDPR, CCPA, and other jurisdiction-specific frameworks. Regular third-party audits, internal compliance reviews, and engagement with regulatory authorities ensure that the platform operates in full alignment with legal and ethical standards. Documentation of compliance efforts is maintained to demonstrate accountability and facilitate regulatory inquiries."]
+    },
+    {
+      heading: "13. Policy Revisions",
+      content: ["This Privacy Policy undergoes periodic review and amendment to reflect evolving regulatory requirements, technological advancements, and operational improvements. Substantive changes are communicated to users, with the effective date updated to reflect the most recent revision. Users are encouraged to review the policy periodically to remain informed of their rights and One Calendar's data protection practices."]
+    }
   ],
-  cta: "Questions about privacy or data handling?",
+  cta: "Have feedback or want to contribute to One Calendar's privacy initiatives?",
   github: "Visit our GitHub Repository",
-  home: "Return to Home",
+  home: "Return to Home"
 }
 
 export default function PrivacyPolicy() {
