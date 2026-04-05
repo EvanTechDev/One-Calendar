@@ -1,10 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { signIn, setActive } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -73,10 +74,6 @@ export function LoginForm({
     setError("");
 
     try {
-      if (!isLoaded || !signIn) {
-        return;
-      }
-
       const result = await signIn.create({
         identifier: email,
         password,
@@ -84,9 +81,7 @@ export function LoginForm({
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.replace("/app");
-        router.refresh();
-        window.location.href = "/app";
+        router.push("/");
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.longMessage || "Login failed. Please try again.");
@@ -101,25 +96,17 @@ export function LoginForm({
     }
   };
 
-  const handleOAuthLogin = async (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
+  const handleOAuthLogin = (strategy: "oauth_google" | "oauth_microsoft" | "oauth_github") => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !isCaptchaCompleted) {
       setError("Please complete the CAPTCHA verification.");
       return;
     }
-    if (!isLoaded || !signIn) {
-      return;
-    }
-
-    try {
-      await signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: "/sign-in/sso-callback",
-        redirectUrlComplete: "/app",
-      });
-    } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || "OAuth login failed. Please try again.");
-    }
+    signIn.authenticateWithRedirect({
+      strategy,
+      redirectUrl: "/sign-in/sso-callback",
+      redirectUrlComplete: "/",
+    });
   };
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -129,6 +116,9 @@ export function LoginForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardDescription>
+            Login with your Microsoft, Google or GitHub account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleEmailLogin}>
@@ -138,7 +128,6 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthLogin("oauth_microsoft")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="20" height="20">
@@ -153,7 +142,6 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthLogin("oauth_google")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
@@ -169,7 +157,6 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  disabled={!isLoaded}
                   onClick={() => handleOAuthLogin("oauth_github")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -237,9 +224,9 @@ export function LoginForm({
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={!isLoaded || (siteKey && (!isCaptchaCompleted || isLoading))}
+                  disabled={siteKey && (!isCaptchaCompleted || isLoading)}
                 >
-                  {!isLoaded ? "Loading auth..." : isLoading ? "Signing in..." : "Sign in"}
+                  {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </div>
               <div className="text-center text-sm">
