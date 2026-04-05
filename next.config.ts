@@ -23,7 +23,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
-  output: 'standalone',
   experimental: {
     optimizePackageImports: [
       "lucide-react",
