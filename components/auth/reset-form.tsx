@@ -21,7 +21,7 @@ export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { isLoaded, signIn } = useSignIn();
+  const { signIn } = useSignIn();
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [formData, setFormData] = useState({
@@ -82,29 +82,51 @@ export function ResetPasswordForm({
     setError("");
 
     try {
-      if (!isLoaded || !signIn) {
-        return;
-      }
       if (step === "email") {
-        await signIn.create({
-          strategy: "reset_password_email_code",
-          identifier: formData.email,
-        });
+        const { error: createError } = await signIn.create({ identifier: formData.email });
+        if (createError) {
+          setError(createError.longMessage || createError.message || "An error occurred. Please try again.");
+          return;
+        }
+        const { error: sendCodeError } = await signIn.resetPasswordEmailCode.sendCode();
+        if (sendCodeError) {
+          setError(sendCodeError.longMessage || sendCodeError.message || "An error occurred. Please try again.");
+          return;
+        }
         setStep("code");
       } else if (step === "code") {
-        const result = await signIn.attemptFirstFactor({
-          strategy: "reset_password_email_code",
+        const { error: verifyCodeError } = await signIn.resetPasswordEmailCode.verifyCode({
           code: formData.code,
         });
-        if (result?.status === "needs_new_password") {
+        if (verifyCodeError) {
+          setError(verifyCodeError.longMessage || verifyCodeError.message || "An error occurred. Please try again.");
+          return;
+        }
+        if (signIn.status === "needs_new_password") {
           setStep("password");
         }
       } else {
-        const result = await signIn.resetPassword({
+        const { error: submitPasswordError } = await signIn.resetPasswordEmailCode.submitPassword({
           password: formData.password,
         });
-        if (result?.status === "complete") {
-          router.push("/app");
+        if (submitPasswordError) {
+          setError(submitPasswordError.longMessage || submitPasswordError.message || "An error occurred. Please try again.");
+          return;
+        }
+        if (signIn.status === "complete") {
+          const { error: finalizeError } = await signIn.finalize({
+            navigate: ({ decorateUrl }) => {
+              const url = decorateUrl("/app");
+              if (url.startsWith("http")) {
+                window.location.href = url;
+                return;
+              }
+              router.push(url);
+            },
+          });
+          if (finalizeError) {
+            setError(finalizeError.longMessage || finalizeError.message || "An error occurred. Please try again.");
+          }
         }
       }
     } catch (err: any) {
@@ -198,6 +220,7 @@ export function ResetPasswordForm({
 
   const stepContent = getStepContent();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasCaptcha = Boolean(siteKey);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -211,11 +234,11 @@ export function ResetPasswordForm({
             <div className="grid gap-6">
               {stepContent.fields}
 
-              {step === "email" && siteKey && (
+              {step === "email" && hasCaptcha && (
                 <div className="turnstile-container">
                   <Turnstile
                     ref={turnstileRef}
-                    siteKey={siteKey}
+                    siteKey={siteKey!}
                     onSuccess={handleTurnstileSuccess}
                     onError={() => {
                       setIsCaptchaCompleted(false);
@@ -240,14 +263,12 @@ export function ResetPasswordForm({
                 type="submit"
                 className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
                 disabled={
-                  !isLoaded
-                    ? true
-                    : siteKey && step === "email"
+                  hasCaptcha && step === "email"
                     ? !isCaptchaCompleted || isLoading
                     : isLoading
                 }
               >
-                {!isLoaded ? "Loading auth..." : isLoading ? "Processing..." : stepContent.buttonText}
+                {isLoading ? "Processing..." : stepContent.buttonText}
               </Button>
 
               <div className="text-center text-sm">

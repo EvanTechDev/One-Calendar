@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@clerk/localizations": "4.3.0",
-    "@clerk/nextjs": "6.39.1",
+    "@clerk/nextjs": "^7.0.0",
     "@hookform/resolvers": "5.2.2",
     "@marsidev/react-turnstile": "latest",
     "@radix-ui/react-accordion": "latest",
