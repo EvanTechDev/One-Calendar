@@ -169,6 +169,27 @@ export default function EventPreview({
     }
   }, [event, bookmarks]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const updateAnchorRect = () => {
+      if (anchorEl && anchorEl.isConnected) {
+        setLiveAnchorRect(anchorEl.getBoundingClientRect());
+        return;
+      }
+      setLiveAnchorRect(null);
+    };
+
+    updateAnchorRect();
+    window.addEventListener("scroll", updateAnchorRect, true);
+    window.addEventListener("resize", updateAnchorRect);
+
+    return () => {
+      window.removeEventListener("scroll", updateAnchorRect, true);
+      window.removeEventListener("resize", updateAnchorRect);
+    };
+  }, [open, anchorEl]);
+
   if (!event || (!open && !shareDialogOpen)) return null;
 
   const getCalendarName = () => {
@@ -450,27 +471,6 @@ export default function EventPreview({
     e.stopPropagation();
     onDelete();
   };
-
-  useEffect(() => {
-    if (!open) return;
-
-    const updateAnchorRect = () => {
-      if (anchorEl && anchorEl.isConnected) {
-        setLiveAnchorRect(anchorEl.getBoundingClientRect());
-        return;
-      }
-      setLiveAnchorRect(null);
-    };
-
-    updateAnchorRect();
-    window.addEventListener("scroll", updateAnchorRect, true);
-    window.addEventListener("resize", updateAnchorRect);
-
-    return () => {
-      window.removeEventListener("scroll", updateAnchorRect, true);
-      window.removeEventListener("resize", updateAnchorRect);
-    };
-  }, [open, anchorEl]);
 
   const anchorStyle: React.CSSProperties = liveAnchorRect
     ? {
