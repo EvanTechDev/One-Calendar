@@ -4,7 +4,7 @@ import { LegalPageShell } from "@/components/landing/legal-page-shell"
 
 const termsContent = {
   title: "One Calendar Terms of Service",
-  lastUpdated: "Last updated: April 4, 2026",
+  lastUpdated: "Last updated: April 5, 2026",
   intro:
     "These Terms of Service govern your use of One Calendar. By using the service, you agree to these terms.",
   sections: [
@@ -18,9 +18,9 @@ const termsContent = {
     {
       heading: "2. Open-Source License",
       content: [
-        "One Calendar source code is distributed under GNU GPLv3.",
-        "If you redistribute modified versions, you must comply with GPLv3 obligations.",
-        "License details are available at <a href='https://www.gnu.org/licenses/gpl-3.0.en.html' target='_blank' class='text-blue-600 hover:underline'>https://www.gnu.org/licenses/gpl-3.0.en.html</a>.",
+        "One Calendar source code is distributed under MIT License.",
+        "If you redistribute modified versions, you must comply with MIT obligations.",
+        "License details are available at <a href='https://github.com/EvanTechDev/One-Calendar/blob/main/LICENSE' target='_blank' class='text-blue-600 hover:underline'>https://github.com/EvanTechDev/One-Calendar/blob/main/LICENSE</a>.",
       ],
     },
     {
