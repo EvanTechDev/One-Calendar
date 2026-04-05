@@ -1,4 +1,4 @@
-const CACHE_NAME = "one-calendar-shell-v1";
+const CACHE_NAME = "one-calendar-shell-v2";
 const OFFLINE_URLS = ["/app", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -29,6 +29,10 @@ self.addEventListener("fetch", (event) => {
 
   const requestUrl = new URL(event.request.url);
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
+    return;
+  }
+  if (requestUrl.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
