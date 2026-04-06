@@ -6,7 +6,7 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from "@/hooks/useLocalStorage";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Edit2,
   Trash2,
@@ -117,10 +117,16 @@ export default function EventPreview({
           description: t.shareSignInRequiredDescription,
         });
       } else {
-        setShareDialogOpen(true);
+        void openShareDialog();
       }
     }
-  }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language]);
+  }, [
+    open,
+    openShareImmediately,
+    isSignedIn,
+    atprotoSignedIn,
+    language,
+  ]);
 
   useEffect(() => {
     if (open && !modal) {
@@ -159,6 +165,15 @@ export default function EventPreview({
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!open || !event) return;
+    readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+      (storedBookmarks) => {
+        setBookmarks(storedBookmarks);
+      },
+    );
+  }, [open, event]);
 
   useEffect(() => {
     return () => {
@@ -252,6 +267,39 @@ export default function EventPreview({
     qrCodeObjectURLRef.current = qrURL;
     setQRCodeDataURL(qrURL);
   };
+
+  const openShareDialog = useCallback(async () => {
+    if (!event) return;
+
+    setPasswordEnabled(false);
+    setSharePassword("");
+    setBurnAfterRead(false);
+    setShareLink("");
+    setQRCodeDataURL("");
+    if (qrCodeObjectURLRef.current) {
+      URL.revokeObjectURL(qrCodeObjectURLRef.current);
+      qrCodeObjectURLRef.current = null;
+    }
+
+    const storedShares = await readEncryptedLocalStorage<any[]>(
+      "shared-events",
+      [],
+    );
+    const existingShare = storedShares
+      .filter((share) => share?.eventId === event.id && !!share?.shareLink)
+      .sort(
+        (a, b) =>
+          new Date(b.shareDate || 0).getTime() -
+          new Date(a.shareDate || 0).getTime(),
+      )[0];
+
+    if (existingShare) {
+      setShareLink(existingShare.shareLink);
+      await generateStyledQRCode(existingShare.shareLink);
+    }
+
+    setShareDialogOpen(true);
+  }, [event]);
 
   const toggleBookmark = async () => {
     if (!event) return;
@@ -562,7 +610,7 @@ export default function EventPreview({
                       });
                       return;
                     }
-                    handleShareDialogChange(true);
+                    void openShareDialog();
                   }}
                   className="h-8 w-8"
                 >
