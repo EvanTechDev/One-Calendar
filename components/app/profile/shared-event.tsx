@@ -602,14 +602,7 @@ export default function SharedEventView({
                     </CardTitle>
                     <CardDescription>
                       {isZh ? "分享者：" : "Shared by: "}
-                      <a
-                        className="font-medium underline underline-offset-4"
-                        href={`https://bsky.app/profile/${String(event.sharedBy || "").replace(/^@/, "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {event.sharedBy}
-                      </a>
+                      {event.sharedBy}
                     </CardDescription>
                     {burnAfterRead && (
                       <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
