@@ -42,6 +42,3 @@ next-env.d.ts
 
 # turbo
 .turbo
-
-# generated locale map
-/lib/locales.ts

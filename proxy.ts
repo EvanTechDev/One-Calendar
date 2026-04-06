@@ -12,6 +12,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/atproto/(.*)",
   "/oauth-client-metadata.json",
   "/api/share/public",
+  "/share/(.*)",
   "/privacy",
   "/terms",
 ])
