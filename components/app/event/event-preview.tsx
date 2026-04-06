@@ -6,7 +6,7 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from "@/hooks/useLocalStorage";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Edit2,
   Trash2,
@@ -268,7 +268,7 @@ export default function EventPreview({
     setQRCodeDataURL(qrURL);
   };
 
-  const openShareDialog = useCallback(async () => {
+  const openShareDialog = async () => {
     if (!event) return;
 
     setPasswordEnabled(false);
@@ -299,7 +299,7 @@ export default function EventPreview({
     }
 
     setShareDialogOpen(true);
-  }, [event]);
+  };
 
   const toggleBookmark = async () => {
     if (!event) return;
