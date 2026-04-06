@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og"
-import { APP_TITLE } from "@/app/layout"
+import { headers } from "next/headers"
 
 export const size = {
   width: 1200,
@@ -7,6 +7,8 @@ export const size = {
 }
 
 export const contentType = "image/png"
+
+export const revalidate = 0
 
 const instrumentSansPromises = new Map<number, Promise<ArrayBuffer>>()
 
@@ -35,7 +37,47 @@ async function loadInstrumentSans(weight: 400 | 500) {
   return promise
 }
 
-export default async function OpenGraphImage() {
+async function getShareTitle(id: string) {
+  const fallbackTitle = "One Calendar"
+
+  try {
+    const headerStore = await headers()
+    const forwardedHost = headerStore.get("x-forwarded-host")
+    const host = forwardedHost || headerStore.get("host")
+    const protocol = headerStore.get("x-forwarded-proto") || "https"
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (host ? `${protocol}://${host}` : "http://localhost:3000")
+    const res = await fetch(`${baseUrl}/api/share?id=${id}`, {
+      cache: "no-store",
+    })
+
+    if (res.status === 401) {
+      const result = await res.json().catch(() => null)
+      if (result?.requiresPassword) {
+        return "Protected"
+      }
+
+      return fallbackTitle
+    }
+
+    if (!res.ok) {
+      return fallbackTitle
+    }
+
+    const result = await res.json()
+
+    if (!result.success || !result.data) {
+      return fallbackTitle
+    }
+
+    const event = typeof result.data === "object" ? result.data : JSON.parse(result.data)
+    return typeof event.title === "string" ? event.title : "Untitled"
+  } catch {
+    return fallbackTitle
+  }
+}
+
+export default async function OpenGraphImage({ params }: { params: { id: string } }) {
+  const eventTitle = await getShareTitle(params.id)
   const [instrumentSans400, instrumentSans500] = await Promise.all([
     loadInstrumentSans(400),
     loadInstrumentSans(500),
@@ -89,7 +131,7 @@ export default async function OpenGraphImage() {
               lineHeight: 1.1,
             }}
           >
-            {APP_TITLE}
+            {eventTitle}
           </div>
         </div>
       </div>
