@@ -748,7 +748,10 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
+      <SheetContent
+        side="right"
+        className="w-[360px] sm:w-[420px] p-0 [&_button:hover]:text-inherit"
+      >
         {view === "list" && renderCountdownListView()}
         {view === "detail" && renderCountdownDetailView()}
         {view === "edit" && renderCountdownEditView()}

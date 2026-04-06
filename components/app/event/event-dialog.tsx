@@ -592,7 +592,7 @@ export default function EventDialog({
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pb-6">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="title">{t.title}</Label>
             <Input
               id="title"
@@ -743,7 +743,7 @@ export default function EventDialog({
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="calendar">{t.calendar}</Label>
             <Select
               value={calendarSelectValue}
@@ -783,7 +783,7 @@ export default function EventDialog({
             </Select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="color">{t.color}</Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger>
@@ -805,7 +805,7 @@ export default function EventDialog({
             </Select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="location">{t.location}</Label>
             <Input
               id="location"
@@ -814,7 +814,7 @@ export default function EventDialog({
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="participants">{t.participants}</Label>
             <Input
               id="participants"
@@ -824,7 +824,7 @@ export default function EventDialog({
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="notification">{t.notification}</Label>
             <Select value={notification} onValueChange={setNotification}>
               <SelectTrigger>
@@ -850,7 +850,7 @@ export default function EventDialog({
           </div>
 
           {notification === "custom" && (
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="custom-notification-time">
                 {t.customTimeMinutes}
               </Label>
@@ -865,7 +865,7 @@ export default function EventDialog({
             </div>
           )}
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">{t.description}</Label>
             <Textarea
               id="description"
