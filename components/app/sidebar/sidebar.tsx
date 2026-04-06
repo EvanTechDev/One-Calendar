@@ -252,7 +252,7 @@ export default function Sidebar({
           />
         </div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t.myCalendars}</span>
           </div>

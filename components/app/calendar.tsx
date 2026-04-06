@@ -350,7 +350,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [enableShortcuts, t.searchEvents]);
+  }, [enableShortcuts, t.searchEvents, view]);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
