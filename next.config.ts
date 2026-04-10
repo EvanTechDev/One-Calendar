@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
 import packageJson from "./package.json";
+import withRspack from "next-rspack";
 
 const getGitCommit = () => {
   try {
@@ -31,4 +32,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withRspack(nextConfig);
