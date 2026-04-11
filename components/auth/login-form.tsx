@@ -20,6 +20,7 @@ import {
   OAUTH_PROVIDER_CONFIG,
   type OAuthStrategy,
 } from "@/lib/clerk-oauth";
+import { OAuthProviderIcon } from "@/components/auth/oauth-provider-icon";
 
 export function LoginForm({
   className,
@@ -161,7 +162,10 @@ export function LoginForm({
                           type="button"
                           onClick={() => handleOAuthLogin(provider.strategy)}
                         >
-                          <span>Login with {provider.label}</span>
+                          <span className="flex items-center justify-center gap-2">
+                            <OAuthProviderIcon providerKey={providerKey} />
+                            <span>Login with {provider.label}</span>
+                          </span>
                         </Button>
                       );
                     })}
