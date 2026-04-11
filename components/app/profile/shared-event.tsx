@@ -59,34 +59,23 @@ interface SharedEventViewProps {
   handle?: string;
 }
 
-const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";
-
-function SharePageFooter({ isZh }: { isZh: boolean }) {
+function SharePageLegalLinks({ isZh }: { isZh: boolean }) {
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 px-3 py-2 text-xs text-muted-foreground shadow-lg shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
-          <span className="rounded-full bg-muted px-2 py-1 font-mono text-[11px] tracking-wide text-foreground/80">
-            v{APP_VERSION}
-          </span>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/privacy"
-              className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {isZh ? "隐私政策" : "Privacy Policy"}
-            </Link>
-            <span className="text-muted-foreground/50">•</span>
-            <Link
-              href="/terms"
-              className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {isZh ? "服务条款" : "Terms of Service"}
-            </Link>
-          </div>
-        </div>
-      </div>
-    </footer>
+    <div className="fixed bottom-4 right-4 z-20 flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-lg shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
+      <Link
+        href="/privacy"
+        className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+      >
+        {isZh ? "隐私政策" : "Privacy Policy"}
+      </Link>
+      <span className="text-muted-foreground/50">•</span>
+      <Link
+        href="/terms"
+        className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+      >
+        {isZh ? "服务条款" : "Terms of Service"}
+      </Link>
+    </div>
   );
 }
 
@@ -362,7 +351,7 @@ export default function SharedEventView({
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
           {isZh ? "加载中..." : "Loading..."}
         </p>
-        <SharePageFooter isZh={isZh} />
+        <SharePageLegalLinks isZh={isZh} />
       </div>
     );
   }
@@ -494,7 +483,7 @@ export default function SharedEventView({
             </Card>
           </motion.div>
         </div>
-        <SharePageFooter isZh={isZh} />
+        <SharePageLegalLinks isZh={isZh} />
       </div>
     );
   }
@@ -562,7 +551,7 @@ export default function SharedEventView({
             </Card>
           </motion.div>
         </div>
-        <SharePageFooter isZh={isZh} />
+        <SharePageLegalLinks isZh={isZh} />
       </div>
     );
   }
@@ -763,7 +752,7 @@ export default function SharedEventView({
           </Card>
         </motion.div>
       </div>
-      <SharePageFooter isZh={isZh} />
+      <SharePageLegalLinks isZh={isZh} />
     </div>
   );
 }
