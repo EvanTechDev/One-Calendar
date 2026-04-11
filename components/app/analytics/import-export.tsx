@@ -729,6 +729,18 @@ END:VEVENT
     URL.revokeObjectURL(url);
   };
 
+  const handleImportDialogOpenChange = (open: boolean) => {
+    setImportDialogOpen(open);
+    if (open) {
+      setImportTab("file");
+      setSelectedFile(null);
+      setImportUrl("");
+      setDebugInfo("");
+      setJsonImportEncrypted(false);
+      setJsonImportPassword("");
+    }
+  };
+
   return (
     <div className="w-full rounded-lg border p-4 space-y-6">
       <div>
@@ -774,7 +786,10 @@ END:VEVENT
       </div>
 
       {}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+      <Dialog
+        open={importDialogOpen}
+        onOpenChange={handleImportDialogOpenChange}
+      >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.importCalendar}</DialogTitle>

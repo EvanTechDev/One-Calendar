@@ -510,7 +510,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             </Button>
             <Button
               variant="destructive"
-              className="flex-1 text-destructive-foreground hover:text-destructive-foreground"
+              className="flex-1"
               onClick={() => deleteCountdown(selectedCountdown.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -714,7 +714,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         {selectedCountdown && (
           <Button
             variant="destructive"
-            className="text-destructive-foreground hover:text-destructive-foreground"
             onClick={() => deleteCountdown(selectedCountdown.id)}
           >
             {t.countdownDelete}

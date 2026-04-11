@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 const navLinks = [
   { name: "Features", href: "#features" },
@@ -13,6 +14,7 @@ const navLinks = [
 ];
 
 export function Navigation() {
+  const { isSignedIn } = useUser();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -62,16 +64,28 @@ export function Navigation() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/sign-in" className={`text-foreground/70 hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
-              Sign in
-            </Link>
-            <Button
-              size="sm"
-              asChild
-              className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
-            >
-              <Link href="/sign-up">Start free</Link>
-            </Button>
+            {isSignedIn ? (
+              <Button
+                size="sm"
+                asChild
+                className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+              >
+                <Link href="/app">Calendar App</Link>
+              </Button>
+            ) : (
+              <>
+                <Link href="/sign-in" className={`text-foreground/70 hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
+                  Sign in
+                </Link>
+                <Button
+                  size="sm"
+                  asChild
+                  className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+                >
+                  <Link href="/sign-up">Start free</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           <button
@@ -123,19 +137,32 @@ export function Navigation() {
           }`}
           style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
           >
-            <Button
-              variant="outline"
-              asChild
-              className="flex-1 rounded-full h-14 text-base"
-            >
-              <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>Sign in</Link>
-            </Button>
-            <Button
-              asChild
-              className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
-            >
-              <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>Start free</Link>
-            </Button>
+            {isSignedIn ? (
+              <Button
+                asChild
+                className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+              >
+                <Link href="/app" onClick={() => setIsMobileMenuOpen(false)}>
+                  Calendar App
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  asChild
+                  className="flex-1 rounded-full h-14 text-base"
+                >
+                  <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>Sign in</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+                >
+                  <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>Start free</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -50,6 +50,7 @@ import { translations, useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { APP_CONFIG } from "@/lib/config";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -879,7 +880,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   <DropdownMenuItem
                     onClick={() =>
                       window.open(
-                        "https://calendarstatus.xyehr.cn",
+                        APP_CONFIG.contact.statusPageUrl,
                         "_blank",
                         "noopener,noreferrer",
                       )
@@ -890,7 +891,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
-                      window.location.href = "mailto:evan.huang000@proton.me";
+                      window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`;
                     }}
                   >
                     <MessageSquare className="mr-2 h-4 w-4" />
