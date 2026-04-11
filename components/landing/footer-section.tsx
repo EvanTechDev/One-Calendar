@@ -2,34 +2,7 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { AnimatedWave } from "./animated-wave";
-
-const footerSections = [
-  {
-    title: "Product",
-    links: [
-      { label: "Overview", href: "#features" },
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Documentation", href: "https://docs.xyehr.cn/docs/one-calendar" },
-      { label: "Status", href: "https://calendarstatus.xyehr.cn" },
-      { label: "Support", href: "mailto:evan.huang000@proton.me" },
-    ],
-  },
-  {
-    title: "Connect",
-    links: [
-      { label: "Contact", href: "mailto:evan.huang000@proton.me" },
-      { label: "Bluesky", href: "https://bsky.app/profile/calendar.xyehr.cn" },
-      { label: "Tangled", href: "https://tangled.org/e.xyehr.cn/One-Calendar" },
-      { label: "GitHub", href: "https://github.com/EvanTechDev/One-Calendar" },
-    ],
-  },
-];
+import { APP_CONFIG } from "@/lib/config";
 
 export function FooterSection() {
   const currentYear = new Date().getFullYear();
@@ -53,7 +26,7 @@ export function FooterSection() {
               </p>
             </div>
 
-            {footerSections.map((section) => (
+            {APP_CONFIG.landing.footerSections.map((section) => (
               <div key={section.title}>
                 <h3 className="text-sm font-medium mb-6">{section.title}</h3>
                 <ul className="space-y-4">
@@ -79,7 +52,10 @@ export function FooterSection() {
             {currentYear} One Calendar. All rights reserved.
           </p>
 
-          <a className="text-sm text-muted-foreground hover:text-foreground" href="https://calendarstatus.xyehr.cn">
+          <a
+            className="text-sm text-muted-foreground hover:text-foreground"
+            href={APP_CONFIG.contact.statusPageUrl}
+          >
             Status page available
           </a>
         </div>

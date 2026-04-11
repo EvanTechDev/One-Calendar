@@ -16,6 +16,13 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchJson } from "@/lib/fetch-json";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface SharedEvent {
   id: string;
@@ -153,9 +160,15 @@ export default function ShareManagement() {
 
       <div>
         {sharedEvents.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {t.noShares}
-          </div>
+          <Empty className="border-0 py-8">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ExternalLink className="h-4 w-4" />
+              </EmptyMedia>
+              <EmptyTitle>{t.shareManagementTitle}</EmptyTitle>
+              <EmptyDescription>{t.noShares}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="space-y-4">
             {sharedEvents.map((share) => (

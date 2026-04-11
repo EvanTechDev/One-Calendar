@@ -5,7 +5,6 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { CalendarProvider } from "@/components/providers/calendar-context"
 import { ClerkProvider } from '@clerk/nextjs'
-import { enUS } from '@clerk/localizations'
 import { GeistSans } from "geist/font/sans"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { PwaProvider } from "@/components/providers/pwa-provider"
@@ -65,7 +64,6 @@ export default function RootLayout({
       >
         <ClerkProvider
           publishableKey={clerkPublishableKey}
-          localization={enUS}
           signInFallbackRedirectUrl="/app"
           signUpFallbackRedirectUrl="/app"
           signInForceRedirectUrl="/"
