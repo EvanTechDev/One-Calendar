@@ -799,6 +799,7 @@ END:VEVENT
             defaultValue="file"
             value={importTab}
             onValueChange={setImportTab}
+            className="flex-col"
           >
             <TabsList className="grid grid-cols-2">
               <TabsTrigger value="file">{t.fileImport}</TabsTrigger>
