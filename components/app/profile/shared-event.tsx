@@ -4,6 +4,7 @@ import { zhCN, enUS } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { format } from "date-fns";
 import {
   MapPin,
@@ -56,6 +57,26 @@ interface SharedEvent {
 interface SharedEventViewProps {
   shareId: string;
   handle?: string;
+}
+
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";
+
+function SharePageFooter({ isZh }: { isZh: boolean }) {
+  return (
+    <footer className="fixed bottom-0 inset-x-0 z-20 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between text-xs text-muted-foreground">
+        <span className="font-mono">v{APP_VERSION}</span>
+        <div className="flex items-center gap-4">
+          <Link href="/privacy" className="transition-colors hover:text-foreground">
+            {isZh ? "隐私政策" : "Privacy Policy"}
+          </Link>
+          <Link href="/terms" className="transition-colors hover:text-foreground">
+            {isZh ? "服务条款" : "Terms of Service"}
+          </Link>
+        </div>
+      </div>
+    </footer>
+  );
 }
 
 function getDarkerColorClass(color: string) {
@@ -330,6 +351,7 @@ export default function SharedEventView({
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
           {isZh ? "加载中..." : "Loading..."}
         </p>
+        <SharePageFooter isZh={isZh} />
       </div>
     );
   }
@@ -461,6 +483,7 @@ export default function SharedEventView({
             </Card>
           </motion.div>
         </div>
+        <SharePageFooter isZh={isZh} />
       </div>
     );
   }
@@ -528,6 +551,7 @@ export default function SharedEventView({
             </Card>
           </motion.div>
         </div>
+        <SharePageFooter isZh={isZh} />
       </div>
     );
   }
@@ -728,6 +752,7 @@ export default function SharedEventView({
           </Card>
         </motion.div>
       </div>
+      <SharePageFooter isZh={isZh} />
     </div>
   );
 }

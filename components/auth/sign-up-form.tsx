@@ -14,6 +14,7 @@ import {
   OAUTH_PROVIDER_CONFIG,
   type OAuthStrategy,
 } from "@/lib/clerk-oauth";
+import { OAuthProviderIcon } from "@/components/auth/oauth-provider-icon";
 
 export function SignUpForm({
   className,
@@ -318,7 +319,10 @@ export function SignUpForm({
                           type="button"
                           onClick={() => handleOAuthSignUp(provider.strategy)}
                         >
-                          <span>Continue with {provider.label}</span>
+                          <span className="flex items-center justify-center gap-2">
+                            <OAuthProviderIcon providerKey={providerKey} />
+                            <span>Continue with {provider.label}</span>
+                          </span>
                         </Button>
                       );
                     })}
