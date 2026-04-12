@@ -226,7 +226,7 @@ export default function Sidebar({
             height={24}
             className="mr-2 brightness-0 dark:invert"
           />
-          <h1 className="text-lg font-semibold">{t.oneCalendar}</h1>
+          <h1 className="text-lg font-semibold">One Calendar</h1>
         </div>
 
         <Button
