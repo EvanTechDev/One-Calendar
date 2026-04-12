@@ -3,7 +3,9 @@
   "locale": {
     "source": "en",
     "targets": [
-      "zh-CN"
+      "zh-HK",
+      "zh-TW",
+      "yue"
     ]
   },
   "buckets": {
