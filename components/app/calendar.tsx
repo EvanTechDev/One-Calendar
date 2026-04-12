@@ -43,7 +43,6 @@ import RightSidebar from "@/components/app/sidebar/right-sidebar";
 import { addDays, addYears, subDays, subYears } from "date-fns";
 import EventPreview from "@/components/app/event/event-preview";
 import EventDialog from "@/components/app/event/event-dialog";
-import DailyToast from "@/components/app/profile/daily-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Sidebar from "@/components/app/sidebar/sidebar";
 import { translations, useLanguage } from "@/lib/i18n";
@@ -1102,7 +1101,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           timezone={timezone}
         />
 
-        <DailyToast />
 
         <AlertDialog
           open={deleteConfirmOpen}
