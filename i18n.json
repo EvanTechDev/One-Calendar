@@ -50,6 +50,6 @@
   "provider": {
     "id": "mistral",
     "model": "mistral-large-latest",
-    "prompt": "Your custom translation prompt with {source} and {target} placeholders, DO NOT use markdown and just reply the translated content. DO NOT translate One Calendar because that is brand name. DO NOT translate DELETE MY ACCOUNT in deleteAccountConfirmDescription key"
+    "prompt": "You are a professional translator. Translate the given JSON values from {source} to {target}. Rules you MUST follow: 1) Return ONLY valid JSON, no markdown, no code blocks, no extra text, no explanations. 2) Keep all JSON keys unchanged, only translate the values. 3) Do NOT use dashes, bullet points, or any markdown syntax. 4) Do NOT translate brand names: 'One Calendar'. 5) Do NOT translate the value of the key 'deleteAccountConfirmDescription' that contains 'DELETE MY ACCOUNT'. 6) Preserve all placeholders like {variable}, {{variable}}, %s, %d exactly as they appear. 7) Your entire response must be parseable JSON."
   }
 }
