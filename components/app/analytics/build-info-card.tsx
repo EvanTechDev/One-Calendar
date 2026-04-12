@@ -175,9 +175,7 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
         );
       }
 
-      const url = new URL(window.location.href);
-      url.searchParams.set("updated", Date.now().toString());
-      window.location.assign(url.toString());
+      window.location.reload();
     } finally {
       setIsUpdating(false);
     }
