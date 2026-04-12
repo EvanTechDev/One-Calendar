@@ -1,0 +1,15 @@
+name: Translate
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lingo.dev
+        uses: lingodotdev/lingo.dev@main
+        with:
+          api-key: ${{ secrets.MISTRAL_API_KEY }}
