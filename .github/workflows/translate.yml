@@ -9,7 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Lingo.dev
-        uses: lingodotdev/lingo.dev@main
-        with:
-          api-key: ${{ secrets.MISTRAL_API_KEY }}
+      - name: Translate
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: npx lingo.dev@latest run
+      - name: Commit changes
+        run: |
+          git config user.name "Lingo.dev"
+          git config user.email "support@lingo.dev"
+          git add .
+          git diff --staged --quiet || git commit -m "feat: update translations via @LingoDotDev"
+          git push
