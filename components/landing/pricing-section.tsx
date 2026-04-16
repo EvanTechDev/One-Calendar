@@ -1,63 +1,66 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { useState } from 'react'
+import { ArrowRight, Check } from 'lucide-react'
 
 const plans = [
   {
-    name: "Starter",
-    description: "For personal planning",
+    name: 'Starter',
+    description: 'For personal planning',
     price: { monthly: 0, annual: 0 },
     features: [
-      "Unlimited personal events",
-      "Week/day/month views",
-      "Local-first experience",
-      "No analytics by default",
-      "ICS import/export",
+      'Unlimited personal events',
+      'Week/day/month views',
+      'Local-first experience',
+      'No analytics by default',
+      'ICS import/export',
     ],
-    cta: "Start free",
+    cta: 'Start free',
     popular: false,
   },
   {
-    name: "Pro",
-    description: "For small teams",
+    name: 'Pro',
+    description: 'For small teams',
     price: { monthly: 29, annual: 24 },
     features: [
-      "Shared calendars",
-      "Optional cloud sync",
-      "Priority support",
-      "Role permissions",
-      "Theme customization",
-      "Team collaboration",
-      "Export controls",
+      'Shared calendars',
+      'Optional cloud sync',
+      'Priority support',
+      'Role permissions',
+      'Theme customization',
+      'Team collaboration',
+      'Export controls',
     ],
-    cta: "Start team trial",
+    cta: 'Start team trial',
     popular: true,
   },
   {
-    name: "Enterprise",
-    description: "For organizations",
+    name: 'Enterprise',
+    description: 'For organizations',
     price: { monthly: null, annual: null },
     features: [
-      "Everything in Team",
-      "Enterprise sync policies",
-      "Dedicated support",
-      "Custom onboarding",
-      "SLA guarantee",
-      "Self-host options",
-      "Security review",
-      "Custom contracts",
+      'Everything in Team',
+      'Enterprise sync policies',
+      'Dedicated support',
+      'Custom onboarding',
+      'SLA guarantee',
+      'Self-host options',
+      'Security review',
+      'Custom contracts',
     ],
-    cta: "Contact us",
+    cta: 'Contact us',
     popular: false,
   },
-];
+]
 
 export function PricingSection() {
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(true)
 
   return (
-    <section id="pricing" className="relative py-32 lg:py-40 border-t border-foreground/10">
+    <section
+      id="pricing"
+      className="relative py-32 lg:py-40 border-t border-foreground/10"
+    >
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         {/* Header */}
         <div className="max-w-3xl mb-20">
@@ -78,7 +81,7 @@ export function PricingSection() {
         <div className="flex items-center gap-4 mb-16">
           <span
             className={`text-sm transition-colors ${
-              !isAnnual ? "text-foreground" : "text-muted-foreground"
+              !isAnnual ? 'text-foreground' : 'text-muted-foreground'
             }`}
           >
             Monthly
@@ -89,13 +92,13 @@ export function PricingSection() {
           >
             <div
               className={`w-5 h-5 bg-foreground rounded-full transition-transform duration-300 ${
-                isAnnual ? "translate-x-7" : "translate-x-0"
+                isAnnual ? 'translate-x-7' : 'translate-x-0'
               }`}
             />
           </button>
           <span
             className={`text-sm transition-colors ${
-              isAnnual ? "text-foreground" : "text-muted-foreground"
+              isAnnual ? 'text-foreground' : 'text-muted-foreground'
             }`}
           >
             Annual
@@ -113,7 +116,9 @@ export function PricingSection() {
             <div
               key={plan.name}
               className={`relative p-8 lg:p-12 bg-background ${
-                plan.popular ? "md:-my-4 md:py-12 lg:py-16 border-2 border-foreground" : ""
+                plan.popular
+                  ? 'md:-my-4 md:py-12 lg:py-16 border-2 border-foreground'
+                  : ''
               }`}
             >
               {plan.popular && (
@@ -125,10 +130,14 @@ export function PricingSection() {
               {/* Plan Header */}
               <div className="mb-8">
                 <span className="font-mono text-xs text-muted-foreground">
-                  {String(idx + 1).padStart(2, "0")}
+                  {String(idx + 1).padStart(2, '0')}
                 </span>
-                <h3 className="font-display text-3xl text-foreground mt-2">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
+                <h3 className="font-display text-3xl text-foreground mt-2">
+                  {plan.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {plan.description}
+                </p>
               </div>
 
               {/* Price */}
@@ -141,7 +150,9 @@ export function PricingSection() {
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 ) : (
-                  <span className="font-display text-4xl text-foreground">Custom</span>
+                  <span className="font-display text-4xl text-foreground">
+                    Custom
+                  </span>
                 )}
               </div>
 
@@ -150,7 +161,9 @@ export function PricingSection() {
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
-                    <span className="text-sm text-muted-foreground">{feature}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {feature}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -159,8 +172,8 @@ export function PricingSection() {
               <button
                 className={`w-full py-4 flex items-center justify-center gap-2 text-sm font-medium transition-all group ${
                   plan.popular
-                    ? "bg-foreground text-primary-foreground hover:bg-foreground/90"
-                    : "border border-foreground/20 text-foreground hover:border-foreground hover:bg-foreground/5"
+                    ? 'bg-foreground text-primary-foreground hover:bg-foreground/90'
+                    : 'border border-foreground/20 text-foreground hover:border-foreground hover:bg-foreground/5'
                 }`}
               >
                 {plan.cta}
@@ -172,12 +185,15 @@ export function PricingSection() {
 
         {/* Bottom Note */}
         <p className="mt-12 text-center text-sm text-muted-foreground">
-          All plans include import/export support and privacy-first defaults.{" "}
-          <a href="#" className="underline underline-offset-4 hover:text-foreground transition-colors">
+          All plans include import/export support and privacy-first defaults.{' '}
+          <a
+            href="#"
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
             Compare plans
           </a>
         </p>
       </div>
     </section>
-  );
+  )
 }

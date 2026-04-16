@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   PieChart,
@@ -11,24 +11,24 @@ import {
   YAxis,
   Tooltip,
   Legend,
-} from "recharts";
+} from 'recharts'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { analyzeTimeUsage, type TimeAnalytics } from "@/lib/time-analytics";
-import type { CalendarCategory } from "../sidebar/sidebar";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { translations, useLanguage } from "@/lib/i18n";
-import type { CalendarEvent } from "../calendar";
-import { useState, useEffect } from "react";
+} from '@/components/ui/select'
+import { analyzeTimeUsage, type TimeAnalytics } from '@/lib/time-analytics'
+import type { CalendarCategory } from '../sidebar/sidebar'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { translations, useLanguage } from '@/lib/i18n'
+import type { CalendarEvent } from '../calendar'
+import { useState, useEffect } from 'react'
 
 interface TimeAnalyticsProps {
-  events: CalendarEvent[];
-  calendars?: CalendarCategory[];
+  events: CalendarEvent[]
+  calendars?: CalendarCategory[]
 }
 
 export default function TimeAnalyticsComponent({
@@ -37,128 +37,126 @@ export default function TimeAnalyticsComponent({
 }: TimeAnalyticsProps) {
   const [timeCategories, setTimeCategories] = useLocalStorage<
     CalendarCategory[]
-  >("calendar-categories", calendars);
-  const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null);
+  >('calendar-categories', calendars)
+  const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null)
   const [newCategory, setNewCategory] = useState<Partial<CalendarCategory>>({
-    name: "",
-    color: "bg-gray-500",
+    name: '',
+    color: 'bg-gray-500',
     keywords: [],
-  });
-  const [timeRange, setTimeRange] = useState<"week" | "month" | "year">(
-    "month",
-  );
-  const [language] = useLanguage();
-  const t = translations[language];
+  })
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
+  const [language] = useLanguage()
+  const t = translations[language]
 
-  const [forceUpdate, setForceUpdate] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0)
 
   useEffect(() => {
     const handleLanguageChange = () => {
-      setForceUpdate((prev) => prev + 1);
-    };
+      setForceUpdate((prev) => prev + 1)
+    }
 
-    window.addEventListener("languagechange", handleLanguageChange);
+    window.addEventListener('languagechange', handleLanguageChange)
     return () => {
-      window.removeEventListener("languagechange", handleLanguageChange);
-    };
-  }, []);
+      window.removeEventListener('languagechange', handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
-    const now = new Date();
+    const now = new Date()
     const filteredEvents = events.filter((event) => {
-      const eventDate = new Date(event.startDate);
-      if (timeRange === "week") {
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return eventDate >= oneWeekAgo;
-      } else if (timeRange === "month") {
+      const eventDate = new Date(event.startDate)
+      if (timeRange === 'week') {
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        return eventDate >= oneWeekAgo
+      } else if (timeRange === 'month') {
         const oneMonthAgo = new Date(
           now.getFullYear(),
           now.getMonth() - 1,
           now.getDate(),
-        );
-        return eventDate >= oneMonthAgo;
-      } else if (timeRange === "year") {
+        )
+        return eventDate >= oneMonthAgo
+      } else if (timeRange === 'year') {
         const oneYearAgo = new Date(
           now.getFullYear() - 1,
           now.getMonth(),
           now.getDate(),
-        );
-        return eventDate >= oneYearAgo;
+        )
+        return eventDate >= oneYearAgo
       }
-      return true;
-    });
+      return true
+    })
 
-    const result = analyzeTimeUsage(filteredEvents, timeCategories);
-    setAnalytics(result);
-  }, [events, timeCategories, timeRange, language, forceUpdate]);
+    const result = analyzeTimeUsage(filteredEvents, timeCategories)
+    setAnalytics(result)
+  }, [events, timeCategories, timeRange, language, forceUpdate])
 
   const handleAddCategory = () => {
     if (newCategory.name) {
       const newCat: CalendarCategory = {
         id: Date.now().toString(),
         name: newCategory.name,
-        color: newCategory.color || "bg-gray-500",
+        color: newCategory.color || 'bg-gray-500',
         keywords: [],
-      };
-      setTimeCategories([...timeCategories, newCat]);
+      }
+      setTimeCategories([...timeCategories, newCat])
       setNewCategory({
-        name: "",
-        color: "bg-gray-500",
+        name: '',
+        color: 'bg-gray-500',
         keywords: [],
-      });
+      })
     }
-  };
+  }
 
   const handleRemoveCategory = (id: string) => {
-    setTimeCategories(timeCategories.filter((cat) => cat.id !== id));
-  };
+    setTimeCategories(timeCategories.filter((cat) => cat.id !== id))
+  }
 
   if (!analytics) {
-    return <div>{t.loading}</div>;
+    return <div>{t.loading}</div>
   }
 
   const pieData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
-      const category = timeCategories.find((cat) => cat.id === categoryId);
+      const category = timeCategories.find((cat) => cat.id === categoryId)
       return {
         name: category ? category.name : t.uncategorized,
         value: Math.round(hours * 10) / 10,
-        color: category ? category.color.replace("bg-", "") : "gray-500",
-      };
-    });
+        color: category ? category.color.replace('bg-', '') : 'gray-500',
+      }
+    })
 
   const barData = Object.entries(analytics.categorizedHours)
     .filter(([_, hours]) => hours > 0)
     .map(([categoryId, hours]) => {
-      const category = timeCategories.find((cat) => cat.id === categoryId);
+      const category = timeCategories.find((cat) => cat.id === categoryId)
       return {
         name: category ? category.name : t.uncategorized,
         hours: Math.round(hours * 10) / 10,
-        color: category ? category.color.replace("bg-", "") : "gray-500",
-      };
-    });
+        color: category ? category.color.replace('bg-', '') : 'gray-500',
+      }
+    })
 
   const colorMap: Record<string, string> = {
-    "blue-500": "#3b82f6",
-    "green-500": "#22c55e",
-    "purple-500": "#a855f7",
-    "yellow-500": "#eab308",
-    "red-500": "#ef4444",
-    "gray-500": "#6b7280",
-    "pink-500": "#ec4899",
-    "indigo-500": "#6366f1",
-    "orange-500": "#f97316",
-    "teal-500": "#14b8a6",
-  };
+    'blue-500': '#3b82f6',
+    'green-500': '#22c55e',
+    'purple-500': '#a855f7',
+    'yellow-500': '#eab308',
+    'red-500': '#ef4444',
+    'gray-500': '#6b7280',
+    'pink-500': '#ec4899',
+    'indigo-500': '#6366f1',
+    'orange-500': '#f97316',
+    'teal-500': '#14b8a6',
+  }
 
   const busiestCategoryName = (() => {
-    if (analytics.busiestCategoryId === "uncategorized") return t.uncategorized;
+    if (analytics.busiestCategoryId === 'uncategorized') return t.uncategorized
     return (
       timeCategories.find((cat) => cat.id === analytics.busiestCategoryId)
         ?.name || t.uncategorized
-    );
-  })();
+    )
+  })()
 
   return (
     <div className="w-full rounded-lg border p-4 space-y-6">
@@ -167,12 +165,12 @@ export default function TimeAnalyticsComponent({
           <div>
             <h2 className="text-base font-semibold">{t.timeAnalytics}</h2>
             <p className="text-sm text-muted-foreground">
-              {t.timeAnalyticsDesc || "Analyze how you spend your time"}
+              {t.timeAnalyticsDesc || 'Analyze how you spend your time'}
             </p>
           </div>
           <Select
             value={timeRange}
-            onValueChange={(value: "week" | "month" | "year") =>
+            onValueChange={(value: 'week' | 'month' | 'year') =>
               setTimeRange(value)
             }
           >
@@ -180,11 +178,11 @@ export default function TimeAnalyticsComponent({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t.thisWeek || "This Week"}</SelectItem>
+              <SelectItem value="week">{t.thisWeek || 'This Week'}</SelectItem>
               <SelectItem value="month">
-                {t.thisMonth || "This Month"}
+                {t.thisMonth || 'This Month'}
               </SelectItem>
-              <SelectItem value="year">{t.thisYear || "This Year"}</SelectItem>
+              <SelectItem value="year">{t.thisYear || 'This Year'}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -209,11 +207,11 @@ export default function TimeAnalyticsComponent({
                     {pieData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={colorMap[entry.color] || "#6b7280"}
+                        fill={colorMap[entry.color] || '#6b7280'}
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, ""]} />
+                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, '']} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -229,13 +227,13 @@ export default function TimeAnalyticsComponent({
                 >
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={80} />
-                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, ""]} />
+                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, '']} />
                   <Legend />
                   <Bar dataKey="hours" name={t.hours}>
                     {barData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={colorMap[entry.color] || "#6b7280"}
+                        fill={colorMap[entry.color] || '#6b7280'}
                       />
                     ))}
                   </Bar>
@@ -277,7 +275,7 @@ export default function TimeAnalyticsComponent({
           <div className="rounded-lg border p-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
-                {t.totalHours || "Total Hours"}
+                {t.totalHours || 'Total Hours'}
               </h3>
               <p className="text-3xl font-bold mt-2">
                 {analytics.totalHours.toFixed(1)}h
@@ -287,7 +285,7 @@ export default function TimeAnalyticsComponent({
           <div className="rounded-lg border p-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
-                {t.averageEventDuration || "Average Event Duration"}
+                {t.averageEventDuration || 'Average Event Duration'}
               </h3>
               <p className="text-3xl font-bold mt-2">
                 {analytics.averageEventDuration.toFixed(1)}h
@@ -297,18 +295,18 @@ export default function TimeAnalyticsComponent({
           <div className="rounded-lg border p-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
-                {t.busiestCategory || "Busiest Category"}
+                {t.busiestCategory || 'Busiest Category'}
               </h3>
               <p className="text-2xl font-bold mt-2">
                 {busiestCategoryName || t.noData}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {t.activeDays || "Active Days"}: {analytics.activeDays}
+                {t.activeDays || 'Active Days'}: {analytics.activeDays}
               </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -32,68 +32,68 @@ This project is built for individuals and small teams who value clarity over com
 
 ### Weekly planning
 
-- **Drag & drop scheduling** &ndash; move and resize events directly on the calendar  
-- **Inline editing** &ndash; create and update events without modal overload  
-- **Right-click actions** &ndash; fast contextual controls for power users  
-- **Keyboard-friendly interactions** &ndash; efficient navigation and editing workflows  
+- **Drag & drop scheduling** &ndash; move and resize events directly on the calendar
+- **Inline editing** &ndash; create and update events without modal overload
+- **Right-click actions** &ndash; fast contextual controls for power users
+- **Keyboard-friendly interactions** &ndash; efficient navigation and editing workflows
 
 ### Event management
 
-- **Rich event metadata** &ndash; title, description, time range, and structured fields  
-- **Precise time control** &ndash; flexible duration handling and adjustments  
-- **Instant updates** &ndash; optimistic UI for a responsive experience  
-- **Event persistence** &ndash; reliable storage with PostgreSQL backend  
-- **Soft state handling** &ndash; controlled updates to avoid accidental data loss  
+- **Rich event metadata** &ndash; title, description, time range, and structured fields
+- **Precise time control** &ndash; flexible duration handling and adjustments
+- **Instant updates** &ndash; optimistic UI for a responsive experience
+- **Event persistence** &ndash; reliable storage with PostgreSQL backend
+- **Soft state handling** &ndash; controlled updates to avoid accidental data loss
 
 ### Privacy & security
 
-- **No AI tracking** &ndash; no behavioral profiling or data mining  
-- **No analytics by default** &ndash; zero third-party tracking scripts  
-- **End-to-end encryption (E2EE)** &ndash; optional encrypted data handling  
-- **User-controlled exports** &ndash; backup and portability without lock-in  
-- **Secure authentication** &ndash; hardened session management via Clerk  
+- **No AI tracking** &ndash; no behavioral profiling or data mining
+- **No analytics by default** &ndash; zero third-party tracking scripts
+- **End-to-end encryption (E2EE)** &ndash; optional encrypted data handling
+- **User-controlled exports** &ndash; backup and portability without lock-in
+- **Secure authentication** &ndash; hardened session management via Clerk
 
 ### Sync & collaboration
 
-- **Cloud sync (optional)** &ndash; multi-device synchronization using PostgreSQL  
-- **Account-based access** &ndash; sign in with third-party providers  
-- **Share-ready architecture** &ndash; designed for future team and shared calendar support  
+- **Cloud sync (optional)** &ndash; multi-device synchronization using PostgreSQL
+- **Account-based access** &ndash; sign in with third-party providers
+- **Share-ready architecture** &ndash; designed for future team and shared calendar support
 
 ### Customization & UX
 
-- **Theme configuration** &ndash; adaptable visual styling  
-- **Default view control** &ndash; choose how your calendar opens  
-- **Locale-aware formatting** &ndash; proper date and time formatting per region  
-- **Internationalization (i18n)** &ndash; language support built-in  
+- **Theme configuration** &ndash; adaptable visual styling
+- **Default view control** &ndash; choose how your calendar opens
+- **Locale-aware formatting** &ndash; proper date and time formatting per region
+- **Internationalization (i18n)** &ndash; language support built-in
 - **Composable UI system** &ndash; built with reusable components (shadcn/ui + Tailwind)
 
 ### Comparison with other calendar tools
 
-| Feature                                      | One Calendar | Google Calendar | Apple Calendar | Outlook Calendar | Proton Calendar |
-| -------------------------------------------- | :----------: | :-------------: | :------------: | :--------------: | :-------------: |
-| Event creation & editing                     |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Drag & drop scheduling                       |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| All-day events                               |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Event reminders & notifications              |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Time zone support                            |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Calendar sharing                             |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Multiple calendar views (day/week/month)     |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Keyboard shortcuts                           |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
-| Search events                                |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Quick add / natural input                    |      ✅      |       ✅        |       ⚠️       |        ✅        |       ⚠️        |
-| Cloud sync                                   |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Web application                              |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
-| End-to-end encryption (E2EE)                 |      ✅      |       ❌        |       ❌       |        ❌        |       ✅        |
-| Privacy-first architecture                   |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
-| No analytics / tracking by default           |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
-| Open-source                                  |      ✅      |       ❌        |       ❌       |        ❌        |       ⚠️        |
-| Self-hostable                                |      ✅      |       ❌        |       ❌       |        ❌        |       ❌        |
-| Data export                                  |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| ICS import / export                          |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Custom themes                                |      ✅      |       ⚠️       |       ❌       |        ⚠️        |       ⚠️        |
-| Custom default view                          |      ✅      |       ⚠️       |       ❌       |        ⚠️        |       ⚠️        |
+| Feature                                  | One Calendar | Google Calendar | Apple Calendar | Outlook Calendar | Proton Calendar |
+| ---------------------------------------- | :----------: | :-------------: | :------------: | :--------------: | :-------------: |
+| Event creation & editing                 |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Drag & drop scheduling                   |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| All-day events                           |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Event reminders & notifications          |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Time zone support                        |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Calendar sharing                         |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Multiple calendar views (day/week/month) |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Keyboard shortcuts                       |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
+| Search events                            |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Quick add / natural input                |      ✅      |       ✅        |       ⚠️       |        ✅        |       ⚠️        |
+| Cloud sync                               |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Web application                          |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
+| End-to-end encryption (E2EE)             |      ✅      |       ❌        |       ❌       |        ❌        |       ✅        |
+| Privacy-first architecture               |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
+| No analytics / tracking by default       |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
+| Open-source                              |      ✅      |       ❌        |       ❌       |        ❌        |       ⚠️        |
+| Self-hostable                            |      ✅      |       ❌        |       ❌       |        ❌        |       ❌        |
+| Data export                              |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| ICS import / export                      |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
+| Custom themes                            |      ✅      |       ⚠️        |       ❌       |        ⚠️        |       ⚠️        |
+| Custom default view                      |      ✅      |       ⚠️        |       ❌       |        ⚠️        |       ⚠️        |
 
-⚠️ = limited or partial support  
+⚠️ = limited or partial support
 
 ## Getting Started
 
@@ -168,4 +168,3 @@ This project is supported by [Cloudflare Project Alexandria](https://blog.cloudf
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
-

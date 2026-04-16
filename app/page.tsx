@@ -10,7 +10,7 @@ import {
   TestimonialsSection,
   CtaSection,
   FooterSection,
-} from "@/components/landing";
+} from '@/components/landing'
 
 export default function LandingPage() {
   return (
@@ -27,5 +27,5 @@ export default function LandingPage() {
       <CtaSection />
       <FooterSection />
     </main>
-  );
+  )
 }

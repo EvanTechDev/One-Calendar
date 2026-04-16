@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Select,
@@ -6,111 +6,111 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { addDays, format, getHours, getMinutes, set } from "date-fns";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
-import { isZhLanguage, translations, type Language } from "@/lib/i18n";
-import { useCalendar } from "@/components/providers/calendar-context";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/popover'
+import { addDays, format, getHours, getMinutes, set } from 'date-fns'
+import { Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { isZhLanguage, translations, type Language } from '@/lib/i18n'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useState, useEffect } from 'react'
+import { cn } from '@/lib/utils'
 
 const colorOptions = [
   {
-    value: "bg-[#E6F6FD]",
-    labelKey: "colorBlue" as const,
-    calendarColor: "bg-blue-500",
+    value: 'bg-[#E6F6FD]',
+    labelKey: 'colorBlue' as const,
+    calendarColor: 'bg-blue-500',
   },
   {
-    value: "bg-[#E7F8F2]",
-    labelKey: "colorGreen" as const,
-    calendarColor: "bg-green-500",
+    value: 'bg-[#E7F8F2]',
+    labelKey: 'colorGreen' as const,
+    calendarColor: 'bg-green-500',
   },
   {
-    value: "bg-[#FEF5E6]",
-    labelKey: "colorAmber" as const,
-    calendarColor: "bg-yellow-500",
+    value: 'bg-[#FEF5E6]',
+    labelKey: 'colorAmber' as const,
+    calendarColor: 'bg-yellow-500',
   },
   {
-    value: "bg-[#FFE4E6]",
-    labelKey: "colorRed" as const,
-    calendarColor: "bg-red-500",
+    value: 'bg-[#FFE4E6]',
+    labelKey: 'colorRed' as const,
+    calendarColor: 'bg-red-500',
   },
   {
-    value: "bg-[#F3EEFE]",
-    labelKey: "colorPurple" as const,
-    calendarColor: "bg-purple-500",
+    value: 'bg-[#F3EEFE]',
+    labelKey: 'colorPurple' as const,
+    calendarColor: 'bg-purple-500',
   },
   {
-    value: "bg-[#FCE7F3]",
-    labelKey: "colorPink" as const,
-    calendarColor: "bg-pink-500",
+    value: 'bg-[#FCE7F3]',
+    labelKey: 'colorPink' as const,
+    calendarColor: 'bg-pink-500',
   },
   {
-    value: "bg-[#E6FAF7]",
-    labelKey: "colorTeal" as const,
-    calendarColor: "bg-teal-500",
+    value: 'bg-[#E6FAF7]',
+    labelKey: 'colorTeal' as const,
+    calendarColor: 'bg-teal-500',
   },
-];
+]
 
 const calendarColorToEventColor = Object.fromEntries(
   colorOptions.map((option) => [option.calendarColor, option.value]),
-);
+)
 
 const colorMapping: Record<string, string> = {
-  "bg-[#E6F6FD]": "#3B82F6",
-  "bg-[#E7F8F2]": "#10B981",
-  "bg-[#FEF5E6]": "#F59E0B",
-  "bg-[#FFE4E6]": "#EF4444",
-  "bg-[#F3EEFE]": "#8B5CF6",
-  "bg-[#FCE7F3]": "#EC4899",
-  "bg-[#E6FAF7]": "#14B8A6",
-};
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#E6FAF7]': '#14B8A6',
+}
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
-  value: i.toString().padStart(2, "0"),
-  label: i.toString().padStart(2, "0"),
-}));
+  value: i.toString().padStart(2, '0'),
+  label: i.toString().padStart(2, '0'),
+}))
 
 const minuteOptions = Array.from({ length: 12 }, (_, i) => ({
-  value: (i * 5).toString().padStart(2, "0"),
-  label: (i * 5).toString().padStart(2, "0"),
-}));
+  value: (i * 5).toString().padStart(2, '0'),
+  label: (i * 5).toString().padStart(2, '0'),
+}))
 
 interface EventDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onEventAdd: (event: CalendarEvent) => void;
-  onEventUpdate: (event: CalendarEvent) => void;
-  onEventDelete: (eventId: string) => void;
-  initialDate: Date;
-  initialEndDate?: Date | null;
-  event: CalendarEvent | null;
-  language: Language;
-  timezone: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEventAdd: (event: CalendarEvent) => void
+  onEventUpdate: (event: CalendarEvent) => void
+  onEventDelete: (eventId: string) => void
+  initialDate: Date
+  initialEndDate?: Date | null
+  event: CalendarEvent | null
+  language: Language
+  timezone: string
 }
 
 interface TimeInput {
-  hours: string;
-  minutes: string;
-  rawInput: string;
-  isCustomInput: boolean;
+  hours: string
+  minutes: string
+  rawInput: string
+  isCustomInput: boolean
 }
 
 export default function EventDialog({
@@ -125,56 +125,56 @@ export default function EventDialog({
   language,
   timezone,
 }: EventDialogProps) {
-  const { calendars } = useCalendar();
-  const [participants, setParticipants] = useState("");
-  const [customNotificationTime, setCustomNotificationTime] = useState("10");
-  const [selectedCalendar, setSelectedCalendar] = useState("");
-  const [notification, setNotification] = useState("0");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [title, setTitle] = useState("");
-  const [color, setColor] = useState(colorOptions[0].value);
+  const { calendars } = useCalendar()
+  const [participants, setParticipants] = useState('')
+  const [customNotificationTime, setCustomNotificationTime] = useState('10')
+  const [selectedCalendar, setSelectedCalendar] = useState('')
+  const [notification, setNotification] = useState('0')
+  const [description, setDescription] = useState('')
+  const [location, setLocation] = useState('')
+  const [title, setTitle] = useState('')
+  const [color, setColor] = useState(colorOptions[0].value)
 
-  const [isAllDay, setIsAllDay] = useState(false);
-  const [endTimeError, setEndTimeError] = useState(false);
-  const [startTimeError, setStartTimeError] = useState(false);
-  const [endDateOpen, setEndDateOpen] = useState(false);
-  const [startDateOpen, setStartDateOpen] = useState(false);
-  const [endTimeOpen, setEndTimeOpen] = useState(false);
-  const [startTimeOpen, setStartTimeOpen] = useState(false);
+  const [isAllDay, setIsAllDay] = useState(false)
+  const [endTimeError, setEndTimeError] = useState(false)
+  const [startTimeError, setStartTimeError] = useState(false)
+  const [endDateOpen, setEndDateOpen] = useState(false)
+  const [startDateOpen, setStartDateOpen] = useState(false)
+  const [endTimeOpen, setEndTimeOpen] = useState(false)
+  const [startTimeOpen, setStartTimeOpen] = useState(false)
 
-  const [startDate, setStartDate] = useState(initialDate);
-  const [endDate, setEndDate] = useState(initialDate);
+  const [startDate, setStartDate] = useState(initialDate)
+  const [endDate, setEndDate] = useState(initialDate)
   const [startTime, setStartTime] = useState<TimeInput>({
-    hours: "00",
-    minutes: "00",
-    rawInput: "",
+    hours: '00',
+    minutes: '00',
+    rawInput: '',
     isCustomInput: false,
-  });
+  })
   const [endTime, setEndTime] = useState<TimeInput>({
-    hours: "00",
-    minutes: "30",
-    rawInput: "",
+    hours: '00',
+    minutes: '30',
+    rawInput: '',
     isCustomInput: false,
-  });
+  })
 
   const calendarSelectValue =
-    selectedCalendar || (calendars.length > 0 ? "__uncategorized__" : "");
-  const isZh = isZhLanguage(language);
-  const t = translations[language];
+    selectedCalendar || (calendars.length > 0 ? '__uncategorized__' : '')
+  const isZh = isZhLanguage(language)
+  const t = translations[language]
 
   const getEventColorByCalendarId = (calendarId: string) => {
-    const calendar = calendars.find((item) => item.id === calendarId);
-    if (!calendar) return colorOptions[0].value;
-    return calendarColorToEventColor[calendar.color] ?? colorOptions[0].value;
-  };
+    const calendar = calendars.find((item) => item.id === calendarId)
+    if (!calendar) return colorOptions[0].value
+    return calendarColorToEventColor[calendar.color] ?? colorOptions[0].value
+  }
 
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
     if (timeInput.isCustomInput && timeInput.rawInput) {
-      const timeParts = timeInput.rawInput.split(":");
+      const timeParts = timeInput.rawInput.split(':')
       if (timeParts.length === 2) {
-        const hours = parseInt(timeParts[0], 10);
-        const minutes = parseInt(timeParts[1], 10);
+        const hours = parseInt(timeParts[0], 10)
+        const minutes = parseInt(timeParts[1], 10)
 
         if (
           !isNaN(hours) &&
@@ -189,7 +189,7 @@ export default function EventDialog({
             minutes,
             seconds: 0,
             milliseconds: 0,
-          });
+          })
         }
       }
 
@@ -198,7 +198,7 @@ export default function EventDialog({
         minutes: parseInt(timeInput.minutes, 10),
         seconds: 0,
         milliseconds: 0,
-      });
+      })
     }
 
     return set(new Date(date), {
@@ -206,20 +206,20 @@ export default function EventDialog({
       minutes: parseInt(timeInput.minutes, 10),
       seconds: 0,
       milliseconds: 0,
-    });
-  };
+    })
+  }
 
-  const getFullStartDate = () => combineDateTime(startDate, startTime);
-  const getFullEndDate = () => combineDateTime(endDate, endTime);
+  const getFullStartDate = () => combineDateTime(startDate, startTime)
+  const getFullEndDate = () => combineDateTime(endDate, endTime)
 
   const validateTimeFormat = (input: string): boolean => {
-    if (!input) return false;
+    if (!input) return false
 
-    const timeParts = input.split(":");
-    if (timeParts.length !== 2) return false;
+    const timeParts = input.split(':')
+    if (timeParts.length !== 2) return false
 
-    const hours = parseInt(timeParts[0], 10);
-    const minutes = parseInt(timeParts[1], 10);
+    const hours = parseInt(timeParts[0], 10)
+    const minutes = parseInt(timeParts[1], 10)
 
     return (
       !isNaN(hours) &&
@@ -228,62 +228,62 @@ export default function EventDialog({
       hours < 24 &&
       minutes >= 0 &&
       minutes < 60
-    );
-  };
+    )
+  }
 
   const handleStartTimeInput = (input: string) => {
     setStartTime((prev) => ({
       ...prev,
       rawInput: input,
       isCustomInput: true,
-    }));
+    }))
 
-    if (input === "" || validateTimeFormat(input)) {
-      setStartTimeError(false);
+    if (input === '' || validateTimeFormat(input)) {
+      setStartTimeError(false)
     } else {
-      setStartTimeError(true);
+      setStartTimeError(true)
     }
-  };
+  }
 
   const handleEndTimeInput = (input: string) => {
     setEndTime((prev) => ({
       ...prev,
       rawInput: input,
       isCustomInput: true,
-    }));
+    }))
 
-    if (input === "" || validateTimeFormat(input)) {
-      setEndTimeError(false);
+    if (input === '' || validateTimeFormat(input)) {
+      setEndTimeError(false)
     } else {
-      setEndTimeError(true);
+      setEndTimeError(true)
     }
-  };
+  }
 
   const extractTimeFromDate = (date: Date): TimeInput => {
     return {
-      hours: getHours(date).toString().padStart(2, "0"),
-      minutes: getMinutes(date).toString().padStart(2, "0"),
-      rawInput: format(date, "HH:mm"),
+      hours: getHours(date).toString().padStart(2, '0'),
+      minutes: getMinutes(date).toString().padStart(2, '0'),
+      rawInput: format(date, 'HH:mm'),
       isCustomInput: false,
-    };
-  };
+    }
+  }
 
   useEffect(() => {
     if (open) {
       if (event) {
-        setTitle(event.title);
-        setIsAllDay(event.isAllDay);
+        setTitle(event.title)
+        setIsAllDay(event.isAllDay)
 
-        const startDateObj = new Date(event.startDate);
-        const endDateObj = new Date(event.endDate);
+        const startDateObj = new Date(event.startDate)
+        const endDateObj = new Date(event.endDate)
 
-        setStartDate(startDateObj);
-        setEndDate(endDateObj);
-        setStartTime(extractTimeFromDate(startDateObj));
-        setEndTime(extractTimeFromDate(endDateObj));
+        setStartDate(startDateObj)
+        setEndDate(endDateObj)
+        setStartTime(extractTimeFromDate(startDateObj))
+        setEndTime(extractTimeFromDate(endDateObj))
 
-        setLocation(event.location || "");
-        setParticipants(event.participants.join(", "));
+        setLocation(event.location || '')
+        setParticipants(event.participants.join(', '))
         if (event.notification !== undefined) {
           if (
             event.notification > 0 &&
@@ -292,90 +292,90 @@ export default function EventDialog({
             event.notification !== 30 &&
             event.notification !== 60
           ) {
-            setNotification("custom");
-            setCustomNotificationTime(event.notification.toString());
+            setNotification('custom')
+            setCustomNotificationTime(event.notification.toString())
           } else {
-            setNotification(event.notification.toString());
+            setNotification(event.notification.toString())
           }
         } else {
-          setNotification("0");
+          setNotification('0')
         }
-        setDescription(event.description || "");
-        setColor(event.color);
-        setSelectedCalendar(event.calendarId || "");
+        setDescription(event.description || '')
+        setColor(event.color)
+        setSelectedCalendar(event.calendarId || '')
       } else {
-        resetForm();
+        resetForm()
         if (initialDate) {
-          const dialogStartDate = new Date(initialDate);
+          const dialogStartDate = new Date(initialDate)
           const dialogEndDate =
             initialEndDate && initialEndDate > initialDate
               ? new Date(initialEndDate)
-              : new Date(initialDate.getTime() + 30 * 60000);
+              : new Date(initialDate.getTime() + 30 * 60000)
 
-          setStartDate(dialogStartDate);
+          setStartDate(dialogStartDate)
           if (calendars.length > 0) {
-            setColor(getEventColorByCalendarId(calendars[0].id));
+            setColor(getEventColorByCalendarId(calendars[0].id))
           }
-          setEndDate(dialogEndDate);
+          setEndDate(dialogEndDate)
 
-          const initialHour = getHours(dialogStartDate);
-          const initialMinute = getMinutes(dialogStartDate);
+          const initialHour = getHours(dialogStartDate)
+          const initialMinute = getMinutes(dialogStartDate)
 
           setStartTime({
-            hours: initialHour.toString().padStart(2, "0"),
-            minutes: initialMinute.toString().padStart(2, "0"),
-            rawInput: format(dialogStartDate, "HH:mm"),
+            hours: initialHour.toString().padStart(2, '0'),
+            minutes: initialMinute.toString().padStart(2, '0'),
+            rawInput: format(dialogStartDate, 'HH:mm'),
             isCustomInput: false,
-          });
+          })
 
           setEndTime({
-            hours: getHours(dialogEndDate).toString().padStart(2, "0"),
-            minutes: getMinutes(dialogEndDate).toString().padStart(2, "0"),
-            rawInput: format(dialogEndDate, "HH:mm"),
+            hours: getHours(dialogEndDate).toString().padStart(2, '0'),
+            minutes: getMinutes(dialogEndDate).toString().padStart(2, '0'),
+            rawInput: format(dialogEndDate, 'HH:mm'),
             isCustomInput: false,
-          });
+          })
         }
       }
     }
-  }, [event, calendars, initialDate, initialEndDate, open]);
+  }, [event, calendars, initialDate, initialEndDate, open])
 
   const resetForm = () => {
-    const now = new Date();
-    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000);
+    const now = new Date()
+    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000)
 
-    setTitle("");
-    setIsAllDay(false);
-    setStartDate(now);
-    setEndDate(now);
-    setStartTime(extractTimeFromDate(now));
-    setEndTime(extractTimeFromDate(thirtyMinutesLater));
-    setLocation("");
-    setParticipants("");
-    setNotification("0");
-    setCustomNotificationTime("10");
-    setDescription("");
-    setColor(colorOptions[0].value);
-    setSelectedCalendar("");
-    setStartTimeError(false);
-    setEndTimeError(false);
-  };
+    setTitle('')
+    setIsAllDay(false)
+    setStartDate(now)
+    setEndDate(now)
+    setStartTime(extractTimeFromDate(now))
+    setEndTime(extractTimeFromDate(thirtyMinutesLater))
+    setLocation('')
+    setParticipants('')
+    setNotification('0')
+    setCustomNotificationTime('10')
+    setDescription('')
+    setColor(colorOptions[0].value)
+    setSelectedCalendar('')
+    setStartTimeError(false)
+    setEndTimeError(false)
+  }
 
   const handleStartDateChange = (newDate: Date | undefined) => {
-    if (!newDate) return;
+    if (!newDate) return
 
-    setStartDate(newDate);
+    setStartDate(newDate)
 
-    const fullNewStartDate = combineDateTime(newDate, startTime);
-    const fullCurrentEndDate = getFullEndDate();
+    const fullNewStartDate = combineDateTime(newDate, startTime)
+    const fullCurrentEndDate = getFullEndDate()
 
     if (fullCurrentEndDate < fullNewStartDate) {
-      const newEndDate = new Date(fullNewStartDate);
-      newEndDate.setMinutes(newEndDate.getMinutes() + 30);
+      const newEndDate = new Date(fullNewStartDate)
+      newEndDate.setMinutes(newEndDate.getMinutes() + 30)
 
-      setEndDate(newDate);
-      setEndTime(extractTimeFromDate(newEndDate));
+      setEndDate(newDate)
+      setEndTime(extractTimeFromDate(newEndDate))
     }
-  };
+  }
 
   const handleStartTimeChange = (hours: string, minutes: string) => {
     setStartTime({
@@ -383,70 +383,70 @@ export default function EventDialog({
       minutes,
       rawInput: `${hours}:${minutes}`,
       isCustomInput: false,
-    });
+    })
 
     const newStartDate = set(new Date(startDate), {
       hours: parseInt(hours, 10),
       minutes: parseInt(minutes, 10),
       seconds: 0,
       milliseconds: 0,
-    });
+    })
 
-    const currentEndDate = getFullEndDate();
+    const currentEndDate = getFullEndDate()
 
     if (currentEndDate <= newStartDate) {
-      const newEndDate = new Date(newStartDate);
-      newEndDate.setMinutes(newStartDate.getMinutes() + 30);
+      const newEndDate = new Date(newStartDate)
+      newEndDate.setMinutes(newStartDate.getMinutes() + 30)
 
-      setEndTime(extractTimeFromDate(newEndDate));
+      setEndTime(extractTimeFromDate(newEndDate))
 
       if (
         endDate.getDate() !== startDate.getDate() ||
         endDate.getMonth() !== startDate.getMonth() ||
         endDate.getFullYear() !== startDate.getFullYear()
       ) {
-        setEndDate(startDate);
+        setEndDate(startDate)
       }
     }
-  };
+  }
 
   const validateForm = (): boolean => {
     if (startTime.isCustomInput && !validateTimeFormat(startTime.rawInput)) {
-      setStartTimeError(true);
-      return false;
+      setStartTimeError(true)
+      return false
     }
 
     if (endTime.isCustomInput && !validateTimeFormat(endTime.rawInput)) {
-      setEndTimeError(true);
-      return false;
+      setEndTimeError(true)
+      return false
     }
 
-    const fullStartDate = getFullStartDate();
-    const fullEndDate = getFullEndDate();
+    const fullStartDate = getFullStartDate()
+    const fullEndDate = getFullEndDate()
 
     if (fullEndDate < fullStartDate) {
-      setEndTimeError(true);
-      alert(t.endTimeError);
-      return false;
+      setEndTimeError(true)
+      alert(t.endTimeError)
+      return false
     }
 
-    return true;
-  };
+    return true
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!validateForm()) {
-      return;
+      return
     }
 
-    let notificationMinutes = Number.parseInt(notification);
-    if (notification === "custom") {
-      notificationMinutes = Number.parseInt(customNotificationTime);
+    let notificationMinutes = Number.parseInt(notification)
+    if (notification === 'custom') {
+      notificationMinutes = Number.parseInt(customNotificationTime)
     }
 
-    const fullStartDate = getFullStartDate();
-    const fullEndDate = getFullEndDate();
+    const fullStartDate = getFullStartDate()
+    const fullEndDate = getFullEndDate()
     const normalizedStartDate = isAllDay
       ? set(new Date(startDate), {
           hours: 0,
@@ -454,7 +454,7 @@ export default function EventDialog({
           seconds: 0,
           milliseconds: 0,
         })
-      : fullStartDate;
+      : fullStartDate
     const normalizedEndDate = isAllDay
       ? set(addDays(new Date(endDate), 1), {
           hours: 0,
@@ -462,7 +462,7 @@ export default function EventDialog({
           seconds: 0,
           milliseconds: 0,
         })
-      : fullEndDate;
+      : fullEndDate
 
     const eventData: CalendarEvent = {
       id:
@@ -472,26 +472,26 @@ export default function EventDialog({
       isAllDay,
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
-      recurrence: "none",
+      recurrence: 'none',
       location,
       participants: participants
-        .split(",")
+        .split(',')
         .map((p) => p.trim())
         .filter(Boolean),
       notification: notificationMinutes,
       description,
       color,
       calendarId:
-        selectedCalendar === "__uncategorized__" ? "" : selectedCalendar,
-    };
+        selectedCalendar === '__uncategorized__' ? '' : selectedCalendar,
+    }
 
     if (event) {
-      onEventUpdate(eventData);
+      onEventUpdate(eventData)
     } else {
-      onEventAdd(eventData);
+      onEventAdd(eventData)
     }
-    onOpenChange(false);
-  };
+    onOpenChange(false)
+  }
 
   const renderTimeSelector = (
     value: TimeInput,
@@ -503,7 +503,7 @@ export default function EventDialog({
   ) => {
     const displayTime = value.isCustomInput
       ? value.rawInput
-      : `${value.hours}:${value.minutes}`;
+      : `${value.hours}:${value.minutes}`
 
     return (
       <Popover open={isOpen} onOpenChange={setOpen}>
@@ -511,13 +511,13 @@ export default function EventDialog({
           <Button
             variant="outline"
             className={cn(
-              "w-auto justify-start text-left font-normal",
-              hasError && "border-red-500 text-red-500",
-              !displayTime && "text-muted-foreground",
+              'w-auto justify-start text-left font-normal',
+              hasError && 'border-red-500 text-red-500',
+              !displayTime && 'text-muted-foreground',
             )}
           >
             <Clock className="mr-2 h-4 w-4" />
-            {displayTime || (isZh ? "选择时间" : "Select time")}
+            {displayTime || (isZh ? '选择时间' : 'Select time')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -528,7 +528,7 @@ export default function EventDialog({
                 onValueChange={(newHour) => onChange(newHour, value.minutes)}
               >
                 <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={isZh ? "时" : "Hour"} />
+                  <SelectValue placeholder={isZh ? '时' : 'Hour'} />
                 </SelectTrigger>
                 <SelectContent>
                   {hourOptions.map((option) => (
@@ -546,7 +546,7 @@ export default function EventDialog({
                 onValueChange={(newMinute) => onChange(value.hours, newMinute)}
               >
                 <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={isZh ? "分" : "Min"} />
+                  <SelectValue placeholder={isZh ? '分' : 'Min'} />
                 </SelectTrigger>
                 <SelectContent>
                   {minuteOptions.map((option) => (
@@ -560,28 +560,28 @@ export default function EventDialog({
 
             <div className="flex flex-col space-y-1">
               <Label htmlFor="custom-time">
-                {isZh ? "自定义时间 (HH:mm)" : "Custom time (HH:mm)"}
+                {isZh ? '自定义时间 (HH:mm)' : 'Custom time (HH:mm)'}
               </Label>
               <Input
                 id="custom-time"
-                value={value.isCustomInput ? value.rawInput : ""}
+                value={value.isCustomInput ? value.rawInput : ''}
                 onChange={(e) => onCustomInput(e.target.value)}
                 placeholder="14:30"
-                className={cn(hasError && "border-red-500")}
+                className={cn(hasError && 'border-red-500')}
               />
               {hasError && (
                 <p className="text-xs text-red-500">
                   {isZh
-                    ? "请使用正确的格式 (HH:mm)"
-                    : "Please use the correct format (HH:mm)"}
+                    ? '请使用正确的格式 (HH:mm)'
+                    : 'Please use the correct format (HH:mm)'}
                 </p>
               )}
             </div>
           </div>
         </PopoverContent>
       </Popover>
-    );
-  };
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -606,23 +606,23 @@ export default function EventDialog({
               id="all-day"
               checked={isAllDay}
               onCheckedChange={(checked) => {
-                const isChecked = checked as boolean;
-                setIsAllDay(isChecked);
+                const isChecked = checked as boolean
+                setIsAllDay(isChecked)
 
                 if (isChecked) {
                   setStartTime({
-                    hours: "00",
-                    minutes: "00",
-                    rawInput: "00:00",
+                    hours: '00',
+                    minutes: '00',
+                    rawInput: '00:00',
                     isCustomInput: false,
-                  });
+                  })
 
                   setEndTime({
-                    hours: "23",
-                    minutes: "59",
-                    rawInput: "23:59",
+                    hours: '23',
+                    minutes: '59',
+                    rawInput: '23:59',
                     isCustomInput: false,
-                  });
+                  })
                 }
               }}
             />
@@ -640,7 +640,7 @@ export default function EventDialog({
                       className="w-full justify-start text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(startDate, "yyyy-MM-dd")}
+                      {format(startDate, 'yyyy-MM-dd')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -649,8 +649,8 @@ export default function EventDialog({
                       selected={startDate}
                       onSelect={(date) => {
                         if (date) {
-                          handleStartDateChange(date);
-                          setStartDateOpen(false);
+                          handleStartDateChange(date)
+                          setStartDateOpen(false)
                         }
                       }}
                       initialFocus
@@ -680,7 +680,7 @@ export default function EventDialog({
                       className="w-full justify-start text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(endDate, "yyyy-MM-dd")}
+                      {format(endDate, 'yyyy-MM-dd')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -689,19 +689,16 @@ export default function EventDialog({
                       selected={endDate}
                       onSelect={(date) => {
                         if (date) {
-                          setEndDate(date);
-                          setEndDateOpen(false);
+                          setEndDate(date)
+                          setEndDateOpen(false)
 
-                          const fullStartDate = getFullStartDate();
-                          const possibleEndDate = combineDateTime(
-                            date,
-                            endTime,
-                          );
+                          const fullStartDate = getFullStartDate()
+                          const possibleEndDate = combineDateTime(date, endTime)
 
                           if (possibleEndDate < fullStartDate) {
-                            setEndTimeError(true);
+                            setEndTimeError(true)
                           } else {
-                            setEndTimeError(false);
+                            setEndTimeError(false)
                           }
                         }
                       }}
@@ -720,16 +717,16 @@ export default function EventDialog({
                         minutes,
                         rawInput: `${hours}:${minutes}`,
                         isCustomInput: false,
-                      });
+                      })
 
-                      const fullStartDate = getFullStartDate();
+                      const fullStartDate = getFullStartDate()
                       const possibleEndDate = set(new Date(endDate), {
                         hours: parseInt(hours, 10),
                         minutes: parseInt(minutes, 10),
                         seconds: 0,
-                      });
+                      })
 
-                      setEndTimeError(possibleEndDate < fullStartDate);
+                      setEndTimeError(possibleEndDate < fullStartDate)
                     },
                     handleEndTimeInput,
                     endTimeOpen,
@@ -748,9 +745,9 @@ export default function EventDialog({
             <Select
               value={calendarSelectValue}
               onValueChange={(value) => {
-                setSelectedCalendar(value);
-                if (value !== "__uncategorized__") {
-                  setColor(getEventColorByCalendarId(value));
+                setSelectedCalendar(value)
+                if (value !== '__uncategorized__') {
+                  setColor(getEventColorByCalendarId(value))
                 }
               }}
             >
@@ -771,7 +768,7 @@ export default function EventDialog({
                     <div className="flex items-center">
                       <div
                         className={cn(
-                          "w-4 h-4 rounded-full mr-2",
+                          'w-4 h-4 rounded-full mr-2',
                           calendar.color,
                         )}
                       />
@@ -794,7 +791,7 @@ export default function EventDialog({
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
                       <div
-                        className={cn("w-4 h-4 rounded-full mr-2")}
+                        className={cn('w-4 h-4 rounded-full mr-2')}
                         style={{ backgroundColor: colorMapping[option.value] }}
                       />
                       {t[option.labelKey]}
@@ -833,23 +830,23 @@ export default function EventDialog({
               <SelectContent>
                 <SelectItem value="0">{t.atEventTime}</SelectItem>
                 <SelectItem value="5">
-                  {t.minutesBefore.replace("{minutes}", "5")}
+                  {t.minutesBefore.replace('{minutes}', '5')}
                 </SelectItem>
                 <SelectItem value="15">
-                  {t.minutesBefore.replace("{minutes}", "15")}
+                  {t.minutesBefore.replace('{minutes}', '15')}
                 </SelectItem>
                 <SelectItem value="30">
-                  {t.minutesBefore.replace("{minutes}", "30")}
+                  {t.minutesBefore.replace('{minutes}', '30')}
                 </SelectItem>
                 <SelectItem value="60">
-                  {t.hourBefore.replace("{hours}", "1")}
+                  {t.hourBefore.replace('{hours}', '1')}
                 </SelectItem>
                 <SelectItem value="custom">{t.customTime}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {notification === "custom" && (
+          {notification === 'custom' && (
             <div className="space-y-2">
               <Label htmlFor="custom-notification-time">
                 {t.customTimeMinutes}
@@ -880,8 +877,8 @@ export default function EventDialog({
                 type="button"
                 variant="destructive"
                 onClick={() => {
-                  onEventDelete(event.id);
-                  onOpenChange(false);
+                  onEventDelete(event.id)
+                  onOpenChange(false)
                 }}
               >
                 {t.delete}
@@ -899,5 +896,5 @@ export default function EventDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

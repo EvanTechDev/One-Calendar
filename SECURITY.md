@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-At Tech-Art, we take security seriously. If you discover a security vulnerability in One Calendar, please report it as soon as possible. 
+At Tech-Art, we take security seriously. If you discover a security vulnerability in One Calendar, please report it as soon as possible.
 
 ### How to Report
 
@@ -12,6 +12,7 @@ At Tech-Art, we take security seriously. If you discover a security vulnerabilit
 ### Responsible Disclosure
 
 Please include the following information in your report:
+
 - A detailed description of the vulnerability.
 - Steps to reproduce the issue.
 - Any relevant screenshots or evidence.

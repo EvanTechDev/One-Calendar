@@ -1,53 +1,53 @@
-"use client";
+'use client'
 
 import UserProfileButton, {
   type UserProfileSection,
-} from "@/components/app/profile/user-profile-button";
+} from '@/components/app/profile/user-profile-button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   getLanguageAutonym,
   supportedLanguages,
   translations,
   type Language,
-} from "@/lib/i18n";
-import ShareManagement from "@/components/app/analytics/share-management";
-import BuildInfoCard from "@/components/app/analytics/build-info-card";
-import ImportExport from "@/components/app/analytics/import-export";
-import type { NOTIFICATION_SOUNDS } from "@/utils/notifications";
-import type { CalendarEvent } from "@/components/app/calendar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Kbd } from "@/components/ui/kbd";
-import { useTheme } from "next-themes";
+} from '@/lib/i18n'
+import ShareManagement from '@/components/app/analytics/share-management'
+import BuildInfoCard from '@/components/app/analytics/build-info-card'
+import ImportExport from '@/components/app/analytics/import-export'
+import type { NOTIFICATION_SOUNDS } from '@/utils/notifications'
+import type { CalendarEvent } from '@/components/app/calendar'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Kbd } from '@/components/ui/kbd'
+import { useTheme } from 'next-themes'
 
 interface SettingsProps {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  firstDayOfWeek: number;
-  setFirstDayOfWeek: (day: number) => void;
-  timezone: string;
-  setTimezone: (timezone: string) => void;
-  notificationSound: keyof typeof NOTIFICATION_SOUNDS;
-  setNotificationSound: (sound: keyof typeof NOTIFICATION_SOUNDS) => void;
-  defaultView: string;
-  setDefaultView: (view: string) => void;
-  enableShortcuts: boolean;
-  setEnableShortcuts: (enable: boolean) => void;
-  timeFormat: "24h" | "12h";
-  setTimeFormat: (format: "24h" | "12h") => void;
-  events: CalendarEvent[];
-  onImportEvents: (events: CalendarEvent[]) => void;
-  focusUserProfileSection?: UserProfileSection | null;
-  toastPosition: "bottom-left" | "bottom-center" | "bottom-right";
+  language: Language
+  setLanguage: (lang: Language) => void
+  firstDayOfWeek: number
+  setFirstDayOfWeek: (day: number) => void
+  timezone: string
+  setTimezone: (timezone: string) => void
+  notificationSound: keyof typeof NOTIFICATION_SOUNDS
+  setNotificationSound: (sound: keyof typeof NOTIFICATION_SOUNDS) => void
+  defaultView: string
+  setDefaultView: (view: string) => void
+  enableShortcuts: boolean
+  setEnableShortcuts: (enable: boolean) => void
+  timeFormat: '24h' | '12h'
+  setTimeFormat: (format: '24h' | '12h') => void
+  events: CalendarEvent[]
+  onImportEvents: (events: CalendarEvent[]) => void
+  focusUserProfileSection?: UserProfileSection | null
+  toastPosition: 'bottom-left' | 'bottom-center' | 'bottom-right'
   setToastPosition: (
-    position: "bottom-left" | "bottom-center" | "bottom-right",
-  ) => void;
+    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
+  ) => void
 }
 
 export default function Settings({
@@ -71,80 +71,80 @@ export default function Settings({
   toastPosition,
   setToastPosition,
 }: SettingsProps) {
-  const { theme, setTheme } = useTheme();
-  const t = translations[language];
+  const { theme, setTheme } = useTheme()
+  const t = translations[language]
 
   const getGMTTimezones = () => {
-    const timezones = Intl.supportedValuesOf("timeZone");
+    const timezones = Intl.supportedValuesOf('timeZone')
 
     const getUTCOffset = (timeZone: string) => {
-      const parts = new Intl.DateTimeFormat("en-US", {
+      const parts = new Intl.DateTimeFormat('en-US', {
         timeZone,
-        timeZoneName: "shortOffset",
-      }).formatToParts(new Date());
+        timeZoneName: 'shortOffset',
+      }).formatToParts(new Date())
 
       const timeZoneName =
-        parts.find((part) => part.type === "timeZoneName")?.value ?? "";
+        parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
 
-      if (timeZoneName === "GMT" || timeZoneName === "UTC") {
-        return { offsetString: "UTC+00:00", offsetMinutes: 0 };
+      if (timeZoneName === 'GMT' || timeZoneName === 'UTC') {
+        return { offsetString: 'UTC+00:00', offsetMinutes: 0 }
       }
 
       const match = timeZoneName.match(
         /(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/,
-      );
+      )
       if (!match) {
-        return { offsetString: "UTC+00:00", offsetMinutes: 0 };
+        return { offsetString: 'UTC+00:00', offsetMinutes: 0 }
       }
 
-      const [, sign, hours, minutes = "00"] = match;
-      const parsedHours = Number.parseInt(hours, 10);
-      const parsedMinutes = Number.parseInt(minutes, 10);
-      const totalMinutes = parsedHours * 60 + parsedMinutes;
-      const offsetMinutes = sign === "-" ? -totalMinutes : totalMinutes;
+      const [, sign, hours, minutes = '00'] = match
+      const parsedHours = Number.parseInt(hours, 10)
+      const parsedMinutes = Number.parseInt(minutes, 10)
+      const totalMinutes = parsedHours * 60 + parsedMinutes
+      const offsetMinutes = sign === '-' ? -totalMinutes : totalMinutes
 
       return {
-        offsetString: `UTC${sign}${hours.padStart(2, "0")}:${minutes}`,
+        offsetString: `UTC${sign}${hours.padStart(2, '0')}:${minutes}`,
         offsetMinutes,
-      };
-    };
+      }
+    }
 
     return timezones
       .map((tz) => {
         try {
-          const { offsetString, offsetMinutes } = getUTCOffset(tz);
+          const { offsetString, offsetMinutes } = getUTCOffset(tz)
 
           return {
             value: tz,
             label: `${offsetString} · ${tz}`,
             offsetMinutes,
-          };
+          }
         } catch {
           return {
             value: tz,
             label: `UTC+00:00 · ${tz}`,
             offsetMinutes: 0,
-          };
+          }
         }
       })
       .sort(
         (a, b) =>
           a.offsetMinutes - b.offsetMinutes || a.value.localeCompare(b.value),
-      );
-  };
+      )
+  }
 
-  const gmtTimezones = getGMTTimezones();
+  const gmtTimezones = getGMTTimezones()
 
   const handleLanguageChange = (newLang: Language) => {
-    setLanguage(newLang);
+    setLanguage(newLang)
     window.dispatchEvent(
-      new CustomEvent("languagechange", { detail: { language: newLang } }),
-    );
-  };
+      new CustomEvent('languagechange', { detail: { language: newLang } }),
+    )
+  }
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-  };
+    setTheme(newTheme)
+  }
 
   return (
     <div className="space-y-8 p-4">
@@ -155,7 +155,7 @@ export default function Settings({
       <div className="rounded-lg border p-4 space-y-6">
         <div className="space-y-2">
           <Label htmlFor="theme">{t.theme}</Label>
-          <Select value={theme || "system"} onValueChange={handleThemeChange}>
+          <Select value={theme || 'system'} onValueChange={handleThemeChange}>
             <SelectTrigger id="theme">
               <SelectValue />
             </SelectTrigger>
@@ -193,9 +193,7 @@ export default function Settings({
           <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
           <Select
             value={firstDayOfWeek.toString()}
-            onValueChange={(value) =>
-              setFirstDayOfWeek(value === "1" ? 1 : 0)
-            }
+            onValueChange={(value) => setFirstDayOfWeek(value === '1' ? 1 : 0)}
           >
             <SelectTrigger id="first-day">
               <SelectValue />
@@ -243,7 +241,7 @@ export default function Settings({
           <Label htmlFor="time-format">{t.timeFormat}</Label>
           <Select
             value={timeFormat}
-            onValueChange={(value: "24h" | "12h") => setTimeFormat(value)}
+            onValueChange={(value: '24h' | '12h') => setTimeFormat(value)}
           >
             <SelectTrigger id="time-format">
               <SelectValue />
@@ -260,7 +258,7 @@ export default function Settings({
           <Select
             value={toastPosition}
             onValueChange={(
-              value: "bottom-left" | "bottom-center" | "bottom-right",
+              value: 'bottom-left' | 'bottom-center' | 'bottom-right',
             ) => setToastPosition(value)}
           >
             <SelectTrigger id="toast-position">
@@ -340,5 +338,5 @@ export default function Settings({
       <ImportExport events={events} onImportEvents={onImportEvents} />
       <BuildInfoCard language={language} />
     </div>
-  );
+  )
 }

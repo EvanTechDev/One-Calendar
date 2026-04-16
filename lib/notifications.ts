@@ -1,175 +1,175 @@
-import { toast } from "sonner";
-import { readEncryptedLocalStorage } from "@/hooks/useLocalStorage";
-import { getStoredLanguage, translations } from "@/lib/i18n";
+import { toast } from 'sonner'
+import { readEncryptedLocalStorage } from '@/hooks/useLocalStorage'
+import { getStoredLanguage, translations } from '@/lib/i18n'
 
-let notificationInterval: NodeJS.Timeout | null = null;
-const firedNotifications = new Map<string, number>();
-const NOTIFICATION_GRACE_PERIOD_MS = 2 * 60 * 1000;
-const NOTIFICATION_CLEANUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+let notificationInterval: NodeJS.Timeout | null = null
+const firedNotifications = new Map<string, number>()
+const NOTIFICATION_GRACE_PERIOD_MS = 2 * 60 * 1000
+const NOTIFICATION_CLEANUP_WINDOW_MS = 24 * 60 * 60 * 1000
 
-export type NOTIFICATION_SOUNDS = "telegram";
+export type NOTIFICATION_SOUNDS = 'telegram'
 
 const notificationSounds: Record<NOTIFICATION_SOUNDS, string> = {
-  telegram: "https://cdn.xyehr.cn/source/Voicy_Telegram_notification.mp3",
-};
+  telegram: 'https://cdn.xyehr.cn/source/Voicy_Telegram_notification.mp3',
+}
 
 export const clearAllNotificationTimers = () => {
   if (notificationInterval) {
-    clearInterval(notificationInterval);
-    notificationInterval = null;
+    clearInterval(notificationInterval)
+    notificationInterval = null
   }
-};
+}
 
 export const checkPendingNotifications = async (
-  sound: NOTIFICATION_SOUNDS = "telegram",
+  sound: NOTIFICATION_SOUNDS = 'telegram',
 ) => {
-  const now = Date.now();
-  const pendingEvents = await getPendingEvents(now);
+  const now = Date.now()
+  const pendingEvents = await getPendingEvents(now)
 
   await Promise.all(
     pendingEvents.map(async (event) => {
-      triggerNotification(event, sound);
-      markNotificationFired(event, now);
-      await showToast(event);
+      triggerNotification(event, sound)
+      markNotificationFired(event, now)
+      await showToast(event)
     }),
-  );
-};
+  )
+}
 
 const getPendingEvents = async (currentTime: number) => {
-  cleanupFiredNotifications(currentTime);
-  const events = await readEncryptedLocalStorage<any[]>("calendar-events", []);
+  cleanupFiredNotifications(currentTime)
+  const events = await readEncryptedLocalStorage<any[]>('calendar-events', [])
   return events.filter((event: any) => {
-    const notificationTime = getNotificationTime(event);
-    if (!notificationTime) return false;
-    if (notificationTime > currentTime) return false;
+    const notificationTime = getNotificationTime(event)
+    if (!notificationTime) return false
+    if (notificationTime > currentTime) return false
     if (notificationTime <= currentTime - NOTIFICATION_GRACE_PERIOD_MS)
-      return false;
-    const key = getNotificationKey(event, notificationTime);
-    return !firedNotifications.has(key);
-  });
-};
+      return false
+    const key = getNotificationKey(event, notificationTime)
+    return !firedNotifications.has(key)
+  })
+}
 
 const triggerNotification = async (
   event: any,
   soundKey: NOTIFICATION_SOUNDS,
 ) => {
-  const sound = notificationSounds[soundKey] ?? notificationSounds.telegram;
-  const audio = new Audio(sound);
-  audio.play().catch(() => {});
-  await showSystemNotification(event);
-};
+  const sound = notificationSounds[soundKey] ?? notificationSounds.telegram
+  const audio = new Audio(sound)
+  audio.play().catch(() => {})
+  await showSystemNotification(event)
+}
 
 const showToast = async (event: any) => {
-  const language = await getStoredLanguage();
-  const t = translations[language];
+  const language = await getStoredLanguage()
+  const t = translations[language]
   toast(`${event.title}`, {
     description: event.description || t.noContent,
     duration: 4000,
-  });
-};
+  })
+}
 
 const getServiceWorkerRegistration = async () => {
-  if (typeof window === "undefined") return null;
-  if (!("serviceWorker" in navigator)) return null;
+  if (typeof window === 'undefined') return null
+  if (!('serviceWorker' in navigator)) return null
 
   try {
-    const currentRegistration = await navigator.serviceWorker.getRegistration();
-    if (currentRegistration) return currentRegistration;
+    const currentRegistration = await navigator.serviceWorker.getRegistration()
+    if (currentRegistration) return currentRegistration
 
-    return await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-      updateViaCache: "none",
-    });
+    return await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    })
   } catch {
-    return null;
+    return null
   }
-};
+}
 
 const showSystemNotification = async (event: any) => {
-  if (typeof window === "undefined") return;
-  if (!("Notification" in window)) return;
+  if (typeof window === 'undefined') return
+  if (!('Notification' in window)) return
 
-  if (Notification.permission === "default") {
+  if (Notification.permission === 'default') {
     try {
-      await Notification.requestPermission();
+      await Notification.requestPermission()
     } catch {
-      return;
+      return
     }
   }
 
-  if (Notification.permission !== "granted") return;
+  if (Notification.permission !== 'granted') return
 
-  const language = await getStoredLanguage();
-  const t = translations[language];
+  const language = await getStoredLanguage()
+  const t = translations[language]
 
-  const title = event.title || "Calendar";
-  const body = event.description || t.noContent;
-  const tag = event.id ? `event-${event.id}` : "calendar-event";
+  const title = event.title || 'Calendar'
+  const body = event.description || t.noContent
+  const tag = event.id ? `event-${event.id}` : 'calendar-event'
 
   const options: NotificationOptions = {
     body,
     tag,
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-  };
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+  }
 
-  const registration = await getServiceWorkerRegistration();
+  const registration = await getServiceWorkerRegistration()
   if (registration) {
     try {
-      await registration.showNotification(title, options);
-      return;
+      await registration.showNotification(title, options)
+      return
     } catch {}
   }
 
   try {
-    new Notification(title, options);
+    new Notification(title, options)
   } catch {
-    return;
+    return
   }
-};
+}
 
 const getNotificationTime = (event: any) => {
-  if (!event?.startDate) return null;
-  const startTime = new Date(event.startDate).getTime();
-  if (Number.isNaN(startTime)) return null;
+  if (!event?.startDate) return null
+  const startTime = new Date(event.startDate).getTime()
+  if (Number.isNaN(startTime)) return null
   const notificationMinutes = Number.isFinite(event.notification)
     ? event.notification
-    : 0;
-  if (notificationMinutes < 0) return null;
-  return startTime - notificationMinutes * 60 * 1000;
-};
+    : 0
+  if (notificationMinutes < 0) return null
+  return startTime - notificationMinutes * 60 * 1000
+}
 
 const getNotificationKey = (event: any, notificationTime: number) => {
-  const eventId = event?.id ?? "unknown";
-  return `${eventId}-${notificationTime}`;
-};
+  const eventId = event?.id ?? 'unknown'
+  return `${eventId}-${notificationTime}`
+}
 
 const markNotificationFired = (event: any, currentTime: number) => {
-  const notificationTime = getNotificationTime(event);
-  if (!notificationTime) return;
-  const key = getNotificationKey(event, notificationTime);
-  firedNotifications.set(key, currentTime);
-};
+  const notificationTime = getNotificationTime(event)
+  if (!notificationTime) return
+  const key = getNotificationKey(event, notificationTime)
+  firedNotifications.set(key, currentTime)
+}
 
 const cleanupFiredNotifications = (currentTime: number) => {
   firedNotifications.forEach((timestamp, key) => {
     if (currentTime - timestamp > NOTIFICATION_CLEANUP_WINDOW_MS) {
-      firedNotifications.delete(key);
+      firedNotifications.delete(key)
     }
-  });
-};
+  })
+}
 
 export const startNotificationChecking = () => {
   if (!notificationInterval) {
     notificationInterval = setInterval(() => {
-      checkPendingNotifications();
-    }, 30000);
+      checkPendingNotifications()
+    }, 30000)
   }
-};
+}
 
 export const stopNotificationChecking = () => {
   if (notificationInterval) {
-    clearInterval(notificationInterval);
-    notificationInterval = null;
+    clearInterval(notificationInterval)
+    notificationInterval = null
   }
-};
+}

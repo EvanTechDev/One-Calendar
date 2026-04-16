@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
 import {
   getEncryptionState,
   readEncryptedLocalStorage,
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
-} from "@/hooks/useLocalStorage";
-import React, { useState, useRef, useEffect } from "react";
+} from '@/hooks/useLocalStorage'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Edit2,
   Trash2,
@@ -19,49 +19,45 @@ import {
   ChevronDown,
   Bookmark,
   Download,
-} from "lucide-react";
-import { Share as Share2 } from "@/components/icons/share";
-import { Button } from "@/components/ui/button";
-import { zhCN, enUS } from "date-fns/locale";
-import { format } from "date-fns";
-import type { CalendarEvent } from "../calendar";
-import type { Language } from "@/lib/i18n";
-import { isZhLanguage, translations } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
-import { useCalendar } from "@/components/providers/calendar-context";
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "@/components/ui/popover";
+} from 'lucide-react'
+import { Share as Share2 } from '@/components/icons/share'
+import { Button } from '@/components/ui/button'
+import { zhCN, enUS } from 'date-fns/locale'
+import { format } from 'date-fns'
+import type { CalendarEvent } from '../calendar'
+import type { Language } from '@/lib/i18n'
+import { isZhLanguage, translations } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
-import QRCodeStyling from "qr-code-styling";
-import { useUser } from "@clerk/nextjs";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import { Checkbox } from '@/components/ui/checkbox'
+import { toast } from 'sonner'
+import QRCodeStyling from 'qr-code-styling'
+import { useUser } from '@clerk/nextjs'
 
 interface EventPreviewProps {
-  event: CalendarEvent | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  language: Language;
-  timezone: string;
-  openShareImmediately?: boolean;
-  shareOnlyMode?: boolean;
-  anchorRect?: DOMRect | null;
-  modal?: boolean;
+  event: CalendarEvent | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEdit: () => void
+  onDelete: () => void
+  onDuplicate: () => void
+  language: Language
+  timezone: string
+  openShareImmediately?: boolean
+  shareOnlyMode?: boolean
+  anchorRect?: DOMRect | null
+  modal?: boolean
 }
 
 export default function EventPreview({
@@ -78,243 +74,237 @@ export default function EventPreview({
   anchorRect = null,
   modal = true,
 }: EventPreviewProps) {
-  const { calendars } = useCalendar();
-  const isZh = isZhLanguage(language);
-  const t = translations[language];
-  const locale = isZh ? zhCN : enUS;
-  const [participantsOpen, setParticipantsOpen] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareLink, setShareLink] = useState("");
-  const [isSharing, setIsSharing] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [qrCodeDataURL, setQRCodeDataURL] = useState<string>("");
-  const qrCodeObjectURLRef = useRef<string | null>(null);
-  const { isSignedIn, user } = useUser();
-  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false);
-  const [atprotoHandle, setAtprotoHandle] = useState("");
-  const dialogContentRef = useRef<HTMLDivElement>(null);
-  const [bookmarks, setBookmarks] = useState<any[]>([]);
-  const [passwordEnabled, setPasswordEnabled] = useState(false);
-  const [sharePassword, setSharePassword] = useState("");
-  const [burnAfterRead, setBurnAfterRead] = useState(false);
-  const ignoreOutsideUntilRef = useRef(0);
+  const { calendars } = useCalendar()
+  const isZh = isZhLanguage(language)
+  const t = translations[language]
+  const locale = isZh ? zhCN : enUS
+  const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [qrCodeDataURL, setQRCodeDataURL] = useState<string>('')
+  const qrCodeObjectURLRef = useRef<string | null>(null)
+  const { isSignedIn, user } = useUser()
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
+  const [atprotoHandle, setAtprotoHandle] = useState('')
+  const dialogContentRef = useRef<HTMLDivElement>(null)
+  const [bookmarks, setBookmarks] = useState<any[]>([])
+  const [passwordEnabled, setPasswordEnabled] = useState(false)
+  const [sharePassword, setSharePassword] = useState('')
+  const [burnAfterRead, setBurnAfterRead] = useState(false)
+  const ignoreOutsideUntilRef = useRef(0)
   const colorMapping: Record<string, string> = {
-    "bg-[#E6F6FD]": "#3B82F6",
-    "bg-[#E7F8F2]": "#10B981",
-    "bg-[#FEF5E6]": "#F59E0B",
-    "bg-[#FFE4E6]": "#EF4444",
-    "bg-[#F3EEFE]": "#8B5CF6",
-    "bg-[#FCE7F3]": "#EC4899",
-    "bg-[#EEF2FF]": "#6366F1",
-    "bg-[#FFF0E5]": "#FB923C",
-    "bg-[#E6FAF7]": "#14B8A6",
-  };
+    'bg-[#E6F6FD]': '#3B82F6',
+    'bg-[#E7F8F2]': '#10B981',
+    'bg-[#FEF5E6]': '#F59E0B',
+    'bg-[#FFE4E6]': '#EF4444',
+    'bg-[#F3EEFE]': '#8B5CF6',
+    'bg-[#FCE7F3]': '#EC4899',
+    'bg-[#EEF2FF]': '#6366F1',
+    'bg-[#FFF0E5]': '#FB923C',
+    'bg-[#E6FAF7]': '#14B8A6',
+  }
 
   useEffect(() => {
     if (open && openShareImmediately) {
       if (!isSignedIn && !atprotoSignedIn) {
         toast.error(t.shareSignInRequiredTitle, {
           description: t.shareSignInRequiredDescription,
-        });
+        })
       } else {
-        void openShareDialog();
+        void openShareDialog()
       }
     }
-  }, [
-    open,
-    openShareImmediately,
-    isSignedIn,
-    atprotoSignedIn,
-    language,
-  ]);
+  }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language])
 
   useEffect(() => {
     if (open && !modal) {
-      ignoreOutsideUntilRef.current = Date.now() + 150;
+      ignoreOutsideUntilRef.current = Date.now() + 150
     }
-  }, [open, modal]);
+  }, [open, modal])
 
   useEffect(() => {
-    fetch("/api/atproto/session")
+    fetch('/api/atproto/session')
       .then((r) => r.json())
       .then((data: { signedIn?: boolean; handle?: string }) => {
-        setAtprotoSignedIn(!!data.signedIn);
-        setAtprotoHandle(data.handle || "");
+        setAtprotoSignedIn(!!data.signedIn)
+        setAtprotoHandle(data.handle || '')
       })
-      .catch(() => undefined);
-  }, []);
+      .catch(() => undefined)
+  }, [])
   useEffect(() => {
-    let active = true;
+    let active = true
     const loadBookmarks = () =>
-      readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+      readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
         (stored) => {
           if (active) {
-            setBookmarks(stored);
+            setBookmarks(stored)
           }
         },
-      );
+      )
 
-    loadBookmarks();
+    loadBookmarks()
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
-        loadBookmarks();
+        loadBookmarks()
       }
-    });
+    })
     return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+      active = false
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
-    if (!open || !event) return;
-    readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+    if (!open || !event) return
+    readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
       (storedBookmarks) => {
-        setBookmarks(storedBookmarks);
+        setBookmarks(storedBookmarks)
       },
-    );
-  }, [open, event]);
+    )
+  }, [open, event])
 
   useEffect(() => {
     return () => {
       if (qrCodeObjectURLRef.current) {
-        URL.revokeObjectURL(qrCodeObjectURLRef.current);
+        URL.revokeObjectURL(qrCodeObjectURLRef.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   useEffect(() => {
     if (event) {
       const isCurrentEventBookmarked = bookmarks.some(
         (bookmark: any) => bookmark.id === event.id,
-      );
-      setIsBookmarked(isCurrentEventBookmarked);
+      )
+      setIsBookmarked(isCurrentEventBookmarked)
     }
-  }, [event, bookmarks]);
+  }, [event, bookmarks])
 
-  if (!event || (!open && !shareDialogOpen)) return null;
+  if (!event || (!open && !shareDialogOpen)) return null
 
   const getCalendarName = () => {
-    if (!event) return "";
-    const calendar = calendars.find((cal) => cal.id === event.calendarId);
-    return calendar ? calendar.name : "";
-  };
+    if (!event) return ''
+    const calendar = calendars.find((cal) => cal.id === event.calendarId)
+    return calendar ? calendar.name : ''
+  }
 
   const formatDateRange = () => {
-    const startDate = new Date(event.startDate);
-    const endDate = new Date(event.endDate);
-    const dateFormat = "yyyy-MM-dd HH:mm";
-    const startFormatted = format(startDate, dateFormat, { locale });
-    const endFormatted = format(endDate, dateFormat, { locale });
-    return `${startFormatted} – ${endFormatted}`;
-  };
+    const startDate = new Date(event.startDate)
+    const endDate = new Date(event.endDate)
+    const dateFormat = 'yyyy-MM-dd HH:mm'
+    const startFormatted = format(startDate, dateFormat, { locale })
+    const endFormatted = format(endDate, dateFormat, { locale })
+    return `${startFormatted} – ${endFormatted}`
+  }
 
   const formatNotificationTime = () => {
     if (event.notification === 0)
-      return isZh ? "事件开始时" : "At time of event";
+      return isZh ? '事件开始时' : 'At time of event'
     return isZh
       ? `${event.notification} 分钟前`
-      : `${event.notification} minutes before`;
-  };
+      : `${event.notification} minutes before`
+  }
 
-  const getInitials = (name: string) => name.charAt(0).toUpperCase();
+  const getInitials = (name: string) => name.charAt(0).toUpperCase()
 
   const hasParticipants =
     event.participants &&
     event.participants.length > 0 &&
-    event.participants.some((p) => p.trim() !== "");
+    event.participants.some((p) => p.trim() !== '')
 
-  const toggleParticipants = () => setParticipantsOpen(!participantsOpen);
+  const toggleParticipants = () => setParticipantsOpen(!participantsOpen)
 
   const generateStyledQRCode = async (link: string) => {
-    const { default: QRCodeStyling } = await import("qr-code-styling");
+    const { default: QRCodeStyling } = await import('qr-code-styling')
     const qrCode = new QRCodeStyling({
       width: 300,
       height: 300,
-      type: "canvas",
+      type: 'canvas',
       data: link,
-      image: "/icon.svg",
+      image: '/icon.svg',
       margin: 8,
       qrOptions: {
-        errorCorrectionLevel: "H",
+        errorCorrectionLevel: 'H',
       },
       dotsOptions: {
-        type: "extra-rounded",
+        type: 'extra-rounded',
       },
       cornersSquareOptions: {
-        type: "dot",
+        type: 'dot',
       },
       cornersDotOptions: {
-        type: "dot",
+        type: 'dot',
       },
       imageOptions: {
         hideBackgroundDots: true,
         imageSize: 0.4,
         margin: 10,
-        crossOrigin: "anonymous",
+        crossOrigin: 'anonymous',
       },
-    });
+    })
 
-    const qrBlob = await qrCode.getRawData("png");
+    const qrBlob = await qrCode.getRawData('png')
     if (!qrBlob) {
-      throw new Error(t.shareQrGenerateFailed);
+      throw new Error(t.shareQrGenerateFailed)
     }
 
     if (qrCodeObjectURLRef.current) {
-      URL.revokeObjectURL(qrCodeObjectURLRef.current);
+      URL.revokeObjectURL(qrCodeObjectURLRef.current)
     }
-    const qrURL = URL.createObjectURL(qrBlob);
-    qrCodeObjectURLRef.current = qrURL;
-    setQRCodeDataURL(qrURL);
-  };
+    const qrURL = URL.createObjectURL(qrBlob)
+    qrCodeObjectURLRef.current = qrURL
+    setQRCodeDataURL(qrURL)
+  }
 
   const openShareDialog = async () => {
-    if (!event) return;
+    if (!event) return
 
-    setPasswordEnabled(false);
-    setSharePassword("");
-    setBurnAfterRead(false);
-    setShareLink("");
-    setQRCodeDataURL("");
+    setPasswordEnabled(false)
+    setSharePassword('')
+    setBurnAfterRead(false)
+    setShareLink('')
+    setQRCodeDataURL('')
     if (qrCodeObjectURLRef.current) {
-      URL.revokeObjectURL(qrCodeObjectURLRef.current);
-      qrCodeObjectURLRef.current = null;
+      URL.revokeObjectURL(qrCodeObjectURLRef.current)
+      qrCodeObjectURLRef.current = null
     }
 
     const storedShares = await readEncryptedLocalStorage<any[]>(
-      "shared-events",
+      'shared-events',
       [],
-    );
+    )
     const existingShare = storedShares
       .filter((share) => share?.eventId === event.id && !!share?.shareLink)
       .sort(
         (a, b) =>
           new Date(b.shareDate || 0).getTime() -
           new Date(a.shareDate || 0).getTime(),
-      )[0];
+      )[0]
 
     if (existingShare) {
-      setShareLink(existingShare.shareLink);
-      await generateStyledQRCode(existingShare.shareLink);
+      setShareLink(existingShare.shareLink)
+      await generateStyledQRCode(existingShare.shareLink)
     }
 
-    setShareDialogOpen(true);
-  };
+    setShareDialogOpen(true)
+  }
 
   const toggleBookmark = async () => {
-    if (!event) return;
+    if (!event) return
     if (isBookmarked) {
       const updatedBookmarks = bookmarks.filter(
         (bookmark: any) => bookmark.id !== event.id,
-      );
-      await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
-      setBookmarks(updatedBookmarks);
-      setIsBookmarked(false);
-      toast(isZh ? "已取消收藏" : "Removed from bookmarks", {
+      )
+      await writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
+      setBookmarks(updatedBookmarks)
+      setIsBookmarked(false)
+      toast(isZh ? '已取消收藏' : 'Removed from bookmarks', {
         description: isZh
-          ? "事件已从收藏夹中移除"
-          : "Event has been removed from your bookmarks",
-      });
+          ? '事件已从收藏夹中移除'
+          : 'Event has been removed from your bookmarks',
+      })
     } else {
       const bookmarkData = {
         id: event.id,
@@ -324,112 +314,112 @@ export default function EventPreview({
         color: event.color,
         location: event.location,
         bookmarkedAt: new Date().toISOString(),
-      };
-      const updatedBookmarks = [...bookmarks, bookmarkData];
-      await writeEncryptedLocalStorage("bookmarked-events", updatedBookmarks);
-      setBookmarks(updatedBookmarks);
-      setIsBookmarked(true);
-      toast(isZh ? "已收藏" : "Bookmarked", {
+      }
+      const updatedBookmarks = [...bookmarks, bookmarkData]
+      await writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
+      setBookmarks(updatedBookmarks)
+      setIsBookmarked(true)
+      toast(isZh ? '已收藏' : 'Bookmarked', {
         description: isZh
-          ? "事件已添加到收藏夹"
-          : "Event has been added to your bookmarks",
-      });
+          ? '事件已添加到收藏夹'
+          : 'Event has been added to your bookmarks',
+      })
     }
-  };
+  }
 
   const handleShare = async () => {
-    if (!event) return;
+    if (!event) return
     if (!user && !atprotoSignedIn) {
       toast.error(t.shareSignInRequiredTitle, {
         description: t.shareSignedInOnlyDescription,
-      });
-      return;
+      })
+      return
     }
 
     if (passwordEnabled) {
-      const pwd = sharePassword.trim();
+      const pwd = sharePassword.trim()
       if (pwd.length < 4) {
         toast.error(t.sharePasswordTooShortTitle, {
           description: t.sharePasswordTooShortDescription,
-        });
-        return;
+        })
+        return
       }
     } else {
-      if (burnAfterRead) setBurnAfterRead(false);
+      if (burnAfterRead) setBurnAfterRead(false)
     }
 
     try {
-      setIsSharing(true);
+      setIsSharing(true)
       const shareId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9);
+        Date.now().toString() + Math.random().toString(36).substring(2, 9)
       const clerkUsername =
-        user?.username || user?.firstName || atprotoHandle || "Anonymous";
-      const sharedEvent = { ...event, sharedBy: clerkUsername };
+        user?.username || user?.firstName || atprotoHandle || 'Anonymous'
+      const sharedEvent = { ...event, sharedBy: clerkUsername }
 
-      const payload: any = { id: shareId, data: sharedEvent };
-      if (passwordEnabled) payload.password = sharePassword;
-      if (passwordEnabled) payload.burnAfterRead = !!burnAfterRead;
+      const payload: any = { id: shareId, data: sharedEvent }
+      if (passwordEnabled) payload.password = sharePassword
+      if (passwordEnabled) payload.burnAfterRead = !!burnAfterRead
 
-      const response = await fetch("/api/share", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      })
 
       if (!response.ok) {
-        const msg = await response.json().catch(() => null);
-        throw new Error(msg?.error || t.shareFailedGeneric);
+        const msg = await response.json().catch(() => null)
+        throw new Error(msg?.error || t.shareFailedGeneric)
       }
 
-      const result = await response.json();
+      const result = await response.json()
 
       if (result.success) {
         const link = result?.shareLink
           ? `${window.location.origin}${result.shareLink}`
-          : `${window.location.origin}/share/${shareId}`;
-        setShareLink(link);
+          : `${window.location.origin}/share/${shareId}`
+        setShareLink(link)
 
         try {
           const qrCode = new QRCodeStyling({
             width: 300,
             height: 300,
-            type: "canvas",
+            type: 'canvas',
             data: link,
-            image: "/icon.svg",
+            image: '/icon.svg',
             margin: 8,
             qrOptions: {
-              errorCorrectionLevel: "H",
+              errorCorrectionLevel: 'H',
             },
             dotsOptions: {
-              type: "extra-rounded",
+              type: 'extra-rounded',
             },
             cornersSquareOptions: {
-              type: "dot",
+              type: 'dot',
             },
             cornersDotOptions: {
-              type: "dot",
+              type: 'dot',
             },
             imageOptions: {
               hideBackgroundDots: true,
               imageSize: 0.4,
               margin: 10,
             },
-          });
-          const qrBlob = await qrCode.getRawData("png");
+          })
+          const qrBlob = await qrCode.getRawData('png')
           if (qrBlob) {
             if (qrCodeObjectURLRef.current) {
-              URL.revokeObjectURL(qrCodeObjectURLRef.current);
+              URL.revokeObjectURL(qrCodeObjectURLRef.current)
             }
-            const qrURL = URL.createObjectURL(qrBlob);
-            qrCodeObjectURLRef.current = qrURL;
-            setQRCodeDataURL(qrURL);
+            const qrURL = URL.createObjectURL(qrBlob)
+            qrCodeObjectURLRef.current = qrURL
+            setQRCodeDataURL(qrURL)
           }
         } catch {}
 
         const storedShares = await readEncryptedLocalStorage<any[]>(
-          "shared-events",
+          'shared-events',
           [],
-        );
+        )
         storedShares.push({
           id: shareId,
           eventId: event.id,
@@ -439,8 +429,8 @@ export default function EventPreview({
           shareLink: link,
           protected: !!passwordEnabled,
           burnAfterRead: !!burnAfterRead,
-        });
-        await writeEncryptedLocalStorage("shared-events", storedShares);
+        })
+        await writeEncryptedLocalStorage('shared-events', storedShares)
 
         toast.success(t.shareSuccessTitle, {
           description:
@@ -449,121 +439,122 @@ export default function EventPreview({
               : passwordEnabled
                 ? t.shareSuccessPasswordOnly
                 : t.shareSuccessLinkGenerated,
-        });
+        })
       } else {
-        throw new Error(t.shareFailedGeneric);
+        throw new Error(t.shareFailedGeneric)
       }
     } catch (error) {
       toast.error(t.shareFailedTitle, {
         description: error instanceof Error ? error.message : t.unknownError,
-      });
+      })
     } finally {
-      setIsSharing(false);
+      setIsSharing(false)
     }
-  };
+  }
 
   const copyShareLink = () => {
     if (shareLink) {
-      navigator.clipboard.writeText(shareLink);
+      navigator.clipboard.writeText(shareLink)
       toast.success(t.shareLinkCopiedTitle, {
         description: t.shareLinkCopiedDescription,
-      });
+      })
     }
-  };
+  }
 
   const downloadQRCode = () => {
     if (qrCodeDataURL) {
-      const link = document.createElement("a");
-      link.href = qrCodeDataURL;
-      link.download = `${event?.title || "event"}-qrcode.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const link = document.createElement('a')
+      link.href = qrCodeDataURL
+      link.download = `${event?.title || 'event'}-qrcode.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success(t.qrCodeDownloaded, {
         description: t.savedToDevice,
-      });
+      })
     }
-  };
+  }
 
   const handleShareDialogChange = (open: boolean) => {
     if (!open) {
-      setShareLink("");
-      setQRCodeDataURL("");
+      setShareLink('')
+      setQRCodeDataURL('')
       if (qrCodeObjectURLRef.current) {
-        URL.revokeObjectURL(qrCodeObjectURLRef.current);
-        qrCodeObjectURLRef.current = null;
+        URL.revokeObjectURL(qrCodeObjectURLRef.current)
+        qrCodeObjectURLRef.current = null
       }
-      setPasswordEnabled(false);
-      setSharePassword("");
-      setBurnAfterRead(false);
+      setPasswordEnabled(false)
+      setSharePassword('')
+      setBurnAfterRead(false)
     }
-    setShareDialogOpen(open);
-  };
+    setShareDialogOpen(open)
+  }
 
-  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
+  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation()
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete();
-  };
+    e.stopPropagation()
+    onDelete()
+  }
 
-  const popoverSide: "top" | "right" | "bottom" | "left" = anchorRect
+  const popoverSide: 'top' | 'right' | 'bottom' | 'left' = anchorRect
     ? (() => {
         const viewportWidth =
-          typeof window === "undefined" ? 0 : window.innerWidth;
+          typeof window === 'undefined' ? 0 : window.innerWidth
         const viewportHeight =
-          typeof window === "undefined" ? 0 : window.innerHeight;
+          typeof window === 'undefined' ? 0 : window.innerHeight
         const spaces = {
           top: anchorRect.top,
           right: viewportWidth - anchorRect.right,
           bottom: viewportHeight - anchorRect.bottom,
           left: anchorRect.left,
-        };
-        const estimatedWidth = 460;
-        const estimatedHeight = 520;
-        if (spaces.right >= estimatedWidth) return "right";
-        if (spaces.left >= estimatedWidth) return "left";
-        if (spaces.bottom >= estimatedHeight) return "bottom";
-        if (spaces.top >= estimatedHeight) return "top";
+        }
+        const estimatedWidth = 460
+        const estimatedHeight = 520
+        if (spaces.right >= estimatedWidth) return 'right'
+        if (spaces.left >= estimatedWidth) return 'left'
+        if (spaces.bottom >= estimatedHeight) return 'bottom'
+        if (spaces.top >= estimatedHeight) return 'top'
         const entries = Object.entries(spaces) as Array<
-          ["top" | "right" | "bottom" | "left", number]
-        >;
-        return entries.sort((a, b) => b[1] - a[1])[0][0];
+          ['top' | 'right' | 'bottom' | 'left', number]
+        >
+        return entries.sort((a, b) => b[1] - a[1])[0][0]
       })()
-    : "bottom";
+    : 'bottom'
 
   const anchorStyle: React.CSSProperties = (() => {
     if (anchorRect) {
-      const midX = anchorRect.left + anchorRect.width / 2;
-      const midY = anchorRect.top + anchorRect.height / 2;
+      const midX = anchorRect.left + anchorRect.width / 2
+      const midY = anchorRect.top + anchorRect.height / 2
       const edgePoint =
-        popoverSide === "right"
+        popoverSide === 'right'
           ? { left: anchorRect.right, top: midY }
-          : popoverSide === "left"
+          : popoverSide === 'left'
             ? { left: anchorRect.left, top: midY }
-            : popoverSide === "top"
+            : popoverSide === 'top'
               ? { left: midX, top: anchorRect.top }
-              : { left: midX, top: anchorRect.bottom };
+              : { left: midX, top: anchorRect.bottom }
       return {
-        position: "fixed",
+        position: 'fixed',
         left: edgePoint.left,
         top: edgePoint.top,
         width: 0,
         height: 0,
-        pointerEvents: "none",
-      };
+        pointerEvents: 'none',
+      }
     }
 
     return {
-      position: "fixed",
-      left: typeof window === "undefined" ? 0 : Math.round(window.innerWidth / 2),
+      position: 'fixed',
+      left:
+        typeof window === 'undefined' ? 0 : Math.round(window.innerWidth / 2),
       top:
-        typeof window === "undefined" ? 0 : Math.round(window.innerHeight / 2),
+        typeof window === 'undefined' ? 0 : Math.round(window.innerHeight / 2),
       width: 0,
       height: 0,
-      pointerEvents: "none",
-    };
-  })();
+      pointerEvents: 'none',
+    }
+  })()
 
   return (
     <>
@@ -581,10 +572,10 @@ export default function EventPreview({
             onInteractOutside={(e) => {
               if (!modal) {
                 if (Date.now() < ignoreOutsideUntilRef.current) {
-                  e.preventDefault();
-                  return;
+                  e.preventDefault()
+                  return
                 }
-                onOpenChange(false);
+                onOpenChange(false)
               }
             }}
           >
@@ -603,14 +594,14 @@ export default function EventPreview({
                   variant="ghost"
                   size="icon"
                   onClick={(e) => {
-                    e.stopPropagation();
+                    e.stopPropagation()
                     if (!isSignedIn && !atprotoSignedIn) {
                       toast.error(t.shareSignInRequiredTitle, {
                         description: t.shareSignInRequiredDescription,
-                      });
-                      return;
+                      })
+                      return
                     }
-                    void openShareDialog();
+                    void openShareDialog()
                   }}
                   className="h-8 w-8"
                 >
@@ -624,8 +615,8 @@ export default function EventPreview({
                 >
                   <Bookmark
                     className={cn(
-                      "h-5 w-5",
-                      isBookmarked ? "fill-blue-500 text-blue-500" : "",
+                      'h-5 w-5',
+                      isBookmarked ? 'fill-blue-500 text-blue-500' : '',
                     )}
                   />
                 </Button>
@@ -658,9 +649,9 @@ export default function EventPreview({
                 <h2
                   className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
                   style={{
-                    display: "-webkit-box",
+                    display: '-webkit-box',
                     WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
+                    WebkitBoxOrient: 'vertical',
                   }}
                 >
                   {event.title}
@@ -670,7 +661,7 @@ export default function EventPreview({
             </div>
 
             <div className="px-5 pb-5 space-y-4">
-              {event.location && event.location.trim() !== "" && (
+              {event.location && event.location.trim() !== '' && (
                 <div className="flex items-start">
                   <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                   <div className="flex-1">
@@ -689,22 +680,22 @@ export default function EventPreview({
                     >
                       <p>
                         {
-                          event.participants.filter((p) => p.trim() !== "")
+                          event.participants.filter((p) => p.trim() !== '')
                             .length
-                        }{" "}
-                        {isZh ? "参与者" : "participants"}
+                        }{' '}
+                        {isZh ? '参与者' : 'participants'}
                       </p>
                       <ChevronDown
                         className={cn(
-                          "h-4 w-4 transition-transform duration-200",
-                          participantsOpen ? "transform rotate-180" : "",
+                          'h-4 w-4 transition-transform duration-200',
+                          participantsOpen ? 'transform rotate-180' : '',
                         )}
                       />
                     </div>
                     {participantsOpen && (
                       <div className="mt-2 space-y-2">
                         {event.participants
-                          .filter((p) => p.trim() !== "")
+                          .filter((p) => p.trim() !== '')
                           .map((participant, index) => (
                             <div key={index} className="flex items-center">
                               <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
@@ -744,16 +735,16 @@ export default function EventPreview({
                 </div>
               )}
 
-              {event.description && event.description.trim() !== "" && (
+              {event.description && event.description.trim() !== '' && (
                 <div className="flex items-start">
                   <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                   <div className="flex-1">
                     <p
                       className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
                       style={{
-                        display: "-webkit-box",
+                        display: '-webkit-box',
                         WebkitLineClamp: 4,
-                        WebkitBoxOrient: "vertical",
+                        WebkitBoxOrient: 'vertical',
                       }}
                     >
                       {event.description}
@@ -769,8 +760,8 @@ export default function EventPreview({
       <Dialog
         open={shareDialogOpen}
         onOpenChange={(nextOpen) => {
-          handleShareDialogChange(nextOpen);
-          if (!nextOpen && shareOnlyMode) onOpenChange(false);
+          handleShareDialogChange(nextOpen)
+          if (!nextOpen && shareOnlyMode) onOpenChange(false)
         }}
       >
         <DialogContent
@@ -800,11 +791,11 @@ export default function EventPreview({
                     id="enable-password"
                     checked={passwordEnabled}
                     onCheckedChange={(checked) => {
-                      const v = checked === true;
-                      setPasswordEnabled(v);
+                      const v = checked === true
+                      setPasswordEnabled(v)
                       if (!v) {
-                        setSharePassword("");
-                        setBurnAfterRead(false);
+                        setSharePassword('')
+                        setBurnAfterRead(false)
                       }
                     }}
                   />
@@ -849,16 +840,16 @@ export default function EventPreview({
                 <Button
                   variant="outline"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShareDialogChange(false);
+                    e.stopPropagation()
+                    handleShareDialogChange(false)
                   }}
                 >
                   {t.cancel}
                 </Button>
                 <Button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShare();
+                    e.stopPropagation()
+                    handleShare()
                   }}
                   disabled={isSharing}
                 >
@@ -885,16 +876,16 @@ export default function EventPreview({
                       readOnly
                       className="flex-1"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        copyShareLink();
+                        e.stopPropagation()
+                        copyShareLink()
                       }}
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        copyShareLink();
+                        e.stopPropagation()
+                        copyShareLink()
                       }}
                     >
                       {t.copy}
@@ -910,7 +901,7 @@ export default function EventPreview({
                     <Label className="mb-2">{t.qrCode}</Label>
                     <div className="border p-3 rounded bg-white mb-2">
                       <img
-                        src={qrCodeDataURL || "/placeholder.svg"}
+                        src={qrCodeDataURL || '/placeholder.svg'}
                         alt="QR Code"
                         className="w-full max-w-[200px] mx-auto"
                       />
@@ -920,8 +911,8 @@ export default function EventPreview({
                       size="sm"
                       className="mt-2"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        downloadQRCode();
+                        e.stopPropagation()
+                        downloadQRCode()
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
@@ -937,8 +928,8 @@ export default function EventPreview({
               <DialogFooter>
                 <Button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleShareDialogChange(false);
+                    e.stopPropagation()
+                    handleShareDialogChange(false)
                   }}
                 >
                   {t.done}
@@ -949,5 +940,5 @@ export default function EventPreview({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

@@ -1,185 +1,185 @@
-"use client";
+'use client'
 
-import { translations, type Language } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { useEffect, useMemo, useState } from "react";
+import { translations, type Language } from '@/lib/i18n'
+import { Button } from '@/components/ui/button'
+import { useEffect, useMemo, useState } from 'react'
 
-const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";
-const COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT ?? "unknown";
-const DEPLOYED_AT = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown'
+const COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT ?? 'unknown'
+const DEPLOYED_AT = process.env.NEXT_PUBLIC_BUILD_TIME ?? ''
 
 const formatTimeAgo = (language: Language, deployedAt: string) => {
-  const t = translations[language];
-  const deployedDate = new Date(deployedAt);
+  const t = translations[language]
+  const deployedDate = new Date(deployedAt)
   if (Number.isNaN(deployedDate.getTime())) {
-    return t.buildInfoUnknown;
+    return t.buildInfoUnknown
   }
 
-  const diffMs = Date.now() - deployedDate.getTime();
-  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
+  const diffMs = Date.now() - deployedDate.getTime()
+  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000))
 
   if (diffMinutes < 60) {
-    return `${diffMinutes} ${t.buildInfoMinutes}`;
+    return `${diffMinutes} ${t.buildInfoMinutes}`
   }
 
-  const diffHours = Math.floor(diffMinutes / 60);
+  const diffHours = Math.floor(diffMinutes / 60)
   if (diffHours < 24) {
-    return `${diffHours} ${t.buildInfoHours}`;
+    return `${diffHours} ${t.buildInfoHours}`
   }
 
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} ${t.buildInfoDays}`;
-};
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} ${t.buildInfoDays}`
+}
 
 interface BuildInfoCardProps {
-  language: Language;
+  language: Language
 }
 
 export default function BuildInfoCard({ language }: BuildInfoCardProps) {
-  const [tick, setTick] = useState(0);
+  const [tick, setTick] = useState(0)
   const [updateRegistration, setUpdateRegistration] =
-    useState<ServiceWorkerRegistration | null>(null);
-  const [hasUpdate, setHasUpdate] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [hasCloudUpdate, setHasCloudUpdate] = useState(false);
+    useState<ServiceWorkerRegistration | null>(null)
+  const [hasUpdate, setHasUpdate] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [hasCloudUpdate, setHasCloudUpdate] = useState(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setTick((value) => value + 1);
-    }, 60000);
+      setTick((value) => value + 1)
+    }, 60000)
 
     return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
+      window.clearInterval(timer)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (!('serviceWorker' in navigator)) return
 
     const checkForUpdate = (registration: ServiceWorkerRegistration) => {
-      setUpdateRegistration(registration);
-      setHasUpdate(Boolean(registration.waiting));
-    };
+      setUpdateRegistration(registration)
+      setHasUpdate(Boolean(registration.waiting))
+    }
 
     const handleControllerChange = () => {
-      window.location.reload();
-    };
+      window.location.reload()
+    }
 
     const initializeServiceWorkerUpdate = async () => {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) return;
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (!registration) return
 
-      checkForUpdate(registration);
+      checkForUpdate(registration)
 
       const handleUpdateFound = () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
+        const newWorker = registration.installing
+        if (!newWorker) return
 
-        newWorker.addEventListener("statechange", () => {
+        newWorker.addEventListener('statechange', () => {
           if (
-            newWorker.state === "installed" &&
+            newWorker.state === 'installed' &&
             navigator.serviceWorker.controller
           ) {
-            setHasUpdate(true);
+            setHasUpdate(true)
           }
-        });
-      };
+        })
+      }
 
-      registration.addEventListener("updatefound", handleUpdateFound);
+      registration.addEventListener('updatefound', handleUpdateFound)
       navigator.serviceWorker.addEventListener(
-        "controllerchange",
+        'controllerchange',
         handleControllerChange,
-      );
+      )
 
       return () => {
-        registration.removeEventListener("updatefound", handleUpdateFound);
+        registration.removeEventListener('updatefound', handleUpdateFound)
         navigator.serviceWorker.removeEventListener(
-          "controllerchange",
+          'controllerchange',
           handleControllerChange,
-        );
-      };
-    };
+        )
+      }
+    }
 
-    const cleanupPromise = initializeServiceWorkerUpdate();
+    const cleanupPromise = initializeServiceWorkerUpdate()
 
     return () => {
-      cleanupPromise.then((cleanup) => cleanup?.()).catch(() => undefined);
-    };
-  }, []);
+      cleanupPromise.then((cleanup) => cleanup?.()).catch(() => undefined)
+    }
+  }, [])
 
   useEffect(() => {
     const checkCloudBuildInfo = async () => {
       try {
         const response = await fetch(`/api/build-info?t=${Date.now()}`, {
-          cache: "no-store",
-        });
-        if (!response.ok) return;
+          cache: 'no-store',
+        })
+        if (!response.ok) return
 
         const nextBuild = (await response.json()) as {
-          version?: string;
-          commit?: string;
-          deployedAt?: string;
-        };
+          version?: string
+          commit?: string
+          deployedAt?: string
+        }
 
         const changedByCommit =
-          Boolean(nextBuild.commit) && nextBuild.commit !== COMMIT_HASH;
+          Boolean(nextBuild.commit) && nextBuild.commit !== COMMIT_HASH
         const changedByDeployTime =
-          Boolean(nextBuild.deployedAt) && nextBuild.deployedAt !== DEPLOYED_AT;
+          Boolean(nextBuild.deployedAt) && nextBuild.deployedAt !== DEPLOYED_AT
         const changedByVersion =
-          Boolean(nextBuild.version) && nextBuild.version !== APP_VERSION;
+          Boolean(nextBuild.version) && nextBuild.version !== APP_VERSION
 
         setHasCloudUpdate(
           changedByCommit || changedByDeployTime || changedByVersion,
-        );
+        )
       } catch {
         // Ignore transient network errors to keep the card non-blocking.
       }
-    };
+    }
 
-    void checkCloudBuildInfo();
+    void checkCloudBuildInfo()
     const timer = window.setInterval(() => {
-      void checkCloudBuildInfo();
-    }, 120000);
+      void checkCloudBuildInfo()
+    }, 120000)
 
     return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
+      window.clearInterval(timer)
+    }
+  }, [])
 
-  const t = translations[language];
+  const t = translations[language]
   const deployedAgo = useMemo(
     () => formatTimeAgo(language, DEPLOYED_AT),
     [language, tick],
-  );
+  )
 
   const handleUpdateStatic = async () => {
-    if ((!updateRegistration && !hasCloudUpdate) || isUpdating) return;
+    if ((!updateRegistration && !hasCloudUpdate) || isUpdating) return
 
-    setIsUpdating(true);
+    setIsUpdating(true)
     try {
       if (updateRegistration) {
-        await updateRegistration.update();
+        await updateRegistration.update()
       }
-      const waitingWorker = updateRegistration?.waiting;
+      const waitingWorker = updateRegistration?.waiting
       if (waitingWorker) {
-        waitingWorker.postMessage({ type: "SKIP_WAITING" });
-        return;
+        waitingWorker.postMessage({ type: 'SKIP_WAITING' })
+        return
       }
 
-      if (hasCloudUpdate && "caches" in window) {
-        const cacheKeys = await caches.keys();
+      if (hasCloudUpdate && 'caches' in window) {
+        const cacheKeys = await caches.keys()
         await Promise.all(
           cacheKeys
-            .filter((key) => key.startsWith("one-calendar-shell-"))
+            .filter((key) => key.startsWith('one-calendar-shell-'))
             .map((key) => caches.delete(key)),
-        );
+        )
       }
 
-      window.location.reload();
+      window.location.reload()
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(false)
     }
-  };
+  }
 
   return (
     <div className="rounded-lg border p-4 space-y-3">
@@ -195,7 +195,7 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-muted-foreground">{t.buildInfoDeployment}</span>
-          <span>{t.buildInfoDeployedAgo.replace("{time}", deployedAgo)}</span>
+          <span>{t.buildInfoDeployedAgo.replace('{time}', deployedAgo)}</span>
         </div>
         {hasUpdate || hasCloudUpdate ? (
           <div className="flex items-center justify-between gap-4">
@@ -213,5 +213,5 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
         ) : null}
       </div>
     </div>
-  );
+  )
 }

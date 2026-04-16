@@ -7,119 +7,119 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { Copy, ExternalLink, Lock, Trash2 } from "lucide-react";
-import { translations, useLanguage } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { toast } from "sonner";
-import { fetchJson } from "@/lib/fetch-json";
+} from '@/components/ui/alert-dialog'
+import { Copy, ExternalLink, Lock, Trash2 } from 'lucide-react'
+import { translations, useLanguage } from '@/lib/i18n'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useEffect, useState } from 'react'
+import { format } from 'date-fns'
+import { toast } from 'sonner'
+import { fetchJson } from '@/lib/fetch-json'
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from '@/components/ui/empty'
 
 interface SharedEvent {
-  id: string;
-  eventId: string;
-  eventTitle: string;
-  sharedBy: string;
-  shareDate: string;
-  shareLink: string;
-  isProtected: boolean;
+  id: string
+  eventId: string
+  eventTitle: string
+  sharedBy: string
+  shareDate: string
+  shareLink: string
+  isProtected: boolean
 }
 
 export default function ShareManagement() {
-  const [language] = useLanguage();
-  const t = translations[language];
-  const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([]);
-  const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loadingDecrypt, setLoadingDecrypt] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
+  const [language] = useLanguage()
+  const t = translations[language]
+  const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([])
+  const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [loadingDecrypt, setLoadingDecrypt] = useState(false)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
   const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(
     null,
-  );
-  const [isDecrypting, setIsDecrypting] = useState(false);
+  )
+  const [isDecrypting, setIsDecrypting] = useState(false)
 
   useEffect(() => {
     async function fetchSharedEvents() {
       try {
         const data = await fetchJson<{ shares?: SharedEvent[] }>(
-          "/api/share/list",
-        );
-        setSharedEvents(data.shares || []);
+          '/api/share/list',
+        )
+        setSharedEvents(data.shares || [])
       } catch (error) {
-        console.error("Error fetching shared events:", error);
+        console.error('Error fetching shared events:', error)
         toast.error(t.shareManagementLoadFailed, {
-          description: error instanceof Error ? error.message : "",
-        });
+          description: error instanceof Error ? error.message : '',
+        })
       }
     }
-    fetchSharedEvents();
-  }, [language]);
+    fetchSharedEvents()
+  }, [language])
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "yyyy-MM-dd HH:mm");
+      return format(new Date(dateString), 'yyyy-MM-dd HH:mm')
     } catch {
-      return dateString;
+      return dateString
     }
-  };
+  }
 
   const copyShareLink = (shareLink: string) => {
-    navigator.clipboard.writeText(shareLink);
-    toast(t.linkCopied);
-  };
+    navigator.clipboard.writeText(shareLink)
+    toast(t.linkCopied)
+  }
 
   const openShareLink = (shareLink: string) => {
-    window.open(shareLink, "_blank");
-  };
+    window.open(shareLink, '_blank')
+  }
 
   const deleteShare = async () => {
-    if (!selectedShare) return;
+    if (!selectedShare) return
     try {
-      setIsDeleting(true);
-      const res = await fetch("/api/share", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      setIsDeleting(true)
+      const res = await fetch('/api/share', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedShare.id }),
-      });
-      if (!res.ok) throw new Error("Failed to delete share");
-      setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id));
-      toast.success(t.shareDeleted);
+      })
+      if (!res.ok) throw new Error('Failed to delete share')
+      setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id))
+      toast.success(t.shareDeleted)
     } catch (error) {
-      toast.error(t.shareDeleteFailed);
+      toast.error(t.shareDeleteFailed)
     } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
-      setSelectedShare(null);
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setSelectedShare(null)
     }
-  };
+  }
 
   const handleDecrypt = async () => {
-    if (!decryptingShare || !passwordInput) return;
+    if (!decryptingShare || !passwordInput) return
 
     try {
-      setIsDecrypting(true);
+      setIsDecrypting(true)
 
       const data = await fetchJson<{ success: boolean; data: string }>(
         `/api/share?id=${decryptingShare.id}&password=${encodeURIComponent(passwordInput)}`,
-      );
+      )
 
       if (!data.success) {
-        toast.error(t.invalidPassword);
-        return;
+        toast.error(t.invalidPassword)
+        return
       }
 
-      const parsed = JSON.parse(data.data);
+      const parsed = JSON.parse(data.data)
 
       setSharedEvents((prev) =>
         prev.map((s) =>
@@ -132,25 +132,27 @@ export default function ShareManagement() {
               }
             : s,
         ),
-      );
+      )
 
-      toast.success(t.decrypted);
-      setPasswordDialogOpen(false);
-      setDecryptingShare(null);
-      setPasswordInput("");
+      toast.success(t.decrypted)
+      setPasswordDialogOpen(false)
+      setDecryptingShare(null)
+      setPasswordInput('')
     } catch (error) {
-      toast.error(t.decryptFailed);
+      toast.error(t.decryptFailed)
     } finally {
-      setIsDecrypting(false);
+      setIsDecrypting(false)
     }
-  };
+  }
 
   return (
     <div className="w-full rounded-lg border p-4 space-y-6">
       <div>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-base font-semibold">{t.shareManagementTitle}</h2>
+            <h2 className="text-base font-semibold">
+              {t.shareManagementTitle}
+            </h2>
             <p className="text-sm text-muted-foreground">
               {t.shareManagementDescription}
             </p>
@@ -202,9 +204,9 @@ export default function ShareManagement() {
                         variant="outline"
                         size="icon"
                         onClick={() => {
-                          setDecryptingShare(share);
-                          setPasswordInput("");
-                          setPasswordDialogOpen(true);
+                          setDecryptingShare(share)
+                          setPasswordInput('')
+                          setPasswordDialogOpen(true)
                         }}
                         disabled={loadingDecrypt}
                       >
@@ -215,8 +217,8 @@ export default function ShareManagement() {
                       variant="outline"
                       size="icon"
                       onClick={() => {
-                        setSelectedShare(share);
-                        setDeleteDialogOpen(true);
+                        setSelectedShare(share)
+                        setDeleteDialogOpen(true)
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -295,7 +297,7 @@ export default function ShareManagement() {
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder={t.enterPassword}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleDecrypt();
+                if (e.key === 'Enter') handleDecrypt()
               }}
             />
           </div>
@@ -303,8 +305,8 @@ export default function ShareManagement() {
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
-                setDecryptingShare(null);
-                setPasswordInput("");
+                setDecryptingShare(null)
+                setPasswordInput('')
               }}
             >
               {t.cancel}
@@ -317,5 +319,5 @@ export default function ShareManagement() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

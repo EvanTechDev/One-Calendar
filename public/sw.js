@@ -1,106 +1,114 @@
-const CACHE_NAME = "one-calendar-shell-v3";
-const OFFLINE_URLS = ["/app", "/icon.svg"];
-const STATIC_PATH_PREFIXES = ["/_next/static/", "/_next/image/", "/icons/"];
+const CACHE_NAME = 'one-calendar-shell-v3'
+const OFFLINE_URLS = ['/app', '/icon.svg']
+const STATIC_PATH_PREFIXES = ['/_next/static/', '/_next/image/', '/icons/']
 const STATIC_FILE_PATTERN =
-  /\.(?:js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|otf|eot|json|txt|xml|webmanifest)$/i;
+  /\.(?:js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|otf|eot|json|txt|xml|webmanifest)$/i
 
 function shouldCacheRequest(requestUrl) {
-  if (requestUrl.origin !== self.location.origin) return false;
-  if (OFFLINE_URLS.includes(requestUrl.pathname)) return true;
-  if (STATIC_PATH_PREFIXES.some((prefix) => requestUrl.pathname.startsWith(prefix))) {
-    return true;
+  if (requestUrl.origin !== self.location.origin) return false
+  if (OFFLINE_URLS.includes(requestUrl.pathname)) return true
+  if (
+    STATIC_PATH_PREFIXES.some((prefix) =>
+      requestUrl.pathname.startsWith(prefix),
+    )
+  ) {
+    return true
   }
-  return STATIC_FILE_PATTERN.test(requestUrl.pathname);
+  return STATIC_FILE_PATTERN.test(requestUrl.pathname)
 }
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(OFFLINE_URLS))
       .then(() => self.skipWaiting()),
-  );
-});
+  )
+})
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
       ),
-    ),
-  );
+  )
 
-  self.clients.claim();
-});
+  self.clients.claim()
+})
 
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "SKIP_WAITING") {
-    self.skipWaiting();
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
   }
-});
+})
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return
 
-  const requestUrl = new URL(event.request.url);
-  if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
-    return;
+  const requestUrl = new URL(event.request.url)
+  if (requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') {
+    return
   }
-  if (requestUrl.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(event.request));
-    return;
+  if (requestUrl.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request))
+    return
   }
   if (!shouldCacheRequest(requestUrl)) {
-    event.respondWith(fetch(event.request));
-    return;
+    event.respondWith(fetch(event.request))
+    return
   }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        return cachedResponse;
+        return cachedResponse
       }
 
       return fetch(event.request)
         .then((networkResponse) => {
           if (!networkResponse || networkResponse.status !== 200) {
-            return networkResponse;
+            return networkResponse
           }
 
-          if (networkResponse.type !== "basic") {
-            return networkResponse;
+          if (networkResponse.type !== 'basic') {
+            return networkResponse
           }
 
-          const responseToCache = networkResponse.clone();
+          const responseToCache = networkResponse.clone()
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache).catch(() => undefined);
-          });
+            cache.put(event.request, responseToCache).catch(() => undefined)
+          })
 
-          return networkResponse;
+          return networkResponse
         })
-        .catch(() => caches.match("/app"));
+        .catch(() => caches.match('/app'))
     }),
-  );
-});
+  )
+})
 
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ("focus" in client) {
-          client.focus();
-          return;
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if ('focus' in client) {
+            client.focus()
+            return
+          }
         }
-      }
 
-      if (self.clients.openWindow) {
-        return self.clients.openWindow("/app");
-      }
-    }),
-  );
-});
+        if (self.clients.openWindow) {
+          return self.clients.openWindow('/app')
+        }
+      }),
+  )
+})

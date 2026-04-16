@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import type { OAuthProviderKey } from "@/lib/clerk-oauth";
+import type { OAuthProviderKey } from '@/lib/clerk-oauth'
 
 interface OAuthProviderIconProps {
-  providerKey: OAuthProviderKey;
-  className?: string;
+  providerKey: OAuthProviderKey
+  className?: string
 }
 
 export function OAuthProviderIcon({
   providerKey,
-  className = "h-5 w-5",
+  className = 'h-5 w-5',
 }: OAuthProviderIconProps) {
-  if (providerKey === "microsoft") {
+  if (providerKey === 'microsoft') {
     return (
       <svg viewBox="0 0 23 23" className={className} aria-hidden="true">
         <path fill="#f25022" d="M1 1h10v10H1z" />
@@ -19,10 +19,10 @@ export function OAuthProviderIcon({
         <path fill="#7fba00" d="M1 12h10v10H1z" />
         <path fill="#ffb900" d="M12 12h10v10H12z" />
       </svg>
-    );
+    )
   }
 
-  if (providerKey === "google") {
+  if (providerKey === 'google') {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
         <path
@@ -43,7 +43,7 @@ export function OAuthProviderIcon({
         />
         <path d="M1 1h22v22H1z" fill="none" />
       </svg>
-    );
+    )
   }
 
   return (
@@ -53,5 +53,5 @@ export function OAuthProviderIcon({
         fill="currentColor"
       />
     </svg>
-  );
+  )
 }

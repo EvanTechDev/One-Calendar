@@ -1,20 +1,20 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { FooterSection } from "@/components/landing/footer-section";
-import { SiGithub } from "react-icons/si";
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { FooterSection } from '@/components/landing/footer-section'
+import { SiGithub } from 'react-icons/si'
 
 type LegalPageShellProps = {
-  title: string;
-  lastUpdated: string;
-  intro: string;
-  sections: Array<{ heading: string; content: string[] }>;
-  cta: string;
-  github: string;
-  home: string;
-  allowHtml?: boolean;
-};
+  title: string
+  lastUpdated: string
+  intro: string
+  sections: Array<{ heading: string; content: string[] }>
+  cta: string
+  github: string
+  home: string
+  allowHtml?: boolean
+}
 
 function LegalNavigation() {
   return (
@@ -25,19 +25,38 @@ function LegalNavigation() {
             One Calendar
           </Link>
           <div className="hidden items-center gap-8 md:flex">
-            <Link href="/privacy" className="text-sm text-foreground/70 transition-colors hover:text-foreground">Privacy</Link>
-            <Link href="/terms" className="text-sm text-foreground/70 transition-colors hover:text-foreground">Terms</Link>
+            <Link
+              href="/privacy"
+              className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+            >
+              Terms
+            </Link>
           </div>
           <div className="hidden items-center gap-4 md:flex">
-            <Link href="/sign-in" className="text-xs text-foreground/70 transition-colors hover:text-foreground">Sign in</Link>
-            <Button asChild size="sm" className="rounded-full bg-foreground px-4 text-xs text-background hover:bg-foreground/90">
+            <Link
+              href="/sign-in"
+              className="text-xs text-foreground/70 transition-colors hover:text-foreground"
+            >
+              Sign in
+            </Link>
+            <Button
+              asChild
+              size="sm"
+              className="rounded-full bg-foreground px-4 text-xs text-background hover:bg-foreground/90"
+            >
               <Link href="/sign-up">Start free</Link>
             </Button>
           </div>
         </div>
       </nav>
     </header>
-  );
+  )
 }
 
 export function LegalPageShell({
@@ -56,14 +75,22 @@ export function LegalPageShell({
 
       <section className="relative z-10 mx-auto max-w-4xl px-6 pb-20 pt-32 lg:px-12">
         <div className="rounded-3xl border border-foreground/10 bg-background/60 p-8 shadow-2xl backdrop-blur-xl lg:p-12">
-          <h1 className="mb-6 text-center font-display text-4xl tracking-tight lg:text-5xl">{title}</h1>
-          <p className="mb-10 text-center text-sm text-muted-foreground">{lastUpdated}</p>
-          <p className="mb-10 text-lg leading-relaxed text-foreground/85">{intro}</p>
+          <h1 className="mb-6 text-center font-display text-4xl tracking-tight lg:text-5xl">
+            {title}
+          </h1>
+          <p className="mb-10 text-center text-sm text-muted-foreground">
+            {lastUpdated}
+          </p>
+          <p className="mb-10 text-lg leading-relaxed text-foreground/85">
+            {intro}
+          </p>
 
           <div className="space-y-8">
             {sections.map((section, i) => (
               <article key={i} className="space-y-4">
-                <h2 className="text-2xl font-semibold tracking-tight">{section.heading}</h2>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {section.heading}
+                </h2>
                 {section.content.map((item, j) =>
                   allowHtml ? (
                     <p
@@ -72,7 +99,10 @@ export function LegalPageShell({
                       dangerouslySetInnerHTML={{ __html: item }}
                     />
                   ) : (
-                    <p key={j} className="text-base leading-relaxed text-foreground/80">
+                    <p
+                      key={j}
+                      className="text-base leading-relaxed text-foreground/80"
+                    >
                       {item}
                     </p>
                   ),
@@ -96,7 +126,10 @@ export function LegalPageShell({
               <SiGithub className="h-4 w-4" />
               {github}
             </Link>
-            <Link href="/" className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
               {home}
             </Link>
           </div>
@@ -105,5 +138,5 @@ export function LegalPageShell({
 
       <FooterSection />
     </main>
-  );
+  )
 }

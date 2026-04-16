@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
 import {
   checkPendingNotifications,
   clearAllNotificationTimers,
   type NOTIFICATION_SOUNDS,
-} from "@/lib/notifications";
+} from '@/lib/notifications'
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectGroup,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,36 +27,36 @@ import {
   MessageSquare,
   FileText,
   ScrollText,
-} from "lucide-react";
-import dynamic from "next/dynamic";
+} from 'lucide-react'
+import dynamic from 'next/dynamic'
 import {
   readEncryptedLocalStorage,
   useLocalStorage,
   writeEncryptedLocalStorage,
-} from "@/hooks/useLocalStorage";
+} from '@/hooks/useLocalStorage'
 import UserProfileButton, {
   type UserProfileSection,
-} from "@/components/app/profile/user-profile-button";
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useCalendar } from "@/components/providers/calendar-context";
-import RightSidebar from "@/components/app/sidebar/right-sidebar";
-import { addDays, addYears, subDays, subYears } from "date-fns";
-import EventPreview from "@/components/app/event/event-preview";
-import EventDialog from "@/components/app/event/event-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Sidebar from "@/components/app/sidebar/sidebar";
-import { translations, useLanguage } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { APP_CONFIG } from "@/lib/config";
-import { toast } from "sonner";
+} from '@/components/app/profile/user-profile-button'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useCalendar } from '@/components/providers/calendar-context'
+import RightSidebar from '@/components/app/sidebar/right-sidebar'
+import { addDays, addYears, subDays, subYears } from 'date-fns'
+import EventPreview from '@/components/app/event/event-preview'
+import EventDialog from '@/components/app/event/event-dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import Sidebar from '@/components/app/sidebar/sidebar'
+import { translations, useLanguage } from '@/lib/i18n'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { APP_CONFIG } from '@/lib/config'
+import { toast } from 'sonner'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,384 +66,382 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog'
 
-const loadDayView = () => import("@/components/app/views/day-view");
-const loadWeekView = () => import("@/components/app/views/week-view");
-const loadMonthView = () => import("@/components/app/views/month-view");
-const loadYearView = () => import("@/components/app/views/year-view");
+const loadDayView = () => import('@/components/app/views/day-view')
+const loadWeekView = () => import('@/components/app/views/week-view')
+const loadMonthView = () => import('@/components/app/views/month-view')
+const loadYearView = () => import('@/components/app/views/year-view')
 const loadAnalyticsView = () =>
-  import("@/components/app/analytics/analytics-view");
-const loadSettings = () => import("@/components/app/profile/settings");
+  import('@/components/app/analytics/analytics-view')
+const loadSettings = () => import('@/components/app/profile/settings')
 
-const DayView = dynamic(loadDayView);
-const WeekView = dynamic(loadWeekView);
-const MonthView = dynamic(loadMonthView);
-const YearView = dynamic(loadYearView);
-const AnalyticsView = dynamic(loadAnalyticsView);
-const Settings = dynamic(loadSettings);
+const DayView = dynamic(loadDayView)
+const WeekView = dynamic(loadWeekView)
+const MonthView = dynamic(loadMonthView)
+const YearView = dynamic(loadYearView)
+const AnalyticsView = dynamic(loadAnalyticsView)
+const Settings = dynamic(loadSettings)
 
 type ViewType =
-  | "day"
-  | "week"
-  | "four-day"
-  | "month"
-  | "year"
-  | "analytics"
-  | "settings";
+  | 'day'
+  | 'week'
+  | 'four-day'
+  | 'month'
+  | 'year'
+  | 'analytics'
+  | 'settings'
 
 const isCalendarView = (
   view: string,
-): view is "day" | "week" | "four-day" | "month" | "year" => {
-  return ["day", "week", "four-day", "month", "year"].includes(view);
-};
+): view is 'day' | 'week' | 'four-day' | 'month' | 'year' => {
+  return ['day', 'week', 'four-day', 'month', 'year'].includes(view)
+}
 
 export interface CalendarEvent {
-  id: string;
-  title: string;
-  startDate: Date;
-  endDate: Date;
-  isAllDay: boolean;
-  recurrence: "none" | "daily" | "weekly" | "monthly" | "yearly";
-  location?: string;
-  participants: string[];
-  notification: number;
-  description?: string;
-  color: string;
-  calendarId: string;
+  id: string
+  title: string
+  startDate: Date
+  endDate: Date
+  isAllDay: boolean
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  location?: string
+  participants: string[]
+  notification: number
+  description?: string
+  color: string
+  calendarId: string
 }
 
 export default function Calendar({ className, ...props }: CalendarProps) {
-  const [openShareImmediately, setOpenShareImmediately] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false);
-  const [date, setDate] = useState(new Date());
-  const [view, setView] = useState<ViewType>("week");
-  const [eventDialogOpen, setEventDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-    null,
-  );
-  const { events, setEvents, calendars } = useCalendar();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [openShareImmediately, setOpenShareImmediately] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
+  const [date, setDate] = useState(new Date())
+  const [view, setView] = useState<ViewType>('week')
+  const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const { events, setEvents, calendars } = useCalendar()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
     string[]
-  >([]);
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const [language, setLanguage] = useLanguage();
-  const t = translations[language];
+  >([])
+  const calendarRef = useRef<HTMLDivElement>(null)
+  const [language, setLanguage] = useLanguage()
+  const t = translations[language]
   const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>(
-    "first-day-of-week",
+    'first-day-of-week',
     0,
-  );
-  const normalizedFirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0;
+  )
+  const normalizedFirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0
 
   const handleFirstDayOfWeekChange = (day: number) => {
-    setFirstDayOfWeek(day === 1 ? 1 : 0);
-  };
+    setFirstDayOfWeek(day === 1 ? 1 : 0)
+  }
   const [timezone, setTimezone] = useLocalStorage<string>(
-    "timezone",
+    'timezone',
     Intl.DateTimeFormat().resolvedOptions().timeZone,
-  );
+  )
   const [notificationSound, setNotificationSound] = useLocalStorage<
     keyof typeof NOTIFICATION_SOUNDS
-  >("notification-sound", "telegram");
-  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const notificationsInitializedRef = useRef(false);
-  const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  >('notification-sound', 'telegram')
+  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const notificationsInitializedRef = useRef(false)
+  const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
     null,
-  );
+  )
   const [focusUserProfileSection, setFocusUserProfileSection] =
-    useState<UserProfileSection | null>(null);
-  const [sidebarDate, setSidebarDate] = useState<Date>(new Date());
+    useState<UserProfileSection | null>(null)
+  const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
-    useState<CalendarEvent | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [backupEnabled, setBackupEnabled] = useState(false);
+    useState<CalendarEvent | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [backupEnabled, setBackupEnabled] = useState(false)
   const [backupSyncStatus, setBackupSyncStatus] = useState<
-    "uploading" | "failed" | "done" | null
-  >(null);
-  const [shareOnlyMode, setShareOnlyMode] = useState(false);
+    'uploading' | 'failed' | 'done' | null
+  >(null)
+  const [shareOnlyMode, setShareOnlyMode] = useState(false)
 
   const updateEvent = (updatedEvent) => {
     setEvents((prevEvents) =>
       prevEvents.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
-    );
-  };
+    )
+  }
 
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
-  );
+  )
   const [quickCreateEndTime, setQuickCreateEndTime] = useState<Date | null>(
     null,
-  );
+  )
 
   const [defaultView, setDefaultView] = useLocalStorage<ViewType>(
-    "default-view",
-    "week",
-  );
+    'default-view',
+    'week',
+  )
   const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>(
-    "enable-shortcuts",
+    'enable-shortcuts',
     true,
-  );
-  const [timeFormat, setTimeFormat] = useLocalStorage<"24h" | "12h">(
-    "time-format",
-    "24h",
-  );
+  )
+  const [timeFormat, setTimeFormat] = useLocalStorage<'24h' | '12h'>(
+    'time-format',
+    '24h',
+  )
   const [toastPosition, setToastPosition] = useLocalStorage<
-    "bottom-left" | "bottom-center" | "bottom-right"
-  >("toast-position", "bottom-right");
+    'bottom-left' | 'bottom-center' | 'bottom-right'
+  >('toast-position', 'bottom-right')
   useEffect(() => {
-    setView(isCalendarView(defaultView) ? defaultView : "week");
-  }, [defaultView]);
+    setView(isCalendarView(defaultView) ? defaultView : 'week')
+  }, [defaultView])
 
   useEffect(() => {
     const applyRestoredPreferences = () => {
       void Promise.all([
-        readEncryptedLocalStorage<number>("first-day-of-week", 0),
-        readEncryptedLocalStorage<ViewType>("default-view", "week"),
+        readEncryptedLocalStorage<number>('first-day-of-week', 0),
+        readEncryptedLocalStorage<ViewType>('default-view', 'week'),
       ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
-        setFirstDayOfWeek(restoredFirstDayOfWeek === 1 ? 1 : 0);
+        setFirstDayOfWeek(restoredFirstDayOfWeek === 1 ? 1 : 0)
         if (isCalendarView(restoredDefaultView)) {
-          setDefaultView(restoredDefaultView);
-          setView(restoredDefaultView);
+          setDefaultView(restoredDefaultView)
+          setView(restoredDefaultView)
         }
-      });
-    };
+      })
+    }
 
-    window.addEventListener("backup-restored", applyRestoredPreferences);
+    window.addEventListener('backup-restored', applyRestoredPreferences)
     return () => {
-      window.removeEventListener("backup-restored", applyRestoredPreferences);
-    };
-  }, [setDefaultView, setFirstDayOfWeek]);
+      window.removeEventListener('backup-restored', applyRestoredPreferences)
+    }
+  }, [setDefaultView, setFirstDayOfWeek])
 
   useEffect(() => {
     const refreshBackupState = () => {
-      const enabled = localStorage.getItem("auto-backup-enabled") === "true";
-      setBackupEnabled(enabled);
+      const enabled = localStorage.getItem('auto-backup-enabled') === 'true'
+      setBackupEnabled(enabled)
       if (!enabled) {
-        setBackupSyncStatus(null);
-        return;
+        setBackupSyncStatus(null)
+        return
       }
 
-      const status = localStorage.getItem("auto-backup-sync-status");
-      if (status === "uploading" || status === "failed" || status === "done") {
-        setBackupSyncStatus(status);
+      const status = localStorage.getItem('auto-backup-sync-status')
+      if (status === 'uploading' || status === 'failed' || status === 'done') {
+        setBackupSyncStatus(status)
       } else {
-        setBackupSyncStatus("done");
+        setBackupSyncStatus('done')
       }
-    };
+    }
 
-    refreshBackupState();
-    window.addEventListener("backup-status-change", refreshBackupState);
-    window.addEventListener("storage", refreshBackupState);
+    refreshBackupState()
+    window.addEventListener('backup-status-change', refreshBackupState)
+    window.addEventListener('storage', refreshBackupState)
     return () => {
-      window.removeEventListener("backup-status-change", refreshBackupState);
-      window.removeEventListener("storage", refreshBackupState);
-    };
-  }, []);
+      window.removeEventListener('backup-status-change', refreshBackupState)
+      window.removeEventListener('storage', refreshBackupState)
+    }
+  }, [])
 
   const backupStatusIcon = useMemo(() => {
-    if (!backupEnabled) return null;
+    if (!backupEnabled) return null
 
-    if (backupSyncStatus === "uploading") {
-      return <LoaderIcon className="h-4 w-4 animate-spin" />;
+    if (backupSyncStatus === 'uploading') {
+      return <LoaderIcon className="h-4 w-4 animate-spin" />
     }
-    if (backupSyncStatus === "failed") {
-      return <AlertCircle className="h-4 w-4 text-destructive" />;
+    if (backupSyncStatus === 'failed') {
+      return <AlertCircle className="h-4 w-4 text-destructive" />
     }
-    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-  }, [backupEnabled, backupSyncStatus]);
+    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+  }, [backupEnabled, backupSyncStatus])
 
   useEffect(() => {
     const prefetch = () => {
-      void loadDayView();
-      void loadWeekView();
-      void loadMonthView();
-      void loadYearView();
-      void loadAnalyticsView();
-      void loadSettings();
-    };
-
-    if (typeof window === "undefined") return;
-
-    if ("requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(prefetch);
-      return () => window.cancelIdleCallback(id);
+      void loadDayView()
+      void loadWeekView()
+      void loadMonthView()
+      void loadYearView()
+      void loadAnalyticsView()
+      void loadSettings()
     }
 
-    const timeoutId = window.setTimeout(prefetch, 800);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+    if (typeof window === 'undefined') return
+
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetch)
+      return () => window.cancelIdleCallback(id)
+    }
+
+    const timeoutId = window.setTimeout(prefetch, 800)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
 
   useEffect(() => {
-    if (!enableShortcuts) return;
+    if (!enableShortcuts) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         document.activeElement instanceof HTMLInputElement ||
         document.activeElement instanceof HTMLTextAreaElement ||
-        document.activeElement?.getAttribute("contenteditable") === "true"
+        document.activeElement?.getAttribute('contenteditable') === 'true'
       ) {
-        return;
+        return
       }
 
       switch (e.key) {
-        case "n":
-        case "N":
-          e.preventDefault();
-          setSelectedEvent(null);
-          setQuickCreateStartTime(new Date());
-          setEventDialogOpen(true);
-          break;
-        case "/":
-          e.preventDefault();
+        case 'n':
+        case 'N':
+          e.preventDefault()
+          setSelectedEvent(null)
+          setQuickCreateStartTime(new Date())
+          setEventDialogOpen(true)
+          break
+        case '/':
+          e.preventDefault()
 
           const searchInput = document.querySelector(
             'input[placeholder="' + t.searchEvents + '"]',
-          ) as HTMLInputElement;
+          ) as HTMLInputElement
           if (searchInput) {
-            searchInput.focus();
+            searchInput.focus()
           }
-          break;
-        case "t":
-        case "T":
-          e.preventDefault();
-          handleTodayClick();
-          break;
-        case "1":
-          e.preventDefault();
-          setView("day");
-          break;
-        case "2":
-          e.preventDefault();
-          setView("week");
-          break;
-        case "3":
-          e.preventDefault();
-          setView("month");
-          break;
-        case "4":
-          e.preventDefault();
-          setView("year");
-          break;
-        case "5":
-          e.preventDefault();
-          setView("four-day");
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          handleNext();
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          handlePrevious();
-          break;
+          break
+        case 't':
+        case 'T':
+          e.preventDefault()
+          handleTodayClick()
+          break
+        case '1':
+          e.preventDefault()
+          setView('day')
+          break
+        case '2':
+          e.preventDefault()
+          setView('week')
+          break
+        case '3':
+          e.preventDefault()
+          setView('month')
+          break
+        case '4':
+          e.preventDefault()
+          setView('year')
+          break
+        case '5':
+          e.preventDefault()
+          setView('four-day')
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          handleNext()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          handlePrevious()
+          break
       }
-    };
+    }
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [enableShortcuts, t.searchEvents, view]);
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [enableShortcuts, t.searchEvents, view])
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
-      const nextCollapsed = !prev;
+      const nextCollapsed = !prev
       if (!nextCollapsed) {
-        setIsSidebarExpanding(true);
+        setIsSidebarExpanding(true)
       } else {
-        setIsSidebarExpanding(false);
+        setIsSidebarExpanding(false)
       }
-      return nextCollapsed;
-    });
-  };
+      return nextCollapsed
+    })
+  }
 
   const handleDateSelect = (date: Date) => {
-    setDate(date);
-    setSidebarDate(date);
-  };
+    setDate(date)
+    setSidebarDate(date)
+  }
 
   const handleViewChange = (newView: ViewType) => {
-    setView(newView);
-  };
+    setView(newView)
+  }
 
   const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
-    setView("settings");
-    setFocusUserProfileSection(null);
-    setTimeout(() => setFocusUserProfileSection(section), 0);
-  };
+    setView('settings')
+    setFocusUserProfileSection(null)
+    setTimeout(() => setFocusUserProfileSection(section), 0)
+  }
 
   const handleTodayClick = () => {
-    const today = new Date();
-    setDate(today);
-    setSidebarDate(today);
-  };
+    const today = new Date()
+    setDate(today)
+    setSidebarDate(today)
+  }
 
   const handlePrevious = () => {
     setDate((prevDate) => {
-      if (view === "day") return subDays(prevDate, 1);
-      if (view === "week") return subDays(prevDate, 7);
-      if (view === "four-day") return subDays(prevDate, 4);
-      if (view === "year") return subYears(prevDate, 1);
-      return subDays(prevDate, 30);
-    });
-  };
+      if (view === 'day') return subDays(prevDate, 1)
+      if (view === 'week') return subDays(prevDate, 7)
+      if (view === 'four-day') return subDays(prevDate, 4)
+      if (view === 'year') return subYears(prevDate, 1)
+      return subDays(prevDate, 30)
+    })
+  }
 
   const handleNext = () => {
     setDate((prevDate) => {
-      if (view === "day") return addDays(prevDate, 1);
-      if (view === "week") return addDays(prevDate, 7);
-      if (view === "four-day") return addDays(prevDate, 4);
-      if (view === "year") return addYears(prevDate, 1);
-      return addDays(prevDate, 30);
-    });
-  };
+      if (view === 'day') return addDays(prevDate, 1)
+      if (view === 'week') return addDays(prevDate, 7)
+      if (view === 'four-day') return addDays(prevDate, 4)
+      if (view === 'year') return addYears(prevDate, 1)
+      return addDays(prevDate, 30)
+    })
+  }
 
   const formatDateDisplay = (date: Date) => {
-    if (view === "year") {
-      return date.getFullYear().toString();
+    if (view === 'year') {
+      return date.getFullYear().toString()
     }
 
-    if (view === "four-day") {
-      const startDate = new Date(date);
-      const endDate = addDays(startDate, 3);
+    if (view === 'four-day') {
+      const startDate = new Date(date)
+      const endDate = addDays(startDate, 3)
       const options: Intl.DateTimeFormatOptions = {
-        month: "short",
-        day: "numeric",
-      };
-      return `${startDate.toLocaleDateString(language, options)} - ${endDate.toLocaleDateString(language, options)}`;
+        month: 'short',
+        day: 'numeric',
+      }
+      return `${startDate.toLocaleDateString(language, options)} - ${endDate.toLocaleDateString(language, options)}`
     }
 
-    if (language === "en") {
+    if (language === 'en') {
       const options: Intl.DateTimeFormatOptions = {
-        year: "numeric",
-        month: "long",
-      };
-      return date.toLocaleDateString(language, options);
+        year: 'numeric',
+        month: 'long',
+      }
+      return date.toLocaleDateString(language, options)
     } else {
       const options: Intl.DateTimeFormatOptions = {
-        year: "numeric",
-        month: "long",
-      };
-      return date.toLocaleDateString(language, options);
+        year: 'numeric',
+        month: 'long',
+      }
+      return date.toLocaleDateString(language, options)
     }
-  };
+  }
 
   const handleEventClick = (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
   ) => {
-    setShareOnlyMode(false);
-    setPreviewEvent(event);
-    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null);
-    setPreviewOpen(true);
-  };
+    setShareOnlyMode(false)
+    setPreviewEvent(event)
+    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
+    setPreviewOpen(true)
+  }
 
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
@@ -451,99 +449,99 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       id:
         event.id ||
         Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    };
+    }
 
-    setEvents((prevEvents) => [...prevEvents, newEvent]);
-    toast(t.eventCreated);
-    setEventDialogOpen(false);
-    setSelectedEvent(null);
-    setQuickCreateStartTime(null);
-  };
+    setEvents((prevEvents) => [...prevEvents, newEvent])
+    toast(t.eventCreated)
+    setEventDialogOpen(false)
+    setSelectedEvent(null)
+    setQuickCreateStartTime(null)
+  }
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
       prevEvents.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
-    );
-    toast(t.eventUpdated);
-    setEventDialogOpen(false);
-    setSelectedEvent(null);
-    setQuickCreateStartTime(null);
-  };
+    )
+    toast(t.eventUpdated)
+    setEventDialogOpen(false)
+    setSelectedEvent(null)
+    setQuickCreateStartTime(null)
+  }
 
   const handleEventDelete = (eventId: string) => {
-    const targetEvent = events.find((event) => event.id === eventId);
-    if (!targetEvent) return;
-    setPendingDeleteEvent(targetEvent);
-    setDeleteConfirmOpen(true);
-  };
+    const targetEvent = events.find((event) => event.id === eventId)
+    if (!targetEvent) return
+    setPendingDeleteEvent(targetEvent)
+    setDeleteConfirmOpen(true)
+  }
 
   const cleanupSharesForEvent = async (eventId: string) => {
     const storedShares = await readEncryptedLocalStorage<any[]>(
-      "shared-events",
+      'shared-events',
       [],
-    );
+    )
     const relatedShares = storedShares.filter(
       (share: any) => share?.eventId === eventId,
-    );
-    if (!relatedShares.length) return;
+    )
+    if (!relatedShares.length) return
 
     const results = await Promise.allSettled(
       relatedShares.map((share: any) =>
-        fetch("/api/share", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+        fetch('/api/share', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: share.id }),
         }),
       ),
-    );
+    )
 
     await writeEncryptedLocalStorage(
-      "shared-events",
+      'shared-events',
       storedShares.filter((share: any) => share?.eventId !== eventId),
-    );
+    )
 
     const failed = results.filter(
       (result) =>
-        result.status === "rejected" ||
-        (result.status === "fulfilled" && !result.value.ok),
-    );
+        result.status === 'rejected' ||
+        (result.status === 'fulfilled' && !result.value.ok),
+    )
 
     if (failed.length) {
       toast.error(t.shareDeleteFailed, {
         description: t.shareDeletePartialFailedDescription,
-      });
+      })
     }
-  };
+  }
 
   const confirmEventDelete = async () => {
-    if (!pendingDeleteEvent) return;
+    if (!pendingDeleteEvent) return
 
-    const deletedEvent = pendingDeleteEvent;
+    const deletedEvent = pendingDeleteEvent
     try {
-      await cleanupSharesForEvent(deletedEvent.id);
+      await cleanupSharesForEvent(deletedEvent.id)
     } catch {
       toast.error(t.shareDeleteFailed, {
         description: t.shareCleanupErrorDescription,
-      });
+      })
     }
 
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
-    );
-    void readEncryptedLocalStorage<any[]>("bookmarked-events", []).then(
+    )
+    void readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
       (bookmarks) =>
         writeEncryptedLocalStorage(
-          "bookmarked-events",
+          'bookmarked-events',
           bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
         ),
-    );
-    setEventDialogOpen(false);
-    setSelectedEvent(null);
-    setPreviewOpen(false);
-    setDeleteConfirmOpen(false);
-    setPendingDeleteEvent(null);
+    )
+    setEventDialogOpen(false)
+    setSelectedEvent(null)
+    setPreviewOpen(false)
+    setDeleteConfirmOpen(false)
+    setPendingDeleteEvent(null)
 
     toast(t.eventDeleted, {
       description: deletedEvent.title,
@@ -552,66 +550,66 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         onClick: () => {
           setEvents((prevEvents) => {
             if (prevEvents.some((event) => event.id === deletedEvent.id))
-              return prevEvents;
+              return prevEvents
             return [...prevEvents, deletedEvent].sort(
               (a, b) =>
                 new Date(a.startDate).getTime() -
                 new Date(b.startDate).getTime(),
-            );
-          });
-          toast(t.deletionUndone);
+            )
+          })
+          toast(t.deletionUndone)
         },
       },
-    });
-  };
+    })
+  }
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
     const newEvents = importedEvents.map((event) => ({
       ...event,
       id: event.id || Math.random().toString(36).substring(7),
-    })) as CalendarEvent[];
-    setEvents((prevEvents) => [...prevEvents, ...newEvents]);
-  };
+    })) as CalendarEvent[]
+    setEvents((prevEvents) => [...prevEvents, ...newEvents])
+  }
 
   const handleEventEdit = (event?: CalendarEvent) => {
-    const targetEvent = event ?? previewEvent;
+    const targetEvent = event ?? previewEvent
     if (targetEvent) {
-      setSelectedEvent(targetEvent);
-      setQuickCreateStartTime(null);
-      setEventDialogOpen(true);
-      setPreviewOpen(false);
-      setPreviewAnchorRect(null);
+      setSelectedEvent(targetEvent)
+      setQuickCreateStartTime(null)
+      setEventDialogOpen(true)
+      setPreviewOpen(false)
+      setPreviewAnchorRect(null)
     }
-  };
+  }
 
   const handleEventDuplicate = (event: CalendarEvent) => {
     const duplicatedEvent = {
       ...event,
       id: Math.random().toString(36).substring(7),
-    };
-    setEvents((prevEvents) => [...prevEvents, duplicatedEvent]);
-    setPreviewOpen(false);
-    setPreviewAnchorRect(null);
-  };
+    }
+    setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
+    setPreviewOpen(false)
+    setPreviewAnchorRect(null)
+  }
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
-    setQuickCreateStartTime(startTime);
-    setQuickCreateEndTime(endTime ?? null);
+    setQuickCreateStartTime(startTime)
+    setQuickCreateEndTime(endTime ?? null)
 
-    setSelectedEvent(null);
-    setEventDialogOpen(true);
-  };
+    setSelectedEvent(null)
+    setEventDialogOpen(true)
+  }
 
   const toggleBookmark = async (event: CalendarEvent) => {
     const bookmarks = await readEncryptedLocalStorage<any[]>(
-      "bookmarked-events",
+      'bookmarked-events',
       [],
-    );
+    )
 
-    const isBookmarked = bookmarks.some((b: any) => b.id === event.id);
+    const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
     if (isBookmarked) {
-      const updated = bookmarks.filter((b: any) => b.id !== event.id);
-      await writeEncryptedLocalStorage("bookmarked-events", updated);
+      const updated = bookmarks.filter((b: any) => b.id !== event.id)
+      await writeEncryptedLocalStorage('bookmarked-events', updated)
     } else {
       const bookmarkData = {
         id: event.id,
@@ -621,88 +619,88 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         color: event.color,
         location: event.location,
         bookmarkedAt: new Date().toISOString(),
-      };
-      await writeEncryptedLocalStorage("bookmarked-events", [
+      }
+      await writeEncryptedLocalStorage('bookmarked-events', [
         ...bookmarks,
         bookmarkData,
-      ]);
+      ])
     }
-  };
+  }
 
   const handleShare = (event: CalendarEvent, shareOnly = false) => {
-    setShareOnlyMode(shareOnly);
-    setPreviewEvent(event);
-    setPreviewAnchorRect(null);
-    setOpenShareImmediately(true);
-    setPreviewOpen(true);
-  };
+    setShareOnlyMode(shareOnly)
+    setPreviewEvent(event)
+    setPreviewAnchorRect(null)
+    setOpenShareImmediately(true)
+    setPreviewOpen(true)
+  }
 
   const eventsByCategory = useMemo(() => {
-    if (selectedCategoryFilters.length === 0) return events;
+    if (selectedCategoryFilters.length === 0) return events
 
     return events.filter((event) => {
       if (!event.calendarId) {
-        return selectedCategoryFilters.includes("__uncategorized__");
+        return selectedCategoryFilters.includes('__uncategorized__')
       }
 
-      const hasCategory = calendars.some((cal) => cal.id === event.calendarId);
+      const hasCategory = calendars.some((cal) => cal.id === event.calendarId)
       if (!hasCategory)
-        return selectedCategoryFilters.includes("__uncategorized__");
-      return selectedCategoryFilters.includes(event.calendarId);
-    });
-  }, [events, selectedCategoryFilters, calendars]);
+        return selectedCategoryFilters.includes('__uncategorized__')
+      return selectedCategoryFilters.includes(event.calendarId)
+    })
+  }, [events, selectedCategoryFilters, calendars])
 
   const filteredEvents = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return eventsByCategory;
+    const keyword = searchTerm.trim().toLowerCase()
+    if (!keyword) return eventsByCategory
 
     return eventsByCategory
       .filter((event) => {
-        const title = event.title?.toLowerCase() || "";
-        const location = event.location?.toLowerCase() || "";
-        const description = event.description?.toLowerCase() || "";
+        const title = event.title?.toLowerCase() || ''
+        const location = event.location?.toLowerCase() || ''
+        const description = event.description?.toLowerCase() || ''
         return (
           title.includes(keyword) ||
           location.includes(keyword) ||
           description.includes(keyword)
-        );
+        )
       })
       .sort(
         (a, b) =>
           new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      );
-  }, [eventsByCategory, searchTerm]);
+      )
+  }, [eventsByCategory, searchTerm])
 
   const searchResultEvents = useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    return filteredEvents.slice(0, 8);
-  }, [filteredEvents, searchTerm]);
+    if (!searchTerm.trim()) return []
+    return filteredEvents.slice(0, 8)
+  }, [filteredEvents, searchTerm])
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(notificationSound);
-      notificationsInitializedRef.current = true;
+      checkPendingNotifications(notificationSound)
+      notificationsInitializedRef.current = true
     }
 
     if (!notificationIntervalRef.current) {
       notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications(notificationSound);
-      }, 60000);
+        checkPendingNotifications(notificationSound)
+      }, 60000)
     }
 
     return () => {
       if (notificationIntervalRef.current) {
-        clearInterval(notificationIntervalRef.current);
+        clearInterval(notificationIntervalRef.current)
       }
-    };
-  }, [notificationSound]);
+    }
+  }, [notificationSound])
 
   useEffect(() => {
-    window.addEventListener("beforeunload", clearAllNotificationTimers);
+    window.addEventListener('beforeunload', clearAllNotificationTimers)
     return () => {
-      window.removeEventListener("beforeunload", clearAllNotificationTimers);
-    };
-  }, []);
+      window.removeEventListener('beforeunload', clearAllNotificationTimers)
+    }
+  }, [])
 
   return (
     <div className={className}>
@@ -710,9 +708,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         {}
         <Sidebar
           onCreateEvent={() => {
-            setSelectedEvent(null);
-            setQuickCreateStartTime(new Date());
-            setEventDialogOpen(true);
+            setSelectedEvent(null)
+            setQuickCreateStartTime(new Date())
+            setEventDialogOpen(true)
           }}
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
@@ -725,15 +723,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
               if (checked) {
-                return prev.includes(categoryId) ? prev : [...prev, categoryId];
+                return prev.includes(categoryId) ? prev : [...prev, categoryId]
               }
-              return prev.filter((id) => id !== categoryId);
-            });
+              return prev.filter((id) => id !== categoryId)
+            })
           }}
         />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {" "}
+          {' '}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
             <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
             <div className="flex items-center space-x-4">
@@ -741,9 +739,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 <PanelLeft />
               </Button>
               <Button variant="outline" size="sm" onClick={handleTodayClick}>
-                {t.today || "今天"}
+                {t.today || '今天'}
               </Button>
-              {view !== "analytics" && view !== "settings" && (
+              {view !== 'analytics' && view !== 'settings' && (
                 <>
                   <div className="flex items-center space-x-1">
                     <Button
@@ -766,19 +764,19 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <div className="relative z-50">
                 <Select
                   value={
-                    view === "day" ||
-                    view === "week" ||
-                    view === "four-day" ||
-                    view === "month" ||
-                    view === "year"
+                    view === 'day' ||
+                    view === 'week' ||
+                    view === 'four-day' ||
+                    view === 'month' ||
+                    view === 'year'
                       ? view
-                      : defaultView === "day" ||
-                          defaultView === "week" ||
-                          defaultView === "four-day" ||
-                          defaultView === "month" ||
-                          defaultView === "year"
+                      : defaultView === 'day' ||
+                          defaultView === 'week' ||
+                          defaultView === 'four-day' ||
+                          defaultView === 'month' ||
+                          defaultView === 'year'
                         ? defaultView
-                        : "week"
+                        : 'week'
                   }
                   onValueChange={(value: ViewType) => setView(value)}
                 >
@@ -804,16 +802,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   value={searchTerm}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => {
-                    window.setTimeout(() => setIsSearchFocused(false), 120);
+                    window.setTimeout(() => setIsSearchFocused(false), 120)
                   }}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchResultEvents.length > 0) {
-                      setPreviewEvent(searchResultEvents[0]);
-                      setPreviewAnchorRect(null);
-                      setPreviewOpen(true);
-                      setSearchTerm("");
-                      setIsSearchFocused(false);
+                    if (e.key === 'Enter' && searchResultEvents.length > 0) {
+                      setPreviewEvent(searchResultEvents[0])
+                      setPreviewAnchorRect(null)
+                      setPreviewOpen(true)
+                      setSearchTerm('')
+                      setIsSearchFocused(false)
                     }
                   }}
                   className="pl-9 pr-4 py-2 w-48"
@@ -829,12 +827,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                               type="button"
                               className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
                               onMouseDown={(e) => {
-                                e.preventDefault();
-                                setPreviewEvent(event);
-                                setPreviewAnchorRect(null);
-                                setPreviewOpen(true);
-                                setSearchTerm("");
-                                setIsSearchFocused(false);
+                                e.preventDefault()
+                                setPreviewEvent(event)
+                                setPreviewAnchorRect(null)
+                                setPreviewOpen(true)
+                                setSearchTerm('')
+                                setIsSearchFocused(false)
                               }}
                             >
                               <div className="font-medium leading-none">
@@ -880,8 +878,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     onClick={() =>
                       window.open(
                         APP_CONFIG.contact.statusPageUrl,
-                        "_blank",
-                        "noopener,noreferrer",
+                        '_blank',
+                        'noopener,noreferrer',
                       )
                     }
                   >
@@ -890,17 +888,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
-                      window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`;
+                      window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`
                     }}
                   >
                     <MessageSquare className="mr-2 h-4 w-4" />
                     {t.feedback}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/privacy")}>
+                  <DropdownMenuItem onClick={() => router.push('/privacy')}>
                     <FileText className="mr-2 h-4 w-4" />
                     {t.privacy}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/terms")}>
+                  <DropdownMenuItem onClick={() => router.push('/terms')}>
                     <ScrollText className="mr-2 h-4 w-4" />
                     {t.tos}
                   </DropdownMenuItem>
@@ -915,7 +913,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             </div>
           </header>
           <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
-            {view === "day" && (
+            {view === 'day' && (
               <DayView
                 date={date}
                 events={filteredEvents}
@@ -927,7 +925,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  handleShare(event, true);
+                  handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -935,13 +933,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     ...event,
                     startDate: newStartDate,
                     endDate: newEndDate,
-                  };
+                  }
 
-                  updateEvent(updatedEvent);
+                  updateEvent(updatedEvent)
                 }}
               />
             )}
-            {view === "week" && (
+            {view === 'week' && (
               <WeekView
                 date={date}
                 events={filteredEvents}
@@ -954,7 +952,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  handleShare(event, true);
+                  handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -962,13 +960,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     ...event,
                     startDate: newStartDate,
                     endDate: newEndDate,
-                  };
+                  }
 
-                  updateEvent(updatedEvent);
+                  updateEvent(updatedEvent)
                 }}
               />
             )}
-            {view === "four-day" && (
+            {view === 'four-day' && (
               <WeekView
                 date={date}
                 events={filteredEvents}
@@ -981,7 +979,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
-                  handleShare(event, true);
+                  handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
@@ -989,15 +987,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     ...event,
                     startDate: newStartDate,
                     endDate: newEndDate,
-                  };
+                  }
 
-                  updateEvent(updatedEvent);
+                  updateEvent(updatedEvent)
                 }}
                 daysToShow={4}
                 fixedStartDate={date}
               />
             )}
-            {view === "month" && (
+            {view === 'month' && (
               <MonthView
                 date={date}
                 events={filteredEvents}
@@ -1007,7 +1005,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 timezone={timezone}
               />
             )}
-            {view === "year" && (
+            {view === 'year' && (
               <YearView
                 date={date}
                 events={filteredEvents}
@@ -1018,17 +1016,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 isSidebarExpanding={isSidebarExpanding}
               />
             )}
-            {view === "analytics" && (
+            {view === 'analytics' && (
               <AnalyticsView
                 events={events}
                 onCreateEvent={(startDate, endDate) => {
-                  setSelectedEvent(null);
-                  setQuickCreateStartTime(startDate);
-                  setEventDialogOpen(true);
+                  setSelectedEvent(null)
+                  setQuickCreateStartTime(startDate)
+                  setEventDialogOpen(true)
                 }}
               />
             )}
-            {view === "settings" && (
+            {view === 'settings' && (
               <Settings
                 language={language}
                 setLanguage={setLanguage}
@@ -1065,18 +1063,18 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           event={previewEvent}
           open={previewOpen}
           onOpenChange={(open) => {
-            setPreviewOpen(open);
+            setPreviewOpen(open)
             if (!open) {
-              setOpenShareImmediately(false);
-              setPreviewAnchorRect(null);
+              setOpenShareImmediately(false)
+              setPreviewAnchorRect(null)
             }
           }}
           onEdit={handleEventEdit}
           onDelete={() => {
             if (previewEvent) {
-              handleEventDelete(previewEvent.id);
-              setPreviewOpen(false);
-              setPreviewAnchorRect(null);
+              handleEventDelete(previewEvent.id)
+              setPreviewOpen(false)
+              setPreviewAnchorRect(null)
             }
           }}
           onDuplicate={handleEventDuplicate}
@@ -1085,7 +1083,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
-          modal={view !== "year"}
+          modal={view !== 'year'}
         />
 
         <EventDialog
@@ -1100,7 +1098,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           language={language}
           timezone={timezone}
         />
-
 
         <AlertDialog
           open={deleteConfirmOpen}
@@ -1128,5 +1125,5 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         </AlertDialog>
       </div>
     </div>
-  );
+  )
 }

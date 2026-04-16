@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   format,
@@ -7,70 +7,70 @@ import {
   startOfWeek,
   isSameDay,
   isToday,
-} from "date-fns";
+} from 'date-fns'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { useCalendar } from "@/components/providers/calendar-context";
-import { translations, useLanguage } from "@/lib/i18n";
-import { CalendarDays, ChevronRight } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { CalendarEvent } from "../calendar";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/sheet'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { translations, useLanguage } from '@/lib/i18n'
+import { CalendarDays, ChevronRight } from 'lucide-react'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import type { CalendarEvent } from '../calendar'
+import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
+import { cn } from '@/lib/utils'
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from '@/components/ui/empty'
 
 const getWeekStartsOn = (locale: string): 0 | 1 => {
   try {
-    const intlLocale = new Intl.Locale(locale);
-    const firstDay = intlLocale.weekInfo?.firstDay;
-    if (firstDay === 1) return 1;
-    if (firstDay === 7) return 0;
+    const intlLocale = new Intl.Locale(locale)
+    const firstDay = intlLocale.weekInfo?.firstDay
+    if (firstDay === 1) return 1
+    if (firstDay === 7) return 0
   } catch (_error) {}
 
   return [
-    "zh-CN",
-    "zh-TW",
-    "zh-HK",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "ru",
-    "sv",
-    "fi",
-    "nb",
-    "pl",
-    "tr",
-    "uk",
-    "lt",
-    "lv",
-    "sl",
-    "mk",
-    "sr",
-    "th",
-    "vi",
+    'zh-CN',
+    'zh-TW',
+    'zh-HK',
+    'de',
+    'fr',
+    'es',
+    'it',
+    'pt',
+    'ru',
+    'sv',
+    'fi',
+    'nb',
+    'pl',
+    'tr',
+    'uk',
+    'lt',
+    'lv',
+    'sl',
+    'mk',
+    'sr',
+    'th',
+    'vi',
   ].includes(locale)
     ? 1
-    : 0;
-};
+    : 0
+}
 
 interface MiniCalendarSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedDate: Date;
-  onDateSelect: (date: Date) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  selectedDate: Date
+  onDateSelect: (date: Date) => void
 }
 
 export default function MiniCalendarSheet({
@@ -79,86 +79,86 @@ export default function MiniCalendarSheet({
   selectedDate,
   onDateSelect,
 }: MiniCalendarSheetProps) {
-  const [language] = useLanguage();
-  const t = translations[language];
-  const { events } = useCalendar();
-  const [currentDate, setCurrentDate] = useState(selectedDate);
+  const [language] = useLanguage()
+  const t = translations[language]
+  const { events } = useCalendar()
+  const [currentDate, setCurrentDate] = useState(selectedDate)
 
   useEffect(() => {
-    setCurrentDate(selectedDate);
-  }, [selectedDate]);
+    setCurrentDate(selectedDate)
+  }, [selectedDate])
 
-  const weekStartsOn = getWeekStartsOn(language);
-  const weekStart = startOfWeek(currentDate, { weekStartsOn });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStartsOn = getWeekStartsOn(language)
+  const weekStart = startOfWeek(currentDate, { weekStartsOn })
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   const dayEvents = events
     .filter((event) => isSameDay(new Date(event.startDate), currentDate))
     .sort(
       (a, b) =>
         new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-    );
+    )
 
   const handleDayClick = (day: Date) => {
-    setCurrentDate(day);
-    onDateSelect(day);
-  };
+    setCurrentDate(day)
+    onDateSelect(day)
+  }
 
   function getDarkerColorClass(color: string) {
     const colorMapping: Record<string, string> = {
-      "bg-[#E6F6FD]": "#3B82F6",
-      "bg-[#E7F8F2]": "#10B981",
-      "bg-[#FEF5E6]": "#F59E0B",
-      "bg-[#FFE4E6]": "#EF4444",
-      "bg-[#F3EEFE]": "#8B5CF6",
-      "bg-[#FCE7F3]": "#EC4899",
-      "bg-[#EEF2FF]": "#6366F1",
-      "bg-[#FFF0E5]": "#FB923C",
-      "bg-[#E6FAF7]": "#14B8A6",
-    };
+      'bg-[#E6F6FD]': '#3B82F6',
+      'bg-[#E7F8F2]': '#10B981',
+      'bg-[#FEF5E6]': '#F59E0B',
+      'bg-[#FFE4E6]': '#EF4444',
+      'bg-[#F3EEFE]': '#8B5CF6',
+      'bg-[#FCE7F3]': '#EC4899',
+      'bg-[#EEF2FF]': '#6366F1',
+      'bg-[#FFF0E5]': '#FB923C',
+      'bg-[#E6FAF7]': '#14B8A6',
+    }
 
-    return colorMapping[color] || "#3A3A3A";
+    return colorMapping[color] || '#3A3A3A'
   }
 
   const handlePreviousWeek = () => {
-    setCurrentDate((prevDate) => subDays(prevDate, 7));
-  };
+    setCurrentDate((prevDate) => subDays(prevDate, 7))
+  }
 
   const handleNextWeek = () => {
-    setCurrentDate((prevDate) => addDays(prevDate, 7));
-  };
+    setCurrentDate((prevDate) => addDays(prevDate, 7))
+  }
 
   const handleTodayClick = () => {
-    const today = new Date();
-    setCurrentDate(today);
-    onDateSelect(today);
-  };
+    const today = new Date()
+    setCurrentDate(today)
+    onDateSelect(today)
+  }
 
   const formatEventTime = (event: CalendarEvent) => {
-    const startDate = new Date(event.startDate);
-    return format(startDate, "HH:mm");
-  };
+    const startDate = new Date(event.startDate)
+    return format(startDate, 'HH:mm')
+  }
 
   const calculateDuration = (event: CalendarEvent) => {
-    const startDate = new Date(event.startDate);
-    const endDate = new Date(event.endDate);
-    const durationMs = endDate.getTime() - startDate.getTime();
-    const durationMinutes = Math.round(durationMs / (1000 * 60));
+    const startDate = new Date(event.startDate)
+    const endDate = new Date(event.endDate)
+    const durationMs = endDate.getTime() - startDate.getTime()
+    const durationMinutes = Math.round(durationMs / (1000 * 60))
 
-    return `${durationMinutes} ${t.minutesShort}`;
-  };
+    return `${durationMinutes} ${t.minutesShort}`
+  }
 
   const getDayNames = () =>
     Array.from({ length: 7 }, (_, index) =>
-      new Intl.DateTimeFormat(language, { weekday: "short" }).format(
+      new Intl.DateTimeFormat(language, { weekday: 'short' }).format(
         addDays(weekStart, index),
       ),
-    );
+    )
 
   const monthYearLabel = new Intl.DateTimeFormat(language, {
-    year: "numeric",
-    month: "long",
-  }).format(currentDate);
+    year: 'numeric',
+    month: 'long',
+  }).format(currentDate)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -199,16 +199,16 @@ export default function MiniCalendarSheet({
                 key={day.toString()}
                 variant="ghost"
                 className={cn(
-                  "h-10 w-10 p-0 rounded-full",
+                  'h-10 w-10 p-0 rounded-full',
                   isSameDay(day, currentDate) &&
-                    "bg-primary text-primary-foreground",
+                    'bg-primary text-primary-foreground',
                   isToday(day) &&
                     !isSameDay(day, currentDate) &&
-                    "border border-primary",
+                    'border border-primary',
                 )}
                 onClick={() => handleDayClick(day)}
               >
-                <span className="text-sm">{format(day, "d")}</span>
+                <span className="text-sm">{format(day, 'd')}</span>
               </Button>
             ))}
           </div>
@@ -217,9 +217,9 @@ export default function MiniCalendarSheet({
         <div className="p-4">
           <h3 className="text-lg font-medium mb-4">
             {new Intl.DateTimeFormat(language, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
             }).format(currentDate)}
           </h3>
 
@@ -239,7 +239,7 @@ export default function MiniCalendarSheet({
                 {dayEvents.map((event) => (
                   <div key={event.id} className="flex items-start">
                     <div
-                      className={cn("w-1 self-stretch rounded-full mr-3")}
+                      className={cn('w-1 self-stretch rounded-full mr-3')}
                       style={{
                         backgroundColor: getDarkerColorClass(event.color),
                       }}
@@ -263,5 +263,5 @@ export default function MiniCalendarSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

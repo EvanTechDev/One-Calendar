@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
 
-export const ATPROTO_DISABLED = false;
+export const ATPROTO_DISABLED = false
 
 export function atprotoDisabledResponse() {
-  return NextResponse.json({ error: "ATProto channel is disabled" }, { status: 410 });
+  return NextResponse.json(
+    { error: 'ATProto channel is disabled' },
+    { status: 410 },
+  )
 }
 
 /*

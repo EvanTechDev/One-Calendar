@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   User,
   LogOut,
@@ -14,8 +14,8 @@ import {
   Camera,
   BarChart2,
   Settings,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,27 +33,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
-import { useCalendar } from "@/components/providers/calendar-context";
-import { translations, useLanguage } from "@/lib/i18n";
-import { useUser, SignOutButton } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { translations, useLanguage } from '@/lib/i18n'
+import { useUser, SignOutButton } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import {
   decryptPayload,
   encryptPayload,
   isEncryptedPayload,
-} from "@/lib/crypto";
+} from '@/lib/crypto'
 import {
   readInMemoryStorage,
   clearEncryptionPassword,
@@ -64,86 +64,86 @@ import {
   setEncryptionPassword,
   writeEncryptedLocalStorage,
   writeInMemoryStorage,
-} from "@/hooks/useLocalStorage";
+} from '@/hooks/useLocalStorage'
 
-const AUTO_KEY = "auto-backup-enabled";
-const BACKUP_STATUS_KEY = "auto-backup-sync-status";
-const BACKUP_VERSION = 1;
+const AUTO_KEY = 'auto-backup-enabled'
+const BACKUP_STATUS_KEY = 'auto-backup-sync-status'
+const BACKUP_VERSION = 1
 const BACKUP_KEYS = [
-  "calendar-events",
-  "calendar-categories",
-  "bookmarked-events",
-  "shared-events",
-  "countdowns",
-  "timezone",
-  "notification-sound",
-  "enable-shortcuts",
-  "preferred-language",
-  "first-day-of-week",
-  "default-view",
-  "skip-landing",
-  "today-toast",
-  "toast-position",
-];
+  'calendar-events',
+  'calendar-categories',
+  'bookmarked-events',
+  'shared-events',
+  'countdowns',
+  'timezone',
+  'notification-sound',
+  'enable-shortcuts',
+  'preferred-language',
+  'first-day-of-week',
+  'default-view',
+  'skip-landing',
+  'today-toast',
+  'toast-position',
+]
 
 const BACKUP_KEY_DEFAULTS: Record<string, unknown> = {
-  "calendar-events": [],
-  "calendar-categories": [],
-  "bookmarked-events": [],
-  "shared-events": [],
+  'calendar-events': [],
+  'calendar-categories': [],
+  'bookmarked-events': [],
+  'shared-events': [],
   countdowns: [],
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  "notification-sound": "telegram",
-  "enable-shortcuts": true,
-  "preferred-language": null,
-  "first-day-of-week": 0,
-  "default-view": "week",
-  "skip-landing": false,
-  "today-toast": null,
-  "toast-position": "bottom-right",
-};
+  'notification-sound': 'telegram',
+  'enable-shortcuts': true,
+  'preferred-language': null,
+  'first-day-of-week': 0,
+  'default-view': 'week',
+  'skip-landing': false,
+  'today-toast': null,
+  'toast-position': 'bottom-right',
+}
 
 async function apiGet() {
-  const r = await fetch("/api/blob", { cache: "no-store" });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error();
-  return r.json();
+  const r = await fetch('/api/blob', { cache: 'no-store' })
+  if (r.status === 404) return null
+  if (!r.ok) throw new Error()
+  return r.json()
 }
 
 async function apiPost(body: any) {
-  const r = await fetch("/api/blob", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const r = await fetch('/api/blob', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error();
+  })
+  if (!r.ok) throw new Error()
 }
 
 async function apiDelete() {
-  const r = await fetch("/api/blob", { method: "DELETE" });
-  if (!r.ok) throw new Error();
+  const r = await fetch('/api/blob', { method: 'DELETE' })
+  if (!r.ok) throw new Error()
 }
 
 async function collectLocalStorage() {
-  const storage: Record<string, string> = {};
+  const storage: Record<string, string> = {}
 
   await Promise.all(
     BACKUP_KEYS.map(async (key) => {
-      const fallback = BACKUP_KEY_DEFAULTS[key] ?? null;
-      const inMemoryValue = readInMemoryStorage(key);
+      const fallback = BACKUP_KEY_DEFAULTS[key] ?? null
+      const inMemoryValue = readInMemoryStorage(key)
       if (inMemoryValue !== null) {
-        storage[key] = inMemoryValue;
-        return;
+        storage[key] = inMemoryValue
+        return
       }
 
-      const hasRawItem = localStorage.getItem(key) !== null;
-      const value = await readEncryptedLocalStorage(key, fallback);
-      if (value === null && !hasRawItem) return;
-      storage[key] = JSON.stringify(value);
+      const hasRawItem = localStorage.getItem(key) !== null
+      const value = await readEncryptedLocalStorage(key, fallback)
+      if (value === null && !hasRawItem) return
+      storage[key] = JSON.stringify(value)
     }),
-  );
+  )
 
-  return storage;
+  return storage
 }
 
 async function normalizeCloudStorageValue(
@@ -151,293 +151,293 @@ async function normalizeCloudStorageValue(
   password: string,
 ): Promise<string> {
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(value)
     if (!isEncryptedPayload(parsed)) {
-      return value;
+      return value
     }
 
-    return await decryptPayload(password, parsed.ciphertext, parsed.iv);
+    return await decryptPayload(password, parsed.ciphertext, parsed.iv)
   } catch {
-    return value;
+    return value
   }
 }
 
 async function applyCloudStorageToMemory(storage: Record<string, string>) {
   await Promise.all(
     Object.entries(storage).map(async ([key, value]) => {
-      let parsedValue: unknown = value;
+      let parsedValue: unknown = value
       try {
-        parsedValue = JSON.parse(value);
+        parsedValue = JSON.parse(value)
       } catch {
-        parsedValue = value;
+        parsedValue = value
       }
 
-      await writeEncryptedLocalStorage(key, parsedValue);
+      await writeEncryptedLocalStorage(key, parsedValue)
 
       if (isSensitiveStorageKey(key)) {
         const normalized =
-          typeof parsedValue === "string"
+          typeof parsedValue === 'string'
             ? parsedValue
-            : JSON.stringify(parsedValue);
-        writeInMemoryStorage(key, normalized);
-        markEncryptedSnapshot(key, normalized);
+            : JSON.stringify(parsedValue)
+        writeInMemoryStorage(key, normalized)
+        markEncryptedSnapshot(key, normalized)
       } else {
-        removeInMemoryStorage(key);
+        removeInMemoryStorage(key)
       }
     }),
-  );
+  )
 }
 
 export type UserProfileSection =
-  | "profile"
-  | "backup"
-  | "key"
-  | "delete"
-  | "signout";
+  | 'profile'
+  | 'backup'
+  | 'key'
+  | 'delete'
+  | 'signout'
 
 type UserProfileButtonProps = {
-  variant?: React.ComponentProps<typeof Button>["variant"];
-  className?: string;
-  mode?: "dropdown" | "settings";
-  onNavigateToSettings?: (section: UserProfileSection) => void;
-  onNavigateToView?: (view: "analytics" | "settings") => void;
-  focusSection?: UserProfileSection | null;
-};
+  variant?: React.ComponentProps<typeof Button>['variant']
+  className?: string
+  mode?: 'dropdown' | 'settings'
+  onNavigateToSettings?: (section: UserProfileSection) => void
+  onNavigateToView?: (view: 'analytics' | 'settings') => void
+  focusSection?: UserProfileSection | null
+}
 
 export default function UserProfileButton({
-  variant = "ghost",
-  className = "",
-  mode = "dropdown",
+  variant = 'ghost',
+  className = '',
+  mode = 'dropdown',
   onNavigateToSettings,
   onNavigateToView,
   focusSection = null,
 }: UserProfileButtonProps) {
-  const [language] = useLanguage();
-  const t = translations[language];
-  const { events, calendars, setEvents, setCalendars } = useCalendar();
-  const { user, isSignedIn } = useUser();
-  const router = useRouter();
-  const [atprotoHandle, setAtprotoHandle] = useState("");
-  const [atprotoDisplayName, setAtprotoDisplayName] = useState("");
-  const [atprotoAvatar, setAtprotoAvatar] = useState("");
-  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false);
-  const isAnySignedIn = isSignedIn || atprotoSignedIn;
+  const [language] = useLanguage()
+  const t = translations[language]
+  const { events, calendars, setEvents, setCalendars } = useCalendar()
+  const { user, isSignedIn } = useUser()
+  const router = useRouter()
+  const [atprotoHandle, setAtprotoHandle] = useState('')
+  const [atprotoDisplayName, setAtprotoDisplayName] = useState('')
+  const [atprotoAvatar, setAtprotoAvatar] = useState('')
+  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
+  const isAnySignedIn = isSignedIn || atprotoSignedIn
 
-  const [enabled, setEnabled] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [backupOpen, setBackupOpen] = useState(false);
-  const [setPwdOpen, setSetPwdOpen] = useState(false);
-  const [unlockOpen, setUnlockOpen] = useState(false);
-  const [rotateOpen, setRotateOpen] = useState(false);
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
-  const [deleteCloudOpen, setDeleteCloudOpen] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("");
-  const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState("");
+  const [enabled, setEnabled] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
+  const [setPwdOpen, setSetPwdOpen] = useState(false)
+  const [unlockOpen, setUnlockOpen] = useState(false)
+  const [rotateOpen, setRotateOpen] = useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const [deleteCloudOpen, setDeleteCloudOpen] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState('')
+  const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState('')
   const [profileSection, setProfileSection] = useState<
-    "basic" | "emails" | "oauth"
-  >("basic");
+    'basic' | 'emails' | 'oauth'
+  >('basic')
 
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [oldPassword, setOldPassword] = useState('')
+  const [error, setError] = useState('')
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
-  const keyRef = useRef<string | null>(null);
-  const restoredRef = useRef(false);
-  const skipNextAutoBackupRef = useRef(false);
-  const timerRef = useRef<any>(null);
-  const [backupTick, setBackupTick] = useState(0);
+  const keyRef = useRef<string | null>(null)
+  const restoredRef = useRef(false)
+  const skipNextAutoBackupRef = useRef(false)
+  const timerRef = useRef<any>(null)
+  const [backupTick, setBackupTick] = useState(0)
 
-  const broadcastBackupStatus = (status: "uploading" | "failed" | "done") => {
-    localStorage.setItem(BACKUP_STATUS_KEY, status);
+  const broadcastBackupStatus = (status: 'uploading' | 'failed' | 'done') => {
+    localStorage.setItem(BACKUP_STATUS_KEY, status)
     window.dispatchEvent(
-      new CustomEvent("backup-status-change", { detail: { status } }),
-    );
-  };
+      new CustomEvent('backup-status-change', { detail: { status } }),
+    )
+  }
 
   useEffect(() => {
-    fetch("/api/atproto/session")
+    fetch('/api/atproto/session')
       .then((r) => r.json())
       .then(
         (data: {
-          signedIn?: boolean;
-          handle?: string;
-          displayName?: string;
-          avatar?: string;
+          signedIn?: boolean
+          handle?: string
+          displayName?: string
+          avatar?: string
         }) => {
-          setAtprotoSignedIn(!!data.signedIn);
-          setAtprotoHandle(data.handle || "");
-          setAtprotoDisplayName(data.displayName || "");
-          setAtprotoAvatar(data.avatar || "");
+          setAtprotoSignedIn(!!data.signedIn)
+          setAtprotoHandle(data.handle || '')
+          setAtprotoDisplayName(data.displayName || '')
+          setAtprotoAvatar(data.avatar || '')
         },
       )
-      .catch(() => undefined);
-  }, []);
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
-    if (mode !== "settings" || !focusSection) return;
-    const target = document.getElementById(`settings-account-${focusSection}`);
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [focusSection, mode]);
+    if (mode !== 'settings' || !focusSection) return
+    const target = document.getElementById(`settings-account-${focusSection}`)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusSection, mode])
 
   useEffect(() => {
     if (!deleteAccountOpen) {
-      setDeleteAccountConfirmText("");
+      setDeleteAccountConfirmText('')
     }
-  }, [deleteAccountOpen]);
+  }, [deleteAccountOpen])
 
   useEffect(() => {
-    setEnabled(localStorage.getItem(AUTO_KEY) === "true");
-  }, []);
+    setEnabled(localStorage.getItem(AUTO_KEY) === 'true')
+  }, [])
 
   useEffect(() => {
-    if (!user) return;
-    setFirstName(user.firstName || "");
-    setLastName(user.lastName || "");
-  }, [user]);
+    if (!user) return
+    setFirstName(user.firstName || '')
+    setLastName(user.lastName || '')
+  }, [user])
 
   useEffect(() => {
-    if (mode === "settings") return;
-    if (!isAnySignedIn || keyRef.current || restoredRef.current) return;
+    if (mode === 'settings') return
+    if (!isAnySignedIn || keyRef.current || restoredRef.current) return
     apiGet().then((cloud) => {
-      if (cloud) setUnlockOpen(true);
-    });
-  }, [isAnySignedIn, mode]);
+      if (cloud) setUnlockOpen(true)
+    })
+  }, [isAnySignedIn, mode])
 
   useEffect(() => {
-    const watchKeys = new Set(BACKUP_KEYS);
+    const watchKeys = new Set(BACKUP_KEYS)
     const handleLocalWrite = (event: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }>;
+      const customEvent = event as CustomEvent<{ key?: string }>
       if (!customEvent.detail?.key || watchKeys.has(customEvent.detail.key)) {
-        setBackupTick((prev) => prev + 1);
+        setBackupTick((prev) => prev + 1)
       }
-    };
+    }
 
-    window.addEventListener("local-storage-written", handleLocalWrite);
-    const handleLanguageChange = () => setBackupTick((prev) => prev + 1);
-    window.addEventListener("languagechange", handleLanguageChange);
+    window.addEventListener('local-storage-written', handleLocalWrite)
+    const handleLanguageChange = () => setBackupTick((prev) => prev + 1)
+    window.addEventListener('languagechange', handleLanguageChange)
     return () => {
-      window.removeEventListener("local-storage-written", handleLocalWrite);
-      window.removeEventListener("languagechange", handleLanguageChange);
-    };
-  }, []);
+      window.removeEventListener('local-storage-written', handleLocalWrite)
+      window.removeEventListener('languagechange', handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!enabled || !keyRef.current || !restoredRef.current) return;
+    if (!enabled || !keyRef.current || !restoredRef.current) return
     if (skipNextAutoBackupRef.current) {
-      skipNextAutoBackupRef.current = false;
-      return;
+      skipNextAutoBackupRef.current = false
+      return
     }
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
       try {
-        broadcastBackupStatus("uploading");
-        const storage = await collectLocalStorage();
+        broadcastBackupStatus('uploading')
+        const storage = await collectLocalStorage()
         const payload = await encryptPayload(
           keyRef.current!,
           JSON.stringify({ v: BACKUP_VERSION, storage }),
-        );
-        await apiPost(payload);
-        broadcastBackupStatus("done");
+        )
+        await apiPost(payload)
+        broadcastBackupStatus('done')
       } catch {
-        broadcastBackupStatus("failed");
+        broadcastBackupStatus('failed')
       } finally {
-        timerRef.current = null;
+        timerRef.current = null
       }
-    }, 800);
-  }, [events, calendars, enabled, backupTick]);
+    }, 800)
+  }, [events, calendars, enabled, backupTick])
 
   async function saveProfile() {
-    if (!user) return;
+    if (!user) return
     try {
-      setProfileSaving(true);
+      setProfileSaving(true)
       await user.update({
         firstName: firstName || null,
         lastName: lastName || null,
-      });
-      toast(t.profileUpdated);
+      })
+      toast(t.profileUpdated)
     } catch (e: any) {
       toast(t.profileUpdateFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      });
+        description: e?.errors?.[0]?.longMessage || e?.message || '',
+      })
     } finally {
-      setProfileSaving(false);
+      setProfileSaving(false)
     }
   }
 
   async function updateAvatar(file?: File | null) {
-    if (!user || !file) return;
+    if (!user || !file) return
     try {
-      setAvatarUploading(true);
-      await user.setProfileImage({ file });
-      await user.reload();
-      toast(t.avatarUpdated);
+      setAvatarUploading(true)
+      await user.setProfileImage({ file })
+      await user.reload()
+      toast(t.avatarUpdated)
     } catch (e: any) {
       toast(t.avatarUpdateFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      });
+        description: e?.errors?.[0]?.longMessage || e?.message || '',
+      })
     } finally {
-      setAvatarUploading(false);
+      setAvatarUploading(false)
     }
   }
 
   async function addEmailAddress() {
-    if (!user || !newEmail) return;
+    if (!user || !newEmail) return
     try {
-      const email = await user.createEmailAddress({ email: newEmail });
-      await email.prepareVerification({ strategy: "email_code" });
-      setNewEmail("");
-      toast(t.emailAddedCheckInbox);
-      await user.reload();
+      const email = await user.createEmailAddress({ email: newEmail })
+      await email.prepareVerification({ strategy: 'email_code' })
+      setNewEmail('')
+      toast(t.emailAddedCheckInbox)
+      await user.reload()
     } catch (e: any) {
       toast(t.addEmailFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      });
+        description: e?.errors?.[0]?.longMessage || e?.message || '',
+      })
     }
   }
 
   async function setPrimaryEmail(emailId: string) {
-    if (!user) return;
+    if (!user) return
     try {
-      await user.update({ primaryEmailAddressId: emailId });
-      toast(t.primaryEmailUpdated);
-      await user.reload();
+      await user.update({ primaryEmailAddressId: emailId })
+      toast(t.primaryEmailUpdated)
+      await user.reload()
     } catch (e: any) {
       toast(t.primaryEmailUpdateFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      });
+        description: e?.errors?.[0]?.longMessage || e?.message || '',
+      })
     }
   }
 
   async function unlinkOAuth(accountId: string) {
-    if (!user) return;
+    if (!user) return
     try {
-      const target = user.externalAccounts.find((acc) => acc.id === accountId);
-      if (!target) return;
-      await target.destroy();
-      toast(t.oauthDisconnected);
-      await user.reload();
+      const target = user.externalAccounts.find((acc) => acc.id === accountId)
+      if (!target) return
+      await target.destroy()
+      toast(t.oauthDisconnected)
+      await user.reload()
     } catch (e: any) {
       toast(t.disconnectFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || "",
-      });
+        description: e?.errors?.[0]?.longMessage || e?.message || '',
+      })
     }
   }
 
   const hydrateEvent = (raw: any): CalendarEvent => {
-    const startDate = raw?.startDate ? new Date(raw.startDate) : new Date();
+    const startDate = raw?.startDate ? new Date(raw.startDate) : new Date()
     const endDate = raw?.endDate
       ? new Date(raw.endDate)
-      : new Date(startDate.getTime() + 60 * 60 * 1000);
+      : new Date(startDate.getTime() + 60 * 60 * 1000)
 
     return {
       id: raw?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -448,39 +448,39 @@ export default function UserProfileButton({
           ? new Date(startDate.getTime() + 60 * 60 * 1000)
           : endDate,
       isAllDay: Boolean(raw?.isAllDay),
-      recurrence: ["none", "daily", "weekly", "monthly", "yearly"].includes(
+      recurrence: ['none', 'daily', 'weekly', 'monthly', 'yearly'].includes(
         raw?.recurrence,
       )
         ? raw.recurrence
-        : "none",
+        : 'none',
       location: raw?.location,
       participants: Array.isArray(raw?.participants) ? raw.participants : [],
       notification:
-        typeof raw?.notification === "number" ? raw.notification : 0,
+        typeof raw?.notification === 'number' ? raw.notification : 0,
       description: raw?.description,
-      color: raw?.color || "bg-blue-500",
-      calendarId: raw?.calendarId || "1",
-    };
-  };
+      color: raw?.color || 'bg-blue-500',
+      calendarId: raw?.calendarId || '1',
+    }
+  }
 
   async function unlock() {
-    if (!password) return;
+    if (!password) return
 
     try {
-      setIsUnlocking(true);
-      const cloud = await apiGet();
-      if (!cloud) return;
+      setIsUnlocking(true)
+      const cloud = await apiGet()
+      if (!cloud) return
 
-      let plain;
+      let plain
       try {
-        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv);
+        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
       } catch {
-        toast(t.incorrectPassword);
-        return;
+        toast(t.incorrectPassword)
+        return
       }
 
       try {
-        const data = JSON.parse(plain);
+        const data = JSON.parse(plain)
         if (data?.storage) {
           const normalizedStorage = Object.fromEntries(
             await Promise.all(
@@ -489,165 +489,171 @@ export default function UserProfileButton({
                 await normalizeCloudStorageValue(String(value), password),
               ]),
             ),
-          );
-          await setEncryptionPassword(password);
-          await applyCloudStorageToMemory(normalizedStorage);
+          )
+          await setEncryptionPassword(password)
+          await applyCloudStorageToMemory(normalizedStorage)
         } else if (data?.events || data?.calendars) {
-          const fallbackStorage: Record<string, string> = {};
+          const fallbackStorage: Record<string, string> = {}
           if (data?.events)
-            fallbackStorage["calendar-events"] = JSON.stringify(data.events);
+            fallbackStorage['calendar-events'] = JSON.stringify(data.events)
           if (data?.calendars)
-            fallbackStorage["calendar-categories"] = JSON.stringify(
+            fallbackStorage['calendar-categories'] = JSON.stringify(
               data.calendars,
-            );
-          await setEncryptionPassword(password);
-          await applyCloudStorageToMemory(fallbackStorage);
+            )
+          await setEncryptionPassword(password)
+          await applyCloudStorageToMemory(fallbackStorage)
         } else {
-          await setEncryptionPassword(password);
+          await setEncryptionPassword(password)
         }
 
         const restoredEvents = await readEncryptedLocalStorage(
-          "calendar-events",
+          'calendar-events',
           [],
-        );
+        )
         const restoredCalendars = await readEncryptedLocalStorage(
-          "calendar-categories",
+          'calendar-categories',
           [],
-        );
+        )
         const restoredLanguage = await readEncryptedLocalStorage<string | null>(
-          "preferred-language",
+          'preferred-language',
           null,
-        );
-        setEvents(restoredEvents);
-        setCalendars(restoredCalendars);
+        )
+        setEvents(restoredEvents)
+        setCalendars(restoredCalendars)
         if (restoredLanguage) {
           window.dispatchEvent(
-            new CustomEvent("languagechange", {
+            new CustomEvent('languagechange', {
               detail: { language: restoredLanguage },
             }),
-          );
+          )
         }
-        window.dispatchEvent(new CustomEvent("backup-restored"));
+        window.dispatchEvent(new CustomEvent('backup-restored'))
       } catch {}
 
-      keyRef.current = password;
-      restoredRef.current = true;
-      skipNextAutoBackupRef.current = true;
-      localStorage.setItem(AUTO_KEY, "true");
-      setEnabled(true);
-      broadcastBackupStatus("done");
+      keyRef.current = password
+      restoredRef.current = true
+      skipNextAutoBackupRef.current = true
+      localStorage.setItem(AUTO_KEY, 'true')
+      setEnabled(true)
+      broadcastBackupStatus('done')
 
-      setPassword("");
-      setUnlockOpen(false);
-      toast(t.dataRestoredAutoBackupEnabled);
+      setPassword('')
+      setUnlockOpen(false)
+      toast(t.dataRestoredAutoBackupEnabled)
     } finally {
-      setIsUnlocking(false);
+      setIsUnlocking(false)
     }
   }
 
   async function enable() {
     if (password !== confirm) {
-      setError(t.passwordsDoNotMatch);
-      return;
+      setError(t.passwordsDoNotMatch)
+      return
     }
-    await setEncryptionPassword(password);
+    await setEncryptionPassword(password)
     const payload = await encryptPayload(
       password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: await collectLocalStorage() }),
-    );
-    await apiPost(payload);
-    localStorage.setItem(AUTO_KEY, "true");
-    keyRef.current = password;
-    restoredRef.current = true;
-    setEnabled(true);
-    broadcastBackupStatus("done");
-    setPassword("");
-    setConfirm("");
-    setSetPwdOpen(false);
-    toast(t.autoBackupEnabled);
+      JSON.stringify({
+        v: BACKUP_VERSION,
+        storage: await collectLocalStorage(),
+      }),
+    )
+    await apiPost(payload)
+    localStorage.setItem(AUTO_KEY, 'true')
+    keyRef.current = password
+    restoredRef.current = true
+    setEnabled(true)
+    broadcastBackupStatus('done')
+    setPassword('')
+    setConfirm('')
+    setSetPwdOpen(false)
+    toast(t.autoBackupEnabled)
   }
 
   async function rotate() {
     if (password !== confirm) {
-      setError(t.passwordsDoNotMatch);
-      return;
+      setError(t.passwordsDoNotMatch)
+      return
     }
-    const cloud = await apiGet();
-    if (!cloud) return;
+    const cloud = await apiGet()
+    if (!cloud) return
 
     try {
-      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv);
+      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
     } catch {
-      toast(t.incorrectOldPassword);
-      return;
+      toast(t.incorrectOldPassword)
+      return
     }
 
     const next = await encryptPayload(
       password,
-      JSON.stringify({ v: BACKUP_VERSION, storage: await collectLocalStorage() }),
-    );
-    await apiPost(next);
-    await setEncryptionPassword(password);
-    keyRef.current = password;
-    setRotateOpen(false);
-    setOldPassword("");
-    setPassword("");
-    setConfirm("");
-    toast(t.encryptionKeyUpdated);
+      JSON.stringify({
+        v: BACKUP_VERSION,
+        storage: await collectLocalStorage(),
+      }),
+    )
+    await apiPost(next)
+    await setEncryptionPassword(password)
+    keyRef.current = password
+    setRotateOpen(false)
+    setOldPassword('')
+    setPassword('')
+    setConfirm('')
+    toast(t.encryptionKeyUpdated)
   }
 
   function disableAutoBackup() {
-    localStorage.removeItem(AUTO_KEY);
-    localStorage.removeItem(BACKUP_STATUS_KEY);
-    keyRef.current = null;
-    restoredRef.current = false;
-    setEnabled(false);
-    clearEncryptionPassword();
-    toast(t.autoBackupDisabled);
+    localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
+    keyRef.current = null
+    restoredRef.current = false
+    setEnabled(false)
+    clearEncryptionPassword()
+    toast(t.autoBackupDisabled)
   }
 
   async function destroy() {
-    await apiDelete();
-    localStorage.removeItem(AUTO_KEY);
-    localStorage.removeItem(BACKUP_STATUS_KEY);
-    keyRef.current = null;
-    restoredRef.current = false;
-    setEnabled(false);
-    toast(t.cloudDataDeleted);
+    await apiDelete()
+    localStorage.removeItem(AUTO_KEY)
+    localStorage.removeItem(BACKUP_STATUS_KEY)
+    keyRef.current = null
+    restoredRef.current = false
+    setEnabled(false)
+    toast(t.cloudDataDeleted)
   }
 
-  const openProfileSection = (section: "basic" | "emails" | "oauth") => {
-    setProfileSection(section);
-    setProfileOpen(true);
-  };
+  const openProfileSection = (section: 'basic' | 'emails' | 'oauth') => {
+    setProfileSection(section)
+    setProfileOpen(true)
+  }
 
   async function deleteAccount() {
-    if (!user || deleteAccountConfirmText !== "DELETE MY ACCOUNT") return;
+    if (!user || deleteAccountConfirmText !== 'DELETE MY ACCOUNT') return
     try {
-      setIsDeletingAccount(true);
-      const response = await fetch("/api/account", { method: "DELETE" });
+      setIsDeletingAccount(true)
+      const response = await fetch('/api/account', { method: 'DELETE' })
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to delete account data");
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.error || 'Failed to delete account data')
       }
 
-      await user.delete();
+      await user.delete()
 
-      toast(t.accountDeleted);
-      router.replace("/");
+      toast(t.accountDeleted)
+      router.replace('/')
     } catch (e: any) {
       toast(t.deleteAccountFailed, {
-        description: e?.message || "",
-      });
+        description: e?.message || '',
+      })
     } finally {
-      setIsDeletingAccount(false);
-      setDeleteAccountOpen(false);
+      setIsDeletingAccount(false)
+      setDeleteAccountOpen(false)
     }
   }
 
   return (
     <>
-      {mode === "dropdown" ? (
+      {mode === 'dropdown' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {(isSignedIn && user?.imageUrl) ||
@@ -681,19 +687,19 @@ export default function UserProfileButton({
           <DropdownMenuContent align="end">
             {!isAnySignedIn ? (
               <>
-                <DropdownMenuItem onClick={() => router.push("/sign-in")}>
+                <DropdownMenuItem onClick={() => router.push('/sign-in')}>
                   {t.signIn}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/sign-up")}>
+                <DropdownMenuItem onClick={() => router.push('/sign-up')}>
                   {t.signUp}
                 </DropdownMenuItem>
               </>
             ) : null}
-            <DropdownMenuItem onClick={() => onNavigateToView?.("settings")}>
+            <DropdownMenuItem onClick={() => onNavigateToView?.('settings')}>
               <Settings className="mr-2 h-4 w-4" />
               {t.settings}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onNavigateToView?.("analytics")}>
+            <DropdownMenuItem onClick={() => onNavigateToView?.('analytics')}>
               <BarChart2 className="mr-2 h-4 w-4" />
               {t.analytics}
             </DropdownMenuItem>
@@ -705,7 +711,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.imageUrl || atprotoAvatar || "/placeholder.svg"}
+                  src={user?.imageUrl || atprotoAvatar || '/placeholder.svg'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -717,15 +723,15 @@ export default function UserProfileButton({
                   <p className="font-medium truncate">
                     {[user?.firstName, user?.lastName]
                       .filter(Boolean)
-                      .join(" ") ||
+                      .join(' ') ||
                       user?.username ||
                       atprotoDisplayName ||
                       atprotoHandle ||
-                      "User"}
+                      'User'}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
                     {user?.primaryEmailAddress?.emailAddress ||
-                      (atprotoHandle ? `@${atprotoHandle}` : "")}
+                      (atprotoHandle ? `@${atprotoHandle}` : '')}
                   </p>
                 </div>
               </div>
@@ -740,7 +746,7 @@ export default function UserProfileButton({
                       <Button
                         id="settings-account-profile"
                         variant="outline"
-                        onClick={() => openProfileSection("basic")}
+                        onClick={() => openProfileSection('basic')}
                       >
                         <CircleUser className="h-4 w-4 mr-2" />
                         {t.openBasicInfo}
@@ -756,7 +762,7 @@ export default function UserProfileButton({
                       </p>
                       <Button
                         variant="outline"
-                        onClick={() => openProfileSection("emails")}
+                        onClick={() => openProfileSection('emails')}
                       >
                         <Mail className="h-4 w-4 mr-2" />
                         {t.openEmailSettings}
@@ -770,7 +776,7 @@ export default function UserProfileButton({
                       </p>
                       <Button
                         variant="outline"
-                        onClick={() => openProfileSection("oauth")}
+                        onClick={() => openProfileSection('oauth')}
                       >
                         <LinkIcon className="h-4 w-4 mr-2" />
                         {t.openOauthSettings}
@@ -826,12 +832,12 @@ export default function UserProfileButton({
                       id="settings-account-signout"
                       variant="outline"
                       onClick={async () => {
-                        await fetch("/api/atproto/logout", { method: "POST" });
-                        setAtprotoSignedIn(false);
-                        setAtprotoHandle("");
-                        setAtprotoDisplayName("");
-                        setAtprotoAvatar("");
-                        router.refresh();
+                        await fetch('/api/atproto/logout', { method: 'POST' })
+                        setAtprotoSignedIn(false)
+                        setAtprotoHandle('')
+                        setAtprotoDisplayName('')
+                        setAtprotoAvatar('')
+                        router.refresh()
                       }}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
@@ -882,10 +888,10 @@ export default function UserProfileButton({
             </>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button variant="outline" onClick={() => router.push("/sign-in")}>
+              <Button variant="outline" onClick={() => router.push('/sign-in')}>
                 {t.signIn}
               </Button>
-              <Button onClick={() => router.push("/sign-up")}>
+              <Button onClick={() => router.push('/sign-up')}>
                 {t.signUp}
               </Button>
             </div>
@@ -904,7 +910,7 @@ export default function UserProfileButton({
             <div className="space-y-6 py-1">
               <section
                 className="space-y-3 rounded-lg border p-4"
-                hidden={profileSection !== "basic"}
+                hidden={profileSection !== 'basic'}
               >
                 <h3 className="font-medium">{t.basicInfo}</h3>
                 <div className="space-y-2">
@@ -912,7 +918,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.imageUrl || atprotoAvatar || "/placeholder.svg"
+                        user?.imageUrl || atprotoAvatar || '/placeholder.svg'
                       }
                       alt="avatar"
                       width={52}
@@ -935,8 +941,8 @@ export default function UserProfileButton({
                       className="hidden"
                       disabled={avatarUploading}
                       onChange={(e) => {
-                        void updateAvatar(e.target.files?.[0]);
-                        e.currentTarget.value = "";
+                        void updateAvatar(e.target.files?.[0])
+                        e.currentTarget.value = ''
                       }}
                     />
                   </div>
@@ -964,7 +970,7 @@ export default function UserProfileButton({
 
               <section
                 className="space-y-3 rounded-lg border p-4"
-                hidden={profileSection !== "emails"}
+                hidden={profileSection !== 'emails'}
               >
                 <h3 className="font-medium flex items-center gap-2">
                   <Mail className="h-4 w-4" />
@@ -979,12 +985,12 @@ export default function UserProfileButton({
                       <div>
                         <p className="font-medium">{email.emailAddress}</p>
                         <p className="text-muted-foreground text-xs">
-                          {email.verification?.status === "verified"
+                          {email.verification?.status === 'verified'
                             ? t.verified
                             : t.unverified}
                           {user?.primaryEmailAddressId === email.id
                             ? ` · ${t.primary}`
-                            : ""}
+                            : ''}
                         </p>
                       </div>
                       {user?.primaryEmailAddressId !== email.id && (
@@ -1012,7 +1018,7 @@ export default function UserProfileButton({
 
               <section
                 className="space-y-3 rounded-lg border p-4"
-                hidden={profileSection !== "oauth"}
+                hidden={profileSection !== 'oauth'}
               >
                 <h3 className="font-medium flex items-center gap-2">
                   <LinkIcon className="h-4 w-4" />
@@ -1032,7 +1038,7 @@ export default function UserProfileButton({
                         <div>
                           <p className="font-medium">{account.provider}</p>
                           <p className="text-muted-foreground text-xs">
-                            {account.emailAddress || account.username || "-"}
+                            {account.emailAddress || account.username || '-'}
                           </p>
                         </div>
                         <Button
@@ -1081,12 +1087,12 @@ export default function UserProfileButton({
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
-                e.preventDefault();
-                void deleteAccount();
+                e.preventDefault()
+                void deleteAccount()
               }}
               disabled={
                 isDeletingAccount ||
-                deleteAccountConfirmText !== "DELETE MY ACCOUNT"
+                deleteAccountConfirmText !== 'DELETE MY ACCOUNT'
               }
             >
               {isDeletingAccount ? t.deleting : t.confirmDeleteAccount}
@@ -1120,14 +1126,14 @@ export default function UserProfileButton({
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
-                e.preventDefault();
-                if (deleteCloudConfirmText !== "DELETE CLOUD DATA") return;
+                e.preventDefault()
+                if (deleteCloudConfirmText !== 'DELETE CLOUD DATA') return
                 void destroy().finally(() => {
-                  setDeleteCloudOpen(false);
-                  setDeleteCloudConfirmText("");
-                });
+                  setDeleteCloudOpen(false)
+                  setDeleteCloudConfirmText('')
+                })
               }}
-              disabled={deleteCloudConfirmText !== "DELETE CLOUD DATA"}
+              disabled={deleteCloudConfirmText !== 'DELETE CLOUD DATA'}
             >
               {t.confirmDeleteData}
             </AlertDialogAction>
@@ -1150,8 +1156,8 @@ export default function UserProfileButton({
             ) : (
               <Button
                 onClick={() => {
-                  setBackupOpen(false);
-                  setSetPwdOpen(true);
+                  setBackupOpen(false)
+                  setSetPwdOpen(true)
                 }}
               >
                 {t.enable}
@@ -1191,7 +1197,7 @@ export default function UserProfileButton({
       <Dialog
         open={unlockOpen}
         onOpenChange={(open) => {
-          if (open) setUnlockOpen(true);
+          if (open) setUnlockOpen(true)
         }}
       >
         <DialogContent
@@ -1252,5 +1258,5 @@ export default function UserProfileButton({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

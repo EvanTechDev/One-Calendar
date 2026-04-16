@@ -1,20 +1,20 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 const isPublicRoute = createRouteMatcher([
-  "/",
-  "/app",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/reset-password",
-  "/api/share",
-  "/api/verify",
-  "/at-oauth",
-  "/api/atproto/(.*)",
-  "/oauth-client-metadata.json",
-  "/api/share/public",
-  "/share/(.*)",
-  "/privacy",
-  "/terms",
+  '/',
+  '/app',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/reset-password',
+  '/api/share',
+  '/api/verify',
+  '/at-oauth',
+  '/api/atproto/(.*)',
+  '/oauth-client-metadata.json',
+  '/api/share/public',
+  '/share/(.*)',
+  '/privacy',
+  '/terms',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -24,5 +24,5 @@ export default clerkMiddleware(async (auth, req) => {
 })
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 }

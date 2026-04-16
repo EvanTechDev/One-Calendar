@@ -8,118 +8,118 @@ import {
   parseISO,
   getDay,
   differenceInDays,
-} from "date-fns";
+} from 'date-fns'
 import {
   getEncryptionState,
   readEncryptedLocalStorage,
   subscribeEncryptionState,
-} from "@/hooks/useLocalStorage";
+} from '@/hooks/useLocalStorage'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { isZhLanguage, translations, useLanguage } from "@/lib/i18n";
-import React, { useEffect, useState } from "react";
+} from '@/components/ui/select'
+import { isZhLanguage, translations, useLanguage } from '@/lib/i18n'
+import React, { useEffect, useState } from 'react'
 
 interface CalendarEvent {
-  id: string;
-  title: string;
-  isAllDay: boolean;
-  startDate: string;
-  endDate: string;
-  calendarId: string;
-  color: string;
-  description: string;
-  location: string;
-  notification: number;
-  participants: any[];
-  recurrence: string;
+  id: string
+  title: string
+  isAllDay: boolean
+  startDate: string
+  endDate: string
+  calendarId: string
+  color: string
+  description: string
+  location: string
+  notification: number
+  participants: any[]
+  recurrence: string
 }
 
 const EventsCalendar: React.FC = () => {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [availableYears, setAvailableYears] = useState<number[]>([])
   const [selectedYear, setSelectedYear] = useState<number>(
     new Date().getFullYear(),
-  );
-  const [language] = useLanguage();
-  const t = translations[language];
-  const isZh = isZhLanguage(language);
+  )
+  const [language] = useLanguage()
+  const t = translations[language]
+  const isZh = isZhLanguage(language)
 
   useEffect(() => {
-    let active = true;
+    let active = true
     const loadEvents = () =>
-      readEncryptedLocalStorage<CalendarEvent[]>("calendar-events", []).then(
+      readEncryptedLocalStorage<CalendarEvent[]>('calendar-events', []).then(
         (parsedEvents) => {
-          if (!active) return;
-          setEvents(parsedEvents);
+          if (!active) return
+          setEvents(parsedEvents)
 
-          const years = new Set<number>();
+          const years = new Set<number>()
           parsedEvents.forEach((event) => {
-            const startYear = new Date(event.startDate).getFullYear();
-            const endYear = new Date(event.endDate).getFullYear();
+            const startYear = new Date(event.startDate).getFullYear()
+            const endYear = new Date(event.endDate).getFullYear()
             for (let year = startYear; year <= endYear; year++) {
-              years.add(year);
+              years.add(year)
             }
-          });
+          })
 
-          const sortedYears = Array.from(years).sort();
-          setAvailableYears(sortedYears);
+          const sortedYears = Array.from(years).sort()
+          setAvailableYears(sortedYears)
 
           if (sortedYears.length > 0) {
-            const currentYear = new Date().getFullYear();
+            const currentYear = new Date().getFullYear()
 
             const closestYear = sortedYears.reduce((prev, curr) =>
               Math.abs(curr - currentYear) < Math.abs(prev - currentYear)
                 ? curr
                 : prev,
-            );
-            setSelectedYear(closestYear);
+            )
+            setSelectedYear(closestYear)
           }
         },
-      );
+      )
 
-    loadEvents();
+    loadEvents()
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
-        loadEvents();
+        loadEvents()
       }
-    });
+    })
     return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+      active = false
+      unsubscribe()
+    }
+  }, [])
 
   const getEventCountForDay = (day: Date) => {
     return events.filter((event) => {
-      const startDate = parseISO(event.startDate);
-      const endDate = parseISO(event.endDate);
+      const startDate = parseISO(event.startDate)
+      const endDate = parseISO(event.endDate)
 
       return (
         isSameDay(day, startDate) ||
         isSameDay(day, endDate) ||
         (day > startDate && day < endDate)
-      );
-    }).length;
-  };
+      )
+    }).length
+  }
 
   const getColorIntensity = (count: number) => {
-    if (count === 0) return "bg-gray-100 dark:bg-gray-800";
-    if (count === 1) return "bg-emerald-100 dark:bg-emerald-900";
-    if (count === 2) return "bg-emerald-300 dark:bg-emerald-700";
-    if (count === 3) return "bg-emerald-500 dark:bg-emerald-600";
-    return "bg-emerald-700 dark:bg-emerald-500";
-  };
+    if (count === 0) return 'bg-gray-100 dark:bg-gray-800'
+    if (count === 1) return 'bg-emerald-100 dark:bg-emerald-900'
+    if (count === 2) return 'bg-emerald-300 dark:bg-emerald-700'
+    if (count === 3) return 'bg-emerald-500 dark:bg-emerald-600'
+    return 'bg-emerald-700 dark:bg-emerald-500'
+  }
 
   const formatMonthLabel = (date: Date) => {
-    const monthIndex = date.getMonth();
+    const monthIndex = date.getMonth()
 
-    return t.months[monthIndex];
-  };
+    return t.months[monthIndex]
+  }
 
   const renderCalendarGrid = () => {
     if (availableYears.length === 0) {
@@ -127,44 +127,44 @@ const EventsCalendar: React.FC = () => {
         <div className="text-gray-500 dark:text-gray-400">
           {t.noEventsFound}
         </div>
-      );
+      )
     }
 
-    const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1));
-    const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31));
+    const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1))
+    const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31))
 
-    const startDay = startOfWeek(firstDayOfYear);
+    const startDay = startOfWeek(firstDayOfYear)
 
-    const endDay = addDays(lastDayOfYear, 6 - getDay(lastDayOfYear));
+    const endDay = addDays(lastDayOfYear, 6 - getDay(lastDayOfYear))
 
-    const totalDays = differenceInDays(endDay, startDay) + 1;
+    const totalDays = differenceInDays(endDay, startDay) + 1
 
-    const totalWeeks = Math.ceil(totalDays / 7);
+    const totalWeeks = Math.ceil(totalDays / 7)
 
-    const allDates = [];
+    const allDates = []
     for (let i = 0; i < totalDays; i++) {
-      allDates.push(addDays(startDay, i));
+      allDates.push(addDays(startDay, i))
     }
 
-    const monthLabels = [];
+    const monthLabels = []
     for (let month = 0; month < 12; month++) {
-      const firstDayOfMonth = new Date(selectedYear, month, 1);
+      const firstDayOfMonth = new Date(selectedYear, month, 1)
 
       if (firstDayOfMonth >= startDay && firstDayOfMonth <= endDay) {
-        const dayIndex = differenceInDays(firstDayOfMonth, startDay);
-        const weekIndex = Math.floor(dayIndex / 7);
+        const dayIndex = differenceInDays(firstDayOfMonth, startDay)
+        const weekIndex = Math.floor(dayIndex / 7)
         monthLabels.push({
           label: formatMonthLabel(firstDayOfMonth),
           weekIndex: weekIndex,
-        });
+        })
       }
     }
 
-    const cellSize = 15;
-    const cellGap = 3;
-    const cellWithGap = cellSize + cellGap;
+    const cellSize = 15
+    const cellGap = 3
+    const cellWithGap = cellSize + cellGap
 
-    const monthLabelOffset = 48;
+    const monthLabelOffset = 48
 
     return (
       <div className="relative">
@@ -190,13 +190,13 @@ const EventsCalendar: React.FC = () => {
         <div className="overflow-x-auto pb-2">
           <div
             style={{
-              position: "relative",
-              paddingTop: "20px",
+              position: 'relative',
+              paddingTop: '20px',
               minWidth: `${Math.max(totalWeeks * cellWithGap, 720)}px`,
             }}
           >
             {}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
               {monthLabels.map((month, i) => (
                 <div
                   key={`month-${i}`}
@@ -223,32 +223,32 @@ const EventsCalendar: React.FC = () => {
                       marginBottom: `${cellGap}px`,
                     }}
                   >
-                    {i % 2 === 0 ? day : ""}
+                    {i % 2 === 0 ? day : ''}
                   </div>
                 ))}
               </div>
 
               {}
-              <div style={{ display: "flex" }}>
+              <div style={{ display: 'flex' }}>
                 {Array.from({ length: totalWeeks }).map((_, weekIndex) => (
                   <div
                     key={`week-${weekIndex}`}
                     style={{ marginRight: `${cellGap}px` }}
                   >
                     {Array.from({ length: 7 }).map((_, dayIndex) => {
-                      const dateIndex = weekIndex * 7 + dayIndex;
-                      const date = allDates[dateIndex];
-                      const isCurrentYear = date.getFullYear() === selectedYear;
+                      const dateIndex = weekIndex * 7 + dayIndex
+                      const date = allDates[dateIndex]
+                      const isCurrentYear = date.getFullYear() === selectedYear
 
                       const eventCount = isCurrentYear
                         ? getEventCountForDay(date)
-                        : 0;
-                      const colorClass = getColorIntensity(eventCount);
+                        : 0
+                      const colorClass = getColorIntensity(eventCount)
 
                       return (
                         <div
                           key={`cell-${weekIndex}-${dayIndex}`}
-                          className={`rounded-sm ${isCurrentYear ? colorClass : "bg-transparent"} cursor-pointer hover:ring-1 hover:ring-gray-400 dark:hover:ring-gray-500 transition-colors duration-200`}
+                          className={`rounded-sm ${isCurrentYear ? colorClass : 'bg-transparent'} cursor-pointer hover:ring-1 hover:ring-gray-400 dark:hover:ring-gray-500 transition-colors duration-200`}
                           style={{
                             width: `${cellSize}px`,
                             height: `${cellSize}px`,
@@ -256,11 +256,11 @@ const EventsCalendar: React.FC = () => {
                           }}
                           title={
                             isCurrentYear
-                              ? `${format(date, "yyyy-MM-dd")}: ${eventCount} ${isZh ? "个事件" : "events"}`
-                              : ""
+                              ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${isZh ? '个事件' : 'events'}`
+                              : ''
                           }
                         />
-                      );
+                      )
                     })}
                   </div>
                 ))}
@@ -281,12 +281,10 @@ const EventsCalendar: React.FC = () => {
           <span className="ml-2">{t.more}</span>
         </div>
       </div>
-    );
-  };
+    )
+  }
 
-  return (
-    <div className="rounded-lg border p-4">{renderCalendarGrid()}</div>
-  );
-};
+  return <div className="rounded-lg border p-4">{renderCalendarGrid()}</div>
+}
 
-export default EventsCalendar;
+export default EventsCalendar

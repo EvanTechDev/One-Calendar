@@ -1,5 +1,5 @@
-"use client";
-import React from "react";
+'use client'
+import React from 'react'
 
 export function Share(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -9,7 +9,7 @@ export function Share(props: React.SVGProps<SVGSVGElement>) {
       stroke-linejoin="round"
       viewBox="0 0 16 16"
       width="16"
-      style={{ color: "currentcolor" }}
+      style={{ color: 'currentcolor' }}
     >
       <path
         fill-rule="evenodd"
@@ -18,5 +18,5 @@ export function Share(props: React.SVGProps<SVGSVGElement>) {
         fill="currentColor"
       ></path>
     </svg>
-  );
+  )
 }
