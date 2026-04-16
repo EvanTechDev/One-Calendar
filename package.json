@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "bun run generate:locales && next build",
     "start": "next start",
+    "prepare": "husky",
     "generate:locales": "bun lib/gen-locales.mjs",
     "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
@@ -46,6 +47,9 @@
     "postcss": "8.5.8",
     "tailwindcss": "4.2.2",
     "turbo": "2.9.5",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "husky": "^9.0.0",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0"
   }
 }
