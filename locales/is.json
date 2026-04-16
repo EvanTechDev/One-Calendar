@@ -272,15 +272,7 @@
   "noEventsFound": "Engir viðburðir fundust",
   "less": "Minna",
   "more": "Meira",
-  "weekdays": [
-    "Sun",
-    "Mán",
-    "Þri",
-    "Mið",
-    "Fim",
-    "Fös",
-    "Lau"
-  ],
+  "weekdays": ["Sun", "Mán", "Þri", "Mið", "Fim", "Fös", "Lau"],
   "months": [
     "Jan",
     "Feb",

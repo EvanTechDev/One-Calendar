@@ -272,15 +272,7 @@
   "noEventsFound": "События не найдены",
   "less": "Меньше",
   "more": "Больше",
-  "weekdays": [
-    "Вс",
-    "Пн",
-    "Вт",
-    "Ср",
-    "Чт",
-    "Пт",
-    "Сб"
-  ],
+  "weekdays": ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
   "months": [
     "Янв",
     "Фев",
@@ -458,15 +450,7 @@
   "protected": "Защищено",
   "colorAmber": "Янтарный",
   "colorTeal": "Бирюзовый",
-  "sidebarCalendarWeekdaysShort": [
-    "вс",
-    "пн",
-    "вт",
-    "ср",
-    "чт",
-    "пт",
-    "сб"
-  ],
+  "sidebarCalendarWeekdaysShort": ["вс", "пн", "вт", "ср", "чт", "пт", "сб"],
   "sidebarCalendarMonthsLong": [
     "январь",
     "февраль",

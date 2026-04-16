@@ -272,15 +272,7 @@
   "noEventsFound": "Подій не знайдено",
   "less": "Менше",
   "more": "Більше",
-  "weekdays": [
-    "Нд",
-    "Пн",
-    "Вт",
-    "Ср",
-    "Чт",
-    "Пт",
-    "Сб"
-  ],
+  "weekdays": ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
   "months": [
     "Січ",
     "Лют",
@@ -458,15 +450,7 @@
   "protected": "Захищено",
   "colorAmber": "Бурштиновий",
   "colorTeal": "Бірюзовий",
-  "sidebarCalendarWeekdaysShort": [
-    "нд",
-    "пн",
-    "вт",
-    "ср",
-    "чт",
-    "пт",
-    "сб"
-  ],
+  "sidebarCalendarWeekdaysShort": ["нд", "пн", "вт", "ср", "чт", "пт", "сб"],
   "sidebarCalendarMonthsLong": [
     "січень",
     "лютий",

@@ -272,15 +272,7 @@
   "noEventsFound": "No events found",
   "less": "Less",
   "more": "More",
-  "weekdays": [
-    "Sun",
-    "Mon",
-    "Tue",
-    "Wed",
-    "Thu",
-    "Fri",
-    "Sat"
-  ],
+  "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   "months": [
     "Jan",
     "Feb",

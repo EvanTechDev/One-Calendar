@@ -272,15 +272,7 @@
   "noEventsFound": "Niciun eveniment găsit",
   "less": "Mai puțin",
   "more": "Mai mult",
-  "weekdays": [
-    "Dum",
-    "Lun",
-    "Mar",
-    "Mie",
-    "Joi",
-    "Vin",
-    "Sâm"
-  ],
+  "weekdays": ["Dum", "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm"],
   "months": [
     "Ian",
     "Feb",

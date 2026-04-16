@@ -272,15 +272,7 @@
   "noEventsFound": "Ingen hendelser funnet",
   "less": "Mindre",
   "more": "Mer",
-  "weekdays": [
-    "Søn",
-    "Man",
-    "Tir",
-    "Ons",
-    "Tor",
-    "Fre",
-    "Lør"
-  ],
+  "weekdays": ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"],
   "months": [
     "Jan",
     "Feb",

@@ -272,15 +272,7 @@
   "noEventsFound": "Etkinlik bulunamadı",
   "less": "Daha az",
   "more": "Daha fazla",
-  "weekdays": [
-    "Paz",
-    "Pzt",
-    "Sal",
-    "Çar",
-    "Per",
-    "Cum",
-    "Cmt"
-  ],
+  "weekdays": ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"],
   "months": [
     "Oca",
     "Şub",

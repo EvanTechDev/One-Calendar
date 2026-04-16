@@ -272,15 +272,7 @@
   "noEventsFound": "Nema pronađenih događaja",
   "less": "Manje",
   "more": "Više",
-  "weekdays": [
-    "Ned",
-    "Pon",
-    "Uto",
-    "Sre",
-    "Čet",
-    "Pet",
-    "Sub"
-  ],
+  "weekdays": ["Ned", "Pon", "Uto", "Sre", "Čet", "Pet", "Sub"],
   "months": [
     "Jan",
     "Feb",

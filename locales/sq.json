@@ -272,15 +272,7 @@
   "noEventsFound": "Nuk u gjetën ngjarje",
   "less": "Më pak",
   "more": "Më shumë",
-  "weekdays": [
-    "Die",
-    "Hën",
-    "Mar",
-    "Mër",
-    "Enj",
-    "Pre",
-    "Sht"
-  ],
+  "weekdays": ["Die", "Hën", "Mar", "Mër", "Enj", "Pre", "Sht"],
   "months": [
     "Jan",
     "Shk",

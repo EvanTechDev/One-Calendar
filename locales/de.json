@@ -272,15 +272,7 @@
   "noEventsFound": "Keine Ereignisse gefunden",
   "less": "Weniger",
   "more": "Mehr",
-  "weekdays": [
-    "So",
-    "Mo",
-    "Di",
-    "Mi",
-    "Do",
-    "Fr",
-    "Sa"
-  ],
+  "weekdays": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
   "months": [
     "Jan",
     "Feb",
@@ -458,15 +450,7 @@
   "protected": "Geschützt",
   "colorAmber": "Bernstein",
   "colorTeal": "Türkis",
-  "sidebarCalendarWeekdaysShort": [
-    "So",
-    "Mo",
-    "Di",
-    "Mi",
-    "Do",
-    "Fr",
-    "Sa"
-  ],
+  "sidebarCalendarWeekdaysShort": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
   "sidebarCalendarMonthsLong": [
     "Januar",
     "Februar",

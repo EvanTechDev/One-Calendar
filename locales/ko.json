@@ -272,15 +272,7 @@
   "noEventsFound": "이벤트 없음",
   "less": "적음",
   "more": "더",
-  "weekdays": [
-    "일",
-    "월",
-    "화",
-    "수",
-    "목",
-    "금",
-    "토"
-  ],
+  "weekdays": ["일", "월", "화", "수", "목", "금", "토"],
   "months": [
     "1월",
     "2월",
@@ -458,15 +450,7 @@
   "protected": "보호됨",
   "colorAmber": "호박색",
   "colorTeal": "청록색",
-  "sidebarCalendarWeekdaysShort": [
-    "일",
-    "월",
-    "화",
-    "수",
-    "목",
-    "금",
-    "토"
-  ],
+  "sidebarCalendarWeekdaysShort": ["일", "월", "화", "수", "목", "금", "토"],
   "sidebarCalendarMonthsLong": [
     "1월",
     "2월",

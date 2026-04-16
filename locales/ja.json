@@ -458,15 +458,7 @@
   "protected": "保護済み",
   "colorAmber": "琥珀色",
   "colorTeal": "青緑",
-  "sidebarCalendarWeekdaysShort": [
-    "日",
-    "月",
-    "火",
-    "水",
-    "木",
-    "金",
-    "土"
-  ],
+  "sidebarCalendarWeekdaysShort": ["日", "月", "火", "水", "木", "金", "土"],
   "sidebarCalendarMonthsLong": [
     "1月",
     "2月",

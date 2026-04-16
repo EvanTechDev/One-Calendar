@@ -272,15 +272,7 @@
   "noEventsFound": "ไม่พบกิจกรรม",
   "less": "น้อยลง",
   "more": "เพิ่มเติม",
-  "weekdays": [
-    "อา.",
-    "จ.",
-    "อ.",
-    "พ.",
-    "พฤ.",
-    "ศ.",
-    "ส."
-  ],
+  "weekdays": ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."],
   "months": [
     "ม.ค.",
     "ก.พ.",
@@ -458,15 +450,7 @@
   "protected": "มีการป้องกัน",
   "colorAmber": "สีอำพัน",
   "colorTeal": "สีเขียวน้ำทะเล",
-  "sidebarCalendarWeekdaysShort": [
-    "อา",
-    "จ",
-    "อ",
-    "พ",
-    "พฤ",
-    "ศ",
-    "ส"
-  ],
+  "sidebarCalendarWeekdaysShort": ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"],
   "sidebarCalendarMonthsLong": [
     "มกราคม",
     "กุมภาพันธ์",

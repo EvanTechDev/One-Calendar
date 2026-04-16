@@ -272,15 +272,7 @@
   "noEventsFound": "Tapahtumia ei löytynyt",
   "less": "Vähemmän",
   "more": "Lisää",
-  "weekdays": [
-    "Su",
-    "Ma",
-    "Ti",
-    "Ke",
-    "To",
-    "Pe",
-    "La"
-  ],
+  "weekdays": ["Su", "Ma", "Ti", "Ke", "To", "Pe", "La"],
   "months": [
     "Tammi",
     "Helmi",
@@ -458,15 +450,7 @@
   "protected": "Suojattu",
   "colorAmber": "Meripihka",
   "colorTeal": "Sinivihreä",
-  "sidebarCalendarWeekdaysShort": [
-    "su",
-    "ma",
-    "ti",
-    "ke",
-    "to",
-    "pe",
-    "la"
-  ],
+  "sidebarCalendarWeekdaysShort": ["su", "ma", "ti", "ke", "to", "pe", "la"],
   "sidebarCalendarMonthsLong": [
     "tammikuu",
     "helmikuu",

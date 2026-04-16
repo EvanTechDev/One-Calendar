@@ -272,15 +272,7 @@
   "noEventsFound": "Geen afspraken gevonden",
   "less": "Minder",
   "more": "Meer",
-  "weekdays": [
-    "Zo",
-    "Ma",
-    "Di",
-    "Wo",
-    "Do",
-    "Vr",
-    "Za"
-  ],
+  "weekdays": ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"],
   "months": [
     "Jan",
     "Feb",
@@ -458,15 +450,7 @@
   "protected": "Beveiligd",
   "colorAmber": "Amber",
   "colorTeal": "Blauwgroen",
-  "sidebarCalendarWeekdaysShort": [
-    "zo",
-    "ma",
-    "di",
-    "wo",
-    "do",
-    "vr",
-    "za"
-  ],
+  "sidebarCalendarWeekdaysShort": ["zo", "ma", "di", "wo", "do", "vr", "za"],
   "sidebarCalendarMonthsLong": [
     "januari",
     "februari",

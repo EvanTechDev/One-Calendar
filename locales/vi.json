@@ -272,15 +272,7 @@
   "noEventsFound": "Không tìm thấy sự kiện",
   "less": "Ít hơn",
   "more": "Thêm",
-  "weekdays": [
-    "CN",
-    "T2",
-    "T3",
-    "T4",
-    "T5",
-    "T6",
-    "T7"
-  ],
+  "weekdays": ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
   "months": [
     "Th1",
     "Th2",
