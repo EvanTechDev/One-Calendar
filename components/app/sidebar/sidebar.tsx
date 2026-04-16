@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Dialog,
@@ -7,66 +7,66 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useCalendar } from "@/components/providers/calendar-context";
-import { translations, type Language } from "@/lib/i18n";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus, X, Edit2 } from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import Image from "next/image";
+} from '@/components/ui/select'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { translations, type Language } from '@/lib/i18n'
+import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Plus, X, Edit2 } from 'lucide-react'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import Image from 'next/image'
 
 interface SidebarProps {
-  onCreateEvent: () => void;
-  onDateSelect: (date: Date) => void;
-  onViewChange?: (view: string) => void;
-  language?: Language;
-  selectedDate?: Date;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
-  selectedCategoryFilters?: string[];
-  onCategoryFilterChange?: (categoryId: string, checked: boolean) => void;
-  onCollapseTransitionEnd?: () => void;
+  onCreateEvent: () => void
+  onDateSelect: (date: Date) => void
+  onViewChange?: (view: string) => void
+  language?: Language
+  selectedDate?: Date
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
+  selectedCategoryFilters?: string[]
+  onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
+  onCollapseTransitionEnd?: () => void
 }
 
 export interface CalendarCategory {
-  id: string;
-  name: string;
-  color: string;
-  keywords?: string[];
+  id: string
+  name: string
+  color: string
+  keywords?: string[]
 }
 
 const CALENDAR_COLOR_OPTIONS = [
-  { value: "bg-blue-500", hex: "#3b82f6", labelKey: "colorBlue" },
-  { value: "bg-green-500", hex: "#10b981", labelKey: "colorGreen" },
-  { value: "bg-yellow-500", hex: "#f59e0b", labelKey: "colorYellow" },
-  { value: "bg-red-500", hex: "#ef4444", labelKey: "colorRed" },
-  { value: "bg-purple-500", hex: "#8b5cf6", labelKey: "colorPurple" },
-  { value: "bg-pink-500", hex: "#ec4899", labelKey: "colorPink" },
-  { value: "bg-teal-500", hex: "#14b8a6", labelKey: "colorTeal" },
-] as const;
+  { value: 'bg-blue-500', hex: '#3b82f6', labelKey: 'colorBlue' },
+  { value: 'bg-green-500', hex: '#10b981', labelKey: 'colorGreen' },
+  { value: 'bg-yellow-500', hex: '#f59e0b', labelKey: 'colorYellow' },
+  { value: 'bg-red-500', hex: '#ef4444', labelKey: 'colorRed' },
+  { value: 'bg-purple-500', hex: '#8b5cf6', labelKey: 'colorPurple' },
+  { value: 'bg-pink-500', hex: '#ec4899', labelKey: 'colorPink' },
+  { value: 'bg-teal-500', hex: '#14b8a6', labelKey: 'colorTeal' },
+] as const
 
 const CALENDAR_COLOR_MAP = Object.fromEntries(
   CALENDAR_COLOR_OPTIONS.map((option) => [option.value, option.hex]),
-);
+)
 
 export default function Sidebar({
   onCreateEvent,
   onDateSelect,
   onViewChange,
-  language = "zh-CN",
+  language = 'zh-CN',
   selectedDate,
   isCollapsed = false,
   onToggleCollapse,
@@ -81,39 +81,39 @@ export default function Sidebar({
     addCategory: addCategoryToContext,
     removeCategory: removeCategoryFromContext,
     updateCategory: updateCategoryInContext,
-  } = useCalendar();
+  } = useCalendar()
 
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryColor, setNewCategoryColor] = useState("bg-blue-500");
-  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryColor, setNewCategoryColor] = useState('bg-blue-500')
+  const [showAddCategory, setShowAddCategory] = useState(false)
   const [localSelectedDate, setLocalSelectedDate] = useState<Date | undefined>(
     selectedDate || new Date(),
-  );
-  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
-  const [deleteCategoryEvents, setDeleteCategoryEvents] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  )
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
+  const [deleteCategoryEvents, setDeleteCategoryEvents] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
-  );
-  const [editingCategoryName, setEditingCategoryName] = useState("");
+  )
+  const [editingCategoryName, setEditingCategoryName] = useState('')
   const [editingCategoryColor, setEditingCategoryColor] =
-    useState("bg-blue-500");
-  const t = translations[language || "zh-CN"];
-  const weekdayNames = t.sidebarCalendarWeekdaysShort;
-  const monthNames = t.sidebarCalendarMonthsLong;
-  const monthYearTemplate = t.sidebarCalendarMonthYearFormat;
+    useState('bg-blue-500')
+  const t = translations[language || 'zh-CN']
+  const weekdayNames = t.sidebarCalendarWeekdaysShort
+  const monthNames = t.sidebarCalendarMonthsLong
+  const monthYearTemplate = t.sidebarCalendarMonthYearFormat
 
   const formatCalendarCaption = (date: Date) => {
-    const month = monthNames[date.getMonth()];
+    const month = monthNames[date.getMonth()]
     const year = new Intl.NumberFormat(language, { useGrouping: false }).format(
       date.getFullYear(),
-    );
+    )
     return monthYearTemplate
-      .replace("{{month}}", month)
-      .replace("{{year}}", year);
-  };
+      .replace('{{month}}', month)
+      .replace('{{year}}', year)
+  }
 
   const deleteText = {
     title: t.deleteConfirmationTitle,
@@ -122,20 +122,20 @@ export default function Sidebar({
     delete: t.delete,
     toastSuccess: t.categoryDeleted,
     toastDescription: t.categoryDeletedDescription,
-  };
+  }
   const deleteCategoryEventsLabel =
-    t.deleteCategoryEvents || "同时删除此分类下的所有日程";
+    t.deleteCategoryEvents || '同时删除此分类下的所有日程'
 
   useEffect(() => {
     if (selectedDate) {
       setLocalSelectedDate((prev) => {
         if (!prev || prev.getTime() !== selectedDate.getTime()) {
-          return selectedDate;
+          return selectedDate
         }
-        return prev;
-      });
+        return prev
+      })
     }
-  }, [selectedDate]);
+  }, [selectedDate])
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
@@ -144,76 +144,76 @@ export default function Sidebar({
         name: newCategoryName.trim(),
         color: newCategoryColor,
         keywords: [],
-      };
-      addCategoryToContext(newCategory);
-      setNewCategoryName("");
-      setNewCategoryColor("bg-blue-500");
-      setShowAddCategory(false);
-      setManageCategoriesOpen(false);
-      toast(t.categoryAdded || "分类已添加", {
-        description: `${t.categoryAddedDesc || "已成功添加"} "${newCategoryName}" ${t.category || "分类"}`,
-      });
+      }
+      addCategoryToContext(newCategory)
+      setNewCategoryName('')
+      setNewCategoryColor('bg-blue-500')
+      setShowAddCategory(false)
+      setManageCategoriesOpen(false)
+      toast(t.categoryAdded || '分类已添加', {
+        description: `${t.categoryAddedDesc || '已成功添加'} "${newCategoryName}" ${t.category || '分类'}`,
+      })
     }
-  };
+  }
 
   const handleDeleteClick = (id: string) => {
-    setCategoryToDelete(id);
-    setDeleteCategoryEvents(false);
-    setDeleteDialogOpen(true);
-  };
+    setCategoryToDelete(id)
+    setDeleteCategoryEvents(false)
+    setDeleteDialogOpen(true)
+  }
 
   const handleEditClick = (id: string) => {
-    const category = calendars.find((calendar) => calendar.id === id);
-    if (!category) return;
-    setEditingCategoryId(id);
-    setEditingCategoryName(category.name);
-    setEditingCategoryColor(category.color);
-    setEditDialogOpen(true);
-  };
+    const category = calendars.find((calendar) => calendar.id === id)
+    if (!category) return
+    setEditingCategoryId(id)
+    setEditingCategoryName(category.name)
+    setEditingCategoryColor(category.color)
+    setEditDialogOpen(true)
+  }
 
   const saveCategoryEdit = () => {
-    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    if (!editingCategoryId || !editingCategoryName.trim()) return
     updateCategoryInContext(editingCategoryId, {
       name: editingCategoryName.trim(),
       color: editingCategoryColor,
-    });
-    setEditDialogOpen(false);
-    setEditingCategoryId(null);
-    toast(t.categoryUpdated || "分类已更新");
-  };
+    })
+    setEditDialogOpen(false)
+    setEditingCategoryId(null)
+    toast(t.categoryUpdated || '分类已更新')
+  }
 
   const confirmDelete = () => {
     if (categoryToDelete) {
       if (deleteCategoryEvents) {
         setEvents(
           events.filter((event) => event.calendarId !== categoryToDelete),
-        );
+        )
       }
-      removeCategoryFromContext(categoryToDelete);
+      removeCategoryFromContext(categoryToDelete)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
           ? t.categoryDeletedWithEvents
           : deleteText.toastDescription,
-      });
+      })
     }
-    setDeleteDialogOpen(false);
-    setCategoryToDelete(null);
-    setDeleteCategoryEvents(false);
-  };
+    setDeleteDialogOpen(false)
+    setCategoryToDelete(null)
+    setDeleteCategoryEvents(false)
+  }
 
   return (
     <div
-      style={{ "--sidebar-calendar-width": "17rem" } as CSSProperties}
+      style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
       className={cn(
-        "border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-[247px] opacity-100",
+        'border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
+        isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
       )}
       onTransitionEnd={(event) => {
         if (
           event.target === event.currentTarget &&
-          event.propertyName === "width"
+          event.propertyName === 'width'
         ) {
-          onCollapseTransitionEnd?.();
+          onCollapseTransitionEnd?.()
         }
       }}
     >
@@ -245,8 +245,8 @@ export default function Sidebar({
               formatWeekdayName: (date) => weekdayNames[date.getDay()],
             }}
             onSelect={(date) => {
-              setLocalSelectedDate(date);
-              date && onDateSelect(date);
+              setLocalSelectedDate(date)
+              date && onDateSelect(date)
             }}
             className="rounded-lg border"
           />
@@ -270,7 +270,7 @@ export default function Sidebar({
                   className="h-4 w-4 rounded-md border-0 data-[state=checked]:text-white"
                   style={{
                     backgroundColor:
-                      CALENDAR_COLOR_MAP[calendar.color] ?? "#3b82f6",
+                      CALENDAR_COLOR_MAP[calendar.color] ?? '#3b82f6',
                   }}
                 />
                 <span className="text-sm">{calendar.name}</span>
@@ -296,10 +296,10 @@ export default function Sidebar({
           {calendars.length > 0 && (
             <div className="flex items-center space-x-2">
               <Checkbox
-                checked={selectedCategoryFilters.includes("__uncategorized__")}
+                checked={selectedCategoryFilters.includes('__uncategorized__')}
                 onCheckedChange={(checked) =>
                   onCategoryFilterChange?.(
-                    "__uncategorized__",
+                    '__uncategorized__',
                     checked === true,
                   )
                 }
@@ -315,11 +315,11 @@ export default function Sidebar({
               <Input
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder={t.categoryName || "新日历名称"}
+                placeholder={t.categoryName || '新日历名称'}
                 className="text-sm"
               />
               <Button size="sm" onClick={addCategory}>
-                {t.addCategory || "添加"}
+                {t.addCategory || '添加'}
               </Button>
             </div>
           ) : (
@@ -486,5 +486,5 @@ export default function Sidebar({
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

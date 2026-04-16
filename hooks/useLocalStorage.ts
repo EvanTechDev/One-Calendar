@@ -1,7 +1,11 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState, type SetStateAction } from "react"
-import { decryptPayload, encryptPayload, isEncryptedPayload } from "@/lib/crypto"
+import { useEffect, useRef, useState, type SetStateAction } from 'react'
+import {
+  decryptPayload,
+  encryptPayload,
+  isEncryptedPayload,
+} from '@/lib/crypto'
 
 type EncryptionState = {
   enabled: boolean
@@ -25,11 +29,11 @@ const inMemoryStorage = new Map<string, string>()
 const subscribers = new Set<() => void>()
 
 const SENSITIVE_KEYS = new Set([
-  "calendar-events",
-  "calendar-categories",
-  "bookmarked-events",
-  "shared-events",
-  "countdowns",
+  'calendar-events',
+  'calendar-categories',
+  'bookmarked-events',
+  'shared-events',
+  'countdowns',
 ])
 
 function tryParse(value: string) {
@@ -43,7 +47,7 @@ function tryParse(value: string) {
 function coerceStoredValue<T>(raw: string, initialValue: T): T {
   const parsed = tryParse(raw)
   if (parsed.ok) return parsed.parsed as T
-  if (typeof initialValue === "string" || initialValue === null) {
+  if (typeof initialValue === 'string' || initialValue === null) {
     return raw as T
   }
   return initialValue
@@ -54,8 +58,10 @@ function notifySubscribers() {
 }
 
 function emitStorageWrite(key: string) {
-  if (typeof window === "undefined") return
-  window.dispatchEvent(new CustomEvent("local-storage-written", { detail: { key } }))
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent('local-storage-written', { detail: { key } }),
+  )
 }
 
 export function isSensitiveStorageKey(key: string) {
@@ -132,7 +138,11 @@ export async function decryptSnapshots(password: string) {
       try {
         const parsed = tryParse(snapshot.value)
         if (!parsed.ok || !isEncryptedPayload(parsed.parsed)) return
-        const plain = await decryptPayload(password, parsed.parsed.ciphertext, parsed.parsed.iv)
+        const plain = await decryptPayload(
+          password,
+          parsed.parsed.ciphertext,
+          parsed.parsed.iv,
+        )
         snapshot.value = plain
         snapshot.failed = false
       } catch {
@@ -173,8 +183,11 @@ export async function persistEncryptedSnapshots() {
   })
 }
 
-export async function readEncryptedLocalStorage<T>(key: string, initialValue: T): Promise<T> {
-  if (typeof window === "undefined") {
+export async function readEncryptedLocalStorage<T>(
+  key: string,
+  initialValue: T,
+): Promise<T> {
+  if (typeof window === 'undefined') {
     return initialValue
   }
   try {
@@ -222,7 +235,7 @@ export async function readEncryptedLocalStorage<T>(key: string, initialValue: T)
 }
 
 export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
-  if (typeof window === "undefined") return
+  if (typeof window === 'undefined') return
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
@@ -249,7 +262,7 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
 }
 
 async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return initialValue
   }
   try {
@@ -291,7 +304,7 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
 }
 
 async function writeLocalStorage<T>(key: string, value: T) {
-  if (typeof window === "undefined") return
+  if (typeof window === 'undefined') return
   try {
     const raw = JSON.stringify(value)
     if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
@@ -319,7 +332,9 @@ async function writeLocalStorage<T>(key: string, value: T) {
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(initialValue)
-  const [serializedValue, setSerializedValue] = useState(() => JSON.stringify(initialValue))
+  const [serializedValue, setSerializedValue] = useState(() =>
+    JSON.stringify(initialValue),
+  )
   const localWriteVersionRef = useRef(0)
 
   const updateStoredValue = (value: SetStateAction<T>) => {
@@ -377,10 +392,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       }
     }
 
-    window.addEventListener("local-storage-written", handleStorageWritten)
+    window.addEventListener('local-storage-written', handleStorageWritten)
     return () => {
       unsubscribe()
-      window.removeEventListener("local-storage-written", handleStorageWritten)
+      window.removeEventListener('local-storage-written', handleStorageWritten)
     }
   }, [key, initialValue])
 

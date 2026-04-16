@@ -1,21 +1,23 @@
-"use client"
+'use client'
 
-import Calendar from "@/components/app/calendar"
-import AuthWaitingLoading from "@/components/app/auth-waiting-loading"
-import { useUser } from "@clerk/nextjs"
-import { useEffect, useMemo, useState } from "react"
+import Calendar from '@/components/app/calendar'
+import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
+import { useUser } from '@clerk/nextjs'
+import { useEffect, useMemo, useState } from 'react'
 
 function hasClerkSessionCookie() {
-  if (typeof document === "undefined") return false
+  if (typeof document === 'undefined') return false
 
   return document.cookie
-    .split(";")
-    .some((cookie) => cookie.trim().startsWith("__session="))
+    .split(';')
+    .some((cookie) => cookie.trim().startsWith('__session='))
 }
 
 export default function Home() {
   const { isLoaded, isSignedIn } = useUser()
-  const [hasSessionCookie, setHasSessionCookie] = useState(hasClerkSessionCookie)
+  const [hasSessionCookie, setHasSessionCookie] = useState(
+    hasClerkSessionCookie,
+  )
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
@@ -24,7 +26,6 @@ export default function Home() {
     const waitTimer = window.setTimeout(() => {
       setMinimumWaitDone(true)
     }, 500)
-
 
     const cookieCheckTimer = window.setInterval(() => {
       if (hasClerkSessionCookie()) {
@@ -40,12 +41,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
-    fetch("/api/atproto/logout", { method: "POST" })
+    fetch('/api/atproto/logout', { method: 'POST' })
       .catch(() => undefined)
       .finally(() => setAtprotoLogoutDone(true))
   }, [isLoaded, isSignedIn, atprotoLogoutDone])
-
-
 
   useEffect(() => {
     if (!isLoaded) return
@@ -58,7 +57,7 @@ export default function Home() {
     let active = true
     const checkDbDataReady = async () => {
       try {
-        const response = await fetch("/api/blob", { cache: "no-store" })
+        const response = await fetch('/api/blob', { cache: 'no-store' })
         if (!active) return
         if (response.status === 200 || response.status === 404) {
           setDbReady(true)

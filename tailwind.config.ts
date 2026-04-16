@@ -1,3 +1,3 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss'
 
-export default {} satisfies Config;
+export default {} satisfies Config

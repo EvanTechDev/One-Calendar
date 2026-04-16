@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { zhCN, enUS } from "date-fns/locale";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { format } from "date-fns";
+import { zhCN, enUS } from 'date-fns/locale'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+import { format } from 'date-fns'
 import {
   MapPin,
   Users,
@@ -21,42 +21,42 @@ import {
   Home,
   Lock,
   Flame,
-} from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
-import { isZhLanguage, useLanguage } from "@/lib/i18n";
+} from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { isZhLanguage, useLanguage } from '@/lib/i18n'
 
-import { Button } from "@/components/ui/button";
-import { useCalendar } from "@/components/providers/calendar-context";
-import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button'
+import { useCalendar } from '@/components/providers/calendar-context'
+import { motion } from 'framer-motion'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface SharedEvent {
-  id: string;
-  title: string;
-  startDate: string;
-  endDate: string;
-  isAllDay: boolean;
-  location?: string;
-  participants: string[];
-  notification: number;
-  description?: string;
-  color: string;
-  calendarId: string;
-  sharedBy: string;
+  id: string
+  title: string
+  startDate: string
+  endDate: string
+  isAllDay: boolean
+  location?: string
+  participants: string[]
+  notification: number
+  description?: string
+  color: string
+  calendarId: string
+  sharedBy: string
 }
 
 interface SharedEventViewProps {
-  shareId: string;
-  handle?: string;
+  shareId: string
+  handle?: string
 }
 
 function SharePageLegalLinks({ isZh }: { isZh: boolean }) {
@@ -66,223 +66,223 @@ function SharePageLegalLinks({ isZh }: { isZh: boolean }) {
         href="/privacy"
         className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
       >
-        {isZh ? "隐私政策" : "Privacy Policy"}
+        {isZh ? '隐私政策' : 'Privacy Policy'}
       </Link>
       <span className="text-muted-foreground/50">•</span>
       <Link
         href="/terms"
         className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
       >
-        {isZh ? "服务条款" : "Terms of Service"}
+        {isZh ? '服务条款' : 'Terms of Service'}
       </Link>
     </div>
-  );
+  )
 }
 
 function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
-    "bg-[#E6F6FD]": "#3B82F6",
-    "bg-[#E7F8F2]": "#10B981",
-    "bg-[#FEF5E6]": "#F59E0B",
-    "bg-[#FFE4E6]": "#EF4444",
-    "bg-[#F3EEFE]": "#8B5CF6",
-    "bg-[#FCE7F3]": "#EC4899",
-    "bg-[#EEF2FF]": "#6366F1",
-    "bg-[#FFF0E5]": "#FB923C",
-    "bg-[#E6FAF7]": "#14B8A6",
-  };
+    'bg-[#E6F6FD]': '#3B82F6',
+    'bg-[#E7F8F2]': '#10B981',
+    'bg-[#FEF5E6]': '#F59E0B',
+    'bg-[#FFE4E6]': '#EF4444',
+    'bg-[#F3EEFE]': '#8B5CF6',
+    'bg-[#FCE7F3]': '#EC4899',
+    'bg-[#EEF2FF]': '#6366F1',
+    'bg-[#FFF0E5]': '#FB923C',
+    'bg-[#E6FAF7]': '#14B8A6',
+  }
 
-  return colorMapping[color] || "#3A3A3A";
+  return colorMapping[color] || '#3A3A3A'
 }
 
 export default function SharedEventView({
   shareId,
   handle,
 }: SharedEventViewProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [language] = useLanguage();
-  const isZh = isZhLanguage(language);
+  const router = useRouter()
+  const { toast } = useToast()
+  const [language] = useLanguage()
+  const isZh = isZhLanguage(language)
 
-  const [event, setEvent] = useState<SharedEvent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [event, setEvent] = useState<SharedEvent | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [requiresPassword, setRequiresPassword] = useState(false);
-  const [burnAfterRead, setBurnAfterRead] = useState(false);
-  const [password, setPassword] = useState("");
-  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [requiresPassword, setRequiresPassword] = useState(false)
+  const [burnAfterRead, setBurnAfterRead] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
-  const [isAdding, setIsAdding] = useState(false);
-  const { calendars, events, setEvents } = useCalendar();
-  const [copied, setCopied] = useState(false);
+  const [isAdding, setIsAdding] = useState(false)
+  const { calendars, events, setEvents } = useCalendar()
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const fetchSharedEvent = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        setEvent(null);
-        setRequiresPassword(false);
-        setBurnAfterRead(false);
-        setPassword("");
-        setPasswordSubmitting(false);
-        setPasswordError(null);
+        setLoading(true)
+        setError(null)
+        setEvent(null)
+        setRequiresPassword(false)
+        setBurnAfterRead(false)
+        setPassword('')
+        setPasswordSubmitting(false)
+        setPasswordError(null)
 
         if (!shareId) {
-          setError("No share ID provided");
-          return;
+          setError('No share ID provided')
+          return
         }
 
         const response = await fetch(
           handle
             ? `/api/share/public?handle=${encodeURIComponent(handle)}&id=${encodeURIComponent(shareId)}`
             : `/api/share?id=${encodeURIComponent(shareId)}`,
-        );
+        )
 
         if (!response.ok) {
           if (response.status === 401) {
-            const payload = await response.json().catch(() => null);
+            const payload = await response.json().catch(() => null)
             if (payload?.requiresPassword) {
-              setRequiresPassword(true);
-              setBurnAfterRead(!!payload?.burnAfterRead);
-              return;
+              setRequiresPassword(true)
+              setBurnAfterRead(!!payload?.burnAfterRead)
+              return
             }
           }
           setError(
             response.status === 404
-              ? "Shared event not found"
-              : "Failed to load shared event",
-          );
-          return;
+              ? 'Shared event not found'
+              : 'Failed to load shared event',
+          )
+          return
         }
 
-        const result = await response.json();
+        const result = await response.json()
         if (!result?.success || !result?.data) {
-          setError("Invalid share data");
-          return;
+          setError('Invalid share data')
+          return
         }
 
         const eventData =
-          typeof result.data === "object"
+          typeof result.data === 'object'
             ? result.data
-            : JSON.parse(result.data);
-        setEvent(eventData);
-        setBurnAfterRead(!!result?.burnAfterRead);
+            : JSON.parse(result.data)
+        setEvent(eventData)
+        setBurnAfterRead(!!result?.burnAfterRead)
       } catch {
-        setError("Failed to load shared event");
+        setError('Failed to load shared event')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchSharedEvent();
-  }, [shareId, handle]);
+    fetchSharedEvent()
+  }, [shareId, handle])
 
   useEffect(() => {
     if (event?.title) {
-      document.title = `${event.title} | One Calendar`;
-      return;
+      document.title = `${event.title} | One Calendar`
+      return
     }
 
     if (requiresPassword) {
-      document.title = "Protected | One Calendar";
+      document.title = 'Protected | One Calendar'
     }
-  }, [event, requiresPassword]);
+  }, [event, requiresPassword])
 
   const tryDecryptWithPassword = async () => {
-    if (!shareId) return;
+    if (!shareId) return
 
-    const pwd = password;
+    const pwd = password
     if (!pwd) {
-      setPasswordError(isZh ? "请输入密码" : "Please enter a password");
-      return;
+      setPasswordError(isZh ? '请输入密码' : 'Please enter a password')
+      return
     }
 
     try {
-      setPasswordSubmitting(true);
-      setPasswordError(null);
+      setPasswordSubmitting(true)
+      setPasswordError(null)
 
       const url = handle
         ? `/api/share/public?handle=${encodeURIComponent(handle)}&id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`
-        : `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`;
-      const response = await fetch(url);
+        : `/api/share?id=${encodeURIComponent(shareId)}&password=${encodeURIComponent(pwd)}`
+      const response = await fetch(url)
 
       if (!response.ok) {
         if (response.status === 401) {
-          const payload = await response.json().catch(() => null);
-          setBurnAfterRead(!!payload?.burnAfterRead);
-          setPasswordError(isZh ? "需要密码" : "Password required");
-          setRequiresPassword(true);
-          return;
+          const payload = await response.json().catch(() => null)
+          setBurnAfterRead(!!payload?.burnAfterRead)
+          setPasswordError(isZh ? '需要密码' : 'Password required')
+          setRequiresPassword(true)
+          return
         }
         if (response.status === 403) {
-          setPasswordError(isZh ? "密码错误" : "Invalid password");
-          setRequiresPassword(true);
-          return;
+          setPasswordError(isZh ? '密码错误' : 'Invalid password')
+          setRequiresPassword(true)
+          return
         }
         if (response.status === 404) {
           setPasswordError(
             isZh
-              ? "分享不存在或已被销毁"
-              : "Share not found or already destroyed",
-          );
-          setRequiresPassword(true);
-          return;
+              ? '分享不存在或已被销毁'
+              : 'Share not found or already destroyed',
+          )
+          setRequiresPassword(true)
+          return
         }
-        setPasswordError(isZh ? "解密失败" : "Failed to decrypt");
-        setRequiresPassword(true);
-        return;
+        setPasswordError(isZh ? '解密失败' : 'Failed to decrypt')
+        setRequiresPassword(true)
+        return
       }
 
-      const result = await response.json();
+      const result = await response.json()
       if (!result?.success || !result?.data) {
-        setPasswordError(isZh ? "数据无效" : "Invalid data");
-        setRequiresPassword(true);
-        return;
+        setPasswordError(isZh ? '数据无效' : 'Invalid data')
+        setRequiresPassword(true)
+        return
       }
 
       const eventData =
-        typeof result.data === "object" ? result.data : JSON.parse(result.data);
-      setEvent(eventData);
-      setBurnAfterRead(!!result?.burnAfterRead);
-      setRequiresPassword(false);
-      setPasswordError(null);
+        typeof result.data === 'object' ? result.data : JSON.parse(result.data)
+      setEvent(eventData)
+      setBurnAfterRead(!!result?.burnAfterRead)
+      setRequiresPassword(false)
+      setPasswordError(null)
 
       if (result?.burnAfterRead) {
         toast({
-          title: isZh ? "阅后即焚" : "Burn after read",
+          title: isZh ? '阅后即焚' : 'Burn after read',
           description: isZh
-            ? "已成功查看，该分享已从服务器删除。"
-            : "Viewed successfully. This share has been deleted from the server.",
-        });
+            ? '已成功查看，该分享已从服务器删除。'
+            : 'Viewed successfully. This share has been deleted from the server.',
+        })
       }
     } catch {
-      setPasswordError(isZh ? "解密失败" : "Failed to decrypt");
-      setRequiresPassword(true);
+      setPasswordError(isZh ? '解密失败' : 'Failed to decrypt')
+      setRequiresPassword(true)
     } finally {
-      setPasswordSubmitting(false);
-      setLoading(false);
+      setPasswordSubmitting(false)
+      setLoading(false)
     }
-  };
+  }
 
   const formatDateWithTimezone = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "yyyy-MM-dd HH:mm", { locale: isZh ? zhCN : enUS });
-  };
+    const date = new Date(dateString)
+    return format(date, 'yyyy-MM-dd HH:mm', { locale: isZh ? zhCN : enUS })
+  }
 
   const handleAddToCalendar = async () => {
-    if (!event) return;
+    if (!event) return
 
     try {
-      setIsAdding(true);
+      setIsAdding(true)
 
-      let targetCalendarId = event.calendarId;
+      let targetCalendarId = event.calendarId
       const calendarExists = calendars.some(
         (cal) => cal.id === targetCalendarId,
-      );
-      if (!calendarExists) targetCalendarId = calendars[0]?.id ?? "default";
+      )
+      if (!calendarExists) targetCalendarId = calendars[0]?.id ?? 'default'
 
       const newEvent = {
         ...event,
@@ -290,41 +290,41 @@ export default function SharedEventView({
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
         calendarId: targetCalendarId,
-      };
+      }
 
-      setEvents([...events, newEvent]);
+      setEvents([...events, newEvent])
 
       toast({
-        title: isZh ? "添加成功" : "Added Successfully",
+        title: isZh ? '添加成功' : 'Added Successfully',
         description: isZh
-          ? "事件已添加到您的日历"
-          : "Event has been added to your calendar",
-      });
+          ? '事件已添加到您的日历'
+          : 'Event has been added to your calendar',
+      })
 
-      setTimeout(() => router.push("/"), 1500);
+      setTimeout(() => router.push('/'), 1500)
     } catch (e) {
       toast({
-        title: isZh ? "添加失败" : "Add Failed",
+        title: isZh ? '添加失败' : 'Add Failed',
         description:
-          e instanceof Error ? e.message : isZh ? "未知错误" : "Unknown error",
-        variant: "destructive",
-      });
+          e instanceof Error ? e.message : isZh ? '未知错误' : 'Unknown error',
+        variant: 'destructive',
+      })
     } finally {
-      setIsAdding(false);
+      setIsAdding(false)
     }
-  };
+  }
 
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
     toast({
-      title: isZh ? "链接已复制" : "Link Copied",
+      title: isZh ? '链接已复制' : 'Link Copied',
       description: isZh
-        ? "分享链接已复制到剪贴板"
-        : "Share link copied to clipboard",
-    });
-    setTimeout(() => setCopied(false), 2000);
-  };
+        ? '分享链接已复制到剪贴板'
+        : 'Share link copied to clipboard',
+    })
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (loading) {
     return (
@@ -335,25 +335,25 @@ export default function SharedEventView({
               className="absolute inset-0"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
             <div
               className="absolute inset-0 dark:block hidden"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
           </div>
         </div>
         <Loader2 className="h-16 w-16 animate-spin text-black dark:text-white" />
         <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-300">
-          {isZh ? "加载中..." : "Loading..."}
+          {isZh ? '加载中...' : 'Loading...'}
         </p>
         <SharePageLegalLinks isZh={isZh} />
       </div>
-    );
+    )
   }
 
   if (requiresPassword && !event) {
@@ -365,14 +365,14 @@ export default function SharedEventView({
               className="absolute inset-0"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
             <div
               className="absolute inset-0 dark:block hidden"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
           </div>
@@ -405,22 +405,22 @@ export default function SharedEventView({
                     <Lock className="h-10 w-10 text-blue-500 dark:text-blue-400" />
                   </div>
                   <CardTitle className="text-2xl font-bold">
-                    {isZh ? "此分享已加密" : "This share is encrypted"}
+                    {isZh ? '此分享已加密' : 'This share is encrypted'}
                   </CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-300">
                     {burnAfterRead
                       ? isZh
-                        ? "该分享为阅后即焚：正确解密后将自动删除。"
-                        : "This share is burn-after-read: it will be deleted after a successful decrypt."
+                        ? '该分享为阅后即焚：正确解密后将自动删除。'
+                        : 'This share is burn-after-read: it will be deleted after a successful decrypt.'
                       : isZh
-                        ? "请输入密码以解密并查看事件内容。"
-                        : "Enter the password to decrypt and view the event."}
+                        ? '请输入密码以解密并查看事件内容。'
+                        : 'Enter the password to decrypt and view the event.'}
                   </CardDescription>
 
                   {burnAfterRead && (
                     <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
                       <Flame className="h-4 w-4" />
-                      {isZh ? "阅后即焚已启用" : "Burn after read enabled"}
+                      {isZh ? '阅后即焚已启用' : 'Burn after read enabled'}
                     </div>
                   )}
                 </div>
@@ -428,7 +428,7 @@ export default function SharedEventView({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="share-password">
-                      {isZh ? "密码" : "Password"}
+                      {isZh ? '密码' : 'Password'}
                     </Label>
                     <Input
                       id="share-password"
@@ -436,10 +436,10 @@ export default function SharedEventView({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") tryDecryptWithPassword();
+                        if (e.key === 'Enter') tryDecryptWithPassword()
                       }}
                       placeholder={
-                        isZh ? "输入分享密码" : "Enter share password"
+                        isZh ? '输入分享密码' : 'Enter share password'
                       }
                     />
                     {passwordError ? (
@@ -447,8 +447,8 @@ export default function SharedEventView({
                     ) : (
                       <p className="text-xs text-muted-foreground">
                         {isZh
-                          ? "密码错误将无法解密。"
-                          : "Wrong password cannot be decrypted."}
+                          ? '密码错误将无法解密。'
+                          : 'Wrong password cannot be decrypted.'}
                       </p>
                     )}
                   </div>
@@ -461,11 +461,11 @@ export default function SharedEventView({
                     {passwordSubmitting ? (
                       <span className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isZh ? "解密中..." : "Decrypting..."}
+                        {isZh ? '解密中...' : 'Decrypting...'}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        {isZh ? "解密并查看" : "Decrypt & View"}
+                        {isZh ? '解密并查看' : 'Decrypt & View'}
                       </span>
                     )}
                   </Button>
@@ -473,10 +473,10 @@ export default function SharedEventView({
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => router.push("/")}
+                    onClick={() => router.push('/')}
                   >
                     <Home className="mr-2 h-4 w-4" />
-                    {isZh ? "返回主页" : "Return to Home"}
+                    {isZh ? '返回主页' : 'Return to Home'}
                   </Button>
                 </div>
               </CardContent>
@@ -485,7 +485,7 @@ export default function SharedEventView({
         </div>
         <SharePageLegalLinks isZh={isZh} />
       </div>
-    );
+    )
   }
 
   if (error || !event) {
@@ -497,14 +497,14 @@ export default function SharedEventView({
               className="absolute inset-0"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
             <div
               className="absolute inset-0 dark:block hidden"
               style={{
                 backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
-                backgroundSize: "24px 24px",
+                backgroundSize: '24px 24px',
               }}
             />
           </div>
@@ -536,16 +536,16 @@ export default function SharedEventView({
                   <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                 </div>
                 <CardTitle className="text-2xl font-bold text-red-500 mb-4">
-                  {isZh ? "事件未找到" : "Event Not Found"}
+                  {isZh ? '事件未找到' : 'Event Not Found'}
                 </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-300 mb-6 text-left">
                   {isZh
-                    ? "无法加载共享的日历事件。该链接可能已过期、无效或已被阅后即焚销毁。"
-                    : "Unable to load the shared calendar event. The link may be expired, invalid, or already destroyed."}
+                    ? '无法加载共享的日历事件。该链接可能已过期、无效或已被阅后即焚销毁。'
+                    : 'Unable to load the shared calendar event. The link may be expired, invalid, or already destroyed.'}
                 </CardDescription>
-                <Button onClick={() => router.push("/")} className="w-full">
+                <Button onClick={() => router.push('/')} className="w-full">
                   <Home className="mr-2 h-4 w-4" />
-                  {isZh ? "返回主页" : "Return to Home"}
+                  {isZh ? '返回主页' : 'Return to Home'}
                 </Button>
               </CardContent>
             </Card>
@@ -553,26 +553,26 @@ export default function SharedEventView({
         </div>
         <SharePageLegalLinks isZh={isZh} />
       </div>
-    );
+    )
   }
 
-  const startDate = new Date(event.startDate);
-  const endDate = new Date(event.endDate);
-  const durationMs = endDate.getTime() - startDate.getTime();
+  const startDate = new Date(event.startDate)
+  const endDate = new Date(event.endDate)
+  const durationMs = endDate.getTime() - startDate.getTime()
   const normalizedDurationMs = event.isAllDay
     ? Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24))) *
       24 *
       60 *
       60 *
       1000
-    : durationMs;
-  const durationHours = Math.floor(normalizedDurationMs / (1000 * 60 * 60));
+    : durationMs
+  const durationHours = Math.floor(normalizedDurationMs / (1000 * 60 * 60))
   const durationMinutes = Math.floor(
     (normalizedDurationMs % (1000 * 60 * 60)) / (1000 * 60),
-  );
+  )
   const durationText = isZh
-    ? `${durationHours > 0 ? `${durationHours}小时` : ""}${durationMinutes > 0 ? ` ${durationMinutes}分钟` : ""}`
-    : `${durationHours > 0 ? `${durationHours}h` : ""}${durationMinutes > 0 ? ` ${durationMinutes}m` : ""}`;
+    ? `${durationHours > 0 ? `${durationHours}小时` : ''}${durationMinutes > 0 ? ` ${durationMinutes}分钟` : ''}`
+    : `${durationHours > 0 ? `${durationHours}h` : ''}${durationMinutes > 0 ? ` ${durationMinutes}m` : ''}`
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4">
@@ -582,14 +582,14 @@ export default function SharedEventView({
             className="absolute inset-0"
             style={{
               backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)`,
-              backgroundSize: "24px 24px",
+              backgroundSize: '24px 24px',
             }}
           />
           <div
             className="absolute inset-0 dark:block hidden"
             style={{
               backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
-              backgroundSize: "24px 24px",
+              backgroundSize: '24px 24px',
             }}
           />
         </div>
@@ -614,7 +614,7 @@ export default function SharedEventView({
         >
           <Card className="relative max-w-md w-full overflow-hidden">
             <div
-              className={cn("absolute inset-y-0 left-0 w-1")}
+              className={cn('absolute inset-y-0 left-0 w-1')}
               style={{ backgroundColor: getDarkerColorClass(event.color) }}
             />
             <div>
@@ -625,15 +625,15 @@ export default function SharedEventView({
                       {event.title}
                     </CardTitle>
                     <CardDescription>
-                      {isZh ? "分享者：" : "Shared by: "}
+                      {isZh ? '分享者：' : 'Shared by: '}
                       {event.sharedBy}
                     </CardDescription>
                     {burnAfterRead && (
                       <div className="mt-2 inline-flex items-center gap-2 text-sm text-red-500">
                         <Flame className="h-4 w-4" />
                         {isZh
-                          ? "此分享为阅后即焚（已在服务器删除）"
-                          : "Burn-after-read (deleted from server)"}
+                          ? '此分享为阅后即焚（已在服务器删除）'
+                          : 'Burn-after-read (deleted from server)'}
                       </div>
                     )}
                   </div>
@@ -651,7 +651,7 @@ export default function SharedEventView({
                         {formatDateWithTimezone(event.startDate)}
                       </p>
                       <p className="text-muted-foreground">
-                        {isZh ? "至" : "to"}{" "}
+                        {isZh ? '至' : 'to'}{' '}
                         {formatDateWithTimezone(event.endDate)}
                       </p>
                     </div>
@@ -679,7 +679,7 @@ export default function SharedEventView({
                       className="flex items-start"
                     >
                       <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                      <p>{event.participants.join(", ")}</p>
+                      <p>{event.participants.join(', ')}</p>
                     </motion.div>
                   )}
 
@@ -722,12 +722,12 @@ export default function SharedEventView({
                     {isAdding ? (
                       <span className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isZh ? "添加中..." : "Adding..."}
+                        {isZh ? '添加中...' : 'Adding...'}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
                         <CalendarPlus className="mr-2 h-5 w-5" />
-                        {isZh ? "添加到我的日历" : "Add to My Calendar"}
+                        {isZh ? '添加到我的日历' : 'Add to My Calendar'}
                       </span>
                     )}
                   </Button>
@@ -740,11 +740,11 @@ export default function SharedEventView({
                     <Copy className="mr-2 h-4 w-4" />
                     {copied
                       ? isZh
-                        ? "已复制!"
-                        : "Copied!"
+                        ? '已复制!'
+                        : 'Copied!'
                       : isZh
-                        ? "复制分享链接"
-                        : "Copy Share Link"}
+                        ? '复制分享链接'
+                        : 'Copy Share Link'}
                   </Button>
                 </div>
               </CardContent>
@@ -754,5 +754,5 @@ export default function SharedEventView({
       </div>
       <SharePageLegalLinks isZh={isZh} />
     </div>
-  );
+  )
 }

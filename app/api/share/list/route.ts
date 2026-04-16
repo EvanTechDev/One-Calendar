@@ -1,20 +1,23 @@
-import { NextResponse } from "next/server";
-import { Pool } from "pg";
-import { currentUser } from "@clerk/nextjs/server";
-import crypto from "crypto";
-import { getAtprotoSession } from "@/lib/atproto-auth";
-import { deleteRecord, listRecords } from "@/lib/atproto";
-import type { DpopPublicJwk } from "@/lib/dpop";
+import { NextResponse } from 'next/server'
+import { Pool } from 'pg'
+import { currentUser } from '@clerk/nextjs/server'
+import crypto from 'crypto'
+import { getAtprotoSession } from '@/lib/atproto-auth'
+import { deleteRecord, listRecords } from '@/lib/atproto'
+import type { DpopPublicJwk } from '@/lib/dpop'
 
-const pool = new Pool({ connectionString: process.env.POSTGRES_URL, ssl: { rejectUnauthorized: false } });
-const ALGORITHM = "aes-256-gcm";
-const ATPROTO_SHARE_COLLECTION = "app.onecalendar.share";
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: { rejectUnauthorized: false },
+})
+const ALGORITHM = 'aes-256-gcm'
+const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
-let burnTableReady = false;
+let burnTableReady = false
 
 async function ensureBurnTable() {
-  if (burnTableReady) return;
-  const client = await pool.connect();
+  if (burnTableReady) return
+  const client = await pool.connect()
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
@@ -25,31 +28,44 @@ async function ensureBurnTable() {
         pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
         PRIMARY KEY (share_id, handle)
       )
-    `);
-    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`);
-    await client.query(`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`);
-    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`);
-    burnTableReady = true;
+    `)
+    await client.query(
+      `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`,
+    )
+    await client.query(
+      `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`,
+    )
+    await client.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`,
+    )
+    burnTableReady = true
   } finally {
-    client.release();
+    client.release()
   }
 }
 
-async function syncBurnedAtprotoShares(ownerDid: string, handle: string, pds: string, accessToken: string, dpopPrivateKeyPem?: string, dpopPublicJwk?: DpopPublicJwk) {
-  await ensureBurnTable();
+async function syncBurnedAtprotoShares(
+  ownerDid: string,
+  handle: string,
+  pds: string,
+  accessToken: string,
+  dpopPrivateKeyPem?: string,
+  dpopPublicJwk?: DpopPublicJwk,
+) {
+  await ensureBurnTable()
 
-  const client = await pool.connect();
+  const client = await pool.connect()
   try {
     const pending = await client.query(
-      "SELECT share_id FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND pds_delete_synced = FALSE",
+      'SELECT share_id FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND pds_delete_synced = FALSE',
       [ownerDid, handle],
-    );
+    )
 
-    if (!pending.rows.length) return;
+    if (!pending.rows.length) return
 
-    const syncedIds: string[] = [];
+    const syncedIds: string[] = []
     for (const row of pending.rows) {
-      const shareId = String(row.share_id);
+      const shareId = String(row.share_id)
       try {
         await deleteRecord({
           pds,
@@ -59,8 +75,8 @@ async function syncBurnedAtprotoShares(ownerDid: string, handle: string, pds: st
           accessToken,
           dpopPrivateKeyPem,
           dpopPublicJwk,
-        });
-        syncedIds.push(shareId);
+        })
+        syncedIds.push(shareId)
       } catch {
         // Keep pending rows for retry on next share management open.
       }
@@ -68,29 +84,38 @@ async function syncBurnedAtprotoShares(ownerDid: string, handle: string, pds: st
 
     if (syncedIds.length > 0) {
       await client.query(
-        "DELETE FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])",
+        'DELETE FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])',
         [ownerDid, handle, syncedIds],
-      );
+      )
     }
   } finally {
-    client.release();
+    client.release()
   }
 }
 
 function keyV2Unprotected(shareId: string) {
-  return crypto.createHash("sha256").update(shareId, "utf8").digest();
+  return crypto.createHash('sha256').update(shareId, 'utf8').digest()
 }
 
-function decryptWithKey(encryptedData: string, iv: string, authTag: string, key: Buffer) {
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"));
-  decipher.setAuthTag(Buffer.from(authTag, "hex"));
-  let decrypted = decipher.update(encryptedData, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+function decryptWithKey(
+  encryptedData: string,
+  iv: string,
+  authTag: string,
+  key: Buffer,
+) {
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    key,
+    Buffer.from(iv, 'hex'),
+  )
+  decipher.setAuthTag(Buffer.from(authTag, 'hex'))
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
+  decrypted += decipher.final('utf8')
+  return decrypted
 }
 
 export async function GET() {
-  const atproto = await getAtprotoSession();
+  const atproto = await getAtprotoSession()
   if (atproto) {
     await syncBurnedAtprotoShares(
       atproto.did,
@@ -99,61 +124,82 @@ export async function GET() {
       atproto.accessToken,
       atproto.dpopPrivateKeyPem,
       atproto.dpopPublicJwk,
-    );
+    )
 
-    const data = await listRecords({ pds: atproto.pds, repo: atproto.did, collection: ATPROTO_SHARE_COLLECTION, accessToken: atproto.accessToken, dpopPrivateKeyPem: atproto.dpopPrivateKeyPem, dpopPublicJwk: atproto.dpopPublicJwk });
+    const data = await listRecords({
+      pds: atproto.pds,
+      repo: atproto.did,
+      collection: ATPROTO_SHARE_COLLECTION,
+      accessToken: atproto.accessToken,
+      dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
+      dpopPublicJwk: atproto.dpopPublicJwk,
+    })
     const shares = (data.records || []).map((record) => {
-      const rkey = record.uri.split("/").pop() || "";
-      const value = record.value ?? {};
-      let eventId = "";
-      let eventTitle = "";
+      const rkey = record.uri.split('/').pop() || ''
+      const value = record.value ?? {}
+      let eventId = ''
+      let eventTitle = ''
       if (!value.isProtected) {
         try {
-          const decrypted = decryptWithKey(String(value.encryptedData), String(value.iv), String(value.authTag), keyV2Unprotected(rkey));
-          const parsed = JSON.parse(decrypted) as { id?: string; title?: string };
-          eventId = parsed.id || "";
-          eventTitle = parsed.title || "";
+          const decrypted = decryptWithKey(
+            String(value.encryptedData),
+            String(value.iv),
+            String(value.authTag),
+            keyV2Unprotected(rkey),
+          )
+          const parsed = JSON.parse(decrypted) as {
+            id?: string
+            title?: string
+          }
+          eventId = parsed.id || ''
+          eventTitle = parsed.title || ''
         } catch {
-          eventTitle = "";
+          eventTitle = ''
         }
       }
       return {
         id: rkey,
         eventId,
-        eventTitle: value.isProtected ? "Protected" : eventTitle,
+        eventTitle: value.isProtected ? 'Protected' : eventTitle,
         sharedBy: atproto.handle,
         shareDate: String(value.timestamp || new Date().toISOString()),
         shareLink: `/${atproto.handle}/${rkey}`,
         isProtected: !!value.isProtected,
-      };
-    });
+      }
+    })
 
-    return NextResponse.json({ shares });
+    return NextResponse.json({ shares })
   }
 
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await currentUser()
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const client = await pool.connect();
+  const client = await pool.connect()
   try {
     const result = await client.query(
       `SELECT share_id, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = $1 ORDER BY timestamp DESC`,
       [user.id],
-    );
+    )
 
     const shares = result.rows.map((row) => {
-      let eventId = "";
-      let eventTitle = "";
+      let eventId = ''
+      let eventTitle = ''
       if (!row.is_protected) {
         try {
-          const decrypted = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, keyV2Unprotected(row.share_id));
-          const dataObj = JSON.parse(decrypted);
-          eventId = dataObj.id ?? "";
-          eventTitle = dataObj.title ?? "";
+          const decrypted = decryptWithKey(
+            row.encrypted_data,
+            row.iv,
+            row.auth_tag,
+            keyV2Unprotected(row.share_id),
+          )
+          const dataObj = JSON.parse(decrypted)
+          eventId = dataObj.id ?? ''
+          eventTitle = dataObj.title ?? ''
         } catch {}
       } else {
-        eventId = "受保护";
-        eventTitle = "受保护";
+        eventId = '受保护'
+        eventTitle = '受保护'
       }
       return {
         id: row.share_id,
@@ -163,11 +209,11 @@ export async function GET() {
         shareDate: row.timestamp.toISOString(),
         shareLink: `/share/${row.share_id}`,
         isProtected: row.is_protected,
-      };
-    });
+      }
+    })
 
-    return NextResponse.json({ shares });
+    return NextResponse.json({ shares })
   } finally {
-    client.release();
+    client.release()
   }
 }

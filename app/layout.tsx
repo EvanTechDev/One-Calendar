@@ -1,52 +1,56 @@
-import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google"
-import "./globals.css"
-import { Toaster } from "@/components/ui/sonner"
-import { CalendarProvider } from "@/components/providers/calendar-context"
+import type React from 'react'
+import type { Metadata, Viewport } from 'next'
+import {
+  Instrument_Sans,
+  Instrument_Serif,
+  JetBrains_Mono,
+} from 'next/font/google'
+import './globals.css'
+import { Toaster } from '@/components/ui/sonner'
+import { CalendarProvider } from '@/components/providers/calendar-context'
 import { ClerkProvider } from '@clerk/nextjs'
-import { GeistSans } from "geist/font/sans"
-import { ThemeProvider } from "@/components/providers/theme-provider"
-import { PwaProvider } from "@/components/providers/pwa-provider"
+import { GeistSans } from 'geist/font/sans'
+import { ThemeProvider } from '@/components/providers/theme-provider'
+import { PwaProvider } from '@/components/providers/pwa-provider'
 
 const instrumentSans = Instrument_Sans({
-  subsets: ["latin"],
-  variable: "--font-instrument",
+  subsets: ['latin'],
+  variable: '--font-instrument',
 })
 
 const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument-serif",
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-instrument-serif',
 })
 
 const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
 })
 
-export const APP_TITLE = "One Calendar"
-export const APP_SUBTITLE = "Your life, stay safe."
+export const APP_TITLE = 'One Calendar'
+export const APP_SUBTITLE = 'Your life, stay safe.'
 
 export const metadata: Metadata = {
   title: APP_TITLE,
   description: APP_SUBTITLE,
-  manifest: "/manifest.webmanifest",
+  manifest: '/manifest.webmanifest',
   openGraph: {
     title: APP_TITLE,
     description: APP_SUBTITLE,
-    url: "/",
+    url: '/',
   },
   twitter: {
-    card: "summary_large_image",
-    site: "@One__Cal",
+    card: 'summary_large_image',
+    site: '@One__Cal',
     title: APP_TITLE,
     description: APP_SUBTITLE,
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0b0f1a",
+  themeColor: '#0b0f1a',
 }
 
 export default function RootLayout({
@@ -55,7 +59,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   const clerkPublishableKey =
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
+    process.env.CLERK_PUBLISHABLE_KEY
 
   return (
     <html lang="en" suppressHydrationWarning>

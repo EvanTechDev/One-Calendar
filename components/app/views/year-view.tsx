@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   eachDayOfInterval,
@@ -7,55 +7,55 @@ import {
   isSameDay,
   isSameMonth,
   startOfWeek,
-} from "date-fns";
+} from 'date-fns'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { isZhLanguage, translations, type Language } from "@/lib/i18n";
-import type { CalendarEvent } from "../calendar";
-import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/popover'
+import { isZhLanguage, translations, type Language } from '@/lib/i18n'
+import type { CalendarEvent } from '../calendar'
+import { useMemo, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 interface YearViewProps {
-  date: Date;
-  events: CalendarEvent[];
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void;
-  language: Language;
-  firstDayOfWeek: number;
-  isSidebarCollapsed?: boolean;
-  isSidebarExpanding?: boolean;
+  date: Date
+  events: CalendarEvent[]
+  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  language: Language
+  firstDayOfWeek: number
+  isSidebarCollapsed?: boolean
+  isSidebarExpanding?: boolean
 }
 
 function getDarkerColorClass(color: string) {
   const colorMapping: Record<string, string> = {
-    "bg-[#E6F6FD]": "#3B82F6",
-    "bg-[#E7F8F2]": "#10B981",
-    "bg-[#FEF5E6]": "#F59E0B",
-    "bg-[#FFE4E6]": "#EF4444",
-    "bg-[#F3EEFE]": "#8B5CF6",
-    "bg-[#FCE7F3]": "#EC4899",
-    "bg-[#EEF2FF]": "#6366F1",
-    "bg-[#FFF0E5]": "#FB923C",
-    "bg-[#E6FAF7]": "#14B8A6",
-  };
+    'bg-[#E6F6FD]': '#3B82F6',
+    'bg-[#E7F8F2]': '#10B981',
+    'bg-[#FEF5E6]': '#F59E0B',
+    'bg-[#FFE4E6]': '#EF4444',
+    'bg-[#F3EEFE]': '#8B5CF6',
+    'bg-[#FCE7F3]': '#EC4899',
+    'bg-[#EEF2FF]': '#6366F1',
+    'bg-[#FFF0E5]': '#FB923C',
+    'bg-[#E6FAF7]': '#14B8A6',
+  }
 
-  return colorMapping[color] || "#3A3A3A";
+  return colorMapping[color] || '#3A3A3A'
 }
 
 function getDarkModeEventBackgroundColor(color: string) {
   const darkModeColorMapping: Record<string, string> = {
-    "bg-[#E6F6FD]": "#2F4655",
-    "bg-[#E7F8F2]": "#2D4935",
-    "bg-[#FEF5E6]": "#4F3F1B",
-    "bg-[#FFE4E6]": "#6C2920",
-    "bg-[#F3EEFE]": "#483A63",
-    "bg-[#FCE7F3]": "#5A334A",
-    "bg-[#E6FAF7]": "#1F4A47",
-  };
+    'bg-[#E6F6FD]': '#2F4655',
+    'bg-[#E7F8F2]': '#2D4935',
+    'bg-[#FEF5E6]': '#4F3F1B',
+    'bg-[#FFE4E6]': '#6C2920',
+    'bg-[#F3EEFE]': '#483A63',
+    'bg-[#FCE7F3]': '#5A334A',
+    'bg-[#E6FAF7]': '#1F4A47',
+  }
 
-  return darkModeColorMapping[color];
+  return darkModeColorMapping[color]
 }
 
 export default function YearView({
@@ -67,13 +67,13 @@ export default function YearView({
   isSidebarCollapsed = false,
   isSidebarExpanding = false,
 }: YearViewProps) {
-  const t = translations[language];
-  const currentYear = date.getFullYear();
-  const today = new Date();
-  const [openDayKey, setOpenDayKey] = useState<string | null>(null);
+  const t = translations[language]
+  const currentYear = date.getFullYear()
+  const today = new Date()
+  const [openDayKey, setOpenDayKey] = useState<string | null>(null)
   const isDark =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('dark')
 
   const weekdayLabels = useMemo(
     () => [
@@ -81,69 +81,69 @@ export default function YearView({
       ...t.weekdays.slice(0, firstDayOfWeek),
     ],
     [firstDayOfWeek, t.weekdays],
-  );
+  )
 
   const eventsByDayKey = useMemo(() => {
-    const grouped = new Map<string, CalendarEvent[]>();
+    const grouped = new Map<string, CalendarEvent[]>()
     events.forEach((event) => {
-      const eventDate = new Date(event.startDate);
-      const key = format(eventDate, "yyyy-MM-dd");
-      const existing = grouped.get(key) ?? [];
-      existing.push(event);
-      grouped.set(key, existing);
-    });
+      const eventDate = new Date(event.startDate)
+      const key = format(eventDate, 'yyyy-MM-dd')
+      const existing = grouped.get(key) ?? []
+      existing.push(event)
+      grouped.set(key, existing)
+    })
 
     grouped.forEach((dayEvents) => {
       dayEvents.sort(
         (a, b) =>
           new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      );
-    });
+      )
+    })
 
-    return grouped;
-  }, [events]);
+    return grouped
+  }, [events])
 
   const months = useMemo(
     () =>
       Array.from({ length: 12 }, (_, monthIndex) => {
-        const monthStart = new Date(currentYear, monthIndex, 1);
-        const monthEnd = endOfMonth(monthStart);
+        const monthStart = new Date(currentYear, monthIndex, 1)
+        const monthEnd = endOfMonth(monthStart)
         const gridStart = startOfWeek(monthStart, {
           weekStartsOn: firstDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-        });
+        })
         const monthDays = eachDayOfInterval({
           start: gridStart,
           end: monthEnd,
-        });
+        })
 
         while (monthDays.length < 42) {
-          const lastDay = monthDays[monthDays.length - 1];
+          const lastDay = monthDays[monthDays.length - 1]
           monthDays.push(
             new Date(
               lastDay.getFullYear(),
               lastDay.getMonth(),
               lastDay.getDate() + 1,
             ),
-          );
+          )
         }
 
         return {
           monthIndex,
-          label: t.months[monthIndex] ?? format(monthStart, "LLLL"),
+          label: t.months[monthIndex] ?? format(monthStart, 'LLLL'),
           days: monthDays,
-        };
+        }
       }),
     [currentYear, firstDayOfWeek, t.months],
-  );
+  )
 
   return (
     <div className="p-3 md:p-4">
       <div
         className={cn(
-          "grid gap-y-4",
+          'grid gap-y-4',
           isSidebarCollapsed || isSidebarExpanding
-            ? "md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6"
-            : "md:grid-cols-3 md:gap-x-4",
+            ? 'md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6'
+            : 'md:grid-cols-3 md:gap-x-4',
         )}
       >
         {months.map((month) => (
@@ -162,14 +162,14 @@ export default function YearView({
               ))}
 
               {month.days.map((day) => {
-                const dayKey = format(day, "yyyy-MM-dd");
-                const popoverKey = `${month.monthIndex}-${dayKey}`;
-                const isToday = isSameDay(day, today);
+                const dayKey = format(day, 'yyyy-MM-dd')
+                const popoverKey = `${month.monthIndex}-${dayKey}`
+                const isToday = isSameDay(day, today)
                 const isCurrentMonth = isSameMonth(
                   day,
                   new Date(currentYear, month.monthIndex, 1),
-                );
-                const dayEvents = eventsByDayKey.get(dayKey) ?? [];
+                )
+                const dayEvents = eventsByDayKey.get(dayKey) ?? []
 
                 return (
                   <Popover
@@ -183,26 +183,26 @@ export default function YearView({
                       <button
                         type="button"
                         className={cn(
-                          "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent",
-                          !isCurrentMonth && "text-muted-foreground",
-                          dayEvents.length > 0 && "font-semibold",
+                          'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
+                          !isCurrentMonth && 'text-muted-foreground',
+                          dayEvents.length > 0 && 'font-semibold',
                           isToday &&
                             isCurrentMonth &&
-                            "bg-[#0052CC] text-white hover:bg-[#0047B3] data-[state=open]:bg-[#0047B3] green:bg-[#24a854] green:hover:bg-[#1f9249] green:data-[state=open]:bg-[#1f9249] orange:bg-[#e26912] orange:hover:bg-[#c85a0f] orange:data-[state=open]:bg-[#c85a0f] azalea:bg-[#CD2F7B] azalea:hover:bg-[#b2266b] azalea:data-[state=open]:bg-[#b2266b]",
+                            'bg-[#0052CC] text-white hover:bg-[#0047B3] data-[state=open]:bg-[#0047B3] green:bg-[#24a854] green:hover:bg-[#1f9249] green:data-[state=open]:bg-[#1f9249] orange:bg-[#e26912] orange:hover:bg-[#c85a0f] orange:data-[state=open]:bg-[#c85a0f] azalea:bg-[#CD2F7B] azalea:hover:bg-[#b2266b] azalea:data-[state=open]:bg-[#b2266b]',
                         )}
                       >
-                        {format(day, "d")}
+                        {format(day, 'd')}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" className="w-72">
                       <div className="space-y-2">
                         <div className="text-sm font-medium">
                           {day.toLocaleDateString(
-                            isZhLanguage(language) ? "zh-CN" : "en-US",
+                            isZhLanguage(language) ? 'zh-CN' : 'en-US',
                             {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
                             },
                           )}
                         </div>
@@ -214,11 +214,11 @@ export default function YearView({
                                 key={event.id}
                                 type="button"
                                 className={cn(
-                                  "relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs",
+                                  'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
                                   event.color,
                                 )}
                                 onClick={(e) => {
-                                  onEventClick(event, e.currentTarget);
+                                  onEventClick(event, e.currentTarget)
                                 }}
                                 style={{
                                   backgroundColor: isDark
@@ -255,12 +255,12 @@ export default function YearView({
                       </div>
                     </PopoverContent>
                   </Popover>
-                );
+                )
               })}
             </div>
           </section>
         ))}
       </div>
     </div>
-  );
+  )
 }

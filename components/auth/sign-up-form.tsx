@@ -1,173 +1,182 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useSignUp } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useSignUp } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { useState, useRef } from 'react'
+import { Turnstile } from '@marsidev/react-turnstile'
 import {
   getEnabledOAuthProviderKeys,
   OAUTH_PROVIDER_CONFIG,
   type OAuthStrategy,
-} from "@/lib/clerk-oauth";
-import { OAuthProviderIcon } from "@/components/auth/oauth-provider-icon";
+} from '@/lib/clerk-oauth'
+import { OAuthProviderIcon } from '@/components/auth/oauth-provider-icon'
 
 export function SignUpForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const { signUp } = useSignUp();
-  const router = useRouter();
-  const [step, setStep] = useState<"initial" | "verification">("initial");
+}: React.ComponentPropsWithoutRef<'div'>) {
+  const { signUp } = useSignUp()
+  const router = useRouter()
+  const [step, setStep] = useState<'initial' | 'verification'>('initial')
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    code: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    code: '',
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
-  );
-  const turnstileRef = useRef<any>(null);
+  )
+  const turnstileRef = useRef<any>(null)
 
   const handleTurnstileSuccess = async (token: string) => {
     try {
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, action: "sign-up" }),
-      });
+      const response = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, action: 'sign-up' }),
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
-      const text = await response.text();
-      let data;
+      const text = await response.text()
+      let data
       try {
-        data = JSON.parse(text);
+        data = JSON.parse(text)
       } catch (parseErr) {
-        throw new Error("Invalid JSON response from server");
+        throw new Error('Invalid JSON response from server')
       }
 
       if (data.success) {
-        setIsCaptchaCompleted(true);
-        setError("");
+        setIsCaptchaCompleted(true)
+        setError('')
       } else {
-        setIsCaptchaCompleted(false);
+        setIsCaptchaCompleted(false)
         setError(
-          `CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`,
-        );
+          `CAPTCHA verification failed: ${data.details?.join(', ') || 'Unknown error'}`,
+        )
         if (turnstileRef.current) {
-          turnstileRef.current.reset();
+          turnstileRef.current.reset()
         }
       }
     } catch (err) {
-      setIsCaptchaCompleted(false);
-      setError("Error verifying CAPTCHA. Please try again.");
+      setIsCaptchaCompleted(false)
+      setError('Error verifying CAPTCHA. Please try again.')
       if (turnstileRef.current) {
-        turnstileRef.current.reset();
+        turnstileRef.current.reset()
       }
     }
-  };
+  }
 
   const allowedEmailDomains = [
-    "@qq.com",
-    "@163.com",
-    "@aliyun.com",
-    "@dingtalk.com",
-    "@email.cn",
-    "@foxmail.com",
-    "@gmail.com",
-    "@gmx.com",
-    "@gmx.de",
-    "@hotmail.com",
-    "@live.cn",
-    "@live.com",
-    "@mail.com",
-    "@mail.retiehe.com",
-    "@mail.ru",
-    "@me.com",
-    "@msn.cn",
-    "@msn.com",
-    "@my.com",
-    "@net-c.com",
-    "@outlook.com",
-    "@outlook.jp",
-    "@petalmail.com",
-    "@retinbox.com",
-    "@sina.cn",
-    "@sina.com",
-    "@sohu.com",
-    "@tom.com",
-    "@tutanota.com",
-    "@vip.qq.com",
-    "@vip.163.com",
-    "@wo.cn",
-    "@yahoo.co.jp",
-    "@yahoo.com",
-    "@yahoo.com.hk",
-    "@yahoo.com.tw",
-    "@yandex.com",
-    "@yandex.ru",
-    "@yeah.net",
-    "@111.com",
-    "@126.com",
-    "@139.com",
-    "@proton.me",
-    "@pm.me",
-    "@protonmail.com",
-    "@protonmail.ch",
-  ];
+    '@qq.com',
+    '@163.com',
+    '@aliyun.com',
+    '@dingtalk.com',
+    '@email.cn',
+    '@foxmail.com',
+    '@gmail.com',
+    '@gmx.com',
+    '@gmx.de',
+    '@hotmail.com',
+    '@live.cn',
+    '@live.com',
+    '@mail.com',
+    '@mail.retiehe.com',
+    '@mail.ru',
+    '@me.com',
+    '@msn.cn',
+    '@msn.com',
+    '@my.com',
+    '@net-c.com',
+    '@outlook.com',
+    '@outlook.jp',
+    '@petalmail.com',
+    '@retinbox.com',
+    '@sina.cn',
+    '@sina.com',
+    '@sohu.com',
+    '@tom.com',
+    '@tutanota.com',
+    '@vip.qq.com',
+    '@vip.163.com',
+    '@wo.cn',
+    '@yahoo.co.jp',
+    '@yahoo.com',
+    '@yahoo.com.hk',
+    '@yahoo.com.tw',
+    '@yandex.com',
+    '@yandex.ru',
+    '@yeah.net',
+    '@111.com',
+    '@126.com',
+    '@139.com',
+    '@proton.me',
+    '@pm.me',
+    '@protonmail.com',
+    '@protonmail.ch',
+  ]
 
   const isEmailDomainAllowed = (email: string) => {
     return allowedEmailDomains.some((domain) =>
       email.toLowerCase().endsWith(domain),
-    );
-  };
+    )
+  }
 
   const handleOAuthSignUp = (strategy: OAuthStrategy) => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
     if (siteKey && !isCaptchaCompleted) {
-      setError("Please complete the CAPTCHA verification.");
-      return;
+      setError('Please complete the CAPTCHA verification.')
+      return
     }
     signUp
       .sso({
         strategy,
-        redirectUrl: "/app",
-        redirectCallbackUrl: "/sign-up/sso-callback",
+        redirectUrl: '/app',
+        redirectCallbackUrl: '/sign-up/sso-callback',
       })
       .catch((err: any) => {
-        setError(err.errors?.[0]?.longMessage || "OAuth sign up failed. Please try again.");
-      });
-  };
+        setError(
+          err.errors?.[0]?.longMessage ||
+            'OAuth sign up failed. Please try again.',
+        )
+      })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    e.preventDefault()
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
     if (siteKey && !isCaptchaCompleted) {
-      setError("Please complete the CAPTCHA verification.");
-      return;
+      setError('Please complete the CAPTCHA verification.')
+      return
     }
-    setIsLoading(true);
-    setError("");
+    setIsLoading(true)
+    setError('')
 
     try {
-      if (step === "initial") {
+      if (step === 'initial') {
         if (!isEmailDomainAllowed(formData.email)) {
           setError(
-            "Email domain is not allowed. Please use a supported email provider.",
-          );
-          setIsLoading(false);
-          return;
+            'Email domain is not allowed. Please use a supported email provider.',
+          )
+          setIsLoading(false)
+          return
         }
 
         const { error: passwordError } = await signUp.password({
@@ -175,68 +184,75 @@ export function SignUpForm({
           lastName: formData.lastName,
           emailAddress: formData.email,
           password: formData.password,
-        });
+        })
         if (passwordError) {
           setError(
-            passwordError.longMessage || passwordError.message || "An error occurred. Please try again.",
-          );
-          return;
+            passwordError.longMessage ||
+              passwordError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        await signUp.verifications.sendEmailCode();
-        setStep("verification");
+        await signUp.verifications.sendEmailCode()
+        setStep('verification')
       } else {
-        const { error: verifyError } = await signUp.verifications.verifyEmailCode({
-          code: formData.code,
-        });
+        const { error: verifyError } =
+          await signUp.verifications.verifyEmailCode({
+            code: formData.code,
+          })
         if (verifyError) {
           setError(
-            verifyError.longMessage || verifyError.message || "An error occurred. Please try again.",
-          );
-          return;
+            verifyError.longMessage ||
+              verifyError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        if (signUp.status === "complete") {
+        if (signUp.status === 'complete') {
           const { error: finalizeError } = await signUp.finalize({
             navigate: ({ decorateUrl }) => {
-              const url = decorateUrl("/app");
-              if (url.startsWith("http")) {
-                window.location.href = url;
-                return;
+              const url = decorateUrl('/app')
+              if (url.startsWith('http')) {
+                window.location.href = url
+                return
               }
-              router.push(url);
+              router.push(url)
             },
-          });
+          })
           if (finalizeError) {
             setError(
-              finalizeError.longMessage || finalizeError.message || "An error occurred. Please try again.",
-            );
+              finalizeError.longMessage ||
+                finalizeError.message ||
+                'An error occurred. Please try again.',
+            )
           }
         }
       }
     } catch (err: any) {
       setError(
-        err.errors?.[0]?.longMessage || "An error occurred. Please try again.",
-      );
+        err.errors?.[0]?.longMessage || 'An error occurred. Please try again.',
+      )
       if (siteKey && err.errors) {
-        setIsCaptchaCompleted(false);
+        setIsCaptchaCompleted(false)
         if (turnstileRef.current) {
-          turnstileRef.current.reset();
+          turnstileRef.current.reset()
         }
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    });
-  };
+    })
+  }
 
-  if (step === "verification") {
+  if (step === 'verification') {
     return (
-      <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <div className={cn('flex flex-col gap-6', className)} {...props}>
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Verify Your Email</CardTitle>
@@ -265,17 +281,17 @@ export function SignUpForm({
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Verifying..." : "Verify Email"}
+                  {isLoading ? 'Verifying...' : 'Verify Email'}
                 </Button>
                 <div className="text-center text-sm">
-                  Didn't receive a code?{" "}
+                  Didn't receive a code?{' '}
                   <button
                     type="button"
                     onClick={async () => {
                       try {
-                        await signUp.verifications.sendEmailCode();
+                        await signUp.verifications.sendEmailCode()
                       } catch (err) {
-                        setError("Failed to resend code. Please try again.");
+                        setError('Failed to resend code. Please try again.')
                       }
                     }}
                     className="underline underline-offset-4 hover:text-primary"
@@ -289,16 +305,16 @@ export function SignUpForm({
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  const hasCaptcha = Boolean(siteKey);
-  const enabledOAuthProviders = getEnabledOAuthProviderKeys();
-  const hasOAuthProviders = enabledOAuthProviders.length > 0;
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  const hasCaptcha = Boolean(siteKey)
+  const enabledOAuthProviders = getEnabledOAuthProviderKeys()
+  const hasOAuthProviders = enabledOAuthProviders.length > 0
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
@@ -310,7 +326,7 @@ export function SignUpForm({
                 <>
                   <div className="flex flex-col gap-4">
                     {enabledOAuthProviders.map((providerKey) => {
-                      const provider = OAUTH_PROVIDER_CONFIG[providerKey];
+                      const provider = OAUTH_PROVIDER_CONFIG[providerKey]
                       return (
                         <Button
                           key={provider.strategy}
@@ -324,7 +340,7 @@ export function SignUpForm({
                             <span>Continue with {provider.label}</span>
                           </span>
                         </Button>
-                      );
+                      )
                     })}
                   </div>
 
@@ -392,18 +408,18 @@ export function SignUpForm({
                         siteKey={siteKey!}
                         onSuccess={handleTurnstileSuccess}
                         onError={() => {
-                          console.error("Turnstile widget error");
-                          setIsCaptchaCompleted(false);
+                          console.error('Turnstile widget error')
+                          setIsCaptchaCompleted(false)
                           setError(
-                            "CAPTCHA initialization failed. Please try again.",
-                          );
+                            'CAPTCHA initialization failed. Please try again.',
+                          )
                         }}
                         options={{
-                          theme: "auto",
-                          action: "sign-up",
-                          cData: "sign-up-page",
-                          refreshExpired: "auto",
-                          size: "flexible",
+                          theme: 'auto',
+                          action: 'sign-up',
+                          cData: 'sign-up-page',
+                          refreshExpired: 'auto',
+                          size: 'flexible',
                         }}
                       />
                     </div>
@@ -415,17 +431,19 @@ export function SignUpForm({
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
-                  disabled={hasCaptcha ? !isCaptchaCompleted || isLoading : isLoading}
+                  disabled={
+                    hasCaptcha ? !isCaptchaCompleted || isLoading : isLoading
+                  }
                 >
-                  {isLoading ? "Creating account..." : "Create account"}
+                  {isLoading ? 'Creating account...' : 'Create account'}
                 </Button>
               </div>
 
               <div className="text-center text-sm">
-                Already have an account?{" "}
+                Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => router.push("/sign-in")}
+                  onClick={() => router.push('/sign-in')}
                   className="underline underline-offset-4"
                 >
                   Sign in
@@ -437,9 +455,9 @@ export function SignUpForm({
       </Card>
 
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a>{" "}
+        By continuing, you agree to our <a href="/terms">Terms of Service</a>{' '}
         and <a href="/privacy">Privacy Policy</a>.
       </div>
     </div>
-  );
+  )
 }

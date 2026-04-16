@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import React from "react";
+import React from 'react'
 
 export function ClockDashed(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -10,7 +10,7 @@ export function ClockDashed(props: React.SVGProps<SVGSVGElement>) {
       height={16}
       viewBox="0 0 16 16"
       strokeLinejoin="round"
-      style={{ color: "currentColor" }}
+      style={{ color: 'currentColor' }}
       {...props}
     >
       <path
@@ -20,5 +20,5 @@ export function ClockDashed(props: React.SVGProps<SVGSVGElement>) {
         fill="currentColor"
       />
     </svg>
-  );
+  )
 }

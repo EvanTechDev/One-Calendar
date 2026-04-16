@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Card,
@@ -6,156 +6,181 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Turnstile } from "@marsidev/react-turnstile";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs";
-import { useState, useRef } from "react";
-import { cn } from "@/lib/utils";
-import type React from "react";
+} from '@/components/ui/card'
+import { Turnstile } from '@marsidev/react-turnstile'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useRouter } from 'next/navigation'
+import { useSignIn } from '@clerk/nextjs'
+import { useState, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import type React from 'react'
 
 export function ResetPasswordForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const { signIn } = useSignIn();
-  const router = useRouter();
-  const [step, setStep] = useState<"email" | "code" | "password">("email");
+}: React.ComponentPropsWithoutRef<'div'>) {
+  const { signIn } = useSignIn()
+  const router = useRouter()
+  const [step, setStep] = useState<'email' | 'code' | 'password'>('email')
   const [formData, setFormData] = useState({
-    email: "",
-    code: "",
-    password: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+    email: '',
+    code: '',
+    password: '',
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
-  );
-  const turnstileRef = useRef<any>(null);
+  )
+  const turnstileRef = useRef<any>(null)
 
   const handleTurnstileSuccess = async (token: string) => {
     try {
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, action: "reset-password" }),
-      });
+      const response = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, action: 'reset-password' }),
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (data.success) {
-        setIsCaptchaCompleted(true);
-        setError("");
+        setIsCaptchaCompleted(true)
+        setError('')
       } else {
-        setIsCaptchaCompleted(false);
+        setIsCaptchaCompleted(false)
         setError(
-          `CAPTCHA verification failed: ${data.details?.join(", ") || "Unknown error"}`,
-        );
+          `CAPTCHA verification failed: ${data.details?.join(', ') || 'Unknown error'}`,
+        )
         if (turnstileRef.current) {
-          turnstileRef.current.reset();
+          turnstileRef.current.reset()
         }
       }
     } catch (err) {
-      setIsCaptchaCompleted(false);
-      setError("Error verifying CAPTCHA. Please try again.");
+      setIsCaptchaCompleted(false)
+      setError('Error verifying CAPTCHA. Please try again.')
       if (turnstileRef.current) {
-        turnstileRef.current.reset();
+        turnstileRef.current.reset()
       }
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (siteKey && !isCaptchaCompleted && step === "email") {
-      setError("Please complete the CAPTCHA verification.");
-      return;
+    e.preventDefault()
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    if (siteKey && !isCaptchaCompleted && step === 'email') {
+      setError('Please complete the CAPTCHA verification.')
+      return
     }
-    setIsLoading(true);
-    setError("");
+    setIsLoading(true)
+    setError('')
 
     try {
-      if (step === "email") {
-        const { error: createError } = await signIn.create({ identifier: formData.email });
+      if (step === 'email') {
+        const { error: createError } = await signIn.create({
+          identifier: formData.email,
+        })
         if (createError) {
-          setError(createError.longMessage || createError.message || "An error occurred. Please try again.");
-          return;
+          setError(
+            createError.longMessage ||
+              createError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        const { error: sendCodeError } = await signIn.resetPasswordEmailCode.sendCode();
+        const { error: sendCodeError } =
+          await signIn.resetPasswordEmailCode.sendCode()
         if (sendCodeError) {
-          setError(sendCodeError.longMessage || sendCodeError.message || "An error occurred. Please try again.");
-          return;
+          setError(
+            sendCodeError.longMessage ||
+              sendCodeError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        setStep("code");
-      } else if (step === "code") {
-        const { error: verifyCodeError } = await signIn.resetPasswordEmailCode.verifyCode({
-          code: formData.code,
-        });
+        setStep('code')
+      } else if (step === 'code') {
+        const { error: verifyCodeError } =
+          await signIn.resetPasswordEmailCode.verifyCode({
+            code: formData.code,
+          })
         if (verifyCodeError) {
-          setError(verifyCodeError.longMessage || verifyCodeError.message || "An error occurred. Please try again.");
-          return;
+          setError(
+            verifyCodeError.longMessage ||
+              verifyCodeError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        if (signIn.status === "needs_new_password") {
-          setStep("password");
+        if (signIn.status === 'needs_new_password') {
+          setStep('password')
         }
       } else {
-        const { error: submitPasswordError } = await signIn.resetPasswordEmailCode.submitPassword({
-          password: formData.password,
-        });
+        const { error: submitPasswordError } =
+          await signIn.resetPasswordEmailCode.submitPassword({
+            password: formData.password,
+          })
         if (submitPasswordError) {
-          setError(submitPasswordError.longMessage || submitPasswordError.message || "An error occurred. Please try again.");
-          return;
+          setError(
+            submitPasswordError.longMessage ||
+              submitPasswordError.message ||
+              'An error occurred. Please try again.',
+          )
+          return
         }
-        if (signIn.status === "complete") {
+        if (signIn.status === 'complete') {
           const { error: finalizeError } = await signIn.finalize({
             navigate: ({ decorateUrl }) => {
-              const url = decorateUrl("/app");
-              if (url.startsWith("http")) {
-                window.location.href = url;
-                return;
+              const url = decorateUrl('/app')
+              if (url.startsWith('http')) {
+                window.location.href = url
+                return
               }
-              router.push(url);
+              router.push(url)
             },
-          });
+          })
           if (finalizeError) {
-            setError(finalizeError.longMessage || finalizeError.message || "An error occurred. Please try again.");
+            setError(
+              finalizeError.longMessage ||
+                finalizeError.message ||
+                'An error occurred. Please try again.',
+            )
           }
         }
       }
     } catch (err: any) {
       setError(
-        err.errors?.[0]?.longMessage || "An error occurred. Please try again.",
-      );
-      if (siteKey && err.errors && step === "email") {
-        setIsCaptchaCompleted(false);
+        err.errors?.[0]?.longMessage || 'An error occurred. Please try again.',
+      )
+      if (siteKey && err.errors && step === 'email') {
+        setIsCaptchaCompleted(false)
         if (turnstileRef.current) {
-          turnstileRef.current.reset();
+          turnstileRef.current.reset()
         }
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    });
-  };
+    })
+  }
 
   const getStepContent = () => {
     switch (step) {
-      case "email":
+      case 'email':
         return {
-          title: "Reset your password",
+          title: 'Reset your password',
           description:
             "Enter your email address and we'll send you a verification code",
           fields: (
@@ -173,11 +198,11 @@ export function ResetPasswordForm({
               />
             </div>
           ),
-          buttonText: "Send verification code",
-        };
-      case "code":
+          buttonText: 'Send verification code',
+        }
+      case 'code':
         return {
-          title: "Enter verification code",
+          title: 'Enter verification code',
           description: `We've sent a verification code to ${formData.email}`,
           fields: (
             <div className="grid gap-2">
@@ -193,12 +218,12 @@ export function ResetPasswordForm({
               />
             </div>
           ),
-          buttonText: "Verify code",
-        };
-      case "password":
+          buttonText: 'Verify code',
+        }
+      case 'password':
         return {
-          title: "Set new password",
-          description: "Enter your new password",
+          title: 'Set new password',
+          description: 'Enter your new password',
           fields: (
             <div className="grid gap-2">
               <Label htmlFor="password">New Password</Label>
@@ -213,17 +238,17 @@ export function ResetPasswordForm({
               />
             </div>
           ),
-          buttonText: "Reset password",
-        };
+          buttonText: 'Reset password',
+        }
     }
-  };
+  }
 
-  const stepContent = getStepContent();
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  const hasCaptcha = Boolean(siteKey);
+  const stepContent = getStepContent()
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  const hasCaptcha = Boolean(siteKey)
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">{stepContent.title}</CardTitle>
@@ -234,24 +259,24 @@ export function ResetPasswordForm({
             <div className="grid gap-6">
               {stepContent.fields}
 
-              {step === "email" && hasCaptcha && (
+              {step === 'email' && hasCaptcha && (
                 <div className="turnstile-container">
                   <Turnstile
                     ref={turnstileRef}
                     siteKey={siteKey!}
                     onSuccess={handleTurnstileSuccess}
                     onError={() => {
-                      setIsCaptchaCompleted(false);
+                      setIsCaptchaCompleted(false)
                       setError(
-                        "CAPTCHA initialization failed. Please try again.",
-                      );
+                        'CAPTCHA initialization failed. Please try again.',
+                      )
                     }}
                     options={{
-                      theme: "auto",
-                      action: "reset-password",
-                      cData: "reset-password-page",
-                      refreshExpired: "auto",
-                      size: "flexible",
+                      theme: 'auto',
+                      action: 'reset-password',
+                      cData: 'reset-password-page',
+                      refreshExpired: 'auto',
+                      size: 'flexible',
                     }}
                   />
                 </div>
@@ -263,16 +288,16 @@ export function ResetPasswordForm({
                 type="submit"
                 className="w-full bg-[#0066ff] hover:bg-[#0047cc] text-white"
                 disabled={
-                  hasCaptcha && step === "email"
+                  hasCaptcha && step === 'email'
                     ? !isCaptchaCompleted || isLoading
                     : isLoading
                 }
               >
-                {isLoading ? "Processing..." : stepContent.buttonText}
+                {isLoading ? 'Processing...' : stepContent.buttonText}
               </Button>
 
               <div className="text-center text-sm">
-                Remember your password?{" "}
+                Remember your password?{' '}
                 <a
                   href="/sign-in"
                   className="underline underline-offset-4 hover:text-primary"
@@ -286,9 +311,9 @@ export function ResetPasswordForm({
       </Card>
 
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a>{" "}
+        By continuing, you agree to our <a href="/terms">Terms of Service</a>{' '}
         and <a href="/privacy">Privacy Policy</a>.
       </div>
     </div>
-  );
+  )
 }

@@ -1,34 +1,38 @@
-import { Metadata } from "next"
-import { headers } from "next/headers"
-import { ReactNode } from "react"
+import { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { ReactNode } from 'react'
 
-export async function generateMetadata(
-  { params }: { params: { id: string } }
-): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string }
+}): Promise<Metadata> {
   const fallbackMetadata: Metadata = {
-    title: "One Calendar",
+    title: 'One Calendar',
     icons: {
-      icon: "/icon.svg",
+      icon: '/icon.svg',
     },
   }
 
   try {
     const headerStore = await headers()
-    const forwardedHost = headerStore.get("x-forwarded-host")
-    const host = forwardedHost || headerStore.get("host")
-    const protocol = headerStore.get("x-forwarded-proto") || "https"
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (host ? `${protocol}://${host}` : "http://localhost:3000")
+    const forwardedHost = headerStore.get('x-forwarded-host')
+    const host = forwardedHost || headerStore.get('host')
+    const protocol = headerStore.get('x-forwarded-proto') || 'https'
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (host ? `${protocol}://${host}` : 'http://localhost:3000')
     const res = await fetch(`${baseUrl}/api/share?id=${params.id}`, {
-      cache: "no-store",
+      cache: 'no-store',
     })
 
     if (res.status === 401) {
       const result = await res.json().catch(() => null)
       if (result?.requiresPassword) {
         return {
-          title: "Protected | One Calendar",
+          title: 'Protected | One Calendar',
           icons: {
-            icon: "/icon.svg",
+            icon: '/icon.svg',
           },
         }
       }
@@ -45,13 +49,15 @@ export async function generateMetadata(
       return fallbackMetadata
     }
 
-    const event = typeof result.data === "object" ? result.data : JSON.parse(result.data)
-    const eventTitle = typeof event.title === "string" ? event.title : "Untitled"
+    const event =
+      typeof result.data === 'object' ? result.data : JSON.parse(result.data)
+    const eventTitle =
+      typeof event.title === 'string' ? event.title : 'Untitled'
 
     return {
       title: `${eventTitle} | One Calendar`,
       icons: {
-        icon: "/icon.svg",
+        icon: '/icon.svg',
       },
     }
   } catch {

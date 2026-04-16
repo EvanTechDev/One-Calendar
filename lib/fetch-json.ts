@@ -1,17 +1,20 @@
 const inflight = new Map<string, Promise<unknown>>()
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const method = (init?.method ?? "GET").toUpperCase()
-  const key = `${method}:${url}:${init?.body ? String(init.body) : ""}`
+export async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
+  const method = (init?.method ?? 'GET').toUpperCase()
+  const key = `${method}:${url}:${init?.body ? String(init.body) : ''}`
 
-  if (method === "GET" && inflight.has(key)) {
+  if (method === 'GET' && inflight.has(key)) {
     return inflight.get(key) as Promise<T>
   }
 
   const request = fetch(url, {
     ...init,
     headers: {
-      Accept: "application/json",
+      Accept: 'application/json',
       ...(init?.headers ?? {}),
     },
   }).then(async (response) => {
@@ -23,7 +26,7 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
     return (await response.json()) as T
   })
 
-  if (method === "GET") {
+  if (method === 'GET') {
     inflight.set(key, request)
     request.finally(() => inflight.delete(key))
   }

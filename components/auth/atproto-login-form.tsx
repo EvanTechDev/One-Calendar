@@ -1,79 +1,77 @@
-"use client";
+'use client'
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 function AtprotoLoginContent() {
-  const [handle, setHandle] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [registerLoading, setRegisterLoading] = useState(false);
-  const searchParams = useSearchParams();
+  const [handle, setHandle] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const searchParams = useSearchParams()
 
   const startLogin = async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true)
+    setError('')
     try {
-      const res = await fetch("/api/atproto/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/atproto/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ handle }),
-      });
+      })
 
       const data = (await res.json()) as {
-        authorizeUrl?: string;
-        error?: string;
-      };
+        authorizeUrl?: string
+        error?: string
+      }
       if (!res.ok || !data.authorizeUrl) {
-        throw new Error(data.error || "Failed to start OAuth login");
+        throw new Error(data.error || 'Failed to start OAuth login')
       }
 
-      window.location.href = data.authorizeUrl;
+      window.location.href = data.authorizeUrl
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const queryError =
-    searchParams.get("reason") || searchParams.get("error") || "";
+    searchParams.get('reason') || searchParams.get('error') || ''
 
   const startRegister = async () => {
-    setRegisterLoading(true);
-    setError("");
+    setRegisterLoading(true)
+    setError('')
     try {
-      const res = await fetch("/api/atproto/register-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch('/api/atproto/register-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
 
       const data = (await res.json()) as {
-        authorizeUrl?: string;
-        error?: string;
-      };
+        authorizeUrl?: string
+        error?: string
+      }
       if (!res.ok || !data.authorizeUrl) {
-        throw new Error(
-          data.error || "Failed to create registration OAuth URL",
-        );
+        throw new Error(data.error || 'Failed to create registration OAuth URL')
       }
 
-      window.location.href = data.authorizeUrl;
+      window.location.href = data.authorizeUrl
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
-      setRegisterLoading(false);
+      setRegisterLoading(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-4">
@@ -96,7 +94,7 @@ function AtprotoLoginContent() {
             onClick={startLogin}
             disabled={!handle || loading}
           >
-            {loading ? "Redirecting..." : "Continue with Atmosphere OAuth"}
+            {loading ? 'Redirecting...' : 'Continue with Atmosphere OAuth'}
           </Button>
           {error || queryError ? (
             <p className="text-sm text-red-500">{error || queryError}</p>
@@ -108,10 +106,10 @@ function AtprotoLoginContent() {
             onClick={startRegister}
             disabled={registerLoading}
           >
-            {registerLoading ? "Preparing..." : "Create an Atmosphere account"}
+            {registerLoading ? 'Preparing...' : 'Create an Atmosphere account'}
           </Button>
           <p className="pt-1 text-center text-xs text-muted-foreground">
-            Not an Atmosphere user? Return to normal{" "}
+            Not an Atmosphere user? Return to normal{' '}
             <a
               href="/sign-in"
               className="underline underline-offset-4 hover:text-primary"
@@ -122,11 +120,11 @@ function AtprotoLoginContent() {
         </CardContent>
       </Card>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a>{" "}
+        By continuing, you agree to our <a href="/terms">Terms of Service</a>{' '}
         and <a href="/privacy">Privacy Policy</a>.
       </div>
     </div>
-  );
+  )
 }
 
 export function AtprotoLoginForm() {
@@ -140,5 +138,5 @@ export function AtprotoLoginForm() {
     >
       <AtprotoLoginContent />
     </Suspense>
-  );
+  )
 }

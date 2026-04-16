@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useRef } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect, useRef } from 'react'
+import { Copy, Check } from 'lucide-react'
 
 const codeExamples = [
   {
-    label: "Install",
+    label: 'Install',
     code: `bun install`,
   },
   {
-    label: "Initialize",
+    label: 'Initialize',
     code: `import { OneCalendar } from 'one-calendar'
 
 const calendar = new OneCalendar({
@@ -17,7 +17,7 @@ const calendar = new OneCalendar({
 })`,
   },
   {
-    label: "Deploy",
+    label: 'Deploy',
     code: `const event = await calendar.create({
   title: 'Weekly planning',
   start: '2026-01-01T09:00:00Z',
@@ -26,26 +26,26 @@ const calendar = new OneCalendar({
 
 console.log('Created:', event.id)`,
   },
-];
+]
 
 const features = [
-  { 
-    title: "Weekly-first UX", 
-    description: "Optimized for weekly planning and quick edits."
+  {
+    title: 'Weekly-first UX',
+    description: 'Optimized for weekly planning and quick edits.',
   },
-  { 
-    title: "Privacy-first", 
-    description: "No analytics by default, optional E2EE when needed."
+  {
+    title: 'Privacy-first',
+    description: 'No analytics by default, optional E2EE when needed.',
   },
-  { 
-    title: "Portable data", 
-    description: "Import and export with .ics, .json, and .csv."
+  {
+    title: 'Portable data',
+    description: 'Import and export with .ics, .json, and .csv.',
   },
-  { 
-    title: "Open-source", 
-    description: "Transparent architecture and self-host friendly."
+  {
+    title: 'Open-source',
+    description: 'Transparent architecture and self-host friendly.',
   },
-];
+]
 
 const codeAnimationStyles = `
   .dev-code-line {
@@ -73,41 +73,47 @@ const codeAnimationStyles = `
       filter: blur(0);
     }
   }
-`;
+`
 
 export function DevelopersSection() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
+  const [activeTab, setActiveTab] = useState(0)
+  const [copied, setCopied] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(codeExamples[activeTab].code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    navigator.clipboard.writeText(codeExamples[activeTab].code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
+        if (entry.isIntersecting) setIsVisible(true)
       },
-      { threshold: 0.1 }
-    );
+      { threshold: 0.1 },
+    )
 
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+    if (sectionRef.current) observer.observe(sectionRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <section id="developers" ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
+    <section
+      id="developers"
+      ref={sectionRef}
+      className="relative py-24 lg:py-32 overflow-hidden"
+    >
       <style dangerouslySetInnerHTML={{ __html: codeAnimationStyles }} />
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
           {/* Left: Content */}
           <div
             className={`transition-all duration-700 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              isVisible
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
             }`}
           >
             <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
@@ -120,30 +126,37 @@ export function DevelopersSection() {
               <span className="text-muted-foreground">For real schedules.</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 leading-relaxed">
-              Practical defaults make planning reliable: clean interactions, predictable behavior, and docs that explain the system.
+              Practical defaults make planning reliable: clean interactions,
+              predictable behavior, and docs that explain the system.
             </p>
-            
+
             {/* Features */}
             <div className="grid grid-cols-2 gap-6">
               {features.map((feature, index) => (
                 <div
                   key={feature.title}
                   className={`transition-all duration-500 ${
-                    isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                    isVisible
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 translate-y-4'
                   }`}
                   style={{ transitionDelay: `${index * 50 + 200}ms` }}
                 >
                   <h3 className="font-medium mb-1">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {feature.description}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
-          
+
           {/* Right: Code block */}
           <div
             className={`lg:sticky lg:top-32 transition-all duration-700 delay-200 ${
-              isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
+              isVisible
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-8'
             }`}
           >
             <div className="border border-foreground/10">
@@ -156,8 +169,8 @@ export function DevelopersSection() {
                     onClick={() => setActiveTab(idx)}
                     className={`px-6 py-4 text-sm font-mono transition-colors relative ${
                       activeTab === idx
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     {example.label}
@@ -180,42 +193,50 @@ export function DevelopersSection() {
                   )}
                 </button>
               </div>
-              
+
               {/* Code content */}
               <div className="p-8 font-mono text-sm bg-foreground/[0.01] min-h-[220px]">
                 <pre className="text-foreground/80">
-                  {codeExamples[activeTab].code.split('\n').map((line, lineIndex) => (
-                    <div 
-                      key={`${activeTab}-${lineIndex}`} 
-                      className="leading-loose dev-code-line"
-                      style={{ animationDelay: `${lineIndex * 80}ms` }}
-                    >
-                      <span className="inline-flex">
-                        {line.split('').map((char, charIndex) => (
-                          <span
-                            key={`${activeTab}-${lineIndex}-${charIndex}`}
-                            className="dev-code-char"
-                            style={{
-                              animationDelay: `${lineIndex * 80 + charIndex * 15}ms`,
-                            }}
-                          >
-                            {char === ' ' ? '\u00A0' : char}
-                          </span>
-                        ))}
-                      </span>
-                    </div>
-                  ))}
+                  {codeExamples[activeTab].code
+                    .split('\n')
+                    .map((line, lineIndex) => (
+                      <div
+                        key={`${activeTab}-${lineIndex}`}
+                        className="leading-loose dev-code-line"
+                        style={{ animationDelay: `${lineIndex * 80}ms` }}
+                      >
+                        <span className="inline-flex">
+                          {line.split('').map((char, charIndex) => (
+                            <span
+                              key={`${activeTab}-${lineIndex}-${charIndex}`}
+                              className="dev-code-char"
+                              style={{
+                                animationDelay: `${lineIndex * 80 + charIndex * 15}ms`,
+                              }}
+                            >
+                              {char === ' ' ? '\u00A0' : char}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    ))}
                 </pre>
               </div>
             </div>
-            
+
             {/* Links */}
             <div className="mt-6 flex items-center gap-6 text-sm">
-              <a href="#" className="text-foreground hover:underline underline-offset-4">
+              <a
+                href="#"
+                className="text-foreground hover:underline underline-offset-4"
+              >
                 Read docs
               </a>
               <span className="text-foreground/20">|</span>
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 View repository
               </a>
             </div>
@@ -223,5 +244,5 @@ export function DevelopersSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }

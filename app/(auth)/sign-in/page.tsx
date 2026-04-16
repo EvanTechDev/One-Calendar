@@ -1,12 +1,12 @@
-import { LoginForm } from "@/components/auth/login-form";
-import { AuthBrand } from "@/components/auth/auth-brand";
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { LoginForm } from '@/components/auth/login-form'
+import { AuthBrand } from '@/components/auth/auth-brand'
+import { currentUser } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
 export default async function LoginPage() {
-  const user = await currentUser();
+  const user = await currentUser()
   if (user) {
-    redirect("/app");
+    redirect('/app')
   }
 
   return (
@@ -17,16 +17,16 @@ export default async function LoginPage() {
             className="absolute inset-0"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)",
-              backgroundSize: "24px 24px",
+                'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)',
+              backgroundSize: '24px 24px',
             }}
           />
           <div
             className="absolute inset-0 hidden dark:block"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)",
-              backgroundSize: "24px 24px",
+                'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)',
+              backgroundSize: '24px 24px',
             }}
           />
         </div>
@@ -36,5 +36,5 @@ export default async function LoginPage() {
         <LoginForm />
       </div>
     </div>
-  );
+  )
 }

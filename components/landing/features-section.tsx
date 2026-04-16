@@ -1,33 +1,37 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react'
 
 const features = [
   {
-    number: "01",
-    title: "Weekly planning",
-    description: "Drag, drop, and resize events quickly with inline editing for a smooth planning workflow.",
-    visual: "deploy",
+    number: '01',
+    title: 'Weekly planning',
+    description:
+      'Drag, drop, and resize events quickly with inline editing for a smooth planning workflow.',
+    visual: 'deploy',
   },
   {
-    number: "02",
-    title: "Privacy-first defaults",
-    description: "No analytics by default, with optional end-to-end encryption for sensitive data.",
-    visual: "security",
+    number: '02',
+    title: 'Privacy-first defaults',
+    description:
+      'No analytics by default, with optional end-to-end encryption for sensitive data.',
+    visual: 'security',
   },
   {
-    number: "03",
-    title: "Portable workflows",
-    description: "Import and export with .ics, .json, and .csv so your data stays portable.",
-    visual: "ai",
+    number: '03',
+    title: 'Portable workflows',
+    description:
+      'Import and export with .ics, .json, and .csv so your data stays portable.',
+    visual: 'ai',
   },
   {
-    number: "04",
-    title: "Reliable sync",
-    description: "Optional cloud sync with PostgreSQL keeps your schedule consistent across devices.",
-    visual: "collab",
+    number: '04',
+    title: 'Reliable sync',
+    description:
+      'Optional cloud sync with PostgreSQL keeps your schedule consistent across devices.',
+    visual: 'collab',
   },
-];
+]
 
 function DeployVisual() {
   return (
@@ -37,10 +41,19 @@ function DeployVisual() {
           <rect x="30" y="20" width="140" height="120" rx="4" />
         </clipPath>
       </defs>
-      
+
       {/* Container */}
-      <rect x="30" y="20" width="140" height="120" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-      
+      <rect
+        x="30"
+        y="20"
+        width="140"
+        height="120"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+
       {/* Animated bars */}
       <g clipPath="url(#deployClip)">
         {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -71,13 +84,18 @@ function DeployVisual() {
           </rect>
         ))}
       </g>
-      
+
       {/* Progress indicator */}
       <circle cx="100" cy="155" r="3" fill="currentColor" opacity="0.3">
-        <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" />
+        <animate
+          attributeName="opacity"
+          values="0.3;1;0.3"
+          dur="1s"
+          repeatCount="indefinite"
+        />
       </circle>
     </svg>
-  );
+  )
 }
 
 function AIVisual() {
@@ -85,13 +103,18 @@ function AIVisual() {
     <svg viewBox="0 0 200 160" className="w-full h-full">
       {/* Central node */}
       <circle cx="100" cy="80" r="12" fill="currentColor">
-        <animate attributeName="r" values="12;14;12" dur="2s" repeatCount="indefinite" />
+        <animate
+          attributeName="r"
+          values="12;14;12"
+          dur="2s"
+          repeatCount="indefinite"
+        />
       </circle>
-      
+
       {/* Orbiting nodes */}
       {[0, 1, 2, 3, 4, 5].map((i) => {
-        const angle = (i * 60) * (Math.PI / 180);
-        const radius = 50;
+        const angle = i * 60 * (Math.PI / 180)
+        const radius = 50
         return (
           <g key={i}>
             {/* Connection line */}
@@ -112,7 +135,7 @@ function AIVisual() {
                 repeatCount="indefinite"
               />
             </line>
-            
+
             {/* Outer node */}
             <circle
               cx={100 + Math.cos(angle) * radius}
@@ -131,16 +154,34 @@ function AIVisual() {
               />
             </circle>
           </g>
-        );
+        )
       })}
-      
+
       {/* Pulse rings */}
-      <circle cx="100" cy="80" r="30" fill="none" stroke="currentColor" strokeWidth="1" opacity="0">
-        <animate attributeName="r" values="20;60" dur="2s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.5;0" dur="2s" repeatCount="indefinite" />
+      <circle
+        cx="100"
+        cy="80"
+        r="30"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        opacity="0"
+      >
+        <animate
+          attributeName="r"
+          values="20;60"
+          dur="2s"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="opacity"
+          values="0.5;0"
+          dur="2s"
+          repeatCount="indefinite"
+        />
       </circle>
     </svg>
-  );
+  )
 }
 
 function CollabVisual() {
@@ -148,23 +189,86 @@ function CollabVisual() {
     <svg viewBox="0 0 200 160" className="w-full h-full">
       {/* User A */}
       <g>
-        <rect x="30" y="50" width="50" height="60" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <text x="55" y="85" textAnchor="middle" fontSize="20" fontFamily="monospace" fill="currentColor">A</text>
-        <circle cx="55" cy="35" r="12" fill="none" stroke="currentColor" strokeWidth="2" />
+        <rect
+          x="30"
+          y="50"
+          width="50"
+          height="60"
+          rx="4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <text
+          x="55"
+          y="85"
+          textAnchor="middle"
+          fontSize="20"
+          fontFamily="monospace"
+          fill="currentColor"
+        >
+          A
+        </text>
+        <circle
+          cx="55"
+          cy="35"
+          r="12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
       </g>
-      
+
       {/* User B */}
       <g>
-        <rect x="120" y="50" width="50" height="60" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <text x="145" y="85" textAnchor="middle" fontSize="20" fontFamily="monospace" fill="currentColor">B</text>
-        <circle cx="145" cy="35" r="12" fill="none" stroke="currentColor" strokeWidth="2" />
+        <rect
+          x="120"
+          y="50"
+          width="50"
+          height="60"
+          rx="4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <text
+          x="145"
+          y="85"
+          textAnchor="middle"
+          fontSize="20"
+          fontFamily="monospace"
+          fill="currentColor"
+        >
+          B
+        </text>
+        <circle
+          cx="145"
+          cy="35"
+          r="12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
       </g>
-      
+
       {/* Connection */}
-      <line x1="80" y1="80" x2="120" y2="80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4">
-        <animate attributeName="stroke-dashoffset" values="0;-8" dur="0.5s" repeatCount="indefinite" />
+      <line
+        x1="80"
+        y1="80"
+        x2="120"
+        y2="80"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeDasharray="4 4"
+      >
+        <animate
+          attributeName="stroke-dashoffset"
+          values="0;-8"
+          dur="0.5s"
+          repeatCount="indefinite"
+        />
       </line>
-      
+
       {/* Data packet */}
       <circle r="4" fill="currentColor">
         <animateMotion dur="1.5s" repeatCount="indefinite">
@@ -172,16 +276,26 @@ function CollabVisual() {
         </animateMotion>
       </circle>
       <path id="dataPath" d="M 80 80 L 120 80" fill="none" />
-      
+
       {/* Sync indicator */}
       <g transform="translate(100, 130)">
         <circle r="6" fill="none" stroke="currentColor" strokeWidth="2">
-          <animate attributeName="r" values="6;10;6" dur="1s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite" />
+          <animate
+            attributeName="r"
+            values="6;10;6"
+            dur="1s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="1;0.3;1"
+            dur="1s"
+            repeatCount="indefinite"
+          />
         </circle>
       </g>
     </svg>
-  );
+  )
 }
 
 function SecurityVisual() {
@@ -194,16 +308,21 @@ function SecurityVisual() {
         stroke="currentColor"
         strokeWidth="2"
       />
-      
+
       {/* Inner shield */}
       <path
         d="M 100 35 L 135 50 L 135 85 Q 135 115 100 128 Q 65 115 65 85 L 65 50 Z"
         fill="currentColor"
         opacity="0.1"
       >
-        <animate attributeName="opacity" values="0.1;0.2;0.1" dur="2s" repeatCount="indefinite" />
+        <animate
+          attributeName="opacity"
+          values="0.1;0.2;0.1"
+          dur="2s"
+          repeatCount="indefinite"
+        />
       </path>
-      
+
       {/* Lock icon */}
       <rect x="85" y="70" width="30" height="25" rx="3" fill="currentColor" />
       <path
@@ -213,66 +332,97 @@ function SecurityVisual() {
         strokeWidth="3"
         strokeLinecap="round"
       />
-      
+
       {/* Keyhole */}
       <circle cx="100" cy="80" r="4" fill="white" />
       <rect x="98" y="82" width="4" height="8" fill="white" />
-      
+
       {/* Scan lines */}
-      <line x1="60" y1="60" x2="140" y2="60" stroke="currentColor" strokeWidth="1" opacity="0">
-        <animate attributeName="y1" values="40;120;40" dur="3s" repeatCount="indefinite" />
-        <animate attributeName="y2" values="40;120;40" dur="3s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0;0.5;0" dur="3s" repeatCount="indefinite" />
+      <line
+        x1="60"
+        y1="60"
+        x2="140"
+        y2="60"
+        stroke="currentColor"
+        strokeWidth="1"
+        opacity="0"
+      >
+        <animate
+          attributeName="y1"
+          values="40;120;40"
+          dur="3s"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="y2"
+          values="40;120;40"
+          dur="3s"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="opacity"
+          values="0;0.5;0"
+          dur="3s"
+          repeatCount="indefinite"
+        />
       </line>
     </svg>
-  );
+  )
 }
 
 function AnimatedVisual({ type }: { type: string }) {
   switch (type) {
-    case "deploy":
-      return <DeployVisual />;
-    case "ai":
-      return <AIVisual />;
-    case "collab":
-      return <CollabVisual />;
-    case "security":
-      return <SecurityVisual />;
+    case 'deploy':
+      return <DeployVisual />
+    case 'ai':
+      return <AIVisual />
+    case 'collab':
+      return <CollabVisual />
+    case 'security':
+      return <SecurityVisual />
     default:
-      return <DeployVisual />;
+      return <DeployVisual />
   }
 }
 
-function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+function FeatureCard({
+  feature,
+  index,
+}: {
+  feature: (typeof features)[0]
+  index: number
+}) {
+  const [isVisible, setIsVisible] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
+        if (entry.isIntersecting) setIsVisible(true)
       },
-      { threshold: 0.2 }
-    );
+      { threshold: 0.2 },
+    )
 
-    if (cardRef.current) observer.observe(cardRef.current);
-    return () => observer.disconnect();
-  }, []);
+    if (cardRef.current) observer.observe(cardRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div
       ref={cardRef}
       className={`group relative transition-all duration-700 ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 py-12 lg:py-20 border-b border-foreground/10">
         {/* Number */}
         <div className="shrink-0">
-          <span className="font-mono text-sm text-muted-foreground">{feature.number}</span>
+          <span className="font-mono text-sm text-muted-foreground">
+            {feature.number}
+          </span>
         </div>
-        
+
         {/* Content */}
         <div className="flex-1 grid lg:grid-cols-2 gap-8 items-center">
           <div>
@@ -283,7 +433,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
               {feature.description}
             </p>
           </div>
-          
+
           {/* Visual */}
           <div className="flex justify-center lg:justify-end">
             <div className="w-48 h-40 text-foreground">
@@ -293,31 +443,27 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export function FeaturesSection() {
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false)
+  const sectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
+        if (entry.isIntersecting) setIsVisible(true)
       },
-      { threshold: 0.1 }
-    );
+      { threshold: 0.1 },
+    )
 
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+    if (sectionRef.current) observer.observe(sectionRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <section
-      id="features"
-      ref={sectionRef}
-      className="relative py-24 lg:py-32"
-    >
+    <section id="features" ref={sectionRef} className="relative py-24 lg:py-32">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         {/* Header */}
         <div className="mb-16 lg:mb-24">
@@ -327,12 +473,16 @@ export function FeaturesSection() {
           </span>
           <h2
             className={`text-4xl lg:text-6xl font-display tracking-tight transition-all duration-700 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              isVisible
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-4'
             }`}
           >
             Clarity over complexity.
             <br />
-            <span className="text-muted-foreground">Nothing you don&apos;t.</span>
+            <span className="text-muted-foreground">
+              Nothing you don&apos;t.
+            </span>
           </h2>
         </div>
 
@@ -344,5 +494,5 @@ export function FeaturesSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }

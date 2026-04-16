@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { ArrowUpRight } from "lucide-react";
-import { AnimatedWave } from "./animated-wave";
-import { APP_CONFIG } from "@/lib/config";
+import { ArrowUpRight } from 'lucide-react'
+import { AnimatedWave } from './animated-wave'
+import { APP_CONFIG } from '@/lib/config'
 
 export function FooterSection() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear()
 
   return (
     <footer className="relative border-t border-foreground/10">
@@ -22,7 +22,8 @@ export function FooterSection() {
               </a>
 
               <p className="text-muted-foreground leading-relaxed mb-8 max-w-xs">
-                A privacy-first, weekly-focused open-source calendar built for clarity and control.
+                A privacy-first, weekly-focused open-source calendar built for
+                clarity and control.
               </p>
             </div>
 
@@ -61,5 +62,5 @@ export function FooterSection() {
         </div>
       </div>
     </footer>
-  );
+  )
 }
