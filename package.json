@@ -10,7 +10,7 @@
     "prepare": "husky",
     "lint": "eslint . --fix",
     "lint:check": "eslint . --max-warnings=0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
     "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
