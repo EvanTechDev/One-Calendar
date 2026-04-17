@@ -1,45 +1,29 @@
-const CACHE_NAME = 'one-calendar-shell-v3'
-const OFFLINE_URLS = ['/app', '/icon.svg']
-const STATIC_PATH_PREFIXES = ['/_next/static/', '/_next/image/', '/icons/']
-const STATIC_FILE_PATTERN =
-  /\.(?:js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|otf|eot|json|txt|xml|webmanifest)$/i
+const SW_VERSION = self.registration?.scope
 
-function shouldCacheRequest(requestUrl) {
-  if (requestUrl.origin !== self.location.origin) return false
-  if (OFFLINE_URLS.includes(requestUrl.pathname)) return true
-  if (
-    STATIC_PATH_PREFIXES.some((prefix) =>
-      requestUrl.pathname.startsWith(prefix),
-    )
-  ) {
-    return true
-  }
-  return STATIC_FILE_PATTERN.test(requestUrl.pathname)
+const clearAllCaches = async () => {
+  const keys = await caches.keys()
+  await Promise.all(keys.map((key) => caches.delete(key)))
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(OFFLINE_URLS))
-      .then(() => self.skipWaiting()),
-  )
+  event.waitUntil(self.skipWaiting())
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key)),
+    clearAllCaches().then(async () => {
+      await self.clients.claim()
+      const clients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      await Promise.all(
+        clients.map((client) =>
+          client.postMessage({ type: 'SW_ACTIVATED', version: SW_VERSION }),
         ),
-      ),
+      )
+    }),
   )
-
-  self.clients.claim()
 })
 
 self.addEventListener('message', (event) => {
@@ -55,41 +39,8 @@ self.addEventListener('fetch', (event) => {
   if (requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') {
     return
   }
-  if (requestUrl.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(event.request))
-    return
-  }
-  if (!shouldCacheRequest(requestUrl)) {
-    event.respondWith(fetch(event.request))
-    return
-  }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse
-      }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200) {
-            return networkResponse
-          }
-
-          if (networkResponse.type !== 'basic') {
-            return networkResponse
-          }
-
-          const responseToCache = networkResponse.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache).catch(() => undefined)
-          })
-
-          return networkResponse
-        })
-        .catch(() => caches.match('/app'))
-    }),
-  )
+  event.respondWith(fetch(event.request))
 })
 
 self.addEventListener('notificationclick', (event) => {
