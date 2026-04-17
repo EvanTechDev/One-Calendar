@@ -29,6 +29,7 @@ import {
   MoreHorizontal,
   Plus,
   X,
+  Trash2,
 } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
@@ -314,7 +315,7 @@ export default function Sidebar({
                       onClick={() => handleDeleteClick(calendar.id)}
                       className="text-destructive focus:text-destructive"
                     >
-                      <X className="mr-2 h-4 w-4" />
+                      <Trash2 className="mr-2 h-4 w-4" />
                       {t.delete}
                     </DropdownMenuItem>
                     <DropdownMenuItem
