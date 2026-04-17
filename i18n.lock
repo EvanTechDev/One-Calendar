@@ -330,6 +330,10 @@ checksums:
     categoryDeletedDescription: 13f3a01a6e2c3ae533b6fea28c8cdee4
     noMatchingEvents: f6e263b6f171efdaa70242368fb74634
     edit: eee7f39ff90b18852afc1671f21fbaa9
+    moveUp: 69f25b205c677abdb26cbb69d97cd10b
+    moveDown: 4f4de55743043355ad4a839aff2c48ff
+    categoryMovedUp: d01803319badcb6500d347478dce5070
+    categoryMovedDown: ff0a6609e9ee04b08fea9b5f08e5b5ae
     dragToNewPosition: e3aa5f69de48917fb43148280b01959c
     categoryAdded: 829df6b8bb84864de4c22fec5efd7fd2
     categoryAddedDesc: 28849256859dc56b1871622d64023dc7
