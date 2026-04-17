@@ -39,6 +39,7 @@ interface CalendarContextType {
   addCategory: (category: CalendarCategory) => void
   removeCategory: (id: string) => void
   updateCategory: (id: string, category: Partial<CalendarCategory>) => void
+  moveCategory: (id: string, direction: 'up' | 'down') => void
   addEvent: (newEvent: CalendarEvent) => void
 }
 
@@ -86,6 +87,25 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
+  const moveCategory = (id: string, direction: 'up' | 'down') => {
+    setCalendars((prevCalendars) => {
+      const currentIndex = prevCalendars.findIndex((cal) => cal.id === id)
+      if (currentIndex === -1) return prevCalendars
+
+      const targetIndex =
+        direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+      if (targetIndex < 0 || targetIndex >= prevCalendars.length) {
+        return prevCalendars
+      }
+
+      const nextCalendars = [...prevCalendars]
+      const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
+      nextCalendars.splice(targetIndex, 0, movedCalendar)
+      return nextCalendars
+    })
+  }
+
   const addEvent = (newEvent: CalendarEvent) => {
     setEvents((prevEvents) => {
       const eventExists = prevEvents.some((event) => event.id === newEvent.id)
@@ -110,6 +130,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
         addCategory,
         removeCategory,
         updateCategory,
+        moveCategory,
         addEvent,
       }}
     >

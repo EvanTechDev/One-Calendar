@@ -22,11 +22,24 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, X, Edit2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Edit2,
+  MoreHorizontal,
+  Plus,
+  X,
+} from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import Image from 'next/image'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -81,6 +94,7 @@ export default function Sidebar({
     addCategory: addCategoryToContext,
     removeCategory: removeCategoryFromContext,
     updateCategory: updateCategoryInContext,
+    moveCategory: moveCategoryInContext,
   } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -125,6 +139,8 @@ export default function Sidebar({
   }
   const deleteCategoryEventsLabel =
     t.deleteCategoryEvents || '同时删除此分类下的所有日程'
+  const moveUpText = t['moveUp'] || 'Move up'
+  const moveDownText = t['moveDown'] || 'Move down'
 
   useEffect(() => {
     if (selectedDate) {
@@ -180,6 +196,16 @@ export default function Sidebar({
     setEditDialogOpen(false)
     setEditingCategoryId(null)
     toast(t.categoryUpdated || '分类已更新')
+  }
+
+  const handleMoveCategory = (id: string, direction: 'up' | 'down') => {
+    moveCategoryInContext(id, direction)
+    toast(direction === 'up' ? moveUpText : moveDownText, {
+      description:
+        direction === 'up'
+          ? t['categoryMovedUp'] || 'Category moved up'
+          : t['categoryMovedDown'] || 'Category moved down',
+    })
   }
 
   const confirmDelete = () => {
@@ -257,10 +283,7 @@ export default function Sidebar({
             <span className="text-sm font-medium">{t.myCalendars}</span>
           </div>
           {calendars.map((calendar) => (
-            <div
-              key={calendar.id}
-              className="flex items-center justify-between"
-            >
+            <div key={calendar.id} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={selectedCategoryFilters.includes(calendar.id)}
@@ -276,20 +299,43 @@ export default function Sidebar({
                 <span className="text-sm">{calendar.name}</span>
               </div>
               <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEditClick(calendar.id)}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteClick(calendar.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEditClick(calendar.id)}>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      {t.edit}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteClick(calendar.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      {t.delete}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleMoveCategory(calendar.id, 'up')}
+                      disabled={calendars.findIndex((item) => item.id === calendar.id) === 0}
+                    >
+                      <ArrowUp className="mr-2 h-4 w-4" />
+                      {moveUpText}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleMoveCategory(calendar.id, 'down')}
+                      disabled={
+                        calendars.findIndex((item) => item.id === calendar.id) ===
+                        calendars.length - 1
+                      }
+                    >
+                      <ArrowDown className="mr-2 h-4 w-4" />
+                      {moveDownText}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
