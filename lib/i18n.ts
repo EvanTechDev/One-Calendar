@@ -97,7 +97,10 @@ export const getLanguageAutonym = (language: Language) => {
   )
 }
 
-export const isZhLanguage = (language: Language) => language.startsWith('zh')
+const zhLanguages: Language[] = ['zh-CN', 'zh-HK', 'zh-TW']
+
+export const isZhLanguage = (language: Language) =>
+  zhLanguages.includes(language)
 
 export const getStoredLanguage = async (): Promise<Language> => {
   const storedLanguage = await readEncryptedLocalStorage<string | null>(

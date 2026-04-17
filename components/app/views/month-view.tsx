@@ -143,7 +143,7 @@ export default function MonthView({
                     }}
                   />
                   <div
-                    className="pl-1.5"
+                    className="pl-1.5 truncate"
                     style={{ color: getDarkerColorClass(event.color) }}
                   >
                     {event.title}
