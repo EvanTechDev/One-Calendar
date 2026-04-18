@@ -1,7 +1,13 @@
 'use client'
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 
 interface DurationDatum {
   category: string
@@ -12,25 +18,40 @@ interface CategoryAverageDurationChartProps {
   data: DurationDatum[]
 }
 
-export function CategoryAverageDurationChart({ data }: CategoryAverageDurationChartProps) {
+const chartConfig = {
+  hours: {
+    label: '平均时长',
+    color: 'hsl(var(--chart-2))',
+  },
+} satisfies ChartConfig
+
+export function CategoryAverageDurationChart({
+  data,
+}: CategoryAverageDurationChartProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>各分类平均时长（小时）</CardTitle>
       </CardHeader>
-      <CardContent className="h-[320px]">
+      <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8 }}>
+          <ChartContainer config={chartConfig} className="h-[320px] w-full">
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ left: 8, right: 16, top: 8 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" unit="h" />
               <YAxis type="category" dataKey="category" width={96} />
-              <Tooltip formatter={(value: number) => [`${value.toFixed(1)} 小时`, '平均时长']} />
-              <Bar dataKey="hours" fill="hsl(var(--chart-2))" radius={[0, 8, 8, 0]} />
+              <ChartTooltip
+                content={<ChartTooltipContent formatter={(value) => `${value} 小时`} />}
+              />
+              <Bar dataKey="hours" fill="var(--color-hours)" radius={[0, 8, 8, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>

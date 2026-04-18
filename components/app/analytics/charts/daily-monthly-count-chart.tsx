@@ -1,9 +1,15 @@
 'use client'
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 
 interface CountDatum {
   label: string
@@ -16,6 +22,13 @@ interface DailyMonthlyCountChartProps {
   mode: 'day' | 'month'
   onModeChange: (mode: 'day' | 'month') => void
 }
+
+const chartConfig = {
+  count: {
+    label: '日程数量',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig
 
 export function DailyMonthlyCountChart({
   dailyData,
@@ -36,19 +49,24 @@ export function DailyMonthlyCountChart({
           </TabsList>
         </Tabs>
       </CardHeader>
-      <CardContent className="h-[320px]">
+      <CardContent>
         {activeData.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart data={activeData} margin={{ left: 8, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tickFormatter={(value: string) => (mode === 'day' ? format(new Date(value), 'MM-dd') : value)} />
+              <XAxis
+                dataKey="label"
+                tickFormatter={(value: string) =>
+                  mode === 'day' ? format(new Date(value), 'MM-dd') : value
+                }
+              />
               <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="count" fill="var(--color-count)" radius={[8, 8, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>
