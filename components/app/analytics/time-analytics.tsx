@@ -1,312 +1,326 @@
 'use client'
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from 'recharts'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { analyzeTimeUsage, type TimeAnalytics } from '@/lib/time-analytics'
-import type { CalendarCategory } from '../sidebar/sidebar'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { translations, useLanguage } from '@/lib/i18n'
+import { useMemo, useState } from 'react'
+import { differenceInCalendarDays, format, getDay } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
-import { useState, useEffect } from 'react'
+import {
+  addDurationByDayCategory,
+  calculateDaySpanInHours,
+  filterEventsInRange,
+  formatHourRange,
+  generateRangeDays,
+  getMonthDays,
+  getPreviousRange,
+  groupDayKey,
+  groupMonthKey,
+  mapEventsToAnalyticsEvents,
+  resolveDateRange,
+  type AnalyticsRangePreset,
+  WEEKDAY_LABELS,
+} from './analytics-utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DailyMonthlyCountChart } from './charts/daily-monthly-count-chart'
+import { YearHeatmapChart } from './charts/year-heatmap-chart'
+import { CategoryDonutChart } from './charts/category-donut-chart'
+import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
+import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
+import { PeriodComparisonLineChart } from './charts/period-comparison-line-chart'
+import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
-  calendars?: CalendarCategory[]
 }
 
-export default function TimeAnalyticsComponent({
-  events,
-  calendars = [],
-}: TimeAnalyticsProps) {
-  const [timeCategories, setTimeCategories] = useLocalStorage<
-    CalendarCategory[]
-  >('calendar-categories', calendars)
-  const [analytics, setAnalytics] = useState<TimeAnalytics | null>(null)
-  const [newCategory, setNewCategory] = useState<Partial<CalendarCategory>>({
-    name: '',
-    color: 'bg-gray-500',
-    keywords: [],
-  })
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
-  const [language] = useLanguage()
-  const t = translations[language]
+const dayName = (date: Date): string => {
+  const day = getDay(date)
+  if (day === 0) return WEEKDAY_LABELS[6]
+  return WEEKDAY_LABELS[day - 1]
+}
 
-  const [forceUpdate, setForceUpdate] = useState(0)
+export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
+  const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
+  const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
-  useEffect(() => {
-    const handleLanguageChange = () => {
-      setForceUpdate((prev) => prev + 1)
-    }
+  const now = useMemo(() => new Date(), [])
+  const dateRange = useMemo(() => resolveDateRange(preset, now), [preset, now])
 
-    window.addEventListener('languagechange', handleLanguageChange)
-    return () => {
-      window.removeEventListener('languagechange', handleLanguageChange)
-    }
-  }, [])
+  const normalizedEvents = useMemo(() => mapEventsToAnalyticsEvents(events), [events])
+  const rangeEvents = useMemo(() => filterEventsInRange(normalizedEvents, dateRange), [normalizedEvents, dateRange])
 
-  useEffect(() => {
-    const now = new Date()
-    const filteredEvents = events.filter((event) => {
-      const eventDate = new Date(event.startDate)
-      if (timeRange === 'week') {
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        return eventDate >= oneWeekAgo
-      } else if (timeRange === 'month') {
-        const oneMonthAgo = new Date(
-          now.getFullYear(),
-          now.getMonth() - 1,
-          now.getDate(),
-        )
-        return eventDate >= oneMonthAgo
-      } else if (timeRange === 'year') {
-        const oneYearAgo = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        )
-        return eventDate >= oneYearAgo
-      }
-      return true
+  const dailyCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    rangeEvents.forEach((event) => {
+      const key = groupDayKey(event.start)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    })
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, count]) => ({ label, count }))
+  }, [rangeEvents])
+
+  const monthlyCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    rangeEvents.forEach((event) => {
+      const key = groupMonthKey(event.start)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    })
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, count]) => ({ label, count }))
+  }, [rangeEvents])
+
+  const heatmapData = useMemo(() => {
+    const currentYear = now.getFullYear()
+    const days = getMonthDays(currentYear)
+    const counts = new Map<string, number>()
+    normalizedEvents.forEach((event) => {
+      if (event.start.getFullYear() !== currentYear) return
+      const key = groupDayKey(event.start)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
     })
 
-    const result = analyzeTimeUsage(filteredEvents, timeCategories)
-    setAnalytics(result)
-  }, [events, timeCategories, timeRange, language, forceUpdate])
+    return days.map((date) => ({
+      date,
+      count: counts.get(groupDayKey(date)) ?? 0,
+    }))
+  }, [normalizedEvents, now])
 
-  const handleAddCategory = () => {
-    if (newCategory.name) {
-      const newCat: CalendarCategory = {
-        id: Date.now().toString(),
-        name: newCategory.name,
-        color: newCategory.color || 'bg-gray-500',
-        keywords: [],
-      }
-      setTimeCategories([...timeCategories, newCat])
-      setNewCategory({
-        name: '',
-        color: 'bg-gray-500',
-        keywords: [],
+  const categoryDonutData = useMemo(() => {
+    const categoryCounts = new Map<string, { count: number; color: string }>()
+    rangeEvents.forEach((event) => {
+      const prev = categoryCounts.get(event.category)
+      categoryCounts.set(event.category, {
+        count: (prev?.count ?? 0) + 1,
+        color: prev?.color ?? event.color,
       })
+    })
+
+    const total = rangeEvents.length
+    if (total === 0) return []
+
+    return Array.from(categoryCounts.entries())
+      .filter(([, value]) => value.count > 0)
+      .map(([category, value]) => ({
+        category,
+        count: value.count,
+        percent: (value.count / total) * 100,
+        color: value.color,
+      }))
+      .sort((a, b) => b.count - a.count)
+  }, [rangeEvents])
+
+  const categoryAvgDurationData = useMemo(() => {
+    const categoryDuration = new Map<string, { total: number; count: number }>()
+    rangeEvents.forEach((event) => {
+      const duration = calculateDaySpanInHours(event.start, event.end)
+      const prev = categoryDuration.get(event.category)
+      categoryDuration.set(event.category, {
+        total: (prev?.total ?? 0) + duration,
+        count: (prev?.count ?? 0) + 1,
+      })
+    })
+
+    return Array.from(categoryDuration.entries())
+      .map(([category, value]) => ({
+        category,
+        hours: Number((value.total / value.count).toFixed(1)),
+      }))
+      .sort((a, b) => b.hours - a.hours)
+  }, [rangeEvents])
+
+  const weekdayStacked = useMemo(() => {
+    const buckets: Record<string, Record<string, { hours: number; color: string }>> = {}
+
+    rangeEvents.forEach((event) => {
+      const label = dayName(event.start)
+      const hours = calculateDaySpanInHours(event.start, event.end)
+      addDurationByDayCategory(buckets, label, event.category, event.color, hours)
+    })
+
+    const categoryColors = new Map<string, string>()
+    Object.values(buckets).forEach((value) => {
+      Object.entries(value).forEach(([category, item]) => {
+        if (!categoryColors.has(category)) {
+          categoryColors.set(category, item.color)
+        }
+      })
+    })
+
+    const data = WEEKDAY_LABELS.map((label) => {
+      const row: Record<string, string | number> = { day: label }
+      const values = buckets[label] ?? {}
+      categoryColors.forEach((_, category) => {
+        row[category] = Number((values[category]?.hours ?? 0).toFixed(1))
+      })
+      return row
+    })
+
+    const series = Array.from(categoryColors.entries()).map(([key, color]) => ({
+      key,
+      color,
+    }))
+
+    return { data, series }
+  }, [rangeEvents])
+
+  const periodComparisonData = useMemo(() => {
+    const previousRange = getPreviousRange(dateRange)
+    const previousEvents = filterEventsInRange(normalizedEvents, previousRange)
+    const totalDays = differenceInCalendarDays(dateRange.end, dateRange.start) + 1
+
+    const currentCounts = new Map<string, number>()
+    rangeEvents.forEach((event) => {
+      const index = differenceInCalendarDays(event.start, dateRange.start)
+      const key = String(index + 1)
+      currentCounts.set(key, (currentCounts.get(key) ?? 0) + 1)
+    })
+
+    const previousCounts = new Map<string, number>()
+    previousEvents.forEach((event) => {
+      const index = differenceInCalendarDays(event.start, previousRange.start)
+      const key = String(index + 1)
+      previousCounts.set(key, (previousCounts.get(key) ?? 0) + 1)
+    })
+
+    return Array.from({ length: totalDays }).map((_, index) => {
+      const key = String(index + 1)
+      return {
+        day: `第${index + 1}天`,
+        current: currentCounts.get(key) ?? 0,
+        previous: previousCounts.get(key) ?? 0,
+      }
+    })
+  }, [dateRange, normalizedEvents, rangeEvents])
+
+  const metrics = useMemo(() => {
+    if (rangeEvents.length === 0) {
+      return [
+        { title: '最长连续有日程天数', value: '0 天', subtitle: '当前周期内暂无日程' },
+        { title: '最忙的星期几', value: '暂无', subtitle: '当前周期内暂无日程' },
+        { title: '日程平均提前安排天数', value: '0.0 天', subtitle: '数值越大代表规划越提前' },
+        { title: '最集中的时间段', value: '暂无', subtitle: '当前周期内暂无日程' },
+      ]
     }
-  }
 
-  const handleRemoveCategory = (id: string) => {
-    setTimeCategories(timeCategories.filter((cat) => cat.id !== id))
-  }
+    const days = generateRangeDays(dateRange)
+    const activeSet = new Set(rangeEvents.map((event) => groupDayKey(event.start)))
 
-  if (!analytics) {
-    return <div>{t.loading}</div>
-  }
+    let bestStreak = 0
+    let currentStreak = 0
+    let bestStart = days[0]
+    let bestEnd = days[0]
+    let currentStart = days[0]
 
-  const pieData = Object.entries(analytics.categorizedHours)
-    .filter(([_, hours]) => hours > 0)
-    .map(([categoryId, hours]) => {
-      const category = timeCategories.find((cat) => cat.id === categoryId)
-      return {
-        name: category ? category.name : t.uncategorized,
-        value: Math.round(hours * 10) / 10,
-        color: category ? category.color.replace('bg-', '') : 'gray-500',
+    days.forEach((day) => {
+      const key = groupDayKey(day)
+      if (activeSet.has(key)) {
+        if (currentStreak === 0) currentStart = day
+        currentStreak += 1
+        if (currentStreak > bestStreak) {
+          bestStreak = currentStreak
+          bestStart = currentStart
+          bestEnd = day
+        }
+      } else {
+        currentStreak = 0
       }
     })
 
-  const barData = Object.entries(analytics.categorizedHours)
-    .filter(([_, hours]) => hours > 0)
-    .map(([categoryId, hours]) => {
-      const category = timeCategories.find((cat) => cat.id === categoryId)
-      return {
-        name: category ? category.name : t.uncategorized,
-        hours: Math.round(hours * 10) / 10,
-        color: category ? category.color.replace('bg-', '') : 'gray-500',
-      }
+    const weekdayMap = new Map<string, number>()
+    rangeEvents.forEach((event) => {
+      const label = dayName(event.start)
+      weekdayMap.set(label, (weekdayMap.get(label) ?? 0) + 1)
     })
 
-  const colorMap: Record<string, string> = {
-    'blue-500': '#3b82f6',
-    'green-500': '#22c55e',
-    'purple-500': '#a855f7',
-    'yellow-500': '#eab308',
-    'red-500': '#ef4444',
-    'gray-500': '#6b7280',
-    'pink-500': '#ec4899',
-    'indigo-500': '#6366f1',
-    'orange-500': '#f97316',
-    'teal-500': '#14b8a6',
-  }
+    const totalWeeks = Math.max((differenceInCalendarDays(dateRange.end, dateRange.start) + 1) / 7, 1)
+    const weekdayAverages = WEEKDAY_LABELS.map((label) => ({
+      day: label,
+      avg: (weekdayMap.get(label) ?? 0) / totalWeeks,
+    }))
 
-  const busiestCategoryName = (() => {
-    if (analytics.busiestCategoryId === 'uncategorized') return t.uncategorized
-    return (
-      timeCategories.find((cat) => cat.id === analytics.busiestCategoryId)
-        ?.name || t.uncategorized
-    )
-  })()
+    const busiestDay = weekdayAverages.reduce((max, current) => (current.avg > max.avg ? current : max), weekdayAverages[0])
+    const overallAvg = rangeEvents.length / 7
+    const uplift = overallAvg === 0 ? 0 : ((busiestDay.avg - overallAvg) / overallAvg) * 100
+
+    const leadTimes = rangeEvents.map((event) => (event.start.getTime() - event.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+    const avgLead = leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length
+
+    const hourCounts = Array.from({ length: 24 }).map(() => 0)
+    rangeEvents.forEach((event) => {
+      hourCounts[event.start.getHours()] += 1
+    })
+
+    let bestWindowHour = 0
+    let bestWindowCount = 0
+    for (let i = 0; i < 24; i += 1) {
+      const count = hourCounts[i] + hourCounts[(i + 1) % 24]
+      if (count > bestWindowCount) {
+        bestWindowCount = count
+        bestWindowHour = i
+      }
+    }
+
+    const 집중占比 = rangeEvents.length === 0 ? 0 : (bestWindowCount / rangeEvents.length) * 100
+
+    return [
+      {
+        title: '最长连续有日程天数',
+        value: `${bestStreak} 天`,
+        subtitle: `${format(bestStart, 'yyyy-MM-dd')} 至 ${format(bestEnd, 'yyyy-MM-dd')}`,
+      },
+      {
+        title: '最忙的星期几',
+        value: busiestDay.day,
+        subtitle: `平均 ${busiestDay.avg.toFixed(1)} 个日程，高于整体 ${uplift.toFixed(1)}%`,
+      },
+      {
+        title: '日程平均提前安排天数',
+        value: `${avgLead.toFixed(1)} 天`,
+        subtitle: '数值越大代表规划越提前',
+      },
+      {
+        title: '最集中的时间段',
+        value: formatHourRange(bestWindowHour),
+        subtitle: `该时段占总日程 ${集中占比.toFixed(1)}%`,
+      },
+    ]
+  }, [dateRange, rangeEvents])
 
   return (
-    <div className="w-full rounded-lg border p-4 space-y-6">
-      <div>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold">{t.timeAnalytics}</h2>
-            <p className="text-sm text-muted-foreground">
-              {t.timeAnalyticsDesc || 'Analyze how you spend your time'}
-            </p>
-          </div>
-          <Select
-            value={timeRange}
-            onValueChange={(value: 'week' | 'month' | 'year') =>
-              setTimeRange(value)
-            }
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">{t.thisWeek || 'This Week'}</SelectItem>
-              <SelectItem value="month">
-                {t.thisMonth || 'This Month'}
-              </SelectItem>
-              <SelectItem value="year">{t.thisYear || 'This Year'}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6 rounded-lg border p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">日程分析</h2>
+        <Select value={preset} onValueChange={(value) => setPreset(value as AnalyticsRangePreset)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">近 7 天</SelectItem>
+            <SelectItem value="month">近 30 天</SelectItem>
+            <SelectItem value="quarter">近 90 天</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-lg font-medium mb-2">{t.timeDistribution}</h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    label={({ name, value }) => `${name}: ${value}h`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={colorMap[entry.color] || '#6b7280'}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, '']} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium mb-2">{t.categoryTime}</h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={barData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
-                  <Tooltip formatter={(value) => [`${value} ${t.hours}`, '']} />
-                  <Legend />
-                  <Bar dataKey="hours" name={t.hours}>
-                    {barData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={colorMap[entry.color] || '#6b7280'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">{t.totalEvents}</h3>
-              <p className="text-3xl font-bold mt-2">{analytics.totalEvents}</p>
-            </div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">{t.mostProductiveDay}</h3>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.mostProductiveDay
-                  ? new Date(analytics.mostProductiveDay).toLocaleDateString()
-                  : t.noData}
-              </p>
-            </div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">{t.mostProductiveHour}</h3>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.mostProductiveHour !== undefined
-                  ? `${analytics.mostProductiveHour}:00`
-                  : t.noData}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">
-                {t.totalHours || 'Total Hours'}
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.totalHours.toFixed(1)}h
-              </p>
-            </div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">
-                {t.averageEventDuration || 'Average Event Duration'}
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.averageEventDuration.toFixed(1)}h
-              </p>
-            </div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">
-                {t.busiestCategory || 'Busiest Category'}
-              </h3>
-              <p className="text-2xl font-bold mt-2">
-                {busiestCategoryName || t.noData}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t.activeDays || 'Active Days'}: {analytics.activeDays}
-              </p>
-            </div>
-          </div>
-        </div>
+      <AnalyticsMetricsGrid items={metrics} />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <DailyMonthlyCountChart
+          dailyData={dailyCounts}
+          monthlyData={monthlyCounts}
+          mode={countMode}
+          onModeChange={setCountMode}
+        />
+        <CategoryDonutChart data={categoryDonutData} />
       </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <CategoryAverageDurationChart data={categoryAvgDurationData} />
+        <WeekdayStackedDurationChart data={weekdayStacked.data} series={weekdayStacked.series} />
+      </div>
+
+      <PeriodComparisonLineChart data={periodComparisonData} />
+      <YearHeatmapChart data={heatmapData} />
     </div>
   )
 }

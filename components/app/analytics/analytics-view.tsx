@@ -1,8 +1,6 @@
 'use client'
 
 import TimeAnalyticsComponent from '@/components/app/analytics/time-analytics'
-import EventsCalendar from '@/components/app/analytics/events-calendar'
-import { useCalendar } from '@/components/providers/calendar-context'
 import type { CalendarEvent } from '@/components/app/calendar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
@@ -13,7 +11,6 @@ interface AnalyticsViewProps {
 }
 
 export default function AnalyticsView({ events }: AnalyticsViewProps) {
-  const { calendars } = useCalendar()
   const [language] = useLanguage()
   const t = translations[language]
   const [forceUpdate, setForceUpdate] = useState(0)
@@ -43,12 +40,7 @@ export default function AnalyticsView({ events }: AnalyticsViewProps) {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
       </div>
-      <TimeAnalyticsComponent
-        events={events}
-        calendars={calendars}
-        key={`time-analytics-${language}-${forceUpdate}`}
-      />
-      <EventsCalendar />
+      <TimeAnalyticsComponent events={events} key={`time-analytics-${language}-${forceUpdate}`} />
     </div>
   )
 }
