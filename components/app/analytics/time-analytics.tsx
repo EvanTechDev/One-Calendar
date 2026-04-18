@@ -10,7 +10,6 @@ import {
   formatHourRange,
   generateRangeDays,
   getMonthDays,
-  getPreviousRange,
   groupDayKey,
   groupMonthKey,
   mapEventsToAnalyticsEvents,
@@ -24,7 +23,6 @@ import { YearHeatmapChart } from './charts/year-heatmap-chart'
 import { CategoryDonutChart } from './charts/category-donut-chart'
 import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
-import { PeriodComparisonLineChart } from './charts/period-comparison-line-chart'
 import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
 
 interface TimeAnalyticsProps {
@@ -163,35 +161,6 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
     return { data, series }
   }, [rangeEvents])
 
-  const periodComparisonData = useMemo(() => {
-    const previousRange = getPreviousRange(dateRange)
-    const previousEvents = filterEventsInRange(normalizedEvents, previousRange)
-    const totalDays = differenceInCalendarDays(dateRange.end, dateRange.start) + 1
-
-    const currentCounts = new Map<string, number>()
-    rangeEvents.forEach((event) => {
-      const index = differenceInCalendarDays(event.start, dateRange.start)
-      const key = String(index + 1)
-      currentCounts.set(key, (currentCounts.get(key) ?? 0) + 1)
-    })
-
-    const previousCounts = new Map<string, number>()
-    previousEvents.forEach((event) => {
-      const index = differenceInCalendarDays(event.start, previousRange.start)
-      const key = String(index + 1)
-      previousCounts.set(key, (previousCounts.get(key) ?? 0) + 1)
-    })
-
-    return Array.from({ length: totalDays }).map((_, index) => {
-      const key = String(index + 1)
-      return {
-        day: `第${index + 1}天`,
-        current: currentCounts.get(key) ?? 0,
-        previous: previousCounts.get(key) ?? 0,
-      }
-    })
-  }, [dateRange, normalizedEvents, rangeEvents])
-
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {
       return [
@@ -319,7 +288,6 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
         <WeekdayStackedDurationChart data={weekdayStacked.data} series={weekdayStacked.series} />
       </div>
 
-      <PeriodComparisonLineChart data={periodComparisonData} />
       <YearHeatmapChart data={heatmapData} />
     </div>
   )
