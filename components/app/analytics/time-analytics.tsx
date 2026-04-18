@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { differenceInCalendarDays, format, getDay } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
+import type { CalendarCategory } from '../sidebar/sidebar'
 import {
   addDurationByDayCategory,
   calculateDaySpanInHours,
@@ -13,6 +14,7 @@ import {
   groupDayKey,
   groupMonthKey,
   mapEventsToAnalyticsEvents,
+  normalizeChartColor,
   resolveDateRange,
   type AnalyticsRangePreset,
   WEEKDAY_LABELS,
@@ -27,6 +29,7 @@ import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
+  calendars?: CalendarCategory[]
 }
 
 const dayName = (date: Date): string => {
@@ -35,7 +38,7 @@ const dayName = (date: Date): string => {
   return WEEKDAY_LABELS[day - 1]
 }
 
-export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
+export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
   const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
@@ -44,6 +47,19 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
 
   const normalizedEvents = useMemo(() => mapEventsToAnalyticsEvents(events), [events])
   const rangeEvents = useMemo(() => filterEventsInRange(normalizedEvents, dateRange), [normalizedEvents, dateRange])
+
+  const categoryMeta = useMemo(() => {
+    return new Map(
+      calendars.map((calendar) => [
+        calendar.id,
+        {
+          name: calendar.name,
+          color: normalizeChartColor(calendar.color),
+        },
+      ]),
+    )
+  }, [calendars])
+
 
   const dailyCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -86,10 +102,12 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
   const categoryDonutData = useMemo(() => {
     const categoryCounts = new Map<string, { count: number; color: string }>()
     rangeEvents.forEach((event) => {
-      const prev = categoryCounts.get(event.category)
-      categoryCounts.set(event.category, {
+      const category = categoryMeta.get(event.category)
+      const label = category?.name ?? event.category
+      const prev = categoryCounts.get(label)
+      categoryCounts.set(label, {
         count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? event.color,
+        color: prev?.color ?? category?.color ?? event.color,
       })
     })
 
@@ -105,14 +123,15 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
         color: value.color,
       }))
       .sort((a, b) => b.count - a.count)
-  }, [rangeEvents])
+  }, [categoryMeta, rangeEvents])
 
   const categoryAvgDurationData = useMemo(() => {
     const categoryDuration = new Map<string, { total: number; count: number }>()
     rangeEvents.forEach((event) => {
       const duration = calculateDaySpanInHours(event.start, event.end)
-      const prev = categoryDuration.get(event.category)
-      categoryDuration.set(event.category, {
+      const label = categoryMeta.get(event.category)?.name ?? event.category
+      const prev = categoryDuration.get(label)
+      categoryDuration.set(label, {
         total: (prev?.total ?? 0) + duration,
         count: (prev?.count ?? 0) + 1,
       })
@@ -124,15 +143,17 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
         hours: Number((value.total / value.count).toFixed(1)),
       }))
       .sort((a, b) => b.hours - a.hours)
-  }, [rangeEvents])
+  }, [categoryMeta, rangeEvents])
 
   const weekdayStacked = useMemo(() => {
     const buckets: Record<string, Record<string, { hours: number; color: string }>> = {}
 
     rangeEvents.forEach((event) => {
       const label = dayName(event.start)
+      const categoryLabel = categoryMeta.get(event.category)?.name ?? event.category
+      const color = categoryMeta.get(event.category)?.color ?? event.color
       const hours = calculateDaySpanInHours(event.start, event.end)
-      addDurationByDayCategory(buckets, label, event.category, event.color, hours)
+      addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
     })
 
     const categoryColors = new Map<string, string>()
@@ -159,7 +180,7 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
     }))
 
     return { data, series }
-  }, [rangeEvents])
+  }, [categoryMeta, rangeEvents])
 
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {

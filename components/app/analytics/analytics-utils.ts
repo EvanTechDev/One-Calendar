@@ -17,6 +17,35 @@ export type AnalyticsRangePreset = 'week' | 'month' | 'quarter'
 
 export const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
+
+const COLOR_MAP: Record<string, string> = {
+  'bg-blue-500': '#3b82f6',
+  'bg-green-500': '#10b981',
+  'bg-yellow-500': '#f59e0b',
+  'bg-red-500': '#ef4444',
+  'bg-purple-500': '#8b5cf6',
+  'bg-pink-500': '#ec4899',
+  'bg-teal-500': '#14b8a6',
+}
+
+export const normalizeChartColor = (input: string | undefined): string => {
+  if (!input) return '#64748b'
+  if (
+    input.startsWith('#') ||
+    input.startsWith('rgb') ||
+    input.startsWith('hsl') ||
+    input.startsWith('oklch') ||
+    input.startsWith('var(')
+  ) {
+    return input
+  }
+  if (COLOR_MAP[input]) {
+    return COLOR_MAP[input]
+  }
+  const prefixed = input.startsWith('bg-') ? input : `bg-${input}`
+  return COLOR_MAP[prefixed] ?? '#64748b'
+}
+
 export const resolveDateRange = (
   preset: AnalyticsRangePreset,
   now: Date,
@@ -55,7 +84,7 @@ export const mapEventsToAnalyticsEvents = (
         start,
         end,
         category: event.calendarId || 'uncategorized',
-        color: event.color || '#64748b',
+        color: normalizeChartColor(event.color),
         createdAt: Number.isNaN(createdAt.getTime()) ? start : createdAt,
       }
     })
