@@ -98,7 +98,7 @@ export function LoginForm({
       if (signIn.status === 'complete') {
         const { error: finalizeError } = await signIn.finalize({
           navigate: ({ decorateUrl }) => {
-            const url = decorateUrl('/')
+            const url = decorateUrl('/app')
             if (url.startsWith('http')) {
               window.location.href = url
               return
@@ -137,7 +137,7 @@ export function LoginForm({
     }
     signIn.sso({
       strategy,
-      redirectUrl: '/',
+      redirectUrl: '/app',
       redirectCallbackUrl: '/sign-in/sso-callback',
     })
   }
