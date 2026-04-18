@@ -1,8 +1,16 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { format, startOfWeek, differenceInCalendarDays } from 'date-fns'
-import { WEEKDAY_LABELS, toMondayIndex } from '../analytics-utils'
+import {
+  addDays,
+  differenceInDays,
+  endOfYear,
+  format,
+  getDay,
+  startOfWeek,
+  startOfYear,
+} from 'date-fns'
+import { WEEKDAY_LABELS } from '../analytics-utils'
 
 interface HeatmapDatum {
   date: Date
@@ -13,20 +21,37 @@ interface YearHeatmapChartProps {
   data: HeatmapDatum[]
 }
 
-const levelClasses = [
+const intensityClasses = [
   'bg-muted',
-  'bg-emerald-200 dark:bg-emerald-900',
+  'bg-emerald-100 dark:bg-emerald-900',
   'bg-emerald-300 dark:bg-emerald-700',
   'bg-emerald-500 dark:bg-emerald-600',
   'bg-emerald-700 dark:bg-emerald-500',
 ]
 
 export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
-  const year = new Date().getFullYear()
-  const firstDay = new Date(year, 0, 1)
-  const gridStart = startOfWeek(firstDay, { weekStartsOn: 1 })
-
+  const selectedYear = new Date().getFullYear()
+  const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1))
+  const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31))
+  const startDay = startOfWeek(firstDayOfYear, { weekStartsOn: 1 })
+  const endDay = addDays(lastDayOfYear, 7 - ((getDay(lastDayOfYear) + 6) % 7) - 1)
+  const totalDays = differenceInDays(endDay, startDay) + 1
+  const totalWeeks = Math.ceil(totalDays / 7)
+  const countMap = new Map(data.map((item) => [format(item.date, 'yyyy-MM-dd'), item.count]))
   const maxCount = data.reduce((max, item) => Math.max(max, item.count), 0)
+
+  const allDates = Array.from({ length: totalDays }).map((_, index) =>
+    addDays(startDay, index),
+  )
+
+  const monthLabels = Array.from({ length: 12 }).flatMap((_, month) => {
+    const firstDayOfMonth = new Date(selectedYear, month, 1)
+    if (firstDayOfMonth < startDay || firstDayOfMonth > endDay) return []
+    const dayIndex = differenceInDays(firstDayOfMonth, startDay)
+    const weekIndex = Math.floor(dayIndex / 7)
+    return [{ weekIndex, label: format(firstDayOfMonth, 'M月') }]
+  })
+
   const getLevel = (count: number): number => {
     if (count === 0 || maxCount === 0) return 0
     const ratio = count / maxCount
@@ -42,32 +67,68 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
         <CardTitle>全年日程热力图</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <div className="flex min-w-[840px] gap-2">
-            <div className="mt-5 grid grid-rows-7 gap-1 text-xs text-muted-foreground">
-              {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="h-3 leading-3">
-                  {label}
+        <div className="overflow-x-auto pb-2">
+          <div
+            className="relative"
+            style={{ minWidth: `${Math.max(totalWeeks * 16 + 72, 760)}px`, paddingTop: '20px' }}
+          >
+            <div className="absolute left-12 right-0 top-0">
+              {monthLabels.map((month) => (
+                <div
+                  key={`${month.label}-${month.weekIndex}`}
+                  className="absolute text-xs text-muted-foreground"
+                  style={{ left: `${month.weekIndex * 16}px` }}
+                >
+                  {month.label}
                 </div>
               ))}
             </div>
-            <div className="grid grid-flow-col grid-rows-7 gap-1">
-              {data.map(({ date, count }) => {
-                const dayIndex = toMondayIndex(date)
-                const weekIndex = Math.floor(
-                  differenceInCalendarDays(date, gridStart) / 7,
-                )
-                return (
+
+            <div className="flex">
+              <div className="flex w-10 flex-col pr-2">
+                {WEEKDAY_LABELS.map((day, index) => (
                   <div
-                    key={date.toISOString()}
-                    className={`h-3 w-3 rounded-sm ${levelClasses[getLevel(count)]}`}
-                    style={{ gridColumnStart: weekIndex + 1, gridRowStart: dayIndex + 1 }}
-                    title={`${format(date, 'yyyy-MM-dd')} · ${count} 个日程`}
-                  />
-                )
-              })}
+                    key={day}
+                    className="mb-1 h-3 text-right text-xs leading-3 text-muted-foreground"
+                  >
+                    {index % 2 === 0 ? day : ''}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-1">
+                {Array.from({ length: totalWeeks }).map((_, weekIndex) => (
+                  <div key={`week-${weekIndex}`} className="space-y-1">
+                    {Array.from({ length: 7 }).map((_, dayIndex) => {
+                      const date = allDates[weekIndex * 7 + dayIndex]
+                      const isCurrentYear = date.getFullYear() === selectedYear
+                      const key = format(date, 'yyyy-MM-dd')
+                      const count = isCurrentYear ? (countMap.get(key) ?? 0) : 0
+                      return (
+                        <div
+                          key={key}
+                          className={`h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-ring ${
+                            isCurrentYear ? intensityClasses[getLevel(count)] : 'bg-transparent'
+                          }`}
+                          title={isCurrentYear ? `${key}: ${count} 个日程` : ''}
+                        />
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-3 flex items-center text-xs text-muted-foreground">
+          <span className="mr-2">少</span>
+          <div className="flex gap-1">
+            {intensityClasses.map((cls) => (
+              <div key={cls} className={`h-3 w-3 rounded-sm ${cls}`} />
+            ))}
+          </div>
+          <span className="ml-2">多</span>
         </div>
       </CardContent>
     </Card>

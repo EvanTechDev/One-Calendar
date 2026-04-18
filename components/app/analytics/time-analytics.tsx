@@ -260,7 +260,7 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
       }
     }
 
-    const 집중占比 = rangeEvents.length === 0 ? 0 : (bestWindowCount / rangeEvents.length) * 100
+    const concentrationRatio = rangeEvents.length === 0 ? 0 : (bestWindowCount / rangeEvents.length) * 100
 
     return [
       {
@@ -281,7 +281,7 @@ export default function TimeAnalyticsComponent({ events }: TimeAnalyticsProps) {
       {
         title: '最集中的时间段',
         value: formatHourRange(bestWindowHour),
-        subtitle: `该时段占总日程 ${集中占比.toFixed(1)}%`,
+        subtitle: `该时段占总日程 ${concentrationRatio.toFixed(1)}%`,
       },
     ]
   }, [dateRange, rangeEvents])
