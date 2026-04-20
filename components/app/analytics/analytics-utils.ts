@@ -26,6 +26,15 @@ const COLOR_MAP: Record<string, string> = {
   'bg-purple-500': '#8b5cf6',
   'bg-pink-500': '#ec4899',
   'bg-teal-500': '#14b8a6',
+  'bg-[#E6F6FD]': '#3B82F6',
+  'bg-[#E7F8F2]': '#10B981',
+  'bg-[#FEF5E6]': '#F59E0B',
+  'bg-[#FFE4E6]': '#EF4444',
+  'bg-[#F3EEFE]': '#8B5CF6',
+  'bg-[#FCE7F3]': '#EC4899',
+  'bg-[#EEF2FF]': '#6366F1',
+  'bg-[#FFF0E5]': '#FB923C',
+  'bg-[#E6FAF7]': '#14B8A6',
 }
 
 export const normalizeChartColor = (input: string | undefined): string => {
@@ -155,4 +164,3 @@ export const addDurationByDayCategory = (
   }
   bucket[dayLabel][category].hours += hours
 }
-

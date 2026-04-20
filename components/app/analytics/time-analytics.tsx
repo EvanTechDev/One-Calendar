@@ -77,6 +77,8 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     if (normalized === '#8b5cf6') return t.colorPurple
     if (normalized === '#ec4899') return t.colorPink
     if (normalized === '#14b8a6') return t.colorTeal
+    if (normalized === '#6366f1') return t.colorIndigo
+    if (normalized === '#fb923c') return t.colorOrange
     return color
   }
 
