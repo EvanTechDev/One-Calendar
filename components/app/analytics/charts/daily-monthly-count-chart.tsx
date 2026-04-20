@@ -64,7 +64,7 @@ export function DailyMonthlyCountChart({
               />
               <YAxis allowDecimals={false} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--color-count)" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ChartContainer>
         )}
