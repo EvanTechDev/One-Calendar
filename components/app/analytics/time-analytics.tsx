@@ -68,6 +68,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     return categoryMeta.get(categoryId)?.name ?? categoryId
   }
 
+  const resolveCategoryColor = (categoryId: string, fallbackColor: string): string => {
+    if (categoryId === 'uncategorized') return '#64748b'
+    return categoryMeta.get(categoryId)?.color ?? fallbackColor
+  }
+
   const resolveColorName = (color: string): string => {
     const normalized = color.toLowerCase()
     if (normalized === '#3b82f6') return t.colorBlue
@@ -149,12 +154,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   const categoryDonutData = useMemo(() => {
     const categoryCounts = new Map<string, { count: number; color: string }>()
     rangeEvents.forEach((event) => {
-      const category = categoryMeta.get(event.category)
       const label = resolveCategoryLabel(event.category)
       const prev = categoryCounts.get(label)
       categoryCounts.set(label, {
         count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? category?.color ?? event.color,
+        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
       })
     })
 
@@ -176,13 +180,12 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     const categoryDuration = new Map<string, { total: number; count: number; color: string }>()
     rangeEvents.forEach((event) => {
       const duration = calculateDaySpanInHours(event.start, event.end)
-      const category = categoryMeta.get(event.category)
       const label = resolveCategoryLabel(event.category)
       const prev = categoryDuration.get(label)
       categoryDuration.set(label, {
         total: (prev?.total ?? 0) + duration,
         count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? category?.color ?? event.color,
+        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
       })
     })
 
@@ -201,10 +204,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     rangeEvents.forEach((event) => {
       const label = dayName(event.start)
       const categoryLabel = resolveCategoryLabel(event.category)
-      const color =
-        event.category === 'uncategorized'
-          ? '#64748b'
-          : categoryMeta.get(event.category)?.color ?? event.color
+      const color = resolveCategoryColor(event.category, event.color)
       const hours = calculateDaySpanInHours(event.start, event.end)
       addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
     })
