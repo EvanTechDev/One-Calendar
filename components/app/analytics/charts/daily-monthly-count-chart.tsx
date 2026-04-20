@@ -20,6 +20,7 @@ interface CountDatum {
 
 interface CountSeries {
   key: string
+  label: string
   color: string
 }
 
@@ -41,7 +42,7 @@ export function DailyMonthlyCountChart({
   const activeData = mode === 'day' ? dailyData : monthlyData
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
-      label: item.key,
+      label: item.label,
       color: item.color,
     }
     return acc

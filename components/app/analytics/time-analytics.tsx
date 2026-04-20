@@ -62,36 +62,37 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
 
   const countChart = useMemo(() => {
-    const categoryColors = new Map<string, string>()
-    const categoryTotals = new Map<string, number>()
+    const seriesMeta = new Map<string, { label: string; color: string; total: number }>()
     const dailyBuckets = new Map<string, Record<string, number>>()
     const monthlyBuckets = new Map<string, Record<string, number>>()
 
     rangeEvents.forEach((event) => {
       const category = categoryMeta.get(event.category)
-      const categoryLabel = category?.name ?? event.category
-      const categoryColor = category?.color ?? event.color
-
-      if (!categoryColors.has(categoryLabel)) {
-        categoryColors.set(categoryLabel, categoryColor)
-      }
-      categoryTotals.set(categoryLabel, (categoryTotals.get(categoryLabel) ?? 0) + 1)
+      const seriesColor = category?.color ?? event.color
+      const seriesKey = seriesColor
+      const seriesLabel = category?.name ?? event.category
+      const previous = seriesMeta.get(seriesKey)
+      seriesMeta.set(seriesKey, {
+        label: previous?.label ?? seriesLabel,
+        color: seriesColor,
+        total: (previous?.total ?? 0) + 1,
+      })
 
       const dayKey = groupDayKey(event.start)
       const monthKey = groupMonthKey(event.start)
 
       const dayBucket = dailyBuckets.get(dayKey) ?? {}
-      dayBucket[categoryLabel] = (dayBucket[categoryLabel] ?? 0) + 1
+      dayBucket[seriesKey] = (dayBucket[seriesKey] ?? 0) + 1
       dailyBuckets.set(dayKey, dayBucket)
 
       const monthBucket = monthlyBuckets.get(monthKey) ?? {}
-      monthBucket[categoryLabel] = (monthBucket[categoryLabel] ?? 0) + 1
+      monthBucket[seriesKey] = (monthBucket[seriesKey] ?? 0) + 1
       monthlyBuckets.set(monthKey, monthBucket)
     })
 
-    const series = Array.from(categoryColors.entries())
-      .sort((a, b) => (categoryTotals.get(b[0]) ?? 0) - (categoryTotals.get(a[0]) ?? 0))
-      .map(([key, color]) => ({ key, color }))
+    const series = Array.from(seriesMeta.entries())
+      .sort((a, b) => b[1].total - a[1].total)
+      .map(([key, value]) => ({ key, label: value.label, color: value.color }))
 
     const dailyData = Array.from(dailyBuckets.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
