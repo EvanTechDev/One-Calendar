@@ -73,7 +73,26 @@ export function DailyMonthlyCountChart({
                 }
               />
               <YAxis allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value} 个`} />} />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value, name, item) => (
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-[2px]"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-muted-foreground">{name}</span>
+                        </div>
+                        <span className="font-mono font-medium text-foreground tabular-nums">
+                          {value} 个
+                        </span>
+                      </div>
+                    )}
+                  />
+                }
+              />
               <ChartLegend content={<ChartLegendContent />} />
               {series.map((item, index) => (
                 <Bar

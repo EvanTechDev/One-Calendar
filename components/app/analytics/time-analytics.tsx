@@ -201,7 +201,10 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     rangeEvents.forEach((event) => {
       const label = dayName(event.start)
       const categoryLabel = resolveCategoryLabel(event.category)
-      const color = categoryMeta.get(event.category)?.color ?? event.color
+      const color =
+        event.category === 'uncategorized'
+          ? '#64748b'
+          : categoryMeta.get(event.category)?.color ?? event.color
       const hours = calculateDaySpanInHours(event.start, event.end)
       addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
     })
