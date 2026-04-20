@@ -82,7 +82,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
 
   const countChart = useMemo(() => {
-    const seriesMeta = new Map<string, { label: string; color: string; totalHours: number }>()
+    const seriesMeta = new Map<string, { label: string; color: string; totalCount: number }>()
     const dailyBuckets = new Map<string, Record<string, number>>()
     const monthlyBuckets = new Map<string, Record<string, number>>()
 
@@ -91,28 +91,27 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       const seriesColor = category?.color ?? event.color
       const seriesKey = seriesColor
       const seriesLabel = resolveColorName(seriesColor)
-      const durationHours = calculateDaySpanInHours(event.start, event.end)
       const previous = seriesMeta.get(seriesKey)
       seriesMeta.set(seriesKey, {
         label: previous?.label ?? seriesLabel,
         color: seriesColor,
-        totalHours: (previous?.totalHours ?? 0) + durationHours,
+        totalCount: (previous?.totalCount ?? 0) + 1,
       })
 
       const dayKey = groupDayKey(event.start)
       const monthKey = groupMonthKey(event.start)
 
       const dayBucket = dailyBuckets.get(dayKey) ?? {}
-      dayBucket[seriesKey] = Number(((dayBucket[seriesKey] ?? 0) + durationHours).toFixed(1))
+      dayBucket[seriesKey] = (dayBucket[seriesKey] ?? 0) + 1
       dailyBuckets.set(dayKey, dayBucket)
 
       const monthBucket = monthlyBuckets.get(monthKey) ?? {}
-      monthBucket[seriesKey] = Number(((monthBucket[seriesKey] ?? 0) + durationHours).toFixed(1))
+      monthBucket[seriesKey] = (monthBucket[seriesKey] ?? 0) + 1
       monthlyBuckets.set(monthKey, monthBucket)
     })
 
     const series = Array.from(seriesMeta.entries())
-      .sort((a, b) => b[1].totalHours - a[1].totalHours)
+      .sort((a, b) => b[1].totalCount - a[1].totalCount)
       .map(([key, value]) => ({
         key,
         label: value.label,
