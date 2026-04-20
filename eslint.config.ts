@@ -1,8 +1,9 @@
 import js from '@eslint/js'
 import nextPlugin from '@next/eslint-plugin-next'
-import tseslint from 'typescript-eslint'
+import tseslint, { type ConfigArray } from 'typescript-eslint'
+import oxlint from 'eslint-plugin-oxlint'
 
-export default [
+const config: ConfigArray = tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -50,4 +51,7 @@ export default [
       },
     },
   },
-]
+  oxlint.configs['flat/recommended'],
+)
+
+export default config
