@@ -499,6 +499,33 @@ checksums:
     categoryDeletedWithEvents: 5358ba69d2d698d6981227bc90c2b55a
     importToCalendarCategory: 3c2273e9ff6ceb54aa34b09cb8b9567a
     status: 4e1fcce15854d824919b4a582c697c90
+    analyticsOverviewTitle: b084603213a34701c1666bbad76568cf
+    analyticsPresetWeek: 3631df3109bfecfe358ba15dcf8bd6f5
+    analyticsPresetMonth: a738894cfc5e592052f1e16787744568
+    analyticsPresetQuarter: 92882f227706e946b0c6b92953ff1f0f
+    analyticsDailyMonthlyCountTitle: bc4a24c57aab88e2e9247b90b5cc020e
+    analyticsByDay: 3cfe7c5dcb46e8a88ced2ae9539b0c86
+    analyticsByMonth: efd3e546a3f36b6bc7af33f4baab47ea
+    analyticsCategoryShareTitle: 6c3aca3fec39ba3a8a6e1b6bd44c2b47
+    analyticsCategoryAverageDurationTitle: 54ee42c75eee6eaf74cbe1a2937e656d
+    analyticsWeekdayDurationTitle: 54c51dd77707031c65fd3472ba0fdd15
+    analyticsYearHeatmapTitle: c953201deb7c887a485d7b57c25f59ee
+    analyticsAverageDuration: 40146aac2fa90526987227217b62e89e
+    analyticsMetricLongestStreak: 95589da6a4642b6c7717490d6c54f832
+    analyticsMetricBusiestWeekday: 57e007ef53c21efd396d2c0b90f83f70
+    analyticsMetricAvgLeadDays: d2d30a8157a4c5d1e9a7f00688615483
+    analyticsMetricPeakTimeWindow: 75fb08b915e3ea56b9cf93947c8cec34
+    analyticsNoScheduleInRange: 8c3694d0011928fb854662f71913ab03
+    analyticsLeadDaysHint: 3badd511635c31d3af281928f0df53da
+    analyticsBusiestWeekdaySubtitle: 59bf1465ef985683ee01f0cff4922ce9
+    analyticsPeakWindowSubtitle: 0d217aa1f4093888f571cd846b6a1226
+    analyticsNone: d163ad01ba50118a86047c8b73fbe922
+    analyticsCountUnit: 87157864e2382e360cd086a1bb717a5e
+    analyticsScheduleUnit: 98a46acf12c1d14a57963a9568cf033a
+    analyticsEventUnit: 5376b6d2dd7fd95f3405001781e7944f
+    analyticsHourUnit: abd5b935394c7064aac85b2b3bf503e9
+    analyticsDayUnit: c95fe8aedde21a0b5653dbd0b3c58b48
+    analyticsTo: 81f480a4c52ff7185e42b4b5c00376a7
     feedback: 6fac88806e0c269a30777b283988c61c
     privacy: 6007d5d5f6591c027b15bd49ab7a8c47
     tos: a93e3ebc6c19afbfde9f93cafb4d8edc
