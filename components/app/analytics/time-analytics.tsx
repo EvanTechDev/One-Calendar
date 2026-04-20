@@ -126,14 +126,16 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   }, [categoryMeta, rangeEvents])
 
   const categoryAvgDurationData = useMemo(() => {
-    const categoryDuration = new Map<string, { total: number; count: number }>()
+    const categoryDuration = new Map<string, { total: number; count: number; color: string }>()
     rangeEvents.forEach((event) => {
       const duration = calculateDaySpanInHours(event.start, event.end)
-      const label = categoryMeta.get(event.category)?.name ?? event.category
+      const category = categoryMeta.get(event.category)
+      const label = category?.name ?? event.category
       const prev = categoryDuration.get(label)
       categoryDuration.set(label, {
         total: (prev?.total ?? 0) + duration,
         count: (prev?.count ?? 0) + 1,
+        color: prev?.color ?? category?.color ?? event.color,
       })
     })
 
@@ -141,6 +143,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       .map(([category, value]) => ({
         category,
         hours: Number((value.total / value.count).toFixed(1)),
+        color: value.color,
       }))
       .sort((a, b) => b.hours - a.hours)
   }, [categoryMeta, rangeEvents])

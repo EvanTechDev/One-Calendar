@@ -26,7 +26,7 @@ interface DailyMonthlyCountChartProps {
 const chartConfig = {
   count: {
     label: '日程数量',
-    color: 'hsl(var(--primary))',
+    color: 'hsl(var(--chart-1))',
   },
 } satisfies ChartConfig
 

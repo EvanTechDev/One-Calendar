@@ -1,6 +1,6 @@
 'use client'
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,
@@ -12,6 +12,7 @@ import {
 interface DurationDatum {
   category: string
   hours: number
+  color: string
 }
 
 interface CategoryAverageDurationChartProps {
@@ -21,7 +22,7 @@ interface CategoryAverageDurationChartProps {
 const chartConfig = {
   hours: {
     label: '平均时长',
-    color: 'var(--chart-2)',
+    color: 'hsl(var(--chart-2))',
   },
 } satisfies ChartConfig
 
@@ -49,7 +50,11 @@ export function CategoryAverageDurationChart({
               <ChartTooltip
                 content={<ChartTooltipContent formatter={(value) => `${value} 小时`} />}
               />
-              <Bar dataKey="hours" fill="var(--color-hours)" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="hours" radius={[0, 8, 8, 0]}>
+                {data.map((entry) => (
+                  <Cell key={entry.category} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ChartContainer>
         )}
