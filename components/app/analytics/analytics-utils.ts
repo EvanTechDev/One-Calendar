@@ -15,6 +15,8 @@ import type { AnalyticsEvent, DateRange } from './analytics-types'
 
 export type AnalyticsRangePreset = 'week' | 'month' | 'quarter'
 
+const COLOR_ORDER = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+
 const COLOR_MAP: Record<string, string> = {
   'bg-blue-500': '#3b82f6',
   'bg-green-500': '#10b981',
@@ -50,6 +52,12 @@ export const normalizeChartColor = (input: string | undefined): string => {
   }
   const prefixed = input.startsWith('bg-') ? input : `bg-${input}`
   return COLOR_MAP[prefixed] ?? '#64748b'
+}
+
+export const getChartColorOrderIndex = (color: string): number => {
+  const normalized = normalizeChartColor(color).toLowerCase()
+  const index = COLOR_ORDER.indexOf(normalized)
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index
 }
 
 export const resolveDateRange = (
