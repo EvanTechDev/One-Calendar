@@ -43,6 +43,7 @@ export function DailyMonthlyCountChart({
   const [language] = useLanguage()
   const t = translations[language]
   const activeData = mode === 'day' ? dailyData : monthlyData
+  const seriesLabelMap = new Map(series.map((item) => [item.key, item.label]))
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
       label: item.label,
@@ -86,7 +87,9 @@ export function DailyMonthlyCountChart({
                             className="h-2.5 w-2.5 rounded-[2px]"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-muted-foreground">{name}</span>
+                          <span className="text-muted-foreground">
+                            {seriesLabelMap.get(String(item.dataKey ?? '')) ?? name}
+                          </span>
                         </div>
                         <span className="font-mono font-medium text-foreground tabular-nums">
                           {value} {t.analyticsCountUnit}
