@@ -26,6 +26,7 @@ import { CategoryDonutChart } from './charts/category-donut-chart'
 import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
 import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
@@ -39,6 +40,8 @@ const dayName = (date: Date): string => {
 }
 
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
   const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
@@ -60,9 +63,26 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     )
   }, [calendars])
 
+  const resolveCategoryLabel = (categoryId: string): string => {
+    if (categoryId === 'uncategorized') return t.uncategorized
+    return categoryMeta.get(categoryId)?.name ?? categoryId
+  }
+
+  const resolveColorName = (color: string): string => {
+    const normalized = color.toLowerCase()
+    if (normalized === '#3b82f6') return t.colorBlue
+    if (normalized === '#10b981') return t.colorGreen
+    if (normalized === '#f59e0b') return t.colorYellow
+    if (normalized === '#ef4444') return t.colorRed
+    if (normalized === '#8b5cf6') return t.colorPurple
+    if (normalized === '#ec4899') return t.colorPink
+    if (normalized === '#14b8a6') return t.colorTeal
+    return color
+  }
+
 
   const countChart = useMemo(() => {
-    const seriesMeta = new Map<string, { label: string; color: string; total: number }>()
+    const seriesMeta = new Map<string, { label: string; color: string; totalHours: number }>()
     const dailyBuckets = new Map<string, Record<string, number>>()
     const monthlyBuckets = new Map<string, Record<string, number>>()
 
@@ -70,31 +90,32 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       const category = categoryMeta.get(event.category)
       const seriesColor = category?.color ?? event.color
       const seriesKey = seriesColor
-      const seriesLabel = category?.name ?? event.category
+      const seriesLabel = resolveColorName(seriesColor)
+      const durationHours = calculateDaySpanInHours(event.start, event.end)
       const previous = seriesMeta.get(seriesKey)
       seriesMeta.set(seriesKey, {
         label: previous?.label ?? seriesLabel,
         color: seriesColor,
-        total: (previous?.total ?? 0) + 1,
+        totalHours: (previous?.totalHours ?? 0) + durationHours,
       })
 
       const dayKey = groupDayKey(event.start)
       const monthKey = groupMonthKey(event.start)
 
       const dayBucket = dailyBuckets.get(dayKey) ?? {}
-      dayBucket[seriesKey] = (dayBucket[seriesKey] ?? 0) + 1
+      dayBucket[seriesKey] = Number(((dayBucket[seriesKey] ?? 0) + durationHours).toFixed(1))
       dailyBuckets.set(dayKey, dayBucket)
 
       const monthBucket = monthlyBuckets.get(monthKey) ?? {}
-      monthBucket[seriesKey] = (monthBucket[seriesKey] ?? 0) + 1
+      monthBucket[seriesKey] = Number(((monthBucket[seriesKey] ?? 0) + durationHours).toFixed(1))
       monthlyBuckets.set(monthKey, monthBucket)
     })
 
     const series = Array.from(seriesMeta.entries())
-      .sort((a, b) => b[1].total - a[1].total)
-      .map(([key, value], index) => ({
+      .sort((a, b) => b[1].totalHours - a[1].totalHours)
+      .map(([key, value]) => ({
         key,
-        label: `颜色 ${index + 1}`,
+        label: value.label,
         color: value.color,
       }))
 
@@ -107,7 +128,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       .map(([label, values]) => ({ label, ...values }))
 
     return { series, dailyData, monthlyData }
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveColorName])
 
   const heatmapData = useMemo(() => {
     const currentYear = now.getFullYear()
@@ -129,7 +150,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     const categoryCounts = new Map<string, { count: number; color: string }>()
     rangeEvents.forEach((event) => {
       const category = categoryMeta.get(event.category)
-      const label = category?.name ?? event.category
+      const label = resolveCategoryLabel(event.category)
       const prev = categoryCounts.get(label)
       categoryCounts.set(label, {
         count: (prev?.count ?? 0) + 1,
@@ -149,14 +170,14 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         color: value.color,
       }))
       .sort((a, b) => b.count - a.count)
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
 
   const categoryAvgDurationData = useMemo(() => {
     const categoryDuration = new Map<string, { total: number; count: number; color: string }>()
     rangeEvents.forEach((event) => {
       const duration = calculateDaySpanInHours(event.start, event.end)
       const category = categoryMeta.get(event.category)
-      const label = category?.name ?? event.category
+      const label = resolveCategoryLabel(event.category)
       const prev = categoryDuration.get(label)
       categoryDuration.set(label, {
         total: (prev?.total ?? 0) + duration,
@@ -172,14 +193,14 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         color: value.color,
       }))
       .sort((a, b) => b.hours - a.hours)
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
 
   const weekdayStacked = useMemo(() => {
     const buckets: Record<string, Record<string, { hours: number; color: string }>> = {}
 
     rangeEvents.forEach((event) => {
       const label = dayName(event.start)
-      const categoryLabel = categoryMeta.get(event.category)?.name ?? event.category
+      const categoryLabel = resolveCategoryLabel(event.category)
       const color = categoryMeta.get(event.category)?.color ?? event.color
       const hours = calculateDaySpanInHours(event.start, event.end)
       addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
@@ -209,7 +230,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     }))
 
     return { data, series }
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
 
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {

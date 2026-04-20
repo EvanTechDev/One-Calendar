@@ -73,12 +73,13 @@ export function WeekdayStackedDurationChart({
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item) => (
+              {series.map((item, index) => (
                 <Bar
                   key={item.key}
                   dataKey={item.key}
                   stackId="duration"
                   fill={item.color}
+                  radius={index === series.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                 />
               ))}
             </BarChart>

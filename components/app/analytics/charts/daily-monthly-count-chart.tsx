@@ -51,7 +51,7 @@ export function DailyMonthlyCountChart({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>每天/每月日程数量</CardTitle>
+        <CardTitle>每天/每月日程时长（小时）</CardTitle>
         <Tabs value={mode} onValueChange={(value) => onModeChange(value as 'day' | 'month')}>
           <TabsList>
             <TabsTrigger value="day">按天</TabsTrigger>
@@ -72,15 +72,18 @@ export function DailyMonthlyCountChart({
                   mode === 'day' ? format(new Date(value), 'MM-dd') : value
                 }
               />
-              <YAxis allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value} 个`} />} />
+              <YAxis unit="h" />
+              <ChartTooltip
+                content={<ChartTooltipContent formatter={(value) => `${Number(value).toFixed(1)} 小时`} />}
+              />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item) => (
+              {series.map((item, index) => (
                 <Bar
                   key={item.key}
                   dataKey={item.key}
                   stackId="count"
                   fill={item.color}
+                  radius={index === series.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                 />
               ))}
             </BarChart>
