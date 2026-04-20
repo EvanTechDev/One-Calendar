@@ -92,7 +92,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
     const series = Array.from(seriesMeta.entries())
       .sort((a, b) => b[1].total - a[1].total)
-      .map(([key, value]) => ({ key, label: value.label, color: value.color }))
+      .map(([key, value], index) => ({
+        key,
+        label: `颜色 ${index + 1}`,
+        color: value.color,
+      }))
 
     const dailyData = Array.from(dailyBuckets.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))

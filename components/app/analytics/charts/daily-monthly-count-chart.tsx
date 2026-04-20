@@ -81,7 +81,6 @@ export function DailyMonthlyCountChart({
                   dataKey={item.key}
                   stackId="count"
                   fill={item.color}
-                  radius={[8, 8, 0, 0]}
                 />
               ))}
             </BarChart>

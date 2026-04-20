@@ -54,7 +54,22 @@ export function WeekdayStackedDurationChart({
               <YAxis unit="h" />
               <ChartTooltip
                 content={
-                  <ChartTooltipContent formatter={(value) => `${Number(value).toFixed(1)} 小时`} />
+                  <ChartTooltipContent
+                    formatter={(value, name, item) => (
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-[2px]"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-muted-foreground">{name}</span>
+                        </div>
+                        <span className="font-mono font-medium text-foreground tabular-nums">
+                          {Number(value).toFixed(1)} 小时
+                        </span>
+                      </div>
+                    )}
+                  />
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
