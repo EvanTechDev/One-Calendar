@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { isZhLanguage, translations, useLanguage } from '@/lib/i18n'
+import { translations, useLanguage } from '@/lib/i18n'
 import React, { useEffect, useState } from 'react'
 
 interface CalendarEvent {
@@ -47,7 +47,6 @@ const EventsCalendar: React.FC = () => {
   )
   const [language] = useLanguage()
   const t = translations[language]
-  const isZh = isZhLanguage(language)
 
   useEffect(() => {
     let active = true
@@ -256,7 +255,7 @@ const EventsCalendar: React.FC = () => {
                           }}
                           title={
                             isCurrentYear
-                              ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${isZh ? '个事件' : 'events'}`
+                              ? `${format(date, 'yyyy-MM-dd')}: ${eventCount} ${t.analyticsEventUnit}`
                               : ''
                           }
                         />

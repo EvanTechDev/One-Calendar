@@ -8,6 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface DonutDatum {
   category: string
@@ -21,6 +22,8 @@ interface CategoryDonutChartProps {
 }
 
 export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
   const chartConfig = data.reduce<ChartConfig>((acc, item) => {
     acc[item.category] = {
       label: item.category,
@@ -32,11 +35,11 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>日程分类占比</CardTitle>
+        <CardTitle>{t.analyticsCategoryShareTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
         ) : (
           <div className="grid gap-4 md:grid-cols-[280px_1fr]">
             <ChartContainer config={chartConfig} className="h-[280px] w-full">
@@ -53,7 +56,7 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
                   ))}
                 </Pie>
                 <ChartTooltip
-                  content={<ChartTooltipContent formatter={(value) => `${value} 个`} />}
+                  content={<ChartTooltipContent formatter={(value) => `${value} ${t.analyticsCountUnit}`} />}
                 />
               </PieChart>
             </ChartContainer>

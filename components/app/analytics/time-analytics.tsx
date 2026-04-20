@@ -17,7 +17,6 @@ import {
   normalizeChartColor,
   resolveDateRange,
   type AnalyticsRangePreset,
-  WEEKDAY_LABELS,
 } from './analytics-utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DailyMonthlyCountChart } from './charts/daily-monthly-count-chart'
@@ -26,19 +25,30 @@ import { CategoryDonutChart } from './charts/category-donut-chart'
 import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
 import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
 }
 
-const dayName = (date: Date): string => {
-  const day = getDay(date)
-  if (day === 0) return WEEKDAY_LABELS[6]
-  return WEEKDAY_LABELS[day - 1]
-}
-
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
+  const weekdayLabels = [
+    t.weekdays[1],
+    t.weekdays[2],
+    t.weekdays[3],
+    t.weekdays[4],
+    t.weekdays[5],
+    t.weekdays[6],
+    t.weekdays[0],
+  ]
+  const dayName = (date: Date): string => {
+    const day = getDay(date)
+    if (day === 0) return weekdayLabels[6]
+    return weekdayLabels[day - 1]
+  }
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
   const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
@@ -60,28 +70,77 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     )
   }, [calendars])
 
+  const resolveCategoryLabel = (categoryId: string): string => {
+    if (categoryId === 'uncategorized') return t.uncategorized
+    return categoryMeta.get(categoryId)?.name ?? categoryId
+  }
 
-  const dailyCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    rangeEvents.forEach((event) => {
-      const key = groupDayKey(event.start)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
-    })
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, count]) => ({ label, count }))
-  }, [rangeEvents])
+  const resolveCategoryColor = (categoryId: string, fallbackColor: string): string => {
+    if (categoryId === 'uncategorized') return '#64748b'
+    return categoryMeta.get(categoryId)?.color ?? fallbackColor
+  }
 
-  const monthlyCounts = useMemo(() => {
-    const counts = new Map<string, number>()
+  const resolveColorName = (color: string): string => {
+    const normalized = color.toLowerCase()
+    if (normalized === '#3b82f6') return t.colorBlue
+    if (normalized === '#10b981') return t.colorGreen
+    if (normalized === '#f59e0b') return t.colorYellow
+    if (normalized === '#ef4444') return t.colorRed
+    if (normalized === '#8b5cf6') return t.colorPurple
+    if (normalized === '#ec4899') return t.colorPink
+    if (normalized === '#14b8a6') return t.colorTeal
+    if (normalized === '#6366f1') return t.colorIndigo
+    if (normalized === '#fb923c') return t.colorOrange
+    return color
+  }
+
+
+  const countChart = useMemo(() => {
+    const seriesMeta = new Map<string, { label: string; color: string; totalCount: number }>()
+    const dailyBuckets = new Map<string, Record<string, number>>()
+    const monthlyBuckets = new Map<string, Record<string, number>>()
+
     rangeEvents.forEach((event) => {
-      const key = groupMonthKey(event.start)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+      const seriesColor = event.color
+      const seriesKey = seriesColor
+      const seriesLabel = resolveColorName(seriesColor)
+      const previous = seriesMeta.get(seriesKey)
+      seriesMeta.set(seriesKey, {
+        label: previous?.label ?? seriesLabel,
+        color: seriesColor,
+        totalCount: (previous?.totalCount ?? 0) + 1,
+      })
+
+      const dayKey = groupDayKey(event.start)
+      const monthKey = groupMonthKey(event.start)
+
+      const dayBucket = dailyBuckets.get(dayKey) ?? {}
+      dayBucket[seriesKey] = (dayBucket[seriesKey] ?? 0) + 1
+      dailyBuckets.set(dayKey, dayBucket)
+
+      const monthBucket = monthlyBuckets.get(monthKey) ?? {}
+      monthBucket[seriesKey] = (monthBucket[seriesKey] ?? 0) + 1
+      monthlyBuckets.set(monthKey, monthBucket)
     })
-    return Array.from(counts.entries())
+
+    const series = Array.from(seriesMeta.entries())
+      .sort((a, b) => b[1].totalCount - a[1].totalCount)
+      .map(([key, value]) => ({
+        key,
+        label: value.label,
+        color: value.color,
+      }))
+
+    const dailyData = Array.from(dailyBuckets.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, count]) => ({ label, count }))
-  }, [rangeEvents])
+      .map(([label, values]) => ({ label, ...values }))
+
+    const monthlyData = Array.from(monthlyBuckets.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, values]) => ({ label, ...values }))
+
+    return { series, dailyData, monthlyData }
+  }, [categoryMeta, rangeEvents, resolveColorName])
 
   const heatmapData = useMemo(() => {
     const currentYear = now.getFullYear()
@@ -102,12 +161,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   const categoryDonutData = useMemo(() => {
     const categoryCounts = new Map<string, { count: number; color: string }>()
     rangeEvents.forEach((event) => {
-      const category = categoryMeta.get(event.category)
-      const label = category?.name ?? event.category
+      const label = resolveCategoryLabel(event.category)
       const prev = categoryCounts.get(label)
       categoryCounts.set(label, {
         count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? category?.color ?? event.color,
+        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
       })
     })
 
@@ -123,17 +181,18 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         color: value.color,
       }))
       .sort((a, b) => b.count - a.count)
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
 
   const categoryAvgDurationData = useMemo(() => {
-    const categoryDuration = new Map<string, { total: number; count: number }>()
+    const categoryDuration = new Map<string, { total: number; count: number; color: string }>()
     rangeEvents.forEach((event) => {
       const duration = calculateDaySpanInHours(event.start, event.end)
-      const label = categoryMeta.get(event.category)?.name ?? event.category
+      const label = resolveCategoryLabel(event.category)
       const prev = categoryDuration.get(label)
       categoryDuration.set(label, {
         total: (prev?.total ?? 0) + duration,
         count: (prev?.count ?? 0) + 1,
+        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
       })
     })
 
@@ -141,17 +200,18 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       .map(([category, value]) => ({
         category,
         hours: Number((value.total / value.count).toFixed(1)),
+        color: value.color,
       }))
       .sort((a, b) => b.hours - a.hours)
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
 
   const weekdayStacked = useMemo(() => {
     const buckets: Record<string, Record<string, { hours: number; color: string }>> = {}
 
     rangeEvents.forEach((event) => {
       const label = dayName(event.start)
-      const categoryLabel = categoryMeta.get(event.category)?.name ?? event.category
-      const color = categoryMeta.get(event.category)?.color ?? event.color
+      const categoryLabel = resolveCategoryLabel(event.category)
+      const color = resolveCategoryColor(event.category, event.color)
       const hours = calculateDaySpanInHours(event.start, event.end)
       addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
     })
@@ -165,7 +225,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       })
     })
 
-    const data = WEEKDAY_LABELS.map((label) => {
+    const data = weekdayLabels.map((label) => {
       const row: Record<string, string | number> = { day: label }
       const values = buckets[label] ?? {}
       categoryColors.forEach((_, category) => {
@@ -180,15 +240,15 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     }))
 
     return { data, series }
-  }, [categoryMeta, rangeEvents])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel, weekdayLabels])
 
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {
       return [
-        { title: '最长连续有日程天数', value: '0 天', subtitle: '当前周期内暂无日程' },
-        { title: '最忙的星期几', value: '暂无', subtitle: '当前周期内暂无日程' },
-        { title: '日程平均提前安排天数', value: '0.0 天', subtitle: '数值越大代表规划越提前' },
-        { title: '最集中的时间段', value: '暂无', subtitle: '当前周期内暂无日程' },
+        { title: t.analyticsMetricLongestStreak, value: `0 ${t.analyticsDayUnit}`, subtitle: t.analyticsNoScheduleInRange },
+        { title: t.analyticsMetricBusiestWeekday, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
+        { title: t.analyticsMetricAvgLeadDays, value: `0.0 ${t.analyticsDayUnit}`, subtitle: t.analyticsLeadDaysHint },
+        { title: t.analyticsMetricPeakTimeWindow, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
       ]
     }
 
@@ -223,7 +283,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     })
 
     const totalWeeks = Math.max((differenceInCalendarDays(dateRange.end, dateRange.start) + 1) / 7, 1)
-    const weekdayAverages = WEEKDAY_LABELS.map((label) => ({
+    const weekdayAverages = weekdayLabels.map((label) => ({
       day: label,
       avg: (weekdayMap.get(label) ?? 0) / totalWeeks,
     }))
@@ -254,40 +314,43 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
     return [
       {
-        title: '最长连续有日程天数',
-        value: `${bestStreak} 天`,
-        subtitle: `${format(bestStart, 'yyyy-MM-dd')} 至 ${format(bestEnd, 'yyyy-MM-dd')}`,
+        title: t.analyticsMetricLongestStreak,
+        value: `${bestStreak} ${t.analyticsDayUnit}`,
+        subtitle: `${format(bestStart, 'yyyy-MM-dd')} ${t.analyticsTo} ${format(bestEnd, 'yyyy-MM-dd')}`,
       },
       {
-        title: '最忙的星期几',
+        title: t.analyticsMetricBusiestWeekday,
         value: busiestDay.day,
-        subtitle: `平均 ${busiestDay.avg.toFixed(1)} 个日程，高于整体 ${uplift.toFixed(1)}%`,
+        subtitle: t.analyticsBusiestWeekdaySubtitle
+          .replace('{avg}', busiestDay.avg.toFixed(1))
+          .replace('{pct}', uplift.toFixed(1))
+          .replace('{unit}', t.analyticsScheduleUnit),
       },
       {
-        title: '日程平均提前安排天数',
-        value: `${avgLead.toFixed(1)} 天`,
-        subtitle: '数值越大代表规划越提前',
+        title: t.analyticsMetricAvgLeadDays,
+        value: `${avgLead.toFixed(1)} ${t.analyticsDayUnit}`,
+        subtitle: t.analyticsLeadDaysHint,
       },
       {
-        title: '最集中的时间段',
+        title: t.analyticsMetricPeakTimeWindow,
         value: formatHourRange(bestWindowHour),
-        subtitle: `该时段占总日程 ${concentrationRatio.toFixed(1)}%`,
+        subtitle: t.analyticsPeakWindowSubtitle.replace('{pct}', concentrationRatio.toFixed(1)),
       },
     ]
-  }, [dateRange, rangeEvents])
+  }, [dateRange, rangeEvents, t, weekdayLabels])
 
   return (
     <div className="space-y-6 rounded-lg border p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">日程分析</h2>
+        <h2 className="text-base font-semibold">{t.analyticsOverviewTitle}</h2>
         <Select value={preset} onValueChange={(value) => setPreset(value as AnalyticsRangePreset)}>
           <SelectTrigger className="w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="week">近 7 天</SelectItem>
-            <SelectItem value="month">近 30 天</SelectItem>
-            <SelectItem value="quarter">近 90 天</SelectItem>
+            <SelectItem value="week">{t.analyticsPresetWeek}</SelectItem>
+            <SelectItem value="month">{t.analyticsPresetMonth}</SelectItem>
+            <SelectItem value="quarter">{t.analyticsPresetQuarter}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -296,8 +359,9 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DailyMonthlyCountChart
-          dailyData={dailyCounts}
-          monthlyData={monthlyCounts}
+          dailyData={countChart.dailyData}
+          monthlyData={countChart.monthlyData}
+          series={countChart.series}
           mode={countMode}
           onModeChange={setCountMode}
         />
