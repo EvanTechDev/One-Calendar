@@ -25,6 +25,10 @@ import {
   encryptPayload,
   isEncryptedPayload,
 } from '@/lib/crypto'
+import {
+  readEncryptedLocalStorage,
+  writeEncryptedLocalStorage,
+} from '@/hooks/useLocalStorage'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { translations, useLanguage } from '@/lib/i18n'
@@ -40,6 +44,38 @@ import { toast } from 'sonner'
 interface ImportExportProps {
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
+}
+
+interface ImportedCategory {
+  id: string
+  name: string
+  color: string
+  keywords?: string[]
+}
+
+interface AppSettingsSnapshot {
+  language?: string
+  firstDayOfWeek?: number
+  timezone?: string
+  notificationSound?: string
+  defaultView?: string
+  enableShortcuts?: boolean
+  timeFormat?: '24h' | '12h'
+  toastPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right'
+  theme?: string
+}
+
+interface JsonBackupPayloadV2 {
+  format: 'one-calendar-json-v2'
+  exportedAt: string
+  data: {
+    events: CalendarEvent[]
+    calendars: ImportedCategory[]
+    eventCategoryMap: Record<string, string>
+    bookmarks: unknown[]
+    countdowns: unknown[]
+    settings: AppSettingsSnapshot
+  }
 }
 
 export default function ImportExport({
@@ -63,11 +99,23 @@ export default function ImportExport({
   const [debugInfo, setDebugInfo] = useState<string>('')
   const [language] = useLanguage()
   const t = translations[language]
-  const { calendars } = useCalendar()
+  const { calendars, setCalendars } = useCalendar()
   const [importCalendarId, setImportCalendarId] =
     useState<string>('__uncategorized__')
 
   const [forceUpdate, setForceUpdate] = useState(0)
+
+  const SETTINGS_KEYS = {
+    language: 'preferred-language',
+    firstDayOfWeek: 'first-day-of-week',
+    timezone: 'timezone',
+    notificationSound: 'notification-sound',
+    defaultView: 'default-view',
+    enableShortcuts: 'enable-shortcuts',
+    timeFormat: 'time-format',
+    toastPosition: 'toast-position',
+    theme: 'theme',
+  } as const
 
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -118,7 +166,67 @@ export default function ImportExport({
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
       } else if (exportFormat === 'json') {
-        let jsonContent = JSON.stringify(filteredEvents, null, 2)
+        const bookmarks = await readEncryptedLocalStorage<unknown[]>(
+          'bookmarked-events',
+          [],
+        )
+        const countdowns = await readEncryptedLocalStorage<unknown[]>(
+          'countdowns',
+          [],
+        )
+        const settings = {
+          language: await readEncryptedLocalStorage<string | undefined>(
+            SETTINGS_KEYS.language,
+            undefined,
+          ),
+          firstDayOfWeek: await readEncryptedLocalStorage<number | undefined>(
+            SETTINGS_KEYS.firstDayOfWeek,
+            undefined,
+          ),
+          timezone: await readEncryptedLocalStorage<string | undefined>(
+            SETTINGS_KEYS.timezone,
+            undefined,
+          ),
+          notificationSound: await readEncryptedLocalStorage<string | undefined>(
+            SETTINGS_KEYS.notificationSound,
+            undefined,
+          ),
+          defaultView: await readEncryptedLocalStorage<string | undefined>(
+            SETTINGS_KEYS.defaultView,
+            undefined,
+          ),
+          enableShortcuts: await readEncryptedLocalStorage<boolean | undefined>(
+            SETTINGS_KEYS.enableShortcuts,
+            undefined,
+          ),
+          timeFormat: await readEncryptedLocalStorage<'24h' | '12h' | undefined>(
+            SETTINGS_KEYS.timeFormat,
+            undefined,
+          ),
+          toastPosition: await readEncryptedLocalStorage<
+            'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
+          >(SETTINGS_KEYS.toastPosition, undefined),
+          theme: await readEncryptedLocalStorage<string | undefined>(
+            SETTINGS_KEYS.theme,
+            undefined,
+          ),
+        }
+        const exportPayload: JsonBackupPayloadV2 = {
+          format: 'one-calendar-json-v2',
+          exportedAt: new Date().toISOString(),
+          data: {
+            events: filteredEvents,
+            calendars,
+            eventCategoryMap: Object.fromEntries(
+              filteredEvents.map((event) => [event.id, event.calendarId || '']),
+            ),
+            bookmarks,
+            countdowns,
+            settings,
+          },
+        }
+
+        let jsonContent = JSON.stringify(exportPayload, null, 2)
 
         const hasAnyPasswordInput =
           jsonPassword.trim() || jsonPasswordConfirm.trim()
@@ -197,6 +305,7 @@ export default function ImportExport({
       setIsLoading(true)
       setDebugInfo('')
       let importedEvents: CalendarEvent[] = []
+      let shouldApplyCategory = true
       let rawContent = ''
 
       if (importTab === 'file' && selectedFile) {
@@ -206,7 +315,9 @@ export default function ImportExport({
         if (fileExt === 'ics') {
           importedEvents = parseICS(rawContent)
         } else if (fileExt === 'json') {
-          importedEvents = await parseJsonEvents(rawContent)
+          const parsedResult = await parseJsonEvents(rawContent)
+          importedEvents = parsedResult.events
+          shouldApplyCategory = parsedResult.shouldApplyImportCategory
         } else if (fileExt === 'csv') {
           importedEvents = parseCSV(rawContent)
         } else {
@@ -219,7 +330,9 @@ export default function ImportExport({
         if (importUrl.endsWith('.ics')) {
           importedEvents = parseICS(rawContent)
         } else if (importUrl.endsWith('.json')) {
-          importedEvents = await parseJsonEvents(rawContent)
+          const parsedResult = await parseJsonEvents(rawContent)
+          importedEvents = parsedResult.events
+          shouldApplyCategory = parsedResult.shouldApplyImportCategory
         } else {
           throw new Error(t.unsupportedUrlFormat || 'Unsupported URL format')
         }
@@ -240,7 +353,9 @@ ${rawContent.substring(0, 500)}...`)
         return
       }
 
-      const normalizedImportedEvents = applyImportCategory(importedEvents)
+      const normalizedImportedEvents = shouldApplyCategory
+        ? applyImportCategory(importedEvents)
+        : importedEvents
       onImportEvents(normalizedImportedEvents)
 
       toast(
@@ -286,9 +401,54 @@ ${rawContent.substring(0, 500)}...`)
     }
   }
 
+  const normalizeImportedEvent = (input: Partial<CalendarEvent>): CalendarEvent => {
+    const start = input.startDate ? new Date(input.startDate) : new Date()
+    const parsedEnd = input.endDate ? new Date(input.endDate) : new Date(start.getTime() + 60 * 60 * 1000)
+    const end = parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
+
+    return {
+      id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
+      title: input.title || t.unnamedEvent || 'Unnamed Event',
+      startDate: start,
+      endDate: end,
+      isAllDay: Boolean(input.isAllDay),
+      recurrence: input.recurrence || 'none',
+      location: input.location,
+      participants: Array.isArray(input.participants) ? input.participants : [],
+      notification: typeof input.notification === 'number' ? input.notification : 0,
+      description: input.description,
+      color: input.color || 'bg-[#E6F6FD]',
+      calendarId: input.calendarId || '',
+    }
+  }
+
+  const mergeCategoriesFromBackup = (importedCategories: ImportedCategory[]) => {
+    if (importedCategories.length === 0) return
+
+    const merged = [...calendars]
+    importedCategories.forEach((category) => {
+      const index = merged.findIndex((item) => item.id === category.id)
+      if (index === -1) {
+        merged.push({
+          id: category.id,
+          name: category.name,
+          color: category.color,
+          keywords: category.keywords ?? [],
+        })
+      } else {
+        merged[index] = {
+          ...merged[index],
+          ...category,
+          keywords: category.keywords ?? merged[index].keywords ?? [],
+        }
+      }
+    })
+    setCalendars(merged)
+  }
+
   const parseJsonEvents = async (
     rawContent: string,
-  ): Promise<CalendarEvent[]> => {
+  ): Promise<{ events: CalendarEvent[]; shouldApplyImportCategory: boolean }> => {
     const parsed = JSON.parse(rawContent)
 
     if (isEncryptedPayload(parsed) || parsed?.encrypted) {
@@ -314,19 +474,93 @@ ${rawContent.substring(0, 500)}...`)
         parsed.ciphertext,
         parsed.iv,
       )
-      const decryptedEvents = JSON.parse(decrypted)
-
-      if (!Array.isArray(decryptedEvents)) {
-        throw new Error(
-          t.invalidEncryptedJson || 'Invalid encrypted JSON payload',
-        )
-      }
-
-      return decryptedEvents as CalendarEvent[]
+      return parseJsonEvents(decrypted)
     }
 
     if (Array.isArray(parsed)) {
-      return parsed as CalendarEvent[]
+      return {
+        events: parsed.map((event) => normalizeImportedEvent(event)),
+        shouldApplyImportCategory: true,
+      }
+    }
+
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      parsed.format === 'one-calendar-json-v2' &&
+      parsed.data
+    ) {
+      const payload = parsed as JsonBackupPayloadV2
+      const importedEvents = Array.isArray(payload.data.events)
+        ? payload.data.events.map((event) => normalizeImportedEvent(event))
+        : []
+      const importedCategories = Array.isArray(payload.data.calendars)
+        ? payload.data.calendars
+        : []
+      const relationMap = payload.data.eventCategoryMap || {}
+      const categoryIdSet = new Set(importedCategories.map((item) => item.id))
+
+      const extraCategoryIds = new Set<string>()
+      importedEvents.forEach((event) => {
+        const mappedCategoryId = relationMap[event.id]
+        if (typeof mappedCategoryId === 'string') {
+          event.calendarId = mappedCategoryId
+        }
+        if (event.calendarId && !categoryIdSet.has(event.calendarId)) {
+          extraCategoryIds.add(event.calendarId)
+        }
+      })
+
+      const autoCategories: ImportedCategory[] = Array.from(extraCategoryIds).map((id) => ({
+        id,
+        name: `Imported ${id.slice(0, 6)}`,
+        color: 'bg-blue-500',
+        keywords: [],
+      }))
+      mergeCategoriesFromBackup([...importedCategories, ...autoCategories])
+
+      if (Array.isArray(payload.data.bookmarks)) {
+        await writeEncryptedLocalStorage('bookmarked-events', payload.data.bookmarks)
+      }
+      if (Array.isArray(payload.data.countdowns)) {
+        await writeEncryptedLocalStorage('countdowns', payload.data.countdowns)
+      }
+
+      const settings = payload.data.settings || {}
+      const settingWrites: Promise<void>[] = []
+      if (settings.language !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.language, settings.language))
+      }
+      if (settings.firstDayOfWeek !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.firstDayOfWeek, settings.firstDayOfWeek))
+      }
+      if (settings.timezone !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.timezone, settings.timezone))
+      }
+      if (settings.notificationSound !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.notificationSound, settings.notificationSound))
+      }
+      if (settings.defaultView !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.defaultView, settings.defaultView))
+      }
+      if (settings.enableShortcuts !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.enableShortcuts, settings.enableShortcuts))
+      }
+      if (settings.timeFormat !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.timeFormat, settings.timeFormat))
+      }
+      if (settings.toastPosition !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.toastPosition, settings.toastPosition))
+      }
+      if (settings.theme !== undefined) {
+        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.theme, settings.theme))
+      }
+      await Promise.all(settingWrites)
+
+      return {
+        events: importedEvents,
+        shouldApplyImportCategory: false,
+      }
     }
 
     throw new Error(t.unsupportedFormat || 'Unsupported file format')

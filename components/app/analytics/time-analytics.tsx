@@ -10,6 +10,7 @@ import {
   filterEventsInRange,
   formatHourRange,
   generateRangeDays,
+  getChartColorOrderIndex,
   getMonthDays,
   groupDayKey,
   groupMonthKey,
@@ -54,9 +55,20 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
   const now = useMemo(() => new Date(), [])
   const dateRange = useMemo(() => resolveDateRange(preset, now), [preset, now])
+  const futureDateRange = useMemo(
+    () => ({
+      start: now,
+      end: new Date(now.getTime() + (dateRange.end.getTime() - dateRange.start.getTime())),
+    }),
+    [dateRange.end, dateRange.start, now],
+  )
 
   const normalizedEvents = useMemo(() => mapEventsToAnalyticsEvents(events), [events])
   const rangeEvents = useMemo(() => filterEventsInRange(normalizedEvents, dateRange), [normalizedEvents, dateRange])
+  const futureRangeEvents = useMemo(
+    () => filterEventsInRange(normalizedEvents, futureDateRange),
+    [futureDateRange, normalizedEvents],
+  )
 
   const categoryMeta = useMemo(() => {
     return new Map(
@@ -124,7 +136,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     })
 
     const series = Array.from(seriesMeta.entries())
-      .sort((a, b) => b[1].totalCount - a[1].totalCount)
+      .sort((a, b) => {
+        const colorOrder = getChartColorOrderIndex(a[1].color) - getChartColorOrderIndex(b[1].color)
+        if (colorOrder !== 0) return colorOrder
+        return b[1].totalCount - a[1].totalCount
+      })
       .map(([key, value]) => ({
         key,
         label: value.label,
@@ -234,20 +250,29 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       return row
     })
 
-    const series = Array.from(categoryColors.entries()).map(([key, color]) => ({
-      key,
-      color,
-    }))
+    const series = Array.from(categoryColors.entries())
+      .sort((a, b) => getChartColorOrderIndex(a[1]) - getChartColorOrderIndex(b[1]))
+      .map(([key, color]) => ({
+        key,
+        color,
+      }))
 
     return { data, series }
   }, [categoryMeta, rangeEvents, resolveCategoryLabel, weekdayLabels])
 
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {
+      const futureLeadTimes = futureRangeEvents.map(
+        (event) => Math.max((event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24), 0),
+      )
+      const futureAvgLead =
+        futureLeadTimes.length === 0
+          ? 0
+          : futureLeadTimes.reduce((sum, value) => sum + value, 0) / futureLeadTimes.length
       return [
         { title: t.analyticsMetricLongestStreak, value: `0 ${t.analyticsDayUnit}`, subtitle: t.analyticsNoScheduleInRange },
         { title: t.analyticsMetricBusiestWeekday, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
-        { title: t.analyticsMetricAvgLeadDays, value: `0.0 ${t.analyticsDayUnit}`, subtitle: t.analyticsLeadDaysHint },
+        { title: t.analyticsMetricAvgLeadDays, value: `${futureAvgLead.toFixed(1)} ${t.analyticsDayUnit}`, subtitle: t.analyticsLeadDaysHint },
         { title: t.analyticsMetricPeakTimeWindow, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
       ]
     }
@@ -292,8 +317,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     const overallAvg = rangeEvents.length / 7
     const uplift = overallAvg === 0 ? 0 : ((busiestDay.avg - overallAvg) / overallAvg) * 100
 
-    const leadTimes = rangeEvents.map((event) => (event.start.getTime() - event.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-    const avgLead = leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length
+    const leadTimes = futureRangeEvents.map(
+      (event) => Math.max((event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24), 0),
+    )
+    const avgLead =
+      leadTimes.length === 0 ? 0 : leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length
 
     const hourCounts = Array.from({ length: 24 }).map(() => 0)
     rangeEvents.forEach((event) => {
@@ -337,7 +365,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         subtitle: t.analyticsPeakWindowSubtitle.replace('{pct}', concentrationRatio.toFixed(1)),
       },
     ]
-  }, [dateRange, rangeEvents, t, weekdayLabels])
+  }, [dateRange, futureRangeEvents, now, rangeEvents, t, weekdayLabels])
 
   return (
     <div className="space-y-6 rounded-lg border p-4">

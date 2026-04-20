@@ -1,6 +1,6 @@
 'use client'
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
@@ -44,6 +44,18 @@ export function DailyMonthlyCountChart({
   const t = translations[language]
   const activeData = mode === 'day' ? dailyData : monthlyData
   const seriesLabelMap = new Map(series.map((item) => [item.key, item.label]))
+  const topDataKeyByLabel = new Map(
+    activeData.map((datum) => {
+      let topKey = ''
+      series.forEach((item) => {
+        const value = Number(datum[item.key] ?? 0)
+        if (value > 0) {
+          topKey = item.key
+        }
+      })
+      return [datum.label, topKey]
+    }),
+  )
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
       label: item.label,
@@ -100,14 +112,23 @@ export function DailyMonthlyCountChart({
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item, index) => (
+              {series.map((item) => (
                 <Bar
                   key={item.key}
                   dataKey={item.key}
                   stackId="count"
                   fill={item.color}
-                  radius={index === series.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
-                />
+                >
+                  {activeData.map((datum) => {
+                    const isTopSegment = topDataKeyByLabel.get(datum.label) === item.key
+                    return (
+                      <Cell
+                        key={`${item.key}-${datum.label}`}
+                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                      />
+                    )
+                  })}
+                </Bar>
               ))}
             </BarChart>
           </ChartContainer>

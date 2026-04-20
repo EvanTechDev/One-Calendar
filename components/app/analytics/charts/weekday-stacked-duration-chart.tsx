@@ -1,6 +1,6 @@
 'use client'
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,
@@ -41,6 +41,19 @@ export function WeekdayStackedDurationChart({
     return acc
   }, {})
 
+  const topDataKeyByDay = new Map(
+    data.map((datum) => {
+      let topKey = ''
+      series.forEach((item) => {
+        const value = Number(datum[item.key] ?? 0)
+        if (value > 0) {
+          topKey = item.key
+        }
+      })
+      return [datum.day, topKey]
+    }),
+  )
+
   return (
     <Card>
       <CardHeader>
@@ -76,14 +89,23 @@ export function WeekdayStackedDurationChart({
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item, index) => (
+              {series.map((item) => (
                 <Bar
                   key={item.key}
                   dataKey={item.key}
                   stackId="duration"
                   fill={item.color}
-                  radius={index === series.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
-                />
+                >
+                  {data.map((datum) => {
+                    const isTopSegment = topDataKeyByDay.get(datum.day) === item.key
+                    return (
+                      <Cell
+                        key={`${item.key}-${datum.day}`}
+                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                      />
+                    )
+                  })}
+                </Bar>
               ))}
             </BarChart>
           </ChartContainer>
