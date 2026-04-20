@@ -44,6 +44,11 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     t.weekdays[6],
     t.weekdays[0],
   ]
+  const dayName = (date: Date): string => {
+    const day = getDay(date)
+    if (day === 0) return weekdayLabels[6]
+    return weekdayLabels[day - 1]
+  }
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
   const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
@@ -372,8 +377,3 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     </div>
   )
 }
-  const dayName = (date: Date): string => {
-    const day = getDay(date)
-    if (day === 0) return weekdayLabels[6]
-    return weekdayLabels[day - 1]
-  }
