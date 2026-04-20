@@ -26,7 +26,7 @@ interface DailyMonthlyCountChartProps {
 const chartConfig = {
   count: {
     label: '日程数量',
-    color: 'hsl(var(--chart-1))',
+    color: 'var(--chart-1)',
   },
 } satisfies ChartConfig
 
@@ -64,7 +64,7 @@ export function DailyMonthlyCountChart({
               />
               <YAxis allowDecimals={false} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="count" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ChartContainer>
         )}
