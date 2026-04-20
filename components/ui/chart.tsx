@@ -80,6 +80,8 @@ function ChartContainer({
   )
 }
 
+const toCssVarKey = (key: string): string => key.replace(/[^a-zA-Z0-9_-]/g, "-")
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme ?? config.color
@@ -101,7 +103,7 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    return color ? `  --color-${toCssVarKey(key)}: ${color};` : null
   })
   .join("\n")}
 }
