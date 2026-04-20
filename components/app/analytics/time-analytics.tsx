@@ -87,8 +87,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     const monthlyBuckets = new Map<string, Record<string, number>>()
 
     rangeEvents.forEach((event) => {
-      const category = categoryMeta.get(event.category)
-      const seriesColor = category?.color ?? event.color
+      const seriesColor = event.color
       const seriesKey = seriesColor
       const seriesLabel = resolveColorName(seriesColor)
       const previous = seriesMeta.get(seriesKey)
