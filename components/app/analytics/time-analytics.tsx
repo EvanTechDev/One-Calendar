@@ -263,7 +263,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {
       const futureLeadTimes = futureRangeEvents.map(
-        (event) => (event.start.getTime() - event.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+        (event) => Math.max((event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24), 0),
       )
       const futureAvgLead =
         futureLeadTimes.length === 0
@@ -318,7 +318,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     const uplift = overallAvg === 0 ? 0 : ((busiestDay.avg - overallAvg) / overallAvg) * 100
 
     const leadTimes = futureRangeEvents.map(
-      (event) => (event.start.getTime() - event.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+      (event) => Math.max((event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24), 0),
     )
     const avgLead =
       leadTimes.length === 0 ? 0 : leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length
@@ -365,7 +365,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
         subtitle: t.analyticsPeakWindowSubtitle.replace('{pct}', concentrationRatio.toFixed(1)),
       },
     ]
-  }, [dateRange, futureRangeEvents, rangeEvents, t, weekdayLabels])
+  }, [dateRange, futureRangeEvents, now, rangeEvents, t, weekdayLabels])
 
   return (
     <div className="space-y-6 rounded-lg border p-4">
