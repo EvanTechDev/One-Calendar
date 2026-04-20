@@ -10,6 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface WeekdayStackDatum {
   day: string
@@ -30,6 +31,8 @@ export function WeekdayStackedDurationChart({
   data,
   series,
 }: WeekdayStackedDurationChartProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
       label: item.key,
@@ -41,11 +44,11 @@ export function WeekdayStackedDurationChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>一周各天时间分布</CardTitle>
+        <CardTitle>{t.analyticsWeekdayDurationTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 || series.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart data={data} margin={{ left: 8, right: 16, top: 8 }}>
@@ -65,7 +68,7 @@ export function WeekdayStackedDurationChart({
                           <span className="text-muted-foreground">{name}</span>
                         </div>
                         <span className="font-mono font-medium text-foreground tabular-nums">
-                          {Number(value).toFixed(1)} 小时
+                          {Number(value).toFixed(1)} {t.analyticsHourUnit}
                         </span>
                       </div>
                     )}

@@ -15,9 +15,6 @@ import type { AnalyticsEvent, DateRange } from './analytics-types'
 
 export type AnalyticsRangePreset = 'week' | 'month' | 'quarter'
 
-export const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-
-
 const COLOR_MAP: Record<string, string> = {
   'bg-blue-500': '#3b82f6',
   'bg-green-500': '#10b981',

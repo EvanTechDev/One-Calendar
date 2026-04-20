@@ -8,6 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface DurationDatum {
   category: string
@@ -19,24 +20,26 @@ interface CategoryAverageDurationChartProps {
   data: DurationDatum[]
 }
 
-const chartConfig = {
-  hours: {
-    label: '平均时长',
-    color: 'var(--chart-2)',
-  },
-} satisfies ChartConfig
-
 export function CategoryAverageDurationChart({
   data,
 }: CategoryAverageDurationChartProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
+  const chartConfig = {
+    hours: {
+      label: t.analyticsAverageDuration,
+      color: 'var(--chart-2)',
+    },
+  } satisfies ChartConfig
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>各分类平均时长（小时）</CardTitle>
+        <CardTitle>{t.analyticsCategoryAverageDurationTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart
@@ -48,7 +51,7 @@ export function CategoryAverageDurationChart({
               <XAxis type="number" unit="h" />
               <YAxis type="category" dataKey="category" width={96} />
               <ChartTooltip
-                content={<ChartTooltipContent formatter={(value) => `${value} 小时`} />}
+                content={<ChartTooltipContent formatter={(value) => `${value} ${t.analyticsHourUnit}`} />}
               />
               <Bar dataKey="hours" radius={[0, 8, 8, 0]}>
                 {data.map((entry) => (

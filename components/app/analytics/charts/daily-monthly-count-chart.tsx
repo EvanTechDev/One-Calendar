@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
+import { translations, useLanguage } from '@/lib/i18n'
 import {
   ChartContainer,
   ChartLegend,
@@ -39,6 +40,8 @@ export function DailyMonthlyCountChart({
   mode,
   onModeChange,
 }: DailyMonthlyCountChartProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
   const activeData = mode === 'day' ? dailyData : monthlyData
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
@@ -51,17 +54,17 @@ export function DailyMonthlyCountChart({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>每天/每月日程数量</CardTitle>
+        <CardTitle>{t.analyticsDailyMonthlyCountTitle}</CardTitle>
         <Tabs value={mode} onValueChange={(value) => onModeChange(value as 'day' | 'month')}>
           <TabsList>
-            <TabsTrigger value="day">按天</TabsTrigger>
-            <TabsTrigger value="month">按月</TabsTrigger>
+            <TabsTrigger value="day">{t.analyticsByDay}</TabsTrigger>
+            <TabsTrigger value="month">{t.analyticsByMonth}</TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
       <CardContent>
         {activeData.length === 0 || series.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart data={activeData} margin={{ left: 8, right: 8, top: 8 }}>
@@ -86,7 +89,7 @@ export function DailyMonthlyCountChart({
                           <span className="text-muted-foreground">{name}</span>
                         </div>
                         <span className="font-mono font-medium text-foreground tabular-nums">
-                          {value} 个
+                          {value} {t.analyticsCountUnit}
                         </span>
                       </div>
                     )}

@@ -10,7 +10,7 @@ import {
   startOfWeek,
   startOfYear,
 } from 'date-fns'
-import { WEEKDAY_LABELS } from '../analytics-utils'
+import { translations, useLanguage } from '@/lib/i18n'
 
 interface HeatmapDatum {
   date: Date
@@ -30,6 +30,8 @@ const intensityClasses = [
 ]
 
 export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
   const selectedYear = new Date().getFullYear()
   const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1))
   const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31))
@@ -40,6 +42,16 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
   const countMap = new Map(data.map((item) => [format(item.date, 'yyyy-MM-dd'), item.count]))
   const maxCount = data.reduce((max, item) => Math.max(max, item.count), 0)
 
+  const weekdayLabels = [
+    t.weekdays[1],
+    t.weekdays[2],
+    t.weekdays[3],
+    t.weekdays[4],
+    t.weekdays[5],
+    t.weekdays[6],
+    t.weekdays[0],
+  ]
+
   const allDates = Array.from({ length: totalDays }).map((_, index) =>
     addDays(startDay, index),
   )
@@ -49,7 +61,7 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
     if (firstDayOfMonth < startDay || firstDayOfMonth > endDay) return []
     const dayIndex = differenceInDays(firstDayOfMonth, startDay)
     const weekIndex = Math.floor(dayIndex / 7)
-    return [{ weekIndex, label: format(firstDayOfMonth, 'M月') }]
+    return [{ weekIndex, label: t.months[month] }]
   })
 
   const getLevel = (count: number): number => {
@@ -64,7 +76,7 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>全年日程热力图</CardTitle>
+        <CardTitle>{t.analyticsYearHeatmapTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto pb-2">
@@ -86,7 +98,7 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
 
             <div className="flex">
               <div className="flex w-10 flex-col pr-2">
-                {WEEKDAY_LABELS.map((day, index) => (
+                {weekdayLabels.map((day, index) => (
                   <div
                     key={day}
                     className="mb-1 h-3 text-right text-xs leading-3 text-muted-foreground"
@@ -110,7 +122,7 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
                           className={`h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-ring ${
                             isCurrentYear ? intensityClasses[getLevel(count)] : 'bg-transparent'
                           }`}
-                          title={isCurrentYear ? `${key}: ${count} 个日程` : ''}
+                          title={isCurrentYear ? `${key}: ${count} ${t.analyticsScheduleUnit}` : ''}
                         />
                       )
                     })}
@@ -122,13 +134,13 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
         </div>
 
         <div className="mt-3 flex items-center text-xs text-muted-foreground">
-          <span className="mr-2">少</span>
+          <span className="mr-2">{t.less}</span>
           <div className="flex gap-1">
             {intensityClasses.map((cls) => (
               <div key={cls} className={`h-3 w-3 rounded-sm ${cls}`} />
             ))}
           </div>
-          <span className="ml-2">多</span>
+          <span className="ml-2">{t.more}</span>
         </div>
       </CardContent>
     </Card>

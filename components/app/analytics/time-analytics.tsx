@@ -17,7 +17,6 @@ import {
   normalizeChartColor,
   resolveDateRange,
   type AnalyticsRangePreset,
-  WEEKDAY_LABELS,
 } from './analytics-utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DailyMonthlyCountChart } from './charts/daily-monthly-count-chart'
@@ -33,15 +32,18 @@ interface TimeAnalyticsProps {
   calendars?: CalendarCategory[]
 }
 
-const dayName = (date: Date): string => {
-  const day = getDay(date)
-  if (day === 0) return WEEKDAY_LABELS[6]
-  return WEEKDAY_LABELS[day - 1]
-}
-
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {
   const [language] = useLanguage()
   const t = translations[language]
+  const weekdayLabels = [
+    t.weekdays[1],
+    t.weekdays[2],
+    t.weekdays[3],
+    t.weekdays[4],
+    t.weekdays[5],
+    t.weekdays[6],
+    t.weekdays[0],
+  ]
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
   const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
@@ -218,7 +220,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
       })
     })
 
-    const data = WEEKDAY_LABELS.map((label) => {
+    const data = weekdayLabels.map((label) => {
       const row: Record<string, string | number> = { day: label }
       const values = buckets[label] ?? {}
       categoryColors.forEach((_, category) => {
@@ -233,15 +235,15 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     }))
 
     return { data, series }
-  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
+  }, [categoryMeta, rangeEvents, resolveCategoryLabel, weekdayLabels])
 
   const metrics = useMemo(() => {
     if (rangeEvents.length === 0) {
       return [
-        { title: '最长连续有日程天数', value: '0 天', subtitle: '当前周期内暂无日程' },
-        { title: '最忙的星期几', value: '暂无', subtitle: '当前周期内暂无日程' },
-        { title: '日程平均提前安排天数', value: '0.0 天', subtitle: '数值越大代表规划越提前' },
-        { title: '最集中的时间段', value: '暂无', subtitle: '当前周期内暂无日程' },
+        { title: t.analyticsMetricLongestStreak, value: `0 ${t.analyticsDayUnit}`, subtitle: t.analyticsNoScheduleInRange },
+        { title: t.analyticsMetricBusiestWeekday, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
+        { title: t.analyticsMetricAvgLeadDays, value: `0.0 ${t.analyticsDayUnit}`, subtitle: t.analyticsLeadDaysHint },
+        { title: t.analyticsMetricPeakTimeWindow, value: t.analyticsNone, subtitle: t.analyticsNoScheduleInRange },
       ]
     }
 
@@ -276,7 +278,7 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     })
 
     const totalWeeks = Math.max((differenceInCalendarDays(dateRange.end, dateRange.start) + 1) / 7, 1)
-    const weekdayAverages = WEEKDAY_LABELS.map((label) => ({
+    const weekdayAverages = weekdayLabels.map((label) => ({
       day: label,
       avg: (weekdayMap.get(label) ?? 0) / totalWeeks,
     }))
@@ -307,40 +309,43 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
     return [
       {
-        title: '最长连续有日程天数',
-        value: `${bestStreak} 天`,
-        subtitle: `${format(bestStart, 'yyyy-MM-dd')} 至 ${format(bestEnd, 'yyyy-MM-dd')}`,
+        title: t.analyticsMetricLongestStreak,
+        value: `${bestStreak} ${t.analyticsDayUnit}`,
+        subtitle: `${format(bestStart, 'yyyy-MM-dd')} ${t.analyticsTo} ${format(bestEnd, 'yyyy-MM-dd')}`,
       },
       {
-        title: '最忙的星期几',
+        title: t.analyticsMetricBusiestWeekday,
         value: busiestDay.day,
-        subtitle: `平均 ${busiestDay.avg.toFixed(1)} 个日程，高于整体 ${uplift.toFixed(1)}%`,
+        subtitle: t.analyticsBusiestWeekdaySubtitle
+          .replace('{avg}', busiestDay.avg.toFixed(1))
+          .replace('{pct}', uplift.toFixed(1))
+          .replace('{unit}', t.analyticsScheduleUnit),
       },
       {
-        title: '日程平均提前安排天数',
-        value: `${avgLead.toFixed(1)} 天`,
-        subtitle: '数值越大代表规划越提前',
+        title: t.analyticsMetricAvgLeadDays,
+        value: `${avgLead.toFixed(1)} ${t.analyticsDayUnit}`,
+        subtitle: t.analyticsLeadDaysHint,
       },
       {
-        title: '最集中的时间段',
+        title: t.analyticsMetricPeakTimeWindow,
         value: formatHourRange(bestWindowHour),
-        subtitle: `该时段占总日程 ${concentrationRatio.toFixed(1)}%`,
+        subtitle: t.analyticsPeakWindowSubtitle.replace('{pct}', concentrationRatio.toFixed(1)),
       },
     ]
-  }, [dateRange, rangeEvents])
+  }, [dateRange, rangeEvents, t, weekdayLabels])
 
   return (
     <div className="space-y-6 rounded-lg border p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">日程分析</h2>
+        <h2 className="text-base font-semibold">{t.analyticsOverviewTitle}</h2>
         <Select value={preset} onValueChange={(value) => setPreset(value as AnalyticsRangePreset)}>
           <SelectTrigger className="w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="week">近 7 天</SelectItem>
-            <SelectItem value="month">近 30 天</SelectItem>
-            <SelectItem value="quarter">近 90 天</SelectItem>
+            <SelectItem value="week">{t.analyticsPresetWeek}</SelectItem>
+            <SelectItem value="month">{t.analyticsPresetMonth}</SelectItem>
+            <SelectItem value="quarter">{t.analyticsPresetQuarter}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -367,3 +372,8 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
     </div>
   )
 }
+  const dayName = (date: Date): string => {
+    const day = getDay(date)
+    if (day === 0) return weekdayLabels[6]
+    return weekdayLabels[day - 1]
+  }
