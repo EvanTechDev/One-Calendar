@@ -61,27 +61,48 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
   }, [calendars])
 
 
-  const dailyCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    rangeEvents.forEach((event) => {
-      const key = groupDayKey(event.start)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
-    })
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, count]) => ({ label, count }))
-  }, [rangeEvents])
+  const countChart = useMemo(() => {
+    const categoryColors = new Map<string, string>()
+    const categoryTotals = new Map<string, number>()
+    const dailyBuckets = new Map<string, Record<string, number>>()
+    const monthlyBuckets = new Map<string, Record<string, number>>()
 
-  const monthlyCounts = useMemo(() => {
-    const counts = new Map<string, number>()
     rangeEvents.forEach((event) => {
-      const key = groupMonthKey(event.start)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+      const category = categoryMeta.get(event.category)
+      const categoryLabel = category?.name ?? event.category
+      const categoryColor = category?.color ?? event.color
+
+      if (!categoryColors.has(categoryLabel)) {
+        categoryColors.set(categoryLabel, categoryColor)
+      }
+      categoryTotals.set(categoryLabel, (categoryTotals.get(categoryLabel) ?? 0) + 1)
+
+      const dayKey = groupDayKey(event.start)
+      const monthKey = groupMonthKey(event.start)
+
+      const dayBucket = dailyBuckets.get(dayKey) ?? {}
+      dayBucket[categoryLabel] = (dayBucket[categoryLabel] ?? 0) + 1
+      dailyBuckets.set(dayKey, dayBucket)
+
+      const monthBucket = monthlyBuckets.get(monthKey) ?? {}
+      monthBucket[categoryLabel] = (monthBucket[categoryLabel] ?? 0) + 1
+      monthlyBuckets.set(monthKey, monthBucket)
     })
-    return Array.from(counts.entries())
+
+    const series = Array.from(categoryColors.entries())
+      .sort((a, b) => (categoryTotals.get(b[0]) ?? 0) - (categoryTotals.get(a[0]) ?? 0))
+      .map(([key, color]) => ({ key, color }))
+
+    const dailyData = Array.from(dailyBuckets.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, count]) => ({ label, count }))
-  }, [rangeEvents])
+      .map(([label, values]) => ({ label, ...values }))
+
+    const monthlyData = Array.from(monthlyBuckets.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, values]) => ({ label, ...values }))
+
+    return { series, dailyData, monthlyData }
+  }, [categoryMeta, rangeEvents])
 
   const heatmapData = useMemo(() => {
     const currentYear = now.getFullYear()
@@ -299,8 +320,9 @@ export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeA
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DailyMonthlyCountChart
-          dailyData={dailyCounts}
-          monthlyData={monthlyCounts}
+          dailyData={countChart.dailyData}
+          monthlyData={countChart.monthlyData}
+          series={countChart.series}
           mode={countMode}
           onModeChange={setCountMode}
         />

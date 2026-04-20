@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -13,30 +15,37 @@ import {
 
 interface CountDatum {
   label: string
-  count: number
+  [category: string]: string | number
+}
+
+interface CountSeries {
+  key: string
+  color: string
 }
 
 interface DailyMonthlyCountChartProps {
   dailyData: CountDatum[]
   monthlyData: CountDatum[]
+  series: CountSeries[]
   mode: 'day' | 'month'
   onModeChange: (mode: 'day' | 'month') => void
 }
 
-const chartConfig = {
-  count: {
-    label: '日程数量',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
-
 export function DailyMonthlyCountChart({
   dailyData,
   monthlyData,
+  series,
   mode,
   onModeChange,
 }: DailyMonthlyCountChartProps) {
   const activeData = mode === 'day' ? dailyData : monthlyData
+  const chartConfig = series.reduce<ChartConfig>((acc, item) => {
+    acc[item.key] = {
+      label: item.key,
+      color: item.color,
+    }
+    return acc
+  }, {})
 
   return (
     <Card>
@@ -50,7 +59,7 @@ export function DailyMonthlyCountChart({
         </Tabs>
       </CardHeader>
       <CardContent>
-        {activeData.length === 0 ? (
+        {activeData.length === 0 || series.length === 0 ? (
           <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
@@ -63,8 +72,17 @@ export function DailyMonthlyCountChart({
                 }
               />
               <YAxis allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value} 个`} />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              {series.map((item) => (
+                <Bar
+                  key={item.key}
+                  dataKey={item.key}
+                  stackId="count"
+                  fill={item.color}
+                  radius={[8, 8, 0, 0]}
+                />
+              ))}
             </BarChart>
           </ChartContainer>
         )}
