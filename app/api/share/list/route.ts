@@ -6,6 +6,8 @@ import { deleteRecord, listRecords } from '@/lib/atproto'
 import type { DpopPublicJwk } from '@/lib/dpop'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
@@ -13,7 +15,7 @@ let burnTableReady = false
 
 async function ensureBurnTable() {
   if (burnTableReady) return
-  await prisma.$executeRawUnsafe(`
+  await prisma.$executeRaw`
     CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
       handle TEXT NOT NULL,
       owner_did TEXT,
@@ -22,16 +24,10 @@ async function ensureBurnTable() {
       pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
       PRIMARY KEY (share_id, handle)
     )
-  `)
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`,
-  )
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`,
-  )
-  await prisma.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`,
-  )
+  `
+  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`
+  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`
+  await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`
   burnTableReady = true
 }
 
@@ -45,11 +41,11 @@ async function syncBurnedAtprotoShares(
 ) {
   await ensureBurnTable()
 
-  const pending = await prisma.$queryRawUnsafe<Array<{ share_id: string }>>(
-    'SELECT share_id FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND pds_delete_synced = FALSE',
-    ownerDid,
-    handle,
-  )
+  const pending = await prisma.$queryRaw<Array<{ share_id: string }>`
+    SELECT share_id FROM atproto_share_burn_reads
+    WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
+    AND pds_delete_synced = FALSE
+  `
 
   if (!pending.length) return
 
@@ -72,12 +68,11 @@ async function syncBurnedAtprotoShares(
   }
 
   if (syncedIds.length > 0) {
-    await prisma.$executeRawUnsafe(
-      'DELETE FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = ANY($3::text[])',
-      ownerDid,
-      handle,
-      syncedIds,
-    )
+    await prisma.$executeRaw`
+      DELETE FROM atproto_share_burn_reads
+      WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
+      AND share_id = ANY(${syncedIds}::text[])
+    `
   }
 }
 
@@ -163,7 +158,7 @@ export async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const result = await prisma.$queryRawUnsafe<
+  const result = await prisma.$queryRaw<
     Array<{
       share_id: string
       encrypted_data: string
@@ -172,10 +167,7 @@ export async function GET() {
       timestamp: Date
       is_protected: boolean
     }>
-  >(
-    `SELECT share_id, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = $1 ORDER BY timestamp DESC`,
-    user.id,
-  )
+  >`SELECT share_id, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = ${user.id} ORDER BY timestamp DESC`
 
   const shares = result.map((row) => {
     let eventId = ''
