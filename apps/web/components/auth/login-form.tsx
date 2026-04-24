@@ -252,6 +252,10 @@ export function LoginForm({
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
+
+                <Button type="button" variant="outline" className="w-full" asChild>
+                  <a href="/atproto-sign-in">Sign in with ATProto</a>
+                </Button>
               </div>
               <div className="text-center text-sm">
                 Don't have an account?{' '}
