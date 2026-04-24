@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 function AtprotoLoginContent() {
-  const [dsUrl, setDsUrl] = useState('')
+  const [handle, setHandle] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const searchParams = useSearchParams()
@@ -25,15 +25,16 @@ function AtprotoLoginContent() {
       const res = await fetch('/api/ds/oauth/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ds: dsUrl }),
+        body: JSON.stringify({ handle }),
       })
 
       const data = (await res.json()) as {
         authorizeUrl?: string
         error?: string
+        message?: string
       }
       if (!res.ok || !data.authorizeUrl) {
-        throw new Error(data.error || 'Failed to start DS OAuth login')
+        throw new Error(data.message || data.error || 'Failed to start DS OAuth login')
       }
 
       window.location.href = data.authorizeUrl
@@ -50,24 +51,24 @@ function AtprotoLoginContent() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">用 Bluesky 登录</CardTitle>
+          <CardTitle className="text-xl">用 ATProto 登录</CardTitle>
           <CardDescription>
-            输入你的 DS 地址，Web 会使用 PKCE 跳转到该 DS 完成授权。
+            输入 Bluesky handle，Web 会自动解析你的 app.onecalendar.ds 记录并跳转到你的 DS 授权。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input
-            value={dsUrl}
-            onChange={(e) => setDsUrl(e.target.value)}
-            placeholder="https://your-ds.example"
-            autoComplete="url"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="alice.bsky.social"
+            autoComplete="username"
           />
           <Button
             className="w-full bg-[#0066ff] text-white hover:bg-[#0052cc]"
             onClick={startLogin}
-            disabled={!dsUrl || loading}
+            disabled={!handle || loading}
           >
-            {loading ? 'Redirecting...' : 'Continue with your DS'}
+            {loading ? 'Redirecting...' : 'Continue with DS OAuth'}
           </Button>
           {error || queryError ? (
             <p className="text-sm text-red-500">{error || queryError}</p>
