@@ -3,7 +3,13 @@ import { and, eq, gt } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { authorizationCodes, grants, refreshTokens } from '@/lib/schema'
-import { randomToken, signToken, validatePkceVerifier, verifyCodeChallenge } from '@/lib/oauth'
+import {
+  randomToken,
+  signToken,
+  validatePkceVerifier,
+  verifyCodeChallenge,
+  verifyToken,
+} from '@/lib/oauth'
 
 function issuer(req: NextRequest) {
   return process.env.DS_ISSUER_URL?.trim() ?? req.nextUrl.origin
@@ -20,29 +26,50 @@ export async function POST(req: NextRequest) {
     const codeVerifier = String(body.code_verifier ?? '')
 
     if (!validatePkceVerifier(codeVerifier)) {
-      return NextResponse.json({ error: 'invalid_code_verifier' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'invalid_code_verifier' },
+        { status: 400 },
+      )
     }
 
     const found = await db
       .select()
       .from(authorizationCodes)
-      .where(and(eq(authorizationCodes.code, code), gt(authorizationCodes.expiresAt, new Date())))
+      .where(
+        and(
+          eq(authorizationCodes.code, code),
+          gt(authorizationCodes.expiresAt, new Date()),
+        ),
+      )
       .limit(1)
 
     const row = found[0]
-    if (!row) return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+    if (!row)
+      return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
     if (row.clientId !== clientId || row.redirectUri !== redirectUri) {
-      return NextResponse.json({ error: 'invalid_client_or_redirect' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'invalid_client_or_redirect' },
+        { status: 400 },
+      )
     }
-    if (row.codeChallengeMethod !== 'S256' || !verifyCodeChallenge(codeVerifier, row.codeChallenge)) {
+    if (
+      row.codeChallengeMethod !== 'S256' ||
+      !verifyCodeChallenge(codeVerifier, row.codeChallenge)
+    ) {
       return NextResponse.json({ error: 'invalid_pkce' }, { status: 400 })
     }
 
     await db.delete(authorizationCodes).where(eq(authorizationCodes.code, code))
 
     const grantId = createHash('sha256').update(`${row.did}:${clientId}`).digest('hex')
-    const grantExists = await db.select().from(grants).where(eq(grants.id, grantId)).limit(1)
-    if (!grantExists[0]) return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+    const grantExists = await db
+      .select()
+      .from(grants)
+      .where(eq(grants.id, grantId))
+      .limit(1)
+    if (!grantExists[0]) {
+      return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+    }
 
     const tokenId = randomToken(24)
     await db.insert(refreshTokens).values({
@@ -83,21 +110,37 @@ export async function POST(req: NextRequest) {
   if (grantType === 'refresh_token') {
     const refreshToken = String(body.refresh_token ?? '')
     const clientId = String(body.client_id ?? '')
+
     try {
-      const payloadPart = refreshToken.split('.')[1]
-      const decoded = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as { jti?: string }
-      const tokenId = decoded.jti
-      if (!tokenId) return NextResponse.json({ error: 'invalid_refresh_token' }, { status: 400 })
+      const verifiedPayload = await verifyToken(refreshToken, issuer(req))
+      const tokenType = String(verifiedPayload.type ?? '')
+      const verifiedClientId = String(verifiedPayload.client_id ?? '')
+      const tokenId = String(verifiedPayload.jti ?? '')
+
+      if (tokenType !== 'refresh' || !tokenId || verifiedClientId !== clientId) {
+        return NextResponse.json(
+          { error: 'invalid_refresh_token' },
+          { status: 400 },
+        )
+      }
 
       const found = await db
         .select()
         .from(refreshTokens)
-        .where(and(eq(refreshTokens.tokenId, tokenId), gt(refreshTokens.expiresAt, new Date())))
+        .where(
+          and(
+            eq(refreshTokens.tokenId, tokenId),
+            gt(refreshTokens.expiresAt, new Date()),
+          ),
+        )
         .limit(1)
 
       const row = found[0]
       if (!row || row.clientId !== clientId) {
-        return NextResponse.json({ error: 'invalid_refresh_token' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'invalid_refresh_token' },
+          { status: 400 },
+        )
       }
 
       const accessToken = await signToken({
@@ -108,7 +151,12 @@ export async function POST(req: NextRequest) {
         type: 'access',
       })
 
-      return NextResponse.json({ token_type: 'Bearer', access_token: accessToken, expires_in: 3600, scope: row.scope })
+      return NextResponse.json({
+        token_type: 'Bearer',
+        access_token: accessToken,
+        expires_in: 3600,
+        scope: row.scope,
+      })
     } catch {
       return NextResponse.json({ error: 'invalid_refresh_token' }, { status: 400 })
     }

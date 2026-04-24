@@ -1,11 +1,11 @@
 interface SharePageProps {
-  params: Promise<{ handle: string; shareId: string }>
-  searchParams: Promise<{ password?: string }>
+  params: { handle: string; shareId: string }
+  searchParams: { password?: string }
 }
 
 export default async function SharePage({ params, searchParams }: SharePageProps) {
-  const { handle, shareId } = await params
-  const { password } = await searchParams
+  const { handle, shareId } = params
+  const { password } = searchParams
 
   const query = new URLSearchParams({ handle, id: shareId })
   if (password) query.set('password', password)

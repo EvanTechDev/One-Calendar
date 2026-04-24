@@ -1,13 +1,18 @@
 import { createHash } from 'node:crypto'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import type { OAuthClientMetadata } from '@one-calendar/types'
 import { db } from '@/lib/db'
 import { authorizationCodes, grants } from '@/lib/schema'
 import { randomToken } from '@/lib/oauth'
 
-function getIssuer(req: NextRequest) {
-  return process.env.DS_ISSUER_URL?.trim() ?? req.nextUrl.origin
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 async function validateAuthorizeParams(req: NextRequest) {
@@ -30,6 +35,7 @@ async function validateAuthorizeParams(req: NextRequest) {
   if (!metadataRes.ok) {
     throw new Error('client_metadata_fetch_failed')
   }
+
   const metadata = (await metadataRes.json()) as OAuthClientMetadata
   const allowed = Array.isArray(metadata.redirect_uris)
     ? metadata.redirect_uris
@@ -39,14 +45,23 @@ async function validateAuthorizeParams(req: NextRequest) {
     throw new Error('invalid_redirect_uri')
   }
 
-  return { clientId, redirectUri, codeChallenge, codeChallengeMethod, state, scope }
+  return { clientId, redirectUri, codeChallenge, state, scope }
 }
 
 export async function GET(req: NextRequest) {
   try {
     const parsed = await validateAuthorizeParams(req)
-    const html = `<!doctype html><html><body><main style="max-width:520px;margin:48px auto;font-family:Arial"><h1>Authorize One Calendar</h1><p>Client: ${parsed.clientId}</p><form method="post"><input type="hidden" name="client_id" value="${parsed.clientId}" /><input type="hidden" name="redirect_uri" value="${parsed.redirectUri}" /><input type="hidden" name="code_challenge" value="${parsed.codeChallenge}" /><input type="hidden" name="code_challenge_method" value="S256" /><input type="hidden" name="state" value="${parsed.state}" /><input type="hidden" name="scope" value="${parsed.scope}" /><label>DID <input required minlength="5" name="did" placeholder="did:plc:xxxx" style="width:100%" /></label><button type="submit" style="margin-top:16px">authorize</button></form></main></body></html>`
-    return new NextResponse(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
+    const safeClientId = escapeHtml(parsed.clientId)
+    const safeRedirectUri = escapeHtml(parsed.redirectUri)
+    const safeCodeChallenge = escapeHtml(parsed.codeChallenge)
+    const safeState = escapeHtml(parsed.state)
+    const safeScope = escapeHtml(parsed.scope)
+
+    const html = `<!doctype html><html><body><main style="max-width:520px;margin:48px auto;font-family:Arial"><h1>Authorize One Calendar</h1><p>Client: ${safeClientId}</p><form method="post"><input type="hidden" name="client_id" value="${safeClientId}" /><input type="hidden" name="redirect_uri" value="${safeRedirectUri}" /><input type="hidden" name="code_challenge" value="${safeCodeChallenge}" /><input type="hidden" name="code_challenge_method" value="S256" /><input type="hidden" name="state" value="${safeState}" /><input type="hidden" name="scope" value="${safeScope}" /><label>DID <input required minlength="5" name="did" placeholder="did:plc:xxxx" style="width:100%" /></label><button type="submit" style="margin-top:16px">authorize</button></form></main></body></html>`
+
+    return new NextResponse(html, {
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    })
   } catch (error) {
     return NextResponse.json(
       { error: 'invalid_request', message: (error as Error).message },
@@ -69,14 +84,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_did' }, { status: 400 })
   }
 
-  const now = Date.now()
-  const valid = await db
-    .select({ code: authorizationCodes.code })
-    .from(authorizationCodes)
-    .where(and(eq(authorizationCodes.clientId, clientId), gt(authorizationCodes.expiresAt, now)))
-    .limit(1)
+  if (codeChallengeMethod !== 'S256') {
+    return NextResponse.json({ error: 'pkce_method_must_be_s256' }, { status: 400 })
+  }
 
-  if (valid.length > 1000) {
+  const now = Date.now()
+  const countRow = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(authorizationCodes)
+    .where(
+      and(
+        eq(authorizationCodes.clientId, clientId),
+        gt(authorizationCodes.expiresAt, new Date(now)),
+      ),
+    )
+
+  const activeCodeCount = Number(countRow[0]?.count ?? 0)
+  if (activeCodeCount > 1000) {
     return NextResponse.json({ error: 'server_overloaded' }, { status: 429 })
   }
 

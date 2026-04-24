@@ -20,6 +20,7 @@
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "latest",
     "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-switch": "latest",
     "@radix-ui/react-toast": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
