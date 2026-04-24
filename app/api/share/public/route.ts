@@ -7,6 +7,8 @@ import {
 } from '@/lib/atproto-feature'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
@@ -15,7 +17,7 @@ let burnTableReady = false
 
 async function ensureBurnTable() {
   if (!hasPostgres || burnTableReady) return
-  await prisma.$executeRawUnsafe(`
+  await prisma.$executeRaw`
     CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
       handle TEXT NOT NULL,
       owner_did TEXT,
@@ -24,16 +26,10 @@ async function ensureBurnTable() {
       pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
       PRIMARY KEY (share_id, handle)
     )
-  `)
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`,
-  )
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`,
-  )
-  await prisma.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`,
-  )
+  `
+  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`
+  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`
+  await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`
   burnTableReady = true
 }
 
@@ -44,12 +40,12 @@ async function wasPublicBurnConsumed(
 ) {
   if (!hasPostgres) return false
   await ensureBurnTable()
-  const result = await prisma.$queryRawUnsafe<Array<{ found: number }>>(
-    'SELECT 1 as found FROM atproto_share_burn_reads WHERE (owner_did = $1 OR (owner_did IS NULL AND handle = $2)) AND share_id = $3 LIMIT 1',
-    ownerDid,
-    handle,
-    shareId,
-  )
+  const result = await prisma.$queryRaw<Array<{ found: number }>`
+    SELECT 1 as found FROM atproto_share_burn_reads
+    WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
+    AND share_id = ${shareId}
+    LIMIT 1
+  `
   return result.length > 0
 }
 
@@ -60,17 +56,12 @@ async function markPublicBurnConsumed(
 ) {
   if (!hasPostgres) return
   await ensureBurnTable()
-  await prisma.$executeRawUnsafe(
-    `
+  await prisma.$executeRaw`
       INSERT INTO atproto_share_burn_reads (handle, owner_did, share_id, pds_delete_synced)
-      VALUES ($1, $2, $3, FALSE)
+      VALUES (${handle}, ${ownerDid}, ${shareId}, FALSE)
       ON CONFLICT (share_id, handle)
       DO UPDATE SET owner_did = EXCLUDED.owner_did, pds_delete_synced = FALSE, burned_at = NOW()
-    `,
-    handle,
-    ownerDid,
-    shareId,
-  )
+    `
 }
 
 function keyV2Unprotected(shareId: string) {

@@ -5,11 +5,13 @@ import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 let initialized = false
 
 async function initializeDatabase() {
   if (initialized) return
-  await prisma.$executeRawUnsafe(`
+  await prisma.$executeRaw`
     CREATE TABLE IF NOT EXISTS shares (
       id SERIAL PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -23,25 +25,13 @@ async function initializeDatabase() {
       enc_version INTEGER,
       UNIQUE(share_id)
     )
-  `)
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`,
-  )
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`,
-  )
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`,
-  )
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`,
-  )
-  await prisma.$executeRawUnsafe(
-    `UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`,
-  )
-  await prisma.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`,
-  )
+  `
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`
+  await prisma.$executeRaw`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`
+  await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`
   initialized = true
 }
 
@@ -149,25 +139,14 @@ export async function POST(request: NextRequest) {
 
     await initializeDatabase()
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRaw`
       INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES (${user.id}, ${id}, ${encryptedData}, ${iv}, ${authTag}, ${new Date().toISOString()}, ${hasPassword}, ${burn}, ${hasPassword ? 3 : 2})
       ON CONFLICT (share_id)
       DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag,
         timestamp = EXCLUDED.timestamp, is_protected = EXCLUDED.is_protected, is_burn = EXCLUDED.is_burn,
         enc_version = EXCLUDED.enc_version, user_id = EXCLUDED.user_id
-      `,
-      user.id,
-      id,
-      encryptedData,
-      iv,
-      authTag,
-      new Date().toISOString(),
-      hasPassword,
-      burn,
-      hasPassword ? 3 : 2,
-    )
+      `
 
     return NextResponse.json({
       success: true,
@@ -272,7 +251,7 @@ export async function GET(request: NextRequest) {
     await initializeDatabase()
 
     const result = await prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRawUnsafe<
+      const rows = await tx.$queryRaw<
         Array<{
           encrypted_data: string
           iv: string
@@ -281,10 +260,7 @@ export async function GET(request: NextRequest) {
           is_protected: boolean
           is_burn: boolean
         }>
-      >(
-        'SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = $1 FOR UPDATE',
-        id,
-      )
+      >`SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = ${id} FOR UPDATE`
 
       if (!rows.length) {
         return { status: 404 as const }
@@ -306,7 +282,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (row.is_burn) {
-        await tx.$executeRawUnsafe('DELETE FROM shares WHERE share_id = $1', id)
+        await tx.$executeRaw`DELETE FROM shares WHERE share_id = ${id}`
       }
 
       return {
@@ -388,11 +364,7 @@ export async function DELETE(request: NextRequest) {
 
   await initializeDatabase()
 
-  await prisma.$executeRawUnsafe(
-    'DELETE FROM shares WHERE share_id = $1 AND user_id = $2',
-    id,
-    user.id,
-  )
+  await prisma.$executeRaw`DELETE FROM shares WHERE share_id = ${id} AND user_id = ${user.id}`
 
   return NextResponse.json({ success: true })
 }

@@ -15,14 +15,14 @@ async function initDB() {
     throw new Error('POSTGRES_URL is not configured')
   }
   if (inited) return
-  await prisma.$executeRawUnsafe(`
+  await prisma.$executeRaw`
     CREATE TABLE IF NOT EXISTS calendar_backups (
       user_id TEXT PRIMARY KEY,
       encrypted_data TEXT NOT NULL,
       iv TEXT NOT NULL,
       timestamp TIMESTAMP NOT NULL
     )
-  `)
+  `
   inited = true
 }
 
@@ -73,21 +73,15 @@ export async function POST(req: NextRequest) {
 
     await initDB()
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRaw`
       INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
-      VALUES ($1, $2, $3, $4)
+      VALUES (${user.id}, ${encrypted_data}, ${iv}, ${new Date().toISOString()})
       ON CONFLICT (user_id)
       DO UPDATE SET
         encrypted_data = EXCLUDED.encrypted_data,
         iv = EXCLUDED.iv,
         timestamp = EXCLUDED.timestamp
-      `,
-      user.id,
-      encrypted_data,
-      iv,
-      new Date().toISOString(),
-    )
+      `
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal error'
@@ -126,12 +120,9 @@ export async function GET() {
 
     await initDB()
 
-    const result = await prisma.$queryRawUnsafe<
+    const result = await prisma.$queryRaw<
       Array<{ encrypted_data: string; iv: string; timestamp: Date }>
-    >(
-      `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-      user.id,
-    )
+    >`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${user.id}`
 
     if (result.length === 0)
       return jsonNoStore({ error: 'Not found' }, { status: 404 })
@@ -170,10 +161,7 @@ export async function DELETE() {
 
     await initDB()
 
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM calendar_backups WHERE user_id = $1`,
-      user.id,
-    )
+    await prisma.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${user.id}`
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {

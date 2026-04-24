@@ -51,25 +51,10 @@ interface CalendarState {
   addEvent: (newEvent: CalendarEvent) => void
 }
 
-const defaultCalendars: CalendarCategory[] = [
-  {
-    id: 'work',
-    name: '工作',
-    color: 'bg-blue-500',
-    keywords: [],
-  },
-  {
-    id: 'personal',
-    name: '个人',
-    color: 'bg-green-500',
-    keywords: [],
-  },
-]
-
 const useCalendarStore = create<CalendarState>()(
   persist(
     (set) => ({
-      calendars: defaultCalendars,
+      calendars: [],
       events: [],
       setCalendars: (value) =>
         set((state) => ({

@@ -11,31 +11,25 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await prisma.$transaction(async (tx) => {
-      const hasCalendarEventsTable = await tx.$queryRawUnsafe<Array<{ ok: number }>>(
-        `SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1`,
-      )
+      const hasCalendarEventsTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
+      `
       if (hasCalendarEventsTable.length > 0) {
-        await tx.$executeRawUnsafe(
-          `DELETE FROM calendar_events WHERE user_id = $1`,
-          user.id,
-        )
+        await tx.$executeRaw`DELETE FROM calendar_events WHERE user_id = ${user.id}`
       }
 
-      const hasSharesTable = await tx.$queryRawUnsafe<Array<{ ok: number }>>(
-        `SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shares' LIMIT 1`,
-      )
+      const hasSharesTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shares' LIMIT 1
+      `
       if (hasSharesTable.length > 0) {
-        await tx.$executeRawUnsafe(`DELETE FROM shares WHERE user_id = $1`, user.id)
+        await tx.$executeRaw`DELETE FROM shares WHERE user_id = ${user.id}`
       }
 
-      const hasBackupsTable = await tx.$queryRawUnsafe<Array<{ ok: number }>>(
-        `SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_backups' LIMIT 1`,
-      )
+      const hasBackupsTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_backups' LIMIT 1
+      `
       if (hasBackupsTable.length > 0) {
-        await tx.$executeRawUnsafe(
-          `DELETE FROM calendar_backups WHERE user_id = $1`,
-          user.id,
-        )
+        await tx.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${user.id}`
       }
     })
 
