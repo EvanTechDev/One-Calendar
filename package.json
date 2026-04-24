@@ -41,8 +41,9 @@
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "react-icons": "5.6.0",
-    "@prisma/client": "6.16.2",
-    "zustand": "latest"
+    "@prisma/client": "latest",
+    "zustand": "latest",
+    "@prisma/adapter-pg": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -74,6 +75,6 @@
     "eslint-config-next": "16.2.3",
     "lint-staged": "16.4.0",
     "prettier": "3.8.3",
-    "prisma": "6.16.2"
+    "prisma": "latest"
   }
 }
