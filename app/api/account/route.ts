@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { Pool } from 'pg'
+import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false },
-})
 
 export async function DELETE() {
   try {
@@ -15,43 +10,30 @@ export async function DELETE() {
     if (!user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-
-      const hasCalendarEventsTable = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1`,
-      )
-      if (hasCalendarEventsTable.rowCount) {
-        await client.query(`DELETE FROM calendar_events WHERE user_id = $1`, [
-          user.id,
-        ])
+    await prisma.$transaction(async (tx) => {
+      const hasCalendarEventsTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
+      `
+      if (hasCalendarEventsTable.length > 0) {
+        await tx.$executeRaw`DELETE FROM calendar_events WHERE user_id = ${user.id}`
       }
 
-      const hasSharesTable = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shares' LIMIT 1`,
-      )
-      if (hasSharesTable.rowCount) {
-        await client.query(`DELETE FROM shares WHERE user_id = $1`, [user.id])
+      const hasSharesTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shares' LIMIT 1
+      `
+      if (hasSharesTable.length > 0) {
+        await tx.$executeRaw`DELETE FROM shares WHERE user_id = ${user.id}`
       }
 
-      const hasBackupsTable = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_backups' LIMIT 1`,
-      )
-      if (hasBackupsTable.rowCount) {
-        await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [
-          user.id,
-        ])
+      const hasBackupsTable = await tx.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_backups' LIMIT 1
+      `
+      if (hasBackupsTable.length > 0) {
+        await tx.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${user.id}`
       }
+    })
 
-      await client.query('COMMIT')
-      return NextResponse.json({ success: true })
-    } catch (error) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || 'Internal error' },

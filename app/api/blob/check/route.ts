@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
-import { Pool } from 'pg'
+import { prisma } from '@/lib/prisma'
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false },
-})
+export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
   try {
@@ -22,23 +19,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const client = await pool.connect()
+    const tables = await prisma.$queryRaw<Array<{ table_name: string }>>`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_name ASC
+    `
 
-    try {
-      const result = await client.query<{ table_name: string }>(
-        `SELECT table_name
-         FROM information_schema.tables
-         WHERE table_schema = 'public'
-           AND table_type = 'BASE TABLE'
-         ORDER BY table_name ASC`,
-      )
-
-      const tables = result.rows.map((row) => row.table_name)
-
-      return NextResponse.json({ tables })
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({ tables: tables.map((row) => row.table_name) })
   } catch (error) {
     return NextResponse.json(
       {

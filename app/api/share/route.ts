@@ -1,54 +1,38 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { Pool } from 'pg'
 import crypto from 'crypto'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
+import { prisma } from '@/lib/prisma'
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false },
-})
+export const runtime = 'nodejs'
+
+let initialized = false
 
 async function initializeDatabase() {
-  const client = await pool.connect()
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS shares (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        share_id VARCHAR(255) NOT NULL,
-        encrypted_data TEXT NOT NULL,
-        iv TEXT NOT NULL,
-        auth_tag TEXT NOT NULL,
-        timestamp TIMESTAMP NOT NULL,
-        is_protected BOOLEAN DEFAULT FALSE,
-        is_burn BOOLEAN DEFAULT FALSE,
-        enc_version INTEGER,
-        UNIQUE(share_id)
-      )
-    `)
-    await client.query(
-      `ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`,
+  if (initialized) return
+  await prisma.$executeRaw`
+    CREATE TABLE IF NOT EXISTS shares (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      share_id VARCHAR(255) NOT NULL,
+      encrypted_data TEXT NOT NULL,
+      iv TEXT NOT NULL,
+      auth_tag TEXT NOT NULL,
+      timestamp TIMESTAMP NOT NULL,
+      is_protected BOOLEAN DEFAULT FALSE,
+      is_burn BOOLEAN DEFAULT FALSE,
+      enc_version INTEGER,
+      UNIQUE(share_id)
     )
-    await client.query(
-      `ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`,
-    )
-    await client.query(
-      `ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`,
-    )
-    await client.query(
-      `ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`,
-    )
-    await client.query(
-      `UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`,
-    )
-    await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`,
-    )
-  } finally {
-    client.release()
-  }
+  `
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`
+  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`
+  await prisma.$executeRaw`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`
+  await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`
+  initialized = true
 }
 
 const ALGORITHM = 'aes-256-gcm'
@@ -155,40 +139,22 @@ export async function POST(request: NextRequest) {
 
     await initializeDatabase()
 
-    const client = await pool.connect()
-    try {
-      await client.query(
-        `
-        INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (share_id)
-        DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag,
-          timestamp = EXCLUDED.timestamp, is_protected = EXCLUDED.is_protected, is_burn = EXCLUDED.is_burn,
-          enc_version = EXCLUDED.enc_version, user_id = EXCLUDED.user_id
-        `,
-        [
-          user.id,
-          id,
-          encryptedData,
-          iv,
-          authTag,
-          new Date().toISOString(),
-          hasPassword,
-          burn,
-          hasPassword ? 3 : 2,
-        ],
-      )
+    await prisma.$executeRaw`
+      INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
+      VALUES (${user.id}, ${id}, ${encryptedData}, ${iv}, ${authTag}, ${new Date().toISOString()}, ${hasPassword}, ${burn}, ${hasPassword ? 3 : 2})
+      ON CONFLICT (share_id)
+      DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag,
+        timestamp = EXCLUDED.timestamp, is_protected = EXCLUDED.is_protected, is_burn = EXCLUDED.is_burn,
+        enc_version = EXCLUDED.enc_version, user_id = EXCLUDED.user_id
+      `
 
-      return NextResponse.json({
-        success: true,
-        id,
-        protected: hasPassword,
-        burnAfterRead: burn,
-        shareLink: `/share/${id}`,
-      })
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({
+      success: true,
+      id,
+      protected: hasPassword,
+      burnAfterRead: burn,
+      shareLink: `/share/${id}`,
+    })
   } catch (error) {
     return NextResponse.json(
       {
@@ -283,68 +249,84 @@ export async function GET(request: NextRequest) {
     if (atprotoResult) return atprotoResult
 
     await initializeDatabase()
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const result = await client.query(
-        'SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = $1 FOR UPDATE',
-        [id],
-      )
-      if (result.rows.length === 0) {
-        await client.query('ROLLBACK')
-        return NextResponse.json({ error: 'Share not found' }, { status: 404 })
+
+    const result = await prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{
+          encrypted_data: string
+          iv: string
+          auth_tag: string
+          timestamp: Date
+          is_protected: boolean
+          is_burn: boolean
+        }>
+      >`SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = ${id} FOR UPDATE`
+
+      if (!rows.length) {
+        return { status: 404 as const }
       }
-      const row = result.rows[0]
+
+      const row = rows[0]
       if (row.is_protected && !password) {
-        await client.query('COMMIT')
-        return NextResponse.json(
-          {
-            error: 'Password required',
-            requiresPassword: true,
-            burnAfterRead: row.is_burn,
-          },
-          { status: 401 },
-        )
+        return { status: 401 as const, burnAfterRead: row.is_burn }
       }
+
       const key = row.is_protected
         ? keyV3Password(password, id)
         : keyV2Unprotected(id)
       let decryptedData: string
       try {
-        decryptedData = decryptWithKey(
-          row.encrypted_data,
-          row.iv,
-          row.auth_tag,
-          key,
-        )
+        decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key)
       } catch {
-        await client.query('COMMIT')
-        return NextResponse.json(
-          {
-            error: row.is_protected
-              ? 'Invalid password'
-              : 'Failed to decrypt share data.',
-          },
-          { status: 403 },
-        )
+        return { status: 403 as const, protected: row.is_protected }
       }
+
       if (row.is_burn) {
-        await client.query('DELETE FROM shares WHERE share_id = $1', [id])
+        await tx.$executeRaw`DELETE FROM shares WHERE share_id = ${id}`
       }
-      await client.query('COMMIT')
-      return NextResponse.json({
-        success: true,
+
+      return {
+        status: 200 as const,
         data: decryptedData,
         timestamp: row.timestamp.toISOString(),
         protected: row.is_protected,
         burnAfterRead: row.is_burn,
-      })
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
+      }
+    })
+
+    if (result.status === 404) {
+      return NextResponse.json({ error: 'Share not found' }, { status: 404 })
     }
+
+    if (result.status === 401) {
+      return NextResponse.json(
+        {
+          error: 'Password required',
+          requiresPassword: true,
+          burnAfterRead: result.burnAfterRead,
+        },
+        { status: 401 },
+      )
+    }
+
+    if (result.status === 403) {
+      return NextResponse.json(
+        {
+          error: result.protected
+            ? 'Invalid password'
+            : 'Failed to decrypt share data.',
+        },
+        { status: 403 },
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: result.data,
+      timestamp: result.timestamp,
+      protected: result.protected,
+      burnAfterRead: result.burnAfterRead,
+    })
   } catch (error) {
     return NextResponse.json(
       {
@@ -381,14 +363,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await initializeDatabase()
-  const client = await pool.connect()
-  try {
-    await client.query(
-      'DELETE FROM shares WHERE share_id = $1 AND user_id = $2',
-      [id, user.id],
-    )
-    return NextResponse.json({ success: true })
-  } finally {
-    client.release()
-  }
+
+  await prisma.$executeRaw`DELETE FROM shares WHERE share_id = ${id} AND user_id = ${user.id}`
+
+  return NextResponse.json({ success: true })
 }
