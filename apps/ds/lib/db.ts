@@ -1,10 +1,9 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 
-const sqlite = new Database(process.env.DS_SQLITE_PATH ?? 'ds.sqlite')
-sqlite.pragma('journal_mode = WAL')
+const sqlitePath = process.env.DS_SQLITE_PATH ?? 'ds.sqlite'
 
-sqlite.exec(`
+const bootstrapSql = `
 CREATE TABLE IF NOT EXISTS grants (
   id TEXT PRIMARY KEY,
   did TEXT NOT NULL,
@@ -31,6 +30,32 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
-`)
+`
 
-export const db = drizzle(sqlite)
+function createSqliteClient() {
+  const sqlite = new Database(sqlitePath)
+  sqlite.pragma('journal_mode = WAL')
+  sqlite.exec(bootstrapSql)
+  return sqlite
+}
+
+type DbClient = ReturnType<typeof drizzle>
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __one_calendar_ds_db__: DbClient | undefined
+}
+
+function getDbClient() {
+  if (process.env.NODE_ENV === 'production') {
+    return drizzle(createSqliteClient())
+  }
+
+  if (!globalThis.__one_calendar_ds_db__) {
+    globalThis.__one_calendar_ds_db__ = drizzle(createSqliteClient())
+  }
+
+  return globalThis.__one_calendar_ds_db__
+}
+
+export const db = getDbClient()
