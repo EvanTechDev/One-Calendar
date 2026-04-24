@@ -2,7 +2,12 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
+import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
+import {
+  readEncryptedLocalStorage,
+  writeEncryptedLocalStorage,
+} from '@/hooks/useLocalStorage'
 
 export interface CalendarCategory {
   id: string
@@ -107,6 +112,47 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 }))
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
+  const calendars = useCalendarStore((state) => state.calendars)
+  const events = useCalendarStore((state) => state.events)
+  const setCalendars = useCalendarStore((state) => state.setCalendars)
+  const setEvents = useCalendarStore((state) => state.setEvents)
+  const hydratedRef = useRef(false)
+
+  useEffect(() => {
+    const hydrate = async () => {
+      const storedCalendars = await readEncryptedLocalStorage<CalendarCategory[]>(
+        'calendar-categories',
+        [],
+      )
+      const storedEvents = await readEncryptedLocalStorage<CalendarEvent[]>(
+        'calendar-events',
+        [],
+      )
+
+      setCalendars(storedCalendars)
+      setEvents(
+        storedEvents.map((event) => ({
+          ...event,
+          startDate: new Date(event.startDate),
+          endDate: new Date(event.endDate),
+        })),
+      )
+      hydratedRef.current = true
+    }
+
+    void hydrate()
+  }, [setCalendars, setEvents])
+
+  useEffect(() => {
+    if (!hydratedRef.current) return
+    void writeEncryptedLocalStorage('calendar-categories', calendars)
+  }, [calendars])
+
+  useEffect(() => {
+    if (!hydratedRef.current) return
+    void writeEncryptedLocalStorage('calendar-events', events)
+  }, [events])
+
   return children
 }
 
