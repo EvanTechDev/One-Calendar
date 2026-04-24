@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { shareId: string } },
+  { params }: { params: Promise<{ shareId: string }> },
 ) {
-  return NextResponse.json({ shareId: params.shareId, source: 'ds-public-share-api' })
+  const { shareId } = await params
+  return NextResponse.json({ shareId, source: 'ds-public-share-api' })
 }
