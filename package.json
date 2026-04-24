@@ -5,14 +5,15 @@
   "packageManager": "bun@1.3.12",
   "scripts": {
     "dev": "next dev",
-    "build": "bun run generate:locales && next build",
+    "build": "bun run generate:locales && prisma generate && next build",
     "start": "next start",
     "prepare": "husky",
     "lint": "oxlint --fix && eslint . --fix",
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
+    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.0",
