@@ -1,5 +1,7 @@
 # One Calendar
 
+> Monorepo migration notes: see [MONOREPO.md](./MONOREPO.md).
+
 > A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
 <picture>
