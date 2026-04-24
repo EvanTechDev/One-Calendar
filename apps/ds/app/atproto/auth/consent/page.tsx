@@ -15,7 +15,7 @@ export default async function DsConsentPage() {
       <p>client: {txn.webOauth.clientId}</p>
       <p>scope: {txn.webOauth.scope}</p>
 
-      <form method="post" action="/oauth/authorize" style={{ marginTop: 16 }}>
+      <form method="post" action="/api/oauth/authorize" style={{ marginTop: 16 }}>
         <input type="hidden" name="did" value={txn.did} />
         <input type="hidden" name="client_id" value={txn.webOauth.clientId} />
         <input type="hidden" name="redirect_uri" value={txn.webOauth.redirectUri} />
