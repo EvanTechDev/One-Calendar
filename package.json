@@ -30,7 +30,6 @@
     "lucide-react": "latest",
     "next": "16.2.4",
     "next-themes": "latest",
-    "pg": "latest",
     "qr-code-styling": "latest",
     "radix-ui": "latest",
     "react": "^18",
@@ -40,7 +39,9 @@
     "sonner": "2.0.7",
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "^1.0.7",
-    "react-icons": "5.6.0"
+    "react-icons": "5.6.0",
+    "@prisma/client": "latest",
+    "zustand": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -71,6 +72,7 @@
     "typescript-eslint": "8.58.2",
     "eslint-config-next": "16.2.3",
     "lint-staged": "16.4.0",
-    "prettier": "3.8.3"
+    "prettier": "3.8.3",
+    "prisma": "latest"
   }
 }

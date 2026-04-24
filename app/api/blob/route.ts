@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { Pool } from 'pg'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
+import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const postgresUrl = process.env.POSTGRES_URL
-const useSsl =
-  postgresUrl &&
-  !/localhost|127\.0\.0\.1/.test(postgresUrl) &&
-  !/sslmode=disable/.test(postgresUrl)
-
-const pool = new Pool({
-  connectionString: postgresUrl,
-  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
-})
-
 let inited = false
 
 async function initDB() {
@@ -25,20 +15,15 @@ async function initDB() {
     throw new Error('POSTGRES_URL is not configured')
   }
   if (inited) return
-  const client = await pool.connect()
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS calendar_backups (
-        user_id TEXT PRIMARY KEY,
-        encrypted_data TEXT NOT NULL,
-        iv TEXT NOT NULL,
-        timestamp TIMESTAMP NOT NULL
-      )
-    `)
-    inited = true
-  } finally {
-    client.release()
-  }
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS calendar_backups (
+      user_id TEXT PRIMARY KEY,
+      encrypted_data TEXT NOT NULL,
+      iv TEXT NOT NULL,
+      timestamp TIMESTAMP NOT NULL
+    )
+  `)
+  inited = true
 }
 
 const ATPROTO_BACKUP_COLLECTION = 'app.onecalendar.backup'
@@ -88,24 +73,22 @@ export async function POST(req: NextRequest) {
 
     await initDB()
 
-    const client = await pool.connect()
-    try {
-      await client.query(
-        `
-        INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id)
-        DO UPDATE SET
-          encrypted_data = EXCLUDED.encrypted_data,
-          iv = EXCLUDED.iv,
-          timestamp = EXCLUDED.timestamp
-        `,
-        [user.id, encrypted_data, iv, new Date().toISOString()],
-      )
-      return NextResponse.json({ success: true, backend: 'postgres' })
-    } finally {
-      client.release()
-    }
+    await prisma.$executeRawUnsafe(
+      `
+      INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        encrypted_data = EXCLUDED.encrypted_data,
+        iv = EXCLUDED.iv,
+        timestamp = EXCLUDED.timestamp
+      `,
+      user.id,
+      encrypted_data,
+      iv,
+      new Date().toISOString(),
+    )
+    return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -143,24 +126,22 @@ export async function GET() {
 
     await initDB()
 
-    const client = await pool.connect()
-    try {
-      const result = await client.query(
-        `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
-        [user.id],
-      )
-      if (result.rowCount === 0)
-        return jsonNoStore({ error: 'Not found' }, { status: 404 })
+    const result = await prisma.$queryRawUnsafe<
+      Array<{ encrypted_data: string; iv: string; timestamp: Date }>
+    >(
+      `SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = $1`,
+      user.id,
+    )
 
-      return jsonNoStore({
-        ciphertext: result.rows[0].encrypted_data,
-        iv: result.rows[0].iv,
-        timestamp: result.rows[0].timestamp,
-        backend: 'postgres',
-      })
-    } finally {
-      client.release()
-    }
+    if (result.length === 0)
+      return jsonNoStore({ error: 'Not found' }, { status: 404 })
+
+    return jsonNoStore({
+      ciphertext: result[0].encrypted_data,
+      iv: result[0].iv,
+      timestamp: result[0].timestamp,
+      backend: 'postgres',
+    })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal error'
     return jsonNoStore({ error: message }, { status: 500 })
@@ -189,15 +170,12 @@ export async function DELETE() {
 
     await initDB()
 
-    const client = await pool.connect()
-    try {
-      await client.query(`DELETE FROM calendar_backups WHERE user_id = $1`, [
-        user.id,
-      ])
-      return NextResponse.json({ success: true, backend: 'postgres' })
-    } finally {
-      client.release()
-    }
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM calendar_backups WHERE user_id = $1`,
+      user.id,
+    )
+
+    return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model Share {
+  id            Int      @id @default(autoincrement())
+  userId        String   @map("user_id")
+  shareId       String   @unique @map("share_id")
+  encryptedData String   @map("encrypted_data")
+  iv            String
+  authTag       String   @map("auth_tag")
+  timestamp     DateTime
+  isProtected   Boolean  @default(false) @map("is_protected")
+  isBurn        Boolean  @default(false) @map("is_burn")
+  encVersion    Int?     @map("enc_version")
+
+  @@index([userId], map: "idx_shares_user_id")
+  @@map("shares")
+}
+
+model CalendarBackup {
+  userId        String   @id @map("user_id")
+  encryptedData String   @map("encrypted_data")
+  iv            String
+  timestamp     DateTime
+
+  @@map("calendar_backups")
+}
+
+model AtprotoShareBurnRead {
+  handle          String
+  ownerDid        String?  @map("owner_did")
+  shareId         String   @map("share_id")
+  burnedAt        DateTime @default(now()) @map("burned_at")
+  pdsDeleteSynced Boolean  @default(false) @map("pds_delete_synced")
+
+  @@id([shareId, handle])
+  @@map("atproto_share_burn_reads")
+}

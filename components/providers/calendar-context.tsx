@@ -1,13 +1,9 @@
 'use client'
 
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import {
-  createContext,
-  useContext,
-  type Dispatch,
-  type SetStateAction,
-} from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
+import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 export interface CalendarCategory {
   id: string
@@ -43,9 +39,17 @@ interface CalendarContextType {
   addEvent: (newEvent: CalendarEvent) => void
 }
 
-const CalendarContext = createContext<CalendarContextType | undefined>(
-  undefined,
-)
+interface CalendarState {
+  calendars: CalendarCategory[]
+  events: CalendarEvent[]
+  setCalendars: (value: SetStateAction<CalendarCategory[]>) => void
+  setEvents: (value: SetStateAction<CalendarEvent[]>) => void
+  addCategory: (category: CalendarCategory) => void
+  removeCategory: (id: string) => void
+  updateCategory: (id: string, category: Partial<CalendarCategory>) => void
+  moveCategory: (id: string, direction: 'up' | 'down') => void
+  addEvent: (newEvent: CalendarEvent) => void
+}
 
 const defaultCalendars: CalendarCategory[] = [
   {
@@ -62,89 +66,82 @@ const defaultCalendars: CalendarCategory[] = [
   },
 ]
 
+const useCalendarStore = create<CalendarState>()(
+  persist(
+    (set) => ({
+      calendars: defaultCalendars,
+      events: [],
+      setCalendars: (value) =>
+        set((state) => ({
+          calendars:
+            typeof value === 'function' ? value(state.calendars) : value,
+        })),
+      setEvents: (value) =>
+        set((state) => ({
+          events: typeof value === 'function' ? value(state.events) : value,
+        })),
+      addCategory: (category) =>
+        set((state) => ({ calendars: [...state.calendars, category] })),
+      removeCategory: (id) =>
+        set((state) => ({
+          calendars: state.calendars.filter((cal) => cal.id !== id),
+        })),
+      updateCategory: (id, category) =>
+        set((state) => ({
+          calendars: state.calendars.map((cal) =>
+            cal.id === id ? { ...cal, ...category } : cal,
+          ),
+        })),
+      moveCategory: (id, direction) =>
+        set((state) => {
+          const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
+          if (currentIndex === -1) return { calendars: state.calendars }
+
+          const targetIndex =
+            direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+          if (targetIndex < 0 || targetIndex >= state.calendars.length) {
+            return { calendars: state.calendars }
+          }
+
+          const nextCalendars = [...state.calendars]
+          const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
+          nextCalendars.splice(targetIndex, 0, movedCalendar)
+
+          return { calendars: nextCalendars }
+        }),
+      addEvent: (newEvent) =>
+        set((state) => {
+          const eventExists = state.events.some((event) => event.id === newEvent.id)
+
+          if (eventExists) {
+            return {
+              events: state.events.map((event) =>
+                event.id === newEvent.id ? newEvent : event,
+              ),
+            }
+          }
+
+          return { events: [...state.events, newEvent] }
+        }),
+    }),
+    {
+      name: 'calendar-store',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        calendars: state.calendars,
+        events: state.events,
+      }),
+    },
+  ),
+)
+
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const [calendars, setCalendars] = useLocalStorage<CalendarCategory[]>(
-    'calendar-categories',
-    [],
-  )
-
-  const [events, setEvents] = useLocalStorage<CalendarEvent[]>(
-    'calendar-events',
-    [],
-  )
-
-  const addCategory = (category: CalendarCategory) => {
-    setCalendars([...calendars, category])
-  }
-
-  const removeCategory = (id: string) => {
-    setCalendars(calendars.filter((cal) => cal.id !== id))
-  }
-
-  const updateCategory = (id: string, category: Partial<CalendarCategory>) => {
-    setCalendars(
-      calendars.map((cal) => (cal.id === id ? { ...cal, ...category } : cal)),
-    )
-  }
-
-  const moveCategory = (id: string, direction: 'up' | 'down') => {
-    setCalendars((prevCalendars) => {
-      const currentIndex = prevCalendars.findIndex((cal) => cal.id === id)
-      if (currentIndex === -1) return prevCalendars
-
-      const targetIndex =
-        direction === 'up' ? currentIndex - 1 : currentIndex + 1
-
-      if (targetIndex < 0 || targetIndex >= prevCalendars.length) {
-        return prevCalendars
-      }
-
-      const nextCalendars = [...prevCalendars]
-      const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
-      nextCalendars.splice(targetIndex, 0, movedCalendar)
-      return nextCalendars
-    })
-  }
-
-  const addEvent = (newEvent: CalendarEvent) => {
-    setEvents((prevEvents) => {
-      const eventExists = prevEvents.some((event) => event.id === newEvent.id)
-
-      if (eventExists) {
-        return prevEvents.map((event) =>
-          event.id === newEvent.id ? newEvent : event,
-        )
-      } else {
-        return [...prevEvents, newEvent]
-      }
-    })
-  }
-
-  return (
-    <CalendarContext.Provider
-      value={{
-        calendars,
-        setCalendars,
-        events,
-        setEvents,
-        addCategory,
-        removeCategory,
-        updateCategory,
-        moveCategory,
-        addEvent,
-      }}
-    >
-      {children}
-    </CalendarContext.Provider>
-  )
+  return children
 }
 
-export function useCalendar() {
-  const context = useContext(CalendarContext)
-  if (context === undefined) {
-    throw new Error('useCalendar must be used within a CalendarProvider')
-  }
-  return context
+export function useCalendar(): CalendarContextType {
+  return useCalendarStore()
 }
 
 export const useCalendarContext = useCalendar
