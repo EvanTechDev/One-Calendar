@@ -10,6 +10,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -328,14 +333,17 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
         </div>
       </SheetHeader>
       <div className="p-4">
-        <div className="relative mb-3">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t.countdownSearchPlaceholder}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8"
-          />
+        <div className="mb-3">
+          <InputGroup className="w-full">
+            <InputGroupAddon>
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder={t.countdownSearchPlaceholder}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </InputGroup>
         </div>
         <Button
           variant="outline"

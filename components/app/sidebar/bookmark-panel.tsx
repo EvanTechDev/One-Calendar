@@ -11,8 +11,12 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Input } from '@/components/ui/input'
 import { Bookmark, Search, Trash2 } from 'lucide-react'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { format } from 'date-fns'
 import { zhCN, enUS } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -144,15 +148,18 @@ export default function BookmarkPanel({
         </SheetHeader>
 
         <div className="p-4">
-          <div className="relative mb-4">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t.searchBookmarks}
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="mb-4">
+            <InputGroup>
+              <InputGroupAddon>
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </InputGroupAddon>
+              <InputGroupInput
+                type="search"
+                placeholder={t.searchBookmarks}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
           </div>
 
           <ScrollArea className="h-[calc(100vh-180px)] pr-4">

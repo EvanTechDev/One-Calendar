@@ -47,10 +47,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { APP_CONFIG } from '@/lib/config'
 import { toast } from 'sonner'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -795,27 +799,31 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 </Select>
               </div>
               <div className="relative z-50">
-                <Search className="pointer-events-none h-5 w-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder={t.searchEvents}
-                  value={searchTerm}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setIsSearchFocused(false), 120)
-                  }}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                      setPreviewEvent(searchResultEvents[0])
-                      setPreviewAnchorRect(null)
-                      setPreviewOpen(true)
-                      setSearchTerm('')
-                      setIsSearchFocused(false)
-                    }
-                  }}
-                  className="pl-9 pr-4 py-2 w-48"
-                />
+                <InputGroup className="w-48">
+                  <InputGroupAddon>
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    type="text"
+                    placeholder={t.searchEvents}
+                    value={searchTerm}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setIsSearchFocused(false), 120)
+                    }}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchResultEvents.length > 0) {
+                        setPreviewEvent(searchResultEvents[0])
+                        setPreviewAnchorRect(null)
+                        setPreviewOpen(true)
+                        setSearchTerm('')
+                        setIsSearchFocused(false)
+                      }
+                    }}
+                    className="pr-4"
+                  />
+                </InputGroup>
                 {isSearchFocused && !!searchTerm && (
                   <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
                     {searchResultEvents.length > 0 ? (
