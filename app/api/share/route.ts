@@ -108,7 +108,8 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-  
+    const now = new Date()
+
     await prisma.share.upsert({
       where: { shareId: id },
       update: {
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         encryptedData,
         iv,
         authTag,
-        timestamp: new Date(),
+        timestamp: now,
         isProtected: hasPassword,
         isBurn: burn,
         encVersion: hasPassword ? 3 : 2,
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
         encryptedData,
         iv,
         authTag,
-        timestamp: new Date(),
+        timestamp: now,
         isProtected: hasPassword,
         isBurn: burn,
         encVersion: hasPassword ? 3 : 2,
