@@ -13,25 +13,6 @@ const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
 const hasPostgres = !!process.env.POSTGRES_URL
-let burnTableReady = false
-
-async function ensureBurnTable() {
-  if (!hasPostgres || burnTableReady) return
-  await prisma.$executeRaw`
-    CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
-      handle TEXT NOT NULL,
-      owner_did TEXT,
-      share_id TEXT NOT NULL,
-      burned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
-      PRIMARY KEY (share_id, handle)
-    )
-  `
-  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`
-  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`
-  await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`
-  burnTableReady = true
-}
 
 async function wasPublicBurnConsumed(
   ownerDid: string,
@@ -39,14 +20,14 @@ async function wasPublicBurnConsumed(
   shareId: string,
 ) {
   if (!hasPostgres) return false
-  await ensureBurnTable()
-  const result = await prisma.$queryRaw<Array<{ found: number }>`
-    SELECT 1 as found FROM atproto_share_burn_reads
-    WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
-    AND share_id = ${shareId}
-    LIMIT 1
-  `
-  return result.length > 0
+  const result = await prisma.atprotoShareBurnRead.findFirst({
+    where: {
+      shareId,
+      OR: [{ ownerDid }, { ownerDid: null, handle }],
+    },
+    select: { shareId: true },
+  })
+  return !!result
 }
 
 async function markPublicBurnConsumed(
@@ -55,13 +36,25 @@ async function markPublicBurnConsumed(
   shareId: string,
 ) {
   if (!hasPostgres) return
-  await ensureBurnTable()
-  await prisma.$executeRaw`
-      INSERT INTO atproto_share_burn_reads (handle, owner_did, share_id, pds_delete_synced)
-      VALUES (${handle}, ${ownerDid}, ${shareId}, FALSE)
-      ON CONFLICT (share_id, handle)
-      DO UPDATE SET owner_did = EXCLUDED.owner_did, pds_delete_synced = FALSE, burned_at = NOW()
-    `
+  await prisma.atprotoShareBurnRead.upsert({
+    where: {
+      shareId_handle: {
+        shareId,
+        handle,
+      },
+    },
+    update: {
+      ownerDid,
+      pdsDeleteSynced: false,
+      burnedAt: new Date(),
+    },
+    create: {
+      handle,
+      ownerDid,
+      shareId,
+      pdsDeleteSynced: false,
+    },
+  })
 }
 
 function keyV2Unprotected(shareId: string) {

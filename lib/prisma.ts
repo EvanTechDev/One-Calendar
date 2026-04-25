@@ -5,9 +5,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+const databaseUrl = process.env.POSTGRES_URL
+
+if (!databaseUrl) {
+  throw new Error('Missing POSTGRES_URL environment variable')
+}
+
 const adapter = new PrismaPg({
-  connectionString: process.env.POSTGRES_URL ?? '',
-  ssl: { rejectUnauthorized: false },
+  connectionString: databaseUrl,
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: true }
+      : { rejectUnauthorized: false },
 })
 
 export const prisma =
