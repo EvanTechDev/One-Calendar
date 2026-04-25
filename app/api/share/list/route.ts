@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import crypto from 'crypto'
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { deleteRecord, listRecords } from '@/lib/atproto'
 import type { DpopPublicJwk } from '@/lib/dpop'
-import { prisma } from '@/lib/prisma'
+import { db, schema } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -19,13 +20,21 @@ async function syncBurnedAtprotoShares(
   dpopPrivateKeyPem?: string,
   dpopPublicJwk?: DpopPublicJwk,
 ) {
-  const pending = await prisma.atprotoShareBurnRead.findMany({
-    where: {
-      pdsDeleteSynced: false,
-      OR: [{ ownerDid }, { ownerDid: null, handle }],
-    },
-    select: { shareId: true },
-  })
+  const pending = await db
+    .select({ shareId: schema.atprotoShareBurnReads.shareId })
+    .from(schema.atprotoShareBurnReads)
+    .where(
+      and(
+        eq(schema.atprotoShareBurnReads.pdsDeleteSynced, false),
+        or(
+          eq(schema.atprotoShareBurnReads.ownerDid, ownerDid),
+          and(
+            isNull(schema.atprotoShareBurnReads.ownerDid),
+            eq(schema.atprotoShareBurnReads.handle, handle),
+          ),
+        ),
+      ),
+    )
 
   if (!pending.length) return
 
@@ -43,17 +52,24 @@ async function syncBurnedAtprotoShares(
         dpopPublicJwk,
       })
       syncedIds.push(shareId)
-    } catch {
-    }
+    } catch {}
   }
 
   if (syncedIds.length > 0) {
-    await prisma.atprotoShareBurnRead.deleteMany({
-      where: {
-        shareId: { in: syncedIds },
-        OR: [{ ownerDid }, { ownerDid: null, handle }],
-      },
-    })
+    await db
+      .delete(schema.atprotoShareBurnReads)
+      .where(
+        and(
+          inArray(schema.atprotoShareBurnReads.shareId, syncedIds),
+          or(
+            eq(schema.atprotoShareBurnReads.ownerDid, ownerDid),
+            and(
+              isNull(schema.atprotoShareBurnReads.ownerDid),
+              eq(schema.atprotoShareBurnReads.handle, handle),
+            ),
+          ),
+        ),
+      )
   }
 }
 
@@ -139,18 +155,18 @@ export async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const result = await prisma.share.findMany({
-    where: { userId: user.id },
-    orderBy: { timestamp: 'desc' },
-    select: {
-      shareId: true,
-      encryptedData: true,
-      iv: true,
-      authTag: true,
-      timestamp: true,
-      isProtected: true,
-    },
-  })
+  const result = await db
+    .select({
+      shareId: schema.shares.shareId,
+      encryptedData: schema.shares.encryptedData,
+      iv: schema.shares.iv,
+      authTag: schema.shares.authTag,
+      timestamp: schema.shares.timestamp,
+      isProtected: schema.shares.isProtected,
+    })
+    .from(schema.shares)
+    .where(eq(schema.shares.userId, user.id))
+    .orderBy(desc(schema.shares.timestamp))
 
   const shares = result.map((row) => {
     let eventId = ''

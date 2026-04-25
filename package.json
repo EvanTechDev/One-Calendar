@@ -12,8 +12,7 @@
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs",
-    "postinstall": "prisma generate"
+    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.0",
@@ -41,9 +40,9 @@
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "react-icons": "5.6.0",
-    "@prisma/client": "latest",
     "zustand": "latest",
-    "@prisma/adapter-pg": "latest"
+    "drizzle-orm": "^0.44.7",
+    "pg": "^8.16.3"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -75,6 +74,6 @@
     "eslint-config-next": "16.2.3",
     "lint-staged": "16.4.0",
     "prettier": "3.8.3",
-    "prisma": "latest"
+    "drizzle-kit": "^0.31.7"
   }
 }

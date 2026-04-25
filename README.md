@@ -144,18 +144,13 @@ POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 
 ### Database Configuration
 
-This project uses Prisma schema sync.
+This project uses Drizzle ORM with PostgreSQL.
 
-After configuring `POSTGRES_URL`, initialize schema from `schema.prisma`:
+After configuring `POSTGRES_URL`, push schema changes with Drizzle Kit:
 
 ```bash
-# Generate Prisma client
-bunx prisma generate
-
-# Push schema to database
-bunx prisma db push
+bunx drizzle-kit push
 ```
-
 
 ## Tech Stack
 
@@ -164,7 +159,7 @@ bunx prisma db push
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Shadcn/UI](https://ui.shadcn.com)
 - [Zustand](https://zustand-demo.pmnd.rs/)
-- [Prisma](https://www.prisma.io/)
+- [Drizzle ORM](https://orm.drizzle.team/)
 - [PostgreSQL](https://www.postgresql.org/)
 - [Clerk](https://clerk.com)
 
