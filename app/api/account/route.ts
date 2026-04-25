@@ -18,19 +18,8 @@ export async function DELETE() {
         await tx.$executeRaw`DELETE FROM calendar_events WHERE user_id = ${user.id}`
       }
 
-      const hasSharesTable = await tx.$queryRaw<Array<{ ok: number }>>`
-        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shares' LIMIT 1
-      `
-      if (hasSharesTable.length > 0) {
-        await tx.$executeRaw`DELETE FROM shares WHERE user_id = ${user.id}`
-      }
-
-      const hasBackupsTable = await tx.$queryRaw<Array<{ ok: number }>>`
-        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_backups' LIMIT 1
-      `
-      if (hasBackupsTable.length > 0) {
-        await tx.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${user.id}`
-      }
+      await tx.share.deleteMany({ where: { userId: user.id } })
+      await tx.calendarBackup.deleteMany({ where: { userId: user.id } })
     })
 
     return NextResponse.json({ success: true })

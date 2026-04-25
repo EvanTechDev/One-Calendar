@@ -142,12 +142,40 @@ ATPROTO_SESSION_SECRET=...
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 ```
 
+### Database Configuration
+
+This project uses Prisma schema sync.
+
+After configuring `POSTGRES_URL`, initialize schema from `schema.prisma`:
+
+```bash
+# Generate Prisma client
+bunx prisma generate
+
+# Push schema to database
+bunx prisma db push
+```
+
+### Production Recommendation
+
+For production deployments without SQL migration files, keep schema in sync with:
+
+```bash
+# Ensure Prisma Client is generated
+bunx prisma generate
+
+# Sync schema to database (no SQL migration files required)
+bunx prisma db push
+```
+
 ## Tech Stack
 
 - [Next.js](https://nextjs.org)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Shadcn/UI](https://ui.shadcn.com)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [Prisma](https://www.prisma.io/)
 - [PostgreSQL](https://www.postgresql.org/)
 - [Clerk](https://clerk.com)
 

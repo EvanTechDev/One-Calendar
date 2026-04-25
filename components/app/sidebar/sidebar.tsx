@@ -28,7 +28,6 @@ import {
   Edit2,
   MoreHorizontal,
   Plus,
-  X,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -79,11 +78,11 @@ const CALENDAR_COLOR_MAP = Object.fromEntries(
 export default function Sidebar({
   onCreateEvent,
   onDateSelect,
-  onViewChange,
+  onViewChange: _onViewChange,
   language = 'zh-CN',
   selectedDate,
   isCollapsed = false,
-  onToggleCollapse,
+  onToggleCollapse: _onToggleCollapse,
   selectedCategoryFilters = [],
   onCategoryFilterChange,
   onCollapseTransitionEnd,
@@ -273,7 +272,7 @@ export default function Sidebar({
             }}
             onSelect={(date) => {
               setLocalSelectedDate(date)
-              date && onDateSelect(date)
+              if (date) onDateSelect(date)
             }}
             className="rounded-lg border"
           />

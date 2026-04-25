@@ -7,34 +7,6 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
-let initialized = false
-
-async function initializeDatabase() {
-  if (initialized) return
-  await prisma.$executeRaw`
-    CREATE TABLE IF NOT EXISTS shares (
-      id SERIAL PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      share_id VARCHAR(255) NOT NULL,
-      encrypted_data TEXT NOT NULL,
-      iv TEXT NOT NULL,
-      auth_tag TEXT NOT NULL,
-      timestamp TIMESTAMP NOT NULL,
-      is_protected BOOLEAN DEFAULT FALSE,
-      is_burn BOOLEAN DEFAULT FALSE,
-      enc_version INTEGER,
-      UNIQUE(share_id)
-    )
-  `
-  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS user_id TEXT`
-  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_protected BOOLEAN DEFAULT FALSE`
-  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS is_burn BOOLEAN DEFAULT FALSE`
-  await prisma.$executeRaw`ALTER TABLE shares ADD COLUMN IF NOT EXISTS enc_version INTEGER`
-  await prisma.$executeRaw`UPDATE shares SET enc_version = 1 WHERE enc_version IS NULL`
-  await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id)`
-  initialized = true
-}
-
 const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
@@ -136,17 +108,32 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const now = new Date()
 
-    await initializeDatabase()
-
-    await prisma.$executeRaw`
-      INSERT INTO shares (user_id, share_id, encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn, enc_version)
-      VALUES (${user.id}, ${id}, ${encryptedData}, ${iv}, ${authTag}, ${new Date().toISOString()}, ${hasPassword}, ${burn}, ${hasPassword ? 3 : 2})
-      ON CONFLICT (share_id)
-      DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag,
-        timestamp = EXCLUDED.timestamp, is_protected = EXCLUDED.is_protected, is_burn = EXCLUDED.is_burn,
-        enc_version = EXCLUDED.enc_version, user_id = EXCLUDED.user_id
-      `
+    await prisma.share.upsert({
+      where: { shareId: id },
+      update: {
+        userId: user.id,
+        encryptedData,
+        iv,
+        authTag,
+        timestamp: now,
+        isProtected: hasPassword,
+        isBurn: burn,
+        encVersion: hasPassword ? 3 : 2,
+      },
+      create: {
+        userId: user.id,
+        shareId: id,
+        encryptedData,
+        iv,
+        authTag,
+        timestamp: now,
+        isProtected: hasPassword,
+        isBurn: burn,
+        encVersion: hasPassword ? 3 : 2,
+      },
+    })
 
     return NextResponse.json({
       success: true,
@@ -248,49 +235,50 @@ export async function GET(request: NextRequest) {
     const atprotoResult = await getAtprotoShare(id, password, handle)
     if (atprotoResult) return atprotoResult
 
-    await initializeDatabase()
-
     const result = await prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<
-        Array<{
-          encrypted_data: string
-          iv: string
-          auth_tag: string
-          timestamp: Date
-          is_protected: boolean
-          is_burn: boolean
-        }>
-      >`SELECT encrypted_data, iv, auth_tag, timestamp, is_protected, is_burn FROM shares WHERE share_id = ${id} FOR UPDATE`
+      const share = await tx.share.findUnique({
+        where: { shareId: id },
+        select: {
+          encryptedData: true,
+          iv: true,
+          authTag: true,
+          timestamp: true,
+          isProtected: true,
+          isBurn: true,
+        },
+      })
 
-      if (!rows.length) {
+      if (!share) {
         return { status: 404 as const }
       }
 
-      const row = rows[0]
-      if (row.is_protected && !password) {
-        return { status: 401 as const, burnAfterRead: row.is_burn }
+      if (share.isProtected && !password) {
+        return { status: 401 as const, burnAfterRead: share.isBurn }
       }
 
-      const key = row.is_protected
-        ? keyV3Password(password, id)
-        : keyV2Unprotected(id)
+      const key = share.isProtected ? keyV3Password(password, id) : keyV2Unprotected(id)
       let decryptedData: string
       try {
-        decryptedData = decryptWithKey(row.encrypted_data, row.iv, row.auth_tag, key)
+        decryptedData = decryptWithKey(
+          share.encryptedData,
+          share.iv,
+          share.authTag,
+          key,
+        )
       } catch {
-        return { status: 403 as const, protected: row.is_protected }
+        return { status: 403 as const, protected: share.isProtected }
       }
 
-      if (row.is_burn) {
-        await tx.$executeRaw`DELETE FROM shares WHERE share_id = ${id}`
+      if (share.isBurn) {
+        await tx.share.delete({ where: { shareId: id } })
       }
 
       return {
         status: 200 as const,
         data: decryptedData,
-        timestamp: row.timestamp.toISOString(),
-        protected: row.is_protected,
-        burnAfterRead: row.is_burn,
+        timestamp: share.timestamp.toISOString(),
+        protected: share.isProtected,
+        burnAfterRead: share.isBurn,
       }
     })
 
@@ -362,9 +350,7 @@ export async function DELETE(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await initializeDatabase()
-
-  await prisma.$executeRaw`DELETE FROM shares WHERE share_id = ${id} AND user_id = ${user.id}`
+  await prisma.share.deleteMany({ where: { shareId: id, userId: user.id } })
 
   return NextResponse.json({ success: true })
 }

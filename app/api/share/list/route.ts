@@ -11,26 +11,6 @@ export const runtime = 'nodejs'
 const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
-let burnTableReady = false
-
-async function ensureBurnTable() {
-  if (burnTableReady) return
-  await prisma.$executeRaw`
-    CREATE TABLE IF NOT EXISTS atproto_share_burn_reads (
-      handle TEXT NOT NULL,
-      owner_did TEXT,
-      share_id TEXT NOT NULL,
-      burned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE,
-      PRIMARY KEY (share_id, handle)
-    )
-  `
-  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS owner_did TEXT`
-  await prisma.$executeRaw`ALTER TABLE atproto_share_burn_reads ADD COLUMN IF NOT EXISTS pds_delete_synced BOOLEAN NOT NULL DEFAULT FALSE`
-  await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS idx_atproto_share_burn_reads_owner_share ON atproto_share_burn_reads(owner_did, share_id) WHERE owner_did IS NOT NULL`
-  burnTableReady = true
-}
-
 async function syncBurnedAtprotoShares(
   ownerDid: string,
   handle: string,
@@ -39,19 +19,19 @@ async function syncBurnedAtprotoShares(
   dpopPrivateKeyPem?: string,
   dpopPublicJwk?: DpopPublicJwk,
 ) {
-  await ensureBurnTable()
-
-  const pending = await prisma.$queryRaw<Array<{ share_id: string }>`
-    SELECT share_id FROM atproto_share_burn_reads
-    WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
-    AND pds_delete_synced = FALSE
-  `
+  const pending = await prisma.atprotoShareBurnRead.findMany({
+    where: {
+      pdsDeleteSynced: false,
+      OR: [{ ownerDid }, { ownerDid: null, handle }],
+    },
+    select: { shareId: true },
+  })
 
   if (!pending.length) return
 
   const syncedIds: string[] = []
   for (const row of pending) {
-    const shareId = String(row.share_id)
+    const shareId = String(row.shareId)
     try {
       await deleteRecord({
         pds,
@@ -68,11 +48,12 @@ async function syncBurnedAtprotoShares(
   }
 
   if (syncedIds.length > 0) {
-    await prisma.$executeRaw`
-      DELETE FROM atproto_share_burn_reads
-      WHERE (owner_did = ${ownerDid} OR (owner_did IS NULL AND handle = ${handle}))
-      AND share_id = ANY(${syncedIds}::text[])
-    `
+    await prisma.atprotoShareBurnRead.deleteMany({
+      where: {
+        shareId: { in: syncedIds },
+        OR: [{ ownerDid }, { ownerDid: null, handle }],
+      },
+    })
   }
 }
 
@@ -158,27 +139,29 @@ export async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const result = await prisma.$queryRaw<
-    Array<{
-      share_id: string
-      encrypted_data: string
-      iv: string
-      auth_tag: string
-      timestamp: Date
-      is_protected: boolean
-    }>
-  >`SELECT share_id, encrypted_data, iv, auth_tag, timestamp, is_protected FROM shares WHERE user_id = ${user.id} ORDER BY timestamp DESC`
+  const result = await prisma.share.findMany({
+    where: { userId: user.id },
+    orderBy: { timestamp: 'desc' },
+    select: {
+      shareId: true,
+      encryptedData: true,
+      iv: true,
+      authTag: true,
+      timestamp: true,
+      isProtected: true,
+    },
+  })
 
   const shares = result.map((row) => {
     let eventId = ''
     let eventTitle = ''
-    if (!row.is_protected) {
+    if (!row.isProtected) {
       try {
         const decrypted = decryptWithKey(
-          row.encrypted_data,
+          row.encryptedData,
           row.iv,
-          row.auth_tag,
-          keyV2Unprotected(row.share_id),
+          row.authTag,
+          keyV2Unprotected(row.shareId),
         )
         const dataObj = JSON.parse(decrypted)
         eventId = dataObj.id ?? ''
@@ -189,13 +172,13 @@ export async function GET() {
       eventTitle = '受保护'
     }
     return {
-      id: row.share_id,
+      id: row.shareId,
       eventId,
       eventTitle,
       sharedBy: user.id,
       shareDate: row.timestamp.toISOString(),
-      shareLink: `/share/${row.share_id}`,
-      isProtected: row.is_protected,
+      shareLink: `/share/${row.shareId}`,
+      isProtected: row.isProtected,
     }
   })
 
