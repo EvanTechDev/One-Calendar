@@ -78,9 +78,7 @@ export async function GET() {
     if (!userId)
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
 
-    const result = await prisma.$queryRaw
-      Array<{ encrypted_data: string; iv: string; timestamp: Date }>
-    >`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${userId}`
+    const result = await prisma.$queryRaw`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${userId}` as Array<{ encrypted_data: string; iv: string; timestamp: Date }>
 
     if (result.length === 0)
       return jsonNoStore({ error: 'Not found' }, { status: 404 })
