@@ -27,13 +27,21 @@ function getPool() {
   }
 
   const pool = createPool()
-  if (process.env.NODE_ENV !== 'production') {
-    globalForDb.dbPool = pool
-  }
+  globalForDb.dbPool = pool
 
   return pool
 }
 
-export const db = drizzle(getPool(), { schema })
+const lazyPool: Pick<Pool, 'query' | 'connect' | 'end' | 'on'> = {
+  query: (...args) => getPool().query(...args),
+  connect: (...args) => getPool().connect(...args),
+  end: (...args) => getPool().end(...args),
+  on(...args) {
+    getPool().on(...args)
+    return this
+  },
+}
+
+export const db = drizzle(lazyPool as Pool, { schema })
 
 export { schema }
