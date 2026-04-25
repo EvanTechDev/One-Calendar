@@ -1,60 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { currentUser } from '@clerk/nextjs/server'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
-import { db } from '@/lib/db'
+import { db, schema } from '@/lib/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const postgresUrl = process.env.POSTGRES_URL
-let inited = false
-
-type BackupColumns = {
-  userId: 'user_id' | '"userId"'
-  encryptedData: 'encrypted_data' | '"encryptedData"'
-  timestamp: 'timestamp' | '"updatedAt"'
-}
-
-async function initDB() {
-  if (!postgresUrl) {
-    throw new Error('POSTGRES_URL is not configured')
-  }
-  if (inited) return
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS calendar_backups (
-      user_id TEXT PRIMARY KEY,
-      encrypted_data TEXT NOT NULL,
-      iv TEXT NOT NULL,
-      timestamp TIMESTAMP NOT NULL
-    )
-  `)
-  inited = true
-}
-
-async function getBackupColumns(): Promise<BackupColumns> {
-  await initDB()
-
-  const result = await db.execute(sql<{
-    column_name: string
-  }>`
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'calendar_backups'
-  `)
-
-  const columns = new Set(result.rows.map((row) => row.column_name))
-
-  const userId = columns.has('user_id') ? 'user_id' : '"userId"'
-  const encryptedData = columns.has('encrypted_data')
-    ? 'encrypted_data'
-    : '"encryptedData"'
-  const timestamp = columns.has('timestamp') ? 'timestamp' : '"updatedAt"'
-
-  return { userId, encryptedData, timestamp }
-}
 
 const ATPROTO_BACKUP_COLLECTION = 'app.onecalendar.backup'
 const ATPROTO_BACKUP_RKEY = 'latest'
@@ -101,23 +53,24 @@ export async function POST(req: NextRequest) {
     if (!user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const columns = await getBackupColumns()
     const now = new Date()
 
-    await db.execute(sql`
-      INSERT INTO calendar_backups (
-        ${sql.raw(columns.userId)},
-        ${sql.raw(columns.encryptedData)},
+    await db
+      .insert(schema.calendarBackups)
+      .values({
+        userId: user.id,
+        encryptedData: encrypted_data,
         iv,
-        ${sql.raw(columns.timestamp)}
-      )
-      VALUES (${user.id}, ${encrypted_data}, ${iv}, ${now})
-      ON CONFLICT (${sql.raw(columns.userId)})
-      DO UPDATE SET
-        ${sql.raw(columns.encryptedData)} = ${encrypted_data},
-        iv = ${iv},
-        ${sql.raw(columns.timestamp)} = ${now}
-    `)
+        timestamp: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.calendarBackups.userId,
+        set: {
+          encryptedData: encrypted_data,
+          iv,
+          timestamp: now,
+        },
+      })
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
@@ -155,29 +108,23 @@ export async function GET() {
     const user = await currentUser()
     if (!user) return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
 
-    const columns = await getBackupColumns()
+    const result = await db
+      .select({
+        encryptedData: schema.calendarBackups.encryptedData,
+        iv: schema.calendarBackups.iv,
+        timestamp: schema.calendarBackups.timestamp,
+      })
+      .from(schema.calendarBackups)
+      .where(eq(schema.calendarBackups.userId, user.id))
+      .limit(1)
 
-    const result = await db.execute(sql<{
-      encrypted_data: string
-      iv: string
-      timestamp: Date
-    }>`
-      SELECT
-        ${sql.raw(columns.encryptedData)} AS encrypted_data,
-        iv,
-        ${sql.raw(columns.timestamp)} AS timestamp
-      FROM calendar_backups
-      WHERE ${sql.raw(columns.userId)} = ${user.id}
-      LIMIT 1
-    `)
-
-    if (result.rows.length === 0)
-      return jsonNoStore({ error: 'Not found' }, { status: 404 })
+    const backup = result[0]
+    if (!backup) return jsonNoStore({ error: 'Not found' }, { status: 404 })
 
     return jsonNoStore({
-      ciphertext: result.rows[0].encrypted_data,
-      iv: result.rows[0].iv,
-      timestamp: result.rows[0].timestamp,
+      ciphertext: backup.encryptedData,
+      iv: backup.iv,
+      timestamp: backup.timestamp,
       backend: 'postgres',
     })
   } catch (e: unknown) {
@@ -206,12 +153,9 @@ export async function DELETE() {
     if (!user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const columns = await getBackupColumns()
-
-    await db.execute(sql`
-      DELETE FROM calendar_backups
-      WHERE ${sql.raw(columns.userId)} = ${user.id}
-    `)
+    await db
+      .delete(schema.calendarBackups)
+      .where(eq(schema.calendarBackups.userId, user.id))
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
