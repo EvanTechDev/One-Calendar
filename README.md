@@ -140,6 +140,8 @@ ATPROTO_SESSION_SECRET=...
 
 # Optional DB (backup/share sync)
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
+POSTGRES_SSL=false
+POSTGRES_SSL_REJECT_UNAUTHORIZED=false
 ```
 
 ### Database Configuration
