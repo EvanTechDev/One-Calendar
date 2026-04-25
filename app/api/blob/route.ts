@@ -1,87 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { currentUser } from '@clerk/nextjs/server'
-import { getAtprotoSession } from '@/lib/atproto-auth'
-import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const postgresUrl = process.env.POSTGRES_URL
-let inited = false
+let initDBPromise: Promise<void> | null = null
 
-async function initDB() {
-  if (!postgresUrl) {
-    throw new Error('POSTGRES_URL is not configured')
+function initDB(): Promise<void> {
+  if (!initDBPromise) {
+    initDBPromise = prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS calendar_backups (
+        user_id TEXT PRIMARY KEY,
+        encrypted_data TEXT NOT NULL,
+        iv TEXT NOT NULL,
+        timestamp TIMESTAMP NOT NULL
+      )
+    `.then(() => undefined).catch((e) => {
+      initDBPromise = null
+      throw e
+    })
   }
-  if (inited) return
-  await prisma.$executeRaw`
-    CREATE TABLE IF NOT EXISTS calendar_backups (
-      user_id TEXT PRIMARY KEY,
-      encrypted_data TEXT NOT NULL,
-      iv TEXT NOT NULL,
-      timestamp TIMESTAMP NOT NULL
-    )
-  `
-  inited = true
+  return initDBPromise
 }
 
-const ATPROTO_BACKUP_COLLECTION = 'app.onecalendar.backup'
-const ATPROTO_BACKUP_RKEY = 'latest'
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+}
 
 function jsonNoStore(body: unknown, init?: ResponseInit) {
-  const response = NextResponse.json(body, init)
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
-  response.headers.set('Pragma', 'no-cache')
-  response.headers.set('Expires', '0')
-  return response
+  return NextResponse.json(body, {
+    ...init,
+    headers: { ...NO_STORE_HEADERS, ...(init?.headers ?? {}) },
+  })
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const [{ userId }, body] = await Promise.all([auth(), req.json()])
+
+    if (!userId)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const encrypted_data = body?.ciphertext
     const iv = body?.iv
 
-    if (typeof encrypted_data !== 'string' || typeof iv !== 'string') {
+    if (typeof encrypted_data !== 'string' || typeof iv !== 'string')
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
-    }
 
-    const atproto = await getAtprotoSession()
-    if (atproto) {
-      await putRecord({
-        pds: atproto.pds,
-        repo: atproto.did,
-        collection: ATPROTO_BACKUP_COLLECTION,
-        rkey: ATPROTO_BACKUP_RKEY,
-        accessToken: atproto.accessToken,
-        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-        dpopPublicJwk: atproto.dpopPublicJwk,
-        record: {
-          $type: ATPROTO_BACKUP_COLLECTION,
-          ciphertext: encrypted_data,
-          iv,
-          updatedAt: new Date().toISOString(),
-        },
-      })
-      return NextResponse.json({ success: true, backend: 'atproto' })
-    }
-
-    const user = await currentUser()
-    if (!user)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    await initDB()
+    await Promise.all([
+      initDB(),
+    ])
 
     await prisma.$executeRaw`
       INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
-      VALUES (${user.id}, ${encrypted_data}, ${iv}, ${new Date().toISOString()})
+      VALUES (${userId}, ${encrypted_data}, ${iv}, ${new Date().toISOString()})
       ON CONFLICT (user_id)
       DO UPDATE SET
         encrypted_data = EXCLUDED.encrypted_data,
         iv = EXCLUDED.iv,
         timestamp = EXCLUDED.timestamp
-      `
+    `
+
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal error'
@@ -91,38 +73,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const atproto = await getAtprotoSession()
-    if (atproto) {
-      try {
-        const record = await getRecord({
-          pds: atproto.pds,
-          repo: atproto.did,
-          collection: ATPROTO_BACKUP_COLLECTION,
-          rkey: ATPROTO_BACKUP_RKEY,
-          accessToken: atproto.accessToken,
-          dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-          dpopPublicJwk: atproto.dpopPublicJwk,
-        })
-        const value = record.value ?? {}
-        return jsonNoStore({
-          ciphertext: value.ciphertext,
-          iv: value.iv,
-          timestamp: value.updatedAt,
-          backend: 'atproto',
-        })
-      } catch {
-        return jsonNoStore({ error: 'Not found' }, { status: 404 })
-      }
-    }
+    const [{ userId }] = await Promise.all([auth(), initDB()])
 
-    const user = await currentUser()
-    if (!user) return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
+    if (!userId)
+      return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
 
-    await initDB()
-
-    const result = await prisma.$queryRaw<
+    const result = await prisma.$queryRaw
       Array<{ encrypted_data: string; iv: string; timestamp: Date }>
-    >`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${user.id}`
+    >`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${userId}`
 
     if (result.length === 0)
       return jsonNoStore({ error: 'Not found' }, { status: 404 })
@@ -141,27 +99,12 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    const atproto = await getAtprotoSession()
-    if (atproto) {
-      await deleteRecord({
-        pds: atproto.pds,
-        repo: atproto.did,
-        collection: ATPROTO_BACKUP_COLLECTION,
-        rkey: ATPROTO_BACKUP_RKEY,
-        accessToken: atproto.accessToken,
-        dpopPrivateKeyPem: atproto.dpopPrivateKeyPem,
-        dpopPublicJwk: atproto.dpopPublicJwk,
-      })
-      return NextResponse.json({ success: true, backend: 'atproto' })
-    }
+    const [{ userId }] = await Promise.all([auth(), initDB()])
 
-    const user = await currentUser()
-    if (!user)
+    if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await initDB()
-
-    await prisma.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${user.id}`
+    await prisma.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${userId}`
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
