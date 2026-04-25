@@ -1,33 +1,14 @@
 import { PrismaClient } from '@/lib/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: ReturnType<typeof createPrismaClient> | undefined
 }
 
 function createPrismaClient() {
-  const databaseUrl = process.env.POSTGRES_URL
-  if (!databaseUrl) {
-    throw new Error('Missing POSTGRES_URL environment variable')
-  }
-
-  const useSsl =
-    process.env.POSTGRES_SSL === 'true' ||
-    process.env.NODE_ENV === 'production' ||
-    databaseUrl.includes('sslmode=require') ||
-    databaseUrl.includes('ssl=true')
-
-  const rejectUnauthorized = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED === 'true'
-
-  const adapter = new PrismaPg({
-    connectionString: databaseUrl,
-    ssl: useSsl ? { rejectUnauthorized } : undefined,
-  })
-
   return new PrismaClient({
-    adapter,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  })
+  }).$extends(withAccelerate())
 }
 
 function getPrismaClient() {
@@ -42,10 +23,8 @@ function getPrismaClient() {
   return client
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, property) {
-    const client = getPrismaClient()
-    const value = Reflect.get(client as object, property)
-    return typeof value === 'function' ? value.bind(client) : value
-  },
-})
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
