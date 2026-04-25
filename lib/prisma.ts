@@ -7,6 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   return new PrismaClient({
+    accelerateUrl: process.env.POSTGRES_URL,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   }).$extends(withAccelerate())
 }
