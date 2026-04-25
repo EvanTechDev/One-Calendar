@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { and, eq, isNull, or } from 'drizzle-orm'
 import { getRecord, resolveHandle } from '@/lib/atproto'
 import {
   ATPROTO_DISABLED,
   atprotoDisabledResponse,
 } from '@/lib/atproto-feature'
-import { prisma } from '@/lib/prisma'
+import { db, schema } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -20,12 +21,18 @@ async function wasPublicBurnConsumed(
   shareId: string,
 ) {
   if (!hasPostgres) return false
-  const result = await prisma.atprotoShareBurnRead.findFirst({
-    where: {
-      shareId,
-      OR: [{ ownerDid }, { ownerDid: null, handle }],
-    },
-    select: { shareId: true },
+  const result = await db.query.atprotoShareBurnReads.findFirst({
+    where: and(
+      eq(schema.atprotoShareBurnReads.shareId, shareId),
+      or(
+        eq(schema.atprotoShareBurnReads.ownerDid, ownerDid),
+        and(
+          isNull(schema.atprotoShareBurnReads.ownerDid),
+          eq(schema.atprotoShareBurnReads.handle, handle),
+        ),
+      ),
+    ),
+    columns: { shareId: true },
   })
   return !!result
 }
@@ -36,25 +43,26 @@ async function markPublicBurnConsumed(
   shareId: string,
 ) {
   if (!hasPostgres) return
-  await prisma.atprotoShareBurnRead.upsert({
-    where: {
-      shareId_handle: {
-        shareId,
-        handle,
-      },
-    },
-    update: {
-      ownerDid,
-      pdsDeleteSynced: false,
-      burnedAt: new Date(),
-    },
-    create: {
+  await db
+    .insert(schema.atprotoShareBurnReads)
+    .values({
       handle,
       ownerDid,
       shareId,
       pdsDeleteSynced: false,
-    },
-  })
+      burnedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [
+        schema.atprotoShareBurnReads.shareId,
+        schema.atprotoShareBurnReads.handle,
+      ],
+      set: {
+        ownerDid,
+        pdsDeleteSynced: false,
+        burnedAt: new Date(),
+      },
+    })
 }
 
 function keyV2Unprotected(shareId: string) {

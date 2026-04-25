@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import crypto from 'crypto'
+import { and, eq } from 'drizzle-orm'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
-import { prisma } from '@/lib/prisma'
+import { db, schema } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -110,19 +111,9 @@ export async function POST(request: NextRequest) {
     }
     const now = new Date()
 
-    await prisma.share.upsert({
-      where: { shareId: id },
-      update: {
-        userId: user.id,
-        encryptedData,
-        iv,
-        authTag,
-        timestamp: now,
-        isProtected: hasPassword,
-        isBurn: burn,
-        encVersion: hasPassword ? 3 : 2,
-      },
-      create: {
+    await db
+      .insert(schema.shares)
+      .values({
         userId: user.id,
         shareId: id,
         encryptedData,
@@ -132,8 +123,20 @@ export async function POST(request: NextRequest) {
         isProtected: hasPassword,
         isBurn: burn,
         encVersion: hasPassword ? 3 : 2,
-      },
-    })
+      })
+      .onConflictDoUpdate({
+        target: schema.shares.shareId,
+        set: {
+          userId: user.id,
+          encryptedData,
+          iv,
+          authTag,
+          timestamp: now,
+          isProtected: hasPassword,
+          isBurn: burn,
+          encVersion: hasPassword ? 3 : 2,
+        },
+      })
 
     return NextResponse.json({
       success: true,
@@ -235,72 +238,48 @@ export async function GET(request: NextRequest) {
     const atprotoResult = await getAtprotoShare(id, password, handle)
     if (atprotoResult) return atprotoResult
 
-    const result = await prisma.$transaction(async (tx) => {
-      const share = await tx.share.findUnique({
-        where: { shareId: id },
-        select: {
-          encryptedData: true,
-          iv: true,
-          authTag: true,
-          timestamp: true,
-          isProtected: true,
-          isBurn: true,
-        },
-      })
-
-      if (!share) {
-        return { status: 404 as const }
-      }
-
-      if (share.isProtected && !password) {
-        return { status: 401 as const, burnAfterRead: share.isBurn }
-      }
-
-      const key = share.isProtected ? keyV3Password(password, id) : keyV2Unprotected(id)
-      let decryptedData: string
-      try {
-        decryptedData = decryptWithKey(
-          share.encryptedData,
-          share.iv,
-          share.authTag,
-          key,
-        )
-      } catch {
-        return { status: 403 as const, protected: share.isProtected }
-      }
-
-      if (share.isBurn) {
-        await tx.share.delete({ where: { shareId: id } })
-      }
-
-      return {
-        status: 200 as const,
-        data: decryptedData,
-        timestamp: share.timestamp.toISOString(),
-        protected: share.isProtected,
-        burnAfterRead: share.isBurn,
-      }
+    const share = await db.query.shares.findFirst({
+      where: eq(schema.shares.shareId, id),
+      columns: {
+        encryptedData: true,
+        iv: true,
+        authTag: true,
+        timestamp: true,
+        isProtected: true,
+        isBurn: true,
+      },
     })
 
-    if (result.status === 404) {
+    if (!share) {
       return NextResponse.json({ error: 'Share not found' }, { status: 404 })
     }
 
-    if (result.status === 401) {
+    if (share.isProtected && !password) {
       return NextResponse.json(
         {
           error: 'Password required',
           requiresPassword: true,
-          burnAfterRead: result.burnAfterRead,
+          burnAfterRead: share.isBurn,
         },
         { status: 401 },
       )
     }
 
-    if (result.status === 403) {
+    const key = share.isProtected
+      ? keyV3Password(password, id)
+      : keyV2Unprotected(id)
+    let decryptedData: string
+    try {
+      decryptedData = decryptWithKey(
+        share.encryptedData,
+        share.iv,
+        share.authTag,
+        key,
+      )
+    } catch {
       return NextResponse.json(
         {
-          error: result.protected
+          error: share.isProtected
             ? 'Invalid password'
             : 'Failed to decrypt share data.',
         },
@@ -308,12 +287,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (share.isBurn) {
+      await db.delete(schema.shares).where(eq(schema.shares.shareId, id))
+    }
+
     return NextResponse.json({
       success: true,
-      data: result.data,
-      timestamp: result.timestamp,
-      protected: result.protected,
-      burnAfterRead: result.burnAfterRead,
+      data: decryptedData,
+      timestamp: share.timestamp.toISOString(),
+      protected: share.isProtected,
+      burnAfterRead: share.isBurn,
     })
   } catch (error) {
     return NextResponse.json(
@@ -350,7 +333,11 @@ export async function DELETE(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await prisma.share.deleteMany({ where: { shareId: id, userId: user.id } })
+  await db
+    .delete(schema.shares)
+    .where(
+      and(eq(schema.shares.shareId, id), eq(schema.shares.userId, user.id)),
+    )
 
   return NextResponse.json({ success: true })
 }
