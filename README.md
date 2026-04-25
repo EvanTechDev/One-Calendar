@@ -156,17 +156,6 @@ bunx prisma generate
 bunx prisma db push
 ```
 
-### Production Recommendation
-
-For production deployments without SQL migration files, keep schema in sync with:
-
-```bash
-# Ensure Prisma Client is generated
-bunx prisma generate
-
-# Sync schema to database (no SQL migration files required)
-bunx prisma db push
-```
 
 ## Tech Stack
 
