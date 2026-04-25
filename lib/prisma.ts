@@ -11,12 +11,17 @@ function createPrismaClient() {
     throw new Error('Missing POSTGRES_URL environment variable')
   }
 
+  const useSsl =
+    process.env.POSTGRES_SSL === 'true' ||
+    process.env.NODE_ENV === 'production' ||
+    databaseUrl.includes('sslmode=require') ||
+    databaseUrl.includes('ssl=true')
+
+  const rejectUnauthorized = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED === 'true'
+
   const adapter = new PrismaPg({
     connectionString: databaseUrl,
-    ssl:
-      process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: false },
+    ssl: useSsl ? { rejectUnauthorized } : undefined,
   })
 
   return new PrismaClient({
