@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import crypto from 'crypto'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { db, schema } from '@/lib/db'
@@ -48,6 +48,10 @@ function decryptWithKey(
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
   decrypted += decipher.final('utf8')
   return decrypted
+}
+
+function formatTimestamp(value: Date | string) {
+  return (value instanceof Date ? value : new Date(value)).toISOString()
 }
 
 export async function POST(request: NextRequest) {
@@ -238,65 +242,65 @@ export async function GET(request: NextRequest) {
     const atprotoResult = await getAtprotoShare(id, password, handle)
     if (atprotoResult) return atprotoResult
 
-    const share = await db.query.shares.findFirst({
-      where: eq(schema.shares.shareId, id),
-      columns: {
-        encryptedData: true,
-        iv: true,
-        authTag: true,
-        timestamp: true,
-        isProtected: true,
-        isBurn: true,
-      },
-    })
+    return await db.transaction(async (tx) => {
+      const result = await tx.execute(sql<{
+        encryptedData: string
+        iv: string
+        authTag: string
+        timestamp: Date | string
+        isProtected: boolean
+        isBurn: boolean
+      }>`select encrypted_data as "encryptedData", iv, auth_tag as "authTag", timestamp, is_protected as "isProtected", is_burn as "isBurn" from shares where share_id = ${id} for update`)
+      const share = result.rows[0]
 
-    if (!share) {
-      return NextResponse.json({ error: 'Share not found' }, { status: 404 })
-    }
+      if (!share) {
+        return NextResponse.json({ error: 'Share not found' }, { status: 404 })
+      }
 
-    if (share.isProtected && !password) {
-      return NextResponse.json(
-        {
-          error: 'Password required',
-          requiresPassword: true,
-          burnAfterRead: share.isBurn,
-        },
-        { status: 401 },
-      )
-    }
+      if (share.isProtected && !password) {
+        return NextResponse.json(
+          {
+            error: 'Password required',
+            requiresPassword: true,
+            burnAfterRead: share.isBurn,
+          },
+          { status: 401 },
+        )
+      }
 
-    const key = share.isProtected
-      ? keyV3Password(password, id)
-      : keyV2Unprotected(id)
-    let decryptedData: string
-    try {
-      decryptedData = decryptWithKey(
-        share.encryptedData,
-        share.iv,
-        share.authTag,
-        key,
-      )
-    } catch {
-      return NextResponse.json(
-        {
-          error: share.isProtected
-            ? 'Invalid password'
-            : 'Failed to decrypt share data.',
-        },
-        { status: 403 },
-      )
-    }
+      const key = share.isProtected
+        ? keyV3Password(password, id)
+        : keyV2Unprotected(id)
+      let decryptedData: string
+      try {
+        decryptedData = decryptWithKey(
+          share.encryptedData,
+          share.iv,
+          share.authTag,
+          key,
+        )
+      } catch {
+        return NextResponse.json(
+          {
+            error: share.isProtected
+              ? 'Invalid password'
+              : 'Failed to decrypt share data.',
+          },
+          { status: 403 },
+        )
+      }
 
-    if (share.isBurn) {
-      await db.delete(schema.shares).where(eq(schema.shares.shareId, id))
-    }
+      if (share.isBurn) {
+        await tx.delete(schema.shares).where(eq(schema.shares.shareId, id))
+      }
 
-    return NextResponse.json({
-      success: true,
-      data: decryptedData,
-      timestamp: share.timestamp.toISOString(),
-      protected: share.isProtected,
-      burnAfterRead: share.isBurn,
+      return NextResponse.json({
+        success: true,
+        data: decryptedData,
+        timestamp: formatTimestamp(share.timestamp),
+        protected: share.isProtected,
+        burnAfterRead: share.isBurn,
+      })
     })
   } catch (error) {
     return NextResponse.json(
