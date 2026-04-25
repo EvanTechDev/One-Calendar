@@ -7,12 +7,12 @@ import { prisma } from '@/lib/prisma'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const postgresUrl = process.env.POSTGRES_URL
+const databaseUrl = process.env.DATABASE_URL
 let inited = false
 
 async function initDB() {
-  if (!postgresUrl) {
-    throw new Error('POSTGRES_URL is not configured')
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is not configured')
   }
   if (inited) return
   await prisma.$executeRaw`

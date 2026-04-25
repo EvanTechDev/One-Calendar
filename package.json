@@ -18,6 +18,9 @@
   "dependencies": {
     "@clerk/nextjs": "^7.0.0",
     "@marsidev/react-turnstile": "latest",
+    "@prisma/adapter-pg": "latest",
+    "@prisma/client": "latest",
+    "@prisma/extension-accelerate": "^3.0.1",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "latest",
     "@radix-ui/react-slot": "^1.2.0",
@@ -36,14 +39,12 @@
     "react": "^18",
     "react-day-picker": "9.14.0",
     "react-dom": "^18",
+    "react-icons": "5.6.0",
     "recharts": "3.8.1",
     "sonner": "2.0.7",
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "^1.0.7",
-    "react-icons": "5.6.0",
-    "@prisma/client": "latest",
-    "zustand": "latest",
-    "@prisma/adapter-pg": "latest"
+    "zustand": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

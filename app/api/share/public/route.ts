@@ -12,14 +12,14 @@ export const runtime = 'nodejs'
 const ALGORITHM = 'aes-256-gcm'
 const ATPROTO_SHARE_COLLECTION = 'app.onecalendar.share'
 
-const hasPostgres = !!process.env.POSTGRES_URL
+const hasDatabase = !!process.env.DATABASE_URL
 
 async function wasPublicBurnConsumed(
   ownerDid: string,
   handle: string,
   shareId: string,
 ) {
-  if (!hasPostgres) return false
+  if (!hasDatabase) return false
   const result = await prisma.atprotoShareBurnRead.findFirst({
     where: {
       shareId,
@@ -35,7 +35,7 @@ async function markPublicBurnConsumed(
   handle: string,
   shareId: string,
 ) {
-  if (!hasPostgres) return
+  if (!hasDatabase) return
   await prisma.atprotoShareBurnRead.upsert({
     where: {
       shareId_handle: {
