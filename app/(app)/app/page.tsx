@@ -5,18 +5,18 @@ import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useMemo, useState } from 'react'
 
-function hasClerkSessionCookie() {
+function hasAppSessionCookie() {
   if (typeof document === 'undefined') return false
 
   return document.cookie
     .split(';')
-    .some((cookie) => cookie.trim().startsWith('__session='))
+    .some((cookie) => cookie.trim().startsWith('oc_session='))
 }
 
 export default function Home() {
   const { isLoaded, isSignedIn } = useAuth()
   const [hasSessionCookie, setHasSessionCookie] = useState(
-    hasClerkSessionCookie,
+    hasAppSessionCookie,
   )
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
@@ -27,7 +27,7 @@ export default function Home() {
     }, 500)
 
     const cookieCheckTimer = window.setInterval(() => {
-      if (hasClerkSessionCookie()) {
+      if (hasAppSessionCookie()) {
         setHasSessionCookie(true)
       }
     }, 50)
