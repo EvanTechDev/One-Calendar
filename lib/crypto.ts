@@ -222,3 +222,31 @@ export async function decryptEvent<T>(
 
   return JSON.parse(textDecoder.decode(plaintext)) as T
 }
+
+
+export type EncryptedPayload = {
+  ciphertext: string
+  iv: string
+}
+
+export async function encryptPayload(password: string, text: string): Promise<EncryptedPayload> {
+  const salt = randomBytes(16)
+  const iv = randomBytes(12)
+  const key = await deriveAesKey(password, bytesToBase64(salt), 'legacy-payload')
+  const ct = await crypto.subtle.encrypt({ name: AES_ALGO, iv }, key, textEncoder.encode(text))
+  return {
+    ciphertext: JSON.stringify({ v: 1, salt: bytesToBase64(salt), ct: bytesToBase64(new Uint8Array(ct)) }),
+    iv: bytesToBase64(iv),
+  }
+}
+
+export async function decryptPayload(password: string, ciphertext: string, iv: string) {
+  const payload = JSON.parse(ciphertext) as { salt: string; ct: string }
+  const key = await deriveAesKey(password, payload.salt, 'legacy-payload')
+  const pt = await crypto.subtle.decrypt({ name: AES_ALGO, iv: base64ToBytes(iv) }, key, base64ToBytes(payload.ct))
+  return textDecoder.decode(pt)
+}
+
+export function isEncryptedPayload(value: unknown): value is EncryptedPayload {
+  return !!value && typeof value === 'object' && 'ciphertext' in value && 'iv' in value
+}
