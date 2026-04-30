@@ -1,44 +1,56 @@
-import { cookies } from 'next/headers'
+import { headers } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'node:crypto'
-
-const SESSION_COOKIE = 'oc_session'
+import { betterAuthServer } from '@/lib/auth/better-auth'
 
 export function randomBase64(size: number) {
   return randomBytes(size).toString('base64')
 }
 
 export async function createSession(userId: string) {
-  const token = randomBase64(32)
   const sessionSecret = randomBase64(32)
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
 
-  await prisma.session.create({
-    data: { userId, token, sessionSecret, expiresAt },
+  await betterAuthServer.api.createSession({
+    body: {
+      userId,
+      expiresIn: 60 * 60 * 24 * 7,
+    },
+    headers: await headers(),
   })
 
-  ;(await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    expires: expiresAt,
+  const latestSession = await prisma.session.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (!latestSession) {
+    throw new Error('session_create_failed')
+  }
+
+  await prisma.session.update({
+    where: { id: latestSession.id },
+    data: { sessionSecret },
   })
 
   return { sessionSecret }
 }
 
 export async function getSession() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value
-  if (!token) return null
+  const session = await betterAuthServer.api.getSession({
+    headers: await headers(),
+  })
 
-  return prisma.session.findUnique({ where: { token }, include: { user: true } })
+  if (!session) return null
+
+  const dbSession = await prisma.session.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    include: { user: true },
+  })
+
+  return dbSession
 }
 
 export async function destroySession() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value
-  if (token) {
-    await prisma.session.deleteMany({ where: { token } })
-  }
-  ;(await cookies()).delete(SESSION_COOKIE)
+  await betterAuthServer.api.signOut({ headers: await headers() })
 }
