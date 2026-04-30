@@ -3,7 +3,18 @@
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 
-export function UserProfileButton() {
+export type UserProfileSection =
+  | 'profile'
+  | 'security'
+  | 'data'
+  | 'notifications'
+  | 'preferences'
+
+interface UserProfileButtonProps {
+  focusSection?: UserProfileSection | null
+}
+
+export function UserProfileButton({ focusSection: _focusSection = null }: UserProfileButtonProps) {
   const { isSignedIn, email } = useAuth()
 
   const logout = async () => {
@@ -22,3 +33,5 @@ export function UserProfileButton() {
     </div>
   )
 }
+
+export default UserProfileButton
