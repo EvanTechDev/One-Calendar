@@ -8,7 +8,6 @@ import {
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
-import { ClerkProvider } from '@clerk/nextjs'
 import { GeistSans } from 'geist/font/sans'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
@@ -58,24 +57,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const clerkPublishableKey =
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
-    process.env.CLERK_PUBLISHABLE_KEY
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <ClerkProvider
-          publishableKey={clerkPublishableKey}
-          signInFallbackRedirectUrl="/app"
-          signUpFallbackRedirectUrl="/app"
-          signInForceRedirectUrl="/"
-          signUpForceRedirectUrl="/"
-          signInUrl="/sign-in"
-          signUpUrl="/sign-up"
-        >
           <ThemeProvider
             themes={['light', 'dark', 'green', 'orange', 'azalea']}
             attribute="class"
@@ -89,7 +75,6 @@ export default function RootLayout({
               <Toaster />
             </CalendarProvider>
           </ThemeProvider>
-        </ClerkProvider>
       </body>
     </html>
   )

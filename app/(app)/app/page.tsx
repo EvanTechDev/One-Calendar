@@ -2,7 +2,7 @@
 
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useMemo, useState } from 'react'
 
 function hasClerkSessionCookie() {
@@ -14,12 +14,11 @@ function hasClerkSessionCookie() {
 }
 
 export default function Home() {
-  const { isLoaded, isSignedIn } = useUser()
+  const { isLoaded, isSignedIn } = useAuth()
   const [hasSessionCookie, setHasSessionCookie] = useState(
     hasClerkSessionCookie,
   )
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
-  const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
@@ -38,13 +37,6 @@ export default function Home() {
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
-    fetch('/api/atproto/logout', { method: 'POST' })
-      .catch(() => undefined)
-      .finally(() => setAtprotoLogoutDone(true))
-  }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
   useEffect(() => {
     if (!isLoaded) return

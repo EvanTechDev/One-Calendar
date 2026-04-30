@@ -12,11 +12,9 @@
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.0",
     "@marsidev/react-turnstile": "latest",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "latest",
@@ -44,7 +42,9 @@
     "@prisma/client": "latest",
     "zustand": "latest",
     "@prisma/adapter-pg": "latest",
-    "@prisma/extension-accelerate": "latest"
+    "@prisma/extension-accelerate": "latest",
+    "better-auth": "latest",
+    "bcryptjs": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

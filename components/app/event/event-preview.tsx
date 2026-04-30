@@ -43,7 +43,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import QRCodeStyling from 'qr-code-styling'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/hooks/use-auth'
 
 interface EventPreviewProps {
   event: CalendarEvent | null
@@ -85,10 +85,8 @@ export default function EventPreview({
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [qrCodeDataURL, setQRCodeDataURL] = useState<string>('')
   const qrCodeObjectURLRef = useRef<string | null>(null)
-  const { isSignedIn, user } = useUser()
-  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
-  const [atprotoHandle, setAtprotoHandle] = useState('')
-  const dialogContentRef = useRef<HTMLDivElement>(null)
+  const { isSignedIn, email } = useAuth()
+    const dialogContentRef = useRef<HTMLDivElement>(null)
   const [bookmarks, setBookmarks] = useState<any[]>([])
   const [passwordEnabled, setPasswordEnabled] = useState(false)
   const [sharePassword, setSharePassword] = useState('')
@@ -108,7 +106,7 @@ export default function EventPreview({
 
   useEffect(() => {
     if (open && openShareImmediately) {
-      if (!isSignedIn && !atprotoSignedIn) {
+      if (!isSignedIn) {
         toast.error(t.shareSignInRequiredTitle, {
           description: t.shareSignInRequiredDescription,
         })
@@ -116,7 +114,7 @@ export default function EventPreview({
         void openShareDialog()
       }
     }
-  }, [open, openShareImmediately, isSignedIn, atprotoSignedIn, language])
+  }, [open, openShareImmediately, isSignedIn, language])
 
   useEffect(() => {
     if (open && !modal) {
@@ -124,15 +122,6 @@ export default function EventPreview({
     }
   }, [open, modal])
 
-  useEffect(() => {
-    fetch('/api/atproto/session')
-      .then((r) => r.json())
-      .then((data: { signedIn?: boolean; handle?: string }) => {
-        setAtprotoSignedIn(!!data.signedIn)
-        setAtprotoHandle(data.handle || '')
-      })
-      .catch(() => undefined)
-  }, [])
   useEffect(() => {
     let active = true
     const loadBookmarks = () =>
@@ -329,7 +318,7 @@ export default function EventPreview({
 
   const handleShare = async () => {
     if (!event) return
-    if (!user && !atprotoSignedIn) {
+    if (!isSignedIn) {
       toast.error(t.shareSignInRequiredTitle, {
         description: t.shareSignedInOnlyDescription,
       })
@@ -352,9 +341,9 @@ export default function EventPreview({
       setIsSharing(true)
       const shareId =
         Date.now().toString() + Math.random().toString(36).substring(2, 9)
-      const clerkUsername =
-        user?.username || user?.firstName || atprotoHandle || 'Anonymous'
-      const sharedEvent = { ...event, sharedBy: clerkUsername }
+      const accountName =
+        email || 'Anonymous'
+      const sharedEvent = { ...event, sharedBy: accountName }
 
       const payload: any = { id: shareId, data: sharedEvent }
       if (passwordEnabled) payload.password = sharePassword
@@ -424,7 +413,7 @@ export default function EventPreview({
           id: shareId,
           eventId: event.id,
           eventTitle: event.title,
-          sharedBy: clerkUsername,
+          sharedBy: accountName,
           shareDate: new Date().toISOString(),
           shareLink: link,
           protected: !!passwordEnabled,
@@ -595,7 +584,7 @@ export default function EventPreview({
                   size="icon"
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (!isSignedIn && !atprotoSignedIn) {
+                    if (!isSignedIn) {
                       toast.error(t.shareSignInRequiredTitle, {
                         description: t.shareSignInRequiredDescription,
                       })

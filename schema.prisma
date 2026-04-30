@@ -7,38 +7,46 @@ datasource db {
   provider = "postgresql"
 }
 
-model Share {
-  id            Int      @id @default(autoincrement())
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  authSalt            String    @map("auth_salt")
+  keySalt             String    @map("key_salt")
+  backupSalt          String    @map("backup_salt")
+  authHash            String    @map("auth_hash")
+  wrappedMasterKey    String    @map("wrapped_master_key")
+  wrappedMasterKeyIv  String    @map("wrapped_master_key_iv")
+  sessions            Session[]
+  events              CalendarEvent[]
+
+  @@map("users")
+}
+
+model Session {
+  id            String   @id @default(cuid())
   userId        String   @map("user_id")
-  shareId       String   @unique @map("share_id")
-  encryptedData String   @map("encrypted_data")
-  iv            String
-  authTag       String   @map("auth_tag")
-  timestamp     DateTime
-  isProtected   Boolean  @default(false) @map("is_protected")
-  isBurn        Boolean  @default(false) @map("is_burn")
-  encVersion    Int?     @map("enc_version")
+  token         String   @unique
+  sessionSecret String   @map("session_secret")
+  createdAt     DateTime @default(now()) @map("created_at")
+  expiresAt     DateTime @map("expires_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "idx_shares_user_id")
-  @@map("shares")
+  @@index([userId], map: "idx_sessions_user_id")
+  @@map("sessions")
 }
 
-model CalendarBackup {
-  userId        String   @id @map("user_id")
-  encryptedData String   @map("encrypted_data")
-  iv            String
-  timestamp     DateTime
+model CalendarEvent {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  ciphertext String
+  iv         String
+  wrappedDek String   @map("wrapped_dek")
+  dekIv      String   @map("dek_iv")
+  startTime  DateTime @map("start_time")
+  endTime    DateTime @map("end_time")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("calendar_backups")
-}
-
-model AtprotoShareBurnRead {
-  handle          String
-  ownerDid        String?  @map("owner_did")
-  shareId         String   @map("share_id")
-  burnedAt        DateTime @default(now()) @map("burned_at")
-  pdsDeleteSynced Boolean  @default(false) @map("pds_delete_synced")
-
-  @@id([shareId, handle])
-  @@map("atproto_share_burn_reads")
+  @@index([userId, startTime, endTime], map: "idx_events_user_time")
+  @@map("calendar_events")
 }
