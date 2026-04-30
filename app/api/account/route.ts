@@ -8,13 +8,13 @@ export async function DELETE() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await prisma.$transaction([
-    prisma.calendarEvent.deleteMany({ where: { userId: session.userId } }),
-    prisma.share.deleteMany({ where: { userId: session.userId } }),
-    prisma.calendarBackup.deleteMany({ where: { userId: session.userId } }),
-    prisma.session.deleteMany({ where: { userId: session.userId } }),
-    prisma.user.delete({ where: { id: session.userId } }),
-  ])
+  await prisma.$transaction(async (tx) => {
+    await tx.calendarEvent.deleteMany({ where: { userId: session.userId } })
+    await tx.share.deleteMany({ where: { userId: session.userId } })
+    await tx.calendarBackup.deleteMany({ where: { userId: session.userId } })
+    await tx.session.deleteMany({ where: { userId: session.userId } })
+    await tx.user.delete({ where: { id: session.userId } })
+  })
 
   return NextResponse.json({ success: true })
 }

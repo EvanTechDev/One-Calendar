@@ -11,6 +11,7 @@ import { CalendarProvider } from '@/components/providers/calendar-context'
 import { GeistSans } from 'geist/font/sans'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
+import { CryptoProvider } from '@/lib/crypto-context'
 
 const instrumentSans = Instrument_Sans({
   subsets: ['latin'],
@@ -62,6 +63,7 @@ export default function RootLayout({
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
+          <CryptoProvider>
           <ThemeProvider
             themes={['light', 'dark', 'green', 'orange', 'azalea']}
             attribute="class"
@@ -75,6 +77,7 @@ export default function RootLayout({
               <Toaster />
             </CalendarProvider>
           </ThemeProvider>
+          </CryptoProvider>
       </body>
     </html>
   )
