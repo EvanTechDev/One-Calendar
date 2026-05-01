@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const [{ userId }] = await Promise.all([auth(), initDB()])
+    const { userId } = await auth()
+    await initDB()
 
     if (!userId)
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
@@ -97,7 +98,8 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    const [{ userId }] = await Promise.all([auth(), initDB()])
+    const { userId } = await auth()
+    await initDB()
 
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

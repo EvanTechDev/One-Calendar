@@ -32,9 +32,4 @@ export function getPrismaClient() {
   return client
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop, receiver) {
-    const client = getPrismaClient()
-    return Reflect.get(client as unknown as object, prop, receiver)
-  },
-})
+export const prisma = getPrismaClient()
