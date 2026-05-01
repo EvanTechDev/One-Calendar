@@ -1,31 +1,16 @@
 import { PrismaClient } from '@/lib/generated/prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
+import { APP_CONFIG } from '@/lib/config'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: ReturnType<typeof createPrismaClient> | undefined
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
 
 function createPrismaClient() {
-  return new PrismaClient({
-    accelerateUrl: process.env.POSTGRES_URL,
+  const client = new PrismaClient({
+    ...(APP_CONFIG.prisma.enableAccelerate ? { accelerateUrl: process.env.POSTGRES_URL } : {}),
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  }).$extends(withAccelerate())
-}
-
-function getPrismaClient() {
-  if (globalForPrisma.prisma) {
-    return globalForPrisma.prisma
-  }
-
-  const client = createPrismaClient()
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = client
-  }
-  return client
+  })
+  return APP_CONFIG.prisma.enableAccelerate ? client.$extends(withAccelerate()) : client
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

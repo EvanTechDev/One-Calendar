@@ -217,11 +217,7 @@ export default function UserProfileButton({
   const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { user, isSignedIn } = useUser()
   const router = useRouter()
-  const [atprotoHandle, setAtprotoHandle] = useState('')
-  const [atprotoDisplayName, setAtprotoDisplayName] = useState('')
-  const [atprotoAvatar, setAtprotoAvatar] = useState('')
-  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
-  const isAnySignedIn = isSignedIn || atprotoSignedIn
+  const isAnySignedIn = isSignedIn
 
   const [enabled, setEnabled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -262,25 +258,6 @@ export default function UserProfileButton({
       new CustomEvent('backup-status-change', { detail: { status } }),
     )
   }
-
-  useEffect(() => {
-    fetch('/api/atproto/session')
-      .then((r) => r.json())
-      .then(
-        (data: {
-          signedIn?: boolean
-          handle?: string
-          displayName?: string
-          avatar?: string
-        }) => {
-          setAtprotoSignedIn(!!data.signedIn)
-          setAtprotoHandle(data.handle || '')
-          setAtprotoDisplayName(data.displayName || '')
-          setAtprotoAvatar(data.avatar || '')
-        },
-      )
-      .catch(() => undefined)
-  }, [])
 
   useEffect(() => {
     if (mode !== 'settings' || !focusSection) return
@@ -657,14 +634,14 @@ export default function UserProfileButton({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {(isSignedIn && user?.imageUrl) ||
-            (!isSignedIn && atprotoSignedIn && atprotoAvatar) ? (
+            false ? (
               <Button
                 variant="ghost"
                 size="icon"
                 className="rounded-full overflow-hidden h-8 w-8 p-0"
               >
                 <img
-                  src={isSignedIn ? user.imageUrl : atprotoAvatar}
+                  src={user.imageUrl}
                   alt="avatar"
                   width={32}
                   height={32}
@@ -711,7 +688,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.imageUrl || atprotoAvatar || '/placeholder.svg'}
+                  src={user?.imageUrl || '/placeholder.svg'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -725,13 +702,11 @@ export default function UserProfileButton({
                       .filter(Boolean)
                       .join(' ') ||
                       user?.username ||
-                      atprotoDisplayName ||
-                      atprotoHandle ||
-                      'User'}
+                                            'User'}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
                     {user?.primaryEmailAddress?.emailAddress ||
-                      (atprotoHandle ? `@${atprotoHandle}` : '')}
+                      ''}
                   </p>
                 </div>
               </div>
@@ -832,8 +807,7 @@ export default function UserProfileButton({
                       id="settings-account-signout"
                       variant="outline"
                       onClick={async () => {
-                        await fetch('/api/atproto/logout', { method: 'POST' })
-                        setAtprotoSignedIn(false)
+                                                setAtprotoSignedIn(false)
                         setAtprotoHandle('')
                         setAtprotoDisplayName('')
                         setAtprotoAvatar('')
@@ -918,7 +892,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.imageUrl || atprotoAvatar || '/placeholder.svg'
+                        user?.imageUrl || '/placeholder.svg'
                       }
                       alt="avatar"
                       width={52}

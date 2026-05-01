@@ -1,75 +1,39 @@
-import localeBn from '@/locales/bn.json'
-import localeDe from '@/locales/de.json'
-import localeEl from '@/locales/el.json'
-import localeEnGb from '@/locales/en-GB.json'
-import localeEn from '@/locales/en.json'
-import localeEs from '@/locales/es.json'
-import localeFi from '@/locales/fi.json'
-import localeFr from '@/locales/fr.json'
-import localeHi from '@/locales/hi.json'
-import localeIs from '@/locales/is.json'
-import localeIt from '@/locales/it.json'
-import localeJa from '@/locales/ja.json'
-import localeKo from '@/locales/ko.json'
-import localeLt from '@/locales/lt.json'
-import localeLv from '@/locales/lv.json'
-import localeMk from '@/locales/mk.json'
-import localeNb from '@/locales/nb.json'
-import localeNl from '@/locales/nl.json'
-import localePl from '@/locales/pl.json'
-import localePt from '@/locales/pt.json'
-import localeRo from '@/locales/ro.json'
-import localeRu from '@/locales/ru.json'
-import localeSl from '@/locales/sl.json'
-import localeSq from '@/locales/sq.json'
-import localeSr from '@/locales/sr.json'
-import localeSv from '@/locales/sv.json'
-import localeSw from '@/locales/sw.json'
-import localeTh from '@/locales/th.json'
-import localeTr from '@/locales/tr.json'
-import localeUk from '@/locales/uk.json'
-import localeVi from '@/locales/vi.json'
-import localeYue from '@/locales/yue.json'
-import localeZhCn from '@/locales/zh-CN.json'
-import localeZhHk from '@/locales/zh-HK.json'
-import localeZhTw from '@/locales/zh-TW.json'
-
-export const translations = {
-  bn: localeBn,
-  de: localeDe,
-  el: localeEl,
-  'en-GB': localeEnGb,
-  en: localeEn,
-  es: localeEs,
-  fi: localeFi,
-  fr: localeFr,
-  hi: localeHi,
-  is: localeIs,
-  it: localeIt,
-  ja: localeJa,
-  ko: localeKo,
-  lt: localeLt,
-  lv: localeLv,
-  mk: localeMk,
-  nb: localeNb,
-  nl: localeNl,
-  pl: localePl,
-  pt: localePt,
-  ro: localeRo,
-  ru: localeRu,
-  sl: localeSl,
-  sq: localeSq,
-  sr: localeSr,
-  sv: localeSv,
-  sw: localeSw,
-  th: localeTh,
-  tr: localeTr,
-  uk: localeUk,
-  vi: localeVi,
-  yue: localeYue,
-  'zh-CN': localeZhCn,
-  'zh-HK': localeZhHk,
-  'zh-TW': localeZhTw,
+export const localeLoaders = {
+  bn: () => import('@/locales/bn.json').then((m) => m.default),
+  de: () => import('@/locales/de.json').then((m) => m.default),
+  el: () => import('@/locales/el.json').then((m) => m.default),
+  'en-GB': () => import('@/locales/en-GB.json').then((m) => m.default),
+  en: () => import('@/locales/en.json').then((m) => m.default),
+  es: () => import('@/locales/es.json').then((m) => m.default),
+  fi: () => import('@/locales/fi.json').then((m) => m.default),
+  fr: () => import('@/locales/fr.json').then((m) => m.default),
+  hi: () => import('@/locales/hi.json').then((m) => m.default),
+  is: () => import('@/locales/is.json').then((m) => m.default),
+  it: () => import('@/locales/it.json').then((m) => m.default),
+  ja: () => import('@/locales/ja.json').then((m) => m.default),
+  ko: () => import('@/locales/ko.json').then((m) => m.default),
+  lt: () => import('@/locales/lt.json').then((m) => m.default),
+  lv: () => import('@/locales/lv.json').then((m) => m.default),
+  mk: () => import('@/locales/mk.json').then((m) => m.default),
+  nb: () => import('@/locales/nb.json').then((m) => m.default),
+  nl: () => import('@/locales/nl.json').then((m) => m.default),
+  pl: () => import('@/locales/pl.json').then((m) => m.default),
+  pt: () => import('@/locales/pt.json').then((m) => m.default),
+  ro: () => import('@/locales/ro.json').then((m) => m.default),
+  ru: () => import('@/locales/ru.json').then((m) => m.default),
+  sl: () => import('@/locales/sl.json').then((m) => m.default),
+  sq: () => import('@/locales/sq.json').then((m) => m.default),
+  sr: () => import('@/locales/sr.json').then((m) => m.default),
+  sv: () => import('@/locales/sv.json').then((m) => m.default),
+  sw: () => import('@/locales/sw.json').then((m) => m.default),
+  th: () => import('@/locales/th.json').then((m) => m.default),
+  tr: () => import('@/locales/tr.json').then((m) => m.default),
+  uk: () => import('@/locales/uk.json').then((m) => m.default),
+  vi: () => import('@/locales/vi.json').then((m) => m.default),
+  yue: () => import('@/locales/yue.json').then((m) => m.default),
+  'zh-CN': () => import('@/locales/zh-CN.json').then((m) => m.default),
+  'zh-HK': () => import('@/locales/zh-HK.json').then((m) => m.default),
+  'zh-TW': () => import('@/locales/zh-TW.json').then((m) => m.default),
 } as const
 
-export type Language = keyof typeof translations
+export type Language = keyof typeof localeLoaders
