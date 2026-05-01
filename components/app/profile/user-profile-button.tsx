@@ -807,10 +807,6 @@ export default function UserProfileButton({
                       id="settings-account-signout"
                       variant="outline"
                       onClick={async () => {
-                                                setAtprotoSignedIn(false)
-                        setAtprotoHandle('')
-                        setAtprotoDisplayName('')
-                        setAtprotoAvatar('')
                         router.refresh()
                       }}
                     >

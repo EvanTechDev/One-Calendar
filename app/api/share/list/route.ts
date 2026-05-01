@@ -26,7 +26,7 @@ export async function GET() {
   const result = await prisma.share.findMany({
     where: { userId: user.id },
     orderBy: { timestamp: 'desc' },
-    select: { shareId: true, encryptedData: true, iv: true, authTag: true, timestamp: true, isProtected: true },
+    select: { shareId: true, encryptedData: true, iv: true, authTag: true, timestamp: true, isProtected: true, isBurn: true, encVersion: true },
   })
 
   const shares = result.map((row) => {
@@ -52,6 +52,8 @@ export async function GET() {
       shareDate: row.timestamp.toISOString(),
       shareLink: `/share/${row.shareId}`,
       isProtected: row.isProtected,
+      burnAfterRead: row.isBurn,
+      encVersion: row.encVersion,
     }
   })
 

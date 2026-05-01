@@ -35,17 +35,20 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 export async function POST(request: NextRequest) {
   const user = await currentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { id, data, password } = await request.json()
+  const { id, data, password, burnAfterRead } = await request.json()
   if (!id || data == null) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   const hasPassword = typeof password === 'string' && password.length > 0
   const key = hasPassword ? keyV3Password(password, id) : keyV2Unprotected(id)
   const dataString = typeof data === 'string' ? data : JSON.stringify(data)
   const { encryptedData, iv, authTag } = encryptWithKey(dataString, key)
 
+  const isBurn = Boolean(burnAfterRead)
+  const encVersion = hasPassword ? 3 : 2
+
   await prisma.share.upsert({
     where: { shareId: id },
-    update: { encryptedData, iv, authTag, isProtected: hasPassword, timestamp: new Date(), userId: user.id },
-    create: { shareId: id, encryptedData, iv, authTag, isProtected: hasPassword, timestamp: new Date(), userId: user.id },
+    update: { encryptedData, iv, authTag, isProtected: hasPassword, isBurn, encVersion, timestamp: new Date(), userId: user.id },
+    create: { shareId: id, encryptedData, iv, authTag, isProtected: hasPassword, isBurn, encVersion, timestamp: new Date(), userId: user.id },
   })
 
   return NextResponse.json({ success: true, shareLink: `/share/${id}` })
@@ -65,7 +68,10 @@ export async function GET(request: NextRequest) {
   const key = row.isProtected ? keyV3Password(password, id) : keyV2Unprotected(id)
   try {
     const decryptedData = decryptWithKey(row.encryptedData, row.iv, row.authTag, key)
-    return NextResponse.json({ success: true, data: decryptedData, protected: row.isProtected, timestamp: row.timestamp })
+    if (row.isBurn) {
+      await prisma.share.delete({ where: { shareId: id } })
+    }
+    return NextResponse.json({ success: true, data: decryptedData, protected: row.isProtected, burnAfterRead: row.isBurn, encVersion: row.encVersion, timestamp: row.timestamp })
   } catch {
     return NextResponse.json({ error: row.isProtected ? 'Invalid password' : 'Failed to decrypt' }, { status: 403 })
   }
