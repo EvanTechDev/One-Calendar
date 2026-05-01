@@ -7,10 +7,50 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from '@/hooks/useLocalStorage'
-import { SUPPORTED_LANGUAGES, type Language } from '@/lib/locales'
 
 const LANGUAGE_STORAGE_KEY = 'preferred-language'
 const BASE_LANGUAGE = 'en' as const
+
+type Language =
+  | 'bn'
+  | 'de'
+  | 'el'
+  | 'en-GB'
+  | 'en'
+  | 'es'
+  | 'fi'
+  | 'fr'
+  | 'hi'
+  | 'is'
+  | 'it'
+  | 'ja'
+  | 'ko'
+  | 'lt'
+  | 'lv'
+  | 'mk'
+  | 'nb'
+  | 'nl'
+  | 'pl'
+  | 'pt'
+  | 'ro'
+  | 'ru'
+  | 'sl'
+  | 'sq'
+  | 'sr'
+  | 'sv'
+  | 'sw'
+  | 'th'
+  | 'tr'
+  | 'uk'
+  | 'vi'
+  | 'yue'
+  | 'zh-CN'
+  | 'zh-HK'
+  | 'zh-TW'
+
+const SUPPORTED_LANGUAGES: readonly Language[] = [
+  'bn','de','el','en-GB','en','es','fi','fr','hi','is','it','ja','ko','lt','lv','mk','nb','nl','pl','pt','ro','ru','sl','sq','sr','sv','sw','th','tr','uk','vi','yue','zh-CN','zh-HK','zh-TW',
+]
 
 const localeLoaders: Record<Language, () => Promise<Record<string, string>>> = {
   bn: () => import('@/locales/bn.json').then((m) => m.default),
