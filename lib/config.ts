@@ -9,6 +9,10 @@ export const APP_CONFIG = {
     feedbackEmail: FEEDBACK_EMAIL,
     statusPageUrl: STATUS_PAGE_URL,
   },
+
+  prisma: {
+    enableAccelerate: process.env.PRISMA_ACCELERATE === 'true',
+  },
   auth: {
     enabledOAuthProviders: [
       'microsoft',
@@ -41,10 +45,6 @@ export const APP_CONFIG = {
         title: 'Connect',
         links: [
           { label: 'Contact', href: `mailto:${FEEDBACK_EMAIL}` },
-          {
-            label: 'Bluesky',
-            href: 'https://bsky.app/profile/calendar.xyehr.cn',
-          },
           {
             label: 'Tangled',
             href: 'https://tangled.org/e.xyehr.cn/One-Calendar',

@@ -11,7 +11,6 @@
 
 - [Live Product](https://calendar.xyehr.cn)
 - [Status](https://calendarstatus.xyehr.cn)
-- [Bluesky](https://bsky.app/profile/calendar.xyehr.cn)
 
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,POSTGRES_URL,SALT&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
 
@@ -136,7 +135,6 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
 CLERK_SECRET_KEY=...
 
 # ATProto / Atmosphere (required for /at-oauth)
-ATPROTO_SESSION_SECRET=...
 
 # Optional DB (backup/share sync)
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar

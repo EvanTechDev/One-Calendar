@@ -7,67 +7,97 @@ import {
   subscribeEncryptionState,
   writeEncryptedLocalStorage,
 } from '@/hooks/useLocalStorage'
-import {
-  translations as localeTranslations,
-  type Language,
-} from '@/lib/locales'
 
 const LANGUAGE_STORAGE_KEY = 'preferred-language'
+const BASE_LANGUAGE = 'en' as const
 
-export const supportedLanguages = Object.keys(localeTranslations) as Language[]
+type Language =
+  | 'bn'
+  | 'de'
+  | 'el'
+  | 'en-GB'
+  | 'en'
+  | 'es'
+  | 'fi'
+  | 'fr'
+  | 'hi'
+  | 'is'
+  | 'it'
+  | 'ja'
+  | 'ko'
+  | 'lt'
+  | 'lv'
+  | 'mk'
+  | 'nb'
+  | 'nl'
+  | 'pl'
+  | 'pt'
+  | 'ro'
+  | 'ru'
+  | 'sl'
+  | 'sq'
+  | 'sr'
+  | 'sv'
+  | 'sw'
+  | 'th'
+  | 'tr'
+  | 'uk'
+  | 'vi'
+  | 'yue'
+  | 'zh-CN'
+  | 'zh-HK'
+  | 'zh-TW'
 
-const baseLanguage = 'en' as const
+const SUPPORTED_LANGUAGES: readonly Language[] = [
+  'bn','de','el','en-GB','en','es','fi','fr','hi','is','it','ja','ko','lt','lv','mk','nb','nl','pl','pt','ro','ru','sl','sq','sr','sv','sw','th','tr','uk','vi','yue','zh-CN','zh-HK','zh-TW',
+]
 
-export const translations = Object.fromEntries(
-  supportedLanguages.map((lang) => [
-    lang,
-    {
-      ...localeTranslations[baseLanguage],
-      ...localeTranslations[lang],
-    },
-  ]),
-) as typeof localeTranslations
-
-const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
-  en: 'English',
-  'en-GB': 'British English',
-  de: 'Deutsch',
-  es: 'Español',
-  fr: 'Français',
-  ja: '日本語',
-  yue: '粵語',
-  'zh-CN': '简体中文',
-  'zh-HK': '繁體中文（香港）',
-  'zh-TW': '繁體中文（台灣）',
-  it: 'Italiano',
-  ko: '한국어',
-  pl: 'Polski',
-  nl: 'Nederlands',
-  pt: 'Português',
-  ru: 'Русский',
-  sv: 'Svenska',
-  fi: 'Suomi',
-  hi: 'हिन्दी',
-  nb: 'Norsk bokmål',
-  vi: 'Tiếng Việt',
-  ro: 'Română',
-  uk: 'Українська',
-  is: 'Íslenska',
-  sw: 'Kiswahili',
-  bn: 'বাংলা',
-  el: 'Ελληνικά',
-  sq: 'Shqip',
-  lt: 'Lietuvių',
-  lv: 'Latviešu',
-  sl: 'Slovenščina',
-  mk: 'Македонски',
-  sr: 'Српски',
+const localeLoaders: Record<Language, () => Promise<Record<string, string>>> = {
+  bn: () => import('@/locales/bn.json').then((m) => m.default),
+  de: () => import('@/locales/de.json').then((m) => m.default),
+  el: () => import('@/locales/el.json').then((m) => m.default),
+  'en-GB': () => import('@/locales/en-GB.json').then((m) => m.default),
+  en: () => import('@/locales/en.json').then((m) => m.default),
+  es: () => import('@/locales/es.json').then((m) => m.default),
+  fi: () => import('@/locales/fi.json').then((m) => m.default),
+  fr: () => import('@/locales/fr.json').then((m) => m.default),
+  hi: () => import('@/locales/hi.json').then((m) => m.default),
+  is: () => import('@/locales/is.json').then((m) => m.default),
+  it: () => import('@/locales/it.json').then((m) => m.default),
+  ja: () => import('@/locales/ja.json').then((m) => m.default),
+  ko: () => import('@/locales/ko.json').then((m) => m.default),
+  lt: () => import('@/locales/lt.json').then((m) => m.default),
+  lv: () => import('@/locales/lv.json').then((m) => m.default),
+  mk: () => import('@/locales/mk.json').then((m) => m.default),
+  nb: () => import('@/locales/nb.json').then((m) => m.default),
+  nl: () => import('@/locales/nl.json').then((m) => m.default),
+  pl: () => import('@/locales/pl.json').then((m) => m.default),
+  pt: () => import('@/locales/pt.json').then((m) => m.default),
+  ro: () => import('@/locales/ro.json').then((m) => m.default),
+  ru: () => import('@/locales/ru.json').then((m) => m.default),
+  sl: () => import('@/locales/sl.json').then((m) => m.default),
+  sq: () => import('@/locales/sq.json').then((m) => m.default),
+  sr: () => import('@/locales/sr.json').then((m) => m.default),
+  sv: () => import('@/locales/sv.json').then((m) => m.default),
+  sw: () => import('@/locales/sw.json').then((m) => m.default),
+  th: () => import('@/locales/th.json').then((m) => m.default),
+  tr: () => import('@/locales/tr.json').then((m) => m.default),
+  uk: () => import('@/locales/uk.json').then((m) => m.default),
+  vi: () => import('@/locales/vi.json').then((m) => m.default),
+  yue: () => import('@/locales/yue.json').then((m) => m.default),
+  'zh-CN': () => import('@/locales/zh-CN.json').then((m) => m.default),
+  'zh-HK': () => import('@/locales/zh-HK.json').then((m) => m.default),
+  'zh-TW': () => import('@/locales/zh-TW.json').then((m) => m.default),
 }
+
+export const supportedLanguages = [...SUPPORTED_LANGUAGES] as Language[]
+
+const translationCache = new Map<Language, Record<string, string>>()
+const loadingCache = new Map<Language, Promise<Record<string, string>>>()
 
 const byExactLowercase = new Map(
   supportedLanguages.map((lang) => [lang.toLowerCase(), lang] as const),
 )
-
 const byBaseLowercase = new Map(
   supportedLanguages.map(
     (lang) => [lang.toLowerCase().split('-')[0], lang] as const,
@@ -78,109 +108,121 @@ const normalizeLanguage = (
   value: string | null | undefined,
 ): Language | null => {
   if (!value) return null
-
   const normalized = value.toLowerCase()
-  const exact = byExactLowercase.get(normalized)
-  if (exact) return exact
-
-  const base = normalized.split('-')[0]
-  return byBaseLowercase.get(base) ?? null
-}
-
-export const getLanguageAutonym = (language: Language) => {
-  const configured = LANGUAGE_AUTONYM[language]
-  if (configured) return configured
-
   return (
-    new Intl.DisplayNames([language], { type: 'language' }).of(language) ??
-    language
+    byExactLowercase.get(normalized) ??
+    byBaseLowercase.get(normalized.split('-')[0]) ??
+    null
   )
 }
 
-const zhLanguages: Language[] = ['zh-CN', 'zh-HK', 'zh-TW']
+async function loadLanguageMessages(language: Language) {
+  const cached = translationCache.get(language)
+  if (cached) return cached
 
-export const isZhLanguage = (language: Language) =>
-  zhLanguages.includes(language)
+  const pending = loadingCache.get(language)
+  if (pending) return pending
+
+  const promise = Promise.all([
+    localeLoaders[BASE_LANGUAGE](),
+    localeLoaders[language](),
+  ]).then(([base, current]) => {
+    const merged = { ...base, ...current }
+    translationCache.set(language, merged)
+    loadingCache.delete(language)
+    return merged
+  })
+
+  loadingCache.set(language, promise)
+  return promise
+}
+
+export const translations = new Proxy(
+  {} as Record<Language, Record<string, string>>,
+  {
+    get(_target, prop: string) {
+      const language = (
+        supportedLanguages.includes(prop as Language) ? prop : BASE_LANGUAGE
+      ) as Language
+      return (
+        translationCache.get(language) ??
+        translationCache.get(BASE_LANGUAGE) ??
+        {}
+      )
+    },
+  },
+) as Record<Language, Record<string, string>>
+
+void loadLanguageMessages(BASE_LANGUAGE)
+
+function detectSystemLanguage(): Language {
+  if (typeof window === 'undefined') return BASE_LANGUAGE
+  return normalizeLanguage(navigator.language) ?? BASE_LANGUAGE
+}
 
 export const getStoredLanguage = async (): Promise<Language> => {
-  const storedLanguage = await readEncryptedLocalStorage<string | null>(
+  const stored = await readEncryptedLocalStorage<string | null>(
     LANGUAGE_STORAGE_KEY,
     null,
   )
-  return normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
+  return normalizeLanguage(stored) ?? detectSystemLanguage()
 }
 
-function detectSystemLanguage(): Language {
-  if (typeof window === 'undefined') {
-    return 'en'
-  }
+export const isZhLanguage = (language: Language) =>
+  ['zh-CN', 'zh-HK', 'zh-TW'].includes(language)
 
-  const browserLang = navigator.language
-  return normalizeLanguage(browserLang) ?? 'en'
-}
+export const getLanguageAutonym = (language: Language) =>
+  new Intl.DisplayNames([language], { type: 'language' }).of(language) ??
+  language
 
 export function useLanguage(): [Language, (lang: Language) => void] {
-  const [language, setLanguageState] = useState<Language>('en')
+  const [language, setLanguageState] = useState<Language>(BASE_LANGUAGE)
 
   useEffect(() => {
     let active = true
-    const loadLanguage = () =>
-      readEncryptedLocalStorage<string | null>(LANGUAGE_STORAGE_KEY, null).then(
-        (storedLanguage) => {
-          if (!active) return
-          const normalized =
-            normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
-          setLanguageState(normalized)
-          if (storedLanguage && normalized !== storedLanguage) {
-            void writeEncryptedLocalStorage(LANGUAGE_STORAGE_KEY, normalized)
-          }
-        },
-      )
 
-    loadLanguage()
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === LANGUAGE_STORAGE_KEY) {
-        readEncryptedLocalStorage<string | null>(
-          LANGUAGE_STORAGE_KEY,
-          null,
-        ).then((newLanguage) => {
-          const normalized = normalizeLanguage(newLanguage)
-          if (normalized) {
-            setLanguageState(normalized)
-          }
-        })
-      }
+    const loadFromStorage = async () => {
+      const selected = await getStoredLanguage()
+      await loadLanguageMessages(selected)
+      if (active) setLanguageState(selected)
     }
 
-    const handleCustomLanguageChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ language?: string }>
-      const normalized = normalizeLanguage(customEvent.detail?.language)
-      if (normalized) {
-        setLanguageState(normalized)
-      }
+    void loadFromStorage()
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== LANGUAGE_STORAGE_KEY) return
+      void loadFromStorage()
+    }
+
+    const onLanguageChange = (event: Event) => {
+      const custom = event as CustomEvent<{ language?: string }>
+      const normalized = normalizeLanguage(custom.detail?.language)
+      if (!normalized) return
+      void loadLanguageMessages(normalized)
+      setLanguageState(normalized)
     }
 
     const unsubscribe = subscribeEncryptionState(() => {
       if (getEncryptionState().ready) {
-        loadLanguage()
+        void loadFromStorage()
       }
     })
 
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('languagechange', handleCustomLanguageChange)
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('languagechange', onLanguageChange)
+
     return () => {
       active = false
       unsubscribe()
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('languagechange', handleCustomLanguageChange)
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('languagechange', onLanguageChange)
     }
   }, [])
 
   const setLanguage = (lang: Language) => {
+    void loadLanguageMessages(lang)
     setLanguageState(lang)
     void writeEncryptedLocalStorage(LANGUAGE_STORAGE_KEY, lang)
-
     window.dispatchEvent(
       new CustomEvent('languagechange', { detail: { language: lang } }),
     )
@@ -188,4 +230,5 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   return [language, setLanguage]
 }
+
 export type { Language }
