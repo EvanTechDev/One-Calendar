@@ -1,5 +1,6 @@
 import { ResetPasswordForm } from '@/components/auth/reset-form'
 import { AuthBrand } from '@/components/auth/auth-brand'
+import { Suspense } from 'react'
 
 export default function ResetPasswordPage() {
   return (
@@ -24,7 +25,9 @@ export default function ResetPasswordPage() {
       </div>
       <div className="flex w-full max-w-sm flex-col gap-6">
         <AuthBrand />
-        <ResetPasswordForm />
+        <Suspense fallback={null}>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </div>
   )

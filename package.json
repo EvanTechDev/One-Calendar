@@ -11,8 +11,7 @@
     "lint": "oxlint --fix && eslint . --fix",
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
-    "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
+    "generate:locales": "bun lib/gen-locales.mjs"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "latest",
@@ -47,7 +46,9 @@
     "@better-auth/prisma-adapter": "latest",
     "bcryptjs": "latest",
     "resend": "latest",
-    "csv-parse": "latest"
+    "csv-parse": "latest",
+    "@react-email/components": "latest",
+    "@react-email/render": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
