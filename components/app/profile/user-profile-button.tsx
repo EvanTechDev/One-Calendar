@@ -282,8 +282,10 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (!user) return
-    setFirstName(user.firstName || '')
-    setLastName(user.lastName || '')
+    const fullName = (user.name || '').trim()
+    const parts = fullName ? fullName.split(/\s+/) : []
+    setFirstName(parts[0] || '')
+    setLastName(parts.slice(1).join(' '))
   }, [user])
 
   useEffect(() => {
@@ -345,10 +347,9 @@ export default function UserProfileButton({
     if (!user) return
     try {
       setProfileSaving(true)
-      await user.update({
-        firstName: firstName || null,
-        lastName: lastName || null,
-      })
+      const name = `${firstName} ${lastName}`.trim()
+      const { error } = await authClient.updateUser({ name: name || null })
+      if (error) throw new Error(error.message || 'Failed to update profile')
       toast(t.profileUpdated)
     } catch (e: any) {
       toast(t.profileUpdateFailed, {
@@ -363,8 +364,14 @@ export default function UserProfileButton({
     if (!user || !file) return
     try {
       setAvatarUploading(true)
-      await user.setProfileImage({ file })
-      await user.reload()
+      const image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+      })
+      const { error } = await authClient.updateUser({ image })
+      if (error) throw new Error(error.message || 'Failed to update avatar')
       toast(t.avatarUpdated)
     } catch (e: any) {
       toast(t.avatarUpdateFailed, {
@@ -651,7 +658,7 @@ export default function UserProfileButton({
       {mode === 'dropdown' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {(isSignedIn && user?.imageUrl) ||
+            {(isSignedIn && user?.image) ||
             false ? (
               <Button
                 variant="ghost"
@@ -659,7 +666,7 @@ export default function UserProfileButton({
                 className="rounded-full overflow-hidden h-8 w-8 p-0"
               >
                 <img
-                  src={user.imageUrl}
+                  src={user.image}
                   alt="avatar"
                   width={32}
                   height={32}
@@ -706,7 +713,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.imageUrl || '/placeholder.svg'}
+                  src={user?.image || '/placeholder.svg'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -716,15 +723,10 @@ export default function UserProfileButton({
                 />
                 <div className="min-w-0">
                   <p className="font-medium truncate">
-                    {[user?.firstName, user?.lastName]
-                      .filter(Boolean)
-                      .join(' ') ||
-                      user?.username ||
-                      'User'}
+                    {user?.name || 'User'}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {user?.primaryEmailAddress?.emailAddress ||
-                      ''}
+                    {user?.email || ''}
                   </p>
                 </div>
               </div>
@@ -912,7 +914,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.imageUrl || '/placeholder.svg'
+                        user?.image || '/placeholder.svg'
                       }
                       alt="avatar"
                       width={52}
