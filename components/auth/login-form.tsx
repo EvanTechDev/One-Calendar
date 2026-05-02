@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useSignIn } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Turnstile } from '@marsidev/react-turnstile'
@@ -26,7 +26,6 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
-  const { signIn } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -82,10 +81,7 @@ export function LoginForm({
     setError('')
 
     try {
-      const { error } = await signIn.password({
-        emailAddress: email,
-        password,
-      })
+      const { error } = await authClient.signIn.email({ email, password })
       if (error) {
         setError(
           error.longMessage ||
@@ -135,11 +131,7 @@ export function LoginForm({
       setError('Please complete the CAPTCHA verification.')
       return
     }
-    signIn.sso({
-      strategy,
-      redirectUrl: '/app',
-      redirectCallbackUrl: '/sign-in/sso-callback',
-    })
+    void authClient.signIn.social({ provider: strategy.replace('oauth_', '') as any, callbackURL: '/app' })
   }
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY

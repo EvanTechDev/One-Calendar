@@ -16,7 +16,6 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.0",
     "@marsidev/react-turnstile": "latest",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "latest",
@@ -44,7 +43,9 @@
     "@prisma/client": "latest",
     "zustand": "latest",
     "@prisma/adapter-pg": "latest",
-    "@prisma/extension-accelerate": "latest"
+    "@prisma/extension-accelerate": "latest",
+    "better-auth": "latest",
+    "@better-auth/prisma-adapter": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

@@ -2,21 +2,23 @@
 
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { useUser } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
-function hasClerkSessionCookie() {
+function hasSessionCookie() {
   if (typeof document === 'undefined') return false
 
   return document.cookie
     .split(';')
-    .some((cookie) => cookie.trim().startsWith('__session='))
+    .some((cookie) => cookie.trim().startsWith('better-auth.session_token='))
 }
 
 export default function Home() {
-  const { isLoaded, isSignedIn } = useUser()
+  const { data: session, isPending } = authClient.useSession()
+  const isLoaded = !isPending
+  const isSignedIn = Boolean(session?.user)
   const [hasSessionCookie, setHasSessionCookie] = useState(
-    hasClerkSessionCookie,
+    hasSessionCookie,
   )
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
@@ -28,7 +30,7 @@ export default function Home() {
     }, 500)
 
     const cookieCheckTimer = window.setInterval(() => {
-      if (hasClerkSessionCookie()) {
+      if (hasSessionCookie()) {
         setHasSessionCookie(true)
       }
     }, 50)

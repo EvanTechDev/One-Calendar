@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getServerSession } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
@@ -39,7 +39,8 @@ function jsonNoStore(body: unknown, init?: ResponseInit) {
 
 export async function POST(req: NextRequest) {
   try {
-    const [{ userId }, body] = await Promise.all([auth(), req.json()])
+    const [session, body] = await Promise.all([getServerSession(), req.json()])
+    const userId = session?.user?.id
 
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -73,7 +74,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const [{ userId }] = await Promise.all([auth(), initDB()])
+    const [session] = await Promise.all([getServerSession(), initDB()])
+    const userId = session?.user?.id
 
     if (!userId)
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
@@ -97,7 +99,8 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    const [{ userId }] = await Promise.all([auth(), initDB()])
+    const [session] = await Promise.all([getServerSession(), initDB()])
+    const userId = session?.user?.id
 
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

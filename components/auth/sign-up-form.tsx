@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useSignUp } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef } from 'react'
 import { Turnstile } from '@marsidev/react-turnstile'
@@ -26,7 +26,6 @@ export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
-  const { signUp } = useSignUp()
   const router = useRouter()
   const [step, setStep] = useState<'initial' | 'verification'>('initial')
   const [formData, setFormData] = useState({
@@ -145,12 +144,7 @@ export function SignUpForm({
       setError('Please complete the CAPTCHA verification.')
       return
     }
-    signUp
-      .sso({
-        strategy,
-        redirectUrl: '/app',
-        redirectCallbackUrl: '/sign-up/sso-callback',
-      })
+    authClient.signIn.social({ provider: strategy.replace('oauth_', '') as any, callbackURL: '/app' })
       .catch((err: any) => {
         setError(
           err.errors?.[0]?.longMessage ||
@@ -179,10 +173,9 @@ export function SignUpForm({
           return
         }
 
-        const { error: passwordError } = await signUp.password({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          emailAddress: formData.email,
+        const { error: passwordError } = await authClient.signUp.email({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
           password: formData.password,
         })
         if (passwordError) {
@@ -193,40 +186,7 @@ export function SignUpForm({
           )
           return
         }
-        await signUp.verifications.sendEmailCode()
-        setStep('verification')
-      } else {
-        const { error: verifyError } =
-          await signUp.verifications.verifyEmailCode({
-            code: formData.code,
-          })
-        if (verifyError) {
-          setError(
-            verifyError.longMessage ||
-              verifyError.message ||
-              'An error occurred. Please try again.',
-          )
-          return
-        }
-        if (signUp.status === 'complete') {
-          const { error: finalizeError } = await signUp.finalize({
-            navigate: ({ decorateUrl }) => {
-              const url = decorateUrl('/app')
-              if (url.startsWith('http')) {
-                window.location.href = url
-                return
-              }
-              router.push(url)
-            },
-          })
-          if (finalizeError) {
-            setError(
-              finalizeError.longMessage ||
-                finalizeError.message ||
-                'An error occurred. Please try again.',
-            )
-          }
-        }
+        router.push('/app')
       }
     } catch (err: any) {
       setError(

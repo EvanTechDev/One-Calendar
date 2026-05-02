@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
-import { useSignIn } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type React from 'react'
@@ -21,7 +21,6 @@ export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
-  const { signIn } = useSignIn()
   const router = useRouter()
   const [step, setStep] = useState<'email' | 'code' | 'password'>('email')
   const [formData, setFormData] = useState({
@@ -83,19 +82,7 @@ export function ResetPasswordForm({
 
     try {
       if (step === 'email') {
-        const { error: createError } = await signIn.create({
-          identifier: formData.email,
-        })
-        if (createError) {
-          setError(
-            createError.longMessage ||
-              createError.message ||
-              'An error occurred. Please try again.',
-          )
-          return
-        }
-        const { error: sendCodeError } =
-          await signIn.resetPasswordEmailCode.sendCode()
+        const { error: sendCodeError } = await authClient.forgetPassword({ email: formData.email, redirectTo: '/reset-password' } as any)
         if (sendCodeError) {
           setError(
             sendCodeError.longMessage ||
@@ -106,26 +93,9 @@ export function ResetPasswordForm({
         }
         setStep('code')
       } else if (step === 'code') {
-        const { error: verifyCodeError } =
-          await signIn.resetPasswordEmailCode.verifyCode({
-            code: formData.code,
-          })
-        if (verifyCodeError) {
-          setError(
-            verifyCodeError.longMessage ||
-              verifyCodeError.message ||
-              'An error occurred. Please try again.',
-          )
-          return
-        }
-        if (signIn.status === 'needs_new_password') {
-          setStep('password')
-        }
+        setStep('password')
       } else {
-        const { error: submitPasswordError } =
-          await signIn.resetPasswordEmailCode.submitPassword({
-            password: formData.password,
-          })
+        const { error: submitPasswordError } = await authClient.resetPassword({ token: formData.code, newPassword: formData.password } as any)
         if (submitPasswordError) {
           setError(
             submitPasswordError.longMessage ||
@@ -134,25 +104,7 @@ export function ResetPasswordForm({
           )
           return
         }
-        if (signIn.status === 'complete') {
-          const { error: finalizeError } = await signIn.finalize({
-            navigate: ({ decorateUrl }) => {
-              const url = decorateUrl('/app')
-              if (url.startsWith('http')) {
-                window.location.href = url
-                return
-              }
-              router.push(url)
-            },
-          })
-          if (finalizeError) {
-            setError(
-              finalizeError.longMessage ||
-                finalizeError.message ||
-                'An error occurred. Please try again.',
-            )
-          }
-        }
+        if (!submitPasswordError) router.push('/sign-in')
       }
     } catch (err: any) {
       setError(

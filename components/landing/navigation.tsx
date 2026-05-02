@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Menu, X } from 'lucide-react'
-import { useUser } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 
 const navLinks = [
   { name: 'Features', href: '#features' },
@@ -14,7 +14,8 @@ const navLinks = [
 ]
 
 export function Navigation() {
-  const { isSignedIn } = useUser()
+  const { data: session } = authClient.useSession()
+  const isSignedIn = Boolean(session?.user)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 

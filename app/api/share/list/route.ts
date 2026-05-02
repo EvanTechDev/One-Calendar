@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { currentUser } from '@clerk/nextjs/server'
+import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
 import { deleteRecord, listRecords } from '@/lib/atproto'
@@ -135,7 +135,8 @@ export async function GET() {
     return NextResponse.json({ shares })
   }
 
-  const user = await currentUser()
+  const session = await getServerSession()
+    const user = session?.user
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
