@@ -19,7 +19,6 @@ export default function Home() {
   const isSignedIn = Boolean(session?.user)
   const [hasAuthCookie, setHasAuthCookie] = useState(detectAuthSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
-  const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
@@ -39,12 +38,6 @@ export default function Home() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
-    fetch('/api/atproto/logout', { method: 'POST' })
-      .catch(() => undefined)
-      .finally(() => setAtprotoLogoutDone(true))
-  }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
   useEffect(() => {
     if (!isLoaded) return

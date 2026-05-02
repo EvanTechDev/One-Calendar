@@ -219,11 +219,7 @@ export default function UserProfileButton({
   const user: any = session?.user
   const isSignedIn = Boolean(session?.user)
   const router = useRouter()
-  const [atprotoHandle, setAtprotoHandle] = useState('')
-  const [atprotoDisplayName, setAtprotoDisplayName] = useState('')
-  const [atprotoAvatar, setAtprotoAvatar] = useState('')
-  const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
-  const isAnySignedIn = isSignedIn || atprotoSignedIn
+  const isAnySignedIn = isSignedIn
 
   const [enabled, setEnabled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -253,6 +249,7 @@ export default function UserProfileButton({
   const [avatarUploading, setAvatarUploading] = useState(false)
 
   const keyRef = useRef<string | null>(null)
+  const lastBackupSnapshotRef = useRef<string | null>(null)
   const restoredRef = useRef(false)
   const skipNextAutoBackupRef = useRef(false)
   const timerRef = useRef<any>(null)
@@ -265,24 +262,7 @@ export default function UserProfileButton({
     )
   }
 
-  useEffect(() => {
-    fetch('/api/atproto/session')
-      .then((r) => r.json())
-      .then(
-        (data: {
-          signedIn?: boolean
-          handle?: string
-          displayName?: string
-          avatar?: string
-        }) => {
-          setAtprotoSignedIn(!!data.signedIn)
-          setAtprotoHandle(data.handle || '')
-          setAtprotoDisplayName(data.displayName || '')
-          setAtprotoAvatar(data.avatar || '')
-        },
-      )
-      .catch(() => undefined)
-  }, [])
+
 
   useEffect(() => {
     if (mode !== 'settings' || !focusSection) return
@@ -344,11 +324,14 @@ export default function UserProfileButton({
       try {
         broadcastBackupStatus('uploading')
         const storage = await collectLocalStorage()
-        const payload = await encryptPayload(
-          keyRef.current!,
-          JSON.stringify({ v: BACKUP_VERSION, storage }),
-        )
+        const snapshot = JSON.stringify({ v: BACKUP_VERSION, storage })
+        if (lastBackupSnapshotRef.current === snapshot) {
+          broadcastBackupStatus('done')
+          return
+        }
+        const payload = await encryptPayload(keyRef.current!, snapshot)
         await apiPost(payload)
+        lastBackupSnapshotRef.current = snapshot
         broadcastBackupStatus('done')
       } catch {
         broadcastBackupStatus('failed')
@@ -356,7 +339,7 @@ export default function UserProfileButton({
         timerRef.current = null
       }
     }, 800)
-  }, [events, calendars, enabled, backupTick])
+  }, [enabled, backupTick])
 
   async function saveProfile() {
     if (!user) return
@@ -561,6 +544,10 @@ export default function UserProfileButton({
       }),
     )
     await apiPost(payload)
+    lastBackupSnapshotRef.current = JSON.stringify({
+      v: BACKUP_VERSION,
+      storage: await collectLocalStorage(),
+    })
     localStorage.setItem(AUTO_KEY, 'true')
     keyRef.current = password
     restoredRef.current = true
@@ -595,6 +582,10 @@ export default function UserProfileButton({
       }),
     )
     await apiPost(next)
+    lastBackupSnapshotRef.current = JSON.stringify({
+      v: BACKUP_VERSION,
+      storage: await collectLocalStorage(),
+    })
     await setEncryptionPassword(password)
     keyRef.current = password
     setRotateOpen(false)
@@ -608,6 +599,7 @@ export default function UserProfileButton({
     localStorage.removeItem(AUTO_KEY)
     localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
+    lastBackupSnapshotRef.current = null
     restoredRef.current = false
     setEnabled(false)
     clearEncryptionPassword()
@@ -619,6 +611,7 @@ export default function UserProfileButton({
     localStorage.removeItem(AUTO_KEY)
     localStorage.removeItem(BACKUP_STATUS_KEY)
     keyRef.current = null
+    lastBackupSnapshotRef.current = null
     restoredRef.current = false
     setEnabled(false)
     toast(t.cloudDataDeleted)
@@ -659,14 +652,14 @@ export default function UserProfileButton({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {(isSignedIn && user?.imageUrl) ||
-            (!isSignedIn && atprotoSignedIn && atprotoAvatar) ? (
+            false ? (
               <Button
                 variant="ghost"
                 size="icon"
                 className="rounded-full overflow-hidden h-8 w-8 p-0"
               >
                 <img
-                  src={isSignedIn ? user.imageUrl : atprotoAvatar}
+                  src={user.imageUrl}
                   alt="avatar"
                   width={32}
                   height={32}
@@ -713,7 +706,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.imageUrl || atprotoAvatar || '/placeholder.svg'}
+                  src={user?.imageUrl || '/placeholder.svg'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -727,13 +720,11 @@ export default function UserProfileButton({
                       .filter(Boolean)
                       .join(' ') ||
                       user?.username ||
-                      atprotoDisplayName ||
-                      atprotoHandle ||
-                      'User'}
+                                                                  'User'}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
                     {user?.primaryEmailAddress?.emailAddress ||
-                      (atprotoHandle ? `@${atprotoHandle}` : '')}
+                      ''}
                   </p>
                 </div>
               </div>
@@ -823,22 +814,23 @@ export default function UserProfileButton({
                     {t.signOutHelp}
                   </p>
                   {isSignedIn ? (
-                    <SignOutButton>
-                      <Button id="settings-account-signout" variant="outline">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        {t.signOut}
-                      </Button>
-                    </SignOutButton>
+                    <Button
+                      id="settings-account-signout"
+                      variant="outline"
+                      onClick={async () => {
+                        await authClient.signOut()
+                        router.refresh()
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {t.signOut}
+                    </Button>
                   ) : (
                     <Button
                       id="settings-account-signout"
                       variant="outline"
                       onClick={async () => {
-                        await fetch('/api/atproto/logout', { method: 'POST' })
-                        setAtprotoSignedIn(false)
-                        setAtprotoHandle('')
-                        setAtprotoDisplayName('')
-                        setAtprotoAvatar('')
+                        await authClient.signOut()
                         router.refresh()
                       }}
                     >
@@ -920,7 +912,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.imageUrl || atprotoAvatar || '/placeholder.svg'
+                        user?.imageUrl || '/placeholder.svg'
                       }
                       alt="avatar"
                       width={52}
