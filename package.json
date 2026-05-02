@@ -5,18 +5,16 @@
   "packageManager": "bun@1.3.12",
   "scripts": {
     "dev": "next dev",
-    "build": "bun run generate:locales && next build",
+    "build": "bun run generate:locales && prisma generate && next build",
     "start": "next start",
     "prepare": "husky",
     "lint": "oxlint --fix && eslint . --fix",
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs",
-    "postinstall": "prisma generate"
+    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.0",
     "@marsidev/react-turnstile": "latest",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "latest",
@@ -44,7 +42,12 @@
     "@prisma/client": "latest",
     "zustand": "latest",
     "@prisma/adapter-pg": "latest",
-    "@prisma/extension-accelerate": "latest"
+    "@prisma/extension-accelerate": "latest",
+    "better-auth": "latest",
+    "@better-auth/prisma-adapter": "latest",
+    "bcryptjs": "latest",
+    "resend": "latest",
+    "csv-parse": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

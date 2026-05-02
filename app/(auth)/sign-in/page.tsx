@@ -1,11 +1,12 @@
 import { LoginForm } from '@/components/auth/login-form'
 import { AuthBrand } from '@/components/auth/auth-brand'
-import { currentUser } from '@clerk/nextjs/server'
+import { headers } from 'next/headers'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export default async function LoginPage() {
-  const user = await currentUser()
-  if (user) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (session?.user) {
     redirect('/app')
   }
 

@@ -43,7 +43,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import QRCodeStyling from 'qr-code-styling'
-import { useUser } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 
 interface EventPreviewProps {
   event: CalendarEvent | null
@@ -85,7 +85,9 @@ export default function EventPreview({
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [qrCodeDataURL, setQRCodeDataURL] = useState<string>('')
   const qrCodeObjectURLRef = useRef<string | null>(null)
-  const { isSignedIn, user } = useUser()
+  const { data: session } = authClient.useSession()
+  const isSignedIn = Boolean(session?.user)
+  const user: any = session?.user
   const [atprotoSignedIn, setAtprotoSignedIn] = useState(false)
   const [atprotoHandle, setAtprotoHandle] = useState('')
   const dialogContentRef = useRef<HTMLDivElement>(null)

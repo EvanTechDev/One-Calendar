@@ -47,7 +47,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
-import { useUser, SignOutButton } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import {
   decryptPayload,
@@ -215,7 +215,9 @@ export default function UserProfileButton({
   const [language] = useLanguage()
   const t = translations[language]
   const { events, calendars, setEvents, setCalendars } = useCalendar()
-  const { user, isSignedIn } = useUser()
+  const { data: session } = authClient.useSession()
+  const user: any = session?.user
+  const isSignedIn = Boolean(session?.user)
   const router = useRouter()
   const [atprotoHandle, setAtprotoHandle] = useState('')
   const [atprotoDisplayName, setAtprotoDisplayName] = useState('')

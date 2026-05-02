@@ -1,7 +1,5 @@
-'use client'
-
-import { AuthenticateWithRedirectCallback } from '@clerk/nextjs'
+import { redirect } from 'next/navigation'
 
 export default function SSOSignInCallback() {
-  return <AuthenticateWithRedirectCallback />
+  redirect('/app')
 }

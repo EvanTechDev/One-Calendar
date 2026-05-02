@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { currentUser } from '@clerk/nextjs/server'
+import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { deleteRecord, getRecord, putRecord } from '@/lib/atproto'
 import { getAtprotoSession } from '@/lib/atproto-auth'
@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const user = await currentUser()
+    const session = await getServerSession()
+    const user = session?.user
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -346,7 +347,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
   }
 
-  const user = await currentUser()
+  const session = await getServerSession()
+    const user = session?.user
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

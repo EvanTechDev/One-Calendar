@@ -2,22 +2,22 @@
 
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { useUser } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
-function hasClerkSessionCookie() {
+function detectAuthSessionCookie() {
   if (typeof document === 'undefined') return false
 
   return document.cookie
     .split(';')
-    .some((cookie) => cookie.trim().startsWith('__session='))
+    .some((cookie) => cookie.trim().startsWith('better-auth.session_token='))
 }
 
 export default function Home() {
-  const { isLoaded, isSignedIn } = useUser()
-  const [hasSessionCookie, setHasSessionCookie] = useState(
-    hasClerkSessionCookie,
-  )
+  const { data: session, isPending } = authClient.useSession()
+  const isLoaded = !isPending
+  const isSignedIn = Boolean(session?.user)
+  const [hasAuthCookie, setHasAuthCookie] = useState(detectAuthSessionCookie)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
@@ -28,8 +28,8 @@ export default function Home() {
     }, 500)
 
     const cookieCheckTimer = window.setInterval(() => {
-      if (hasClerkSessionCookie()) {
-        setHasSessionCookie(true)
+      if (detectAuthSessionCookie()) {
+        setHasAuthCookie(true)
       }
     }, 50)
 
@@ -79,10 +79,10 @@ export default function Home() {
 
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
-    if (hasSessionCookie && !isLoaded) return true
+    if (hasAuthCookie && !isLoaded) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasAuthCookie, isLoaded, isSignedIn, dbReady])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
