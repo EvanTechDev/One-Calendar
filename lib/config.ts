@@ -1,5 +1,3 @@
-type ConfigurableOAuthProvider = 'microsoft' | 'google' | 'github'
-
 const FEEDBACK_EMAIL = 'evan.huang000@proton.me'
 const STATUS_PAGE_URL = 'https://calendarstatus.xyehr.cn'
 const GITHUB_URL = 'https://github.com/EvanTechDev/One-Calendar'
@@ -10,11 +8,10 @@ export const APP_CONFIG = {
     statusPageUrl: STATUS_PAGE_URL,
   },
   auth: {
-    enabledOAuthProviders: [
-      'microsoft',
-      'google',
-      'github',
-    ] as ConfigurableOAuthProvider[],
+    enabledOAuthProviders: [] as const,
+    resend: {
+      sender: process.env.RESEND_SENDER_EMAIL ?? 'no-reply@auth.example.com',
+    },
   },
   landing: {
     footerSections: [

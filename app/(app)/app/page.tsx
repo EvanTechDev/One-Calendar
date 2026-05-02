@@ -5,7 +5,7 @@ import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
-function hasSessionCookie() {
+function hasAuthSessionCookie() {
   if (typeof document === 'undefined') return false
 
   return document.cookie
@@ -17,8 +17,8 @@ export default function Home() {
   const { data: session, isPending } = authClient.useSession()
   const isLoaded = !isPending
   const isSignedIn = Boolean(session?.user)
-  const [hasSessionCookie, setHasSessionCookie] = useState(
-    hasSessionCookie,
+  const [hasAuthSessionCookie, setHasSessionCookie] = useState(
+    hasAuthSessionCookie,
   )
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
@@ -30,7 +30,7 @@ export default function Home() {
     }, 500)
 
     const cookieCheckTimer = window.setInterval(() => {
-      if (hasSessionCookie()) {
+      if (hasAuthSessionCookie()) {
         setHasSessionCookie(true)
       }
     }, 50)
@@ -84,7 +84,7 @@ export default function Home() {
     if (hasSessionCookie && !isLoaded) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasAuthSessionCookie, isLoaded, isSignedIn, dbReady])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />

@@ -45,7 +45,10 @@
     "@prisma/adapter-pg": "latest",
     "@prisma/extension-accelerate": "latest",
     "better-auth": "latest",
-    "@better-auth/prisma-adapter": "latest"
+    "@better-auth/prisma-adapter": "latest",
+    "bcryptjs": "latest",
+    "resend": "latest",
+    "csv-parse": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
