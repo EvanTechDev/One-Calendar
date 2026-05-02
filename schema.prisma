@@ -32,17 +32,6 @@ model CalendarBackup {
   @@map("calendar_backups")
 }
 
-model AtprotoShareBurnRead {
-  handle          String
-  ownerDid        String?  @map("owner_did")
-  shareId         String   @map("share_id")
-  burnedAt        DateTime @default(now()) @map("burned_at")
-  pdsDeleteSynced Boolean  @default(false) @map("pds_delete_synced")
-
-  @@id([shareId, handle])
-  @@map("atproto_share_burn_reads")
-}
-
 model User {
   id            String    @id
   name          String

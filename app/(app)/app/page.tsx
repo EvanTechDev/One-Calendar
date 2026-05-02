@@ -5,7 +5,7 @@ import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
-function detectAuthSessionCookie() {
+function hasSessionCookieFn() {
   if (typeof document === 'undefined') return false
 
   return document.cookie
@@ -17,9 +17,8 @@ export default function Home() {
   const { data: session, isPending } = authClient.useSession()
   const isLoaded = !isPending
   const isSignedIn = Boolean(session?.user)
-  const [hasAuthCookie, setHasAuthCookie] = useState(detectAuthSessionCookie)
+  const [hasSessionCookie, setHasSessionCookie] = useState(hasSessionCookieFn)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
-  const [atprotoLogoutDone, setAtprotoLogoutDone] = useState(false)
   const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
@@ -28,8 +27,8 @@ export default function Home() {
     }, 500)
 
     const cookieCheckTimer = window.setInterval(() => {
-      if (detectAuthSessionCookie()) {
-        setHasAuthCookie(true)
+      if (hasSessionCookieFn()) {
+        setHasSessionCookie(true)
       }
     }, 50)
 
@@ -39,12 +38,6 @@ export default function Home() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || atprotoLogoutDone) return
-    fetch('/api/atproto/logout', { method: 'POST' })
-      .catch(() => undefined)
-      .finally(() => setAtprotoLogoutDone(true))
-  }, [isLoaded, isSignedIn, atprotoLogoutDone])
 
   useEffect(() => {
     if (!isLoaded) return
@@ -79,10 +72,10 @@ export default function Home() {
 
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
-    if (hasAuthCookie && !isLoaded) return true
+    if (hasSessionCookie && !isLoaded) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [minimumWaitDone, hasAuthCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
