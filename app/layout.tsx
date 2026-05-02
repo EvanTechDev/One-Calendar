@@ -62,20 +62,20 @@ export default function RootLayout({
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
-                  <ThemeProvider
-            themes={['light', 'dark', 'green', 'orange', 'azalea']}
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <CalendarProvider>
-              <PwaProvider />
-              {children}
-              <Toaster />
-            </CalendarProvider>
-          </ThemeProvider>
-              </body>
+        <ThemeProvider
+          themes={['light', 'dark', 'green', 'orange', 'azalea']}
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <CalendarProvider>
+            <PwaProvider />
+            {children}
+            <Toaster />
+          </CalendarProvider>
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

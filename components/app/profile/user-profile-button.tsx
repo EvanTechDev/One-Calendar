@@ -720,7 +720,7 @@ export default function UserProfileButton({
                       .filter(Boolean)
                       .join(' ') ||
                       user?.username ||
-                                                                  'User'}
+                      'User'}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
                     {user?.primaryEmailAddress?.emailAddress ||
