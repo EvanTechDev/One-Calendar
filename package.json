@@ -12,8 +12,7 @@
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "generate:locales": "bun lib/gen-locales.mjs",
-    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs",
-    "postinstall": "prisma generate"
+    "generate:oauth-metadata": "bun lib/gen-oauth-metadata.mjs"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "latest",
