@@ -21,7 +21,7 @@ export const auth = betterAuth({
     },
     sendResetPassword: async ({ user, url }) => {
       if (!resend) return
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: APP_CONFIG.auth.resend.sender,
         to: user.email,
         subject: 'Reset your password',
@@ -34,12 +34,13 @@ export const auth = betterAuth({
           secondary: 'If you did not request this, you can safely ignore this email.',
         }),
       })
+      if (result.error) throw new Error(result.error.message)
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
       if (!resend) return
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: APP_CONFIG.auth.resend.sender,
         to: user.email,
         subject: 'Verify your email',
@@ -51,13 +52,14 @@ export const auth = betterAuth({
           actionUrl: url,
         }),
       })
+      if (result.error) throw new Error(result.error.message)
     },
   },
   plugins: [
     emailOTP({
       sendVerificationOTP: async ({ email, otp, type }) => {
         if (!resend) return
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from: APP_CONFIG.auth.resend.sender,
           to: email,
           subject: type === 'forget-password' ? 'Reset code' : 'Verification code',
@@ -74,6 +76,7 @@ export const auth = betterAuth({
             secondary: 'This code will expire shortly for your security.',
           }),
         })
+        if (result.error) throw new Error(result.error.message)
       },
     }),
   ],
