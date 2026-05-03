@@ -5,25 +5,6 @@ import { prisma } from '@/lib/prisma'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-let initDBPromise: Promise<void> | null = null
-
-function initDB(): Promise<void> {
-  if (!initDBPromise) {
-    initDBPromise = prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS calendar_backups (
-        user_id TEXT PRIMARY KEY,
-        encrypted_data TEXT NOT NULL,
-        iv TEXT NOT NULL,
-        timestamp TIMESTAMP NOT NULL
-      )
-    `.then(() => undefined).catch((e) => {
-      initDBPromise = null
-      throw e
-    })
-  }
-  return initDBPromise
-}
-
 const NO_STORE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
   'Pragma': 'no-cache',
@@ -51,19 +32,11 @@ export async function POST(req: NextRequest) {
     if (typeof encrypted_data !== 'string' || typeof iv !== 'string')
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
 
-    await Promise.all([
-      initDB(),
-    ])
-
-    await prisma.$executeRaw`
-      INSERT INTO calendar_backups (user_id, encrypted_data, iv, timestamp)
-      VALUES (${userId}, ${encrypted_data}, ${iv}, ${new Date().toISOString()})
-      ON CONFLICT (user_id)
-      DO UPDATE SET
-        encrypted_data = EXCLUDED.encrypted_data,
-        iv = EXCLUDED.iv,
-        timestamp = EXCLUDED.timestamp
-    `
+    await prisma.calendarBackup.upsert({
+      where: { userId },
+      update: { encryptedData: encrypted_data, iv, timestamp: new Date() },
+      create: { userId, encryptedData: encrypted_data, iv, timestamp: new Date() },
+    })
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {
@@ -74,21 +47,23 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const [session] = await Promise.all([getServerSession(), initDB()])
+    const session = await getServerSession()
     const userId = session?.user?.id
 
     if (!userId)
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
 
-    const result = await prisma.$queryRaw`SELECT encrypted_data, iv, timestamp FROM calendar_backups WHERE user_id = ${userId}` as Array<{ encrypted_data: string; iv: string; timestamp: Date }>
-
-    if (result.length === 0)
+    const result = await prisma.calendarBackup.findUnique({
+      where: { userId },
+      select: { encryptedData: true, iv: true, timestamp: true },
+    })
+    if (!result)
       return jsonNoStore({ error: 'Not found' }, { status: 404 })
 
     return jsonNoStore({
-      ciphertext: result[0].encrypted_data,
-      iv: result[0].iv,
-      timestamp: result[0].timestamp,
+      ciphertext: result.encryptedData,
+      iv: result.iv,
+      timestamp: result.timestamp,
       backend: 'postgres',
     })
   } catch (e: unknown) {
@@ -99,13 +74,13 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    const [session] = await Promise.all([getServerSession(), initDB()])
+    const session = await getServerSession()
     const userId = session?.user?.id
 
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await prisma.$executeRaw`DELETE FROM calendar_backups WHERE user_id = ${userId}`
+    await prisma.calendarBackup.deleteMany({ where: { userId } })
 
     return NextResponse.json({ success: true, backend: 'postgres' })
   } catch (e: unknown) {

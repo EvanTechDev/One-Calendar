@@ -48,7 +48,8 @@
     "resend": "latest",
     "csv-parse": "latest",
     "@react-email/components": "latest",
-    "@react-email/render": "latest"
+    "@react-email/render": "latest",
+    "@better-auth/infra": "latest"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

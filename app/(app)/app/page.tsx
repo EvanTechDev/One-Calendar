@@ -2,7 +2,6 @@
 
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
 function hasSessionCookieFn() {
@@ -14,11 +13,13 @@ function hasSessionCookieFn() {
 }
 
 export default function Home() {
-  const { data: session, isPending } = authClient.useSession()
-  const isLoaded = !isPending
-  const isSignedIn = Boolean(session?.user)
+  const [apiSession, setApiSession] = useState<any>(null)
+  const [sessionChecked, setSessionChecked] = useState(false)
+  const isLoaded = sessionChecked
+  const isSignedIn = Boolean(apiSession?.user)
   const [hasSessionCookie, setHasSessionCookie] = useState(hasSessionCookieFn)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
+  const [authStabilized, setAuthStabilized] = useState(false)
   const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
@@ -37,6 +38,36 @@ export default function Home() {
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const run = async () => {
+      try {
+        const response = await fetch('/api/auth/get-session', { cache: 'no-store' })
+        const data = response.ok ? await response.json() : null
+        if (!active) return
+        setApiSession(data)
+      } catch {
+        if (!active) return
+        setApiSession(null)
+      } finally {
+        if (active) setSessionChecked(true)
+      }
+    }
+    void run()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isSignedIn) {
+      setAuthStabilized(true)
+      return
+    }
+    const timer = window.setTimeout(() => setAuthStabilized(true), 1500)
+    return () => window.clearTimeout(timer)
+  }, [isSignedIn])
 
 
   useEffect(() => {
@@ -73,9 +104,10 @@ export default function Home() {
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
     if (hasSessionCookie && !isLoaded) return true
+    if (!isSignedIn && !authStabilized) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady, authStabilized])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
