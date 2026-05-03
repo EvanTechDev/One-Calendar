@@ -2,7 +2,6 @@
 
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { authClient } from '@/lib/auth-client'
 import { useEffect, useMemo, useState } from 'react'
 
 function hasSessionCookieFn() {
@@ -14,11 +13,10 @@ function hasSessionCookieFn() {
 }
 
 export default function Home() {
-  const { data: session, isPending } = authClient.useSession()
-  const [resolvedSession, setResolvedSession] = useState<any>(null)
+  const [apiSession, setApiSession] = useState<any>(null)
   const [sessionChecked, setSessionChecked] = useState(false)
-  const isLoaded = !isPending && sessionChecked
-  const isSignedIn = Boolean(session?.user || resolvedSession?.user)
+  const isLoaded = sessionChecked
+  const isSignedIn = Boolean(apiSession?.user)
   const [hasSessionCookie, setHasSessionCookie] = useState(hasSessionCookieFn)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [authStabilized, setAuthStabilized] = useState(false)
@@ -45,9 +43,13 @@ export default function Home() {
     let active = true
     const run = async () => {
       try {
-        const res = await authClient.getSession()
+        const response = await fetch('/api/auth/get-session', { cache: 'no-store' })
+        const data = response.ok ? await response.json() : null
         if (!active) return
-        setResolvedSession((res as any).data || null)
+        setApiSession(data)
+      } catch {
+        if (!active) return
+        setApiSession(null)
       } finally {
         if (active) setSessionChecked(true)
       }
@@ -56,7 +58,7 @@ export default function Home() {
     return () => {
       active = false
     }
-  }, [isPending])
+  }, [])
 
   useEffect(() => {
     if (isSignedIn) {
