@@ -10,6 +10,24 @@ import { renderAuthEmailTemplate } from '@/lib/auth-email-template'
 const resendKey = process.env.RESEND_API_KEY
 const resend = resendKey ? new Resend(resendKey) : null
 
+async function sendAuthEmail(payload: {
+  to: string
+  subject: string
+  html: string
+}) {
+  if (!resend) {
+    throw new Error('RESEND_API_KEY is not configured')
+  }
+  const result = await resend.emails.send({
+    from: APP_CONFIG.auth.resend.sender,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+  })
+  if (result.error) throw new Error(result.error.message)
+  if (!result.data?.id) throw new Error('Email provider did not return a message id')
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
   emailAndPassword: {
@@ -20,9 +38,7 @@ export const auth = betterAuth({
       verify: async ({ hash, password }) => bcrypt.compare(password, hash),
     },
     sendResetPassword: async ({ user, url }) => {
-      if (!resend) return
-      const result = await resend.emails.send({
-        from: APP_CONFIG.auth.resend.sender,
+      await sendAuthEmail({
         to: user.email,
         subject: 'Reset your password',
         html: renderAuthEmailTemplate({
@@ -34,14 +50,11 @@ export const auth = betterAuth({
           secondary: 'If you did not request this, you can safely ignore this email.',
         }),
       })
-      if (result.error) throw new Error(result.error.message)
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      if (!resend) return
-      const result = await resend.emails.send({
-        from: APP_CONFIG.auth.resend.sender,
+      await sendAuthEmail({
         to: user.email,
         subject: 'Verify your email',
         html: renderAuthEmailTemplate({
@@ -52,15 +65,12 @@ export const auth = betterAuth({
           actionUrl: url,
         }),
       })
-      if (result.error) throw new Error(result.error.message)
     },
   },
   plugins: [
     emailOTP({
       sendVerificationOTP: async ({ email, otp, type }) => {
-        if (!resend) return
-        const result = await resend.emails.send({
-          from: APP_CONFIG.auth.resend.sender,
+        await sendAuthEmail({
           to: email,
           subject: type === 'forget-password' ? 'Reset code' : 'Verification code',
           html: renderAuthEmailTemplate({
@@ -76,7 +86,6 @@ export const auth = betterAuth({
             secondary: 'This code will expire shortly for your security.',
           }),
         })
-        if (result.error) throw new Error(result.error.message)
       },
     }),
   ],

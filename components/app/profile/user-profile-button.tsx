@@ -364,10 +364,38 @@ export default function UserProfileButton({
     if (!user || !file) return
     try {
       setAvatarUploading(true)
+      const MAX_AVATAR_BYTES = 4 * 1024 * 1024
+      const MAX_DIMENSION = 512
+      if (file.size > MAX_AVATAR_BYTES * 5) {
+        throw new Error('Image is too large. Please choose a smaller file.')
+      }
       const image = await new Promise<string>((resolve, reject) => {
+        const img = new Image()
         const reader = new FileReader()
-        reader.onload = () => resolve(String(reader.result || ''))
+        reader.onload = () => {
+          img.src = String(reader.result || '')
+        }
         reader.onerror = () => reject(new Error('Failed to read file'))
+        img.onload = () => {
+          const side = Math.min(img.width, img.height)
+          const sx = Math.floor((img.width - side) / 2)
+          const sy = Math.floor((img.height - side) / 2)
+          const target = Math.min(side, MAX_DIMENSION)
+          const canvas = document.createElement('canvas')
+          canvas.width = target
+          canvas.height = target
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return reject(new Error('Failed to process image'))
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, target, target)
+          let quality = 0.92
+          let data = canvas.toDataURL('image/jpeg', quality)
+          while (data.length > MAX_AVATAR_BYTES * 1.4 && quality > 0.5) {
+            quality -= 0.08
+            data = canvas.toDataURL('image/jpeg', quality)
+          }
+          resolve(data)
+        }
+        img.onerror = () => reject(new Error('Unsupported image format'))
         reader.readAsDataURL(file)
       })
       const { error } = await authClient.updateUser({ image })

@@ -19,6 +19,7 @@ export default function Home() {
   const isSignedIn = Boolean(session?.user)
   const [hasSessionCookie, setHasSessionCookie] = useState(hasSessionCookieFn)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
+  const [authStabilized, setAuthStabilized] = useState(false)
   const [dbReady, setDbReady] = useState(false)
 
   useEffect(() => {
@@ -37,6 +38,15 @@ export default function Home() {
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
+
+  useEffect(() => {
+    if (isSignedIn) {
+      setAuthStabilized(true)
+      return
+    }
+    const timer = window.setTimeout(() => setAuthStabilized(true), 1500)
+    return () => window.clearTimeout(timer)
+  }, [isSignedIn])
 
 
   useEffect(() => {
@@ -73,9 +83,10 @@ export default function Home() {
   const shouldShowAuthWait = useMemo(() => {
     if (!minimumWaitDone) return true
     if (hasSessionCookie && !isLoaded) return true
+    if (!isSignedIn && !authStabilized) return true
     if (isSignedIn && !dbReady) return true
     return false
-  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady])
+  }, [minimumWaitDone, hasSessionCookie, isLoaded, isSignedIn, dbReady, authStabilized])
 
   if (shouldShowAuthWait) {
     return <AuthWaitingLoading />
