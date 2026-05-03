@@ -6,10 +6,14 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  return new PrismaClient({
-    accelerateUrl: process.env.POSTGRES_URL,
+  const baseClient = new PrismaClient({
+    accelerateUrl: process.env.PRISMA_ACCELERATE_URL,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  }).$extends(withAccelerate())
+  })
+  if (process.env.PRISMA_ACCELERATE_URL) {
+    return baseClient.$extends(withAccelerate())
+  }
+  return baseClient
 }
 
 function getPrismaClient() {
@@ -24,7 +28,7 @@ function getPrismaClient() {
   return client
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+export const prisma = getPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
