@@ -21,7 +21,7 @@ async function sendAuthEmail(payload: {
   }
   const result = await resend.emails.send({
     from: APP_CONFIG.auth.resend.sender,
-    to: payload.to,
+    to: [payload.to],
     subject: payload.subject,
     html: payload.html,
   })
@@ -74,11 +74,12 @@ export const auth = betterAuth({
     }),
     sentinel({
       apiKey: process.env.BETTER_AUTH_API_KEY,
-      credentialStuffing: { enabled: true, action: 'block' },
-      compromisedPassword: { enabled: true, action: 'block' },
-      botBlocking: { enabled: true, action: 'challenge' },
-      emailNormalization: { enabled: true },
-      proofOfWork: { enabled: true },
+      security: {
+        credentialStuffing: { enabled: true, action: 'block' },
+        compromisedPassword: { enabled: true, action: 'block' },
+        botBlocking: { action: 'challenge' },
+        emailValidation: { enabled: true },
+      },
     }),
     emailOTP({
       sendVerificationOTP: async ({ email, otp, type }) => {
@@ -101,5 +102,5 @@ export const auth = betterAuth({
       },
     }),
   ],
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL as string].filter(Boolean),
+  trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL as string].filter(Boolean),
 })
