@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from '@better-auth/prisma-adapter'
 import { emailOTP, twoFactor } from 'better-auth/plugins'
-import { sentinel } from '@better-auth/infra/plugins'
+import { sentinel } from '@better-auth/infra'
 import { prisma } from '@/lib/prisma'
 import { APP_CONFIG } from '@/lib/config'
 import { Resend } from 'resend'
