@@ -13,7 +13,7 @@
 - [Status](https://calendarstatus.xyehr.cn)
 - [Bluesky](https://bsky.app/profile/calendar.xyehr.cn)
 
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,POSTGRES_URL,SALT&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,POSTGRES_URL,SALT&project-name=one-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
 
 <a href="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></img></a>
 
@@ -131,15 +131,13 @@ Key variables:
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 SALT=Backup-Salt
 
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
-CLERK_SECRET_KEY=...
+# Auth
+BETTER_AUTH_SECRET=secret
+BETTER_AUTH_URL=http://localhost:3000
 
-
-# Optional DB (backup/share sync)
+# Optional
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
-POSTGRES_SSL=false
-POSTGRES_SSL_REJECT_UNAUTHORIZED=false
+BETTER_AUTH_API_KEY=your-api-key
 ```
 
 ### Database Configuration
@@ -170,14 +168,7 @@ bunx prisma db push
 
 ## Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Shadcn/UI](https://ui.shadcn.com)
-- [Zustand](https://zustand-demo.pmnd.rs/)
-- [Prisma](https://www.prisma.io/)
-- [PostgreSQL](https://www.postgresql.org/)
-- [Clerk](https://clerk.com)
+![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,prisma,betterauth)
 
 ## Contributing
 
