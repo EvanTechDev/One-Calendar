@@ -491,10 +491,9 @@ export default function UserProfileButton({
 
   async function confirmChangePassword() {
     if (!user?.email || !changePasswordValue || !changePasswordOtp) return
-    const res = await authClient.emailOtp.verifyOtp({
+    const res = await authClient.emailOtp.verifyEmail({
       email: user.email,
       otp: changePasswordOtp,
-      type: 'forget-password',
     })
     if (res.error) {
       toast(res.error.message || 'Invalid verification code.')
