@@ -364,9 +364,13 @@ export default function UserProfileButton({
     if (!user || !file) return
     try {
       setAvatarUploading(true)
-      const MAX_AVATAR_BYTES = 4 * 1024 * 1024
+      const MAX_OUTPUT_BYTES = 4 * 1024 * 1024
+      const MAX_SOURCE_BYTES = 20 * 1024 * 1024
       const MAX_DIMENSION = 512
-      if (file.size > MAX_AVATAR_BYTES * 5) {
+      const INITIAL_QUALITY = 0.92
+      const MIN_QUALITY = 0.5
+      const QUALITY_STEP = 0.08
+      if (file.size > MAX_SOURCE_BYTES) {
         throw new Error('Image is too large. Please choose a smaller file.')
       }
       const image = await new Promise<string>((resolve, reject) => {
@@ -387,11 +391,18 @@ export default function UserProfileButton({
           const ctx = canvas.getContext('2d')
           if (!ctx) return reject(new Error('Failed to process image'))
           ctx.drawImage(img, sx, sy, side, side, 0, 0, target, target)
-          let quality = 0.92
+          let quality = INITIAL_QUALITY
           let data = canvas.toDataURL('image/jpeg', quality)
-          while (data.length > MAX_AVATAR_BYTES * 1.4 && quality > 0.5) {
-            quality -= 0.08
+          const getDataBytes = (base64DataUrl: string) => {
+            const payload = base64DataUrl.split(',')[1] || ''
+            return atob(payload).length
+          }
+          while (getDataBytes(data) > MAX_OUTPUT_BYTES && quality > MIN_QUALITY) {
+            quality -= QUALITY_STEP
             data = canvas.toDataURL('image/jpeg', quality)
+          }
+          if (getDataBytes(data) > MAX_OUTPUT_BYTES) {
+            return reject(new Error('Image is too large after processing. Please choose a smaller file.'))
           }
           resolve(data)
         }
