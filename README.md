@@ -42,7 +42,7 @@ This project is built for individuals and small teams who value clarity over com
 - **Rich event metadata** &ndash; title, description, time range, and structured fields
 - **Precise time control** &ndash; flexible duration handling and adjustments
 - **Instant updates** &ndash; optimistic UI for a responsive experience
-- **Event persistence** &ndash; reliable storage with PostgreSQL backend
+- **Event persistence** &ndash; reliable storage with Prisma
 - **Soft state handling** &ndash; controlled updates to avoid accidental data loss
 
 ### Privacy & security
@@ -51,11 +51,11 @@ This project is built for individuals and small teams who value clarity over com
 - **No analytics by default** &ndash; zero third-party tracking scripts
 - **End-to-end encryption (E2EE)** &ndash; optional encrypted data handling
 - **User-controlled exports** &ndash; backup and portability without lock-in
-- **Secure authentication** &ndash; hardened session management via Clerk
+- **Secure authentication** &ndash; hardened session management via Better Auth
 
 ### Sync & collaboration
 
-- **Cloud sync (optional)** &ndash; multi-device synchronization using PostgreSQL
+- **Cloud sync (optional)** &ndash; multi-device synchronization using Prisma
 - **Account-based access** &ndash; sign in with third-party providers
 - **Share-ready architecture** &ndash; designed for future team and shared calendar support
 
@@ -170,7 +170,7 @@ bunx prisma db push
 
 ## Tech Stack
 
-![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,prisma,betterauth)
+![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,prisma,betterauth,resend)
 
 ## Contributing
 
