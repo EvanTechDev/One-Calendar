@@ -15,8 +15,10 @@ function hasSessionCookieFn() {
 
 export default function Home() {
   const { data: session, isPending } = authClient.useSession()
-  const isLoaded = !isPending
-  const isSignedIn = Boolean(session?.user)
+  const [resolvedSession, setResolvedSession] = useState<any>(null)
+  const [sessionChecked, setSessionChecked] = useState(false)
+  const isLoaded = !isPending && sessionChecked
+  const isSignedIn = Boolean(session?.user || resolvedSession?.user)
   const [hasSessionCookie, setHasSessionCookie] = useState(hasSessionCookieFn)
   const [minimumWaitDone, setMinimumWaitDone] = useState(false)
   const [authStabilized, setAuthStabilized] = useState(false)
@@ -38,6 +40,23 @@ export default function Home() {
       window.clearInterval(cookieCheckTimer)
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const run = async () => {
+      try {
+        const res = await authClient.getSession()
+        if (!active) return
+        setResolvedSession((res as any).data || null)
+      } finally {
+        if (active) setSessionChecked(true)
+      }
+    }
+    void run()
+    return () => {
+      active = false
+    }
+  }, [isPending])
 
   useEffect(() => {
     if (isSignedIn) {
