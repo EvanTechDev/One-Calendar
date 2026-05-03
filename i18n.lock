@@ -529,3 +529,22 @@ checksums:
     feedback: 6fac88806e0c269a30777b283988c61c
     privacy: 6007d5d5f6591c027b15bd49ab7a8c47
     tos: a93e3ebc6c19afbfde9f93cafb4d8edc
+    accountEmailManagement: 2e7857a7d9131942bb53b86c78b69b24
+    currentEmail: a1265eee7728cd04affa55cea5aad3e9
+    currentPassword: 6fd6e34a5137a2432dda7add98083964
+    newEmail: a27757376ab05ff223433ab520a3f489
+    sendEmailOtp: 3eda6724987cd7e0d3b05aeaa0e2e35c
+    emailOtpCode: 8a20e31d112b94328d2c8ab3c9d17a7e
+    verifyAndUpdateEmail: ce99e05184907889446211a9f7689f35
+    twoFactorAuthentication: bc68ddd9c3c82225ef641f097e0940db
+    openTwoFactorSettings: a9e126cadfe5191f5eeea658b38e513c
+    openPasswordSettings: d9aa1234393557b18487fabc954fd3fb
+    changePassword: fe6d4ba303b82f4833b3293f0c4e88c0
+    sendPasswordOtp: 07d23df498d0a3a36131cce824950bd1
+    otpCode: fb99041093f1b715971b5d92e72694c1
+    verify2faCode: d1c3a5da5f3074a8e28f83aa6ff31aab
+    enable2fa: 681685f434e6cf21e7fa095bf7dcc0bb
+    disable2fa: 475bed4ebb95a11fb5748e1f03903d6e
+    next: 89ddbcf710eba274963494f312bdc8a9
+    back: f541015a827e37cb3b1234e56bc2aa3c
+    scanQrFor2fa: cc62d23fd921db35197b258cac780188
