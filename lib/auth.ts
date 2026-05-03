@@ -31,6 +31,12 @@ async function sendAuthEmail(payload: {
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
