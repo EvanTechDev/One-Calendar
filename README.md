@@ -138,6 +138,8 @@ BETTER_AUTH_URL=http://localhost:3000
 # Optional
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/onecalendar
 BETTER_AUTH_API_KEY=your-api-key
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=site-key
+TURNSTILE_SECRET_KEY=secret-key
 ```
 
 ### Database Configuration
