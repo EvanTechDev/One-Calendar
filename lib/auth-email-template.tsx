@@ -22,7 +22,7 @@ interface AuthEmailTemplateProps {
   secondary?: string
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 function AuthEmailTemplate({
   preview,
@@ -65,11 +65,11 @@ function AuthEmailTemplate({
               padding: '24px 32px',
             }}
           >
-            <table width="100%" cellPadding={0} cellSpacing={0}>
+            <table cellPadding={0} cellSpacing={0}>
               <tr>
-                <td>
+                <td style={{ verticalAlign: 'middle' }}>
                   <Img
-                    src={`${baseUrl}/icon.svg`}
+                    src={`${baseUrl}/logo.svg`}
                     alt="One Calendar"
                     width={20}
                     height={20}
@@ -78,7 +78,7 @@ function AuthEmailTemplate({
                 </td>
                 <td
                   style={{
-                    paddingLeft: '10px',
+                    paddingLeft: '8px',
                     verticalAlign: 'middle',
                   }}
                 >
@@ -185,10 +185,17 @@ function AuthEmailTemplate({
                     }}
                   >
                     <a
-                      href={baseUrl}
+                      href={`${baseUrl}/privacy`}
                       style={{ color: '#999999', textDecoration: 'underline' }}
                     >
-                      onecalendar.app
+                      Privacy
+                    </a>
+                    <span style={{ color: '#d4d4d4', margin: '0 6px' }}>·</span>
+                    <a
+                      href={`${baseUrl}/terms`}
+                      style={{ color: '#999999', textDecoration: 'underline' }}
+                    >
+                      Terms
                     </a>
                   </Text>
                 </td>
