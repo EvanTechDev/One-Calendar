@@ -69,7 +69,7 @@ function AuthEmailTemplate({
               <tr>
                 <td style={{ verticalAlign: 'middle' }}>
                   <Img
-                    src={`${baseUrl}/logo.svg`}
+                    src={`${baseUrl}/icon.svg`}
                     alt="One Calendar"
                     width={20}
                     height={20}
