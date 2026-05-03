@@ -6,6 +6,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -21,6 +22,8 @@ interface AuthEmailTemplateProps {
   secondary?: string
 }
 
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+
 function AuthEmailTemplate({
   preview,
   title,
@@ -30,29 +33,168 @@ function AuthEmailTemplate({
   secondary,
 }: AuthEmailTemplateProps) {
   return (
-    <Html>
+    <Html lang="en">
       <Head />
       <Preview>{preview}</Preview>
-      <Body style={{ backgroundColor: '#f6f8fb', fontFamily: 'Inter, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
-        <Container style={{ backgroundColor: '#ffffff', border: '1px solid #e9eef5', borderRadius: '12px', margin: '32px auto', maxWidth: '520px', padding: '28px' }}>
-          <Text style={{ color: '#0f172a', fontSize: '20px', fontWeight: 700, margin: '0 0 8px' }}>One Calendar</Text>
-          <Text style={{ color: '#64748b', fontSize: '13px', margin: '0 0 24px' }}>Simple scheduling for focused teams.</Text>
-          <Section>
-            <Text style={{ color: '#0f172a', fontSize: '18px', fontWeight: 600, margin: '0 0 12px' }}>{title}</Text>
-            <Text style={{ color: '#334155', fontSize: '14px', lineHeight: '24px', margin: 0 }}>{body}</Text>
+
+      {/* Background */}
+      <Body
+        style={{
+          backgroundColor: '#fafafa',
+          fontFamily:
+            '"Geist", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+          margin: 0,
+          padding: '40px 0',
+        }}
+      >
+        <Container
+          style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e5e5',
+            borderRadius: '8px',
+            margin: '0 auto',
+            maxWidth: '480px',
+            padding: '0',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header */}
+          <Section
+            style={{
+              borderBottom: '1px solid #e5e5e5',
+              padding: '24px 32px',
+            }}
+          >
+            <table width="100%" cellPadding={0} cellSpacing={0}>
+              <tr>
+                <td>
+                  <Img
+                    src={`${baseUrl}/icon.svg`}
+                    alt="One Calendar"
+                    width={20}
+                    height={20}
+                    style={{ display: 'block' }}
+                  />
+                </td>
+                <td
+                  style={{
+                    paddingLeft: '10px',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#000000',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      letterSpacing: '-0.01em',
+                      margin: 0,
+                    }}
+                  >
+                    One Calendar
+                  </Text>
+                </td>
+              </tr>
+            </table>
           </Section>
-          {actionLabel && actionUrl ? (
-            <Section style={{ marginTop: '24px' }}>
-              <Button href={actionUrl} style={{ backgroundColor: '#0066ff', borderRadius: '10px', color: '#ffffff', fontSize: '14px', fontWeight: 600, padding: '12px 18px', textDecoration: 'none' }}>
-                {actionLabel}
-              </Button>
-            </Section>
-          ) : null}
-          {secondary ? (
-            <Text style={{ color: '#475569', fontSize: '13px', lineHeight: '22px', marginTop: '18px' }}>{secondary}</Text>
-          ) : null}
-          <Hr style={{ borderColor: '#e9eef5', margin: '24px 0' }} />
-          <Text style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>© {new Date().getFullYear()} One Calendar · xyehr.cn</Text>
+
+          {/* Body */}
+          <Section style={{ padding: '32px 32px 0' }}>
+            <Text
+              style={{
+                color: '#000000',
+                fontSize: '20px',
+                fontWeight: 600,
+                letterSpacing: '-0.025em',
+                lineHeight: '28px',
+                margin: '0 0 16px',
+              }}
+            >
+              {title}
+            </Text>
+
+            <Text
+              style={{
+                color: '#666666',
+                fontSize: '14px',
+                lineHeight: '24px',
+                margin: '0 0 24px',
+              }}
+            >
+              {body}
+            </Text>
+
+            {actionLabel && actionUrl ? (
+              <Section style={{ margin: '0 0 24px' }}>
+                <Button
+                  href={actionUrl}
+                  style={{
+                    backgroundColor: '#000000',
+                    borderRadius: '6px',
+                    color: '#ffffff',
+                    display: 'inline-block',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    letterSpacing: '-0.01em',
+                    padding: '10px 18px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {actionLabel}
+                </Button>
+              </Section>
+            ) : null}
+
+            {secondary ? (
+              <Text
+                style={{
+                  color: '#888888',
+                  fontSize: '13px',
+                  lineHeight: '22px',
+                  margin: '0 0 24px',
+                }}
+              >
+                {secondary}
+              </Text>
+            ) : null}
+          </Section>
+
+          {/* Footer */}
+          <Section style={{ padding: '0 32px 32px' }}>
+            <Hr style={{ borderColor: '#e5e5e5', margin: '0 0 24px' }} />
+
+            <table width="100%" cellPadding={0} cellSpacing={0}>
+              <tr>
+                <td>
+                  <Text
+                    style={{
+                      color: '#999999',
+                      fontSize: '12px',
+                      margin: 0,
+                    }}
+                  >
+                    © {new Date().getFullYear()} One Calendar
+                  </Text>
+                </td>
+                <td align="right">
+                  <Text
+                    style={{
+                      color: '#999999',
+                      fontSize: '12px',
+                      margin: 0,
+                    }}
+                  >
+                    <a
+                      href={baseUrl}
+                      style={{ color: '#999999', textDecoration: 'underline' }}
+                    >
+                      onecalendar.app
+                    </a>
+                  </Text>
+                </td>
+              </tr>
+            </table>
+          </Section>
         </Container>
       </Body>
     </Html>
