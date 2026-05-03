@@ -41,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { InputOTP } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
@@ -234,7 +235,7 @@ export default function UserProfileButton({
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState('')
   const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState('')
   const [profileSection, setProfileSection] = useState<
-    'basic' | 'emails' | 'oauth'
+    'basic' | 'emails' | 'oauth' | 'security'
   >('basic')
 
   const [password, setPassword] = useState('')
@@ -247,6 +248,10 @@ export default function UserProfileButton({
   const [newEmail, setNewEmail] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [twoFactorPassword, setTwoFactorPassword] = useState('')
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [twoFactorPending, setTwoFactorPending] = useState(false)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
 
   const keyRef = useRef<string | null>(null)
   const lastBackupSnapshotRef = useRef<string | null>(null)
@@ -279,6 +284,10 @@ export default function UserProfileButton({
   useEffect(() => {
     setEnabled(localStorage.getItem(AUTO_KEY) === 'true')
   }, [])
+
+  useEffect(() => {
+    setTwoFactorEnabled(Boolean((session as any)?.user?.twoFactorEnabled))
+  }, [session])
 
   useEffect(() => {
     if (!user) return
@@ -663,11 +672,53 @@ export default function UserProfileButton({
     toast(t.cloudDataDeleted)
   }
 
-  const openProfileSection = (section: 'basic' | 'emails' | 'oauth') => {
+  const openProfileSection = (section: 'basic' | 'emails' | 'oauth' | 'security') => {
     setProfileSection(section)
     setProfileOpen(true)
   }
 
+
+  async function enableTwoFactor() {
+    if (!twoFactorPassword) return
+    setTwoFactorPending(true)
+    const setupRes = await authClient.twoFactor.enable({ password: twoFactorPassword })
+    if (setupRes.error) {
+      toast(setupRes.error.message || 'Failed to enable 2FA')
+      setTwoFactorPending(false)
+      return
+    }
+    setTwoFactorEnabled(true)
+    setTwoFactorPending(false)
+    toast('Two-factor authentication enabled.')
+  }
+
+  async function disableTwoFactor() {
+    if (!twoFactorPassword) return
+    setTwoFactorPending(true)
+    const disableRes = await authClient.twoFactor.disable({ password: twoFactorPassword })
+    if (disableRes.error) {
+      toast(disableRes.error.message || 'Failed to disable 2FA')
+      setTwoFactorPending(false)
+      return
+    }
+    setTwoFactorEnabled(false)
+    setTwoFactorPending(false)
+    toast('Two-factor authentication disabled.')
+  }
+
+  async function verifyTwoFactorSetup() {
+    if (twoFactorCode.length < 6) return
+    setTwoFactorPending(true)
+    const verifyRes = await authClient.twoFactor.verifyTotp({ code: twoFactorCode, trustDevice: true })
+    if (verifyRes.error) {
+      toast(verifyRes.error.message || 'Invalid TOTP code')
+      setTwoFactorPending(false)
+      return
+    }
+    toast('2FA setup verified.')
+    setTwoFactorCode('')
+    setTwoFactorPending(false)
+  }
   async function deleteAccount() {
     if (!user || deleteAccountConfirmText !== 'DELETE MY ACCOUNT') return
     try {
@@ -814,6 +865,15 @@ export default function UserProfileButton({
                       >
                         <LinkIcon className="h-4 w-4 mr-2" />
                         {t.openOauthSettings}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3 rounded-md border p-3">
+                      <p className="text-sm font-semibold">Security</p>
+                      <p className="text-xs text-muted-foreground">Manage password and two-factor authentication.</p>
+                      <Button variant="outline" onClick={() => openProfileSection('security')}>
+                        <KeyRound className="h-4 w-4 mr-2" />
+                        Open security settings
                       </Button>
                     </div>
                   </>
@@ -1048,6 +1108,27 @@ export default function UserProfileButton({
                     onChange={(e) => setNewEmail(e.target.value)}
                   />
                   <Button onClick={addEmailAddress}>{t.add}</Button>
+                </div>
+              </section>
+
+              <section
+                className="space-y-3 rounded-lg border p-4"
+                hidden={profileSection !== 'security'}
+              >
+                <h3 className="font-medium">Account security</h3>
+                <div className="space-y-2">
+                  <Label>Current password</Label>
+                  <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled}>Enable 2FA</Button>
+                  <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled}>Disable 2FA</Button>
+                  <Button variant="outline" onClick={() => router.push('/reset-password')}>Change password</Button>
+                </div>
+                <div className="space-y-2">
+                  <Label>TOTP verification code</Label>
+                  <InputOTP value={twoFactorCode} onChange={(value) => setTwoFactorCode(value.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
+                  <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>Verify setup code</Button>
                 </div>
               </section>
 

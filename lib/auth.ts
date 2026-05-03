@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from '@better-auth/prisma-adapter'
-import { emailOTP } from 'better-auth/plugins'
+import { emailOTP, twoFactor } from 'better-auth/plugins'
+import { sentinel } from '@better-auth/infra/plugins'
 import { prisma } from '@/lib/prisma'
 import { APP_CONFIG } from '@/lib/config'
 import { Resend } from 'resend'
@@ -68,6 +69,17 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    twoFactor({
+      issuer: 'One Calendar',
+    }),
+    sentinel({
+      apiKey: process.env.BETTER_AUTH_API_KEY,
+      credentialStuffing: { enabled: true, action: 'block' },
+      compromisedPassword: { enabled: true, action: 'block' },
+      botBlocking: { enabled: true, action: 'challenge' },
+      emailNormalization: { enabled: true },
+      proofOfWork: { enabled: true },
+    }),
     emailOTP({
       sendVerificationOTP: async ({ email, otp, type }) => {
         await sendAuthEmail({
