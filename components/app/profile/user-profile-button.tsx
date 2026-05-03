@@ -455,7 +455,8 @@ export default function UserProfileButton({
     const verifyRes = await authClient.emailOtp.verifyEmail({
       email: pendingEmail,
       otp: emailOtp,
-    })
+      type: 'email-verification',
+    } as any)
     if (verifyRes.error) {
       toast(verifyRes.error.message || 'Invalid verification code.')
       return
@@ -491,15 +492,8 @@ export default function UserProfileButton({
 
   async function confirmChangePassword() {
     if (!user?.email || !changePasswordValue || !changePasswordOtp) return
-    const res = await authClient.emailOtp.verifyEmail({
-      email: user.email,
-      otp: changePasswordOtp,
-    })
-    if (res.error) {
-      toast(res.error.message || 'Invalid verification code.')
-      return
-    }
     const updateRes = await authClient.changePassword({
+      currentPassword: twoFactorPassword,
       newPassword: changePasswordValue,
       revokeOtherSessions: false,
     } as any)
@@ -731,7 +725,7 @@ export default function UserProfileButton({
     setTwoFactorEnabled(true)
     setTwoFaStep(2)
     setTwoFactorPending(false)
-    toast('{t.twoFactorAuthentication} enabled.')
+    toast(t.twoFactorAuthentication)
   }
 
   async function disableTwoFactor() {
@@ -746,7 +740,7 @@ export default function UserProfileButton({
     setTwoFactorEnabled(false)
     setTwoFaStep(1)
     setTwoFactorPending(false)
-    toast('{t.twoFactorAuthentication} disabled.')
+    toast(t.twoFactorAuthentication)
   }
 
   async function verifyTwoFactorSetup() {
@@ -754,7 +748,7 @@ export default function UserProfileButton({
     setTwoFactorPending(true)
     const verifyRes = await authClient.twoFactor.verifyTotp({ code: twoFactorCode, trustDevice: true })
     if (verifyRes.error) {
-      toast(verifyRes.error.message || 'Invalid {t.otpCode}')
+      toast(verifyRes.error.message || `Invalid ${t.otpCode}`)
       setTwoFactorPending(false)
       return
     }
@@ -1186,7 +1180,7 @@ export default function UserProfileButton({
                 ) : (
                   <div className="space-y-2 pt-2 border-t">
                     <Label>{t.otpCode}</Label>
-                    <Input placeholder="{t.otpCode}" value={changePasswordOtp} onChange={(e) => setChangePasswordOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    <Input placeholder={t.otpCode} value={changePasswordOtp} onChange={(e) => setChangePasswordOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                     <div className="flex gap-2">
                       <Button variant="outline" onClick={confirmChangePassword}>{t.updatePassword || "Update password"}</Button>
                       <Button variant="outline" onClick={() => setPasswordStep(1)}>{t.back}</Button>
