@@ -27,9 +27,30 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentPropsW
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted) return setError('Please complete the CAPTCHA verification.')
     setIsLoading(true)
     setError('')
-    const { error } = await authClient.forgetPassword({ email, callbackURL: '/reset-password', redirectTo: '/reset-password' } as never)
-    if (error) setError(error.message || 'An error occurred. Please try again.')
-    else setDone(true)
+    const res = await authClient.forgetPassword({ email, redirectTo: '/reset-password' } as never)
+    if (!res.error) {
+      setDone(true)
+      setIsLoading(false)
+      return
+    }
+    const fallbackBody = JSON.stringify({ email, redirectTo: '/reset-password' })
+    const fallbackEndpoints = ['/api/auth/forget-password', '/api/auth/forgot-password', '/api/auth/request-password-reset']
+    let fallbackSucceeded = false
+    for (const endpoint of fallbackEndpoints) {
+      try {
+        const fallback = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: fallbackBody,
+        })
+        if (fallback.ok) {
+          fallbackSucceeded = true
+          break
+        }
+      } catch {}
+    }
+    if (fallbackSucceeded) setDone(true)
+    else setError(res.error.message || 'An error occurred. Please try again.')
     setIsLoading(false)
   }
 

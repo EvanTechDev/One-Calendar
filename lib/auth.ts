@@ -41,7 +41,7 @@ export const auth = betterAuth({
       await sendAuthEmail({
         to: user.email,
         subject: 'Reset your password',
-        html: renderAuthEmailTemplate({
+        html: await renderAuthEmailTemplate({
           preview: 'Reset your One Calendar password',
           title: 'Reset your password',
           body: 'We received a request to reset your password. Use the button below to continue.',
@@ -57,7 +57,7 @@ export const auth = betterAuth({
       await sendAuthEmail({
         to: user.email,
         subject: 'Verify your email',
-        html: renderAuthEmailTemplate({
+        html: await renderAuthEmailTemplate({
           preview: 'Verify your One Calendar email',
           title: 'Verify your email',
           body: 'Confirm your email address to finish setting up your account.',
@@ -73,7 +73,7 @@ export const auth = betterAuth({
         await sendAuthEmail({
           to: email,
           subject: type === 'forget-password' ? 'Reset code' : 'Verification code',
-          html: renderAuthEmailTemplate({
+          html: await renderAuthEmailTemplate({
             preview:
               type === 'forget-password'
                 ? 'Your One Calendar reset code'

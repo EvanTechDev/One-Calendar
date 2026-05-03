@@ -59,6 +59,6 @@ function AuthEmailTemplate({
   )
 }
 
-export function renderAuthEmailTemplate(props: AuthEmailTemplateProps) {
+export async function renderAuthEmailTemplate(props: AuthEmailTemplateProps) {
   return render(<AuthEmailTemplate {...props} />)
 }
