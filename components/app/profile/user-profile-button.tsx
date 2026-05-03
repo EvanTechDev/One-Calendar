@@ -9,8 +9,6 @@ import {
   Trash2,
   KeyRound,
   Mail,
-  Link as LinkIcon,
-  RefreshCcw,
   Camera,
   BarChart2,
   Settings,
@@ -41,7 +39,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { InputOTP } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
@@ -235,7 +232,7 @@ export default function UserProfileButton({
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState('')
   const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState('')
   const [profileSection, setProfileSection] = useState<
-    'basic' | 'emails' | 'oauth' | 'security'
+    'basic' | 'emails' | 'security'
   >('basic')
 
   const [password, setPassword] = useState('')
@@ -246,12 +243,17 @@ export default function UserProfileButton({
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [newEmail, setNewEmail] = useState('')
+  const [emailOtp, setEmailOtp] = useState('')
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [changePasswordValue, setChangePasswordValue] = useState('')
+  const [changePasswordOtp, setChangePasswordOtp] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [twoFactorPassword, setTwoFactorPassword] = useState('')
   const [twoFactorCode, setTwoFactorCode] = useState('')
   const [twoFactorPending, setTwoFactorPending] = useState(false)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorUri, setTwoFactorUri] = useState('')
 
   const keyRef = useRef<string | null>(null)
   const lastBackupSnapshotRef = useRef<string | null>(null)
@@ -430,47 +432,80 @@ export default function UserProfileButton({
     }
   }
 
-  async function addEmailAddress() {
-    if (!user || !newEmail) return
-    try {
-      const email = await user.createEmailAddress({ email: newEmail })
-      await email.prepareVerification({ strategy: 'email_code' })
-      setNewEmail('')
-      toast(t.emailAddedCheckInbox)
-      await user.reload()
-    } catch (e: any) {
-      toast(t.addEmailFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || '',
-      })
+  async function sendEmailChangeOtp() {
+    if (!newEmail || !twoFactorPassword) return
+    const res = await authClient.emailOtp.sendVerificationOtp({
+      email: newEmail,
+      type: 'email-verification',
+    })
+    if (res.error) {
+      toast(res.error.message || 'Failed to send verification code.')
+      return
     }
+    setPendingEmail(newEmail)
+    toast('Verification code sent to the new email.')
   }
 
-  async function setPrimaryEmail(emailId: string) {
-    if (!user) return
-    try {
-      await user.update({ primaryEmailAddressId: emailId })
-      toast(t.primaryEmailUpdated)
-      await user.reload()
-    } catch (e: any) {
-      toast(t.primaryEmailUpdateFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || '',
-      })
+  async function confirmEmailChange() {
+    if (!pendingEmail || !emailOtp || !twoFactorPassword) return
+    const verifyRes = await authClient.emailOtp.verifyEmail({
+      email: pendingEmail,
+      otp: emailOtp,
+    })
+    if (verifyRes.error) {
+      toast(verifyRes.error.message || 'Invalid verification code.')
+      return
     }
+    const updateRes = await authClient.changeEmail({
+      newEmail: pendingEmail,
+      callbackURL: '/app',
+      password: twoFactorPassword,
+    } as any)
+    if (updateRes.error) {
+      toast(updateRes.error.message || 'Failed to update email.')
+      return
+    }
+    setNewEmail('')
+    setPendingEmail('')
+    setEmailOtp('')
+    toast('Email updated successfully.')
+    await authClient.getSession()
   }
 
-  async function unlinkOAuth(accountId: string) {
-    if (!user) return
-    try {
-      const target = user.externalAccounts.find((acc) => acc.id === accountId)
-      if (!target) return
-      await target.destroy()
-      toast(t.oauthDisconnected)
-      await user.reload()
-    } catch (e: any) {
-      toast(t.disconnectFailed, {
-        description: e?.errors?.[0]?.longMessage || e?.message || '',
-      })
+  async function sendChangePasswordOtp() {
+    if (!user?.email) return
+    const res = await authClient.emailOtp.sendVerificationOtp({
+      email: user.email,
+      type: 'forget-password',
+    })
+    if (res.error) {
+      toast(res.error.message || 'Failed to send password OTP.')
+      return
     }
+    toast('Password verification code sent to your email.')
+  }
+
+  async function confirmChangePassword() {
+    if (!user?.email || !changePasswordValue || !changePasswordOtp) return
+    const res = await authClient.emailOtp.verifyEmail({
+      email: user.email,
+      otp: changePasswordOtp,
+    })
+    if (res.error) {
+      toast(res.error.message || 'Invalid verification code.')
+      return
+    }
+    const updateRes = await authClient.changePassword({
+      newPassword: changePasswordValue,
+      revokeOtherSessions: false,
+    } as any)
+    if (updateRes.error) {
+      toast(updateRes.error.message || 'Failed to change password.')
+      return
+    }
+    setChangePasswordValue('')
+    setChangePasswordOtp('')
+    toast('Password updated successfully.')
   }
 
   const hydrateEvent = (raw: any): CalendarEvent => {
@@ -672,7 +707,7 @@ export default function UserProfileButton({
     toast(t.cloudDataDeleted)
   }
 
-  const openProfileSection = (section: 'basic' | 'emails' | 'oauth' | 'security') => {
+  const openProfileSection = (section: 'basic' | 'emails' | 'security') => {
     setProfileSection(section)
     setProfileOpen(true)
   }
@@ -687,6 +722,7 @@ export default function UserProfileButton({
       setTwoFactorPending(false)
       return
     }
+    setTwoFactorUri((setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || '')
     setTwoFactorEnabled(true)
     setTwoFactorPending(false)
     toast('Two-factor authentication enabled.')
@@ -851,20 +887,6 @@ export default function UserProfileButton({
                       >
                         <Mail className="h-4 w-4 mr-2" />
                         {t.openEmailSettings}
-                      </Button>
-                    </div>
-
-                    <div className="space-y-3 rounded-md border p-3">
-                      <p className="text-sm font-semibold">OAuth</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.manageOauthDescription}
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => openProfileSection('oauth')}
-                      >
-                        <LinkIcon className="h-4 w-4 mr-2" />
-                        {t.openOauthSettings}
                       </Button>
                     </div>
 
@@ -1069,46 +1091,30 @@ export default function UserProfileButton({
               >
                 <h3 className="font-medium flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  {t.emails}
+                  Email management
                 </h3>
+                <div className="rounded-md border px-3 py-2 text-sm">
+                  <p className="text-muted-foreground">Current email</p>
+                  <p className="font-medium">{user?.email || '-'}</p>
+                </div>
                 <div className="space-y-2">
-                  {(user?.emailAddresses || []).map((email) => (
-                    <div
-                      key={email.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">{email.emailAddress}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {email.verification?.status === 'verified'
-                            ? t.verified
-                            : t.unverified}
-                          {user?.primaryEmailAddressId === email.id
-                            ? ` · ${t.primary}`
-                            : ''}
-                        </p>
-                      </div>
-                      {user?.primaryEmailAddressId !== email.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPrimaryEmail(email.id)}
-                        >
-                          {t.setPrimary}
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                  <Label>Current password</Label>
+                  <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>New email</Label>
+                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
                 </div>
                 <div className="flex gap-2">
-                  <Input
-                    placeholder={t.addEmailAddressPlaceholder}
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                  />
-                  <Button onClick={addEmailAddress}>{t.add}</Button>
+                  <Button variant="outline" onClick={sendEmailChangeOtp}>Send email OTP</Button>
                 </div>
+                {pendingEmail ? (
+                  <div className="space-y-2">
+                    <Label>Email OTP code</Label>
+                    <Input value={emailOtp} onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    <Button variant="outline" onClick={confirmEmailChange}>Verify and update email</Button>
+                  </div>
+                ) : null}
               </section>
 
               <section
@@ -1123,55 +1129,27 @@ export default function UserProfileButton({
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled}>Enable 2FA</Button>
                   <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled}>Disable 2FA</Button>
-                  <Button variant="outline" onClick={() => router.push('/reset-password')}>Change password</Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>TOTP verification code</Label>
-                  <InputOTP value={twoFactorCode} onChange={(value) => setTwoFactorCode(value.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
-                  <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>Verify setup code</Button>
-                </div>
-              </section>
-
-              <section
-                className="space-y-3 rounded-lg border p-4"
-                hidden={profileSection !== 'oauth'}
-              >
-                <h3 className="font-medium flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  OAuth
-                </h3>
-                {(user?.externalAccounts || []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t.noConnectedOauthAccounts}
-                  </p>
-                ) : (
+                {twoFactorUri ? (
                   <div className="space-y-2">
-                    {(user?.externalAccounts || []).map((account) => (
-                      <div
-                        key={account.id}
-                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                      >
-                        <div>
-                          <p className="font-medium">{account.provider}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {account.emailAddress || account.username || '-'}
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => unlinkOAuth(account.id)}
-                        >
-                          {t.disconnect}
-                        </Button>
-                      </div>
-                    ))}
+                    <Label>Scan this QR code in your authenticator app</Label>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorUri)}`} alt="2fa qr" className="h-44 w-44 rounded-md border" />
                   </div>
-                )}
-                <Button variant="outline" onClick={() => user?.reload()}>
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  {t.refreshConnections}
-                </Button>
+                ) : null}
+                <div className="space-y-2">
+                  <Label>TOTP code</Label>
+                  <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                  <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>Verify 2FA code</Button>
+                </div>
+                <div className="space-y-2 pt-2 border-t">
+                  <Label>New password</Label>
+                  <Input type="password" value={changePasswordValue} onChange={(e) => setChangePasswordValue(e.target.value)} />
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={sendChangePasswordOtp}>Send password OTP</Button>
+                    <Input placeholder="OTP code" value={changePasswordOtp} onChange={(e) => setChangePasswordOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    <Button variant="outline" onClick={confirmChangePassword}>Update password</Button>
+                  </div>
+                </div>
               </section>
             </div>
           </ScrollArea>
