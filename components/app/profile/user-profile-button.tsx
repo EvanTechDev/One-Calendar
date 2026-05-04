@@ -164,7 +164,7 @@ async function normalizeCloudStorageValue(
 async function applyCloudStorageToMemory(storage: Record<string, string>) {
   await Promise.all(
     Object.entries(storage).map(async ([key, value]) => {
-      let parsedValue: unknown = value
+      let parsedValue: unknown
       try {
         parsedValue = JSON.parse(value)
       } catch {
@@ -273,8 +273,6 @@ export default function UserProfileButton({
     )
   }
 
-
-
   useEffect(() => {
     if (mode !== 'settings' || !focusSection) return
     const target = document.getElementById(`settings-account-${focusSection}`)
@@ -371,7 +369,7 @@ export default function UserProfileButton({
     try {
       setProfileSaving(true)
       const name = `${firstName} ${lastName}`.trim()
-      const { error } = await authClient.updateUser({ name: name || null })
+      const { error } = await authClient.updateUser({ name: name || undefined })
       if (error) throw new Error(error.message || 'Failed to update profile')
       toast(t.profileUpdated)
     } catch (e: any) {
@@ -420,12 +418,19 @@ export default function UserProfileButton({
             const payload = base64DataUrl.split(',')[1] || ''
             return atob(payload).length
           }
-          while (getDataBytes(data) > MAX_OUTPUT_BYTES && quality > MIN_QUALITY) {
+          while (
+            getDataBytes(data) > MAX_OUTPUT_BYTES &&
+            quality > MIN_QUALITY
+          ) {
             quality -= QUALITY_STEP
             data = canvas.toDataURL('image/jpeg', quality)
           }
           if (getDataBytes(data) > MAX_OUTPUT_BYTES) {
-            return reject(new Error('Image is too large after processing. Please choose a smaller file.'))
+            return reject(
+              new Error(
+                'Image is too large after processing. Please choose a smaller file.',
+              ),
+            )
           }
           resolve(data)
         }
@@ -709,22 +714,38 @@ export default function UserProfileButton({
     toast(t.cloudDataDeleted)
   }
 
-  const openProfileSection = (section: 'basic' | 'emails' | 'twofa' | 'password') => {
+  const openProfileSection = (
+    section: 'basic' | 'emails' | 'twofa' | 'password',
+  ) => {
     setProfileSection(section)
     setProfileOpen(true)
   }
 
+  function resetTwoFactorFlow() {
+    setTwoFaStep(1)
+    setTwoFactorCode('')
+    setTwoFactorPassword('')
+    if (twoFactorQrCodeRef.current) {
+      URL.revokeObjectURL(twoFactorQrCodeRef.current)
+      twoFactorQrCodeRef.current = null
+    }
+    setTwoFactorQrCode('')
+    setTwoFactorUri('')
+  }
 
   async function enableTwoFactor() {
     if (!twoFactorPassword) return
     setTwoFactorPending(true)
-    const setupRes = await authClient.twoFactor.enable({ password: twoFactorPassword })
+    const setupRes = await authClient.twoFactor.enable({
+      password: twoFactorPassword,
+    })
     if (setupRes.error) {
       toast(setupRes.error.message || 'Failed to enable 2FA')
       setTwoFactorPending(false)
       return
     }
-    const totpUri = (setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || ''
+    const totpUri =
+      (setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || ''
     setTwoFactorUri(totpUri)
     if (totpUri) {
       const qrCode = new QRCodeStyling({
@@ -753,20 +774,16 @@ export default function UserProfileButton({
   async function disableTwoFactor() {
     if (!twoFactorPassword) return
     setTwoFactorPending(true)
-    const disableRes = await authClient.twoFactor.disable({ password: twoFactorPassword })
+    const disableRes = await authClient.twoFactor.disable({
+      password: twoFactorPassword,
+    })
     if (disableRes.error) {
       toast(disableRes.error.message || 'Failed to disable 2FA')
       setTwoFactorPending(false)
       return
     }
     setTwoFactorEnabled(false)
-    setTwoFaStep(1)
-    if (twoFactorQrCodeRef.current) {
-      URL.revokeObjectURL(twoFactorQrCodeRef.current)
-      twoFactorQrCodeRef.current = null
-    }
-    setTwoFactorQrCode('')
-    setTwoFactorUri('')
+    resetTwoFactorFlow()
     setTwoFactorPending(false)
     toast(t.twoFactorAuthentication)
   }
@@ -774,7 +791,10 @@ export default function UserProfileButton({
   async function verifyTwoFactorSetup() {
     if (twoFactorCode.length < 6) return
     setTwoFactorPending(true)
-    const verifyRes = await authClient.twoFactor.verifyTotp({ code: twoFactorCode, trustDevice: true })
+    const verifyRes = await authClient.twoFactor.verifyTotp({
+      code: twoFactorCode,
+      trustDevice: true,
+    })
     if (verifyRes.error) {
       toast(verifyRes.error.message || `Invalid ${t.otpCode}`)
       setTwoFactorPending(false)
@@ -814,8 +834,7 @@ export default function UserProfileButton({
       {mode === 'dropdown' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {(isSignedIn && user?.image) ||
-            false ? (
+            {(isSignedIn && user?.image) || false ? (
               <Button
                 variant="ghost"
                 size="icon"
@@ -878,9 +897,7 @@ export default function UserProfileButton({
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium truncate">
-                    {user?.name || 'User'}
-                  </p>
+                  <p className="font-medium truncate">{user?.name || 'User'}</p>
                   <p className="text-sm text-muted-foreground truncate">
                     {user?.email || ''}
                   </p>
@@ -921,18 +938,32 @@ export default function UserProfileButton({
                     </div>
 
                     <div className="space-y-3 rounded-md border p-3">
-                      <p className="text-sm font-semibold">{t.twoFactorAuthentication}</p>
-                      <p className="text-xs text-muted-foreground">{t.twoFactorAuthenticationDescription}</p>
-                      <Button variant="outline" onClick={() => openProfileSection('twofa')}>
+                      <p className="text-sm font-semibold">
+                        {t.twoFactorAuthentication}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.twoFactorAuthenticationDescription}
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => openProfileSection('twofa')}
+                      >
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openTwoFactorSettings}
                       </Button>
                     </div>
 
                     <div className="space-y-3 rounded-md border p-3">
-                      <p className="text-sm font-semibold">{t.changePassword}</p>
-                      <p className="text-xs text-muted-foreground">{t.changePasswordDescription}</p>
-                      <Button variant="outline" onClick={() => openProfileSection('password')}>
+                      <p className="text-sm font-semibold">
+                        {t.changePassword}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.changePasswordDescription}
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => openProfileSection('password')}
+                      >
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openPasswordSettings}
                       </Button>
@@ -1073,9 +1104,7 @@ export default function UserProfileButton({
                   <Label>{t.avatar}</Label>
                   <div className="flex items-center gap-3">
                     <img
-                      src={
-                        user?.image || '/user.png'
-                      }
+                      src={user?.image || '/user.png'}
                       alt="avatar"
                       width={52}
                       height={52}
@@ -1140,23 +1169,44 @@ export default function UserProfileButton({
                     </div>
                     <div className="space-y-2">
                       <Label>{t.currentPassword}</Label>
-                      <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
+                      <Input
+                        type="password"
+                        value={twoFactorPassword}
+                        onChange={(e) => setTwoFactorPassword(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>{t.newEmail}</Label>
-                      <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                      <Input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                      />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={sendEmailChangeOtp}>{t.next}</Button>
+                      <Button variant="outline" onClick={sendEmailChangeOtp}>
+                        {t.next}
+                      </Button>
                     </div>
                   </>
                 ) : (
                   <div className="space-y-2">
                     <Label>{t.emailOtpCode}</Label>
-                    <Input value={emailOtp} onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    <Input
+                      value={emailOtp}
+                      onChange={(e) =>
+                        setEmailOtp(
+                          e.target.value.replace(/\D/g, '').slice(0, 6),
+                        )
+                      }
+                    />
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={confirmEmailChange}>{t.verifyAndUpdateEmail}</Button>
-                      <Button variant="outline" onClick={() => setEmailStep(1)}>{t.back}</Button>
+                      <Button variant="outline" onClick={confirmEmailChange}>
+                        {t.verifyAndUpdateEmail}
+                      </Button>
+                      <Button variant="outline" onClick={() => setEmailStep(1)}>
+                        {t.back}
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1171,11 +1221,35 @@ export default function UserProfileButton({
                   <>
                     <div className="space-y-2">
                       <Label>{t.currentPassword}</Label>
-                      <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
+                      <Input
+                        type="password"
+                        value={twoFactorPassword}
+                        onChange={(e) => setTwoFactorPassword(e.target.value)}
+                      />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled || !twoFactorPassword}>{t.next}</Button>
-                      <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled || !twoFactorPassword}>{t.disable2fa}</Button>
+                      <Button
+                        variant="outline"
+                        onClick={enableTwoFactor}
+                        disabled={
+                          twoFactorPending ||
+                          twoFactorEnabled ||
+                          !twoFactorPassword
+                        }
+                      >
+                        {t.next}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={disableTwoFactor}
+                        disabled={
+                          twoFactorPending ||
+                          !twoFactorEnabled ||
+                          !twoFactorPassword
+                        }
+                      >
+                        {t.disable2fa}
+                      </Button>
                     </div>
                   </>
                 ) : null}
@@ -1183,19 +1257,49 @@ export default function UserProfileButton({
                   <div className="space-y-3">
                     <div className="space-y-2">
                       <Label>{t.scanQrFor2fa}</Label>
-                      <img src={twoFactorQrCode} alt={t.twoFactorQrCodeAlt} className="h-44 w-44 rounded-md border" />
+                      <img
+                        src={twoFactorQrCode}
+                        alt={t.twoFactorQrCodeAlt}
+                        className="h-44 w-44 rounded-md border"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>{t.otpCode}</Label>
-                      <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                      <Input
+                        value={twoFactorCode}
+                        onChange={(e) =>
+                          setTwoFactorCode(
+                            e.target.value.replace(/\D/g, '').slice(0, 6),
+                          )
+                        }
+                      />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>{t.verify2faCode}</Button>
-                      <Button variant="outline" onClick={() => setTwoFaStep(1)}>{t.back}</Button>
+                      <Button
+                        variant="outline"
+                        onClick={verifyTwoFactorSetup}
+                        disabled={twoFactorPending || twoFactorCode.length < 6}
+                      >
+                        {t.verify2faCode}
+                      </Button>
+                      <Button variant="outline" onClick={() => setTwoFaStep(1)}>
+                        {t.back}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={resetTwoFactorFlow}
+                        disabled={twoFactorPending}
+                      >
+                        Close
+                      </Button>
                     </div>
                   </div>
                 ) : null}
-                {twoFaStep === 3 ? <p className="text-sm text-muted-foreground">{t.twoFactorEnabledMessage}</p> : null}
+                {twoFaStep === 3 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t.twoFactorEnabledMessage}
+                  </p>
+                ) : null}
               </section>
 
               <section
@@ -1205,10 +1309,20 @@ export default function UserProfileButton({
                 <h3 className="font-medium">{t.changePassword}</h3>
                 <div className="space-y-2 pt-2 border-t">
                   <Label>{t.currentPassword}</Label>
-                  <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
-                  <Label>{t.newPassword || "New password"}</Label>
-                  <Input type="password" value={changePasswordValue} onChange={(e) => setChangePasswordValue(e.target.value)} />
-                  <Button variant="outline" onClick={confirmChangePassword}>{t.updatePassword || "Update password"}</Button>
+                  <Input
+                    type="password"
+                    value={twoFactorPassword}
+                    onChange={(e) => setTwoFactorPassword(e.target.value)}
+                  />
+                  <Label>{t.newPassword || 'New password'}</Label>
+                  <Input
+                    type="password"
+                    value={changePasswordValue}
+                    onChange={(e) => setChangePasswordValue(e.target.value)}
+                  />
+                  <Button variant="outline" onClick={confirmChangePassword}>
+                    {t.updatePassword || 'Update password'}
+                  </Button>
                 </div>
               </section>
             </div>
