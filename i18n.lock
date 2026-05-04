@@ -413,6 +413,7 @@ checksums:
     noConnectedOauthAccounts: bc5742f658f83f70ff9c01c058b45db9
     disconnect: 8cd3daae20ec3d3bf09b25881caa2b8f
     refreshConnections: 60796f63492f6c6fd8054f3ca45c73c6
+    deleteAccountConfirmTitle: b14d40073b18f13cf61816d70cd6198c
     deleteAccountConfirmDescription: 3650219a8ce6a9d3fe36ba915d258c8d
     deleting: 683cd814a3fc94e50b3e4e4a9c90c19c
     confirmDeleteAccount: 39e2ceee88c1992f7792ed929641abf6
@@ -547,6 +548,7 @@ checksums:
     disable2fa: 475bed4ebb95a11fb5748e1f03903d6e
     next: 89ddbcf710eba274963494f312bdc8a9
     back: f541015a827e37cb3b1234e56bc2aa3c
+    close: 2c2e22f8424a1031de89063bd0022e16
     scanQrFor2fa: cc62d23fd921db35197b258cac780188
     updatePassword: e3866c78385206643339bb05b606924d
     twoFactorEnabledMessage: 63aee547426f3d82d57e26f7c7e987dc
