@@ -545,5 +545,10 @@
   "disable2fa": "2FA अक्षम करें",
   "next": "अगला",
   "back": "पीछे",
-  "scanQrFor2fa": "अपने प्रमाणीकरण ऐप में यह क्यूआर कोड स्कैन करें"
+  "scanQrFor2fa": "अपने प्रमाणीकरण ऐप में यह क्यूआर कोड स्कैन करें",
+  "updatePassword": "पासवर्ड अपडेट करें",
+  "twoFactorEnabledMessage": "आपके खाते पर दो-कारक प्रमाणीकरण अब सक्रिय है।",
+  "twoFactorAuthenticationDescription": "TOTP-आधारित 2FA को सक्षम या अक्षम करें।",
+  "changePasswordDescription": "अपने पासवर्ड को सुरक्षित रूप से बदलने के लिए एक बार के ईमेल कोड का उपयोग करें।",
+  "twoFactorQrCodeAlt": "दो-कारक क्यूआर कोड"
 }

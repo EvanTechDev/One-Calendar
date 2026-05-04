@@ -545,5 +545,10 @@
   "disable2fa": "Dezactivează 2FA",
   "next": "Următorul",
   "back": "Înapoi",
-  "scanQrFor2fa": "Scanează acest cod QR în aplicația ta de autentificare"
+  "scanQrFor2fa": "Scanează acest cod QR în aplicația ta de autentificare",
+  "updatePassword": "Actualizează parola",
+  "twoFactorEnabledMessage": "Autentificarea în doi factori este acum activă pe contul tău.",
+  "twoFactorAuthenticationDescription": "Activează sau dezactivează autentificarea în doi factori bazată pe TOTP.",
+  "changePasswordDescription": "Folosește un cod trimis pe email pentru a-ți schimba parola în siguranță.",
+  "twoFactorQrCodeAlt": "Cod QR pentru autentificarea în doi factori"
 }

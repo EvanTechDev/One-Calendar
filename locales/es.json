@@ -545,5 +545,10 @@
   "disable2fa": "Desactivar 2FA",
   "next": "Siguiente",
   "back": "Atrás",
-  "scanQrFor2fa": "Escanear este código QR en tu app de autenticación"
+  "scanQrFor2fa": "Escanear este código QR en tu app de autenticación",
+  "updatePassword": "Actualizar contraseña",
+  "twoFactorEnabledMessage": "La autenticación en dos pasos ahora está activa en tu cuenta.",
+  "twoFactorAuthenticationDescription": "Activa o desactiva la autenticación en dos pasos basada en TOTP.",
+  "changePasswordDescription": "Usa un código por correo electrónico para cambiar tu contraseña de forma segura.",
+  "twoFactorQrCodeAlt": "Código QR de autenticación en dos pasos"
 }

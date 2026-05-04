@@ -537,5 +537,10 @@
   "disable2fa": "Išjungti 2FA",
   "next": "Toliau",
   "back": "Atgal",
-  "scanQrFor2fa": "Nuskaitykite šį QR kodą autentifikatoriaus programėlėje"
+  "scanQrFor2fa": "Nuskaitykite šį QR kodą autentifikatoriaus programėlėje",
+  "updatePassword": "Atnaujinti slaptažodį",
+  "twoFactorEnabledMessage": "Dviejų veiksnių autentifikacija dabar yra aktyvi jūsų paskyroje.",
+  "twoFactorAuthenticationDescription": "Įjungti ar išjungti TOTP pagrįstą dviejų veiksnių autentifikaciją.",
+  "changePasswordDescription": "Naudokite vienkartinį el. pašto kodą, kad saugiai pakeistumėte slaptažodį.",
+  "twoFactorQrCodeAlt": "Dviejų veiksnių autentifikacijos QR kodas"
 }

@@ -545,5 +545,10 @@
   "disable2fa": "Tắt 2FA",
   "next": "Tiếp theo",
   "back": "Quay lại",
-  "scanQrFor2fa": "Quét mã QR này trong ứng dụng xác thực của bạn"
+  "scanQrFor2fa": "Quét mã QR này trong ứng dụng xác thực của bạn",
+  "updatePassword": "Cập nhật mật khẩu",
+  "twoFactorEnabledMessage": "Xác thực hai yếu tố hiện đã được kích hoạt trên tài khoản của bạn.",
+  "twoFactorAuthenticationDescription": "Bật hoặc tắt xác thực hai yếu tố dựa trên TOTP.",
+  "changePasswordDescription": "Sử dụng mã email một lần để thay đổi mật khẩu một cách an toàn.",
+  "twoFactorQrCodeAlt": "Mã QR xác thực hai yếu tố"
 }

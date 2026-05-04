@@ -553,5 +553,10 @@
   "disable2fa": "Zima 2FA",
   "next": "Iliyopita",
   "back": "Rudi",
-  "scanQrFor2fa": "Scan QR hii katika programu yako ya utambulisho"
+  "scanQrFor2fa": "Scan QR hii katika programu yako ya utambulisho",
+  "updatePassword": "Sasisha nenosiri",
+  "twoFactorEnabledMessage": "Uthibitishaji wa mambo mawili (2FA) sasa umewaka kwenye akaunti yako.",
+  "twoFactorAuthenticationDescription": "Washa au zima 2FA inayotegemea TOTP.",
+  "changePasswordDescription": "Tumia nambari pepe moja kwa moja ya barua pepe ya kuthibitisha badiliko la nenosiri lako.",
+  "twoFactorQrCodeAlt": "QR code ya uthibitishaji wa mambo mawili"
 }

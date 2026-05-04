@@ -545,5 +545,10 @@
   "disable2fa": "Deaktiver 2FA",
   "next": "Neste",
   "back": "Tilbake",
-  "scanQrFor2fa": "Skann denne QR-koden i autentiseringsappen din"
+  "scanQrFor2fa": "Skann denne QR-koden i autentiseringsappen din",
+  "updatePassword": "Oppdater passord",
+  "twoFactorEnabledMessage": "To-faktor autentisering er nå aktivert på kontoen din.",
+  "twoFactorAuthenticationDescription": "Aktiver eller deaktiver TOTP-basert to-faktor autentisering.",
+  "changePasswordDescription": "Bruk engangskode sendt på e-post for å endre passordet ditt på en sikker måte.",
+  "twoFactorQrCodeAlt": "To-faktor QR-kode"
 }

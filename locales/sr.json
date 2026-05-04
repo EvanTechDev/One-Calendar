@@ -545,5 +545,10 @@
   "disable2fa": "Онемогући 2ФА",
   "next": "Даље",
   "back": "Назад",
-  "scanQrFor2fa": "Скенiraj ovaj QR код у својој апликацији за аутентификацију"
+  "scanQrFor2fa": "Скенiraj ovaj QR код у својој апликацији за аутентификацију",
+  "updatePassword": "Ажурирај лозинку",
+  "twoFactorEnabledMessage": "Двофакторска аутентификација је сада активна на вашем налогу.",
+  "twoFactorAuthenticationDescription": "Омогућите или онемогућите ТОТП засновану 2ФА.",
+  "changePasswordDescription": "Користите једнократни код преко е-поште за безбедну промену лозинке.",
+  "twoFactorQrCodeAlt": "Двофакторски КР код"
 }

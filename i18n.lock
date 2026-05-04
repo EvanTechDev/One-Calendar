@@ -548,3 +548,8 @@ checksums:
     next: 89ddbcf710eba274963494f312bdc8a9
     back: f541015a827e37cb3b1234e56bc2aa3c
     scanQrFor2fa: cc62d23fd921db35197b258cac780188
+    updatePassword: e3866c78385206643339bb05b606924d
+    twoFactorEnabledMessage: 63aee547426f3d82d57e26f7c7e987dc
+    twoFactorAuthenticationDescription: b8356e532f95dcbcb726a543b46d22c6
+    changePasswordDescription: aa9626176226e69d38a51a292d766921
+    twoFactorQrCodeAlt: 0c9041fc1611b44c02aad0c59fa7981f

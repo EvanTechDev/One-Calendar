@@ -545,5 +545,10 @@
   "disable2fa": "Wyłącz 2FA",
   "next": "Dalej",
   "back": "Wstecz",
-  "scanQrFor2fa": "Zeskanuj ten kod QR w aplikacji uwierzytelniającej"
+  "scanQrFor2fa": "Zeskanuj ten kod QR w aplikacji uwierzytelniającej",
+  "updatePassword": "Zaktualizuj hasło",
+  "twoFactorEnabledMessage": "Uwierzytelnianie dwuskładnikowe jest teraz aktywne na Twoim koncie.",
+  "twoFactorAuthenticationDescription": "Włącz lub wyłącz uwierzytelnianie dwuskładnikowe oparte na TOTP.",
+  "changePasswordDescription": "Użyj jednorazowego kodu wysłanego e-mailem, aby bezpiecznie zmienić hasło.",
+  "twoFactorQrCodeAlt": "Kod QR do uwierzytelniania dwuskładnikowego"
 }

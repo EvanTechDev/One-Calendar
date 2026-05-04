@@ -537,5 +537,10 @@
   "disable2fa": "Poista 2FA käytöstä",
   "next": "Seuraava",
   "back": "Edellinen",
-  "scanQrFor2fa": "Skannaa tämä QR-koodi tunnistautumissovelluksessasi"
+  "scanQrFor2fa": "Skannaa tämä QR-koodi tunnistautumissovelluksessasi",
+  "updatePassword": "Päivitä salasana",
+  "twoFactorEnabledMessage": "Kaksivaiheinen tunnistautuminen on nyt aktiivinen tililläsi.",
+  "twoFactorAuthenticationDescription": "Ota käyttöön tai poista TOTP-pohjainen kaksivaiheinen tunnistautuminen.",
+  "changePasswordDescription": "Käytä kertakäyttöistä sähköpostikoodia salasanan vaihtamiseen turvallisesti.",
+  "twoFactorQrCodeAlt": "Kaksivaiheisen tunnistautumisen QR-koodi"
 }

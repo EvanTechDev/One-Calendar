@@ -545,5 +545,10 @@
   "disable2fa": "Desativar 2FA",
   "next": "Avançar",
   "back": "Voltar",
-  "scanQrFor2fa": "Digitalize este código QR no seu aplicativo autenticador"
+  "scanQrFor2fa": "Digitalize este código QR no seu aplicativo autenticador",
+  "updatePassword": "Atualizar senha",
+  "twoFactorEnabledMessage": "A autenticação em duas etapas agora está ativa em sua conta.",
+  "twoFactorAuthenticationDescription": "Ative ou desative a autenticação em duas etapas baseada em TOTP.",
+  "changePasswordDescription": "Use o código por e-mail único para alterar sua senha com segurança.",
+  "twoFactorQrCodeAlt": "Código QR de autenticação em duas etapas"
 }

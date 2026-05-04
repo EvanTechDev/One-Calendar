@@ -553,5 +553,10 @@
   "disable2fa": "Izslēgt 2FA",
   "next": "Tālāk",
   "back": "Atpakaļ",
-  "scanQrFor2fa": "Nofotografējiet šo QR kodu savā autentifikācijas lietotnē"
+  "scanQrFor2fa": "Nofotografējiet šo QR kodu savā autentifikācijas lietotnē",
+  "updatePassword": "Atjaunināt paroli",
+  "twoFactorEnabledMessage": "Divu faktoru autentifikācija tagad ir aktīva jūsu kontā.",
+  "twoFactorAuthenticationDescription": "Iespējojiet vai atspējojiet TOTP balstītu 2FA.",
+  "changePasswordDescription": "Lietojiet vienreizējo e-pasta kodu, lai droši mainītu savu paroli.",
+  "twoFactorQrCodeAlt": "Divu faktoru autentifikācijas QR kods"
 }

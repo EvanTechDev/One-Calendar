@@ -545,5 +545,10 @@
   "disable2fa": "2FAを無効化",
   "next": "次へ",
   "back": "戻る",
-  "scanQrFor2fa": "認証アプリでこのQRコードをスキャン"
+  "scanQrFor2fa": "認証アプリでこのQRコードをスキャン",
+  "updatePassword": "パスワードを更新",
+  "twoFactorEnabledMessage": "2要素認証がアカウントで有効になりました。",
+  "twoFactorAuthenticationDescription": "TOTPベースの2FAを有効または無効にします。",
+  "changePasswordDescription": "ワンタイムメールコードを使用して、パスワードを安全に変更します。",
+  "twoFactorQrCodeAlt": "2要素認証QRコード"
 }

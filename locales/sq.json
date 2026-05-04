@@ -545,5 +545,10 @@
   "disable2fa": "Çaktivizo 2FA-në",
   "next": "Radhë",
   "back": "Prapa",
-  "scanQrFor2fa": "Skano këtë kod QR në aplikacionin tuaj të autentifikimit"
+  "scanQrFor2fa": "Skano këtë kod QR në aplikacionin tuaj të autentifikimit",
+  "updatePassword": "Ndrysho fjalëkalimin",
+  "twoFactorEnabledMessage": "Autentikimi me dy faktorë është aktivizuar tani në llogarinë tuaj.",
+  "twoFactorAuthenticationDescription": "Aktivizo ose çaktivizo 2FA-në bazuar në TOTP.",
+  "changePasswordDescription": "Përdor kodin një herë përmes emailit për të ndryshuar fjalëkalimin në mënyrë të sigurt.",
+  "twoFactorQrCodeAlt": "Kodi QR për dy faktorë"
 }

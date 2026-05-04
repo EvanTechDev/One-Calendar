@@ -537,5 +537,10 @@
   "disable2fa": "2FA 비활성화",
   "next": "다음",
   "back": "뒤로",
-  "scanQrFor2fa": "인증 앱에서 이 QR 코드를 스캔하세요"
+  "scanQrFor2fa": "인증 앱에서 이 QR 코드를 스캔하세요",
+  "updatePassword": "비밀번호 변경",
+  "twoFactorEnabledMessage": "이제 계정에 2단계 인증이 활성화되었습니다.",
+  "twoFactorAuthenticationDescription": "TOTP 기반 2단계 인증을 사용 또는 해제하세요.",
+  "changePasswordDescription": "일회용 이메일 코드를 사용하여 비밀번호를 안전하게 변경하세요.",
+  "twoFactorQrCodeAlt": "2단계 인증 QR 코드"
 }

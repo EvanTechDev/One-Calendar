@@ -537,5 +537,10 @@
   "disable2fa": "停用雙重驗證",
   "next": "下一步",
   "back": "上一步",
-  "scanQrFor2fa": "在你的驗證器應用程式中掃描此 QR 碼"
+  "scanQrFor2fa": "在你的驗證器應用程式中掃描此 QR 碼",
+  "updatePassword": "更新密碼",
+  "twoFactorEnabledMessage": "您的帳戶已啟用雙重驗證。",
+  "twoFactorAuthenticationDescription": "啟用或停用基於 TOTP 的雙重驗證。",
+  "changePasswordDescription": "使用一次性郵件驗證碼安全地變更密碼。",
+  "twoFactorQrCodeAlt": "雙重驗證 QR 碼"
 }

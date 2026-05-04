@@ -537,5 +537,10 @@
   "disable2fa": "2FA uitschakelen",
   "next": "Volgende",
   "back": "Terug",
-  "scanQrFor2fa": "Scan deze QR-code in je authenticatie-app"
+  "scanQrFor2fa": "Scan deze QR-code in je authenticatie-app",
+  "updatePassword": "Wachtwoord bijwerken",
+  "twoFactorEnabledMessage": "Tweestapsverificatie is nu actief op je account.",
+  "twoFactorAuthenticationDescription": "Schakel TOTP-gebaseerde 2FA in of uit.",
+  "changePasswordDescription": "Gebruik een eenmalige e-mailcode om je wachtwoord veilig te wijzigen.",
+  "twoFactorQrCodeAlt": "Tweestapsverificatie QR-code"
 }

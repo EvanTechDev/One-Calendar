@@ -545,5 +545,10 @@
   "disable2fa": "Izklopi 2FA",
   "next": "Naprej",
   "back": "Nazaj",
-  "scanQrFor2fa": "Skeniraj ta QR kodo v svoji aplikaciji za overjevalce"
+  "scanQrFor2fa": "Skeniraj ta QR kodo v svoji aplikaciji za overjevalce",
+  "updatePassword": "Posodobi geslo",
+  "twoFactorEnabledMessage": "Dvofazno overjanje je zdaj aktivno na vašem računu.",
+  "twoFactorAuthenticationDescription": "Omogočite ali onemogočite dvofazno overjanje (TOTP).",
+  "changePasswordDescription": "Uporabite enkratno kodo po e-pošti za varno spremembo gesla.",
+  "twoFactorQrCodeAlt": "Dvofazni QR koda"
 }

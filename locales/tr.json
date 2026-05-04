@@ -545,5 +545,10 @@
   "disable2fa": "2FA devre dışı bırak",
   "next": "İleri",
   "back": "Geri",
-  "scanQrFor2fa": "Bu QR kodunu kimlik doğrulama uygulamanızda taratın"
+  "scanQrFor2fa": "Bu QR kodunu kimlik doğrulama uygulamanızda taratın",
+  "updatePassword": "Şifreyi güncelle",
+  "twoFactorEnabledMessage": "İki faktörlü kimlik doğrulama hesabınızda etkinleştirildi.",
+  "twoFactorAuthenticationDescription": "TOTP tabanlı 2FA'yı etkinleştirin veya devre dışı bırakın.",
+  "changePasswordDescription": "Şifrenizi güvenli bir şekilde değiştirmek için tek kullanımlık e-posta kodunu kullanın.",
+  "twoFactorQrCodeAlt": "İki faktörlü QR kodu"
 }

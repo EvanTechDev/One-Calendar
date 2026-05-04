@@ -545,5 +545,10 @@
   "disable2fa": "Gera 2FA óvirkt",
   "next": "Áfram",
   "back": "Til baka",
-  "scanQrFor2fa": "Skannaðu þennan QR kóða í auðkenningarforritinu þínu"
+  "scanQrFor2fa": "Skannaðu þennan QR kóða í auðkenningarforritinu þínu",
+  "updatePassword": "Uppfæra lykilorð",
+  "twoFactorEnabledMessage": "Tveggja þátta auðkenning er nú virk á reikningnum þínum.",
+  "twoFactorAuthenticationDescription": "Virkja eða óvirkja 2FA með TOTP.",
+  "changePasswordDescription": "Nota einnota tölvupóstkóða til að breyta lykilorðinu þínu örugglega.",
+  "twoFactorQrCodeAlt": "Tveggja þátta QR-kóði"
 }
