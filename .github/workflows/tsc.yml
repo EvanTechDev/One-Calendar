@@ -18,4 +18,4 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile && bunx prisma generate
-      - run: bunx tsc --noEmit 2>&1 | tail -20
+      - run: bunx tsc --noEmit
