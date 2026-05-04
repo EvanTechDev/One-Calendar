@@ -554,4 +554,14 @@
   "next": "Next",
   "back": "Back",
   "scanQrFor2fa": "Scan this QR code in your authenticator app"
+,
+  "updatePassword": "Update password"
+,
+  "twoFactorEnabledMessage": "Two-factor authentication is now active on your account."
+,
+  "twoFactorAuthenticationDescription": "Enable or disable TOTP-based 2FA."
+,
+  "changePasswordDescription": "Use one-time email code to securely change your password."
+,
+  "twoFactorQrCodeAlt": "Two-factor QR code"
 }

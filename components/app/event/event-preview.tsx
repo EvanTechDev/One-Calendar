@@ -344,9 +344,9 @@ export default function EventPreview({
       setIsSharing(true)
       const shareId =
         Date.now().toString() + Math.random().toString(36).substring(2, 9)
-      const clerkUsername =
-        user?.username || user?.firstName || 'Anonymous'
-      const sharedEvent = { ...event, sharedBy: clerkUsername }
+      const sharedByName =
+        user?.name || user?.username || user?.firstName || user?.email || 'User'
+      const sharedEvent = { ...event, sharedBy: sharedByName }
 
       const payload: any = { id: shareId, data: sharedEvent }
       if (passwordEnabled) payload.password = sharePassword
@@ -416,7 +416,7 @@ export default function EventPreview({
           id: shareId,
           eventId: event.id,
           eventTitle: event.title,
-          sharedBy: clerkUsername,
+          sharedBy: sharedByName,
           shareDate: new Date().toISOString(),
           shareLink: link,
           protected: !!passwordEnabled,

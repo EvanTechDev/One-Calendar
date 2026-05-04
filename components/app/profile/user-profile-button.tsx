@@ -47,6 +47,7 @@ import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
+import QRCodeStyling from 'qr-code-styling'
 import {
   decryptPayload,
   encryptPayload,
@@ -247,7 +248,7 @@ export default function UserProfileButton({
   const [pendingEmail, setPendingEmail] = useState('')
   const [changePasswordValue, setChangePasswordValue] = useState('')
   const [emailStep, setEmailStep] = useState<1 | 2>(1)
-  const [twoFaStep, setTwoFaStep] = useState<1 | 2>(1)
+  const [twoFaStep, setTwoFaStep] = useState<1 | 2 | 3>(1)
   const [profileSaving, setProfileSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [twoFactorPassword, setTwoFactorPassword] = useState('')
@@ -255,6 +256,8 @@ export default function UserProfileButton({
   const [twoFactorPending, setTwoFactorPending] = useState(false)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [twoFactorUri, setTwoFactorUri] = useState('')
+  const [twoFactorQrCode, setTwoFactorQrCode] = useState('')
+  const twoFactorQrCodeRef = useRef<string | null>(null)
 
   const keyRef = useRef<string | null>(null)
   const lastBackupSnapshotRef = useRef<string | null>(null)
@@ -299,6 +302,14 @@ export default function UserProfileButton({
     setFirstName(parts[0] || '')
     setLastName(parts.slice(1).join(' '))
   }, [user])
+
+  useEffect(() => {
+    return () => {
+      if (twoFactorQrCodeRef.current) {
+        URL.revokeObjectURL(twoFactorQrCodeRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (mode === 'settings') return
@@ -435,21 +446,25 @@ export default function UserProfileButton({
 
   async function sendEmailChangeOtp() {
     if (!newEmail || !twoFactorPassword) return
+    setTwoFactorPending(true)
     const res = await authClient.emailOtp.sendVerificationOtp({
       email: newEmail,
       type: 'email-verification',
     })
     if (res.error) {
       toast(res.error.message || 'Failed to send verification code.')
+      setTwoFactorPending(false)
       return
     }
     setPendingEmail(newEmail)
     setEmailStep(2)
+    setTwoFactorPending(false)
     toast('Verification code sent to the new email.')
   }
 
   async function confirmEmailChange() {
     if (!pendingEmail || !emailOtp || !twoFactorPassword) return
+    setTwoFactorPending(true)
     const verifyRes = await authClient.emailOtp.verifyEmail({
       email: pendingEmail,
       otp: emailOtp,
@@ -457,6 +472,7 @@ export default function UserProfileButton({
     } as any)
     if (verifyRes.error) {
       toast(verifyRes.error.message || 'Invalid verification code.')
+      setTwoFactorPending(false)
       return
     }
     const updateRes = await authClient.changeEmail({
@@ -466,6 +482,7 @@ export default function UserProfileButton({
     } as any)
     if (updateRes.error) {
       toast(updateRes.error.message || 'Failed to update email.')
+      setTwoFactorPending(false)
       return
     }
     setNewEmail('')
@@ -473,6 +490,9 @@ export default function UserProfileButton({
     setEmailOtp('')
     toast('Email updated successfully.')
     await authClient.getSession()
+    setEmailStep(1)
+    setTwoFactorPassword('')
+    setTwoFactorPending(false)
   }
 
   async function confirmChangePassword() {
@@ -704,7 +724,26 @@ export default function UserProfileButton({
       setTwoFactorPending(false)
       return
     }
-    setTwoFactorUri((setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || '')
+    const totpUri = (setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || ''
+    setTwoFactorUri(totpUri)
+    if (totpUri) {
+      const qrCode = new QRCodeStyling({
+        width: 220,
+        height: 220,
+        type: 'canvas',
+        data: totpUri,
+        margin: 2,
+      })
+      const qrBlob = await qrCode.getRawData('png')
+      if (qrBlob) {
+        if (twoFactorQrCodeRef.current) {
+          URL.revokeObjectURL(twoFactorQrCodeRef.current)
+        }
+        const qrUrl = URL.createObjectURL(qrBlob)
+        twoFactorQrCodeRef.current = qrUrl
+        setTwoFactorQrCode(qrUrl)
+      }
+    }
     setTwoFactorEnabled(true)
     setTwoFaStep(2)
     setTwoFactorPending(false)
@@ -722,6 +761,12 @@ export default function UserProfileButton({
     }
     setTwoFactorEnabled(false)
     setTwoFaStep(1)
+    if (twoFactorQrCodeRef.current) {
+      URL.revokeObjectURL(twoFactorQrCodeRef.current)
+      twoFactorQrCodeRef.current = null
+    }
+    setTwoFactorQrCode('')
+    setTwoFactorUri('')
     setTwoFactorPending(false)
     toast(t.twoFactorAuthentication)
   }
@@ -737,6 +782,7 @@ export default function UserProfileButton({
     }
     toast('2FA setup verified.')
     setTwoFactorCode('')
+    setTwoFaStep(3)
     setTwoFactorPending(false)
   }
   async function deleteAccount() {
@@ -823,7 +869,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.image || '/placeholder.svg'}
+                  src={user?.image || '/user.png'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -876,7 +922,7 @@ export default function UserProfileButton({
 
                     <div className="space-y-3 rounded-md border p-3">
                       <p className="text-sm font-semibold">{t.twoFactorAuthentication}</p>
-                      <p className="text-xs text-muted-foreground">Enable or disable TOTP-based 2FA.</p>
+                      <p className="text-xs text-muted-foreground">{t.twoFactorAuthenticationDescription}</p>
                       <Button variant="outline" onClick={() => openProfileSection('twofa')}>
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openTwoFactorSettings}
@@ -885,7 +931,7 @@ export default function UserProfileButton({
 
                     <div className="space-y-3 rounded-md border p-3">
                       <p className="text-sm font-semibold">{t.changePassword}</p>
-                      <p className="text-xs text-muted-foreground">Use one-time email code to securely change your password.</p>
+                      <p className="text-xs text-muted-foreground">{t.changePasswordDescription}</p>
                       <Button variant="outline" onClick={() => openProfileSection('password')}>
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openPasswordSettings}
@@ -1028,7 +1074,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.image || '/placeholder.svg'
+                        user?.image || '/user.png'
                       }
                       alt="avatar"
                       width={52}
@@ -1128,25 +1174,28 @@ export default function UserProfileButton({
                       <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled}>{t.next}</Button>
-                      <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled}>{t.disable2fa}</Button>
+                      <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled || !twoFactorPassword}>{t.next}</Button>
+                      <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled || !twoFactorPassword}>{t.disable2fa}</Button>
                     </div>
                   </>
                 ) : null}
                 {twoFaStep === 2 && twoFactorUri ? (
-                  <div className="space-y-2">
-                    <Label>{t.scanQrFor2fa}</Label>
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorUri)}`} alt="2fa qr" className="h-44 w-44 rounded-md border" />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>{t.scanQrFor2fa}</Label>
+                      <img src={twoFactorQrCode} alt={t.twoFactorQrCodeAlt} className="h-44 w-44 rounded-md border" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t.otpCode}</Label>
+                      <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>{t.verify2faCode}</Button>
+                      <Button variant="outline" onClick={() => setTwoFaStep(1)}>{t.back}</Button>
+                    </div>
                   </div>
                 ) : null}
-                <div className="space-y-2">
-                  <Label>{t.otpCode}</Label>
-                  <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>{t.verify2faCode}</Button>
-                    <Button variant="outline" onClick={() => setTwoFaStep(1)}>{t.back}</Button>
-                  </div>
-                </div>
+                {twoFaStep === 3 ? <p className="text-sm text-muted-foreground">{t.twoFactorEnabledMessage}</p> : null}
               </section>
 
               <section
