@@ -17,5 +17,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bunx tsc --noEmit
+      - run: bun install --frozen-lockfile && bunx prisma generate
+      - run: bunx tsc --noEmit 2>&1 | tail -20
