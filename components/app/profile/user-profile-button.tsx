@@ -47,6 +47,7 @@ import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
+import QRCodeStyling from 'qr-code-styling'
 import {
   decryptPayload,
   encryptPayload,
@@ -255,6 +256,8 @@ export default function UserProfileButton({
   const [twoFactorPending, setTwoFactorPending] = useState(false)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [twoFactorUri, setTwoFactorUri] = useState('')
+  const [twoFactorQrCode, setTwoFactorQrCode] = useState('')
+  const twoFactorQrCodeRef = useRef<string | null>(null)
 
   const keyRef = useRef<string | null>(null)
   const lastBackupSnapshotRef = useRef<string | null>(null)
@@ -299,6 +302,14 @@ export default function UserProfileButton({
     setFirstName(parts[0] || '')
     setLastName(parts.slice(1).join(' '))
   }, [user])
+
+  useEffect(() => {
+    return () => {
+      if (twoFactorQrCodeRef.current) {
+        URL.revokeObjectURL(twoFactorQrCodeRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (mode === 'settings') return
@@ -713,7 +724,26 @@ export default function UserProfileButton({
       setTwoFactorPending(false)
       return
     }
-    setTwoFactorUri((setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || '')
+    const totpUri = (setupRes as any).data?.totpURI || (setupRes as any).data?.totpUri || ''
+    setTwoFactorUri(totpUri)
+    if (totpUri) {
+      const qrCode = new QRCodeStyling({
+        width: 220,
+        height: 220,
+        type: 'canvas',
+        data: totpUri,
+        margin: 2,
+      })
+      const qrBlob = await qrCode.getRawData('png')
+      if (qrBlob) {
+        if (twoFactorQrCodeRef.current) {
+          URL.revokeObjectURL(twoFactorQrCodeRef.current)
+        }
+        const qrUrl = URL.createObjectURL(qrBlob)
+        twoFactorQrCodeRef.current = qrUrl
+        setTwoFactorQrCode(qrUrl)
+      }
+    }
     setTwoFactorEnabled(true)
     setTwoFaStep(2)
     setTwoFactorPending(false)
@@ -731,6 +761,12 @@ export default function UserProfileButton({
     }
     setTwoFactorEnabled(false)
     setTwoFaStep(1)
+    if (twoFactorQrCodeRef.current) {
+      URL.revokeObjectURL(twoFactorQrCodeRef.current)
+      twoFactorQrCodeRef.current = null
+    }
+    setTwoFactorQrCode('')
+    setTwoFactorUri('')
     setTwoFactorPending(false)
     toast(t.twoFactorAuthentication)
   }
@@ -886,7 +922,7 @@ export default function UserProfileButton({
 
                     <div className="space-y-3 rounded-md border p-3">
                       <p className="text-sm font-semibold">{t.twoFactorAuthentication}</p>
-                      <p className="text-xs text-muted-foreground">Enable or disable TOTP-based 2FA.</p>
+                      <p className="text-xs text-muted-foreground">{t.twoFactorAuthenticationDescription}</p>
                       <Button variant="outline" onClick={() => openProfileSection('twofa')}>
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openTwoFactorSettings}
@@ -895,7 +931,7 @@ export default function UserProfileButton({
 
                     <div className="space-y-3 rounded-md border p-3">
                       <p className="text-sm font-semibold">{t.changePassword}</p>
-                      <p className="text-xs text-muted-foreground">Use one-time email code to securely change your password.</p>
+                      <p className="text-xs text-muted-foreground">{t.changePasswordDescription}</p>
                       <Button variant="outline" onClick={() => openProfileSection('password')}>
                         <KeyRound className="h-4 w-4 mr-2" />
                         {t.openPasswordSettings}
@@ -1147,7 +1183,7 @@ export default function UserProfileButton({
                   <div className="space-y-3">
                     <div className="space-y-2">
                       <Label>{t.scanQrFor2fa}</Label>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorUri)}`} alt="2fa qr" className="h-44 w-44 rounded-md border" />
+                      <img src={twoFactorQrCode} alt={t.twoFactorQrCodeAlt} className="h-44 w-44 rounded-md border" />
                     </div>
                     <div className="space-y-2">
                       <Label>{t.otpCode}</Label>

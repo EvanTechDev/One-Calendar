@@ -550,4 +550,10 @@
   "updatePassword": "更新密码"
 ,
   "twoFactorEnabledMessage": "双重身份验证已在你的账户上启用。"
+,
+  "twoFactorAuthenticationDescription": "启用或禁用基于 TOTP 的双重身份验证。"
+,
+  "changePasswordDescription": "使用一次性邮箱验证码安全地修改密码。"
+,
+  "twoFactorQrCodeAlt": "双重身份验证二维码"
 }
