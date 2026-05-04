@@ -247,7 +247,7 @@ export default function UserProfileButton({
   const [pendingEmail, setPendingEmail] = useState('')
   const [changePasswordValue, setChangePasswordValue] = useState('')
   const [emailStep, setEmailStep] = useState<1 | 2>(1)
-  const [twoFaStep, setTwoFaStep] = useState<1 | 2>(1)
+  const [twoFaStep, setTwoFaStep] = useState<1 | 2 | 3>(1)
   const [profileSaving, setProfileSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [twoFactorPassword, setTwoFactorPassword] = useState('')
@@ -435,21 +435,25 @@ export default function UserProfileButton({
 
   async function sendEmailChangeOtp() {
     if (!newEmail || !twoFactorPassword) return
+    setTwoFactorPending(true)
     const res = await authClient.emailOtp.sendVerificationOtp({
       email: newEmail,
       type: 'email-verification',
     })
     if (res.error) {
       toast(res.error.message || 'Failed to send verification code.')
+      setTwoFactorPending(false)
       return
     }
     setPendingEmail(newEmail)
     setEmailStep(2)
+    setTwoFactorPending(false)
     toast('Verification code sent to the new email.')
   }
 
   async function confirmEmailChange() {
     if (!pendingEmail || !emailOtp || !twoFactorPassword) return
+    setTwoFactorPending(true)
     const verifyRes = await authClient.emailOtp.verifyEmail({
       email: pendingEmail,
       otp: emailOtp,
@@ -457,6 +461,7 @@ export default function UserProfileButton({
     } as any)
     if (verifyRes.error) {
       toast(verifyRes.error.message || 'Invalid verification code.')
+      setTwoFactorPending(false)
       return
     }
     const updateRes = await authClient.changeEmail({
@@ -466,6 +471,7 @@ export default function UserProfileButton({
     } as any)
     if (updateRes.error) {
       toast(updateRes.error.message || 'Failed to update email.')
+      setTwoFactorPending(false)
       return
     }
     setNewEmail('')
@@ -473,6 +479,9 @@ export default function UserProfileButton({
     setEmailOtp('')
     toast('Email updated successfully.')
     await authClient.getSession()
+    setEmailStep(1)
+    setTwoFactorPassword('')
+    setTwoFactorPending(false)
   }
 
   async function confirmChangePassword() {
@@ -737,6 +746,7 @@ export default function UserProfileButton({
     }
     toast('2FA setup verified.')
     setTwoFactorCode('')
+    setTwoFaStep(3)
     setTwoFactorPending(false)
   }
   async function deleteAccount() {
@@ -823,7 +833,7 @@ export default function UserProfileButton({
             <>
               <div className="flex items-center gap-3">
                 <img
-                  src={user?.image || '/placeholder.svg'}
+                  src={user?.image || '/user.png'}
                   alt="avatar"
                   width={40}
                   height={40}
@@ -1028,7 +1038,7 @@ export default function UserProfileButton({
                   <div className="flex items-center gap-3">
                     <img
                       src={
-                        user?.image || '/placeholder.svg'
+                        user?.image || '/user.png'
                       }
                       alt="avatar"
                       width={52}
@@ -1128,25 +1138,28 @@ export default function UserProfileButton({
                       <Input type="password" value={twoFactorPassword} onChange={(e) => setTwoFactorPassword(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled}>{t.next}</Button>
-                      <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled}>{t.disable2fa}</Button>
+                      <Button variant="outline" onClick={enableTwoFactor} disabled={twoFactorPending || twoFactorEnabled || !twoFactorPassword}>{t.next}</Button>
+                      <Button variant="outline" onClick={disableTwoFactor} disabled={twoFactorPending || !twoFactorEnabled || !twoFactorPassword}>{t.disable2fa}</Button>
                     </div>
                   </>
                 ) : null}
                 {twoFaStep === 2 && twoFactorUri ? (
-                  <div className="space-y-2">
-                    <Label>{t.scanQrFor2fa}</Label>
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorUri)}`} alt="2fa qr" className="h-44 w-44 rounded-md border" />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>{t.scanQrFor2fa}</Label>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorUri)}`} alt="2fa qr" className="h-44 w-44 rounded-md border" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t.otpCode}</Label>
+                      <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>{t.verify2faCode}</Button>
+                      <Button variant="outline" onClick={() => setTwoFaStep(1)}>{t.back}</Button>
+                    </div>
                   </div>
                 ) : null}
-                <div className="space-y-2">
-                  <Label>{t.otpCode}</Label>
-                  <Input value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={verifyTwoFactorSetup} disabled={twoFactorPending || twoFactorCode.length < 6}>{t.verify2faCode}</Button>
-                    <Button variant="outline" onClick={() => setTwoFaStep(1)}>{t.back}</Button>
-                  </div>
-                </div>
+                {twoFaStep === 3 ? <p className="text-sm text-muted-foreground">{t.twoFactorEnabledMessage}</p> : null}
               </section>
 
               <section
