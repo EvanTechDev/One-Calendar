@@ -26,7 +26,7 @@ export const translations = Object.fromEntries(
       ...localeTranslations[lang],
     },
   ]),
-) as typeof localeTranslations
+) as Record<Language, typeof localeTranslations.en>
 
 const LANGUAGE_AUTONYM: Partial<Record<Language, string>> = {
   en: 'English',
