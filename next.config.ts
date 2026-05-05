@@ -14,9 +14,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  reactCompiler: true,
   output: 'standalone',
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -49,7 +47,6 @@ const nextConfig: NextConfig = {
       'clsx',
       'tailwind-merge',
     ],
-    reactCompiler: true,
   },
 }
 
