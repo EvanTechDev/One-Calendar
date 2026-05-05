@@ -275,8 +275,17 @@ export default function EventPreview({
       )[0]
 
     if (existingShare) {
-      setShareLink(existingShare.shareLink)
-      await generateStyledQRCode(existingShare.shareLink)
+      const res = await fetch(`/api/share?id=${existingShare.id}`)
+      if (res.ok) {
+        setShareLink(existingShare.shareLink)
+        await generateStyledQRCode(existingShare.shareLink)
+      } else {
+        // Share no longer exists, remove from storage
+        const updatedShares = storedShares.filter(
+          (s) => s.id !== existingShare.id,
+        )
+        await writeEncryptedLocalStorage('shared-events', updatedShares)
+      }
     }
 
     setShareDialogOpen(true)
