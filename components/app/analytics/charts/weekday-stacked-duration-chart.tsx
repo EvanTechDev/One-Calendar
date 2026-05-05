@@ -61,7 +61,9 @@ export function WeekdayStackedDurationChart({
       </CardHeader>
       <CardContent>
         {data.length === 0 || series.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
+            {t.noData}
+          </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart data={data} margin={{ left: 8, right: 16, top: 8 }}>
@@ -97,7 +99,8 @@ export function WeekdayStackedDurationChart({
                   fill={item.color}
                 >
                   {data.map((datum) => {
-                    const isTopSegment = topDataKeyByDay.get(datum.day) === item.key
+                    const isTopSegment =
+                      topDataKeyByDay.get(datum.day) === item.key
                     return (
                       <Cell
                         key={`${item.key}-${datum.day}`}

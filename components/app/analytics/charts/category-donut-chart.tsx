@@ -39,7 +39,9 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
+          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+            {t.noData}
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-[280px_1fr]">
             <ChartContainer config={chartConfig} className="h-[280px] w-full">
@@ -56,13 +58,20 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
                   ))}
                 </Pie>
                 <ChartTooltip
-                  content={<ChartTooltipContent formatter={(value) => `${value} ${t.analyticsCountUnit}`} />}
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) => `${value} ${t.analyticsCountUnit}`}
+                    />
+                  }
                 />
               </PieChart>
             </ChartContainer>
             <div className="space-y-3">
               {data.map((item) => (
-                <div key={item.category} className="flex items-center justify-between text-sm">
+                <div
+                  key={item.category}
+                  className="flex items-center justify-between text-sm"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 rounded-full"
@@ -70,7 +79,9 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
                     />
                     <span>{item.category}</span>
                   </div>
-                  <span className="font-medium">{item.percent.toFixed(1)}%</span>
+                  <span className="font-medium">
+                    {item.percent.toFixed(1)}%
+                  </span>
                 </div>
               ))}
             </div>

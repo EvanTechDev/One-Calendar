@@ -13,13 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Download,
-  Upload,
-  CalendarIcon,
-  ExternalLink,
-  AlertCircle,
-} from 'lucide-react'
+import { Download, Upload, AlertCircle } from 'lucide-react'
 import {
   decryptPayload,
   encryptPayload,
@@ -187,10 +181,9 @@ export default function ImportExport({
             SETTINGS_KEYS.timezone,
             undefined,
           ),
-          notificationSound: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.notificationSound,
-            undefined,
-          ),
+          notificationSound: await readEncryptedLocalStorage<
+            string | undefined
+          >(SETTINGS_KEYS.notificationSound, undefined),
           defaultView: await readEncryptedLocalStorage<string | undefined>(
             SETTINGS_KEYS.defaultView,
             undefined,
@@ -199,10 +192,9 @@ export default function ImportExport({
             SETTINGS_KEYS.enableShortcuts,
             undefined,
           ),
-          timeFormat: await readEncryptedLocalStorage<'24h' | '12h' | undefined>(
-            SETTINGS_KEYS.timeFormat,
-            undefined,
-          ),
+          timeFormat: await readEncryptedLocalStorage<
+            '24h' | '12h' | undefined
+          >(SETTINGS_KEYS.timeFormat, undefined),
           toastPosition: await readEncryptedLocalStorage<
             'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
           >(SETTINGS_KEYS.toastPosition, undefined),
@@ -401,10 +393,15 @@ ${rawContent.substring(0, 500)}...`)
     }
   }
 
-  const normalizeImportedEvent = (input: Partial<CalendarEvent>): CalendarEvent => {
+  const normalizeImportedEvent = (
+    input: Partial<CalendarEvent>,
+  ): CalendarEvent => {
     const start = input.startDate ? new Date(input.startDate) : new Date()
-    const parsedEnd = input.endDate ? new Date(input.endDate) : new Date(start.getTime() + 60 * 60 * 1000)
-    const end = parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
+    const parsedEnd = input.endDate
+      ? new Date(input.endDate)
+      : new Date(start.getTime() + 60 * 60 * 1000)
+    const end =
+      parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
 
     return {
       id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
@@ -415,14 +412,17 @@ ${rawContent.substring(0, 500)}...`)
       recurrence: input.recurrence || 'none',
       location: input.location,
       participants: Array.isArray(input.participants) ? input.participants : [],
-      notification: typeof input.notification === 'number' ? input.notification : 0,
+      notification:
+        typeof input.notification === 'number' ? input.notification : 0,
       description: input.description,
       color: input.color || 'bg-[#E6F6FD]',
       calendarId: input.calendarId || '',
     }
   }
 
-  const mergeCategoriesFromBackup = (importedCategories: ImportedCategory[]) => {
+  const mergeCategoriesFromBackup = (
+    importedCategories: ImportedCategory[],
+  ) => {
     if (importedCategories.length === 0) return
 
     const merged = [...calendars]
@@ -448,7 +448,10 @@ ${rawContent.substring(0, 500)}...`)
 
   const parseJsonEvents = async (
     rawContent: string,
-  ): Promise<{ events: CalendarEvent[]; shouldApplyImportCategory: boolean }> => {
+  ): Promise<{
+    events: CalendarEvent[]
+    shouldApplyImportCategory: boolean
+  }> => {
     const parsed = JSON.parse(rawContent)
 
     if (isEncryptedPayload(parsed) || parsed?.encrypted) {
@@ -511,7 +514,9 @@ ${rawContent.substring(0, 500)}...`)
         }
       })
 
-      const autoCategories: ImportedCategory[] = Array.from(extraCategoryIds).map((id) => ({
+      const autoCategories: ImportedCategory[] = Array.from(
+        extraCategoryIds,
+      ).map((id) => ({
         id,
         name: `Imported ${id.slice(0, 6)}`,
         color: 'bg-blue-500',
@@ -520,7 +525,10 @@ ${rawContent.substring(0, 500)}...`)
       mergeCategoriesFromBackup([...importedCategories, ...autoCategories])
 
       if (Array.isArray(payload.data.bookmarks)) {
-        await writeEncryptedLocalStorage('bookmarked-events', payload.data.bookmarks)
+        await writeEncryptedLocalStorage(
+          'bookmarked-events',
+          payload.data.bookmarks,
+        )
       }
       if (Array.isArray(payload.data.countdowns)) {
         await writeEncryptedLocalStorage('countdowns', payload.data.countdowns)
@@ -529,31 +537,67 @@ ${rawContent.substring(0, 500)}...`)
       const settings = payload.data.settings || {}
       const settingWrites: Promise<void>[] = []
       if (settings.language !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.language, settings.language))
+        settingWrites.push(
+          writeEncryptedLocalStorage(SETTINGS_KEYS.language, settings.language),
+        )
       }
       if (settings.firstDayOfWeek !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.firstDayOfWeek, settings.firstDayOfWeek))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.firstDayOfWeek,
+            settings.firstDayOfWeek,
+          ),
+        )
       }
       if (settings.timezone !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.timezone, settings.timezone))
+        settingWrites.push(
+          writeEncryptedLocalStorage(SETTINGS_KEYS.timezone, settings.timezone),
+        )
       }
       if (settings.notificationSound !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.notificationSound, settings.notificationSound))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.notificationSound,
+            settings.notificationSound,
+          ),
+        )
       }
       if (settings.defaultView !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.defaultView, settings.defaultView))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.defaultView,
+            settings.defaultView,
+          ),
+        )
       }
       if (settings.enableShortcuts !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.enableShortcuts, settings.enableShortcuts))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.enableShortcuts,
+            settings.enableShortcuts,
+          ),
+        )
       }
       if (settings.timeFormat !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.timeFormat, settings.timeFormat))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.timeFormat,
+            settings.timeFormat,
+          ),
+        )
       }
       if (settings.toastPosition !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.toastPosition, settings.toastPosition))
+        settingWrites.push(
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.toastPosition,
+            settings.toastPosition,
+          ),
+        )
       }
       if (settings.theme !== undefined) {
-        settingWrites.push(writeEncryptedLocalStorage(SETTINGS_KEYS.theme, settings.theme))
+        settingWrites.push(
+          writeEncryptedLocalStorage(SETTINGS_KEYS.theme, settings.theme),
+        )
       }
       await Promise.all(settingWrites)
 

@@ -283,7 +283,10 @@ export default function Sidebar({
             <span className="text-sm font-medium">{t.myCalendars}</span>
           </div>
           {calendars.map((calendar) => (
-            <div key={calendar.id} className="flex items-center justify-between">
+            <div
+              key={calendar.id}
+              className="flex items-center justify-between"
+            >
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={selectedCategoryFilters.includes(calendar.id)}
@@ -306,7 +309,9 @@ export default function Sidebar({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEditClick(calendar.id)}>
+                    <DropdownMenuItem
+                      onClick={() => handleEditClick(calendar.id)}
+                    >
                       <Edit2 className="mr-2 h-4 w-4" />
                       {t.edit}
                     </DropdownMenuItem>
@@ -319,7 +324,11 @@ export default function Sidebar({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleMoveCategory(calendar.id, 'up')}
-                      disabled={calendars.findIndex((item) => item.id === calendar.id) === 0}
+                      disabled={
+                        calendars.findIndex(
+                          (item) => item.id === calendar.id,
+                        ) === 0
+                      }
                     >
                       <ArrowUp className="mr-2 h-4 w-4" />
                       {moveUpText}
@@ -327,7 +336,9 @@ export default function Sidebar({
                     <DropdownMenuItem
                       onClick={() => handleMoveCategory(calendar.id, 'down')}
                       disabled={
-                        calendars.findIndex((item) => item.id === calendar.id) ===
+                        calendars.findIndex(
+                          (item) => item.id === calendar.id,
+                        ) ===
                         calendars.length - 1
                       }
                     >

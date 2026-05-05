@@ -15,7 +15,15 @@ import type { AnalyticsEvent, DateRange } from './analytics-types'
 
 export type AnalyticsRangePreset = 'week' | 'month' | 'quarter'
 
-const COLOR_ORDER = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+const COLOR_ORDER = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+]
 
 const COLOR_MAP: Record<string, string> = {
   'bg-blue-500': '#3b82f6',
@@ -80,8 +88,14 @@ export const mapEventsToAnalyticsEvents = (
   return events
     .map((event) => {
       const raw = event as CalendarEvent & { createdAt?: string | Date }
-      const start = raw.startDate instanceof Date ? raw.startDate : parseISO(String(raw.startDate))
-      const end = raw.endDate instanceof Date ? raw.endDate : parseISO(String(raw.endDate))
+      const start =
+        raw.startDate instanceof Date
+          ? raw.startDate
+          : parseISO(String(raw.startDate))
+      const end =
+        raw.endDate instanceof Date
+          ? raw.endDate
+          : parseISO(String(raw.endDate))
       const createdAtRaw = raw.createdAt
       const createdAt = createdAtRaw
         ? createdAtRaw instanceof Date
@@ -130,7 +144,8 @@ export const generateRangeDays = (range: DateRange): Date[] => {
 
 export const groupDayKey = (date: Date): string => format(date, 'yyyy-MM-dd')
 
-export const groupMonthKey = (date: Date): string => format(startOfMonth(date), 'yyyy-MM')
+export const groupMonthKey = (date: Date): string =>
+  format(startOfMonth(date), 'yyyy-MM')
 
 export const getMonthDays = (year: number): Date[] => {
   return eachDayOfInterval({

@@ -1,7 +1,4 @@
-import {
-  Calendar,
-  Bookmark,
-} from 'lucide-react'
+import { Calendar, Bookmark } from 'lucide-react'
 import { ClockDashed } from '@/components/icons/clock-dashed'
 import MiniCalendarSheet from './mini-calendar-sheet'
 import { Button } from '@/components/ui/button'

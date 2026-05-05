@@ -83,7 +83,8 @@ const useCalendarStore = create<CalendarState>()((set) => ({
       const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
       if (currentIndex === -1) return { calendars: state.calendars }
 
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+      const targetIndex =
+        direction === 'up' ? currentIndex - 1 : currentIndex + 1
 
       if (targetIndex < 0 || targetIndex >= state.calendars.length) {
         return { calendars: state.calendars }
@@ -120,10 +121,9 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const hydrate = async () => {
-      const storedCalendars = await readEncryptedLocalStorage<CalendarCategory[]>(
-        'calendar-categories',
-        [],
-      )
+      const storedCalendars = await readEncryptedLocalStorage<
+        CalendarCategory[]
+      >('calendar-categories', [])
       const storedEvents = await readEncryptedLocalStorage<CalendarEvent[]>(
         'calendar-events',
         [],

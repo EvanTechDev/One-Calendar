@@ -42,3 +42,5 @@ next-env.d.ts
 
 # turbo
 .turbo
+
+package-lock.json

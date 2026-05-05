@@ -36,10 +36,15 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
   const firstDayOfYear = startOfYear(new Date(selectedYear, 0, 1))
   const lastDayOfYear = endOfYear(new Date(selectedYear, 11, 31))
   const startDay = startOfWeek(firstDayOfYear, { weekStartsOn: 1 })
-  const endDay = addDays(lastDayOfYear, 7 - ((getDay(lastDayOfYear) + 6) % 7) - 1)
+  const endDay = addDays(
+    lastDayOfYear,
+    7 - ((getDay(lastDayOfYear) + 6) % 7) - 1,
+  )
   const totalDays = differenceInDays(endDay, startDay) + 1
   const totalWeeks = Math.ceil(totalDays / 7)
-  const countMap = new Map(data.map((item) => [format(item.date, 'yyyy-MM-dd'), item.count]))
+  const countMap = new Map(
+    data.map((item) => [format(item.date, 'yyyy-MM-dd'), item.count]),
+  )
   const maxCount = data.reduce((max, item) => Math.max(max, item.count), 0)
 
   const weekdayLabels = [
@@ -82,7 +87,10 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
         <div className="overflow-x-auto pb-2">
           <div
             className="relative"
-            style={{ minWidth: `${Math.max(totalWeeks * 16 + 72, 760)}px`, paddingTop: '20px' }}
+            style={{
+              minWidth: `${Math.max(totalWeeks * 16 + 72, 760)}px`,
+              paddingTop: '20px',
+            }}
           >
             <div className="absolute left-12 right-0 top-0">
               {monthLabels.map((month) => (
@@ -120,9 +128,15 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
                         <div
                           key={key}
                           className={`h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-ring ${
-                            isCurrentYear ? intensityClasses[getLevel(count)] : 'bg-transparent'
+                            isCurrentYear
+                              ? intensityClasses[getLevel(count)]
+                              : 'bg-transparent'
                           }`}
-                          title={isCurrentYear ? `${key}: ${count} ${t.analyticsScheduleUnit}` : ''}
+                          title={
+                            isCurrentYear
+                              ? `${key}: ${count} ${t.analyticsScheduleUnit}`
+                              : ''
+                          }
                         />
                       )
                     })}

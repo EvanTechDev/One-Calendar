@@ -26,7 +26,8 @@ async function sendAuthEmail(payload: {
     html: payload.html,
   })
   if (result.error) throw new Error(result.error.message)
-  if (!result.data?.id) throw new Error('Email provider did not return a message id')
+  if (!result.data?.id)
+    throw new Error('Email provider did not return a message id')
 }
 
 export const auth = betterAuth({
@@ -48,7 +49,8 @@ export const auth = betterAuth({
           body: 'We received a request to reset your password. Use the button below to continue.',
           actionLabel: 'Reset password',
           actionUrl: url,
-          secondary: 'If you did not request this, you can safely ignore this email.',
+          secondary:
+            'If you did not request this, you can safely ignore this email.',
         }),
       })
     },
@@ -85,16 +87,15 @@ export const auth = betterAuth({
       sendVerificationOTP: async ({ email, otp, type }) => {
         await sendAuthEmail({
           to: email,
-          subject: type === 'forget-password' ? 'Reset code' : 'Verification code',
+          subject:
+            type === 'forget-password' ? 'Reset code' : 'Verification code',
           html: await renderAuthEmailTemplate({
             preview:
               type === 'forget-password'
                 ? 'Your One Calendar reset code'
                 : 'Your One Calendar verification code',
             title:
-              type === 'forget-password'
-                ? 'Reset code'
-                : 'Verification code',
+              type === 'forget-password' ? 'Reset code' : 'Verification code',
             body: `Use this code to continue: ${otp}`,
             secondary: 'This code will expire shortly for your security.',
           }),

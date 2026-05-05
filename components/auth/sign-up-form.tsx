@@ -5,23 +5,39 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { InputOTP } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 
-export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function SignUpForm({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<'div'>) {
   const router = useRouter()
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' })
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+  })
   const [otp, setOtp] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
-  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true)
+  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
+  )
 
   const sendVerificationOtp = async (withResendLoading: boolean) => {
     if (withResendLoading) setIsResending(true)
@@ -55,7 +71,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     })
 
     if (signUpRes.error) {
-      setError(signUpRes.error.message || 'An error occurred. Please try again.')
+      setError(
+        signUpRes.error.message || 'An error occurred. Please try again.',
+      )
       setIsLoading(false)
       return
     }
@@ -69,9 +87,15 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     if (!otp.trim()) return
     setIsVerifying(true)
     setError('')
-    const verifyRes = await authClient.emailOtp.verifyEmail({ email: formData.email, otp: otp.trim() })
+    const verifyRes = await authClient.emailOtp.verifyEmail({
+      email: formData.email,
+      otp: otp.trim(),
+    })
     if (verifyRes.error) {
-      setError(verifyRes.error.message || 'Invalid verification code. Please try again.')
+      setError(
+        verifyRes.error.message ||
+          'Invalid verification code. Please try again.',
+      )
       setIsVerifying(false)
       return
     }
@@ -91,7 +115,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
           <CardDescription>
-            {sent ? `Verification code sent to ${formData.email}` : 'Sign up with your email and password'}
+            {sent
+              ? `Verification code sent to ${formData.email}`
+              : 'Sign up with your email and password'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,12 +127,21 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                 <div className="text-sm font-medium">Step 2 of 2</div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   A verification code has been sent to{' '}
-                  <span className="font-medium text-foreground">{formData.email}</span>. Enter the code below to activate your account.
+                  <span className="font-medium text-foreground">
+                    {formData.email}
+                  </span>
+                  . Enter the code below to activate your account.
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="otp">Verification code</Label>
-                <InputOTP value={otp} onChange={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
+                <InputOTP
+                  value={otp}
+                  onChange={(value) =>
+                    setOtp(value.replace(/\D/g, '').slice(0, 6))
+                  }
+                  maxLength={6}
+                />
               </div>
               {error && <div className="text-sm text-red-500">{error}</div>}
               <Button
@@ -117,7 +152,13 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
               >
                 {isVerifying ? 'Verifying...' : 'Verify code'}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={handleResend} disabled={isResending || isVerifying}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResend}
+                disabled={isResending || isVerifying}
+              >
                 {isResending ? 'Resending...' : 'Resend code'}
               </Button>
             </div>
@@ -132,7 +173,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                       name="firstName"
                       required
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
@@ -142,7 +185,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                       name="lastName"
                       required
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -153,7 +198,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -163,7 +210,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                     type="password"
                     required
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                   />
                 </div>
                 {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
@@ -174,7 +223,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                     onExpire={() => setIsCaptchaCompleted(false)}
                     onError={() => {
                       setIsCaptchaCompleted(false)
-                      setError('CAPTCHA initialization failed. Please try again.')
+                      setError(
+                        'CAPTCHA initialization failed. Please try again.',
+                      )
                     }}
                   />
                 )}
@@ -198,11 +249,11 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         </CardContent>
       </Card>
 
-        <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-          By clicking continue, you agree to our{' '}
-          <a href="/terms">Terms of Service</a> and{' '}
-          <a href="/privacy">Privacy Policy</a>.
-        </div>
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+        By clicking continue, you agree to our{' '}
+        <a href="/terms">Terms of Service</a> and{' '}
+        <a href="/privacy">Privacy Policy</a>.
+      </div>
     </div>
   )
 }

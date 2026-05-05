@@ -47,7 +47,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { APP_CONFIG } from '@/lib/config'
 import { toast } from 'sonner'
 import {

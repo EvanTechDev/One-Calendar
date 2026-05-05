@@ -15,7 +15,7 @@ export async function fetchJson<T>(
     ...init,
     headers: {
       Accept: 'application/json',
-      ...(init?.headers ?? {}),
+      ...init?.headers,
     },
   }).then(async (response) => {
     if (!response.ok) {

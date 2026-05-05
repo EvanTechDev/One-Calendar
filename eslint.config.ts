@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import nextPlugin from '@next/eslint-plugin-next'
+import unusedImports from 'eslint-plugin-unused-imports'
 import tseslint, { type ConfigArray } from 'typescript-eslint'
 import oxlint from 'eslint-plugin-oxlint'
 
@@ -9,6 +10,7 @@ const config: ConfigArray = tseslint.config(
   {
     plugins: {
       '@next/next': nextPlugin,
+      'unused-imports': unusedImports,
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
@@ -29,6 +31,8 @@ const config: ConfigArray = tseslint.config(
       'no-case-declarations': 'warn',
       'no-console': 'warn',
       'prefer-const': 'error',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': 'off',
     },
   },
   {

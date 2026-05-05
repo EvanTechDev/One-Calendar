@@ -39,7 +39,9 @@ export function CategoryAverageDurationChart({
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
+            {t.noData}
+          </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart
@@ -51,7 +53,11 @@ export function CategoryAverageDurationChart({
               <XAxis type="number" unit="h" />
               <YAxis type="category" dataKey="category" width={96} />
               <ChartTooltip
-                content={<ChartTooltipContent formatter={(value) => `${value} ${t.analyticsHourUnit}`} />}
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => `${value} ${t.analyticsHourUnit}`}
+                  />
+                }
               />
               <Bar dataKey="hours" radius={[0, 8, 8, 0]}>
                 {data.map((entry) => (

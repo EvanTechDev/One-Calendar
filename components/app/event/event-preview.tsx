@@ -124,7 +124,6 @@ export default function EventPreview({
     }
   }, [open, modal])
 
-
   useEffect(() => {
     let active = true
     const loadBookmarks = () =>

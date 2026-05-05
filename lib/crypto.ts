@@ -24,7 +24,12 @@ async function derive(password: string, salt: Uint8Array) {
     ['deriveKey'],
   )
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt as Uint8Array, iterations: 250000, hash: 'SHA-256' },
+    {
+      name: 'PBKDF2',
+      salt: salt as Uint8Array,
+      iterations: 250000,
+      hash: 'SHA-256',
+    },
     k,
     { name: 'AES-GCM', length: 256 },
     false,

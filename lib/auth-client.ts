@@ -6,5 +6,9 @@ import { sentinelClient } from '@better-auth/infra/client'
 
 export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
-  plugins: [emailOTPClient(), twoFactorClient(), sentinelClient({ autoSolveChallenge: true })],
+  plugins: [
+    emailOTPClient(),
+    twoFactorClient(),
+    sentinelClient({ autoSolveChallenge: true }),
+  ],
 })

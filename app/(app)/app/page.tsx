@@ -12,10 +12,13 @@ export default function Home() {
     let active = true
     const run = async () => {
       try {
-        const response = await fetch('/api/auth/get-session', { cache: 'no-store' })
+        const response = await fetch('/api/auth/get-session', {
+          cache: 'no-store',
+        })
         const data = response.ok ? await response.json() : null
         if (!active) return
-        const signedIn = data !== null && typeof data === 'object' && 'session' in data
+        const signedIn =
+          data !== null && typeof data === 'object' && 'session' in data
         setIsSignedIn(signedIn)
       } catch {
         if (!active) return
@@ -25,7 +28,9 @@ export default function Home() {
       }
     }
     void run()
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [])
 
   useEffect(() => {
@@ -47,7 +52,9 @@ export default function Home() {
       }
     }
     void checkDb()
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [sessionChecked, isSignedIn])
 
   const shouldShowAuthWait = useMemo(() => {

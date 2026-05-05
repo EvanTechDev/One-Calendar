@@ -3,14 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
-import {
-  format,
-  isSameDay,
-  isWithinInterval,
-  endOfDay,
-  startOfDay,
-  add,
-} from 'date-fns'
+import { format, isSameDay, isWithinInterval, add } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '../calendar'
 import { translations, type Language } from '@/lib/i18n'

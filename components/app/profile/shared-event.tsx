@@ -15,7 +15,6 @@ import {
   Loader2,
   Clock,
   CalendarPlus,
-  ExternalLink,
   Copy,
   AlertCircle,
   Home,

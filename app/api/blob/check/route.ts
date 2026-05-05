@@ -27,7 +27,9 @@ export async function GET(request: Request) {
       ORDER BY table_name ASC
     `
 
-    return NextResponse.json({ tables: tables.map((row: { table_name: string }) => row.table_name) })
+    return NextResponse.json({
+      tables: tables.map((row: { table_name: string }) => row.table_name),
+    })
   } catch (error) {
     return NextResponse.json(
       {

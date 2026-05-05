@@ -68,7 +68,10 @@ export function DailyMonthlyCountChart({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>{t.analyticsDailyMonthlyCountTitle}</CardTitle>
-        <Tabs value={mode} onValueChange={(value) => onModeChange(value as 'day' | 'month')}>
+        <Tabs
+          value={mode}
+          onValueChange={(value) => onModeChange(value as 'day' | 'month')}
+        >
           <TabsList>
             <TabsTrigger value="day">{t.analyticsByDay}</TabsTrigger>
             <TabsTrigger value="month">{t.analyticsByMonth}</TabsTrigger>
@@ -77,7 +80,9 @@ export function DailyMonthlyCountChart({
       </CardHeader>
       <CardContent>
         {activeData.length === 0 || series.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">{t.noData}</div>
+          <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
+            {t.noData}
+          </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <BarChart data={activeData} margin={{ left: 8, right: 8, top: 8 }}>
@@ -100,7 +105,8 @@ export function DailyMonthlyCountChart({
                             style={{ backgroundColor: item.color }}
                           />
                           <span className="text-muted-foreground">
-                            {seriesLabelMap.get(String(item.dataKey ?? '')) ?? name}
+                            {seriesLabelMap.get(String(item.dataKey ?? '')) ??
+                              name}
                           </span>
                         </div>
                         <span className="font-mono font-medium text-foreground tabular-nums">
@@ -120,7 +126,8 @@ export function DailyMonthlyCountChart({
                   fill={item.color}
                 >
                   {activeData.map((datum) => {
-                    const isTopSegment = topDataKeyByLabel.get(datum.label) === item.key
+                    const isTopSegment =
+                      topDataKeyByLabel.get(datum.label) === item.key
                     return (
                       <Cell
                         key={`${item.key}-${datum.label}`}

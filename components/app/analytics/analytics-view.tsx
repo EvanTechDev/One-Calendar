@@ -42,7 +42,11 @@ export default function AnalyticsView({ events }: AnalyticsViewProps) {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
       </div>
-      <TimeAnalyticsComponent events={events} calendars={calendars} key={`time-analytics-${language}-${forceUpdate}`} />
+      <TimeAnalyticsComponent
+        events={events}
+        calendars={calendars}
+        key={`time-analytics-${language}-${forceUpdate}`}
+      />
     </div>
   )
 }

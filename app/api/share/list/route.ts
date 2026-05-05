@@ -11,8 +11,17 @@ function keyV2Unprotected(shareId: string) {
   return crypto.createHash('sha256').update(shareId, 'utf8').digest()
 }
 
-function decryptWithKey(encryptedData: string, iv: string, authTag: string, key: Buffer) {
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'hex'))
+function decryptWithKey(
+  encryptedData: string,
+  iv: string,
+  authTag: string,
+  key: Buffer,
+) {
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    key,
+    Buffer.from(iv, 'hex'),
+  )
   decipher.setAuthTag(Buffer.from(authTag, 'hex'))
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
   decrypted += decipher.final('utf8')
@@ -22,12 +31,20 @@ function decryptWithKey(encryptedData: string, iv: string, authTag: string, key:
 export async function GET() {
   const session = await getServerSession()
   const user = session?.user
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const result = await prisma.share.findMany({
     where: { userId: user.id },
     orderBy: { timestamp: 'desc' },
-    select: { shareId: true, encryptedData: true, iv: true, authTag: true, timestamp: true, isProtected: true },
+    select: {
+      shareId: true,
+      encryptedData: true,
+      iv: true,
+      authTag: true,
+      timestamp: true,
+      isProtected: true,
+    },
   })
 
   const shares = result.map((row: any) => {
@@ -35,7 +52,12 @@ export async function GET() {
     let eventTitle = ''
     if (!row.isProtected) {
       try {
-        const decrypted = decryptWithKey(row.encryptedData, row.iv, row.authTag, keyV2Unprotected(row.shareId))
+        const decrypted = decryptWithKey(
+          row.encryptedData,
+          row.iv,
+          row.authTag,
+          keyV2Unprotected(row.shareId),
+        )
         const dataObj = JSON.parse(decrypted)
         eventId = dataObj.id ?? ''
         eventTitle = dataObj.title ?? ''
@@ -44,7 +66,15 @@ export async function GET() {
       eventId = '受保护'
       eventTitle = '受保护'
     }
-    return { id: row.shareId, eventId, eventTitle, sharedBy: user.id, shareDate: row.timestamp.toISOString(), shareLink: `/share/${row.shareId}`, isProtected: row.isProtected }
+    return {
+      id: row.shareId,
+      eventId,
+      eventTitle,
+      sharedBy: user.id,
+      shareDate: row.timestamp.toISOString(),
+      shareLink: `/share/${row.shareId}`,
+      isProtected: row.isProtected,
+    }
   })
 
   return NextResponse.json({ shares })
