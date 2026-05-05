@@ -2,7 +2,6 @@
   "name": "one-calendar",
   "version": "2.4.0",
   "private": true,
-  "packageManager": "bun@1.3.12",
   "scripts": {
     "dev": "next dev",
     "build": "bun run generate:locales && prisma generate && next build",
@@ -62,26 +61,26 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "20.5.0",
-    "@commitlint/config-conventional": "20.5.0",
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
     "@commitlint/types": "20.5.0",
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "10.0.1",
     "@tailwindcss/postcss": "4.2.4",
     "@types/node": "25.6.0",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.3",
-    "eslint-plugin-oxlint": "^1.60.0",
-    "eslint-plugin-unused-imports": "^4.4.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "10.3.0",
+    "eslint-config-next": "16.2.4",
+    "eslint-plugin-oxlint": "1.62.0",
+    "eslint-plugin-unused-imports": "4.4.1",
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
-    "oxlint": "^1.60.0",
-    "postcss": "8.5.10",
+    "oxlint": "1.62.0",
+    "postcss": "8.5.14",
     "prettier": "3.8.3",
     "prisma": "latest",
     "tailwindcss": "4.2.4",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.58.2"
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.2"
   }
 }
