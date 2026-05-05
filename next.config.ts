@@ -14,8 +14,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactCompiler: true,
-  output: 'standalone',
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24,
@@ -29,10 +27,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       'lucide-react',
       'date-fns',
-      'framer-motion',
       'recharts',
       'clsx',
-      'tailwind-merge',
     ],
   },
 }
