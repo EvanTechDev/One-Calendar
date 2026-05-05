@@ -183,10 +183,10 @@ function Calendar({
 
           return null
         },
-
+        Dropdown: ({ className, ...props }) => {
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          );
+            <ChevronDownIcon className={cn('size-4', className)} {...props} />
+          )
         },
         DayButton: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />
@@ -198,7 +198,7 @@ function Calendar({
                 {children}
               </div>
             </td>
-          );
+          )
         },
         ...components,
       }}
