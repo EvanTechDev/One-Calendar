@@ -36,10 +36,17 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     password: {
-      hash: async (password) => bcrypt.hash(password, 10),
-      verify: async ({ hash, password }) => bcrypt.compare(password, hash),
+      hash: async (password: string) => bcrypt.hash(password, 10),
+      verify: async ({ hash, password }: { hash: string; password: string }) =>
+        bcrypt.compare(password, hash),
     },
-    sendResetPassword: async ({ user, url }) => {
+    sendResetPassword: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }) => {
       await sendAuthEmail({
         to: user.email,
         subject: 'Reset your password',
@@ -56,7 +63,13 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendVerificationEmail: async ({ user, url }) => {
+    sendVerificationEmail: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }) => {
       await sendAuthEmail({
         to: user.email,
         subject: 'Verify your email',
@@ -84,7 +97,15 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
-      sendVerificationOTP: async ({ email, otp, type }) => {
+      sendVerificationOTP: async ({
+        email,
+        otp,
+        type,
+      }: {
+        email: string;
+        otp: string;
+        type: string;
+      }) => {
         await sendAuthEmail({
           to: email,
           subject:

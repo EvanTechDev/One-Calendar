@@ -1369,7 +1369,10 @@ export default function UserProfileButton({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={deleteCloudOpen} onOpenChange={setDeleteCloudOpen}>
+      <AlertDialog
+        open={deleteCloudOpen}
+        onOpenChange={(open: boolean) => setDeleteCloudOpen(open)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t.deleteCloudConfirmTitle}</AlertDialogTitle>
@@ -1469,10 +1472,9 @@ export default function UserProfileButton({
         }}
       >
         <DialogContent
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
+          onInteractOutside={(e: Event) => e.preventDefault()}
+          onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
+          >          <DialogHeader>
             <DialogTitle>{t.enterPasswordTitle}</DialogTitle>
             <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
           </DialogHeader>
