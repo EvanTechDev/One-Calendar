@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing share ID' }, { status: 400 })
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const share = await tx.share.findUnique({ where: { shareId: id }, select: { encryptedData: true, iv: true, authTag: true, timestamp: true, isProtected: true, isBurn: true } })
       if (!share) return { status: 404 as const }
       if (share.isProtected && !password) return { status: 401 as const, burnAfterRead: share.isBurn }

@@ -20,7 +20,8 @@ export type OAuthStrategy =
   (typeof OAUTH_PROVIDER_CONFIG)[OAuthProviderKey]['strategy']
 
 export function getEnabledOAuthProviderKeys(): OAuthProviderKey[] {
-  const parsed = APP_CONFIG.auth.enabledOAuthProviders
+  const providers = APP_CONFIG.auth.enabledOAuthProviders as readonly string[]
+  const parsed = providers
     .map((provider) => provider.trim().toLowerCase())
     .filter(
       (provider): provider is OAuthProviderKey =>

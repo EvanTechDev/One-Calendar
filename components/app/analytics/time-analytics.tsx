@@ -31,6 +31,7 @@ import { translations, useLanguage } from '@/lib/i18n'
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
+  key?: string
 }
 
 export default function TimeAnalyticsComponent({ events, calendars = [] }: TimeAnalyticsProps) {

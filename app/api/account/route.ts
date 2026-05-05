@@ -11,7 +11,7 @@ export async function DELETE() {
     if (!user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const hasCalendarEventsTable = await tx.$queryRaw<Array<{ ok: number }>>`
         SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
       `

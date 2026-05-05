@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         },
       )
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(
       'Server error during verification:',
       error.message,

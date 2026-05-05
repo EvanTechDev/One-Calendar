@@ -30,7 +30,7 @@ export async function GET() {
     select: { shareId: true, encryptedData: true, iv: true, authTag: true, timestamp: true, isProtected: true },
   })
 
-  const shares = result.map((row) => {
+  const shares = result.map((row: any) => {
     let eventId = ''
     let eventTitle = ''
     if (!row.isProtected) {
