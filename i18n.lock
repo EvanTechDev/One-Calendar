@@ -83,6 +83,10 @@ checksums:
     selectCalendarFile: 2da0f4aac2dc7c250f3602a97398d51c
     calendarUrl: 7bb11023fbf0a2f9f60597141c789876
     supportedFormats: 03e214a4397f6a7909308141f6fc8c00
+    unsupportedFormat: be8a2f898c9710c57dc9fdbb6ca9f668
+    unsupportedUrlFormat: fe78e2892a714391964e9aa72164b93f
+    parsedEvents: b8202e2390fa7ba6725e0ab493348820
+    rawContentPreview: 946d917f053caad9ffbf3a48bf869d8c
     enterUrl: 0035f1f0eefcd0239d5d2536e9aa5f80
     debugMode: e584d8e238e53190643ff67853a1efe9
     debugInfo: 589d131e445bc8565ecb297ecd7c59e0
