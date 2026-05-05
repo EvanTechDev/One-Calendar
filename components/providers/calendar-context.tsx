@@ -58,28 +58,28 @@ interface CalendarState {
 const useCalendarStore = create<CalendarState>()((set) => ({
   calendars: [],
   events: [],
-  setCalendars: (value) =>
-    set((state) => ({
+  setCalendars: (value: SetStateAction<CalendarCategory[]>) =>
+    set((state: CalendarState) => ({
       calendars: typeof value === 'function' ? value(state.calendars) : value,
     })),
-  setEvents: (value) =>
-    set((state) => ({
+  setEvents: (value: SetStateAction<CalendarEvent[]>) =>
+    set((state: CalendarState) => ({
       events: typeof value === 'function' ? value(state.events) : value,
     })),
-  addCategory: (category) =>
-    set((state) => ({ calendars: [...state.calendars, category] })),
-  removeCategory: (id) =>
-    set((state) => ({
+  addCategory: (category: CalendarCategory) =>
+    set((state: CalendarState) => ({ calendars: [...state.calendars, category] })),
+  removeCategory: (id: string) =>
+    set((state: CalendarState) => ({
       calendars: state.calendars.filter((cal) => cal.id !== id),
     })),
-  updateCategory: (id, category) =>
-    set((state) => ({
+  updateCategory: (id: string, category: Partial<CalendarCategory>) =>
+    set((state: CalendarState) => ({
       calendars: state.calendars.map((cal) =>
         cal.id === id ? { ...cal, ...category } : cal,
       ),
     })),
-  moveCategory: (id, direction) =>
-    set((state) => {
+  moveCategory: (id: string, direction: 'up' | 'down') =>
+    set((state: CalendarState) => {
       const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
       if (currentIndex === -1) return { calendars: state.calendars }
 
@@ -96,8 +96,8 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 
       return { calendars: nextCalendars }
     }),
-  addEvent: (newEvent) =>
-    set((state) => {
+  addEvent: (newEvent: CalendarEvent) =>
+    set((state: CalendarState) => {
       const eventExists = state.events.some((event) => event.id === newEvent.id)
 
       if (eventExists) {
@@ -157,7 +157,18 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useCalendar(): CalendarContextType {
-  return useCalendarStore()
+  const store = useCalendarStore()
+  return {
+    calendars: store.calendars,
+    setCalendars: store.setCalendars,
+    events: store.events,
+    setEvents: store.setEvents,
+    addCategory: store.addCategory,
+    removeCategory: store.removeCategory,
+    updateCategory: store.updateCategory,
+    moveCategory: store.moveCategory,
+    addEvent: store.addEvent,
+  }
 }
 
 export const useCalendarContext = useCalendar

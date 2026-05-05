@@ -43,7 +43,7 @@ function Calendar({
       captionLayout={captionLayout}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) =>
+        formatMonthDropdown: (date: Date) =>
           date.toLocaleString(locale?.code, { month: "short" }),
         ...formatters,
       }}
@@ -138,7 +138,14 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...props }) => {
+        Root: ({
+          className,
+          rootRef,
+          ...props
+        }: {
+          className?: string
+          rootRef?: React.Ref<HTMLDivElement>
+        } & React.HTMLAttributes<HTMLDivElement>) => {
           return (
             <div
               data-slot="calendar"
@@ -146,26 +153,36 @@ function Calendar({
               className={cn(className)}
               {...props}
             />
-          );
+          )
         },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
+        Chevron: ({
+          className,
+          orientation,
+          ...props
+        }: {
+          className?: string
+          orientation?: 'left' | 'right'
+        } & React.SVGProps<SVGSVGElement>) => {
+          if (orientation === 'left') {
             return (
               <ChevronLeftIcon
-                className={cn("cn-rtl-flip size-4", className)}
+                className={cn('cn-rtl-flip size-4', className)}
                 {...props}
               />
-            );
+            )
           }
 
-          if (orientation === "right") {
+          if (orientation === 'right') {
             return (
               <ChevronRightIcon
-                className={cn("cn-rtl-flip size-4", className)}
+                className={cn('cn-rtl-flip size-4', className)}
                 {...props}
               />
-            );
+            )
           }
+
+          return null
+        },
 
           return (
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
