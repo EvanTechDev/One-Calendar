@@ -22,15 +22,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
-  },
-  experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      'date-fns',
-      'recharts',
-      'clsx',
-    ],
-  },
+  }
 }
 
 export default nextConfig
