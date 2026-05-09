@@ -18,13 +18,17 @@ export async function DELETE() {
       const hasCalendarEventsTable = await tx.execute(sql`
         SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
       `)
-      
+
       if (hasCalendarEventsTable.length > 0) {
-        await tx.execute(sql`DELETE FROM calendar_events WHERE user_id = ${user.id}`)
+        await tx.execute(
+          sql`DELETE FROM calendar_events WHERE user_id = ${user.id}`,
+        )
       }
 
       await tx.delete(shares).where(eq(shares.userId, user.id))
-      await tx.delete(calendarBackups).where(eq(calendarBackups.userId, user.id))
+      await tx
+        .delete(calendarBackups)
+        .where(eq(calendarBackups.userId, user.id))
     })
 
     return NextResponse.json({ success: true })

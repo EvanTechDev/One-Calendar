@@ -1,7 +1,7 @@
-import { pgTable, serial, text, timestamp, boolean, integer, index, unique, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, boolean, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// --- Shares ---
+// --- Shares (Table was explicitly mapped to "shares" in Prisma) ---
 export const shares = pgTable('shares', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull(),
@@ -17,7 +17,7 @@ export const shares = pgTable('shares', {
   userIdIdx: index('idx_shares_user_id').on(table.userId),
 }));
 
-// --- Calendar Backups ---
+// --- Calendar Backups (Table was explicitly mapped to "calendar_backups" in Prisma) ---
 export const calendarBackups = pgTable('calendar_backups', {
   userId: text('user_id').primaryKey(),
   encryptedData: text('encrypted_data').notNull(),
@@ -25,79 +25,81 @@ export const calendarBackups = pgTable('calendar_backups', {
   timestamp: timestamp('timestamp').notNull(),
 });
 
-// --- Auth Tables (Better Auth) ---
-export const users = pgTable('users', {
+// --- Auth Tables (Matching Prisma's default naming which is usually capitalized model names) ---
+// Better Auth Drizzle adapter expects singular export names: user, session, account, verification
+
+export const user = pgTable('User', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').unique().notNull(),
-  emailVerified: boolean('email_verified').default(false).notNull(),
+  emailVerified: boolean('emailVerified').default(false).notNull(),
   image: text('image'),
-  twoFactorEnabled: boolean('two_factor_enabled'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
+  twoFactorEnabled: boolean('twoFactorEnabled'),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
 });
 
-export const sessions = pgTable('sessions', {
+export const session = pgTable('Session', {
   id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
+  expiresAt: timestamp('expiresAt').notNull(),
   token: text('token').unique().notNull(),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+  ipAddress: text('ipAddress'),
+  userAgent: text('userAgent'),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
 });
 
-export const accounts = pgTable('accounts', {
+export const account = pgTable('Account', {
   id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  accountId: text('accountId').notNull(),
+  providerId: text('providerId').notNull(),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  accessToken: text('accessToken'),
+  refreshToken: text('refreshToken'),
+  idToken: text('idToken'),
+  accessTokenExpiresAt: timestamp('accessTokenExpiresAt'),
+  refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt'),
   scope: text('scope'),
   password: text('password'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
 }, (table) => ({
-  accountUnique: uniqueIndex('accounts_provider_id_account_id_key').on(table.providerId, table.accountId),
+  accountUnique: uniqueIndex('Account_providerId_accountId_key').on(table.providerId, table.accountId),
 }));
 
-export const verifications = pgTable('verifications', {
+export const verification = pgTable('Verification', {
   id: text('id').primaryKey(),
   identifier: text('identifier').notNull(),
   value: text('value').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at'),
-  updatedAt: timestamp('updated_at'),
+  expiresAt: timestamp('expiresAt').notNull(),
+  createdAt: timestamp('createdAt'),
+  updatedAt: timestamp('updatedAt'),
 });
 
 export const twoFactor = pgTable('twoFactor', {
   id: text('id').primaryKey(),
   secret: text('secret').notNull(),
-  backupCodes: text('backup_codes').notNull(),
+  backupCodes: text('backupCodes').notNull(),
   verified: boolean('verified').default(false).notNull(),
-  userId: text('user_id').unique().notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('userId').unique().notNull().references(() => user.id, { onDelete: 'cascade' }),
 });
 
 // --- Relations ---
-export const userRelations = relations(users, ({ many, one }) => ({
-  sessions: many(sessions),
-  accounts: many(accounts),
+export const userRelations = relations(user, ({ many, one }) => ({
+  sessions: many(session),
+  accounts: many(account),
   twoFactor: one(twoFactor),
 }));
 
-export const sessionRelations = relations(sessions, ({ one }) => ({
-  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, { fields: [session.userId], references: [user.id] }),
 }));
 
-export const accountRelations = relations(accounts, ({ one }) => ({
-  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, { fields: [account.userId], references: [user.id] }),
 }));
 
 export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
-  user: one(users, { fields: [twoFactor.userId], references: [users.id] }),
+  user: one(user, { fields: [twoFactor.userId], references: [user.id] }),
 }));

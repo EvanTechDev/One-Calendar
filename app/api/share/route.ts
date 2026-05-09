@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
     const { encryptedData, iv, authTag } = encryptWithKey(dataString, key)
     const now = new Date()
 
-    await db.insert(shares)
+    await db
+      .insert(shares)
       .values({
         userId: user.id,
         shareId: id,
@@ -129,10 +130,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await db.transaction(async (tx) => {
-      const [share] = await tx.select()
+      const [share] = await tx
+        .select()
         .from(shares)
         .where(eq(shares.shareId, id))
-      
+
       if (!share) return { status: 404 as const }
       if (share.isProtected && !password)
         return { status: 401 as const, burnAfterRead: share.isBurn }
@@ -212,6 +214,8 @@ export async function DELETE(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await db.delete(shares).where(and(eq(shares.shareId, id), eq(shares.userId, user.id)))
+  await db
+    .delete(shares)
+    .where(and(eq(shares.shareId, id), eq(shares.userId, user.id)))
   return NextResponse.json({ success: true })
 }

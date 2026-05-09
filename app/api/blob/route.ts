@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     if (typeof encrypted_data !== 'string' || typeof iv !== 'string')
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
 
-    await db.insert(calendarBackups)
+    await db
+      .insert(calendarBackups)
       .values({
         userId,
         encryptedData: encrypted_data,
@@ -60,11 +61,12 @@ export async function GET() {
 
     if (!userId) return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
 
-    const [result] = await db.select({
-      encryptedData: calendarBackups.encryptedData,
-      iv: calendarBackups.iv,
-      timestamp: calendarBackups.timestamp,
-    })
+    const [result] = await db
+      .select({
+        encryptedData: calendarBackups.encryptedData,
+        iv: calendarBackups.iv,
+        timestamp: calendarBackups.timestamp,
+      })
       .from(calendarBackups)
       .where(eq(calendarBackups.userId, userId))
 

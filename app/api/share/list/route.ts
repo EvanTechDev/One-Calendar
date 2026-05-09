@@ -36,7 +36,11 @@ export async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const result = await db.select().from(shares).where(eq(shares.userId, user.id)).orderBy(desc(shares.timestamp))
+  const result = await db
+    .select()
+    .from(shares)
+    .where(eq(shares.userId, user.id))
+    .orderBy(desc(shares.timestamp))
 
   const shareList = result.map((row) => {
     let eventId = ''

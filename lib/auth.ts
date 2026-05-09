@@ -48,8 +48,8 @@ export const auth = betterAuth({
       user,
       url,
     }: {
-      user: { email: string };
-      url: string;
+      user: { email: string }
+      url: string
     }) => {
       await sendAuthEmail({
         to: user.email,
@@ -71,8 +71,8 @@ export const auth = betterAuth({
       user,
       url,
     }: {
-      user: { email: string };
-      url: string;
+      user: { email: string }
+      url: string
     }) => {
       await sendAuthEmail({
         to: user.email,
@@ -106,9 +106,9 @@ export const auth = betterAuth({
         otp,
         type,
       }: {
-        email: string;
-        otp: string;
-        type: string;
+        email: string
+        otp: string
+        type: string
       }) => {
         await sendAuthEmail({
           to: email,
