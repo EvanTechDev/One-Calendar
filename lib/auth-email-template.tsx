@@ -10,8 +10,8 @@ import {
   Preview,
   Section,
   Text,
+  render
 } from 'react-email'
-import { render } from '@react-email/render'
 
 interface AuthEmailTemplateProps {
   preview: string
