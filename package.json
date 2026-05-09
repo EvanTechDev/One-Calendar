@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.33.3",
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm run generate:locales && next build",
+    "build": "pnpm --silent run generate:locales && next build",
     "start": "next start",
     "prepare": "husky",
     "lint": "oxlint --fix && eslint . --fix",
