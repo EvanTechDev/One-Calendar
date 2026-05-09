@@ -254,9 +254,8 @@ export default function ImportExport({
 
       setExportDialogOpen(false)
     } catch (error) {
-      toast(t.exportError, {
+      toast.error(t.exportError, {
         description: t.exportError,
-        variant: 'destructive',
       })
       console.error('Export error:', error)
     } finally {
@@ -338,9 +337,8 @@ ${rawContent.substring(0, 500)}...`)
       }
 
       if (importedEvents.length === 0) {
-        toast(t.importWarning, {
+        toast.error(t.importWarning, {
           description: t.importWarning,
-          variant: 'destructive',
         })
         return
       }
@@ -379,9 +377,8 @@ ${rawContent.substring(0, 500)}...`)
         error instanceof Error
           ? error.message
           : t.unknownError || 'Unknown error'
-      toast(t.importError.replace('{error}', errorMessage), {
+      toast.error(t.importError.replace('{error}', errorMessage), {
         description: errorMessage,
-        variant: 'destructive',
       })
       console.error('Import error:', error)
 
@@ -1118,7 +1115,7 @@ END:VEVENT
                 </Select>
               </div>
 
-              <Alert variant="outline">
+              <Alert variant="default">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
               </Alert>

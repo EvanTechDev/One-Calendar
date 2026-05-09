@@ -19,7 +19,7 @@ import {
 import ShareManagement from '@/components/app/analytics/share-management'
 import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'
-import type { NOTIFICATION_SOUNDS } from '@/utils/notifications'
+import type { NOTIFICATION_SOUNDS } from '@/lib/notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -33,8 +33,8 @@ interface SettingsProps {
   setFirstDayOfWeek: (day: number) => void
   timezone: string
   setTimezone: (timezone: string) => void
-  notificationSound: keyof typeof NOTIFICATION_SOUNDS
-  setNotificationSound: (sound: keyof typeof NOTIFICATION_SOUNDS) => void
+  notificationSound: NOTIFICATION_SOUNDS
+  setNotificationSound: (sound: NOTIFICATION_SOUNDS) => void
   defaultView: string
   setDefaultView: (view: string) => void
   enableShortcuts: boolean

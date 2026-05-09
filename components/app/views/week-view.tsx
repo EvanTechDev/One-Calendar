@@ -16,6 +16,7 @@ import {
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { translations, type Language } from '@/lib/i18n'
+import type { CalendarEvent } from '../calendar'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -26,12 +27,18 @@ const ContextMenuTrigger = ({
   children: React.ReactNode
   asChild?: boolean
 }) => <>{children}</>
-const ContextMenuContent = () => null
+const ContextMenuContent = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) => <>{children}</>
 const ContextMenuItem = (_props: any) => null
 
 interface WeekViewProps {
   date: Date
-  events: any[]
+  events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   language: Language

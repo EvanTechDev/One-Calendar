@@ -71,6 +71,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+import { useRouter } from 'next/navigation'
+
 const loadDayView = () => import('@/components/app/views/day-view')
 const loadWeekView = () => import('@/components/app/views/week-view')
 const loadMonthView = () => import('@/components/app/views/month-view')
@@ -116,7 +118,12 @@ export interface CalendarEvent {
   calendarId: string
 }
 
+interface CalendarProps {
+  className?: string
+}
+
 export default function Calendar({ className, ...props }: CalendarProps) {
+  const router = useRouter()
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
@@ -147,7 +154,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   )
   const [notificationSound, setNotificationSound] = useLocalStorage<
-    keyof typeof NOTIFICATION_SOUNDS
+    NOTIFICATION_SOUNDS
   >('notification-sound', 'telegram')
   const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const notificationsInitializedRef = useRef(false)
@@ -168,7 +175,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
 
-  const updateEvent = (updatedEvent) => {
+  const updateEvent = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
       prevEvents.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event,

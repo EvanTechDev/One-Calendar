@@ -273,7 +273,9 @@ export default function TimeAnalyticsComponent({
     })
 
     const data = weekdayLabels.map((label) => {
-      const row: Record<string, string | number> = { day: label }
+      const row: { day: string; [category: string]: string | number } = {
+        day: label,
+      }
       const values = buckets[label] ?? {}
       categoryColors.forEach((_, category) => {
         row[category] = Number((values[category]?.hours ?? 0).toFixed(1))

@@ -17,7 +17,13 @@ const ContextMenuTrigger = ({
   children: React.ReactNode
   asChild?: boolean
 }) => <>{children}</>
-const ContextMenuContent = () => null
+const ContextMenuContent = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) => <>{children}</>
 const ContextMenuItem = (_props: any) => null
 
 interface DayViewProps {
