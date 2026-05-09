@@ -1,6 +1,8 @@
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import type { NextConfig } from 'next'
-import packageJson from './package.json'
+
+const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'))
 
 const getGitCommit = () => {
   try {
