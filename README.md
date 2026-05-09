@@ -102,7 +102,7 @@ This project is built for individuals and small teams who value clarity over com
 Required Versions:
 
 - [NodeJS](https://nodejs.org) (v20 or higher)
-- [Bun](https://bun.sh) (v1.2 or higher)
+- [pnpm](https://pnpm.io) (v10.33.3 or higher)
 
 ### Quick Start
 
@@ -112,10 +112,10 @@ git clone https://github.com/EvanTechDev/One-Calendar.git
 cd One-Calendar
 
 # Install dependencies
-bun install
+pnpm install
 
 # Start the app
-bun run dev
+pnpm dev
 ```
 
 Then visit `http://localhost:3000`
@@ -150,7 +150,7 @@ After configuring `POSTGRES_URL`, run:
 
 ```bash
 # Push schema to database
-bunx drizzle-kit push
+pnpm dlx drizzle-kit push
 ```
 
 ### Production Recommendation
@@ -159,10 +159,10 @@ For production deployments, use migrations:
 
 ```bash
 # Generate migrations
-bunx drizzle-kit generate
+pnpm dlx drizzle-kit generate
 
 # Apply migrations
-bunx drizzle-kit migrate
+pnpm dlx drizzle-kit migrate
 ```
 
 ## Tech Stack

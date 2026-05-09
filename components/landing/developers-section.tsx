@@ -6,7 +6,7 @@ import { Copy, Check } from 'lucide-react'
 const codeExamples = [
   {
     label: 'Install',
-    code: `bun install`,
+    code: `pnpm install`,
   },
   {
     label: 'Initialize',
