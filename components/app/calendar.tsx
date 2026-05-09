@@ -153,9 +153,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     'timezone',
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   )
-  const [notificationSound, setNotificationSound] = useLocalStorage<
-    NOTIFICATION_SOUNDS
-  >('notification-sound', 'telegram')
+  const [notificationSound, setNotificationSound] =
+    useLocalStorage<NOTIFICATION_SOUNDS>('notification-sound', 'telegram')
   const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)

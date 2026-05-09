@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/drizzle/client'
+import { shares } from '@/lib/drizzle/schema'
+import { eq, desc } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -34,20 +36,9 @@ export async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const result = await prisma.share.findMany({
-    where: { userId: user.id },
-    orderBy: { timestamp: 'desc' },
-    select: {
-      shareId: true,
-      encryptedData: true,
-      iv: true,
-      authTag: true,
-      timestamp: true,
-      isProtected: true,
-    },
-  })
+  const result = await db.select().from(shares).where(eq(shares.userId, user.id)).orderBy(desc(shares.timestamp))
 
-  const shares = result.map((row: any) => {
+  const shareList = result.map((row) => {
     let eventId = ''
     let eventTitle = ''
     if (!row.isProtected) {
@@ -77,5 +68,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ shares })
+  return NextResponse.json({ shares: shareList })
 }

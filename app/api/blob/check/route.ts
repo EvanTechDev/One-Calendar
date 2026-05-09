@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/drizzle/client'
+import { sql } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -19,16 +20,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tables = await prisma.$queryRaw<Array<{ table_name: string }>>`
+    const tables = await db.execute(sql<{ table_name: string }>`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
       ORDER BY table_name ASC
-    `
+    `)
 
     return NextResponse.json({
-      tables: tables.map((row: { table_name: string }) => row.table_name),
+      tables: tables.map((row) => row.table_name),
     })
   } catch (error) {
     return NextResponse.json(

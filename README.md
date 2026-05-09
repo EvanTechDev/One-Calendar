@@ -42,7 +42,7 @@ This project is built for individuals and small teams who value clarity over com
 - **Rich event metadata** &ndash; title, description, time range, and structured fields
 - **Precise time control** &ndash; flexible duration handling and adjustments
 - **Instant updates** &ndash; optimistic UI for a responsive experience
-- **Event persistence** &ndash; reliable storage with Prisma
+- **Event persistence** &ndash; reliable storage with Drizzle
 - **Soft state handling** &ndash; controlled updates to avoid accidental data loss
 
 ### Privacy & security
@@ -55,7 +55,7 @@ This project is built for individuals and small teams who value clarity over com
 
 ### Sync & collaboration
 
-- **Cloud sync (optional)** &ndash; multi-device synchronization using Prisma
+- **Cloud sync (optional)** &ndash; multi-device synchronization using Drizzle
 - **Account-based access** &ndash; sign in with third-party providers
 - **Share-ready architecture** &ndash; designed for future team and shared calendar support
 
@@ -144,33 +144,30 @@ TURNSTILE_SECRET_KEY=secret-key
 
 ### Database Configuration
 
-This project uses Prisma schema sync.
+This project uses Drizzle ORM.
 
-After configuring `POSTGRES_URL`, initialize schema from `schema.prisma`:
+After configuring `POSTGRES_URL`, run:
 
 ```bash
-# Generate Prisma client
-bunx prisma generate
-
 # Push schema to database
-bunx prisma db push
+bunx drizzle-kit push
 ```
 
 ### Production Recommendation
 
-For production deployments without SQL migration files, keep schema in sync with:
+For production deployments, use migrations:
 
 ```bash
-# Ensure Prisma Client is generated
-bunx prisma generate
+# Generate migrations
+bunx drizzle-kit generate
 
-# Sync schema to database (no SQL migration files required)
-bunx prisma db push
+# Apply migrations
+bunx drizzle-kit migrate
 ```
 
 ## Tech Stack
 
-![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,prisma,betterauth,resend)
+![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,drizzle,betterauth,resend)
 
 ## Contributing
 

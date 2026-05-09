@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth-server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/drizzle/client'
+import { shares, calendarBackups } from '@/lib/drizzle/schema'
+import { eq, sql } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -11,16 +13,18 @@ export async function DELETE() {
     if (!user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await prisma.$transaction(async (tx: any) => {
-      const hasCalendarEventsTable = await tx.$queryRaw<Array<{ ok: number }>>`
+    await db.transaction(async (tx) => {
+      // Check if calendar_events table exists
+      const hasCalendarEventsTable = await tx.execute(sql`
         SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
-      `
+      `)
+      
       if (hasCalendarEventsTable.length > 0) {
-        await tx.$executeRaw`DELETE FROM calendar_events WHERE user_id = ${user.id}`
+        await tx.execute(sql`DELETE FROM calendar_events WHERE user_id = ${user.id}`)
       }
 
-      await tx.share.deleteMany({ where: { userId: user.id } })
-      await tx.calendarBackup.deleteMany({ where: { userId: user.id } })
+      await tx.delete(shares).where(eq(shares.userId, user.id))
+      await tx.delete(calendarBackups).where(eq(calendarBackups.userId, user.id))
     })
 
     return NextResponse.json({ success: true })

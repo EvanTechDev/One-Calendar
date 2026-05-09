@@ -1,8 +1,9 @@
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { db } from '@/lib/drizzle/client'
+import * as schema from '@/lib/drizzle/schema'
 import { betterAuth } from 'better-auth'
-import { prismaAdapter } from '@better-auth/prisma-adapter'
 import { emailOTP, twoFactor } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
-import { prisma } from '@/lib/prisma'
 import { APP_CONFIG } from '@/lib/config'
 import { Resend } from 'resend'
 import bcrypt from 'bcryptjs'
@@ -31,7 +32,10 @@ async function sendAuthEmail(payload: {
 }
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: 'postgresql' }),
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema,
+  }),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

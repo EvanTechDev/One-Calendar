@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/drizzle/client'
+import { shares } from '@/lib/drizzle/schema'
+import { eq, and } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -75,19 +77,8 @@ export async function POST(request: NextRequest) {
     const { encryptedData, iv, authTag } = encryptWithKey(dataString, key)
     const now = new Date()
 
-    await prisma.share.upsert({
-      where: { shareId: id },
-      update: {
-        userId: user.id,
-        encryptedData,
-        iv,
-        authTag,
-        timestamp: now,
-        isProtected: hasPassword,
-        isBurn: burn,
-        encVersion: hasPassword ? 3 : 2,
-      },
-      create: {
+    await db.insert(shares)
+      .values({
         userId: user.id,
         shareId: id,
         encryptedData,
@@ -97,8 +88,20 @@ export async function POST(request: NextRequest) {
         isProtected: hasPassword,
         isBurn: burn,
         encVersion: hasPassword ? 3 : 2,
-      },
-    })
+      })
+      .onConflictDoUpdate({
+        target: shares.shareId,
+        set: {
+          userId: user.id,
+          encryptedData,
+          iv,
+          authTag,
+          timestamp: now,
+          isProtected: hasPassword,
+          isBurn: burn,
+          encVersion: hasPassword ? 3 : 2,
+        },
+      })
 
     return NextResponse.json({
       success: true,
@@ -125,18 +128,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing share ID' }, { status: 400 })
 
   try {
-    const result = await prisma.$transaction(async (tx: any) => {
-      const share = await tx.share.findUnique({
-        where: { shareId: id },
-        select: {
-          encryptedData: true,
-          iv: true,
-          authTag: true,
-          timestamp: true,
-          isProtected: true,
-          isBurn: true,
-        },
-      })
+    const result = await db.transaction(async (tx) => {
+      const [share] = await tx.select()
+        .from(shares)
+        .where(eq(shares.shareId, id))
+      
       if (!share) return { status: 404 as const }
       if (share.isProtected && !password)
         return { status: 401 as const, burnAfterRead: share.isBurn }
@@ -155,7 +151,7 @@ export async function GET(request: NextRequest) {
       } catch {
         return { status: 403 as const, protected: share.isProtected }
       }
-      if (share.isBurn) await tx.share.delete({ where: { shareId: id } })
+      if (share.isBurn) await tx.delete(shares).where(eq(shares.shareId, id))
 
       return {
         status: 200 as const,
@@ -216,6 +212,6 @@ export async function DELETE(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await prisma.share.deleteMany({ where: { shareId: id, userId: user.id } })
+  await db.delete(shares).where(and(eq(shares.shareId, id), eq(shares.userId, user.id)))
   return NextResponse.json({ success: true })
 }
