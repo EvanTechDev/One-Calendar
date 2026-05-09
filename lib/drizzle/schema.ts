@@ -1,7 +1,7 @@
 import { pgTable, serial, text, timestamp, boolean, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// --- Shares (Table was explicitly mapped to "shares" in Prisma) ---
+// --- Shares (@@map("shares")) ---
 export const shares = pgTable('shares', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull(),
@@ -9,7 +9,7 @@ export const shares = pgTable('shares', {
   encryptedData: text('encrypted_data').notNull(),
   iv: text('iv').notNull(),
   authTag: text('auth_tag').notNull(),
-  timestamp: timestamp('timestamp').notNull(),
+  timestamp: timestamp('timestamp', { precision: 3 }).notNull(),
   isProtected: boolean('is_protected').default(false).notNull(),
   isBurn: boolean('is_burn').default(false).notNull(),
   encVersion: integer('enc_version'),
@@ -17,16 +17,15 @@ export const shares = pgTable('shares', {
   userIdIdx: index('idx_shares_user_id').on(table.userId),
 }));
 
-// --- Calendar Backups (Table was explicitly mapped to "calendar_backups" in Prisma) ---
+// --- Calendar Backups (@@map("calendar_backups")) ---
 export const calendarBackups = pgTable('calendar_backups', {
   userId: text('user_id').primaryKey(),
   encryptedData: text('encrypted_data').notNull(),
   iv: text('iv').notNull(),
-  timestamp: timestamp('timestamp').notNull(),
+  timestamp: timestamp('timestamp', { precision: 3 }).notNull(),
 });
 
-// --- Auth Tables (Matching Prisma's default naming which is usually capitalized model names) ---
-// Better Auth Drizzle adapter expects singular export names: user, session, account, verification
+// --- Auth Tables (Matching Prisma defaults: Capitalized table names, camelCase columns) ---
 
 export const user = pgTable('User', {
   id: text('id').primaryKey(),
@@ -35,16 +34,16 @@ export const user = pgTable('User', {
   emailVerified: boolean('emailVerified').default(false).notNull(),
   image: text('image'),
   twoFactorEnabled: boolean('twoFactorEnabled'),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt').notNull(),
+  createdAt: timestamp('createdAt', { precision: 3 }).notNull(),
+  updatedAt: timestamp('updatedAt', { precision: 3 }).notNull(),
 });
 
 export const session = pgTable('Session', {
   id: text('id').primaryKey(),
-  expiresAt: timestamp('expiresAt').notNull(),
+  expiresAt: timestamp('expiresAt', { precision: 3 }).notNull(),
   token: text('token').unique().notNull(),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt').notNull(),
+  createdAt: timestamp('createdAt', { precision: 3 }).notNull(),
+  updatedAt: timestamp('updatedAt', { precision: 3 }).notNull(),
   ipAddress: text('ipAddress'),
   userAgent: text('userAgent'),
   userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
@@ -58,12 +57,12 @@ export const account = pgTable('Account', {
   accessToken: text('accessToken'),
   refreshToken: text('refreshToken'),
   idToken: text('idToken'),
-  accessTokenExpiresAt: timestamp('accessTokenExpiresAt'),
-  refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt'),
+  accessTokenExpiresAt: timestamp('accessTokenExpiresAt', { precision: 3 }),
+  refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt', { precision: 3 }),
   scope: text('scope'),
   password: text('password'),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt').notNull(),
+  createdAt: timestamp('createdAt', { precision: 3 }).notNull(),
+  updatedAt: timestamp('updatedAt', { precision: 3 }).notNull(),
 }, (table) => ({
   accountUnique: uniqueIndex('Account_providerId_accountId_key').on(table.providerId, table.accountId),
 }));
@@ -72,9 +71,9 @@ export const verification = pgTable('Verification', {
   id: text('id').primaryKey(),
   identifier: text('identifier').notNull(),
   value: text('value').notNull(),
-  expiresAt: timestamp('expiresAt').notNull(),
-  createdAt: timestamp('createdAt'),
-  updatedAt: timestamp('updatedAt'),
+  expiresAt: timestamp('expiresAt', { precision: 3 }).notNull(),
+  createdAt: timestamp('createdAt', { precision: 3 }),
+  updatedAt: timestamp('updatedAt', { precision: 3 }),
 });
 
 export const twoFactor = pgTable('twoFactor', {
