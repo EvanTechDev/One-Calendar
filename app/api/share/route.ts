@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
@@ -48,8 +49,9 @@ function decryptWithKey(
   return decrypted
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withEvlog(async function POST(request: NextRequest) {
   try {
+    const log = useLogger()
     const body = await request.json()
     const { id, data, password, burnAfterRead } = body as {
       id?: string
@@ -65,8 +67,16 @@ export async function POST(request: NextRequest) {
 
     const session = await getServerSession()
     const user = session?.user
-    if (!user)
+    if (!user) {
+      log.audit?.({
+        action: 'share.create',
+        actor: getAuditActor(log),
+        target: { type: 'share', id },
+        outcome: 'denied',
+        reason: 'Authentication required',
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const hasPassword = typeof password === 'string' && password.length > 0
     const burn = !!burnAfterRead
@@ -104,6 +114,20 @@ export async function POST(request: NextRequest) {
         },
       })
 
+    log.audit?.({
+      action: 'share.create',
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: user.id,
+        email: user.email,
+      }),
+      target: { type: 'share', id },
+      outcome: 'success',
+      reason: burn
+        ? 'User created burn-after-read share'
+        : 'User created share',
+    })
+
     return NextResponse.json({
       success: true,
       id,
@@ -120,9 +144,10 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withEvlog(async function GET(request: NextRequest) {
+  const log = useLogger()
   const id = request.nextUrl.searchParams.get('id')
   const password = request.nextUrl.searchParams.get('password') ?? ''
   if (!id)
@@ -164,9 +189,24 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (result.status === 404)
+    if (result.status === 404) {
+      log.audit?.({
+        action: 'share.export',
+        actor: getAuditActor(log),
+        target: { type: 'share', id },
+        outcome: 'failure',
+        reason: 'Share not found',
+      })
       return NextResponse.json({ error: 'Share not found' }, { status: 404 })
-    if (result.status === 401)
+    }
+    if (result.status === 401) {
+      log.audit?.({
+        action: 'share.export',
+        actor: getAuditActor(log),
+        target: { type: 'share', id },
+        outcome: 'denied',
+        reason: 'Password required',
+      })
       return NextResponse.json(
         {
           error: 'Password required',
@@ -175,7 +215,17 @@ export async function GET(request: NextRequest) {
         },
         { status: 401 },
       )
-    if (result.status === 403)
+    }
+    if (result.status === 403) {
+      log.audit?.({
+        action: 'share.export',
+        actor: getAuditActor(log),
+        target: { type: 'share', id },
+        outcome: 'denied',
+        reason: result.protected
+          ? 'Invalid password'
+          : 'Failed to decrypt share data',
+      })
       return NextResponse.json(
         {
           error: result.protected
@@ -184,6 +234,17 @@ export async function GET(request: NextRequest) {
         },
         { status: 403 },
       )
+    }
+
+    log.audit?.({
+      action: result.burnAfterRead ? 'share.burn_after_read' : 'share.export',
+      actor: getAuditActor(log),
+      target: { type: 'share', id },
+      outcome: 'success',
+      reason: result.burnAfterRead
+        ? 'Burn-after-read share exported and deleted'
+        : 'Share exported',
+    })
 
     return NextResponse.json({
       success: true,
@@ -201,9 +262,10 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
+  const log = useLogger()
   const body = await request.json()
   const { id } = body as { id?: string }
   if (!id)
@@ -211,11 +273,32 @@ export async function DELETE(request: NextRequest) {
 
   const session = await getServerSession()
   const user = session?.user
-  if (!user)
+  if (!user) {
+    log.audit?.({
+      action: 'share.delete',
+      actor: getAuditActor(log),
+      target: { type: 'share', id },
+      outcome: 'denied',
+      reason: 'Authentication required',
+    })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   await db
     .delete(shares)
     .where(and(eq(shares.shareId, id), eq(shares.userId, user.id)))
+
+  log.audit?.({
+    action: 'share.delete',
+    actor: getAuditActor(log, {
+      type: 'user',
+      id: user.id,
+      email: user.email,
+    }),
+    target: { type: 'share', id },
+    outcome: 'success',
+    reason: 'User deleted share',
+  })
+
   return NextResponse.json({ success: true })
-}
+})

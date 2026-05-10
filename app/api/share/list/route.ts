@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
@@ -30,11 +31,20 @@ function decryptWithKey(
   return decrypted
 }
 
-export async function GET() {
+export const GET = withEvlog(async function GET(_req: NextRequest) {
+  const log = useLogger()
   const session = await getServerSession()
   const user = session?.user
-  if (!user)
+  if (!user) {
+    log.audit?.({
+      action: 'share.list',
+      actor: getAuditActor(log),
+      target: { type: 'share_collection', id: 'unknown' },
+      outcome: 'denied',
+      reason: 'Authentication required',
+    })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const result = await db
     .select()
@@ -72,5 +82,17 @@ export async function GET() {
     }
   })
 
+  log.audit?.({
+    action: 'share.list',
+    actor: getAuditActor(log, {
+      type: 'user',
+      id: user.id,
+      email: user.email,
+    }),
+    target: { type: 'share_collection', id: user.id },
+    outcome: 'success',
+    reason: 'User listed shares',
+  })
+
   return NextResponse.json({ shares: shareList })
-}
+})
