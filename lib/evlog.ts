@@ -6,17 +6,25 @@ import {
   type RequestLogger,
 } from 'evlog'
 import { createAuthMiddleware } from 'evlog/better-auth'
-import { createFsDrain } from 'evlog/fs'
 import { createEvlog } from 'evlog/next'
 import { auth } from '@/lib/auth'
 
 const identify = createAuthMiddleware(auth)
-const mainDrain = createFsDrain({ dir: '.evlog/logs', pretty: false })
+
+const mainDrain = async (ctx: unknown) => {
+  console.log(JSON.stringify(ctx))
+}
+
 const auditDrain = auditOnly(
-  signed(createFsDrain({ dir: '.audit', pretty: false }), {
-    strategy: 'hash-chain',
-  }),
-  { await: true },
+  signed(
+    async (ctx: unknown) => {
+      console.log(JSON.stringify(ctx))
+    },
+    {
+      strategy: 'hash-chain',
+    }
+  ),
+  { await: true }
 )
 
 export const anonymousAuditActor = {
@@ -32,32 +40,30 @@ function actorFromEvent(event: Record<string, unknown>): AuditActor | null {
       return {
         type: 'user',
         id: candidate.id,
-        ...(typeof candidate.email === 'string'
-          ? { email: candidate.email }
-          : {}),
-        ...(typeof candidate.name === 'string'
-          ? { displayName: candidate.name }
-          : {}),
+        ...(typeof candidate.email === 'string' ? { email: candidate.email } : {}),
+        ...(typeof candidate.name === 'string' ? { displayName: candidate.name } : {}),
       }
     }
   }
 
-  if (typeof event.userId === 'string')
+  if (typeof event.userId === 'string') {
     return { type: 'user', id: event.userId }
+  }
 
   return null
 }
 
 export function getAuditActor(
   logger: Pick<RequestLogger, 'getContext'>,
-  fallback: AuditActor = anonymousAuditActor,
+  fallback: AuditActor = anonymousAuditActor
 ) {
   return actorFromEvent(logger.getContext()) ?? fallback
 }
 
 const auditEnrich = auditEnricher({
   bridge: {
-    getSession: ({ event }) => actorFromEvent(event as Record<string, unknown>),
+    getSession: ({ event }) =>
+      actorFromEvent(event as Record<string, unknown>),
   },
 })
 
@@ -65,7 +71,7 @@ const evlog = createEvlog({
   service: 'one-calendar',
   drain: async (ctx) => {
     const results = await Promise.allSettled([mainDrain(ctx), auditDrain(ctx)])
-    const rejected = results.find((result) => result.status === 'rejected')
+    const rejected = results.find((r) => r.status === 'rejected')
     if (rejected?.status === 'rejected') throw rejected.reason
   },
   enrich: auditEnrich,
