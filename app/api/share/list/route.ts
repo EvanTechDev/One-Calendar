@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { withEvlog, useLogger } from '@/lib/evlog'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
@@ -38,7 +38,7 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
   if (!user) {
     log.audit?.({
       action: 'share.list',
-      actor: { type: 'system', id: 'anonymous' },
+      actor: getAuditActor(log),
       target: { type: 'share_collection', id: 'unknown' },
       outcome: 'denied',
       reason: 'Authentication required',
@@ -84,7 +84,11 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
 
   log.audit?.({
     action: 'share.list',
-    actor: { type: 'user', id: user.id, email: user.email },
+    actor: getAuditActor(log, {
+      type: 'user',
+      id: user.id,
+      email: user.email,
+    }),
     target: { type: 'share_collection', id: user.id },
     outcome: 'success',
     reason: 'User listed shares',

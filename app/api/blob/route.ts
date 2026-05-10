@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withEvlog, useLogger } from '@/lib/evlog'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import { db } from '@/lib/drizzle/client'
 import { calendarBackups } from '@/lib/drizzle/schema'
@@ -31,7 +31,7 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
     if (!userId) {
       log.audit?.({
         action: 'calendar_backup.upsert',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'calendar_backup', id: 'unknown' },
         outcome: 'denied',
         reason: 'Authentication required',
@@ -60,7 +60,11 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
 
     log.audit?.({
       action: 'calendar_backup.upsert',
-      actor: { type: 'user', id: userId, email: user?.email },
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: userId,
+        ...(user?.email ? { email: user.email } : {}),
+      }),
       target: { type: 'calendar_backup', id: userId },
       outcome: 'success',
       reason: 'User saved encrypted calendar backup',
@@ -82,7 +86,7 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
     if (!userId) {
       log.audit?.({
         action: 'calendar_backup.export',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'calendar_backup', id: 'unknown' },
         outcome: 'denied',
         reason: 'Authentication required',
@@ -102,7 +106,11 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
     if (!result) {
       log.audit?.({
         action: 'calendar_backup.export',
-        actor: { type: 'user', id: userId, email: user?.email },
+        actor: getAuditActor(log, {
+          type: 'user',
+          id: userId,
+          ...(user?.email ? { email: user.email } : {}),
+        }),
         target: { type: 'calendar_backup', id: userId },
         outcome: 'failure',
         reason: 'No encrypted calendar backup found',
@@ -112,7 +120,11 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
 
     log.audit?.({
       action: 'calendar_backup.export',
-      actor: { type: 'user', id: userId, email: user?.email },
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: userId,
+        ...(user?.email ? { email: user.email } : {}),
+      }),
       target: { type: 'calendar_backup', id: userId },
       outcome: 'success',
       reason: 'User exported encrypted calendar backup',
@@ -140,7 +152,7 @@ export const DELETE = withEvlog(async function DELETE(_req: NextRequest) {
     if (!userId) {
       log.audit?.({
         action: 'calendar_backup.delete',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'calendar_backup', id: 'unknown' },
         outcome: 'denied',
         reason: 'Authentication required',
@@ -152,7 +164,11 @@ export const DELETE = withEvlog(async function DELETE(_req: NextRequest) {
 
     log.audit?.({
       action: 'calendar_backup.delete',
-      actor: { type: 'user', id: userId, email: user?.email },
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: userId,
+        ...(user?.email ? { email: user.email } : {}),
+      }),
       target: { type: 'calendar_backup', id: userId },
       outcome: 'success',
       reason: 'User deleted encrypted calendar backup',

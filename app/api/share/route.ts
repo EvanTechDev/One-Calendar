@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { withEvlog, useLogger } from '@/lib/evlog'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
@@ -70,7 +70,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
     if (!user) {
       log.audit?.({
         action: 'share.create',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'share', id },
         outcome: 'denied',
         reason: 'Authentication required',
@@ -116,7 +116,11 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
 
     log.audit?.({
       action: 'share.create',
-      actor: { type: 'user', id: user.id, email: user.email },
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: user.id,
+        email: user.email,
+      }),
       target: { type: 'share', id },
       outcome: 'success',
       reason: burn
@@ -188,7 +192,7 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
     if (result.status === 404) {
       log.audit?.({
         action: 'share.export',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'share', id },
         outcome: 'failure',
         reason: 'Share not found',
@@ -198,7 +202,7 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
     if (result.status === 401) {
       log.audit?.({
         action: 'share.export',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'share', id },
         outcome: 'denied',
         reason: 'Password required',
@@ -215,7 +219,7 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
     if (result.status === 403) {
       log.audit?.({
         action: 'share.export',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'share', id },
         outcome: 'denied',
         reason: result.protected
@@ -234,7 +238,7 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
 
     log.audit?.({
       action: result.burnAfterRead ? 'share.burn_after_read' : 'share.export',
-      actor: { type: 'system', id: 'anonymous' },
+      actor: getAuditActor(log),
       target: { type: 'share', id },
       outcome: 'success',
       reason: result.burnAfterRead
@@ -272,7 +276,7 @@ export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
   if (!user) {
     log.audit?.({
       action: 'share.delete',
-      actor: { type: 'system', id: 'anonymous' },
+      actor: getAuditActor(log),
       target: { type: 'share', id },
       outcome: 'denied',
       reason: 'Authentication required',
@@ -286,7 +290,11 @@ export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
 
   log.audit?.({
     action: 'share.delete',
-    actor: { type: 'user', id: user.id, email: user.email },
+    actor: getAuditActor(log, {
+      type: 'user',
+      id: user.id,
+      email: user.email,
+    }),
     target: { type: 'share', id },
     outcome: 'success',
     reason: 'User deleted share',

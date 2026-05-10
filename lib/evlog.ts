@@ -1,4 +1,10 @@
-import { auditEnricher, auditOnly, signed, type AuditActor } from 'evlog'
+import {
+  auditEnricher,
+  auditOnly,
+  signed,
+  type AuditActor,
+  type RequestLogger,
+} from 'evlog'
 import { createAuthMiddleware } from 'evlog/better-auth'
 import { createFsDrain } from 'evlog/fs'
 import { createEvlog } from 'evlog/next'
@@ -12,6 +18,11 @@ const auditDrain = auditOnly(
   }),
   { await: true },
 )
+
+export const anonymousAuditActor = {
+  type: 'system',
+  id: 'anonymous',
+} satisfies AuditActor
 
 function actorFromEvent(event: Record<string, unknown>): AuditActor | null {
   const user = event.user
@@ -35,6 +46,13 @@ function actorFromEvent(event: Record<string, unknown>): AuditActor | null {
     return { type: 'user', id: event.userId }
 
   return null
+}
+
+export function getAuditActor(
+  logger: Pick<RequestLogger, 'getContext'>,
+  fallback: AuditActor = anonymousAuditActor,
+) {
+  return actorFromEvent(logger.getContext()) ?? fallback
 }
 
 const auditEnrich = auditEnricher({

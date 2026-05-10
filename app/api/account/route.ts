@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withEvlog, useLogger } from '@/lib/evlog'
+import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth-server'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarBackups } from '@/lib/drizzle/schema'
@@ -15,7 +15,7 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
     if (!user) {
       log.audit?.({
         action: 'account.delete',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'account', id: 'unknown' },
         outcome: 'denied',
         reason: 'Authentication required',
@@ -42,7 +42,11 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
 
     log.audit?.({
       action: 'account.delete',
-      actor: { type: 'user', id: user.id, email: user.email },
+      actor: getAuditActor(log, {
+        type: 'user',
+        id: user.id,
+        email: user.email,
+      }),
       target: { type: 'account', id: user.id },
       outcome: 'success',
       reason: 'User requested account data deletion',

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { withEvlog, useLogger, createError } from '@/lib/evlog'
+import { withEvlog, useLogger, createError, getAuditActor } from '@/lib/evlog'
 
 export const POST = withEvlog(async (request: NextRequest) => {
   const log = useLogger()
@@ -59,7 +59,7 @@ export const POST = withEvlog(async (request: NextRequest) => {
     if (data.success) {
       log.audit?.({
         action: 'captcha.verify',
-        actor: { type: 'system', id: 'anonymous' },
+        actor: getAuditActor(log),
         target: { type: 'turnstile', id: action ?? 'unknown' },
         outcome: 'success',
         reason: 'CAPTCHA verification succeeded',
