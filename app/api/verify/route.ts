@@ -1,34 +1,40 @@
 import { NextRequest } from 'next/server'
+import { withEvlog, useLogger, createError } from '@/lib/evlog'
+import { auth } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+export const POST = withEvlog(async (request: NextRequest) => {
+  const log = useLogger()
+  const session = await auth.api.getSession({ headers: request.headers })
+
+  if (session?.user) {
+    log.set('actor', { id: session.user.id, email: session.user.email })
+  }
+
   try {
     const { token, action } = await request.json()
     const secretKey = process.env.TURNSTILE_SECRET_KEY
 
-    console.log('Request body:', {
+    log.set('body', {
       token: token ? token.slice(0, 10) + '...' : null,
       action,
     })
-    console.log('TURNSTILE_SECRET_KEY:', secretKey ? 'Set' : 'Missing')
 
     if (!token) {
-      console.error('Missing token in request body')
-      return new Response(JSON.stringify({ error: 'Missing CAPTCHA token' }), {
+      throw createError({
+        message: 'Missing token',
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        why: 'No CAPTCHA token',
+        fix: 'Provide token',
       })
     }
+    
     if (!secretKey) {
-      console.error('Missing TURNSTILE_SECRET_KEY in environment')
-      return new Response(
-        JSON.stringify({
-          error: 'Server configuration error: Missing secret key',
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+      throw createError({
+        message: 'Missing secret',
+        status: 500,
+        why: 'Server config',
+        fix: 'Add key',
+      })
     }
 
     const response = await fetch(
@@ -44,61 +50,43 @@ export async function POST(request: NextRequest) {
     )
 
     if (!response.ok) {
-      console.error(
-        'Cloudflare API error:',
-        response.status,
-        response.statusText,
-      )
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to verify with Cloudflare',
-          status: response.status,
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+      throw createError({
+        message: 'Cloudflare error',
+        status: 500,
+        why: 'Cloudflare status ' + response.status,
+        fix: 'Check service',
+      })
     }
 
     const data = await response.json()
-    console.log('Cloudflare response:', JSON.stringify(data, null, 2))
+    log.set('cloudflareResponse', data)
 
     if (data.success) {
-      console.log('Verification successful for action:', action)
+      log.audit({
+        action: 'verify_captcha',
+        actor: session?.user ? { id: session.user.id, email: session.user.email } : { id: 'anonymous' },
+        target: 'turnstile',
+        outcome: 'success',
+      })
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
     } else {
-      console.error('Turnstile verification failed:', data['error-codes'])
-      return new Response(
-        JSON.stringify({
-          error: 'Turnstile verification failed',
-          details: data['error-codes'] || ['Unknown error'],
-          cloudflareResponse: data,
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+      throw createError({
+        message: 'Verification failed',
+        status: 400,
+        why: 'Token rejected',
+        fix: 'Check Cloudflare codes',
+      })
     }
   } catch (error: any) {
-    console.error(
-      'Server error during verification:',
-      error.message,
-      error.stack,
-    )
-    return new Response(
-      JSON.stringify({
-        error: 'Server error during verification',
-        details: error.message,
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
+    if (error.status) throw error
+    throw createError({
+      message: 'Server error',
+      status: 500,
+      why: error.message,
+      fix: 'Check server logs',
+    })
   }
-}
+})
