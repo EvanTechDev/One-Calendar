@@ -1,21 +1,68 @@
-import { createEvlog } from 'evlog';
-import { createFsDrain } from 'evlog/adapters/fs';
-import { signed } from 'evlog/adapters/signed';
+import { auditEnricher, auditOnly, signed, type AuditActor } from 'evlog'
+import { createAuthMiddleware } from 'evlog/better-auth'
+import { createFsDrain } from 'evlog/fs'
+import { createEvlog } from 'evlog/next'
+import { auth } from '@/lib/auth'
 
-export const evlog = createEvlog({
-  service: 'one-calendar',
-  enrich: (event) => {
-    return {
-      ...event,
-      timestamp: new Date().toISOString(),
-    };
+const identify = createAuthMiddleware(auth)
+const mainDrain = createFsDrain({ dir: '.evlog/logs', pretty: false })
+const auditDrain = auditOnly(
+  signed(createFsDrain({ dir: '.audit', pretty: false }), {
+    strategy: 'hash-chain',
+  }),
+  { await: true },
+)
+
+function actorFromEvent(event: Record<string, unknown>): AuditActor | null {
+  const user = event.user
+  if (user && typeof user === 'object') {
+    const candidate = user as Record<string, unknown>
+    if (typeof candidate.id === 'string') {
+      return {
+        type: 'user',
+        id: candidate.id,
+        ...(typeof candidate.email === 'string'
+          ? { email: candidate.email }
+          : {}),
+        ...(typeof candidate.name === 'string'
+          ? { displayName: candidate.name }
+          : {}),
+      }
+    }
+  }
+
+  if (typeof event.userId === 'string')
+    return { type: 'user', id: event.userId }
+
+  return null
+}
+
+const auditEnrich = auditEnricher({
+  bridge: {
+    getSession: ({ event }) => actorFromEvent(event as Record<string, unknown>),
   },
-  drain: [
-    signed(createFsDrain({ dir: '.audit' }), {
-      strategy: 'hash-chain',
-      await: true,
-    }),
-  ],
-});
+})
 
-export const { withEvlog, useLogger, createError } = evlog;
+const evlog = createEvlog({
+  service: 'one-calendar',
+  drain: async (ctx) => {
+    const results = await Promise.allSettled([mainDrain(ctx), auditDrain(ctx)])
+    const rejected = results.find((result) => result.status === 'rejected')
+    if (rejected?.status === 'rejected') throw rejected.reason
+  },
+  enrich: auditEnrich,
+})
+
+const withEvlogBase = evlog.withEvlog
+
+export const withEvlog: typeof evlog.withEvlog = (handler) =>
+  withEvlogBase(async (...args: Parameters<typeof handler>) => {
+    const request = args[0]
+    if (request instanceof Request) {
+      const log = evlog.useLogger()
+      await identify(log, request.headers, new URL(request.url).pathname)
+    }
+    return handler(...args)
+  })
+
+export const { useLogger, log, createError, createEvlogError } = evlog
