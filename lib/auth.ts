@@ -1,4 +1,4 @@
-import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { db } from '@/lib/drizzle/client'
 import * as schema from '@/lib/drizzle/schema'
 import { betterAuth } from 'better-auth'
