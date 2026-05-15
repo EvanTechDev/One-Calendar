@@ -16,6 +16,10 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
       - name: Translate
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
