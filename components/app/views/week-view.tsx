@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
+import type { FirstDayOfWeek } from '@/components/app/calendar-types'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -34,7 +35,11 @@ const ContextMenuContent = ({
   children: React.ReactNode
   className?: string
 }) => <>{children}</>
-const ContextMenuItem = (_props: any) => null
+const ContextMenuItem = (_props: {
+  children?: React.ReactNode
+  className?: string
+  onSelect?: (event: React.SyntheticEvent) => void
+}) => null
 
 interface WeekViewProps {
   date: Date
@@ -42,7 +47,7 @@ interface WeekViewProps {
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   language: Language
-  firstDayOfWeek: number
+  firstDayOfWeek: FirstDayOfWeek
   timezone: string
   timeFormat: '24h' | '12h'
   onEditEvent?: (event: CalendarEvent) => void
@@ -56,15 +61,6 @@ interface WeekViewProps {
   ) => void
   daysToShow?: number
   fixedStartDate?: Date
-}
-
-interface CalendarEvent {
-  id: string
-  startDate: string | Date
-  endDate: string | Date
-  title: string
-  color: string
-  isAllDay?: boolean
 }
 
 export default function WeekView({

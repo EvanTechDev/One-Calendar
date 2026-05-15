@@ -42,7 +42,7 @@ export function ResetPasswordForm({
     setIsLoading(true)
     setError('')
     setNotice('')
-    const res = await authClient.forgetPassword({
+    const res = await authClient.requestPasswordReset({
       email,
       redirectTo: '/reset-password',
     } as never)

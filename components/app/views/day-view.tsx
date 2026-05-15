@@ -24,7 +24,11 @@ const ContextMenuContent = ({
   children: React.ReactNode
   className?: string
 }) => <>{children}</>
-const ContextMenuItem = (_props: any) => null
+const ContextMenuItem = (_props: {
+  children?: React.ReactNode
+  className?: string
+  onSelect?: (event: React.SyntheticEvent) => void
+}) => null
 
 interface DayViewProps {
   date: Date

@@ -161,7 +161,7 @@ function Calendar({
           ...props
         }: {
           className?: string
-          orientation?: 'left' | 'right'
+          orientation?: 'left' | 'right' | 'up' | 'down'
         } & React.SVGProps<SVGSVGElement>) => {
           if (orientation === 'left') {
             return (
@@ -181,12 +181,7 @@ function Calendar({
             )
           }
 
-          return null
-        },
-        Dropdown: ({ className, ...props }) => {
-          return (
-            <ChevronDownIcon className={cn('size-4', className)} {...props} />
-          )
+          return <ChevronDownIcon className={cn('size-4', className)} {...props} />
         },
         DayButton: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />

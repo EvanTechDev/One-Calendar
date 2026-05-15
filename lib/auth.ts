@@ -94,8 +94,8 @@ export const auth = betterAuth({
     sentinel({
       apiKey: process.env.BETTER_AUTH_API_KEY,
       security: {
-        credentialStuffing: { enabled: true, action: 'block' },
-        compromisedPassword: { enabled: true, action: 'block' },
+        credentialStuffing: { enabled: true },
+        compromisedPassword: { enabled: true },
         botBlocking: { action: 'challenge' },
         emailValidation: { enabled: true },
       },

@@ -7,14 +7,16 @@ import { CountdownTool } from './countdown'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
+import type { ViewType } from '@/components/app/calendar-types'
+
 interface RightSidebarProps {
-  onViewChange?: (view: string) => void
+  onViewChange?: (view: ViewType) => void
   onEventClick: (event: any) => void
 }
 
 export default function RightSidebar({
   onViewChange: _onViewChange,
-  onEventClick: _onEventClick,
+  onEventClick,
 }: RightSidebarProps) {
   const [miniCalendarOpen, setMiniCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -75,6 +77,7 @@ export default function RightSidebar({
       <BookmarkPanel
         open={bookmarkPanelOpen}
         onOpenChange={setBookmarkPanelOpen}
+        onEventClick={onEventClick}
       />
     </>
   )

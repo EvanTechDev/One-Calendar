@@ -140,12 +140,12 @@ const EventsCalendar: React.FC = () => {
 
     const totalWeeks = Math.ceil(totalDays / 7)
 
-    const allDates = []
+    const allDates: Date[] = []
     for (let i = 0; i < totalDays; i++) {
       allDates.push(addDays(startDay, i))
     }
 
-    const monthLabels = []
+    const monthLabels: { label: string; weekIndex: number }[] = []
     for (let month = 0; month < 12; month++) {
       const firstDayOfMonth = new Date(selectedYear, month, 1)
 

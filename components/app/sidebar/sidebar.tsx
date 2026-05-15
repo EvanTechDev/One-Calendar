@@ -41,10 +41,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+import type { ViewType } from '@/components/app/calendar-types'
+
 interface SidebarProps {
   onCreateEvent: () => void
   onDateSelect: (date: Date) => void
-  onViewChange?: (view: string) => void
+  onViewChange?: (view: ViewType) => void
   language?: Language
   selectedDate?: Date
   isCollapsed?: boolean

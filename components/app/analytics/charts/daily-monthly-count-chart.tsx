@@ -1,5 +1,6 @@
 'use client'
 
+import type { ComponentProps, ComponentType } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +14,12 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+
+type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
+  radius?: number | [number, number, number, number]
+}
+
+const RoundedCell = Cell as ComponentType<RoundedCellProps>
 
 interface CountDatum {
   label: string
@@ -129,7 +136,7 @@ export function DailyMonthlyCountChart({
                     const isTopSegment =
                       topDataKeyByLabel.get(datum.label) === item.key
                     return (
-                      <Cell
+                      <RoundedCell
                         key={`${item.key}-${datum.label}`}
                         radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                       />

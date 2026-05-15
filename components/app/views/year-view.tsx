@@ -18,12 +18,14 @@ import type { CalendarEvent } from '../calendar'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 
+import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   language: Language
-  firstDayOfWeek: number
+  firstDayOfWeek: FirstDayOfWeek
   isSidebarCollapsed?: boolean
   isSidebarExpanding?: boolean
 }
@@ -109,7 +111,7 @@ export default function YearView({
         const monthStart = new Date(currentYear, monthIndex, 1)
         const monthEnd = endOfMonth(monthStart)
         const gridStart = startOfWeek(monthStart, {
-          weekStartsOn: firstDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+          weekStartsOn: firstDayOfWeek,
         })
         const monthDays = eachDayOfInterval({
           start: gridStart,

@@ -13,12 +13,14 @@ import { translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
 import { cn } from '@/lib/utils'
 
+import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+
 interface MonthViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   language: Language
-  firstDayOfWeek: number
+  firstDayOfWeek: FirstDayOfWeek
   timezone: string
 }
 

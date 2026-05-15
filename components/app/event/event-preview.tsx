@@ -237,7 +237,7 @@ export default function EventPreview({
     })
 
     const qrBlob = await qrCode.getRawData('png')
-    if (!qrBlob) {
+    if (!(qrBlob instanceof Blob)) {
       throw new Error(t.shareQrGenerateFailed)
     }
 
@@ -406,7 +406,7 @@ export default function EventPreview({
             },
           })
           const qrBlob = await qrCode.getRawData('png')
-          if (qrBlob) {
+          if (qrBlob instanceof Blob) {
             if (qrCodeObjectURLRef.current) {
               URL.revokeObjectURL(qrCodeObjectURLRef.current)
             }
