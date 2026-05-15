@@ -1,22 +1,17 @@
 import { NextRequest } from 'next/server'
-import { withEvlog, useLogger, createError } from '@/lib/evlog'
-import { auth } from '@/lib/auth'
+import { withEvlog, useLogger, createError, getAuditActor } from '@/lib/evlog'
 
 export const POST = withEvlog(async (request: NextRequest) => {
   const log = useLogger()
-  const session = await auth.api.getSession({ headers: request.headers })
-
-  if (session?.user) {
-    log.set('actor', { id: session.user.id, email: session.user.email })
-  }
-
   try {
     const { token, action } = await request.json()
     const secretKey = process.env.TURNSTILE_SECRET_KEY
 
-    log.set('body', {
-      token: token ? token.slice(0, 10) + '...' : null,
-      action,
+    log.set({
+      body: {
+        token: token ? token.slice(0, 10) + '...' : null,
+        action,
+      },
     })
 
     if (!token) {
@@ -59,16 +54,15 @@ export const POST = withEvlog(async (request: NextRequest) => {
     }
 
     const data = await response.json()
-    log.set('cloudflareResponse', data)
+    log.set({ cloudflareResponse: data })
 
     if (data.success) {
-      log.audit({
-        action: 'verify_captcha',
-        actor: session?.user
-          ? { id: session.user.id, email: session.user.email }
-          : { id: 'anonymous' },
-        target: 'turnstile',
+      log.audit?.({
+        action: 'captcha.verify',
+        actor: getAuditActor(log),
+        target: { type: 'turnstile', id: action ?? 'unknown' },
         outcome: 'success',
+        reason: 'CAPTCHA verification succeeded',
       })
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
