@@ -21,6 +21,11 @@ import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'
 import type { NOTIFICATION_SOUNDS } from '@/lib/notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
+import {
+  isCalendarView,
+  type CalendarViewType,
+  type FirstDayOfWeek,
+} from '@/components/app/calendar-types'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Kbd } from '@/components/ui/kbd'
@@ -29,14 +34,14 @@ import { useTheme } from 'next-themes'
 interface SettingsProps {
   language: Language
   setLanguage: (lang: Language) => void
-  firstDayOfWeek: number
-  setFirstDayOfWeek: (day: number) => void
+  firstDayOfWeek: FirstDayOfWeek
+  setFirstDayOfWeek: (day: FirstDayOfWeek) => void
   timezone: string
   setTimezone: (timezone: string) => void
   notificationSound: NOTIFICATION_SOUNDS
   setNotificationSound: (sound: NOTIFICATION_SOUNDS) => void
-  defaultView: string
-  setDefaultView: (view: string) => void
+  defaultView: CalendarViewType
+  setDefaultView: (view: CalendarViewType) => void
   enableShortcuts: boolean
   setEnableShortcuts: (enable: boolean) => void
   timeFormat: '24h' | '12h'
@@ -207,7 +212,14 @@ export default function Settings({
 
         <div className="space-y-2">
           <Label htmlFor="default-view">{t.defaultView}</Label>
-          <Select value={defaultView} onValueChange={setDefaultView}>
+          <Select
+            value={defaultView}
+            onValueChange={(value) => {
+              if (isCalendarView(value)) {
+                setDefaultView(value)
+              }
+            }}
+          >
             <SelectTrigger id="default-view">
               <SelectValue />
             </SelectTrigger>

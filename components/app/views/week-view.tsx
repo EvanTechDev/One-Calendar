@@ -13,11 +13,11 @@ import {
   add,
   addDays,
   startOfDay,
-  type Day,
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
+import type { FirstDayOfWeek } from '@/components/app/calendar-types'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -47,7 +47,7 @@ interface WeekViewProps {
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   language: Language
-  firstDayOfWeek: number
+  firstDayOfWeek: FirstDayOfWeek
   timezone: string
   timeFormat: '24h' | '12h'
   onEditEvent?: (event: CalendarEvent) => void
@@ -80,8 +80,8 @@ export default function WeekView({
   daysToShow,
   fixedStartDate,
 }: WeekViewProps) {
-  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek as Day })
-  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek as Day })
+  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
+  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
   const weekDays = daysToShow
     ? Array.from({ length: daysToShow }, (_, index) =>
         addDays(startOfDay(fixedStartDate ?? date), index),

@@ -1,5 +1,6 @@
 'use client'
 
+import type { ComponentProps, ComponentType } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -11,6 +12,12 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { translations, useLanguage } from '@/lib/i18n'
+
+type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
+  radius?: number | [number, number, number, number]
+}
+
+const RoundedCell = Cell as ComponentType<RoundedCellProps>
 
 interface WeekdayStackDatum {
   day: string
@@ -102,9 +109,9 @@ export function WeekdayStackedDurationChart({
                     const isTopSegment =
                       topDataKeyByDay.get(datum.day) === item.key
                     return (
-                      <Cell
+                      <RoundedCell
                         key={`${item.key}-${datum.day}`}
-                        radius={isTopSegment ? 8 : 0}
+                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                       />
                     )
                   })}

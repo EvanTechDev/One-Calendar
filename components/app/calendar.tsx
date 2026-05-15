@@ -48,6 +48,12 @@ import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { APP_CONFIG } from '@/lib/config'
+import {
+  isCalendarView,
+  type CalendarViewType,
+  type FirstDayOfWeek,
+  type ViewType,
+} from '@/components/app/calendar-types'
 import { toast } from 'sonner'
 import {
   InputGroup,
@@ -88,21 +94,6 @@ const YearView = dynamic(loadYearView)
 const AnalyticsView = dynamic(loadAnalyticsView)
 const Settings = dynamic(loadSettings)
 
-type ViewType =
-  | 'day'
-  | 'week'
-  | 'four-day'
-  | 'month'
-  | 'year'
-  | 'analytics'
-  | 'settings'
-
-const isCalendarView = (
-  view: string,
-): view is 'day' | 'week' | 'four-day' | 'month' | 'year' => {
-  return ['day', 'week', 'four-day', 'month', 'year'].includes(view)
-}
-
 export interface CalendarEvent {
   id: string
   title: string
@@ -140,14 +131,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<number>(
+  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
     'first-day-of-week',
     0,
   )
-  const normalizedFirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0
+  const normalizedFirstDayOfWeek: FirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0
 
-  const handleFirstDayOfWeekChange = (day: number) => {
-    setFirstDayOfWeek(day === 1 ? 1 : 0)
+  const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
+    setFirstDayOfWeek(day)
   }
   const [timezone, setTimezone] = useLocalStorage<string>(
     'timezone',
@@ -189,7 +180,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     null,
   )
 
-  const [defaultView, setDefaultView] = useLocalStorage<ViewType>(
+  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewType>(
     'default-view',
     'week',
   )
@@ -211,8 +202,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   useEffect(() => {
     const applyRestoredPreferences = () => {
       void Promise.all([
-        readEncryptedLocalStorage<number>('first-day-of-week', 0),
-        readEncryptedLocalStorage<ViewType>('default-view', 'week'),
+        readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
+        readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
       ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
         setFirstDayOfWeek(restoredFirstDayOfWeek === 1 ? 1 : 0)
         if (isCalendarView(restoredDefaultView)) {
@@ -722,7 +713,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             setEventDialogOpen(true)
           }}
           onDateSelect={handleDateSelect}
-          onViewChange={(newView) => handleViewChange(newView as ViewType)}
+          onViewChange={handleViewChange}
           language={language}
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
@@ -787,7 +778,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                         ? defaultView
                         : 'week'
                   }
-                  onValueChange={(value: ViewType) => setView(value)}
+                  onValueChange={(value) => {
+                    if (isCalendarView(value)) {
+                      setView(value)
+                    }
+                  }}
                 >
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
@@ -1050,9 +1045,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 notificationSound={notificationSound}
                 setNotificationSound={setNotificationSound}
                 defaultView={defaultView}
-                setDefaultView={(newView) =>
-                  setDefaultView(newView as ViewType)
-                }
+                setDefaultView={setDefaultView}
                 enableShortcuts={enableShortcuts}
                 setEnableShortcuts={setEnableShortcuts}
                 timeFormat={timeFormat}
@@ -1069,7 +1062,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
         {}
         <RightSidebar
-          onViewChange={(newView) => handleViewChange(newView as ViewType)}
+          onViewChange={handleViewChange}
           onEventClick={handleEventClick}
         />
 
