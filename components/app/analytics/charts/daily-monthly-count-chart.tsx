@@ -131,7 +131,7 @@ export function DailyMonthlyCountChart({
                     return (
                       <Cell
                         key={`${item.key}-${datum.label}`}
-                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                        radius={isTopSegment ? 8 : 0}
                       />
                     )
                   })}

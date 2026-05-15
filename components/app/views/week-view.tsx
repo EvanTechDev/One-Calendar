@@ -13,6 +13,7 @@ import {
   add,
   addDays,
   startOfDay,
+  type Day,
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { translations, type Language } from '@/lib/i18n'
@@ -34,7 +35,11 @@ const ContextMenuContent = ({
   children: React.ReactNode
   className?: string
 }) => <>{children}</>
-const ContextMenuItem = (_props: any) => null
+const ContextMenuItem = (_props: {
+  children?: React.ReactNode
+  className?: string
+  onSelect?: (event: React.SyntheticEvent) => void
+}) => null
 
 interface WeekViewProps {
   date: Date
@@ -58,15 +63,6 @@ interface WeekViewProps {
   fixedStartDate?: Date
 }
 
-interface CalendarEvent {
-  id: string
-  startDate: string | Date
-  endDate: string | Date
-  title: string
-  color: string
-  isAllDay?: boolean
-}
-
 export default function WeekView({
   date,
   events,
@@ -84,8 +80,8 @@ export default function WeekView({
   daysToShow,
   fixedStartDate,
 }: WeekViewProps) {
-  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
-  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
+  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek as Day })
+  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek as Day })
   const weekDays = daysToShow
     ? Array.from({ length: daysToShow }, (_, index) =>
         addDays(startOfDay(fixedStartDate ?? date), index),

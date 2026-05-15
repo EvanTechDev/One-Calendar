@@ -283,8 +283,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       return () => window.cancelIdleCallback(id)
     }
 
-    const timeoutId = window.setTimeout(prefetch, 800)
-    return () => window.clearTimeout(timeoutId)
+    const timeoutId = globalThis.setTimeout(prefetch, 800)
+    return () => globalThis.clearTimeout(timeoutId)
   }, [])
 
   useEffect(() => {
@@ -722,7 +722,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             setEventDialogOpen(true)
           }}
           onDateSelect={handleDateSelect}
-          onViewChange={handleViewChange}
+          onViewChange={(newView) => handleViewChange(newView as ViewType)}
           language={language}
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
@@ -1050,7 +1050,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 notificationSound={notificationSound}
                 setNotificationSound={setNotificationSound}
                 defaultView={defaultView}
-                setDefaultView={setDefaultView}
+                setDefaultView={(newView) =>
+                  setDefaultView(newView as ViewType)
+                }
                 enableShortcuts={enableShortcuts}
                 setEnableShortcuts={setEnableShortcuts}
                 timeFormat={timeFormat}
@@ -1067,7 +1069,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
         {}
         <RightSidebar
-          onViewChange={handleViewChange}
+          onViewChange={(newView) => handleViewChange(newView as ViewType)}
           onEventClick={handleEventClick}
         />
 
@@ -1090,7 +1092,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               setPreviewAnchorRect(null)
             }
           }}
-          onDuplicate={handleEventDuplicate}
+          onDuplicate={() => {
+            if (previewEvent) {
+              handleEventDuplicate(previewEvent)
+            }
+          }}
           language={language}
           timezone={timezone}
           openShareImmediately={openShareImmediately}

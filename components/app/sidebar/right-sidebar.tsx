@@ -14,7 +14,7 @@ interface RightSidebarProps {
 
 export default function RightSidebar({
   onViewChange: _onViewChange,
-  onEventClick: _onEventClick,
+  onEventClick,
 }: RightSidebarProps) {
   const [miniCalendarOpen, setMiniCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -75,6 +75,7 @@ export default function RightSidebar({
       <BookmarkPanel
         open={bookmarkPanelOpen}
         onOpenChange={setBookmarkPanelOpen}
+        onEventClick={onEventClick}
       />
     </>
   )

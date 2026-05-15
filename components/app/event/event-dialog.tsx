@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import type { CalendarEvent } from '@/components/app/calendar'
 
 const colorOptions = [
   {

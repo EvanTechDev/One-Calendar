@@ -14,6 +14,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { CalendarEvent } from '@/components/app/calendar'
 import {
   Dialog,
   DialogContent,
@@ -756,7 +757,7 @@ export default function UserProfileButton({
         margin: 2,
       })
       const qrBlob = await qrCode.getRawData('png')
-      if (qrBlob) {
+      if (qrBlob instanceof Blob) {
         if (twoFactorQrCodeRef.current) {
           URL.revokeObjectURL(twoFactorQrCodeRef.current)
         }
@@ -1474,7 +1475,8 @@ export default function UserProfileButton({
         <DialogContent
           onInteractOutside={(e: Event) => e.preventDefault()}
           onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
-          >          <DialogHeader>
+        >
+          <DialogHeader>
             <DialogTitle>{t.enterPasswordTitle}</DialogTitle>
             <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
           </DialogHeader>

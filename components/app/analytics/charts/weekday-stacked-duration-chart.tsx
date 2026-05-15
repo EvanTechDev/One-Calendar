@@ -104,7 +104,7 @@ export function WeekdayStackedDurationChart({
                     return (
                       <Cell
                         key={`${item.key}-${datum.day}`}
-                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                        radius={isTopSegment ? 8 : 0}
                       />
                     )
                   })}

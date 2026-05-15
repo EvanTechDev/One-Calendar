@@ -50,6 +50,7 @@ interface SharedEvent {
   description?: string
   color: string
   calendarId: string
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
   sharedBy: string
 }
 
@@ -289,6 +290,7 @@ export default function SharedEventView({
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
         calendarId: targetCalendarId,
+        recurrence: event.recurrence ?? 'none',
       }
 
       setEvents([...events, newEvent])
