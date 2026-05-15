@@ -2,7 +2,7 @@
   "name": "one-calendar",
   "version": "2.4.1",
   "private": true,
-  "packageManager": "pnpm@10.33.3",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "next dev",
     "build": "pnpm --silent run generate:locales && next build",
@@ -29,6 +29,7 @@
     "csv-parse": "latest",
     "date-fns": "4.1.0",
     "drizzle-orm": "^0.45.2",
+    "evlog": "^2.17.0",
     "framer-motion": "^12.7.4",
     "geist": "latest",
     "ics": "latest",

@@ -27,7 +27,7 @@ export const POST = withEvlog(async (request: NextRequest) => {
         fix: 'Provide token',
       })
     }
-    
+
     if (!secretKey) {
       throw createError({
         message: 'Missing secret',
@@ -64,7 +64,9 @@ export const POST = withEvlog(async (request: NextRequest) => {
     if (data.success) {
       log.audit({
         action: 'verify_captcha',
-        actor: session?.user ? { id: session.user.id, email: session.user.email } : { id: 'anonymous' },
+        actor: session?.user
+          ? { id: session.user.id, email: session.user.email }
+          : { id: 'anonymous' },
         target: 'turnstile',
         outcome: 'success',
       })

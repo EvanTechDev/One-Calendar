@@ -1,6 +1,6 @@
-import { createEvlog } from 'evlog';
-import { createFsDrain } from 'evlog/adapters/fs';
-import { signed } from 'evlog/adapters/signed';
+import { createEvlog } from 'evlog'
+import { createFsDrain } from 'evlog/adapters/fs'
+import { signed } from 'evlog/adapters/signed'
 
 export const evlog = createEvlog({
   service: 'one-calendar',
@@ -8,7 +8,7 @@ export const evlog = createEvlog({
     return {
       ...event,
       timestamp: new Date().toISOString(),
-    };
+    }
   },
   drain: [
     signed(createFsDrain({ dir: '.audit' }), {
@@ -16,6 +16,6 @@ export const evlog = createEvlog({
       await: true,
     }),
   ],
-});
+})
 
-export const { withEvlog, useLogger, createError } = evlog;
+export const { withEvlog, useLogger, createError } = evlog
