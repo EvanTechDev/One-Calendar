@@ -172,6 +172,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const isMobile = useIsMobile()
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
+  const effectiveView = isMobile ? 'day' : view
 
   const updateEvent = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
