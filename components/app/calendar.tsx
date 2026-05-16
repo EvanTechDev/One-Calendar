@@ -3,6 +3,7 @@
 import { MobileSidebar } from '@/components/app/sidebar/mobile/mobile-sidebar'
 import { MobileRightSidebar } from '@/components/app/sidebar/mobile/mobile-right-sidebar'
 import { useIsMobile } from '@/hooks/useMobile'
+import { cn } from '@/lib/utils'
 import {
   checkPendingNotifications,
   clearAllNotificationTimers,
