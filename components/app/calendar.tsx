@@ -2,6 +2,7 @@
 
 import { MobileSidebar } from '@/components/app/sidebar/mobile/mobile-sidebar'
 import { MobileRightSidebar } from '@/components/app/sidebar/mobile/mobile-right-sidebar'
+import { useIsMobile } from '@/hooks/useMobile'
 import {
   checkPendingNotifications,
   clearAllNotificationTimers,
@@ -29,6 +30,7 @@ import {
   MessageSquare,
   FileText,
   ScrollText,
+  X,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import {
@@ -49,6 +51,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { APP_CONFIG } from '@/lib/config'
 import {
   isCalendarView,
@@ -166,6 +169,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     'uploading' | 'failed' | 'done' | null
   >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
+  const isMobile = useIsMobile()
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
 
   const updateEvent = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
@@ -387,30 +392,38 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
   const handlePrevious = () => {
     setDate((prevDate) => {
-      if (view === 'day') return subDays(prevDate, 1)
-      if (view === 'week') return subDays(prevDate, 7)
-      if (view === 'four-day') return subDays(prevDate, 4)
-      if (view === 'year') return subYears(prevDate, 1)
+      if (effectiveView === 'day') return subDays(prevDate, 1)
+      if (effectiveView === 'week') return subDays(prevDate, 7)
+      if (effectiveView === 'four-day') return subDays(prevDate, 4)
+      if (effectiveView === 'year') return subYears(prevDate, 1)
       return subDays(prevDate, 30)
     })
   }
 
   const handleNext = () => {
     setDate((prevDate) => {
-      if (view === 'day') return addDays(prevDate, 1)
-      if (view === 'week') return addDays(prevDate, 7)
-      if (view === 'four-day') return addDays(prevDate, 4)
-      if (view === 'year') return addYears(prevDate, 1)
+      if (effectiveView === 'day') return addDays(prevDate, 1)
+      if (effectiveView === 'week') return addDays(prevDate, 7)
+      if (effectiveView === 'four-day') return addDays(prevDate, 4)
+      if (effectiveView === 'year') return addYears(prevDate, 1)
       return addDays(prevDate, 30)
     })
   }
 
   const formatDateDisplay = (date: Date) => {
-    if (view === 'year') {
+    if (isMobile) {
+      const options: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+      }
+      return date.toLocaleDateString(language, options)
+    }
+
+    if (effectiveView === 'year') {
       return date.getFullYear().toString()
     }
 
-    if (view === 'four-day') {
+    if (effectiveView === 'four-day') {
       const startDate = new Date(date)
       const endDate = addDays(startDate, 3)
       const options: Intl.DateTimeFormatOptions = {
@@ -739,230 +752,324 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {' '}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
-            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
-            <div className="flex items-center space-x-4">
-              <div className="md:hidden">
-                <MobileSidebar
-                  onCreateEvent={() => {
-                    setSelectedEvent(null)
-                    setQuickCreateStartTime(new Date())
-                    setEventDialogOpen(true)
-                  }}
-                  onDateSelect={handleDateSelect}
-                  onViewChange={handleViewChange}
-                  language={language}
-                  selectedDate={sidebarDate}
-                  selectedCategoryFilters={selectedCategoryFilters}
-                  onCategoryFilterChange={(categoryId, checked) => {
-                    setSelectedCategoryFilters((prev) => {
-                      if (checked) {
-                        return prev.includes(categoryId)
-                          ? prev
-                          : [...prev, categoryId]
-                      }
-                      return prev.filter((id) => id !== categoryId)
-                    })
-                  }}
-                />
-              </div>
-              <Button
-                variant="outline"
-                onClick={toggleSidebar}
-                size="sm"
-                className="hidden md:flex"
-              >
-                <PanelLeft />
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleTodayClick}>
-                {t.today || '今天'}
-              </Button>
-              {view !== 'analytics' && view !== 'settings' && (
-                <>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handlePrevious}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={handleNext}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background hidden md:block" />
+
+            <div className="flex flex-1 items-center justify-between">
+              {isMobile && isMobileSearchActive ? (
+                <div className="flex flex-1 items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setIsMobileSearchActive(false)
+                      setSearchTerm('')
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                  <div className="flex-1">
+                    <Input
+                      autoFocus
+                      placeholder={t.searchEvents}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full"
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === 'Enter' &&
+                          searchResultEvents.length > 0
+                        ) {
+                          setPreviewEvent(searchResultEvents[0])
+                          setPreviewAnchorRect(null)
+                          setPreviewOpen(true)
+                          setSearchTerm('')
+                          setIsMobileSearchActive(false)
+                        }
+                      }}
+                    />
                   </div>
-                  <span className="text-lg">{formatDateDisplay(date)}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-2 md:space-x-4">
+                    <div className="md:hidden">
+                      <MobileSidebar
+                        onCreateEvent={() => {
+                          setSelectedEvent(null)
+                          setQuickCreateStartTime(new Date())
+                          setEventDialogOpen(true)
+                        }}
+                        onDateSelect={handleDateSelect}
+                        onViewChange={handleViewChange}
+                        language={language}
+                        selectedDate={sidebarDate}
+                        selectedCategoryFilters={selectedCategoryFilters}
+                        onCategoryFilterChange={(categoryId, checked) => {
+                          setSelectedCategoryFilters((prev) => {
+                            if (checked) {
+                              return prev.includes(categoryId)
+                                ? prev
+                                : [...prev, categoryId]
+                            }
+                            return prev.filter((id) => id !== categoryId)
+                          })
+                        }}
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={toggleSidebar}
+                      size="sm"
+                      className="hidden md:flex"
+                    >
+                      <PanelLeft />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTodayClick}
+                      className={cn(isMobile && 'px-2 h-8 text-xs')}
+                    >
+                      {t.today || '今天'}
+                    </Button>
+
+                    <div className="flex items-center space-x-0.5 md:space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handlePrevious}
+                        className={cn(isMobile && 'h-8 w-8')}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleNext}
+                        className={cn(isMobile && 'h-8 w-8')}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-lg',
+                        isMobile &&
+                          'text-sm font-semibold truncate max-w-[80px]',
+                      )}
+                    >
+                      {formatDateDisplay(date)}
+                    </span>
+                  </div>
+
+                  <div className="ml-auto flex items-center space-x-1 md:space-x-2">
+                    <div className="hidden md:block">
+                      <div className="relative z-50">
+                        <Select
+                          value={
+                            effectiveView === 'day' ||
+                            effectiveView === 'week' ||
+                            effectiveView === 'four-day' ||
+                            effectiveView === 'month' ||
+                            effectiveView === 'year'
+                              ? view
+                              : defaultView === 'day' ||
+                                  defaultView === 'week' ||
+                                  defaultView === 'four-day' ||
+                                  defaultView === 'month' ||
+                                  defaultView === 'year'
+                                ? defaultView
+                                : 'week'
+                          }
+                          onValueChange={(value) => {
+                            if (isCalendarView(value)) {
+                              setView(value)
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="day">{t.day}</SelectItem>
+                              <SelectItem value="week">{t.week}</SelectItem>
+                              <SelectItem value="month">{t.month}</SelectItem>
+                              <SelectItem value="year">{t.year}</SelectItem>
+                              <SelectItem value="four-day">
+                                {t.fourDay}
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="md:hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsMobileSearchActive(true)}
+                        className="h-8 w-8"
+                      >
+                        <Search className="h-5 w-5" />
+                      </Button>
+                    </div>
+
+                    <div className="hidden md:block relative z-50">
+                      <InputGroup className="w-48">
+                        <InputGroupAddon>
+                          <Search className="h-5 w-5 text-gray-400" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          type="text"
+                          placeholder={t.searchEvents}
+                          value={searchTerm}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => {
+                            window.setTimeout(
+                              () => setIsSearchFocused(false),
+                              120,
+                            )
+                          }}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === 'Enter' &&
+                              searchResultEvents.length > 0
+                            ) {
+                              setPreviewEvent(searchResultEvents[0])
+                              setPreviewAnchorRect(null)
+                              setPreviewOpen(true)
+                              setSearchTerm('')
+                              setIsSearchFocused(false)
+                            }
+                          }}
+                          className="pr-4"
+                        />
+                      </InputGroup>
+                    </div>
+                    {(isSearchFocused || (isMobile && isMobileSearchActive)) &&
+                      !!searchTerm && (
+                        <div className="absolute right-4 top-[calc(100%+6px)] w-[calc(100vw-32px)] md:w-72 rounded-md border bg-popover p-1 shadow-md z-50">
+                          {searchResultEvents.length > 0 ? (
+                            <ScrollArea className="max-h-[320px]">
+                              <div className="space-y-1">
+                                {searchResultEvents.map((event) => (
+                                  <button
+                                    key={event.id}
+                                    type="button"
+                                    className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault()
+                                      setPreviewEvent(event)
+                                      setPreviewAnchorRect(null)
+                                      setPreviewOpen(true)
+                                      setSearchTerm('')
+                                      setIsSearchFocused(false)
+                                      setIsMobileSearchActive(false)
+                                    }}
+                                  >
+                                    <div className="font-medium leading-none">
+                                      {event.title || t.unnamedEvent}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {formatDateDisplay(
+                                        new Date(event.startDate),
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          ) : (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                              {t.noMatchingEvents}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {backupEnabled ? (
+                      <div
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                        title="Backup status"
+                        aria-label="Backup status"
+                      >
+                        {backupStatusIcon ?? (
+                          <CloudUpload className="h-4 w-4" />
+                        )}
+                      </div>
+                    ) : null}
+                    <div className="hidden md:block">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full h-8 w-8"
+                            aria-label="Help"
+                          >
+                            <CircleHelp className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              window.open(
+                                APP_CONFIG.contact.statusPageUrl,
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
+                          >
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            {t.status}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`
+                            }}
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            {t.feedback}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => router.push('/privacy')}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            {t.privacy}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => router.push('/terms')}
+                          >
+                            <ScrollText className="mr-2 h-4 w-4" />
+                            {t.tos}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <UserProfileButton
+                      variant="outline"
+                      className="rounded-full h-8 w-8"
+                      onNavigateToSettings={handleUserProfileSectionNavigate}
+                      onNavigateToView={setView}
+                    />
+                    <div className="md:hidden">
+                      <MobileRightSidebar
+                        onViewChange={handleViewChange}
+                        onEventClick={handleEventClick}
+                      />
+                    </div>
+                  </div>
                 </>
               )}
             </div>
-
-            <div className="ml-auto flex items-center space-x-2">
-              <div className="relative z-50">
-                <Select
-                  value={
-                    view === 'day' ||
-                    view === 'week' ||
-                    view === 'four-day' ||
-                    view === 'month' ||
-                    view === 'year'
-                      ? view
-                      : defaultView === 'day' ||
-                          defaultView === 'week' ||
-                          defaultView === 'four-day' ||
-                          defaultView === 'month' ||
-                          defaultView === 'year'
-                        ? defaultView
-                        : 'week'
-                  }
-                  onValueChange={(value) => {
-                    if (isCalendarView(value)) {
-                      setView(value)
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="day">{t.day}</SelectItem>
-                      <SelectItem value="week">{t.week}</SelectItem>
-                      <SelectItem value="month">{t.month}</SelectItem>
-                      <SelectItem value="year">{t.year}</SelectItem>
-                      <SelectItem value="four-day">{t.fourDay}</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="relative z-50">
-                <InputGroup className="w-48">
-                  <InputGroupAddon>
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    type="text"
-                    placeholder={t.searchEvents}
-                    value={searchTerm}
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => {
-                      window.setTimeout(() => setIsSearchFocused(false), 120)
-                    }}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                        setPreviewEvent(searchResultEvents[0])
-                        setPreviewAnchorRect(null)
-                        setPreviewOpen(true)
-                        setSearchTerm('')
-                        setIsSearchFocused(false)
-                      }
-                    }}
-                    className="pr-4"
-                  />
-                </InputGroup>
-                {isSearchFocused && !!searchTerm && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
-                    {searchResultEvents.length > 0 ? (
-                      <ScrollArea className="max-h-[320px]">
-                        <div className="space-y-1">
-                          {searchResultEvents.map((event) => (
-                            <button
-                              key={event.id}
-                              type="button"
-                              className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                setPreviewEvent(event)
-                                setPreviewAnchorRect(null)
-                                setPreviewOpen(true)
-                                setSearchTerm('')
-                                setIsSearchFocused(false)
-                              }}
-                            >
-                              <div className="font-medium leading-none">
-                                {event.title || t.unnamedEvent}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {formatDateDisplay(new Date(event.startDate))}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        {t.noMatchingEvents}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {backupEnabled ? (
-                <div
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                  title="Backup status"
-                  aria-label="Backup status"
-                >
-                  {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
-                </div>
-              ) : null}
-              <div className="md:hidden">
-                <MobileRightSidebar
-                  onViewChange={handleViewChange}
-                  onEventClick={handleEventClick}
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full h-8 w-8"
-                    aria-label="Help"
-                  >
-                    <CircleHelp className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() =>
-                      window.open(
-                        APP_CONFIG.contact.statusPageUrl,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
-                    }
-                  >
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    {t.status}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`
-                    }}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    {t.feedback}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/privacy')}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    {t.privacy}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/terms')}>
-                    <ScrollText className="mr-2 h-4 w-4" />
-                    {t.tos}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <UserProfileButton
-                variant="outline"
-                className="rounded-full h-8 w-8"
-                onNavigateToSettings={handleUserProfileSectionNavigate}
-                onNavigateToView={setView}
-              />
-            </div>
           </header>
-          <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
-            {view === 'day' && (
+          <div
+            className={cn('flex-1 overflow-auto', !isMobile && 'pr-14')}
+            ref={calendarRef}
+          >
+            {effectiveView === 'day' && (
               <DayView
                 date={date}
                 events={filteredEvents}
@@ -988,7 +1095,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 }}
               />
             )}
-            {view === 'week' && (
+            {effectiveView === 'week' && (
               <WeekView
                 date={date}
                 events={filteredEvents}
@@ -1015,7 +1122,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 }}
               />
             )}
-            {view === 'four-day' && (
+            {effectiveView === 'four-day' && (
               <WeekView
                 date={date}
                 events={filteredEvents}
@@ -1044,7 +1151,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 fixedStartDate={date}
               />
             )}
-            {view === 'month' && (
+            {effectiveView === 'month' && (
               <MonthView
                 date={date}
                 events={filteredEvents}
@@ -1054,7 +1161,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 timezone={timezone}
               />
             )}
-            {view === 'year' && (
+            {effectiveView === 'year' && (
               <YearView
                 date={date}
                 events={filteredEvents}
@@ -1065,7 +1172,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 isSidebarExpanding={isSidebarExpanding}
               />
             )}
-            {view === 'analytics' && (
+            {effectiveView === 'analytics' && (
               <AnalyticsView
                 events={events}
                 onCreateEvent={(startDate, endDate) => {
@@ -1075,7 +1182,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 }}
               />
             )}
-            {view === 'settings' && (
+            {effectiveView === 'settings' && (
               <Settings
                 language={language}
                 setLanguage={setLanguage}

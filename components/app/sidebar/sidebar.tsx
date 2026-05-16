@@ -54,6 +54,7 @@ interface SidebarProps {
   selectedCategoryFilters?: string[]
   onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
   onCollapseTransitionEnd?: () => void
+  className?: string
 }
 
 export interface CalendarCategory {
@@ -88,6 +89,7 @@ export default function Sidebar({
   selectedCategoryFilters = [],
   onCategoryFilterChange,
   onCollapseTransitionEnd,
+  className,
 }: SidebarProps) {
   const {
     calendars,
@@ -235,6 +237,7 @@ export default function Sidebar({
       className={cn(
         'border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
+        className,
       )}
       onTransitionEnd={(event) => {
         if (
