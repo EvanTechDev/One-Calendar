@@ -17,8 +17,8 @@ export function MobileSidebar({
           <PanelLeft />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-[280px]">
-        <Sidebar {...props} className="!w-full" />
+      <SheetContent side="left" className="p-0 w-[247px]">
+        <Sidebar {...props} className="!w-full border-r-0" hideCreateButton />
       </SheetContent>
     </Sheet>
   )

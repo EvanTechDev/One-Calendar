@@ -55,6 +55,7 @@ interface SidebarProps {
   onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
   onCollapseTransitionEnd?: () => void
   className?: string
+  hideCreateButton?: boolean
 }
 
 export interface CalendarCategory {
@@ -90,6 +91,7 @@ export default function Sidebar({
   onCategoryFilterChange,
   onCollapseTransitionEnd,
   className,
+  hideCreateButton,
 }: SidebarProps) {
   const {
     calendars,
@@ -249,23 +251,25 @@ export default function Sidebar({
       }}
     >
       <div className="p-4">
-        <div className="mb-4 flex items-center">
-          <Image
-            src="/icon.svg"
-            alt="One Calendar"
-            width={24}
-            height={24}
-            className="mr-2 brightness-0 dark:invert"
-          />
-          <h1 className="text-lg font-semibold">One Calendar</h1>
-        </div>
 
-        <Button
-          className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
-          onClick={onCreateEvent}
-        >
-          {t.createEvent}
-        </Button>
+            <Image
+              src="/icon.svg"
+              alt="One Calendar"
+              width={24}
+              height={24}
+              className="mr-2 brightness-0 dark:invert"
+            />
+            <h1 className="text-lg font-semibold">One Calendar</h1>
+          </div>
+
+          {!hideCreateButton && (
+            <Button
+              className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+              onClick={onCreateEvent}
+            >
+              {t.createEvent}
+            </Button>
+          )}
 
         <div className="mt-4">
           <Calendar

@@ -32,6 +32,7 @@ import {
   FileText,
   ScrollText,
   X,
+  Plus,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import {
@@ -1067,12 +1068,22 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               )}
             </div>
           </header>
-          <div
-            className={cn('flex-1 overflow-auto', !isMobile && 'pr-14')}
-            ref={calendarRef}
-          >
+          <div className={cn('flex-1 overflow-auto', !isMobile && 'pr-14')} ref={calendarRef}>
+            {isMobile && (
+              <Button
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-[#0066FF] hover:bg-[#0052CC]"
+                onClick={() => {
+                  setSelectedEvent(null)
+                  setQuickCreateStartTime(new Date())
+                  setEventDialogOpen(true)
+                }}
+              >
+                <Plus className="h-8 w-8 text-white" />
+              </Button>
+            )}
             {effectiveView === 'day' && (
               <DayView
+
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
