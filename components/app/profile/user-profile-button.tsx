@@ -834,14 +834,14 @@ export default function UserProfileButton({
       {mode === 'dropdown' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {isSignedIn && user?.image ? (
+            {isSignedIn ? (
               <Button
                 variant="ghost"
                 size="icon"
                 className="rounded-full overflow-hidden h-8 w-8 p-0"
               >
                 <img
-                  src={user.image}
+                  src={user?.image || '/user.png'}
                   alt="avatar"
                   width={32}
                   height={32}
