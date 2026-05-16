@@ -1,5 +1,7 @@
 'use client'
 
+import { MobileSidebar } from '@/components/app/sidebar/mobile/mobile-sidebar'
+import { MobileRightSidebar } from '@/components/app/sidebar/mobile/mobile-right-sidebar'
 import {
   checkPendingNotifications,
   clearAllNotificationTimers,
@@ -706,36 +708,69 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     <div className={className}>
       <div className="relative flex h-dvh overflow-hidden bg-background">
         {}
-        <Sidebar
-          onCreateEvent={() => {
-            setSelectedEvent(null)
-            setQuickCreateStartTime(new Date())
-            setEventDialogOpen(true)
-          }}
-          onDateSelect={handleDateSelect}
-          onViewChange={handleViewChange}
-          language={language}
-          selectedDate={sidebarDate}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebar}
-          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
-          selectedCategoryFilters={selectedCategoryFilters}
-          onCategoryFilterChange={(categoryId, checked) => {
-            setSelectedCategoryFilters((prev) => {
-              if (checked) {
-                return prev.includes(categoryId) ? prev : [...prev, categoryId]
-              }
-              return prev.filter((id) => id !== categoryId)
-            })
-          }}
-        />
+        <div className="hidden md:flex">
+          <Sidebar
+            onCreateEvent={() => {
+              setSelectedEvent(null)
+              setQuickCreateStartTime(new Date())
+              setEventDialogOpen(true)
+            }}
+            onDateSelect={handleDateSelect}
+            onViewChange={handleViewChange}
+            language={language}
+            selectedDate={sidebarDate}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+            onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
+            selectedCategoryFilters={selectedCategoryFilters}
+            onCategoryFilterChange={(categoryId, checked) => {
+              setSelectedCategoryFilters((prev) => {
+                if (checked) {
+                  return prev.includes(categoryId)
+                    ? prev
+                    : [...prev, categoryId]
+                }
+                return prev.filter((id) => id !== categoryId)
+              })
+            }}
+          />
+        </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {' '}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
             <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
             <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={toggleSidebar} size="sm">
+              <div className="md:hidden">
+                <MobileSidebar
+                  onCreateEvent={() => {
+                    setSelectedEvent(null)
+                    setQuickCreateStartTime(new Date())
+                    setEventDialogOpen(true)
+                  }}
+                  onDateSelect={handleDateSelect}
+                  onViewChange={handleViewChange}
+                  language={language}
+                  selectedDate={sidebarDate}
+                  selectedCategoryFilters={selectedCategoryFilters}
+                  onCategoryFilterChange={(categoryId, checked) => {
+                    setSelectedCategoryFilters((prev) => {
+                      if (checked) {
+                        return prev.includes(categoryId)
+                          ? prev
+                          : [...prev, categoryId]
+                      }
+                      return prev.filter((id) => id !== categoryId)
+                    })
+                  }}
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={toggleSidebar}
+                size="sm"
+                className="hidden md:flex"
+              >
                 <PanelLeft />
               </Button>
               <Button variant="outline" size="sm" onClick={handleTodayClick}>
@@ -870,6 +905,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
                 </div>
               ) : null}
+              <div className="md:hidden">
+                <MobileRightSidebar
+                  onViewChange={handleViewChange}
+                  onEventClick={handleEventClick}
+                />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1061,10 +1102,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         </div>
 
         {}
-        <RightSidebar
-          onViewChange={handleViewChange}
-          onEventClick={handleEventClick}
-        />
+        <div className="hidden md:block">
+          <RightSidebar
+            onViewChange={handleViewChange}
+            onEventClick={handleEventClick}
+          />
+        </div>
 
         {}
         <EventPreview

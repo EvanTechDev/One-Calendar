@@ -1,6 +1,7 @@
 packages:
   - "."
 allowBuilds:
+  '@schpet/linear-cli': false
   esbuild: false
   msw: false
   sharp: false
