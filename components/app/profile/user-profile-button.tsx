@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  User,
   LogOut,
   CircleUser,
   CloudUpload,
@@ -835,7 +834,7 @@ export default function UserProfileButton({
       {mode === 'dropdown' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {(isSignedIn && user?.image) || false ? (
+            {isSignedIn && user?.image ? (
               <Button
                 variant="ghost"
                 size="icon"
@@ -853,11 +852,15 @@ export default function UserProfileButton({
               </Button>
             ) : (
               <Button
-                variant={variant}
+                variant="ghost"
                 size="icon"
-                className={`rounded-full h-10 w-10 ${className}`}
+                className="rounded-full h-8 w-8 p-0 flex items-center justify-center bg-muted"
               >
-                <User className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  {user?.name?.charAt(0).toUpperCase() ||
+                    user?.email?.charAt(0).toUpperCase() ||
+                    'U'}
+                </span>
               </Button>
             )}
           </DropdownMenuTrigger>
