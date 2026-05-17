@@ -56,7 +56,7 @@ interface SidebarProps {
   onCollapseTransitionEnd?: () => void
   className?: string
   hideCreateButton?: boolean
-}
+  }
 
 export interface CalendarCategory {
   id: string
@@ -252,38 +252,44 @@ export default function Sidebar({
     >
       <div className="p-4">
 
-            <Image
-              src="/icon.svg"
-              alt="One Calendar"
-              width={24}
-              height={24}
-              className="mr-2 brightness-0 dark:invert"
-            />
-            <h1 className="text-lg font-semibold">One Calendar</h1>
+              <div className="mb-4 flex items-center">
+                <Image
+                  src="/icon.svg"
+                  alt="One Calendar"
+                  width={24}
+                  height={24}
+                  className="mr-2 brightness-0 dark:invert"
+                />
+                <h1 className="text-lg font-semibold">One Calendar</h1>
+              </div>
+
+              {!hideCreateButton && (
+                <Button
+                  className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+                  onClick={onCreateEvent}
+                >
+                  {t.createEvent}
+                </Button>
+              )}
+            </div>
+
           </div>
+        )
+      )}
 
-          {!hideCreateButton && (
-            <Button
-              className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
-              onClick={onCreateEvent}
-            >
-              {t.createEvent}
-            </Button>
-          )}
-
-        <div className="mt-4">
-          <Calendar
-            mode="single"
-            selected={localSelectedDate}
-            formatters={{
-              formatCaption: (date) => formatCalendarCaption(date),
-              formatWeekdayName: (date) => weekdayNames[date.getDay()],
-            }}
-            onSelect={(date) => {
-              setLocalSelectedDate(date)
-              if (date) onDateSelect(date)
-            }}
-            className="rounded-lg border"
+      <div className="mt-4">
+        <Calendar
+          mode="single"
+          selected={localSelectedDate}
+          formatters={{
+            formatCaption: (date) => formatCalendarCaption(date),
+            formatWeekdayName: (date) => weekdayNames[date.getDay()],
+          }}
+          onSelect={(date) => {
+            setLocalSelectedDate(date)
+            if (date) onDateSelect(date)
+          }}
+          className="rounded-lg border"
           />
         </div>
 
