@@ -56,7 +56,7 @@ interface SidebarProps {
   onCollapseTransitionEnd?: () => void
   className?: string
   hideCreateButton?: boolean
-  }
+}
 
 export interface CalendarCategory {
   id: string
@@ -213,14 +213,14 @@ export default function Sidebar({
           : t['categoryMovedDown'] || 'Category moved down',
     })
   }
-const confirmDelete = () => {
-  if (categoryToDelete) {
-    if (deleteCategoryEvents) {
-      setEvents(
-        events.filter((event) => event.calendarId !== categoryToDelete),
-      )
-    }
-    removeCategoryFromContext(categoryToDelete)
+  const confirmDelete = () => {
+    if (categoryToDelete) {
+      if (deleteCategoryEvents) {
+        setEvents(
+          events.filter((event) => event.calendarId !== categoryToDelete),
+        )
+      }
+      removeCategoryFromContext(categoryToDelete)
 
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
@@ -287,27 +287,15 @@ const confirmDelete = () => {
           className="rounded-lg border"
         />
       </div>
-    </div>
-  )
-}
 
-           <div key={calendar.id} className="flex items-center space-x-2">
-             <Checkbox
-               checked={selectedCategoryFilters.includes(calendar.id)}
-               onCheckedChange={(checked) =>
-                 onCategoryFilterChange?.(calendar.id, checked === true)
-               }
-               className="h-4 w-4 rounded-md border border-muted-foreground/60"
-             />
-             <span className="text-sm text-muted-foreground">
-               {calendar.name}
-             </span>
-           ))}
-           </div>
-           </div>
-           )
-           }
-
+      <div className="px-4 pb-4">
+        <div className="space-y-1">
+          {calendars.map((calendar) => (
+            <div
+              key={calendar.id}
+              className="flex items-center justify-between"
+            >
+              <div key={calendar.id} className="flex items-center space-x-2">
                 <Checkbox
                   checked={selectedCategoryFilters.includes(calendar.id)}
                   onCheckedChange={(checked) =>
