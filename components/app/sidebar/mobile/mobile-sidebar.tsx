@@ -6,10 +6,7 @@ import { PanelLeft } from 'lucide-react'
 import Sidebar from '../sidebar'
 import { type ComponentProps } from 'react'
 
-export function MobileSidebar({
-  children,
-  ...props
-}: { children: React.ReactNode } & ComponentProps<typeof Sidebar>) {
+export function MobileSidebar(props: ComponentProps<typeof Sidebar>) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -17,8 +14,15 @@ export function MobileSidebar({
           <PanelLeft />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-[247px]">
-        <Sidebar {...props} className="!w-full border-r-0" hideCreateButton />
+      <SheetContent
+        side="left"
+        className="w-[247px] max-w-[247px] p-0 sm:max-w-[247px]"
+      >
+        <Sidebar
+          {...props}
+          className="!w-[247px] max-w-[247px] border-r-0"
+          hideCreateButton
+        />
       </SheetContent>
     </Sheet>
   )

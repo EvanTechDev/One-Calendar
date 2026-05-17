@@ -173,7 +173,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const isMobile = useIsMobile()
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
-  const effectiveView = isMobile ? 'day' : view
+  const effectiveView = isMobile && isCalendarView(view) ? 'day' : view
 
   const updateEvent = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
@@ -770,7 +770,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   >
                     <X className="h-5 w-5" />
                   </Button>
-                  <div className="flex-1">
+                  <div className="relative flex-1">
                     <Input
                       autoFocus
                       placeholder={t.searchEvents}
@@ -790,35 +790,75 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                         }
                       }}
                     />
+                    {!!searchTerm && (
+                      <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[calc(100vw-72px)] rounded-md border bg-popover p-1 shadow-md">
+                        {searchResultEvents.length > 0 ? (
+                          <ScrollArea className="max-h-[320px]">
+                            <div className="space-y-1">
+                              {searchResultEvents.map((event) => (
+                                <button
+                                  key={event.id}
+                                  type="button"
+                                  className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault()
+                                    setPreviewEvent(event)
+                                    setPreviewAnchorRect(null)
+                                    setPreviewOpen(true)
+                                    setSearchTerm('')
+                                    setIsMobileSearchActive(false)
+                                  }}
+                                >
+                                  <div className="font-medium leading-none">
+                                    {event.title || t.unnamedEvent}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {formatDateDisplay(
+                                      new Date(event.startDate),
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            {t.noMatchingEvents}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="flex items-center space-x-2 md:space-x-4">
-                    <div className="md:hidden">
-                      <MobileSidebar
-                        onCreateEvent={() => {
-                          setSelectedEvent(null)
-                          setQuickCreateStartTime(new Date())
-                          setEventDialogOpen(true)
-                        }}
-                        onDateSelect={handleDateSelect}
-                        onViewChange={handleViewChange}
-                        language={language}
-                        selectedDate={sidebarDate}
-                        selectedCategoryFilters={selectedCategoryFilters}
-                        onCategoryFilterChange={(categoryId, checked) => {
-                          setSelectedCategoryFilters((prev) => {
-                            if (checked) {
-                              return prev.includes(categoryId)
-                                ? prev
-                                : [...prev, categoryId]
-                            }
-                            return prev.filter((id) => id !== categoryId)
-                          })
-                        }}
-                      />
-                    </div>
+                    {isMobile && (
+                      <div className="md:hidden">
+                        <MobileSidebar
+                          onCreateEvent={() => {
+                            setSelectedEvent(null)
+                            setQuickCreateStartTime(new Date())
+                            setEventDialogOpen(true)
+                          }}
+                          onDateSelect={handleDateSelect}
+                          onViewChange={handleViewChange}
+                          language={language}
+                          selectedDate={sidebarDate}
+                          selectedCategoryFilters={selectedCategoryFilters}
+                          onCategoryFilterChange={(categoryId, checked) => {
+                            setSelectedCategoryFilters((prev) => {
+                              if (checked) {
+                                return prev.includes(categoryId)
+                                  ? prev
+                                  : [...prev, categoryId]
+                              }
+                              return prev.filter((id) => id !== categoryId)
+                            })
+                          }}
+                        />
+                      </div>
+                    )}
                     <Button
                       variant="outline"
                       onClick={toggleSidebar}
@@ -992,6 +1032,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                           )}
                         </div>
                       )}
+                    {isMobile && (
+                      <div className="md:hidden">
+                        <MobileRightSidebar onEventClick={handleEventClick} />
+                      </div>
+                    )}
                     {backupEnabled ? (
                       <div
                         className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
@@ -1057,19 +1102,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                       onNavigateToSettings={handleUserProfileSectionNavigate}
                       onNavigateToView={setView}
                     />
-                    <div className="md:hidden">
-                      <MobileRightSidebar
-                        onViewChange={handleViewChange}
-                        onEventClick={handleEventClick}
-                      />
-                    </div>
                   </div>
                 </>
               )}
             </div>
           </header>
-          <div className={cn('flex-1 overflow-auto', !isMobile && 'pr-14')} ref={calendarRef}>
-            {isMobile && (
+          <div
+            className={cn('flex-1 overflow-auto', !isMobile && 'pr-14')}
+            ref={calendarRef}
+          >
+            {isMobile && effectiveView === 'day' && (
               <Button
                 className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-[#0066FF] hover:bg-[#0052CC]"
                 onClick={() => {
@@ -1083,7 +1125,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             )}
             {effectiveView === 'day' && (
               <DayView
-
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
