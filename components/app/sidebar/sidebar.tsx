@@ -219,8 +219,9 @@ export default function Sidebar({
       if (deleteCategoryEvents) {
         setEvents(
           events.filter((event) => event.calendarId !== categoryToDelete),
-        )
-      }
+      </div>
+  )
+}
       removeCategoryFromContext(categoryToDelete)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
@@ -251,31 +252,26 @@ export default function Sidebar({
       }}
     >
       <div className="p-4">
+        <div className="mb-4 flex items-center">
+          <Image
+            src="/icon.svg"
+            alt="One Calendar"
+            width={24}
+            height={24}
+            className="mr-2 brightness-0 dark:invert"
+          />
+          <h1 className="text-lg font-semibold">One Calendar</h1>
+        </div>
 
-              <div className="mb-4 flex items-center">
-                <Image
-                  src="/icon.svg"
-                  alt="One Calendar"
-                  width={24}
-                  height={24}
-                  className="mr-2 brightness-0 dark:invert"
-                />
-                <h1 className="text-lg font-semibold">One Calendar</h1>
-              </div>
-
-              {!hideCreateButton && (
-                <Button
-                  className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
-                  onClick={onCreateEvent}
-                >
-                  {t.createEvent}
-                </Button>
-              )}
-            </div>
-
-          </div>
-        )
-      )}
+        {!hideCreateButton && (
+          <Button
+            className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]"
+            onClick={onCreateEvent}
+          >
+            {t.createEvent}
+          </Button>
+        )}
+      </div>
 
       <div className="mt-4">
         <Calendar
@@ -290,15 +286,31 @@ export default function Sidebar({
             if (date) onDateSelect(date)
           }}
           className="rounded-lg border"
-          />
-        </div>
+        />
+      </div>
+    </div>
+  )
+}
 
-        <div className="mt-8 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{t.myCalendars}</span>
-          </div>
-          {calendars.map((calendar) => (
-            <div
+           <div key={calendar.id} className="flex items-center space-x-2">
+             <Checkbox
+               checked={selectedCategoryFilters.includes(calendar.id)}
+               onCheckedChange={(checked) =>
+                 onCategoryFilterChange?.(calendar.id, checked === true)
+               }
+               className="h-4 w-4 rounded-md border border-muted-foreground/60"
+             />
+             <span className="text-sm text-muted-foreground">
+               {calendar.name}
+             </span>
+           </div>
+        ))}
+      </div>
+      </div>
+    </div>
+  )
+}
+
               key={calendar.id}
               className="flex items-center justify-between"
             >
