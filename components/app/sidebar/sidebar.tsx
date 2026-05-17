@@ -213,16 +213,15 @@ export default function Sidebar({
           : t['categoryMovedDown'] || 'Category moved down',
     })
   }
+const confirmDelete = () => {
+  if (categoryToDelete) {
+    if (deleteCategoryEvents) {
+      setEvents(
+        events.filter((event) => event.calendarId !== categoryToDelete),
+      )
+    }
+    removeCategoryFromContext(categoryToDelete)
 
-  const confirmDelete = () => {
-    if (categoryToDelete) {
-      if (deleteCategoryEvents) {
-        setEvents(
-          events.filter((event) => event.calendarId !== categoryToDelete),
-      </div>
-  )
-}
-      removeCategoryFromContext(categoryToDelete)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
           ? t.categoryDeletedWithEvents
@@ -303,18 +302,12 @@ export default function Sidebar({
              <span className="text-sm text-muted-foreground">
                {calendar.name}
              </span>
+           ))}
            </div>
-        ))}
-      </div>
-      </div>
-    </div>
-  )
-}
+           </div>
+           )
+           }
 
-              key={calendar.id}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={selectedCategoryFilters.includes(calendar.id)}
                   onCheckedChange={(checked) =>
