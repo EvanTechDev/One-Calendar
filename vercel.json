@@ -1,4 +1,5 @@
 {
+  "bunVersion": "1.3.14",
   "crons": [
     {
       "path": "/api/blob/check",
