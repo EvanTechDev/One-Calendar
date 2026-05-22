@@ -3,6 +3,9 @@ export type EncryptedPayload = {
   iv: string
 }
 
+type KeyCacheMap = Map<string, Promise<CryptoKey>>
+const MAX_CACHE_ENTRIES = 128
+
 function b64(u: Uint8Array) {
   return btoa(String.fromCharCode(...u))
 }
@@ -15,11 +18,31 @@ function ub64(s: string) {
   )
 }
 
-const passwordBaseKeyCache = new Map<string, Promise<CryptoKey>>()
-const derivedKeyCache = new Map<string, Promise<CryptoKey>>()
+const passwordBaseKeyCache: KeyCacheMap = new Map()
+const derivedKeyCache: KeyCacheMap = new Map()
 
-async function getPasswordBaseKey(password: string) {
-  const cached = passwordBaseKeyCache.get(password)
+function setWithLimit(
+  cache: KeyCacheMap,
+  key: string,
+  value: Promise<CryptoKey>,
+) {
+  if (!cache.has(key) && cache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value
+    if (oldestKey) cache.delete(oldestKey)
+  }
+  cache.set(key, value)
+}
+
+export function clearCryptoKeyCaches() {
+  passwordBaseKeyCache.clear()
+  derivedKeyCache.clear()
+}
+
+async function getPasswordBaseKey(
+  password: string,
+  cache = passwordBaseKeyCache,
+) {
+  const cached = cache.get(password)
   if (cached) return cached
 
   const baseKey = crypto.subtle.importKey(
@@ -29,14 +52,18 @@ async function getPasswordBaseKey(password: string) {
     false,
     ['deriveKey'],
   )
-  passwordBaseKeyCache.set(password, baseKey)
+  setWithLimit(cache, password, baseKey)
   return baseKey
 }
 
-export async function deriveCryptoKey(password: string, salt: Uint8Array) {
+export async function deriveCryptoKey(
+  password: string,
+  salt: Uint8Array,
+  cache = derivedKeyCache,
+) {
   const saltArray = new Uint8Array(salt)
   const cacheKey = `${password}:${b64(saltArray)}`
-  const cached = derivedKeyCache.get(cacheKey)
+  const cached = cache.get(cacheKey)
   if (cached) return cached
 
   const baseKey = await getPasswordBaseKey(password)
@@ -53,8 +80,32 @@ export async function deriveCryptoKey(password: string, salt: Uint8Array) {
     ['encrypt', 'decrypt'],
   )
 
-  derivedKeyCache.set(cacheKey, derivedKey)
+  setWithLimit(cache, cacheKey, derivedKey)
   return derivedKey
+}
+
+function parseCiphertext(ciphertext: string): { salt: string; ct: string } {
+  const parsed = JSON.parse(ciphertext)
+  if (typeof parsed?.salt !== 'string' || typeof parsed?.ct !== 'string') {
+    throw new Error('Invalid encrypted payload format')
+  }
+  return parsed
+}
+
+export async function decryptWithDerivedKey(
+  password: string,
+  ciphertext: string,
+  iv: string,
+  cache?: KeyCacheMap,
+) {
+  const { salt, ct } = parseCiphertext(ciphertext)
+  const key = await deriveCryptoKey(password, ub64(salt), cache)
+  const pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: ub64(iv) },
+    key,
+    ub64(ct),
+  )
+  return new TextDecoder().decode(pt)
 }
 
 export async function encryptPayload(
@@ -84,14 +135,7 @@ export async function decryptPayload(
   ciphertext: string,
   iv: string,
 ) {
-  const d = JSON.parse(ciphertext)
-  const key = await deriveCryptoKey(password, ub64(d.salt))
-  const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: ub64(iv) },
-    key,
-    ub64(d.ct),
-  )
-  return new TextDecoder().decode(pt)
+  return decryptWithDerivedKey(password, ciphertext, iv)
 }
 
 export function isEncryptedPayload(value: unknown): value is EncryptedPayload {

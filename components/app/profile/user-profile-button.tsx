@@ -156,27 +156,12 @@ async function normalizeCloudStorageValue(
       return value
     }
 
-    const encrypted = JSON.parse(parsed.ciphertext)
-    const salt = encrypted?.salt
-    if (typeof salt !== 'string') return value
-
-    const cacheKey = `${password}:${salt}`
-    const derived =
-      keyCache?.get(cacheKey) ||
-      deriveCryptoKey(
-        password,
-        Uint8Array.from(atob(salt), (c) => c.charCodeAt(0)),
-      )
-    keyCache?.set(cacheKey, derived)
-    const decrypted = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: Uint8Array.from(atob(parsed.iv), (c) => c.charCodeAt(0)),
-      },
-      await derived,
-      Uint8Array.from(atob(encrypted.ct), (c) => c.charCodeAt(0)),
+    return decryptWithDerivedKey(
+      password,
+      parsed.ciphertext,
+      parsed.iv,
+      keyCache,
     )
-    return new TextDecoder().decode(decrypted)
   } catch {
     return value
   }
