@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { getServerSession } from '@/lib/auth-server'
+import { getServerSession } from '@/lib/auth/server'
 import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
 import { shares } from '@/lib/drizzle/schema'

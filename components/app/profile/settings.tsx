@@ -198,7 +198,10 @@ export default function Settings({
           <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
           <Select
             value={firstDayOfWeek.toString()}
-            onValueChange={(value) => setFirstDayOfWeek(value === '1' ? 1 : 0)}
+            onValueChange={(value) => {
+              const day = Number(value)
+              setFirstDayOfWeek(day === 0 || day === 1 || day === 6 ? day : 0)
+            }}
           >
             <SelectTrigger id="first-day">
               <SelectValue />
@@ -206,6 +209,7 @@ export default function Settings({
             <SelectContent>
               <SelectItem value="0">{t.sunday}</SelectItem>
               <SelectItem value="1">{t.monday}</SelectItem>
+              <SelectItem value="6">{t.saturday}</SelectItem>
             </SelectContent>
           </Select>
         </div>

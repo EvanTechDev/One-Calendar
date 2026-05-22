@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { getServerSession } from '@/lib/auth-server'
+import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarBackups } from '@/lib/drizzle/schema'
 import { eq, sql } from 'drizzle-orm'

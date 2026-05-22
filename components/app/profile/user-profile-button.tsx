@@ -45,7 +45,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import QRCodeStyling from 'qr-code-styling'
 import {
@@ -148,6 +148,7 @@ async function collectLocalStorage() {
 async function normalizeCloudStorageValue(
   value: string,
   password: string,
+  keyCache?: Map<string, Promise<CryptoKey>>,
 ): Promise<string> {
   try {
     const parsed = JSON.parse(value)
@@ -155,7 +156,12 @@ async function normalizeCloudStorageValue(
       return value
     }
 
-    return await decryptPayload(password, parsed.ciphertext, parsed.iv)
+    return decryptWithDerivedKey(
+      password,
+      parsed.ciphertext,
+      parsed.iv,
+      keyCache,
+    )
   } catch {
     return value
   }
@@ -553,6 +559,8 @@ export default function UserProfileButton({
       const cloud = await apiGet()
       if (!cloud) return
 
+      const keyCache = new Map<string, Promise<CryptoKey>>()
+
       let plain
       try {
         plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
@@ -568,7 +576,11 @@ export default function UserProfileButton({
             await Promise.all(
               Object.entries(data.storage).map(async ([key, value]) => [
                 key,
-                await normalizeCloudStorageValue(String(value), password),
+                await normalizeCloudStorageValue(
+                  String(value),
+                  password,
+                  keyCache,
+                ),
               ]),
             ),
           )
@@ -588,18 +600,15 @@ export default function UserProfileButton({
           await setEncryptionPassword(password)
         }
 
-        const restoredEvents = await readEncryptedLocalStorage(
-          'calendar-events',
-          [],
-        )
-        const restoredCalendars = await readEncryptedLocalStorage(
-          'calendar-categories',
-          [],
-        )
-        const restoredLanguage = await readEncryptedLocalStorage<string | null>(
-          'preferred-language',
-          null,
-        )
+        const [restoredEvents, restoredCalendars, restoredLanguage] =
+          await Promise.all([
+            readEncryptedLocalStorage('calendar-events', []),
+            readEncryptedLocalStorage('calendar-categories', []),
+            readEncryptedLocalStorage<string | null>(
+              'preferred-language',
+              null,
+            ),
+          ])
         setEvents(restoredEvents)
         setCalendars(restoredCalendars)
         if (restoredLanguage) {

@@ -135,7 +135,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     'first-day-of-week',
     0,
   )
-  const normalizedFirstDayOfWeek: FirstDayOfWeek = firstDayOfWeek === 1 ? 1 : 0
+  const normalizedFirstDayOfWeek: FirstDayOfWeek =
+    firstDayOfWeek === 1 || firstDayOfWeek === 6 ? firstDayOfWeek : 0
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
     setFirstDayOfWeek(day)
@@ -205,7 +206,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
         readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
       ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
-        setFirstDayOfWeek(restoredFirstDayOfWeek === 1 ? 1 : 0)
+        setFirstDayOfWeek(
+          restoredFirstDayOfWeek === 1 || restoredFirstDayOfWeek === 6
+            ? restoredFirstDayOfWeek
+            : 0,
+        )
         if (isCalendarView(restoredDefaultView)) {
           setDefaultView(restoredDefaultView)
           setView(restoredDefaultView)
