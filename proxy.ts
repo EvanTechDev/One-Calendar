@@ -3,15 +3,30 @@ import { getSessionCookie } from 'better-auth/cookies'
 
 export default function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request)
+
   const { pathname } = request.nextUrl
 
-  if (sessionCookie && ['/sign-in', '/sign-up'].includes(pathname)) {
+  const isLoggedIn = !!sessionCookie
+
+  if (isLoggedIn && pathname === '/') {
     return NextResponse.redirect(new URL('/app', request.url))
+  }
+
+  if (isLoggedIn && ['/sign-in', '/sign-up'].includes(pathname)) {
+    return NextResponse.redirect(new URL('/app', request.url))
+  }
+
+  if (!isLoggedIn && pathname === '/landing') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (!isLoggedIn && pathname.startsWith('/app')) {
+    return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/sign-in', '/sign-up'],
+  matcher: ['/', '/landing', '/app/:path*', '/sign-in', '/sign-up'],
 }
