@@ -4,32 +4,9 @@ import * as schema from '@/lib/drizzle/schema'
 import { betterAuth } from 'better-auth'
 import { emailOTP, twoFactor } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
-import { APP_CONFIG } from '@/lib/config'
-import { Resend } from 'resend'
 import bcrypt from 'bcryptjs'
-import { renderAuthEmailTemplate } from '@/lib/auth-email-template'
-
-const resendKey = process.env.RESEND_API_KEY
-const resend = resendKey ? new Resend(resendKey) : null
-
-async function sendAuthEmail(payload: {
-  to: string
-  subject: string
-  html: string
-}) {
-  if (!resend) {
-    throw new Error('RESEND_API_KEY is not configured')
-  }
-  const result = await resend.emails.send({
-    from: APP_CONFIG.auth.resend.sender,
-    to: [payload.to],
-    subject: payload.subject,
-    html: payload.html,
-  })
-  if (result.error) throw new Error(result.error.message)
-  if (!result.data?.id)
-    throw new Error('Email provider did not return a message id')
-}
+import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
+import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -83,6 +60,28 @@ export const auth = betterAuth({
           body: 'Confirm your email address to finish setting up your account.',
           actionLabel: 'Verify email',
           actionUrl: url,
+        }),
+      })
+    },
+    sendChangeEmailVerification: async ({
+      user,
+      newEmail,
+      url,
+    }: {
+      user: { email: string }
+      newEmail: string
+      url: string
+    }) => {
+      await sendAuthEmail({
+        to: newEmail,
+        subject: 'Confirm your new email',
+        html: await renderAuthEmailTemplate({
+          preview: 'Confirm your One Calendar email change',
+          title: 'Confirm your new email',
+          body: `A request was made to change your account email from ${user.email} to ${newEmail}.`,
+          actionLabel: 'Confirm email change',
+          actionUrl: url,
+          secondary: 'If this was not you, you can ignore this email.',
         }),
       })
     },

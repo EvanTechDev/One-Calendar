@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { InputOTP } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 
 export function LoginForm({

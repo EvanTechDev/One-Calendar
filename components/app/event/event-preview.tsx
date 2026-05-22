@@ -43,7 +43,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import QRCodeStyling from 'qr-code-styling'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/auth/client'
 
 interface EventPreviewProps {
   event: CalendarEvent | null

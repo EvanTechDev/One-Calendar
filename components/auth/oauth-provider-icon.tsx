@@ -1,6 +1,6 @@
 'use client'
 
-import type { OAuthProviderKey } from '@/lib/clerk-oauth'
+type OAuthProviderKey = 'microsoft' | 'google' | 'github'
 
 interface OAuthProviderIconProps {
   providerKey: OAuthProviderKey

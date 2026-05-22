@@ -2,7 +2,7 @@ export type CalendarViewType = 'day' | 'week' | 'four-day' | 'month' | 'year'
 
 export type ViewType = CalendarViewType | 'analytics' | 'settings'
 
-export type FirstDayOfWeek = 0 | 1
+export type FirstDayOfWeek = 0 | 1 | 6
 
 const calendarViews = ['day', 'week', 'four-day', 'month', 'year'] as const
 
