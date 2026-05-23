@@ -710,7 +710,7 @@ export default function DayView({
       </div>
 
       <div
-        className="flex-1 grid grid-cols-[100px_1fr] overflow-auto"
+        className="flex-1 grid grid-cols-[100px_1fr] overflow-auto select-none"
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground">
@@ -728,7 +728,10 @@ export default function DayView({
           ))}
         </div>
 
-        <div className="relative border-l" onMouseDown={handleGridMouseDown}>
+        <div
+          className="relative border-l select-none"
+          onMouseDown={handleGridMouseDown}
+        >
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] border-t" />
           ))}
@@ -872,13 +875,31 @@ export default function DayView({
 
           {createSelection && (
             <div
-              className="absolute left-0 right-0 bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none green:bg-[#24a854]/15 green:border-[#24a854]/40 orange:bg-[#e26912]/15 orange:border-[#e26912]/40 azalea:bg-[#CD2F7B]/15 azalea:border-[#CD2F7B]/40"
+              className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none green:bg-[#24a854]/15 green:border-[#24a854]/40 orange:bg-[#e26912]/15 orange:border-[#e26912]/40 azalea:bg-[#CD2F7B]/15 azalea:border-[#CD2F7B]/40"
               style={{
                 top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                 height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                 zIndex: 5,
               }}
-            />
+            >
+              <div className="px-2 pt-1 text-xs font-medium text-[#0066FF] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">
+                {(() => {
+                  const startMinute = Math.min(
+                    createSelection.startMinute,
+                    createSelection.endMinute,
+                  )
+                  const endMinute = Math.max(
+                    createSelection.startMinute,
+                    createSelection.endMinute,
+                  )
+                  const startHour = Math.floor(startMinute / 60)
+                  const startMin = startMinute % 60
+                  const endHour = Math.floor(endMinute / 60)
+                  const endMin = endMinute % 60
+                  return `${formatHourMinute(startHour, startMin)} - ${formatHourMinute(endHour, endMin)}`
+                })()}
+              </div>
+            </div>
           )}
 
           {}

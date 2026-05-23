@@ -5,13 +5,19 @@ import type { CalendarEvent } from '@/components/app/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface AnalyticsViewProps {
   events: CalendarEvent[]
   onCreateEvent: (startDate: Date, endDate: Date) => void
+  onBackToCalendar?: () => void
 }
 
-export default function AnalyticsView({ events }: AnalyticsViewProps) {
+export default function AnalyticsView({
+  events,
+  onBackToCalendar,
+}: AnalyticsViewProps) {
   const { calendars } = useCalendar()
   const [language] = useLanguage()
   const t = translations[language]
@@ -41,6 +47,14 @@ export default function AnalyticsView({ events }: AnalyticsViewProps) {
     <div className="space-y-8 p-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onBackToCalendar?.()}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {t.back || 'Back'}
+        </Button>
       </div>
       <TimeAnalyticsComponent
         events={events}

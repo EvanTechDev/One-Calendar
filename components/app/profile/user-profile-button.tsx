@@ -269,6 +269,7 @@ export default function UserProfileButton({
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [rotateStep, setRotateStep] = useState<'verify' | 'confirm'>('verify')
   const [oldPassword, setOldPassword] = useState('')
   const [error, setError] = useState('')
 
@@ -1035,9 +1036,11 @@ export default function UserProfileButton({
                     id="settings-account-key"
                     variant="outline"
                     onClick={() => {
-                      const generated = generateHighEntropyKey()
-                      setPassword(generated)
-                      setConfirm(generated)
+                      setRotateStep('verify')
+                      setOldPassword('')
+                      setPassword('')
+                      setConfirm('')
+                      setError('')
                       setRotateOpen(true)
                     }}
                   >
@@ -1544,20 +1547,51 @@ export default function UserProfileButton({
           <DialogHeader>
             <DialogTitle>{t.changeEncryptionKey}</DialogTitle>
           </DialogHeader>
-          <Label>{t.oldPassword}</Label>
-          <Input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-          />
-          <Label>{t.newPassword}</Label>
-          <Input type="text" value={password} readOnly />
-          <Label>{t.confirmNewPassword}</Label>
-          <Input type="text" value={confirm} readOnly />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <DialogFooter>
-            <Button onClick={rotate}>{t.confirmChange}</Button>
-          </DialogFooter>
+          {rotateStep === 'verify' ? (
+            <>
+              <Label>{t.oldPassword}</Label>
+              <Input
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+              />
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    if (!oldPassword) {
+                      setError(t.enterPasswordDescription)
+                      return
+                    }
+                    const generated = generateHighEntropyKey()
+                    setPassword(generated)
+                    setConfirm(generated)
+                    setError('')
+                    setRotateStep('confirm')
+                  }}
+                >
+                  {t.next || 'Next'}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <Label>{t.newPassword}</Label>
+              <Input type="text" value={password} readOnly />
+              <Label>{t.confirmNewPassword}</Label>
+              <Input type="text" value={confirm} readOnly />
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setRotateStep('verify')}
+                >
+                  {t.back || 'Back'}
+                </Button>
+                <Button onClick={rotate}>{t.confirmChange}</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>
