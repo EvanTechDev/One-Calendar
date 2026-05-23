@@ -860,6 +860,7 @@ export default function WeekView({
                             opacity: isDark ? 1 : 0.92,
                             backgroundColor: getEventBackgroundColor(
                               event.color,
+                              isDark,
                             ),
                             width,
                             left,
