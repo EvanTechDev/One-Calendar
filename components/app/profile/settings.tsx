@@ -37,6 +37,7 @@ import {
   Keyboard,
   Monitor,
   Palette,
+  ArrowLeft,
 } from 'lucide-react'
 
 interface SettingsProps {
