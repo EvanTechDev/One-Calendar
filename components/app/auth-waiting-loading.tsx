@@ -1,7 +1,6 @@
 'use client'
 
 import { translations, useLanguage } from '@/lib/i18n'
-import { GeistMono } from 'geist/font/mono'
 import { useEffect, useState } from 'react'
 
 export default function AuthWaitingLoading() {
@@ -25,8 +24,8 @@ export default function AuthWaitingLoading() {
         <svg
           version="1.0"
           xmlns="http://www.w3.org/2000/svg"
-          width="96"
-          height="96"
+          width="136"
+          height="136"
           viewBox="0 0 1000 1000"
           preserveAspectRatio="xMidYMid meet"
           aria-label="One Calendar"
@@ -49,7 +48,7 @@ export default function AuthWaitingLoading() {
           </g>
         </svg>
         <p
-          className={`${GeistMono.className} text-sm text-slate-700 dark:text-slate-300`}
+          className={`text-sm text-slate-700 dark:text-slate-300`}
         >
           {t.loadingCalendar}
           {'.'.repeat(dotCount)}
