@@ -277,6 +277,7 @@ export default function Sidebar({
               if (date) onDateSelect(date)
             }}
             className="rounded-lg border"
+            captionLayout="dropdown"
           />
         </div>
 
