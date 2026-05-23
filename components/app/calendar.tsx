@@ -588,9 +588,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       setQuickCreateStartTime(null)
       setEventDialogOpen(true)
       setPreviewOpen(false)
-      setPreviewAnchorRect(
-        searchInputRef.current?.getBoundingClientRect() ?? null,
-      )
+      setPreviewAnchorRect(null)
     }
   }
 
@@ -601,9 +599,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
     setPreviewOpen(false)
-    setPreviewAnchorRect(
-      searchInputRef.current?.getBoundingClientRect() ?? null,
-    )
+    setPreviewAnchorRect(null)
   }
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
@@ -644,9 +640,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const handleShare = (event: CalendarEvent, shareOnly = false) => {
     setShareOnlyMode(shareOnly)
     setPreviewEvent(event)
-    setPreviewAnchorRect(
-      searchInputRef.current?.getBoundingClientRect() ?? null,
-    )
+    setPreviewAnchorRect(null)
     setOpenShareImmediately(true)
     setPreviewOpen(true)
   }
@@ -1104,9 +1098,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             setPreviewOpen(open)
             if (!open) {
               setOpenShareImmediately(false)
-              setPreviewAnchorRect(
-                searchInputRef.current?.getBoundingClientRect() ?? null,
-              )
+              setPreviewAnchorRect(null)
             }
           }}
           onEdit={handleEventEdit}
@@ -1114,9 +1106,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             if (previewEvent) {
               handleEventDelete(previewEvent.id)
               setPreviewOpen(false)
-              setPreviewAnchorRect(
-                searchInputRef.current?.getBoundingClientRect() ?? null,
-              )
+              setPreviewAnchorRect(null)
             }
           }}
           onDuplicate={() => {

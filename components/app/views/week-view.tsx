@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
 import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import { formatSelectionRange } from '@/components/app/views/selection-range'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -1003,21 +1004,11 @@ export default function WeekView({
                   }}
                 >
                   <div className="px-2 pt-1 text-xs font-medium text-[#0066FF] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">
-                    {(() => {
-                      const startMinute = Math.min(
-                        createSelection.startMinute,
-                        createSelection.endMinute,
-                      )
-                      const endMinute = Math.max(
-                        createSelection.startMinute,
-                        createSelection.endMinute,
-                      )
-                      const startHour = Math.floor(startMinute / 60)
-                      const startMin = startMinute % 60
-                      const endHour = Math.floor(endMinute / 60)
-                      const endMin = endMinute % 60
-                      return `${formatHourMinute(startHour, startMin)} - ${formatHourMinute(endHour, endMin)}`
-                    })()}
+                    {formatSelectionRange(
+                      createSelection.startMinute,
+                      createSelection.endMinute,
+                      formatHourMinute,
+                    )}
                   </div>
                 </div>
               )}

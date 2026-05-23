@@ -272,6 +272,7 @@ export default function UserProfileButton({
   const [rotateStep, setRotateStep] = useState<'verify' | 'confirm'>('verify')
   const [oldPassword, setOldPassword] = useState('')
   const [error, setError] = useState('')
+  const [isVerifyingRotationKey, setIsVerifyingRotationKey] = useState(false)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -732,6 +733,29 @@ export default function UserProfileButton({
     setPassword('')
     setConfirm('')
     toast(t.encryptionKeyUpdated)
+  }
+
+  async function verifyOldPasswordForRotation() {
+    if (!oldPassword) {
+      setError(t.enterPasswordDescription)
+      return
+    }
+    const cloud = await apiGet()
+    if (!cloud) return
+    setIsVerifyingRotationKey(true)
+    try {
+      await decryptLargePayload(oldPassword, cloud.ciphertext, cloud.iv)
+      const generated = generateHighEntropyKey()
+      setPassword(generated)
+      setConfirm(generated)
+      setError('')
+      setRotateStep('confirm')
+    } catch {
+      setError(t.incorrectOldPassword)
+      toast(t.incorrectOldPassword)
+    } finally {
+      setIsVerifyingRotationKey(false)
+    }
   }
 
   function disableAutoBackup() {
@@ -1558,19 +1582,10 @@ export default function UserProfileButton({
               {error && <p className="text-sm text-red-500">{error}</p>}
               <DialogFooter>
                 <Button
-                  onClick={() => {
-                    if (!oldPassword) {
-                      setError(t.enterPasswordDescription)
-                      return
-                    }
-                    const generated = generateHighEntropyKey()
-                    setPassword(generated)
-                    setConfirm(generated)
-                    setError('')
-                    setRotateStep('confirm')
-                  }}
+                  onClick={verifyOldPasswordForRotation}
+                  disabled={isVerifyingRotationKey}
                 >
-                  {t.next || 'Next'}
+                  {isVerifyingRotationKey ? t.verifying : t.next || 'Next'}
                 </Button>
               </DialogFooter>
             </>
