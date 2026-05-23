@@ -142,3 +142,81 @@ export function isEncryptedPayload(value: unknown): value is EncryptedPayload {
   if (!value || typeof value !== 'object') return false
   return 'ciphertext' in value && 'iv' in value
 }
+
+const BACKUP_CHUNK_SIZE = 256 * 1024
+const textEncoder = new TextEncoder()
+
+type ChunkedEncryptedPayload = {
+  v: 2
+  chunkSize: number
+  chunks: EncryptedPayload[]
+}
+
+export async function encryptLargePayload(
+  password: string,
+  text: string,
+): Promise<EncryptedPayload> {
+  const allBytes = textEncoder.encode(text)
+  if (allBytes.byteLength <= BACKUP_CHUNK_SIZE) {
+    return encryptPayload(password, text)
+  }
+
+  const textChunks: string[] = []
+  let current = ''
+  let currentBytes = 0
+  for (const char of text) {
+    const charBytes = textEncoder.encode(char).byteLength
+    if (currentBytes > 0 && currentBytes + charBytes > BACKUP_CHUNK_SIZE) {
+      textChunks.push(current)
+      current = char
+      currentBytes = charBytes
+    } else {
+      current += char
+      currentBytes += charBytes
+    }
+  }
+  if (current) textChunks.push(current)
+
+  const chunks: EncryptedPayload[] = []
+  for (const chunk of textChunks) {
+    chunks.push(await encryptPayload(password, chunk))
+  }
+
+  const chunkedPayload: EncryptedPayload = {
+    ciphertext: JSON.stringify({
+      v: 2,
+      chunkSize: BACKUP_CHUNK_SIZE,
+      chunks,
+    } satisfies ChunkedEncryptedPayload),
+    iv: 'chunked-v2',
+  }
+
+  return chunkedPayload
+}
+
+export async function decryptLargePayload(
+  password: string,
+  ciphertext: string,
+  iv: string,
+): Promise<string> {
+  if (iv !== 'chunked-v2') {
+    return decryptPayload(password, ciphertext, iv)
+  }
+
+  const parsed = JSON.parse(ciphertext) as ChunkedEncryptedPayload
+  if (
+    !Array.isArray(parsed?.chunks) ||
+    typeof parsed?.chunkSize !== 'number' ||
+    !Number.isInteger(parsed.chunkSize) ||
+    parsed.chunkSize <= 0
+  ) {
+    throw new Error('Invalid chunked encrypted payload format')
+  }
+
+  const plainChunks = await Promise.all(
+    parsed.chunks.map((chunk) =>
+      decryptPayload(password, chunk.ciphertext, chunk.iv),
+    ),
+  )
+  return plainChunks.join('')
+}

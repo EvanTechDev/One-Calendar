@@ -49,8 +49,9 @@ import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import QRCodeStyling from 'qr-code-styling'
 import {
-  decryptPayload,
-  encryptPayload,
+  decryptLargePayload,
+  decryptWithDerivedKey,
+  encryptLargePayload,
   isEncryptedPayload,
 } from '@/lib/crypto'
 import {
@@ -67,7 +68,7 @@ import {
 
 const AUTO_KEY = 'auto-backup-enabled'
 const BACKUP_STATUS_KEY = 'auto-backup-sync-status'
-const BACKUP_VERSION = 1
+const BACKUP_VERSION = 2
 const BACKUP_KEYS = [
   'calendar-events',
   'calendar-categories',
@@ -84,6 +85,11 @@ const BACKUP_KEYS = [
   'today-toast',
   'toast-position',
 ]
+
+function generateHighEntropyKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
 
 const BACKUP_KEY_DEFAULTS: Record<string, unknown> = {
   'calendar-events': [],
@@ -358,7 +364,7 @@ export default function UserProfileButton({
           broadcastBackupStatus('done')
           return
         }
-        const payload = await encryptPayload(keyRef.current!, snapshot)
+        const payload = await encryptLargePayload(keyRef.current!, snapshot)
         await apiPost(payload)
         lastBackupSnapshotRef.current = snapshot
         broadcastBackupStatus('done')
@@ -458,16 +464,23 @@ export default function UserProfileButton({
   async function sendEmailChangeOtp() {
     if (!newEmail || !twoFactorPassword) return
     setTwoFactorPending(true)
-    const res = await authClient.emailOtp.sendVerificationOtp({
-      email: newEmail,
+    const nextEmail = newEmail.trim().toLowerCase()
+    const primary = await authClient.emailOtp.sendVerificationOtp({
+      email: nextEmail,
       type: 'email-verification',
     })
+    const res = primary.error
+      ? await authClient.emailOtp.sendVerificationOtp({
+          email: nextEmail,
+          type: 'sign-in',
+        })
+      : primary
     if (res.error) {
       toast(res.error.message || 'Failed to send verification code.')
       setTwoFactorPending(false)
       return
     }
-    setPendingEmail(newEmail)
+    setPendingEmail(nextEmail)
     setEmailStep(2)
     setTwoFactorPending(false)
     toast('Verification code sent to the new email.')
@@ -563,7 +576,7 @@ export default function UserProfileButton({
 
       let plain
       try {
-        plain = await decryptPayload(password, cloud.ciphertext, cloud.iv)
+        plain = await decryptLargePayload(password, cloud.ciphertext, cloud.iv)
       } catch {
         toast(t.incorrectPassword)
         return
@@ -637,12 +650,12 @@ export default function UserProfileButton({
   }
 
   async function enable() {
-    if (password !== confirm) {
-      setError(t.passwordsDoNotMatch)
+    if (!password) {
+      setError(t.setEncryptionPasswordDescription || 'Encryption key not ready')
       return
     }
     await setEncryptionPassword(password)
-    const payload = await encryptPayload(
+    const payload = await encryptLargePayload(
       password,
       JSON.stringify({
         v: BACKUP_VERSION,
@@ -666,21 +679,21 @@ export default function UserProfileButton({
   }
 
   async function rotate() {
-    if (password !== confirm) {
-      setError(t.passwordsDoNotMatch)
+    if (!password) {
+      setError(t.setEncryptionPasswordDescription || 'Encryption key not ready')
       return
     }
     const cloud = await apiGet()
     if (!cloud) return
 
     try {
-      await decryptPayload(oldPassword, cloud.ciphertext, cloud.iv)
+      await decryptLargePayload(oldPassword, cloud.ciphertext, cloud.iv)
     } catch {
       toast(t.incorrectOldPassword)
       return
     }
 
-    const next = await encryptPayload(
+    const next = await encryptLargePayload(
       password,
       JSON.stringify({
         v: BACKUP_VERSION,
@@ -1007,7 +1020,12 @@ export default function UserProfileButton({
                   <Button
                     id="settings-account-key"
                     variant="outline"
-                    onClick={() => setRotateOpen(true)}
+                    onClick={() => {
+                      const generated = generateHighEntropyKey()
+                      setPassword(generated)
+                      setConfirm(generated)
+                      setRotateOpen(true)
+                    }}
                   >
                     <KeyRound className="h-4 w-4 mr-2" />
                     {t.changeEncryptionKeyAction}
@@ -1441,6 +1459,9 @@ export default function UserProfileButton({
               <Button
                 onClick={() => {
                   setBackupOpen(false)
+                  const generated = generateHighEntropyKey()
+                  setPassword(generated)
+                  setConfirm(generated)
                   setSetPwdOpen(true)
                 }}
               >
@@ -1460,17 +1481,9 @@ export default function UserProfileButton({
             </DialogDescription>
           </DialogHeader>
           <Label>{t.password}</Label>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <Input type="text" value={password} readOnly />
           <Label>{t.confirmPassword}</Label>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
+          <Input type="text" value={confirm} readOnly />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
             <Button onClick={enable}>{t.confirm}</Button>
@@ -1524,17 +1537,9 @@ export default function UserProfileButton({
             onChange={(e) => setOldPassword(e.target.value)}
           />
           <Label>{t.newPassword}</Label>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <Input type="text" value={password} readOnly />
           <Label>{t.confirmNewPassword}</Label>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
+          <Input type="text" value={confirm} readOnly />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
             <Button onClick={rotate}>{t.confirmChange}</Button>
