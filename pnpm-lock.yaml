@@ -55,7 +55,7 @@ importers:
         version: 12.38.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       geist:
         specifier: latest
-        version: 1.7.0(next@16.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 1.7.1(next@16.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       lucide-react:
         specifier: 1.16.0
         version: 1.16.0(react@18.3.1)
@@ -3180,8 +3180,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  geist@1.7.0:
-    resolution: {integrity: sha512-ZaoiZwkSf0DwwB1ncdLKp+ggAldqxl5L1+SXaNIBGkPAqcu+xjVJLxlf3/S8vLt9UHx1xu5fz3lbzKCj5iOVdQ==}
+  geist@1.7.1:
+    resolution: {integrity: sha512-XF8DM30ODhDu0Ng5S2kOS8j4ZkG/6z2fKWAiFJA7wG0Hc92ZXgjYLrwbD9bVU4nGVzwboPtG+QtaPGsfgnXLaA==}
     peerDependencies:
       next: '>=13.2.0'
 
@@ -6781,7 +6781,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  geist@1.7.0(next@16.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
+  geist@1.7.1(next@16.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
     dependencies:
       next: 16.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
