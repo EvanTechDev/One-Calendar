@@ -27,6 +27,7 @@ import {
   MessageSquare,
   FileText,
   ScrollText,
+  House,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import {
@@ -78,6 +79,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 import { useRouter } from 'next/navigation'
+import { authClient } from '@/lib/auth/client'
 
 const loadDayView = () => import('@/components/app/views/day-view')
 const loadWeekView = () => import('@/components/app/views/week-view')
@@ -165,6 +167,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     'uploading' | 'failed' | 'done' | null
   >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
+  const { data: session } = authClient.useSession()
+  const isSignedIn = Boolean(session?.user)
 
   const updateEvent = (updatedEvent: CalendarEvent) => {
     setEvents((prevEvents) =>
@@ -887,6 +891,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {isSignedIn ? (
+                    <DropdownMenuItem onClick={() => router.push('/landing')}>
+                      <House className="mr-2 h-4 w-4" />
+                      {t.home || 'Home'}
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     onClick={() =>
                       window.open(
