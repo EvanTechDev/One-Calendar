@@ -19,6 +19,10 @@ import { translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
 import type { FirstDayOfWeek } from '@/components/app/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
+import {
+  getEventAccentColor,
+  getEventBackgroundColor,
+} from '@/components/app/views/event-colors'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -140,38 +144,6 @@ export default function WeekView({
     share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
-  }
-
-  function getDarkerColorClass(color: string) {
-    const colorMapping: Record<string, string> = {
-      'bg-[#E6F6FD]': '#3B82F6',
-      'bg-[#E7F8F2]': '#10B981',
-      'bg-[#FEF5E6]': '#F59E0B',
-      'bg-[#FFE4E6]': '#EF4444',
-      'bg-[#F3EEFE]': '#8B5CF6',
-      'bg-[#FCE7F3]': '#EC4899',
-      'bg-[#EEF2FF]': '#6366F1',
-      'bg-[#FFF0E5]': '#FB923C',
-      'bg-[#E6FAF7]': '#14B8A6',
-    }
-
-    return colorMapping[color] || '#3A3A3A'
-  }
-
-  function getEventBackgroundColor(color: string) {
-    if (!isDark) return undefined
-
-    const darkModeColorMapping: Record<string, string> = {
-      'bg-[#E6F6FD]': '#2F4655',
-      'bg-[#E7F8F2]': '#2D4935',
-      'bg-[#FEF5E6]': '#4F3F1B',
-      'bg-[#FFE4E6]': '#6C2920',
-      'bg-[#F3EEFE]': '#483A63',
-      'bg-[#FCE7F3]': '#5A334A',
-      'bg-[#E6FAF7]': '#1F4A47',
-    }
-
-    return darkModeColorMapping[color]
   }
 
   useEffect(() => {
@@ -631,7 +603,7 @@ export default function WeekView({
               left: '0',
               right: '0',
               opacity: isDark ? 1 : 0.9,
-              backgroundColor: getEventBackgroundColor(event.color),
+              backgroundColor: getEventBackgroundColor(event.color, isDark),
               zIndex: 10 + index,
             }}
             onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -652,11 +624,11 @@ export default function WeekView({
           >
             <div
               className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-              style={{ backgroundColor: getDarkerColorClass(event.color) }}
+              style={{ backgroundColor: getEventAccentColor(event.color) }}
             />
             <div
               className="pl-1.5 truncate"
-              style={{ color: getDarkerColorClass(event.color) }}
+              style={{ color: getEventAccentColor(event.color) }}
             >
               {event.title}
             </div>
@@ -739,17 +711,21 @@ export default function WeekView({
           left: '2px',
           zIndex: 100,
           border: '2px dashed white',
+          backgroundColor: getEventBackgroundColor(
+            draggingEvent?.color,
+            isDark,
+          ),
           pointerEvents: 'none',
         }}
       >
         <div
           className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-          style={{ backgroundColor: getDarkerColorClass(draggingEvent.color) }}
+          style={{ backgroundColor: getEventAccentColor(draggingEvent.color) }}
         />
         <div className="pl-1">
           <div
             className="font-medium truncate"
-            style={{ color: getDarkerColorClass(draggingEvent.color) }}
+            style={{ color: getEventAccentColor(draggingEvent.color) }}
           >
             {draggingEvent.title}
           </div>
@@ -907,14 +883,14 @@ export default function WeekView({
                               'absolute left-0 top-0 w-1 h-full rounded-l-md',
                             )}
                             style={{
-                              backgroundColor: getDarkerColorClass(event.color),
+                              backgroundColor: getEventAccentColor(event.color),
                             }}
                           />
                           <div className="pl-1">
                             <div
                               className="font-medium leading-tight break-words"
                               style={{
-                                color: getDarkerColorClass(event.color),
+                                color: getEventAccentColor(event.color),
                                 display: '-webkit-box',
                                 WebkitBoxOrient: 'vertical',
                                 WebkitLineClamp: Math.max(
@@ -931,7 +907,7 @@ export default function WeekView({
                               <div
                                 className="text-xs truncate"
                                 style={{
-                                  color: getDarkerColorClass(event.color),
+                                  color: getEventAccentColor(event.color),
                                 }}
                               >
                                 {formatDateWithTimezone(start)} -{' '}
