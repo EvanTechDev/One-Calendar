@@ -3,6 +3,9 @@ export type EncryptedPayload = {
   iv: string
 }
 
+const DEFAULT_PBKDF2_ITERATIONS = 150000
+const LEGACY_PBKDF2_ITERATIONS = 250000
+
 type KeyCacheMap = Map<string, Promise<CryptoKey>>
 const MAX_CACHE_ENTRIES = 128
 
@@ -60,9 +63,10 @@ export async function deriveCryptoKey(
   password: string,
   salt: Uint8Array,
   cache = derivedKeyCache,
+  iterations = DEFAULT_PBKDF2_ITERATIONS,
 ) {
   const saltArray = new Uint8Array(salt)
-  const cacheKey = `${password}:${b64(saltArray)}`
+  const cacheKey = `${password}:${b64(saltArray)}:${iterations}`
   const cached = cache.get(cacheKey)
   if (cached) return cached
 
@@ -71,7 +75,7 @@ export async function deriveCryptoKey(
     {
       name: 'PBKDF2',
       salt: saltArray,
-      iterations: 250000,
+      iterations,
       hash: 'SHA-256',
     },
     baseKey,
@@ -84,9 +88,16 @@ export async function deriveCryptoKey(
   return derivedKey
 }
 
-function parseCiphertext(ciphertext: string): { salt: string; ct: string } {
+function parseCiphertext(ciphertext: string): {
+  salt: string
+  ct: string
+  kdfIter?: number
+} {
   const parsed = JSON.parse(ciphertext)
   if (typeof parsed?.salt !== 'string' || typeof parsed?.ct !== 'string') {
+    throw new Error('Invalid encrypted payload format')
+  }
+  if (parsed?.kdfIter !== undefined && typeof parsed.kdfIter !== 'number') {
     throw new Error('Invalid encrypted payload format')
   }
   return parsed
@@ -98,8 +109,13 @@ export async function decryptWithDerivedKey(
   iv: string,
   cache?: KeyCacheMap,
 ) {
-  const { salt, ct } = parseCiphertext(ciphertext)
-  const key = await deriveCryptoKey(password, ub64(salt), cache)
+  const { salt, ct, kdfIter } = parseCiphertext(ciphertext)
+  const key = await deriveCryptoKey(
+    password,
+    ub64(salt),
+    cache,
+    kdfIter ?? LEGACY_PBKDF2_ITERATIONS,
+  )
   const pt = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: ub64(iv) },
     key,
@@ -125,6 +141,7 @@ export async function encryptPayload(
       v: 1,
       salt: b64(salt),
       ct: b64(new Uint8Array(ct)),
+      kdfIter: DEFAULT_PBKDF2_ITERATIONS,
     }),
     iv: b64(iv),
   }

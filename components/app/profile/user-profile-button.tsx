@@ -65,6 +65,7 @@ import {
   writeEncryptedLocalStorage,
   writeInMemoryStorage,
 } from '@/hooks/useLocalStorage'
+import { cn } from '@/lib/utils'
 
 const AUTO_KEY = 'auto-backup-enabled'
 const BACKUP_STATUS_KEY = 'auto-backup-sync-status'
@@ -171,6 +172,24 @@ async function normalizeCloudStorageValue(
   } catch {
     return value
   }
+}
+
+function parseCloudBackupPayload(plain: string): {
+  storage?: Record<string, unknown>
+  events?: unknown
+  calendars?: unknown
+} | null {
+  try {
+    return JSON.parse(plain)
+  } catch {
+    return null
+  }
+}
+
+function normalizeStorageRecord(storage: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(storage).map(([key, value]) => [key, String(value)]),
+  )
 }
 
 async function applyCloudStorageToMemory(storage: Record<string, string>) {
@@ -583,34 +602,34 @@ export default function UserProfileButton({
       }
 
       try {
-        const data = JSON.parse(plain)
-        if (data?.storage) {
+        const data = parseCloudBackupPayload(plain)
+        const storage = data?.storage
+        const fallbackEvents = data?.events
+        const fallbackCalendars = data?.calendars
+
+        await setEncryptionPassword(password)
+
+        if (storage && typeof storage === 'object') {
+          const normalizedStorageRecord = normalizeStorageRecord(storage)
           const normalizedStorage = Object.fromEntries(
             await Promise.all(
-              Object.entries(data.storage).map(async ([key, value]) => [
-                key,
-                await normalizeCloudStorageValue(
-                  String(value),
-                  password,
-                  keyCache,
-                ),
-              ]),
+              Object.entries(normalizedStorageRecord).map(
+                async ([key, value]) => [
+                  key,
+                  await normalizeCloudStorageValue(value, password, keyCache),
+                ],
+              ),
             ),
           )
-          await setEncryptionPassword(password)
           await applyCloudStorageToMemory(normalizedStorage)
-        } else if (data?.events || data?.calendars) {
+        } else if (fallbackEvents || fallbackCalendars) {
           const fallbackStorage: Record<string, string> = {}
-          if (data?.events)
-            fallbackStorage['calendar-events'] = JSON.stringify(data.events)
-          if (data?.calendars)
-            fallbackStorage['calendar-categories'] = JSON.stringify(
-              data.calendars,
-            )
-          await setEncryptionPassword(password)
+          if (fallbackEvents)
+            fallbackStorage['calendar-events'] = JSON.stringify(fallbackEvents)
+          if (fallbackCalendars)
+            fallbackStorage['calendar-categories'] =
+              JSON.stringify(fallbackCalendars)
           await applyCloudStorageToMemory(fallbackStorage)
-        } else {
-          await setEncryptionPassword(password)
         }
 
         const [restoredEvents, restoredCalendars, restoredLanguage] =
@@ -858,9 +877,12 @@ export default function UserProfileButton({
           <DropdownMenuTrigger asChild>
             {isSignedIn ? (
               <Button
-                variant="ghost"
+                variant={variant}
                 size="icon"
-                className="rounded-full overflow-hidden h-8 w-8 p-0"
+                className={cn(
+                  'rounded-full overflow-hidden h-8 w-8 p-0',
+                  className,
+                )}
               >
                 <img
                   src={user?.image || '/user.png'}
@@ -873,16 +895,8 @@ export default function UserProfileButton({
                 />
               </Button>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-8 w-8 p-0 flex items-center justify-center bg-muted"
-              >
-                <span className="text-sm font-medium">
-                  {user?.name?.charAt(0).toUpperCase() ||
-                    user?.email?.charAt(0).toUpperCase() ||
-                    'U'}
-                </span>
+              <Button variant={variant} size="icon" className={className}>
+                <CircleUser className="h-4 w-4" />
               </Button>
             )}
           </DropdownMenuTrigger>
