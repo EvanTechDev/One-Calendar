@@ -185,7 +185,7 @@ export default function Settings({
 
       <div className="rounded-lg border p-4 space-y-4">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Palette className="h-4 w-4" />
               {t.theme}
@@ -204,7 +204,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Globe2 className="h-4 w-4" />
               {t.language}
@@ -225,7 +225,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <CalendarDays className="h-4 w-4" />
               {t.firstDayOfWeek}
@@ -247,7 +247,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Monitor className="h-4 w-4" />
               {t.defaultView}
@@ -272,7 +272,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Globe2 className="h-4 w-4" />
               {t.timezone}
@@ -290,7 +290,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Bell className="h-4 w-4" />
               {t.timeFormat}
@@ -310,7 +310,7 @@ export default function Settings({
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-2xl border bg-card p-4 space-y-4">
+          <div className="rounded-lg border bg-card p-4 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Keyboard className="h-4 w-4" />
               {t.enableShortcuts}
