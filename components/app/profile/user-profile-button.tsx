@@ -65,6 +65,7 @@ import {
   writeEncryptedLocalStorage,
   writeInMemoryStorage,
 } from '@/hooks/useLocalStorage'
+import { cn } from '@/lib/utils'
 
 const AUTO_KEY = 'auto-backup-enabled'
 const BACKUP_STATUS_KEY = 'auto-backup-sync-status'
@@ -878,7 +879,10 @@ export default function UserProfileButton({
               <Button
                 variant={variant}
                 size="icon"
-                className={`rounded-full overflow-hidden h-8 w-8 p-0 ${className}`}
+                className={cn(
+                  'rounded-full overflow-hidden h-8 w-8 p-0',
+                  className,
+                )}
               >
                 <img
                   src={user?.image || '/user.png'}
