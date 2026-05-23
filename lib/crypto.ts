@@ -142,3 +142,54 @@ export function isEncryptedPayload(value: unknown): value is EncryptedPayload {
   if (!value || typeof value !== 'object') return false
   return 'ciphertext' in value && 'iv' in value
 }
+
+const BACKUP_CHUNK_SIZE = 256 * 1024
+
+type ChunkedEncryptedPayload = {
+  v: 2
+  chunkSize: number
+  chunks: EncryptedPayload[]
+}
+
+export async function encryptLargePayload(password: string, text: string) {
+  if (text.length <= BACKUP_CHUNK_SIZE) {
+    return encryptPayload(password, text)
+  }
+
+  const chunks: EncryptedPayload[] = []
+  for (let i = 0; i < text.length; i += BACKUP_CHUNK_SIZE) {
+    const chunk = text.slice(i, i + BACKUP_CHUNK_SIZE)
+    chunks.push(await encryptPayload(password, chunk))
+  }
+
+  return {
+    ciphertext: JSON.stringify({
+      v: 2,
+      chunkSize: BACKUP_CHUNK_SIZE,
+      chunks,
+    } satisfies ChunkedEncryptedPayload),
+    iv: 'chunked-v2',
+  }
+}
+
+export async function decryptLargePayload(
+  password: string,
+  ciphertext: string,
+  iv: string,
+) {
+  if (iv !== 'chunked-v2') {
+    return decryptPayload(password, ciphertext, iv)
+  }
+
+  const parsed = JSON.parse(ciphertext) as ChunkedEncryptedPayload
+  if (!Array.isArray(parsed?.chunks)) {
+    throw new Error('Invalid chunked encrypted payload format')
+  }
+
+  const plainChunks = await Promise.all(
+    parsed.chunks.map((chunk) =>
+      decryptPayload(password, chunk.ciphertext, chunk.iv),
+    ),
+  )
+  return plainChunks.join('')
+}
