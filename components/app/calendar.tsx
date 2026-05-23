@@ -126,6 +126,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
+  const searchInputRef = useRef<HTMLDivElement>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
     string[]
@@ -807,7 +808,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="relative z-50">
+              <div className="relative z-50" ref={searchInputRef}>
                 <InputGroup className="w-48">
                   <InputGroupAddon>
                     <Search className="h-5 w-5 text-gray-400" />
@@ -824,7 +825,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchResultEvents.length > 0) {
                         setPreviewEvent(searchResultEvents[0])
-                        setPreviewAnchorRect(null)
+                        setPreviewAnchorRect(
+                          searchInputRef.current?.getBoundingClientRect() ??
+                            null,
+                        )
                         setPreviewOpen(true)
                         setSearchTerm('')
                         setIsSearchFocused(false)
@@ -846,7 +850,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                               onMouseDown={(e) => {
                                 e.preventDefault()
                                 setPreviewEvent(event)
-                                setPreviewAnchorRect(null)
+                                setPreviewAnchorRect(
+                                  searchInputRef.current?.getBoundingClientRect() ??
+                                    null,
+                                )
                                 setPreviewOpen(true)
                                 setSearchTerm('')
                                 setIsSearchFocused(false)
@@ -960,6 +967,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent)
                 }}
+                onBackToCalendar={() => setView(defaultView)}
               />
             )}
             {view === 'week' && (
@@ -1070,6 +1078,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 focusUserProfileSection={focusUserProfileSection}
                 toastPosition={toastPosition}
                 setToastPosition={setToastPosition}
+                onBackToCalendar={() => setView(defaultView)}
               />
             )}
           </div>

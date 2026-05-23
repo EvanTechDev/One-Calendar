@@ -28,8 +28,15 @@ import {
 } from '@/components/app/calendar-types'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Kbd } from '@/components/ui/kbd'
 import { useTheme } from 'next-themes'
+import {
+  Bell,
+  CalendarDays,
+  Globe2,
+  Keyboard,
+  Monitor,
+  Palette,
+} from 'lucide-react'
 
 interface SettingsProps {
   language: Language
@@ -53,6 +60,7 @@ interface SettingsProps {
   setToastPosition: (
     position: 'bottom-left' | 'bottom-center' | 'bottom-right',
   ) => void
+  onBackToCalendar?: () => void
 }
 
 export default function Settings({
@@ -75,6 +83,7 @@ export default function Settings({
   focusUserProfileSection = null,
   toastPosition,
   setToastPosition,
+  onBackToCalendar,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
   const t = translations[language]
@@ -152,14 +161,30 @@ export default function Settings({
   }
 
   return (
-    <div className="space-y-8 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.settings}</h1>
+    <div className="space-y-8 p-4 md:p-6">
+      <div className="rounded-2xl border bg-card/60 p-6 backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">{t.settings}</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onBackToCalendar?.()}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t.back || 'Back'}
+          </Button>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t.calendarSettings || t.settings}
+        </p>
       </div>
 
-      <div className="rounded-lg border p-4 space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="theme">{t.theme}</Label>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Palette className="h-4 w-4" />
+            {t.theme}
+          </div>
           <Select value={theme || 'system'} onValueChange={handleThemeChange}>
             <SelectTrigger id="theme">
               <SelectValue />
@@ -174,9 +199,11 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="language">{t.language}</Label>
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Globe2 className="h-4 w-4" />
+            {t.language}
+          </div>
           <Select
             value={language}
             onValueChange={(value: Language) => handleLanguageChange(value)}
@@ -193,9 +220,11 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="first-day">{t.firstDayOfWeek}</Label>
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <CalendarDays className="h-4 w-4" />
+            {t.firstDayOfWeek}
+          </div>
           <Select
             value={firstDayOfWeek.toString()}
             onValueChange={(value) => {
@@ -213,9 +242,11 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="default-view">{t.defaultView}</Label>
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Monitor className="h-4 w-4" />
+            {t.defaultView}
+          </div>
           <Select
             value={defaultView}
             onValueChange={(value) => {
@@ -236,14 +267,16 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="timezone">{t.timezone}</Label>
+        <div className="rounded-2xl border bg-card p-4 space-y-3 md:col-span-2 xl:col-span-1">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Globe2 className="h-4 w-4" />
+            {t.timezone}
+          </div>
           <Select value={timezone} onValueChange={setTimezone}>
             <SelectTrigger id="timezone">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="max-h-[200px]">
+            <SelectContent className="max-h-[240px]">
               {gmtTimezones.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>
                   {tz.label}
@@ -252,9 +285,11 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="time-format">{t.timeFormat}</Label>
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Bell className="h-4 w-4" />
+            {t.timeFormat}
+          </div>
           <Select
             value={timeFormat}
             onValueChange={(value: '24h' | '12h') => setTimeFormat(value)}
@@ -268,33 +303,14 @@ export default function Settings({
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="toast-position">{t.toastPosition}</Label>
-          <Select
-            value={toastPosition}
-            onValueChange={(
-              value: 'bottom-left' | 'bottom-center' | 'bottom-right',
-            ) => setToastPosition(value)}
-          >
-            <SelectTrigger id="toast-position">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="bottom-left">
-                {t.toastPositionBottomLeft}
-              </SelectItem>
-              <SelectItem value="bottom-center">
-                {t.toastPositionBottomCenter}
-              </SelectItem>
-              <SelectItem value="bottom-right">
-                {t.toastPositionBottomRight}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="rounded-2xl border bg-card p-4 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Keyboard className="h-4 w-4" />
+          {t.enableShortcuts}
         </div>
-
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-3">
           <Switch
             id="enable-shortcuts"
             checked={enableShortcuts}
@@ -302,44 +318,6 @@ export default function Settings({
           />
           <Label htmlFor="enable-shortcuts">{t.enableShortcuts}</Label>
         </div>
-
-        {enableShortcuts && (
-          <div className="rounded-md border p-4">
-            <h3 className="mb-2 font-medium">{t.availableShortcuts}</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <Kbd>N</Kbd> - {t.newEvent}
-              </div>
-              <div>
-                <Kbd>/</Kbd> - {t.searchEvents}
-              </div>
-              <div>
-                <Kbd>T</Kbd> - {t.today}
-              </div>
-              <div>
-                <Kbd>1</Kbd> - {t.dayView}
-              </div>
-              <div>
-                <Kbd>2</Kbd> - {t.weekView}
-              </div>
-              <div>
-                <Kbd>3</Kbd> - {t.monthView}
-              </div>
-              <div>
-                <Kbd>4</Kbd> - {t.yearView}
-              </div>
-              <div>
-                <Kbd>5</Kbd> - {t.fourDayView}
-              </div>
-              <div>
-                <Kbd>→</Kbd> - {t.nextPeriod}
-              </div>
-              <div>
-                <Kbd>←</Kbd> - {t.previousPeriod}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="space-y-3">
@@ -349,7 +327,6 @@ export default function Settings({
           focusSection={focusUserProfileSection}
         />
       </div>
-
       <ShareManagement />
       <ImportExport events={events} onImportEvents={onImportEvents} />
       <BuildInfoCard language={language} />
