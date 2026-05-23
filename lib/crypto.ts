@@ -144,6 +144,7 @@ export function isEncryptedPayload(value: unknown): value is EncryptedPayload {
 }
 
 const BACKUP_CHUNK_SIZE = 256 * 1024
+const textEncoder = new TextEncoder()
 
 type ChunkedEncryptedPayload = {
   v: 2
@@ -151,18 +152,37 @@ type ChunkedEncryptedPayload = {
   chunks: EncryptedPayload[]
 }
 
-export async function encryptLargePayload(password: string, text: string) {
-  if (text.length <= BACKUP_CHUNK_SIZE) {
+export async function encryptLargePayload(
+  password: string,
+  text: string,
+): Promise<EncryptedPayload> {
+  const allBytes = textEncoder.encode(text)
+  if (allBytes.byteLength <= BACKUP_CHUNK_SIZE) {
     return encryptPayload(password, text)
   }
 
+  const textChunks: string[] = []
+  let current = ''
+  let currentBytes = 0
+  for (const char of text) {
+    const charBytes = textEncoder.encode(char).byteLength
+    if (currentBytes > 0 && currentBytes + charBytes > BACKUP_CHUNK_SIZE) {
+      textChunks.push(current)
+      current = char
+      currentBytes = charBytes
+    } else {
+      current += char
+      currentBytes += charBytes
+    }
+  }
+  if (current) textChunks.push(current)
+
   const chunks: EncryptedPayload[] = []
-  for (let i = 0; i < text.length; i += BACKUP_CHUNK_SIZE) {
-    const chunk = text.slice(i, i + BACKUP_CHUNK_SIZE)
+  for (const chunk of textChunks) {
     chunks.push(await encryptPayload(password, chunk))
   }
 
-  return {
+  const chunkedPayload: EncryptedPayload = {
     ciphertext: JSON.stringify({
       v: 2,
       chunkSize: BACKUP_CHUNK_SIZE,
@@ -170,19 +190,26 @@ export async function encryptLargePayload(password: string, text: string) {
     } satisfies ChunkedEncryptedPayload),
     iv: 'chunked-v2',
   }
+
+  return chunkedPayload
 }
 
 export async function decryptLargePayload(
   password: string,
   ciphertext: string,
   iv: string,
-) {
+): Promise<string> {
   if (iv !== 'chunked-v2') {
     return decryptPayload(password, ciphertext, iv)
   }
 
   const parsed = JSON.parse(ciphertext) as ChunkedEncryptedPayload
-  if (!Array.isArray(parsed?.chunks)) {
+  if (
+    !Array.isArray(parsed?.chunks) ||
+    typeof parsed?.chunkSize !== 'number' ||
+    !Number.isInteger(parsed.chunkSize) ||
+    parsed.chunkSize <= 0
+  ) {
     throw new Error('Invalid chunked encrypted payload format')
   }
 
