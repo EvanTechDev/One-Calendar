@@ -3,6 +3,7 @@
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
