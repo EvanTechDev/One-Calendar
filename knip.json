@@ -7,8 +7,6 @@
     "components/landing/pricing-section.tsx",
     "hooks/use-toast.ts",
     "hooks/useMobile.ts",
-    "lib/clerk-oauth.ts",
-    "lib/dpop.ts",
     "lib/time-analytics.ts",
     "public/sw.js"
   ],
