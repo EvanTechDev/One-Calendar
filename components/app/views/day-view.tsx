@@ -626,6 +626,7 @@ export default function DayView({
           left: '2px',
           zIndex: 100,
           border: '2px dashed white',
+          backgroundColor: getEventBackgroundColor(draggingEvent.color),
           pointerEvents: 'none',
         }}
       >
