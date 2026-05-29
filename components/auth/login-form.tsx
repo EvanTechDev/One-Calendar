@@ -5,12 +5,16 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-
-
-import { Input } from '@/components/ui/input'
 import {
-  InputOTP,
-} from '@/components/ui/input-otp'
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { InputOTP } from '@/components/ui/input-otp'
+import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 
