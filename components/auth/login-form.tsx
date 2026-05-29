@@ -1,20 +1,23 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
+import { GalleryVerticalEnd } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { InputOTP } from '@/components/ui/input-otp'
-import { Label } from '@/components/ui/label'
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 
@@ -87,84 +90,100 @@ export function LoginForm({
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>
-            {needsTwoFactor
-              ? 'Enter your authenticator app code'
-              : 'Login with your email and password'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <form onSubmit={handleEmailLogin}>
+        <FieldGroup>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <a href="/" className="flex flex-col items-center gap-2 font-medium">
+              <div className="flex size-8 items-center justify-center rounded-md">
+                <GalleryVerticalEnd className="size-6" />
+              </div>
+              <span className="sr-only">One Calendar</span>
+            </a>
+            <h1 className="text-xl font-bold">Welcome back</h1>
+            <FieldDescription>
+              {needsTwoFactor
+                ? 'Enter your authenticator app code'
+                : 'Login with your email and password'}
+            </FieldDescription>
+          </div>
+
           {needsTwoFactor ? (
             <div className="grid gap-6">
-              <div className="grid gap-2">
-                <Label>Two-factor code</Label>
+              <Field>
+                <FieldLabel>Two-factor code</FieldLabel>
                 <InputOTP
                   value={totp}
                   onChange={(value) =>
                     setTotp(value.replace(/\D/g, '').slice(0, 6))
                   }
                   maxLength={6}
-                />
-              </div>
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </Field>
               {error && <div className="text-sm text-red-500">{error}</div>}
-              <Button
-                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                onClick={handleVerifyTotp}
-                disabled={isVerifyingTotp || totp.length < 6}
-              >
-                {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
-              </Button>
+              <Field>
+                <Button
+                  className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
+                  onClick={handleVerifyTotp}
+                  disabled={isVerifyingTotp || totp.length < 6}
+                >
+                  {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
+                </Button>
+              </Field>
             </div>
           ) : (
-            <form onSubmit={handleEmailLogin}>
-              <div className="grid gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+            <>
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Field>
+              <Field>
+                <div className="flex items-center">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <a
+                    href="/reset-password"
+                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  >
+                    Forgot your password?
+                  </a>
                 </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="/reset-password"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    options={{ size: 'flexible' }}
-                    onSuccess={() => setIsCaptchaCompleted(true)}
-                    onExpire={() => setIsCaptchaCompleted(false)}
-                    onError={() => {
-                      setIsCaptchaCompleted(false)
-                      setError(
-                        'CAPTCHA initialization failed. Please try again.',
-                      )
-                    }}
-                  />
-                )}
-                {error && <div className="text-sm text-red-500">{error}</div>}
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  options={{ size: 'flexible' }}
+                  onSuccess={() => setIsCaptchaCompleted(true)}
+                  onExpire={() => setIsCaptchaCompleted(false)}
+                  onError={() => {
+                    setIsCaptchaCompleted(false)
+                    setError('CAPTCHA initialization failed. Please try again.')
+                  }}
+                />
+              )}
+              {error && <div className="text-sm text-red-500">{error}</div>}
+              <Field>
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
@@ -172,23 +191,24 @@ export function LoginForm({
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
-                <div className="text-center text-sm">
-                  Don't have an account?{' '}
-                  <a href="/sign-up" className="underline underline-offset-4">
-                    Sign up
-                  </a>
-                </div>
-              </div>
-            </form>
+              </Field>
+              <FieldDescription className="text-center text-sm">
+                Don't have an account?{' '}
+                <a href="/sign-up" className="underline underline-offset-4">
+                  Sign up
+                </a>
+              </FieldDescription>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </FieldGroup>
+      </form>
 
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+      <FieldDescription className="px-6 text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
         By clicking continue, you agree to our{' '}
         <a href="/terms">Terms of Service</a> and{' '}
         <a href="/privacy">Privacy Policy</a>.
-      </div>
+      </FieldDescription>
     </div>
   )
 }
+

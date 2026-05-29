@@ -44,7 +44,7 @@ export default function AnalyticsView({
   }, [])
 
   return (
-    <div className="space-y-8 p-4">
+    <div className="space-y-8 p-4 md:p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t.analytics}</h1>
         <Button
