@@ -3,14 +3,18 @@ import type { Metadata, Viewport } from 'next'
 import {
   Instrument_Sans,
   Instrument_Serif,
-  JetBrains_Mono,
-} from 'next/font/google'
+  JetBrains_Mono, Inter, Geist } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
 import { GeistSans } from 'geist/font/sans'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
+import { cn } from "@/lib/utils";
+
+const geistHeading = Geist({subsets:['latin'],variable:'--font-heading'});
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const instrumentSans = Instrument_Sans({
   subsets: ['latin'],
@@ -58,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable, geistHeading.variable)}>
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
