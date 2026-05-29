@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { GalleryVerticalEnd } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -20,6 +19,7 @@ import {
 } from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export function LoginForm({
   className,
@@ -95,15 +95,28 @@ export function LoginForm({
           <div className="flex flex-col items-center gap-2 text-center">
             <a href="/" className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
+                <Image
+                  src="/icon.svg"
+                  alt="One Calendar"
+                  width={16}
+                  height={16}
+                  className="size-6"
+                />
               </div>
               <span className="sr-only">One Calendar</span>
             </a>
             <h1 className="text-xl font-bold">Welcome back</h1>
             <FieldDescription>
-              {needsTwoFactor
-                ? 'Enter your authenticator app code'
-                : 'Login with your email and password'}
+              {needsTwoFactor ? (
+                'Enter your authenticator app code'
+              ) : (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <a href="/sign-up" className="underline underline-offset-4">
+                    Sign up
+                  </a>
+                </>
+              )}
             </FieldDescription>
           </div>
 
@@ -193,10 +206,7 @@ export function LoginForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center text-sm">
-                Don't have an account?{' '}
-                <a href="/sign-up" className="underline underline-offset-4">
-                  Sign up
-                </a>
+                Login with your email and password
               </FieldDescription>
             </>
           )}

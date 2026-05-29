@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { GalleryVerticalEnd } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type React from 'react'
@@ -16,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export function ResetPasswordForm({
   className,
@@ -107,7 +107,13 @@ export function ResetPasswordForm({
           <div className="flex flex-col items-center gap-2 text-center">
             <a href="/" className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
+                <Image
+                  src="/icon.svg"
+                  alt="One Calendar"
+                  width={16}
+                  height={16}
+                  className="size-6"
+                />
               </div>
               <span className="sr-only">One Calendar</span>
             </a>

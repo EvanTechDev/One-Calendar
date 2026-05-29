@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { GalleryVerticalEnd } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -20,6 +19,7 @@ import {
 } from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export function SignUpForm({
   className,
@@ -119,15 +119,28 @@ export function SignUpForm({
           <div className="flex flex-col items-center gap-2 text-center">
             <a href="/" className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
+                <Image
+                  src="/icon.svg"
+                  alt="One Calendar"
+                  width={16}
+                  height={16}
+                  className="size-6"
+                />
               </div>
               <span className="sr-only">One Calendar</span>
             </a>
             <h1 className="text-xl font-bold">Create your account</h1>
             <FieldDescription>
-              {sent
-                ? `Verification code sent to ${formData.email}`
-                : 'Sign up with your email and password'}
+              {sent ? (
+                `Verification code sent to ${formData.email}`
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <a href="/sign-in" className="underline underline-offset-4">
+                    Sign in
+                  </a>
+                </>
+              )}
             </FieldDescription>
           </div>
 
@@ -261,10 +274,7 @@ export function SignUpForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center text-sm">
-                Already have an account?{' '}
-                <a href="/sign-in" className="underline underline-offset-4">
-                  Sign in
-                </a>
+                Login with your email and password
               </FieldDescription>
             </>
           )}

@@ -1,5 +1,6 @@
 import { SignUpForm } from '@/components/auth/sign-up-form'
 import { AuthBrand } from '@/components/auth/auth-brand'
+import { AuthBackground } from '@/components/auth/auth-background'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
@@ -11,28 +12,9 @@ export default async function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center from-blue-500 via-indigo-500 to-purple-500 gap-6 p-6 md:p-10">
-      <div className="fixed -z-10 inset-0">
-        <div className="absolute inset-0 bg-white dark:bg-black">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.1) 1px, transparent 0)',
-              backgroundSize: '24px 24px',
-            }}
-          />
-          <div
-            className="absolute inset-0 hidden dark:block"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)',
-              backgroundSize: '24px 24px',
-            }}
-          />
-        </div>
-      </div>
-      <div className="flex w-full max-w-sm flex-col gap-6">
+    <div className="flex min-h-svh flex-col items-center justify-center relative overflow-hidden gap-6 p-6 md:p-10">
+      <AuthBackground />
+      <div className="flex w-full max-w-sm flex-col gap-6 relative z-10">
         <AuthBrand />
         <SignUpForm />
       </div>
