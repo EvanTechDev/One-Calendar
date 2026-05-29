@@ -5,21 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
+
+
 import { Input } from '@/components/ui/input'
 import {
   InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
 } from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
 
 export function LoginForm({
   className,
@@ -90,113 +83,84 @@ export function LoginForm({
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <form onSubmit={handleEmailLogin}>
-        <FieldGroup>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <a href="/" className="flex flex-col items-center gap-2 font-medium">
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <Image
-                  src="/icon.svg"
-                  alt="One Calendar"
-                  width={16}
-                  height={16}
-                  className="size-6"
-                />
-              </div>
-              <span className="sr-only">One Calendar</span>
-            </a>
-            <h1 className="text-xl font-bold">Welcome back</h1>
-            <FieldDescription>
-              {needsTwoFactor ? (
-                'Enter your authenticator app code'
-              ) : (
-                <>
-                  Don&apos;t have an account?{' '}
-                  <a href="/sign-up" className="underline underline-offset-4">
-                    Sign up
-                  </a>
-                </>
-              )}
-            </FieldDescription>
-          </div>
-
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardDescription>
+            {needsTwoFactor
+              ? 'Enter your authenticator app code'
+              : 'Login with your email and password'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           {needsTwoFactor ? (
             <div className="grid gap-6">
-              <Field>
-                <FieldLabel>Two-factor code</FieldLabel>
+              <div className="grid gap-2">
+                <Label>Two-factor code</Label>
                 <InputOTP
                   value={totp}
                   onChange={(value) =>
                     setTotp(value.replace(/\D/g, '').slice(0, 6))
                   }
                   maxLength={6}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </Field>
+                />
+              </div>
               {error && <div className="text-sm text-red-500">{error}</div>}
-              <Field>
-                <Button
-                  className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                  onClick={handleVerifyTotp}
-                  disabled={isVerifyingTotp || totp.length < 6}
-                >
-                  {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
-                </Button>
-              </Field>
+              <Button
+                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
+                onClick={handleVerifyTotp}
+                disabled={isVerifyingTotp || totp.length < 6}
+              >
+                {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
+              </Button>
             </div>
           ) : (
-            <>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </Field>
-              <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="/reset-password"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
+            <form onSubmit={handleEmailLogin}>
+              <div className="grid gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </Field>
-              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  options={{ size: 'flexible' }}
-                  onSuccess={() => setIsCaptchaCompleted(true)}
-                  onExpire={() => setIsCaptchaCompleted(false)}
-                  onError={() => {
-                    setIsCaptchaCompleted(false)
-                    setError('CAPTCHA initialization failed. Please try again.')
-                  }}
-                />
-              )}
-              {error && <div className="text-sm text-red-500">{error}</div>}
-              <Field>
+                <div className="grid gap-2">
+                  <div className="flex items-center">
+                    <Label htmlFor="password">Password</Label>
+                    <a
+                      href="/reset-password"
+                      className="ml-auto text-sm underline-offset-4 hover:underline"
+                    >
+                      Forgot your password?
+                    </a>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    options={{ size: 'flexible' }}
+                    onSuccess={() => setIsCaptchaCompleted(true)}
+                    onExpire={() => setIsCaptchaCompleted(false)}
+                    onError={() => {
+                      setIsCaptchaCompleted(false)
+                      setError(
+                        'CAPTCHA initialization failed. Please try again.',
+                      )
+                    }}
+                  />
+                )}
+                {error && <div className="text-sm text-red-500">{error}</div>}
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
@@ -204,21 +168,23 @@ export function LoginForm({
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
-              </Field>
-              <FieldDescription className="text-center text-sm">
-                Login with your email and password
-              </FieldDescription>
-            </>
+                <div className="text-center text-sm">
+                  Don't have an account?{' '}
+                  <a href="/sign-up" className="underline underline-offset-4">
+                    Sign up
+                  </a>
+                </div>
+              </div>
+            </form>
           )}
-        </FieldGroup>
-      </form>
+        </CardContent>
+      </Card>
 
-      <FieldDescription className="px-6 text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
         By clicking continue, you agree to our{' '}
         <a href="/terms">Terms of Service</a> and{' '}
         <a href="/privacy">Privacy Policy</a>.
-      </FieldDescription>
+      </div>
     </div>
   )
 }
-

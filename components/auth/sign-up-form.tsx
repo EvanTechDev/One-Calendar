@@ -5,21 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
+
+
 import { Input } from '@/components/ui/input'
 import {
   InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
 } from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
 
 export function SignUpForm({
   className,
@@ -114,36 +107,16 @@ export function SignUpForm({
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <form onSubmit={sent ? (e) => e.preventDefault() : handleSubmit}>
-        <FieldGroup>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <a href="/" className="flex flex-col items-center gap-2 font-medium">
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <Image
-                  src="/icon.svg"
-                  alt="One Calendar"
-                  width={16}
-                  height={16}
-                  className="size-6"
-                />
-              </div>
-              <span className="sr-only">One Calendar</span>
-            </a>
-            <h1 className="text-xl font-bold">Create your account</h1>
-            <FieldDescription>
-              {sent ? (
-                `Verification code sent to ${formData.email}`
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <a href="/sign-in" className="underline underline-offset-4">
-                    Sign in
-                  </a>
-                </>
-              )}
-            </FieldDescription>
-          </div>
-
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardDescription>
+            {sent
+              ? `Verification code sent to ${formData.email}`
+              : 'Sign up with your email and password'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           {sent ? (
             <div className="grid gap-6">
               <div className="rounded-lg border p-4">
@@ -156,115 +129,103 @@ export function SignUpForm({
                   . Enter the code below to activate your account.
                 </div>
               </div>
-              <Field>
-                <FieldLabel htmlFor="otp">Verification code</FieldLabel>
+              <div className="grid gap-2">
+                <Label htmlFor="otp">Verification code</Label>
                 <InputOTP
                   value={otp}
                   onChange={(value) =>
                     setOtp(value.replace(/\D/g, '').slice(0, 6))
                   }
                   maxLength={6}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </Field>
+                />
+              </div>
               {error && <div className="text-sm text-red-500">{error}</div>}
-              <Field>
-                <Button
-                  type="button"
-                  className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                  onClick={verifyOtp}
-                  disabled={isVerifying || isResending || otp.length < 6}
-                >
-                  {isVerifying ? 'Verifying...' : 'Verify code'}
-                </Button>
-              </Field>
-              <Field>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleResend}
-                  disabled={isResending || isVerifying}
-                >
-                  {isResending ? 'Resending...' : 'Resend code'}
-                </Button>
-              </Field>
+              <Button
+                type="button"
+                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
+                onClick={verifyOtp}
+                disabled={isVerifying || isResending || otp.length < 6}
+              >
+                {isVerifying ? 'Verifying...' : 'Verify code'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResend}
+                disabled={isResending || isVerifying}
+              >
+                {isResending ? 'Resending...' : 'Resend code'}
+              </Button>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel htmlFor="firstName">First name</FieldLabel>
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="firstName">First name</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="lastName">Last name</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="firstName"
-                    name="firstName"
+                    id="email"
+                    type="email"
                     required
-                    value={formData.firstName}
+                    value={formData.email}
                     onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
+                      setFormData({ ...formData, email: e.target.value })
                     }
                   />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="lastName">Last name</FieldLabel>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password</Label>
                   <Input
-                    id="lastName"
-                    name="lastName"
+                    id="password"
+                    type="password"
                     required
-                    value={formData.lastName}
+                    value={formData.password}
                     onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
+                      setFormData({ ...formData, password: e.target.value })
                     }
                   />
-                </Field>
-              </div>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </Field>
-              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  options={{ size: 'flexible' }}
-                  onSuccess={() => setIsCaptchaCompleted(true)}
-                  onExpire={() => setIsCaptchaCompleted(false)}
-                  onError={() => {
-                    setIsCaptchaCompleted(false)
-                    setError('CAPTCHA initialization failed. Please try again.')
-                  }}
-                />
-              )}
-              {error && <div className="text-sm text-red-500">{error}</div>}
-              <Field>
+                </div>
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    options={{ size: 'flexible' }}
+                    onSuccess={() => setIsCaptchaCompleted(true)}
+                    onExpire={() => setIsCaptchaCompleted(false)}
+                    onError={() => {
+                      setIsCaptchaCompleted(false)
+                      setError(
+                        'CAPTCHA initialization failed. Please try again.',
+                      )
+                    }}
+                  />
+                )}
+                {error && <div className="text-sm text-red-500">{error}</div>}
                 <Button
                   type="submit"
                   className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
@@ -272,21 +233,23 @@ export function SignUpForm({
                 >
                   {isLoading ? 'Creating account...' : 'Sign up'}
                 </Button>
-              </Field>
-              <FieldDescription className="text-center text-sm">
-                Login with your email and password
-              </FieldDescription>
-            </>
+                <div className="text-center text-sm">
+                  Already have an account?{' '}
+                  <a href="/sign-in" className="underline underline-offset-4">
+                    Sign in
+                  </a>
+                </div>
+              </div>
+            </form>
           )}
-        </FieldGroup>
-      </form>
+        </CardContent>
+      </Card>
 
-      <FieldDescription className="px-6 text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
         By clicking continue, you agree to our{' '}
         <a href="/terms">Terms of Service</a> and{' '}
         <a href="/privacy">Privacy Policy</a>.
-      </FieldDescription>
+      </div>
     </div>
   )
 }
-
