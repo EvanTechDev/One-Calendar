@@ -1,87 +1,82 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { OTPInput, OTPInputContext } from "input-otp"
+import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 
-import { cn } from "@/lib/utils"
-import { MinusIcon } from "lucide-react"
-
-function InputOTP({
-  className,
-  containerClassName,
-  ...props
-}: React.ComponentProps<typeof OTPInput> & {
-  containerClassName?: string
-}) {
-  return (
-    <OTPInput
-      data-slot="input-otp"
-      containerClassName={cn(
-        "cn-input-otp flex items-center has-disabled:opacity-50",
-        containerClassName
-      )}
-      spellCheck={false}
-      className={cn("disabled:cursor-not-allowed", className)}
-      {...props}
-    />
-  )
+interface InputOTPProps {
+  value: string
+  onChange: (value: string) => void
+  maxLength?: number
+  className?: string
 }
 
-function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="input-otp-group"
-      className={cn(
-        "flex items-center rounded-lg has-aria-invalid:border-destructive has-aria-invalid:ring-3 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-function InputOTPSlot({
-  index,
-  className,
-  ...props
-}: React.ComponentProps<"div"> & {
+interface InputOTPSlotProps {
   index: number
-}) {
-  const inputOTPContext = React.useContext(OTPInputContext)
-  const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {}
+  value: string
+  onSlotChange: (index: number, value: string) => void
+  onSlotBackspace: (index: number) => void
+  className?: string
+}
 
+export function InputOTPSlot({ index, value, onSlotChange, onSlotBackspace, className }: InputOTPSlotProps) {
   return (
-    <div
+    <Input
+      value={value}
+      inputMode="numeric"
+      autoComplete="one-time-code"
+      maxLength={1}
+      className={cn('h-12 w-11 text-center text-xl', className)}
       data-slot="input-otp-slot"
-      data-active={isActive}
-      className={cn(
-        "relative flex size-8 items-center justify-center border-y border-r border-input text-sm transition-all outline-none first:rounded-l-lg first:border-l last:rounded-r-lg aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-3 data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40",
-        className
-      )}
-      {...props}
-    >
-      {char}
-      {hasFakeCaret && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
-        </div>
-      )}
-    </div>
+      data-otp-index={index}
+      onChange={(e) => onSlotChange(index, e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Backspace' && !value) onSlotBackspace(index)
+      }}
+    />
   )
 }
 
-function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
+export function InputOTPGroup({ className, children }: React.PropsWithChildren<{ className?: string }>) {
+  return <div className={cn('flex items-center gap-2', className)}>{children}</div>
+}
+
+export function InputOTPSeparator({ className }: { className?: string }) {
+  return <span className={cn('mx-2 text-muted-foreground', className)}>-</span>
+}
+
+export function InputOTP({ value, onChange, maxLength = 6, className }: InputOTPProps) {
+  const chars = Array.from({ length: maxLength }, (_, i) => value[i] ?? '')
+
+  const onSlotChange = (index: number, nextRaw: string) => {
+    const nextChar = nextRaw.replace(/\D/g, '')
+    const next = chars.slice()
+    next[index] = nextChar
+    onChange(next.join('').slice(0, maxLength))
+    if (nextChar) {
+      const el = document.querySelector<HTMLInputElement>(`input[data-otp-index='${index + 1}']`)
+      el?.focus()
+    }
+  }
+
+  const onSlotBackspace = (index: number) => {
+    if (index <= 0) return
+    const el = document.querySelector<HTMLInputElement>(`input[data-otp-index='${index - 1}']`)
+    el?.focus()
+  }
+
   return (
-    <div
-      data-slot="input-otp-separator"
-      className="flex items-center [&_svg:not([class*='size-'])]:size-4"
-      role="separator"
-      {...props}
-    >
-      <MinusIcon
-      />
+    <div className={cn('flex w-full items-center justify-between', className)}>
+      <InputOTPGroup>
+        <InputOTPSlot index={0} value={chars[0]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+        <InputOTPSlot index={1} value={chars[1]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+        <InputOTPSlot index={2} value={chars[2]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+      </InputOTPGroup>
+      <InputOTPSeparator />
+      <InputOTPGroup>
+        <InputOTPSlot index={3} value={chars[3]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+        <InputOTPSlot index={4} value={chars[4]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+        <InputOTPSlot index={5} value={chars[5]} onSlotChange={onSlotChange} onSlotBackspace={onSlotBackspace} />
+      </InputOTPGroup>
     </div>
   )
 }
-
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }
