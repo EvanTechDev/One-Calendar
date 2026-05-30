@@ -16,12 +16,9 @@ export function AuthBackground() {
     return <div className="fixed inset-0 -z-10 bg-white dark:bg-black" />
   }
 
-  const isDark = resolvedTheme === 'dark'
-
   return (
     <div
-      className="fixed inset-0 -z-10 overflow-hidden"
-      style={{ filter: isDark ? 'none' : 'invert(1)' }}
+      style={{ width: '100%', height: '600px', position: 'relative' }}
     >
       <Dither
         waveColor={[0.5, 0.5, 0.5]}
