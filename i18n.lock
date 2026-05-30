@@ -157,6 +157,7 @@ checksums:
     welcomeToAnalytics: 5906623166b47b3c2145bd9c97fc318c
     analyticsDescription: 3e0188e438355bee283c4500d37e90bb
     unnamedEvent: a5933660b0b8f9c8a9370dfc24032d8b
+    shortCuts: ef00d7494b69def6841620bd6554d040
     enableShortcuts: 7b19d9c6cfbdcd1a22fb1e2fe2eb3948
     availableShortcuts: ae795dd609d7cdf0feade5c731c2bb81
     defaultView: b74a969aee782d8b89d09253a7ee66c6
