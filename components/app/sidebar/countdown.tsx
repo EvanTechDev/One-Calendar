@@ -349,7 +349,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           variant="outline"
           size="sm"
           onClick={startAddCountdown}
-          className="w-full mb-4 bg-[#0066ff] text-white hover:bg-[#0052CC] border-[#0066ff] green:bg-[#24a854] green:border-[#24a854] orange:bg-[#e26912] orange:border-[#e26912] azalea:bg-[#CD2F7B] azalea:border-[#CD2F7B]"
+          className="w-full mb-4 bg-[#0066ff] text-white hover:bg-[#0052CC] border-[#0066ff]"
         >
           <Plus className="mr-2 h-4 w-4" />
           {t.countdownAdd}
