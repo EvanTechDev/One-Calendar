@@ -1,39 +1,59 @@
 'use client'
 
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import {
+  AVAILABLE_THEMES,
+  normalizeTheme,
+  THEME_STORAGE_KEY,
+} from '@/lib/theme'
+import { ThemeProvider as NextThemesProvider, useTheme } from 'next-themes'
 import * as React from 'react'
 
-const AVAILABLE_THEMES = ['light', 'dark']
-const THEME_STORAGE_KEY = 'theme'
+function ThemeStorageNormalizer() {
+  const { theme, setTheme } = useTheme()
 
-const themeStorageGuard = `
-try {
-  var theme = localStorage.getItem('${THEME_STORAGE_KEY}');
-  if (theme && theme !== 'light' && theme !== 'dark' && theme !== 'system') {
-    localStorage.setItem('${THEME_STORAGE_KEY}', 'system');
-  }
-} catch (_) {}
-`
+  React.useEffect(() => {
+    const normalizedTheme = normalizeTheme(theme)
+
+    if (normalizedTheme && normalizedTheme !== theme) {
+      setTheme(normalizedTheme)
+      return
+    }
+
+    try {
+      const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+      const normalizedStoredTheme = normalizeTheme(storedTheme)
+
+      if (normalizedStoredTheme && normalizedStoredTheme !== storedTheme) {
+        setTheme(normalizedStoredTheme)
+      }
+    } catch {}
+  }, [theme, setTheme])
+
+  return null
+}
+
+type ThemeProviderProps = Omit<
+  React.ComponentProps<typeof NextThemesProvider>,
+  'themes'
+> & {
+  themes?: readonly string[]
+}
 
 export function ThemeProvider({
   children,
   themes = AVAILABLE_THEMES,
   ...props
-}: React.ComponentProps<typeof NextThemesProvider> & {
-  themes?: string[]
-}) {
+}: ThemeProviderProps) {
   return (
-    <>
-      <script dangerouslySetInnerHTML={{ __html: themeStorageGuard }} />
-      <NextThemesProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        themes={[...themes]}
-        {...props}
-      >
-        {children}
-      </NextThemesProvider>
-    </>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      themes={[...themes]}
+      {...props}
+    >
+      <ThemeStorageNormalizer />
+      {children}
+    </NextThemesProvider>
   )
 }

@@ -14,6 +14,7 @@ import { GeistSans } from 'geist/font/sans'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { cn } from '@/lib/utils'
+import { AVAILABLE_THEMES } from '@/lib/theme'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -74,7 +75,7 @@ export default function RootLayout({
         className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <ThemeProvider
-          themes={['light', 'dark']}
+          themes={[...AVAILABLE_THEMES]}
           attribute="class"
           defaultTheme="system"
           enableSystem

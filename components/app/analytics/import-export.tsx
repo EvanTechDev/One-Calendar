@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { translations, useLanguage } from '@/lib/i18n'
+import { normalizeTheme, type ThemeOption } from '@/lib/theme'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
@@ -56,7 +57,7 @@ interface AppSettingsSnapshot {
   enableShortcuts?: boolean
   timeFormat?: '24h' | '12h'
   toastPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right'
-  theme?: string
+  theme?: ThemeOption
 }
 
 interface JsonBackupPayloadV2 {
@@ -110,14 +111,6 @@ export default function ImportExport({
     toastPosition: 'toast-position',
     theme: 'theme',
   } as const
-
-  const getSupportedTheme = (theme: string | undefined) => {
-    if (theme === 'light' || theme === 'dark' || theme === 'system') {
-      return theme
-    }
-
-    return theme === undefined ? undefined : 'system'
-  }
 
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -206,7 +199,7 @@ export default function ImportExport({
           toastPosition: await readEncryptedLocalStorage<
             'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
           >(SETTINGS_KEYS.toastPosition, undefined),
-          theme: getSupportedTheme(
+          theme: normalizeTheme(
             await readEncryptedLocalStorage<string | undefined>(
               SETTINGS_KEYS.theme,
               undefined,
@@ -605,7 +598,7 @@ ${rawContent.substring(0, 500)}...`)
         settingWrites.push(
           writeEncryptedLocalStorage(
             SETTINGS_KEYS.theme,
-            getSupportedTheme(settings.theme),
+            normalizeTheme(settings.theme),
           ),
         )
       }
