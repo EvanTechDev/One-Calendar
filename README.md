@@ -3,10 +3,10 @@
 > A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c99309b1-2d7e-45c1-903b-b92505afa406"> 
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/04762323-8bd7-4ced-b68e-45d52102d1f8">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53"> 
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1">
 
-  <img src="https://github.com/user-attachments/assets/04762323-8bd7-4ced-b68e-45d52102d1f8" alt="Image">
+  <img src="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1" alt="Image">
 </picture>
 
 - [Live Product](https://calendar.xyehr.cn)
