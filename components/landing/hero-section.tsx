@@ -160,7 +160,7 @@ export function HeroSection() {
             <div key={i} className="flex gap-16">
               {[
                 { value: '35', label: 'locale packs', company: 'I18N' },
-                { value: '5', label: 'theme options', company: 'THEMES' },
+                { value: '3', label: 'display modes', company: 'THEME' },
                 { value: '3', label: 'import formats', company: 'PORTABLE' },
                 {
                   value: 'E2EE',

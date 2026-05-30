@@ -668,8 +668,7 @@ export default function DayView({
           <div
             className={cn(
               'text-3xl font-semibold text-foreground',
-              isSameDay(date, new Date()) &&
-                'text-[#0066ff] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]',
+              isSameDay(date, new Date()) && 'text-[#0066ff]',
             )}
           >
             {format(date, 'd')}
@@ -855,14 +854,14 @@ export default function DayView({
 
           {createSelection && (
             <div
-              className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none green:bg-[#24a854]/15 green:border-[#24a854]/40 orange:bg-[#e26912]/15 orange:border-[#e26912]/40 azalea:bg-[#CD2F7B]/15 azalea:border-[#CD2F7B]/40"
+              className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
               style={{
                 top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                 height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                 zIndex: 5,
               }}
             >
-              <div className="px-2 pt-1 text-xs font-medium text-[#0066FF] green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]">
+              <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
@@ -891,12 +890,12 @@ export default function DayView({
 
             return (
               <div
-                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-30 pointer-events-none green:border-[#24a854] orange:border-[#e26912] azalea:border-[#CD2F7B]"
+                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-30 pointer-events-none"
                 style={{
                   top: `${topPosition}px`,
                 }}
               >
-                <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF] green:bg-[#24a854] orange:bg-[#e26912] azalea:bg-[#CD2F7B]" />
+                <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
               </div>
             )
           })()}

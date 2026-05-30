@@ -111,6 +111,14 @@ export default function ImportExport({
     theme: 'theme',
   } as const
 
+  const getSupportedTheme = (theme: string | undefined) => {
+    if (theme === 'light' || theme === 'dark' || theme === 'system') {
+      return theme
+    }
+
+    return theme === undefined ? undefined : 'system'
+  }
+
   useEffect(() => {
     const handleLanguageChange = () => {
       setForceUpdate((prev) => prev + 1)
@@ -198,9 +206,11 @@ export default function ImportExport({
           toastPosition: await readEncryptedLocalStorage<
             'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
           >(SETTINGS_KEYS.toastPosition, undefined),
-          theme: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.theme,
-            undefined,
+          theme: getSupportedTheme(
+            await readEncryptedLocalStorage<string | undefined>(
+              SETTINGS_KEYS.theme,
+              undefined,
+            ),
           ),
         }
         const exportPayload: JsonBackupPayloadV2 = {
@@ -593,7 +603,10 @@ ${rawContent.substring(0, 500)}...`)
       }
       if (settings.theme !== undefined) {
         settingWrites.push(
-          writeEncryptedLocalStorage(SETTINGS_KEYS.theme, settings.theme),
+          writeEncryptedLocalStorage(
+            SETTINGS_KEYS.theme,
+            getSupportedTheme(settings.theme),
+          ),
         )
       }
       await Promise.all(settingWrites)

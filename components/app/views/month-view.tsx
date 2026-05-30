@@ -112,7 +112,7 @@ export default function MonthView({
                 'font-medium text-sm',
                 isSameMonth(day, date) ? '' : 'text-gray-400',
                 isSameMonth(day, date) && isSameDay(day, today)
-                  ? 'text-[#0066FF] font-bold green:text-[#24a854] orange:text-[#e26912] azalea:text-[#CD2F7B]'
+                  ? 'text-[#0066FF] font-bold'
                   : '',
               )}
             >
