@@ -264,7 +264,7 @@ export default function Sidebar({
           {t.createEvent}
         </Button>
 
-        <div className="mt-4">
+        <div className="mt-2">
           <Calendar
             mode="single"
             selected={localSelectedDate}

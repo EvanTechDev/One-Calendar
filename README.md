@@ -90,7 +90,6 @@ This project is built for individuals and small teams who value clarity over com
 | Self-hostable                            |      ✅      |       ❌        |       ❌       |        ❌        |       ❌        |
 | Data export                              |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
 | ICS import / export                      |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Custom themes                            |      ✅      |       ⚠️        |       ❌       |        ⚠️        |       ⚠️        |
 | Custom default view                      |      ✅      |       ⚠️        |       ❌       |        ⚠️        |       ⚠️        |
 
 ⚠️ = limited or partial support
@@ -102,7 +101,7 @@ This project is built for individuals and small teams who value clarity over com
 Required Versions:
 
 - [NodeJS](https://nodejs.org) (v20 or higher)
-- [pnpm](https://pnpm.io) (v10.33.3 or higher)
+- [pnpm](https://pnpm.io)
 
 ### Quick Start
 
