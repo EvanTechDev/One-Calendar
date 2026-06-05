@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   LogOut,
   CircleUser,
-  CloudUpload,
   Trash2,
   KeyRound,
   Mail,
@@ -13,7 +12,6 @@ import {
   Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CalendarEvent } from '@/components/app/calendar'
 import {
   Dialog,
   DialogContent,
@@ -42,179 +40,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import QRCodeStyling from 'qr-code-styling'
-import {
-  decryptLargePayload,
-  decryptWithDerivedKey,
-  encryptLargePayload,
-  isEncryptedPayload,
-} from '@/lib/crypto'
-import {
-  readInMemoryStorage,
-  clearEncryptionPassword,
-  isSensitiveStorageKey,
-  markEncryptedSnapshot,
-  removeInMemoryStorage,
-  readEncryptedLocalStorage,
-  setEncryptionPassword,
-  writeEncryptedLocalStorage,
-  writeInMemoryStorage,
-} from '@/hooks/useLocalStorage'
+
 import { cn } from '@/lib/utils'
-
-const AUTO_KEY = 'auto-backup-enabled'
-const BACKUP_STATUS_KEY = 'auto-backup-sync-status'
-const BACKUP_VERSION = 2
-const BACKUP_KEYS = [
-  'calendar-events',
-  'calendar-categories',
-  'bookmarked-events',
-  'shared-events',
-  'countdowns',
-  'timezone',
-  'notification-sound',
-  'enable-shortcuts',
-  'preferred-language',
-  'first-day-of-week',
-  'default-view',
-  'skip-landing',
-  'today-toast',
-  'toast-position',
-]
-
-function generateHighEntropyKey() {
-  const bytes = crypto.getRandomValues(new Uint8Array(32))
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-const BACKUP_KEY_DEFAULTS: Record<string, unknown> = {
-  'calendar-events': [],
-  'calendar-categories': [],
-  'bookmarked-events': [],
-  'shared-events': [],
-  countdowns: [],
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  'notification-sound': 'telegram',
-  'enable-shortcuts': true,
-  'preferred-language': null,
-  'first-day-of-week': 0,
-  'default-view': 'week',
-  'skip-landing': false,
-  'today-toast': null,
-  'toast-position': 'bottom-right',
-}
-
-async function apiGet() {
-  const r = await fetch('/api/blob', { cache: 'no-store' })
-  if (r.status === 404) return null
-  if (!r.ok) throw new Error()
-  return r.json()
-}
-
-async function apiPost(body: any) {
-  const r = await fetch('/api/blob', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  if (!r.ok) throw new Error()
-}
 
 async function apiDelete() {
   const r = await fetch('/api/blob', { method: 'DELETE' })
   if (!r.ok) throw new Error()
-}
-
-async function collectLocalStorage() {
-  const storage: Record<string, string> = {}
-
-  await Promise.all(
-    BACKUP_KEYS.map(async (key) => {
-      const fallback = BACKUP_KEY_DEFAULTS[key] ?? null
-      const inMemoryValue = readInMemoryStorage(key)
-      if (inMemoryValue !== null) {
-        storage[key] = inMemoryValue
-        return
-      }
-
-      const hasRawItem = localStorage.getItem(key) !== null
-      const value = await readEncryptedLocalStorage(key, fallback)
-      if (value === null && !hasRawItem) return
-      storage[key] = JSON.stringify(value)
-    }),
-  )
-
-  return storage
-}
-
-async function normalizeCloudStorageValue(
-  value: string,
-  password: string,
-  keyCache?: Map<string, Promise<CryptoKey>>,
-): Promise<string> {
-  try {
-    const parsed = JSON.parse(value)
-    if (!isEncryptedPayload(parsed)) {
-      return value
-    }
-
-    return decryptWithDerivedKey(
-      password,
-      parsed.ciphertext,
-      parsed.iv,
-      keyCache,
-    )
-  } catch {
-    return value
-  }
-}
-
-function parseCloudBackupPayload(plain: string): {
-  storage?: Record<string, unknown>
-  events?: unknown
-  calendars?: unknown
-} | null {
-  try {
-    return JSON.parse(plain)
-  } catch {
-    return null
-  }
-}
-
-function normalizeStorageRecord(storage: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(storage).map(([key, value]) => [key, String(value)]),
-  )
-}
-
-async function applyCloudStorageToMemory(storage: Record<string, string>) {
-  await Promise.all(
-    Object.entries(storage).map(async ([key, value]) => {
-      let parsedValue: unknown
-      try {
-        parsedValue = JSON.parse(value)
-      } catch {
-        parsedValue = value
-      }
-
-      await writeEncryptedLocalStorage(key, parsedValue)
-
-      if (isSensitiveStorageKey(key)) {
-        const normalized =
-          typeof parsedValue === 'string'
-            ? parsedValue
-            : JSON.stringify(parsedValue)
-        writeInMemoryStorage(key, normalized)
-        markEncryptedSnapshot(key, normalized)
-      } else {
-        removeInMemoryStorage(key)
-      }
-    }),
-  )
 }
 
 export type UserProfileSection =
@@ -243,35 +78,21 @@ export default function UserProfileButton({
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events, calendars, setEvents, setCalendars } = useCalendar()
   const { data: session } = authClient.useSession()
   const user: any = session?.user
   const isSignedIn = Boolean(session?.user)
   const router = useRouter()
   const isAnySignedIn = isSignedIn
 
-  const [enabled, setEnabled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [backupOpen, setBackupOpen] = useState(false)
-  const [setPwdOpen, setSetPwdOpen] = useState(false)
-  const [unlockOpen, setUnlockOpen] = useState(false)
-  const [rotateOpen, setRotateOpen] = useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [deleteCloudOpen, setDeleteCloudOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
-  const [isUnlocking, setIsUnlocking] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState('')
   const [deleteCloudConfirmText, setDeleteCloudConfirmText] = useState('')
   const [profileSection, setProfileSection] = useState<
     'basic' | 'emails' | 'twofa' | 'password'
   >('basic')
-
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [rotateStep, setRotateStep] = useState<'verify' | 'confirm'>('verify')
-  const [oldPassword, setOldPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isVerifyingRotationKey, setIsVerifyingRotationKey] = useState(false)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -291,20 +112,6 @@ export default function UserProfileButton({
   const [twoFactorQrCode, setTwoFactorQrCode] = useState('')
   const twoFactorQrCodeRef = useRef<string | null>(null)
 
-  const keyRef = useRef<string | null>(null)
-  const lastBackupSnapshotRef = useRef<string | null>(null)
-  const restoredRef = useRef(false)
-  const skipNextAutoBackupRef = useRef(false)
-  const timerRef = useRef<any>(null)
-  const [backupTick, setBackupTick] = useState(0)
-
-  const broadcastBackupStatus = (status: 'uploading' | 'failed' | 'done') => {
-    localStorage.setItem(BACKUP_STATUS_KEY, status)
-    window.dispatchEvent(
-      new CustomEvent('backup-status-change', { detail: { status } }),
-    )
-  }
-
   useEffect(() => {
     if (mode !== 'settings' || !focusSection) return
     const target = document.getElementById(`settings-account-${focusSection}`)
@@ -316,10 +123,6 @@ export default function UserProfileButton({
       setDeleteAccountConfirmText('')
     }
   }, [deleteAccountOpen])
-
-  useEffect(() => {
-    setEnabled(localStorage.getItem(AUTO_KEY) === 'true')
-  }, [])
 
   useEffect(() => {
     setTwoFactorEnabled(Boolean((session as any)?.user?.twoFactorEnabled))
@@ -341,60 +144,7 @@ export default function UserProfileButton({
     }
   }, [])
 
-  useEffect(() => {
-    if (mode === 'settings') return
-    if (!isAnySignedIn || keyRef.current || restoredRef.current) return
-    apiGet().then((cloud) => {
-      if (cloud) setUnlockOpen(true)
-    })
-  }, [isAnySignedIn, mode])
 
-  useEffect(() => {
-    const watchKeys = new Set(BACKUP_KEYS)
-    const handleLocalWrite = (event: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }>
-      if (!customEvent.detail?.key || watchKeys.has(customEvent.detail.key)) {
-        setBackupTick((prev) => prev + 1)
-      }
-    }
-
-    window.addEventListener('local-storage-written', handleLocalWrite)
-    const handleLanguageChange = () => setBackupTick((prev) => prev + 1)
-    window.addEventListener('languagechange', handleLanguageChange)
-    return () => {
-      window.removeEventListener('local-storage-written', handleLocalWrite)
-      window.removeEventListener('languagechange', handleLanguageChange)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!enabled || !keyRef.current || !restoredRef.current) return
-    if (skipNextAutoBackupRef.current) {
-      skipNextAutoBackupRef.current = false
-      return
-    }
-    if (timerRef.current) clearTimeout(timerRef.current)
-
-    timerRef.current = setTimeout(async () => {
-      try {
-        broadcastBackupStatus('uploading')
-        const storage = await collectLocalStorage()
-        const snapshot = JSON.stringify({ v: BACKUP_VERSION, storage })
-        if (lastBackupSnapshotRef.current === snapshot) {
-          broadcastBackupStatus('done')
-          return
-        }
-        const payload = await encryptLargePayload(keyRef.current!, snapshot)
-        await apiPost(payload)
-        lastBackupSnapshotRef.current = snapshot
-        broadcastBackupStatus('done')
-      } catch {
-        broadcastBackupStatus('failed')
-      } finally {
-        timerRef.current = null
-      }
-    }, 800)
-  }, [enabled, backupTick])
 
   async function saveProfile() {
     if (!user) return
@@ -554,281 +304,8 @@ export default function UserProfileButton({
     toast('Password updated successfully.')
   }
 
-  const hydrateEvent = (raw: any): CalendarEvent => {
-    const startDate = raw?.startDate ? new Date(raw.startDate) : new Date()
-    const endDate = raw?.endDate
-      ? new Date(raw.endDate)
-      : new Date(startDate.getTime() + 60 * 60 * 1000)
-
-    return {
-      id: raw?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: raw?.title || t.unnamedEvent,
-      startDate,
-      endDate:
-        endDate < startDate
-          ? new Date(startDate.getTime() + 60 * 60 * 1000)
-          : endDate,
-      isAllDay: Boolean(raw?.isAllDay),
-      recurrence: ['none', 'daily', 'weekly', 'monthly', 'yearly'].includes(
-        raw?.recurrence,
-      )
-        ? raw.recurrence
-        : 'none',
-      location: raw?.location,
-      participants: Array.isArray(raw?.participants) ? raw.participants : [],
-      notification:
-        typeof raw?.notification === 'number' ? raw.notification : 0,
-      description: raw?.description,
-      color: raw?.color || 'bg-blue-500',
-      calendarId: raw?.calendarId || '1',
-    }
-  }
-
-  async function unlock() {
-    if (!password) return
-
-    try {
-      setIsUnlocking(true)
-      const cloud = await apiGet()
-      if (!cloud) return
-
-      const keyCache = new Map<string, Promise<CryptoKey>>()
-
-      let plain
-      try {
-        plain = await decryptLargePayload(password, cloud.ciphertext, cloud.iv)
-      } catch {
-        toast(t.incorrectPassword)
-        return
-      }
-
-      try {
-        const data = parseCloudBackupPayload(plain)
-        const storage = data?.storage
-        const fallbackEvents = data?.events
-        const fallbackCalendars = data?.calendars
-
-        await setEncryptionPassword(password)
-
-        if (storage && typeof storage === 'object') {
-          const normalizedStorageRecord = normalizeStorageRecord(storage)
-          const normalizedStorage = Object.fromEntries(
-            await Promise.all(
-              Object.entries(normalizedStorageRecord).map(
-                async ([key, value]) => [
-                  key,
-                  await normalizeCloudStorageValue(value, password, keyCache),
-                ],
-              ),
-            ),
-          )
-          await applyCloudStorageToMemory(normalizedStorage)
-        } else if (fallbackEvents || fallbackCalendars) {
-          const fallbackStorage: Record<string, string> = {}
-          if (fallbackEvents)
-            fallbackStorage['calendar-events'] = JSON.stringify(fallbackEvents)
-          if (fallbackCalendars)
-            fallbackStorage['calendar-categories'] =
-              JSON.stringify(fallbackCalendars)
-          await applyCloudStorageToMemory(fallbackStorage)
-        }
-
-        const [restoredEvents, restoredCalendars, restoredLanguage] =
-          await Promise.all([
-            readEncryptedLocalStorage('calendar-events', []),
-            readEncryptedLocalStorage('calendar-categories', []),
-            readEncryptedLocalStorage<string | null>(
-              'preferred-language',
-              null,
-            ),
-          ])
-        setEvents(restoredEvents)
-        setCalendars(restoredCalendars)
-        if (restoredLanguage) {
-          window.dispatchEvent(
-            new CustomEvent('languagechange', {
-              detail: { language: restoredLanguage },
-            }),
-          )
-        }
-        window.dispatchEvent(new CustomEvent('backup-restored'))
-      } catch {}
-
-      keyRef.current = password
-      restoredRef.current = true
-      skipNextAutoBackupRef.current = true
-      localStorage.setItem(AUTO_KEY, 'true')
-      setEnabled(true)
-      broadcastBackupStatus('done')
-
-      setPassword('')
-      setUnlockOpen(false)
-      toast(t.dataRestoredAutoBackupEnabled)
-    } finally {
-      setIsUnlocking(false)
-    }
-  }
-
-  async function enableServerBackup() {
-    const [
-      events,
-      categories,
-      bookmarks,
-      countdowns,
-      firstDayOfWeek,
-      timezone,
-      notificationSound,
-      defaultView,
-      enableShortcuts,
-      timeFormat,
-      toastPosition,
-    ] = await Promise.all([
-      readEncryptedLocalStorage('calendar-events', []),
-      readEncryptedLocalStorage('calendar-categories', []),
-      readEncryptedLocalStorage('bookmarked-events', []),
-      readEncryptedLocalStorage('countdowns', []),
-      readEncryptedLocalStorage('first-day-of-week', 0),
-      readEncryptedLocalStorage(
-        'timezone',
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-      ),
-      readEncryptedLocalStorage('notification-sound', 'telegram'),
-      readEncryptedLocalStorage('default-view', 'week'),
-      readEncryptedLocalStorage('enable-shortcuts', true),
-      readEncryptedLocalStorage('time-format', '24h'),
-      readEncryptedLocalStorage('toast-position', 'bottom-right'),
-    ])
-    await apiPost({
-      events,
-      categories,
-      bookmarks,
-      countdowns,
-      settings: {
-        backupMode: 'server-managed',
-        'first-day-of-week': firstDayOfWeek,
-        timezone,
-        'notification-sound': notificationSound,
-        'default-view': defaultView,
-        'enable-shortcuts': enableShortcuts,
-        'time-format': timeFormat,
-        'toast-position': toastPosition,
-      },
-    })
-    localStorage.setItem(AUTO_KEY, 'true')
-    restoredRef.current = true
-    setEnabled(true)
-    setBackupOpen(false)
-    broadcastBackupStatus('done')
-    toast(t.autoBackupEnabled)
-  }
-
-  async function enable() {
-    if (!password) {
-      setError(t.setEncryptionPasswordDescription || 'Encryption key not ready')
-      return
-    }
-    await setEncryptionPassword(password)
-    const payload = await encryptLargePayload(
-      password,
-      JSON.stringify({
-        v: BACKUP_VERSION,
-        storage: await collectLocalStorage(),
-      }),
-    )
-    await apiPost(payload)
-    lastBackupSnapshotRef.current = JSON.stringify({
-      v: BACKUP_VERSION,
-      storage: await collectLocalStorage(),
-    })
-    localStorage.setItem(AUTO_KEY, 'true')
-    keyRef.current = password
-    restoredRef.current = true
-    setEnabled(true)
-    broadcastBackupStatus('done')
-    setPassword('')
-    setConfirm('')
-    setSetPwdOpen(false)
-    toast(t.autoBackupEnabled)
-  }
-
-  async function rotate() {
-    if (!password) {
-      setError(t.setEncryptionPasswordDescription || 'Encryption key not ready')
-      return
-    }
-    const cloud = await apiGet()
-    if (!cloud) return
-
-    try {
-      await decryptLargePayload(oldPassword, cloud.ciphertext, cloud.iv)
-    } catch {
-      toast(t.incorrectOldPassword)
-      return
-    }
-
-    const next = await encryptLargePayload(
-      password,
-      JSON.stringify({
-        v: BACKUP_VERSION,
-        storage: await collectLocalStorage(),
-      }),
-    )
-    await apiPost(next)
-    lastBackupSnapshotRef.current = JSON.stringify({
-      v: BACKUP_VERSION,
-      storage: await collectLocalStorage(),
-    })
-    await setEncryptionPassword(password)
-    keyRef.current = password
-    setRotateOpen(false)
-    setOldPassword('')
-    setPassword('')
-    setConfirm('')
-    toast(t.encryptionKeyUpdated)
-  }
-
-  async function verifyOldPasswordForRotation() {
-    if (!oldPassword) {
-      setError(t.enterPasswordDescription)
-      return
-    }
-    const cloud = await apiGet()
-    if (!cloud) return
-    setIsVerifyingRotationKey(true)
-    try {
-      await decryptLargePayload(oldPassword, cloud.ciphertext, cloud.iv)
-      const generated = generateHighEntropyKey()
-      setPassword(generated)
-      setConfirm(generated)
-      setError('')
-      setRotateStep('confirm')
-    } catch {
-      setError(t.incorrectOldPassword)
-      toast(t.incorrectOldPassword)
-    } finally {
-      setIsVerifyingRotationKey(false)
-    }
-  }
-
-  function disableAutoBackup() {
-    localStorage.removeItem(AUTO_KEY)
-    localStorage.removeItem(BACKUP_STATUS_KEY)
-    keyRef.current = null
-    lastBackupSnapshotRef.current = null
-    restoredRef.current = false
-    setEnabled(false)
-    clearEncryptionPassword()
-    toast(t.autoBackupDisabled)
-  }
-
   async function destroy() {
     await apiDelete()
-    localStorage.removeItem(AUTO_KEY)
-    localStorage.removeItem(BACKUP_STATUS_KEY)
-    keyRef.current = null
-    lastBackupSnapshotRef.current = null
-    restoredRef.current = false
-    setEnabled(false)
     toast(t.cloudDataDeleted)
   }
 
@@ -1087,21 +564,6 @@ export default function UserProfileButton({
                     </div>
                   </>
                 ) : null}
-
-                <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{t.autoBackup}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.autoBackupHelp}
-                  </p>
-                  <Button
-                    id="settings-account-backup"
-                    variant="outline"
-                    onClick={() => setBackupOpen(true)}
-                  >
-                    <CloudUpload className="h-4 w-4 mr-2" />
-                    {t.openBackupSettings}
-                  </Button>
-                </div>
 
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-sm font-semibold">{t.signOut}</p>
@@ -1513,27 +975,6 @@ export default function UserProfileButton({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={backupOpen} onOpenChange={setBackupOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.autoBackup}</DialogTitle>
-            <DialogDescription>
-              {enabled ? t.autoBackupStatusEnabled : t.autoBackupStatusDisabled}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            {enabled ? (
-              <Button variant="destructive" onClick={disableAutoBackup}>
-                {t.disable}
-              </Button>
-            ) : (
-              <Button onClick={() => void enableServerBackup()}>
-                {t.enable}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

@@ -2,12 +2,8 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { create } from 'zustand'
-import {
-  readEncryptedLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@/hooks/useLocalStorage'
 
 export interface CalendarCategory {
   id: string
@@ -84,7 +80,6 @@ function mergeEvents(current: CalendarEvent[], incoming: CalendarEvent[]) {
 }
 
 const MAX_LOADED_RANGE_KEYS = 48
-const AUXILIARY_BACKUP_DEBOUNCE_MS = 600
 
 function rangeKey(range: DateRange) {
   return `${range.start.toISOString()}..${range.end.toISOString()}`
@@ -99,25 +94,6 @@ function rememberLoadedRange(loadedRanges: Set<string>, key: string) {
     loadedRanges.delete(oldestKey)
   }
   return false
-}
-
-async function syncAuxiliaryBackupData(keys: Iterable<string>) {
-  if (typeof window === 'undefined') return
-  if (window.localStorage.getItem('auto-backup-enabled') !== 'true') return
-
-  const payload: Record<string, unknown[]> = {}
-  for (const key of keys) {
-    if (key !== 'bookmarked-events' && key !== 'countdowns') continue
-    const payloadKey = key === 'bookmarked-events' ? 'bookmarks' : 'countdowns'
-    payload[payloadKey] = await readEncryptedLocalStorage<unknown[]>(key, [])
-  }
-  if (Object.keys(payload).length === 0) return
-
-  await fetch('/api/blob', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch(() => undefined)
 }
 
 const useCalendarStore = create<CalendarState>()((set) => ({
@@ -148,12 +124,19 @@ const useCalendarStore = create<CalendarState>()((set) => ({
       ),
     }))
   },
-  updateCategory: (id: string, category: Partial<CalendarCategory>) =>
-    set((state: CalendarState) => ({
-      calendars: state.calendars.map((cal) =>
+  updateCategory: (id: string, category: Partial<CalendarCategory>) => {
+    set((state: CalendarState) => {
+      const next = state.calendars.map((cal) =>
         cal.id === id ? { ...cal, ...category } : cal,
-      ),
-    })),
+      )
+      void fetch('/api/blob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: next }),
+      }).catch(() => undefined)
+      return { calendars: next }
+    })
+  },
   moveCategory: (id: string, direction: 'up' | 'down') =>
     set((state: CalendarState) => {
       const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
@@ -166,6 +149,11 @@ const useCalendarStore = create<CalendarState>()((set) => ({
       const nextCalendars = [...state.calendars]
       const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
       nextCalendars.splice(targetIndex, 0, movedCalendar)
+      void fetch('/api/blob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: nextCalendars }),
+      }).catch(() => undefined)
       return { calendars: nextCalendars }
     }),
   addEvent: (newEvent: CalendarEvent) =>
@@ -175,16 +163,9 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 }))
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const calendars = useCalendarStore((state) => state.calendars)
-  const events = useCalendarStore((state) => state.events)
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const loadedRangesRef = useRef(new Set<string>())
-  const hydratedRef = useRef(false)
-  const pendingAuxiliaryBackupKeysRef = useRef(new Set<string>())
-  const auxiliaryBackupTimeoutRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null)
 
   const saveEvents = useCallback(async (nextEvents: CalendarEvent[]) => {
     await fetch('/api/blob', {
@@ -213,19 +194,6 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(payload.categories)) {
         setCalendars(payload.categories)
       }
-      if (Array.isArray(payload.bookmarks)) {
-        void writeEncryptedLocalStorage('bookmarked-events', payload.bookmarks)
-      }
-      if (Array.isArray(payload.countdowns)) {
-        void writeEncryptedLocalStorage('countdowns', payload.countdowns)
-      }
-      if (payload.settings && typeof payload.settings === 'object') {
-        await Promise.all(
-          Object.entries(payload.settings).map(([key, value]) =>
-            writeEncryptedLocalStorage(key, value),
-          ),
-        )
-      }
     },
     [setCalendars, setEvents],
   )
@@ -236,71 +204,6 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId }),
     }).catch(() => undefined)
-  }, [])
-
-  useEffect(() => {
-    const hydrate = async () => {
-      const storedCalendars = await readEncryptedLocalStorage<
-        CalendarCategory[]
-      >('calendar-categories', [])
-      const storedEvents = await readEncryptedLocalStorage<CalendarEvent[]>(
-        'calendar-events',
-        [],
-      )
-      setCalendars(storedCalendars)
-      setEvents(storedEvents.map(normalizeEvent))
-      hydratedRef.current = true
-    }
-    void hydrate()
-  }, [setCalendars, setEvents])
-
-  useEffect(() => {
-    if (!hydratedRef.current) return
-    void writeEncryptedLocalStorage('calendar-categories', calendars)
-    void fetch('/api/blob', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categories: calendars }),
-    }).catch(() => undefined)
-  }, [calendars])
-
-  useEffect(() => {
-    if (!hydratedRef.current) return
-    void writeEncryptedLocalStorage('calendar-events', events)
-  }, [events])
-
-  useEffect(() => {
-    const flushAuxiliaryBackup = () => {
-      auxiliaryBackupTimeoutRef.current = null
-      const keys = Array.from(pendingAuxiliaryBackupKeysRef.current)
-      pendingAuxiliaryBackupKeysRef.current.clear()
-      void syncAuxiliaryBackupData(keys)
-    }
-    const handleLocalStorageWrite = (event: CustomEvent<{ key: string }>) => {
-      const key = event.detail?.key
-      if (key !== 'bookmarked-events' && key !== 'countdowns') return
-      pendingAuxiliaryBackupKeysRef.current.add(key)
-      if (auxiliaryBackupTimeoutRef.current) {
-        clearTimeout(auxiliaryBackupTimeoutRef.current)
-      }
-      auxiliaryBackupTimeoutRef.current = setTimeout(
-        flushAuxiliaryBackup,
-        AUXILIARY_BACKUP_DEBOUNCE_MS,
-      )
-    }
-    window.addEventListener(
-      'local-storage-written',
-      handleLocalStorageWrite as EventListener,
-    )
-    return () => {
-      window.removeEventListener(
-        'local-storage-written',
-        handleLocalStorageWrite as EventListener,
-      )
-      if (auxiliaryBackupTimeoutRef.current) {
-        clearTimeout(auxiliaryBackupTimeoutRef.current)
-      }
-    }
   }, [])
 
   return (

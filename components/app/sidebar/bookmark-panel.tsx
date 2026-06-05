@@ -29,12 +29,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { isZhLanguage, translations, useLanguage } from '@/lib/i18n'
-import {
-  getEncryptionState,
-  readEncryptedLocalStorage,
-  subscribeEncryptionState,
-  writeEncryptedLocalStorage,
-} from '@/hooks/useLocalStorage'
+
 
 interface BookmarkPanelProps {
   open: boolean
@@ -80,33 +75,18 @@ export default function BookmarkPanel({
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    if (open) {
-      const loadBookmarks = () =>
-        readEncryptedLocalStorage<BookmarkedEvent[]>(
-          'bookmarked-events',
-          [],
-        ).then((stored) => {
-          const parsedBookmarks = [...stored]
-
-          parsedBookmarks.sort(
-            (a: BookmarkedEvent, b: BookmarkedEvent) =>
-              new Date(b.bookmarkedAt).getTime() -
-              new Date(a.bookmarkedAt).getTime(),
-          )
-          setBookmarks(parsedBookmarks)
-        })
-
-      loadBookmarks()
-
-      const unsubscribe = subscribeEncryptionState(() => {
-        if (!getEncryptionState().ready) return
-        loadBookmarks()
+    if (!open) return
+    void fetch('/api/blob', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.bookmarks)) return
+        const sorted = [...data.bookmarks].sort(
+          (a: BookmarkedEvent, b: BookmarkedEvent) =>
+            new Date(b.bookmarkedAt ?? 0).getTime() -
+            new Date(a.bookmarkedAt ?? 0).getTime(),
+        )
+        setBookmarks(sorted)
       })
-      return () => {
-        unsubscribe()
-      }
-    }
-    return undefined
   }, [open])
 
   const formatEventDate = (dateString: string | Date) => {
@@ -117,8 +97,12 @@ export default function BookmarkPanel({
   const removeBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
-    void writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
     setBookmarks(updatedBookmarks)
+    void fetch('/api/blob', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookmarks: updatedBookmarks }),
+    }).catch(() => undefined)
     toast(t.bookmarkRemoved, {
       description: t.eventRemovedFromBookmarks,
     })

@@ -19,10 +19,6 @@ import {
   encryptPayload,
   isEncryptedPayload,
 } from '@/lib/crypto'
-import {
-  readEncryptedLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@/hooks/useLocalStorage'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { translations, useLanguage } from '@/lib/i18n'
@@ -161,49 +157,43 @@ export default function ImportExport({
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
       } else if (exportFormat === 'json') {
-        const bookmarks = await readEncryptedLocalStorage<unknown[]>(
-          'bookmarked-events',
-          [],
-        )
-        const countdowns = await readEncryptedLocalStorage<unknown[]>(
-          'countdowns',
-          [],
-        )
+        const apiData = await fetch('/api/blob', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null)
+
+        const bookmarks: unknown[] = Array.isArray(apiData?.bookmarks)
+          ? apiData.bookmarks
+          : []
+        const countdowns: unknown[] = Array.isArray(apiData?.countdowns)
+          ? apiData.countdowns
+          : []
+        const apiSettings = apiData?.settings ?? {}
         const settings = {
-          language: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.language,
-            undefined,
-          ),
-          firstDayOfWeek: await readEncryptedLocalStorage<number | undefined>(
-            SETTINGS_KEYS.firstDayOfWeek,
-            undefined,
-          ),
-          timezone: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.timezone,
-            undefined,
-          ),
-          notificationSound: await readEncryptedLocalStorage<
-            string | undefined
-          >(SETTINGS_KEYS.notificationSound, undefined),
-          defaultView: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.defaultView,
-            undefined,
-          ),
-          enableShortcuts: await readEncryptedLocalStorage<boolean | undefined>(
-            SETTINGS_KEYS.enableShortcuts,
-            undefined,
-          ),
-          timeFormat: await readEncryptedLocalStorage<
-            '24h' | '12h' | undefined
-          >(SETTINGS_KEYS.timeFormat, undefined),
-          toastPosition: await readEncryptedLocalStorage<
-            'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
-          >(SETTINGS_KEYS.toastPosition, undefined),
+          language: apiSettings[SETTINGS_KEYS.language] as string | undefined,
+          firstDayOfWeek: apiSettings[SETTINGS_KEYS.firstDayOfWeek] as
+            | number
+            | undefined,
+          timezone: apiSettings[SETTINGS_KEYS.timezone] as string | undefined,
+          notificationSound: apiSettings[SETTINGS_KEYS.notificationSound] as
+            | string
+            | undefined,
+          defaultView: apiSettings[SETTINGS_KEYS.defaultView] as
+            | string
+            | undefined,
+          enableShortcuts: apiSettings[SETTINGS_KEYS.enableShortcuts] as
+            | boolean
+            | undefined,
+          timeFormat: apiSettings[SETTINGS_KEYS.timeFormat] as
+            | '24h'
+            | '12h'
+            | undefined,
+          toastPosition: apiSettings[SETTINGS_KEYS.toastPosition] as
+            | 'bottom-left'
+            | 'bottom-center'
+            | 'bottom-right'
+            | undefined,
           theme: normalizeTheme(
-            await readEncryptedLocalStorage<string | undefined>(
-              SETTINGS_KEYS.theme,
-              undefined,
-            ),
+            apiSettings[SETTINGS_KEYS.theme] as string | undefined,
           ),
         }
         const exportPayload: JsonBackupPayloadV2 = {
@@ -524,85 +514,48 @@ ${rawContent.substring(0, 500)}...`)
       }))
       mergeCategoriesFromBackup([...importedCategories, ...autoCategories])
 
+      const apiPayload: Record<string, unknown> = {}
+
       if (Array.isArray(payload.data.bookmarks)) {
-        await writeEncryptedLocalStorage(
-          'bookmarked-events',
-          payload.data.bookmarks,
-        )
+        apiPayload.bookmarks = payload.data.bookmarks
       }
       if (Array.isArray(payload.data.countdowns)) {
-        await writeEncryptedLocalStorage('countdowns', payload.data.countdowns)
+        apiPayload.countdowns = payload.data.countdowns
       }
 
       const settings = payload.data.settings || {}
-      const settingWrites: Promise<void>[] = []
-      if (settings.language !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(SETTINGS_KEYS.language, settings.language),
-        )
+      const settingsToSave: Record<string, unknown> = {}
+      if (settings.language !== undefined)
+        settingsToSave[SETTINGS_KEYS.language] = settings.language
+      if (settings.firstDayOfWeek !== undefined)
+        settingsToSave[SETTINGS_KEYS.firstDayOfWeek] = settings.firstDayOfWeek
+      if (settings.timezone !== undefined)
+        settingsToSave[SETTINGS_KEYS.timezone] = settings.timezone
+      if (settings.notificationSound !== undefined)
+        settingsToSave[SETTINGS_KEYS.notificationSound] =
+          settings.notificationSound
+      if (settings.defaultView !== undefined)
+        settingsToSave[SETTINGS_KEYS.defaultView] = settings.defaultView
+      if (settings.enableShortcuts !== undefined)
+        settingsToSave[SETTINGS_KEYS.enableShortcuts] = settings.enableShortcuts
+      if (settings.timeFormat !== undefined)
+        settingsToSave[SETTINGS_KEYS.timeFormat] = settings.timeFormat
+      if (settings.toastPosition !== undefined)
+        settingsToSave[SETTINGS_KEYS.toastPosition] = settings.toastPosition
+      if (settings.theme !== undefined)
+        settingsToSave[SETTINGS_KEYS.theme] = normalizeTheme(settings.theme)
+
+      if (Object.keys(settingsToSave).length > 0) {
+        apiPayload.settings = settingsToSave
       }
-      if (settings.firstDayOfWeek !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.firstDayOfWeek,
-            settings.firstDayOfWeek,
-          ),
-        )
+
+      if (Object.keys(apiPayload).length > 0) {
+        await fetch('/api/blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(apiPayload),
+        }).catch(() => undefined)
       }
-      if (settings.timezone !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(SETTINGS_KEYS.timezone, settings.timezone),
-        )
-      }
-      if (settings.notificationSound !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.notificationSound,
-            settings.notificationSound,
-          ),
-        )
-      }
-      if (settings.defaultView !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.defaultView,
-            settings.defaultView,
-          ),
-        )
-      }
-      if (settings.enableShortcuts !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.enableShortcuts,
-            settings.enableShortcuts,
-          ),
-        )
-      }
-      if (settings.timeFormat !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.timeFormat,
-            settings.timeFormat,
-          ),
-        )
-      }
-      if (settings.toastPosition !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.toastPosition,
-            settings.toastPosition,
-          ),
-        )
-      }
-      if (settings.theme !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.theme,
-            normalizeTheme(settings.theme),
-          ),
-        )
-      }
-      await Promise.all(settingWrites)
 
       return {
         events: importedEvents,

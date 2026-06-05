@@ -82,8 +82,7 @@ type EncryptedSettingsEnvelope = {
   authTag?: string
 }
 
-const ENCRYPTED_TEXT_PLACEHOLDER = '[encrypted]'
-const ENCRYPTED_DATE_PLACEHOLDER = new Date(0)
+
 
 function jsonNoStore(body: unknown, init?: ResponseInit) {
   return NextResponse.json(body, {
@@ -305,13 +304,13 @@ function eventValues(userId: string, input: CalendarEventPayload) {
   return {
     id: eventId,
     userId,
-    title: ENCRYPTED_TEXT_PLACEHOLDER,
-    startDate: ENCRYPTED_DATE_PLACEHOLDER,
-    endDate: ENCRYPTED_DATE_PLACEHOLDER,
-    isAllDay: false,
-    recurrence: 'none',
+    title,
+    startDate,
+    endDate,
+    isAllDay: Boolean(input.isAllDay),
+    recurrence,
     calendarId,
-    color: '#3b82f6',
+    color,
     searchableText,
     ...encrypted,
     createdAt: now,
@@ -347,10 +346,10 @@ function bookmarkValues(userId: string, input: CalendarBookmarkPayload) {
     id: bookmarkId,
     userId,
     eventId: typeof input.eventId === 'string' ? input.eventId : bookmarkId,
-    title: ENCRYPTED_TEXT_PLACEHOLDER,
-    startDate: ENCRYPTED_DATE_PLACEHOLDER,
-    endDate: ENCRYPTED_DATE_PLACEHOLDER,
-    color: '#3b82f6',
+    title,
+    startDate,
+    endDate,
+    color,
     ...encrypted,
     createdAt: now,
     updatedAt: now,
@@ -385,8 +384,8 @@ function countdownValues(userId: string, input: CalendarCountdownPayload) {
   return {
     id: countdownId,
     userId,
-    title: ENCRYPTED_TEXT_PLACEHOLDER,
-    dueDate: ENCRYPTED_DATE_PLACEHOLDER,
+    title,
+    dueDate,
     eventId:
       typeof input.eventId === 'string' && input.eventId ? input.eventId : null,
     ...encrypted,
@@ -546,14 +545,22 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
           },
           categoryContext(userId, categoryId),
         )
+        const catName =
+          typeof category.name === 'string' ? category.name : 'Untitled'
+        const catColor =
+          typeof category.color === 'string' ? category.color : '#3b82f6'
+        const catKeywords = Array.isArray(category.keywords)
+          ? category.keywords
+          : []
+        const catPosition =
+          typeof category.position === 'number' ? category.position : 0
         const values = {
           id: categoryId,
           userId,
-          name: ENCRYPTED_TEXT_PLACEHOLDER,
-          color: '#3b82f6',
-          keywords: [],
-          position:
-            typeof category.position === 'number' ? category.position : 0,
+          name: catName,
+          color: catColor,
+          keywords: catKeywords,
+          position: catPosition,
           ...encrypted,
           createdAt: now,
           updatedAt: now,

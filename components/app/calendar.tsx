@@ -18,10 +18,6 @@ import {
   ChevronRight,
   Search,
   PanelLeft,
-  CloudUpload,
-  CheckCircle2,
-  AlertCircle,
-  LoaderIcon,
   CircleHelp,
   ShieldCheck,
   MessageSquare,
@@ -178,10 +174,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [backupEnabled, setBackupEnabled] = useState(false)
-  const [backupSyncStatus, setBackupSyncStatus] = useState<
-    'uploading' | 'failed' | 'done' | null
-  >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
@@ -221,7 +213,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [defaultView])
 
   useEffect(() => {
-    if (!backupEnabled || !isSignedIn) return
+    if (!isSignedIn) return
 
     const timeoutId = window.setTimeout(() => {
       void fetch('/api/blob', {
@@ -242,7 +234,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }, 400)
     return () => window.clearTimeout(timeoutId)
   }, [
-    backupEnabled,
     defaultView,
     enableShortcuts,
     isSignedIn,
@@ -277,43 +268,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
   }, [setDefaultView, setFirstDayOfWeek])
 
-  useEffect(() => {
-    const refreshBackupState = () => {
-      const enabled = localStorage.getItem('auto-backup-enabled') === 'true'
-      setBackupEnabled(enabled)
-      if (!enabled) {
-        setBackupSyncStatus(null)
-        return
-      }
 
-      const status = localStorage.getItem('auto-backup-sync-status')
-      if (status === 'uploading' || status === 'failed' || status === 'done') {
-        setBackupSyncStatus(status)
-      } else {
-        setBackupSyncStatus('done')
-      }
-    }
-
-    refreshBackupState()
-    window.addEventListener('backup-status-change', refreshBackupState)
-    window.addEventListener('storage', refreshBackupState)
-    return () => {
-      window.removeEventListener('backup-status-change', refreshBackupState)
-      window.removeEventListener('storage', refreshBackupState)
-    }
-  }, [])
-
-  const backupStatusIcon = useMemo(() => {
-    if (!backupEnabled) return null
-
-    if (backupSyncStatus === 'uploading') {
-      return <LoaderIcon className="h-4 w-4 animate-spin" />
-    }
-    if (backupSyncStatus === 'failed') {
-      return <AlertCircle className="h-4 w-4 text-destructive" />
-    }
-    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-  }, [backupEnabled, backupSyncStatus])
 
   useEffect(() => {
     if (view === 'analytics' || view === 'settings') return
@@ -615,13 +570,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
     void deleteEvent(deletedEvent.id)
-    void readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
-      (bookmarks) =>
-        writeEncryptedLocalStorage(
-          'bookmarked-events',
-          bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-        ),
-    )
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setPreviewOpen(false)
@@ -688,30 +636,32 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<any[]>(
-      'bookmarked-events',
-      [],
-    )
+    const res = await fetch('/api/blob', { cache: 'no-store' }).catch(() => null)
+    const data = res?.ok ? await res.json().catch(() => null) : null
+    const bookmarks: any[] = Array.isArray(data?.bookmarks) ? data.bookmarks : []
 
     const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
-    if (isBookmarked) {
-      const updated = bookmarks.filter((b: any) => b.id !== event.id)
-      await writeEncryptedLocalStorage('bookmarked-events', updated)
-    } else {
-      const bookmarkData = {
-        id: event.id,
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        color: event.color,
-        location: event.location,
-        bookmarkedAt: new Date().toISOString(),
-      }
-      await writeEncryptedLocalStorage('bookmarked-events', [
-        ...bookmarks,
-        bookmarkData,
-      ])
-    }
+    const updatedBookmarks = isBookmarked
+      ? bookmarks.filter((b: any) => b.id !== event.id)
+      : [
+          ...bookmarks,
+          {
+            id: event.id,
+            eventId: event.id,
+            title: event.title,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            color: event.color,
+            location: event.location,
+            bookmarkedAt: new Date().toISOString(),
+          },
+        ]
+
+    void fetch('/api/blob', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookmarks: updatedBookmarks }),
+    }).catch(() => undefined)
   }
 
   const handleShare = (event: CalendarEvent, shareOnly = false) => {
@@ -978,19 +928,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   </div>
                 )}
               </div>
-              {backupEnabled ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-8 w-8"
-                  title="Backup status"
-                  aria-label="Backup status"
-                  onClick={() => handleUserProfileSectionNavigate('backup')}
-                >
-                  {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
-                </Button>
-              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

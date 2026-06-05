@@ -1,8 +1,7 @@
 'use client'
 
-import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Button } from '@/components/ui/button'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -109,11 +108,47 @@ const toDateString = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+async function apiSaveCountdowns(countdowns: Countdown[]) {
+  await fetch('/api/blob', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      countdowns: countdowns.map((c) => ({
+        id: c.id,
+        title: c.name,
+        name: c.name,
+        date: c.date,
+        dueDate: c.date,
+        repeat: c.repeat,
+        description: c.description,
+        color: c.color,
+        icon: c.icon,
+      })),
+    }),
+  }).catch(() => undefined)
+}
+
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
-  const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>(
-    'countdowns',
-    [],
-  )
+  const [countdowns, setCountdowns] = useState<Countdown[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    void fetch('/api/blob', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.countdowns)) return
+        const mapped: Countdown[] = data.countdowns.map((c: any) => ({
+          id: c.id,
+          name: c.title ?? c.name ?? '',
+          date: c.date ?? (c.dueDate ? c.dueDate.split('T')[0] : ''),
+          repeat: c.repeat ?? 'none',
+          description: c.description ?? '',
+          color: c.color ?? 'bg-blue-500',
+          icon: c.icon ?? 'Clock',
+        }))
+        setCountdowns(mapped)
+      })
+  }, [open])
   const [selectedCountdown, setSelectedCountdown] = useState<Countdown | null>(
     null,
   )
@@ -298,15 +333,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       icon: newCountdown.icon || 'Clock',
     }
 
+    let next: Countdown[]
     if (selectedCountdown) {
-      setCountdowns((prev) =>
-        prev.map((c) => (c.id === countdown.id ? countdown : c)),
-      )
+      next = countdowns.map((c) => (c.id === countdown.id ? countdown : c))
       toast(t.countdownUpdated, { description: countdown.name })
     } else {
-      setCountdowns((prev) => [...prev, countdown])
+      next = [...countdowns, countdown]
       toast(t.countdownAdded, { description: countdown.name })
     }
+    setCountdowns(next)
+    void apiSaveCountdowns(next)
 
     setView('list')
     setSelectedCountdown(null)
@@ -316,7 +352,9 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
   const deleteCountdown = (id: string) => {
     const target = countdowns.find((c) => c.id === id)
-    setCountdowns((prev) => prev.filter((c) => c.id !== id))
+    const next = countdowns.filter((c) => c.id !== id)
+    setCountdowns(next)
+    void apiSaveCountdowns(next)
     setView('list')
     setSelectedCountdown(null)
     toast(t.countdownDeleted, { description: target?.name || '' })
