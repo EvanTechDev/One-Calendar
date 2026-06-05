@@ -87,6 +87,17 @@ function rangeKey(range: DateRange) {
   return `${range.start.toISOString()}..${range.end.toISOString()}`
 }
 
+async function syncAuxiliaryBackupData(key: string) {
+  if (key !== 'bookmarked-events' && key !== 'countdowns') return
+  const payloadKey = key === 'bookmarked-events' ? 'bookmarks' : 'countdowns'
+  const data = await readEncryptedLocalStorage<unknown[]>(key, [])
+  await fetch('/api/blob', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [payloadKey]: data }),
+  }).catch(() => undefined)
+}
+
 const useCalendarStore = create<CalendarState>()((set) => ({
   calendars: [],
   events: [],
@@ -177,6 +188,19 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(payload.categories)) {
         setCalendars(payload.categories)
       }
+      if (Array.isArray(payload.bookmarks)) {
+        void writeEncryptedLocalStorage('bookmarked-events', payload.bookmarks)
+      }
+      if (Array.isArray(payload.countdowns)) {
+        void writeEncryptedLocalStorage('countdowns', payload.countdowns)
+      }
+      if (payload.settings && typeof payload.settings === 'object') {
+        await Promise.all(
+          Object.entries(payload.settings).map(([key, value]) =>
+            writeEncryptedLocalStorage(key, value),
+          ),
+        )
+      }
     },
     [setCalendars, setEvents],
   )
@@ -219,6 +243,22 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     if (!hydratedRef.current) return
     void writeEncryptedLocalStorage('calendar-events', events)
   }, [events])
+
+  useEffect(() => {
+    const handleLocalStorageWrite = (event: CustomEvent<{ key: string }>) => {
+      void syncAuxiliaryBackupData(event.detail?.key)
+    }
+    window.addEventListener(
+      'local-storage-written',
+      handleLocalStorageWrite as EventListener,
+    )
+    return () => {
+      window.removeEventListener(
+        'local-storage-written',
+        handleLocalStorageWrite as EventListener,
+      )
+    }
+  }, [])
 
   return (
     <CalendarContextBridge

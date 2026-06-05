@@ -4,8 +4,34 @@ import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { calendarBackups, shares } from '@/lib/drizzle/schema'
 import { desc, eq } from 'drizzle-orm'
+import { decryptServerJson } from '@/lib/server-crypto'
 
 export const runtime = 'nodejs'
+
+function eventContext(userId: string, eventId: string) {
+  return `calendar-event:${userId}:${eventId}`
+}
+
+function eventTitle(row: {
+  userId: string | null
+  eventId: string | null
+  title: string | null
+  encryptedData: string | null
+  iv: string | null
+  authTag: string | null
+}) {
+  if (!row.userId || !row.eventId) return ''
+  const decrypted = decryptServerJson<Record<string, unknown>>(
+    row.encryptedData,
+    row.iv,
+    row.authTag,
+    eventContext(row.userId, row.eventId),
+    {},
+  )
+  return typeof decrypted.title === 'string'
+    ? decrypted.title
+    : (row.title ?? '')
+}
 
 export const GET = withEvlog(async function GET(_req: NextRequest) {
   const log = useLogger()
@@ -30,6 +56,10 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
       isBurn: shares.isBurn,
       updatedAt: shares.updatedAt,
       title: calendarBackups.title,
+      userId: calendarBackups.userId,
+      encryptedData: calendarBackups.encryptedData,
+      iv: calendarBackups.iv,
+      authTag: calendarBackups.authTag,
     })
     .from(shares)
     .leftJoin(calendarBackups, eq(shares.eventId, calendarBackups.id))
@@ -39,8 +69,8 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
   const shareList = result.map((row) => ({
     id: row.shareId,
     eventId: row.eventId ?? '',
-    eventTitle: row.title ?? '',
-    sharedBy: user.id,
+    eventTitle: eventTitle(row),
+    sharedBy: user.name,
     shareDate: row.updatedAt.toISOString(),
     shareLink: `/share/${row.shareId}`,
     isProtected: row.isProtected,
