@@ -1,11 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, type SetStateAction } from 'react'
-import {
-  decryptPayload,
-  encryptPayload,
-  isEncryptedPayload,
-} from '@/lib/crypto'
 
 type EncryptionState = {
   enabled: boolean
@@ -13,28 +8,14 @@ type EncryptionState = {
   ready: boolean
 }
 
-type EncryptedSnapshot = {
-  value: string | null
-  failed: boolean
-}
-
 const ENCRYPTION_STATE: EncryptionState = {
   enabled: false,
   password: null,
-  ready: false,
+  ready: true,
 }
 
-const encryptedSnapshots = new Map<string, EncryptedSnapshot>()
 const inMemoryStorage = new Map<string, string>()
 const subscribers = new Set<() => void>()
-
-const SENSITIVE_KEYS = new Set([
-  'calendar-events',
-  'calendar-categories',
-  'bookmarked-events',
-  'shared-events',
-  'countdowns',
-])
 
 function tryParse(value: string) {
   try {
@@ -47,14 +28,8 @@ function tryParse(value: string) {
 function coerceStoredValue<T>(raw: string, initialValue: T): T {
   const parsed = tryParse(raw)
   if (parsed.ok) return parsed.parsed as T
-  if (typeof initialValue === 'string' || initialValue === null) {
-    return raw as T
-  }
+  if (typeof initialValue === 'string' || initialValue === null) return raw as T
   return initialValue
-}
-
-function notifySubscribers() {
-  subscribers.forEach((callback) => callback())
 }
 
 function emitStorageWrite(key: string) {
@@ -64,8 +39,12 @@ function emitStorageWrite(key: string) {
   )
 }
 
-export function isSensitiveStorageKey(key: string) {
-  return SENSITIVE_KEYS.has(key)
+function notifySubscribers() {
+  subscribers.forEach((callback) => callback())
+}
+
+export function isSensitiveStorageKey(_key: string) {
+  return false
 }
 
 export function getEncryptionState() {
@@ -77,39 +56,32 @@ export function subscribeEncryptionState(callback: () => void) {
   return () => subscribers.delete(callback)
 }
 
-export async function setEncryptionPassword(password: string) {
-  ENCRYPTION_STATE.password = password
-  ENCRYPTION_STATE.enabled = true
-  ENCRYPTION_STATE.ready = false
-
-  if (password) {
-    await decryptSnapshots(password)
-  }
-
+export async function setEncryptionPassword(_password: string) {
+  ENCRYPTION_STATE.enabled = false
+  ENCRYPTION_STATE.password = null
   ENCRYPTION_STATE.ready = true
   notifySubscribers()
 }
 
 export function clearEncryptionPassword() {
-  ENCRYPTION_STATE.password = null
   ENCRYPTION_STATE.enabled = false
-  ENCRYPTION_STATE.ready = false
-  encryptedSnapshots.clear()
+  ENCRYPTION_STATE.password = null
+  ENCRYPTION_STATE.ready = true
   inMemoryStorage.clear()
   notifySubscribers()
 }
 
 export function resetEncryptionReady() {
-  ENCRYPTION_STATE.ready = false
+  ENCRYPTION_STATE.ready = true
   notifySubscribers()
 }
 
 export function markEncryptedSnapshot(key: string, value: string) {
-  encryptedSnapshots.set(key, { value, failed: false })
+  inMemoryStorage.set(key, value)
 }
 
 export function clearEncryptedSnapshots() {
-  encryptedSnapshots.clear()
+  inMemoryStorage.clear()
 }
 
 export function writeInMemoryStorage(key: string, value: string) {
@@ -128,105 +100,23 @@ export function clearInMemoryStorage() {
   inMemoryStorage.clear()
 }
 
-export async function decryptSnapshots(password: string) {
-  const entries = Array.from(encryptedSnapshots.entries())
-  if (entries.length === 0) return
+export async function decryptSnapshots(_password: string) {}
 
-  await Promise.all(
-    entries.map(async ([key, snapshot]) => {
-      if (!snapshot.value) return
-      try {
-        const parsed = tryParse(snapshot.value)
-        if (!parsed.ok || !isEncryptedPayload(parsed.parsed)) return
-        const plain = await decryptPayload(
-          password,
-          parsed.parsed.ciphertext,
-          parsed.parsed.iv,
-        )
-        snapshot.value = plain
-        snapshot.failed = false
-      } catch {
-        snapshot.failed = true
-      }
-    }),
-  )
-}
+export async function encryptSnapshots(_password: string) {}
 
-export async function encryptSnapshots(password: string) {
-  const entries = Array.from(encryptedSnapshots.entries())
-  if (entries.length === 0) return
-
-  await Promise.all(
-    entries.map(async ([key, snapshot]) => {
-      if (!snapshot.value) return
-      try {
-        const parsed = tryParse(snapshot.value)
-        if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
-          snapshot.failed = false
-          return
-        }
-        const encrypted = await encryptPayload(password, snapshot.value)
-        snapshot.value = JSON.stringify(encrypted)
-        snapshot.failed = false
-      } catch {
-        snapshot.failed = true
-      }
-    }),
-  )
-}
-
-export async function persistEncryptedSnapshots() {
-  encryptedSnapshots.forEach((snapshot, key) => {
-    if (!snapshot.value) return
-    if (isSensitiveStorageKey(key)) return
-    window.localStorage.setItem(key, snapshot.value)
-  })
-}
+export async function persistEncryptedSnapshots() {}
 
 export async function readEncryptedLocalStorage<T>(
   key: string,
   initialValue: T,
 ): Promise<T> {
-  if (typeof window === 'undefined') {
-    return initialValue
-  }
+  if (typeof window === 'undefined') return initialValue
   try {
-    const inMemoryValue = inMemoryStorage.get(key)
-    if (isSensitiveStorageKey(key) && inMemoryValue !== undefined) {
-      return coerceStoredValue(inMemoryValue, initialValue)
-    }
-    const snapshot = encryptedSnapshots.get(key)
-    if (snapshot?.value) {
-      const parsedSnapshot = tryParse(snapshot.value)
-      if (parsedSnapshot.ok && isEncryptedPayload(parsedSnapshot.parsed)) {
-        if (!ENCRYPTION_STATE.password) return initialValue
-        const plain = await decryptPayload(
-          ENCRYPTION_STATE.password,
-          parsedSnapshot.parsed.ciphertext,
-          parsedSnapshot.parsed.iv,
-        )
-        encryptedSnapshots.set(key, { value: plain, failed: false })
-        return coerceStoredValue<T>(plain, initialValue)
-      }
-      return coerceStoredValue(snapshot.value, initialValue)
-    }
+    const memoryValue = inMemoryStorage.get(key)
+    if (memoryValue !== undefined)
+      return coerceStoredValue(memoryValue, initialValue)
     const item = window.localStorage.getItem(key)
     if (!item) return initialValue
-    const parsed = tryParse(item)
-    if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
-      if (!ENCRYPTION_STATE.password) return initialValue
-      const plain = await decryptPayload(
-        ENCRYPTION_STATE.password,
-        parsed.parsed.ciphertext,
-        parsed.parsed.iv,
-      )
-      encryptedSnapshots.set(key, { value: plain, failed: false })
-      if (isSensitiveStorageKey(key)) {
-        inMemoryStorage.set(key, plain)
-        window.localStorage.removeItem(key)
-      }
-      return coerceStoredValue<T>(plain, initialValue)
-    }
     return coerceStoredValue(item, initialValue)
   } catch (error) {
     console.log(error)
@@ -238,23 +128,8 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
   if (typeof window === 'undefined') return
   try {
     const raw = JSON.stringify(value)
-    if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
-      if (isSensitiveStorageKey(key)) {
-        inMemoryStorage.set(key, raw)
-        encryptedSnapshots.set(key, { value: raw, failed: false })
-        window.localStorage.removeItem(key)
-        emitStorageWrite(key)
-        return
-      }
-      const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
-      const payload = JSON.stringify(encrypted)
-      window.localStorage.setItem(key, payload)
-      encryptedSnapshots.set(key, { value: raw, failed: false })
-      emitStorageWrite(key)
-      return
-    }
     window.localStorage.setItem(key, raw)
-    encryptedSnapshots.set(key, { value: raw, failed: false })
+    inMemoryStorage.set(key, raw)
     emitStorageWrite(key)
   } catch (error) {
     console.log(error)
@@ -262,72 +137,11 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
 }
 
 async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
-  if (typeof window === 'undefined') {
-    return initialValue
-  }
-  try {
-    const inMemoryValue = inMemoryStorage.get(key)
-    if (isSensitiveStorageKey(key) && inMemoryValue !== undefined) {
-      return coerceStoredValue(inMemoryValue, initialValue)
-    }
-    const item = window.localStorage.getItem(key)
-    if (!item) return initialValue
-    const snapshot = encryptedSnapshots.get(key)
-    if (snapshot?.value) {
-      const parsedSnapshot = tryParse(snapshot.value)
-      if (parsedSnapshot.ok && isEncryptedPayload(parsedSnapshot.parsed)) {
-        if (!ENCRYPTION_STATE.password) return initialValue
-        const plain = await decryptPayload(
-          ENCRYPTION_STATE.password,
-          parsedSnapshot.parsed.ciphertext,
-          parsedSnapshot.parsed.iv,
-        )
-        snapshot.value = plain
-        snapshot.failed = false
-        return coerceStoredValue<T>(plain, initialValue)
-      }
-      return coerceStoredValue(snapshot.value, initialValue)
-    }
-    const parsed = tryParse(item)
-    if (parsed.ok && isEncryptedPayload(parsed.parsed)) {
-      encryptedSnapshots.set(key, { value: item, failed: false })
-      if (isSensitiveStorageKey(key)) {
-        window.localStorage.removeItem(key)
-      }
-      return initialValue
-    }
-    return coerceStoredValue(item, initialValue)
-  } catch (error) {
-    console.log(error)
-    return initialValue
-  }
+  return readEncryptedLocalStorage(key, initialValue)
 }
 
 async function writeLocalStorage<T>(key: string, value: T) {
-  if (typeof window === 'undefined') return
-  try {
-    const raw = JSON.stringify(value)
-    if (ENCRYPTION_STATE.enabled && ENCRYPTION_STATE.password) {
-      if (isSensitiveStorageKey(key)) {
-        inMemoryStorage.set(key, raw)
-        encryptedSnapshots.set(key, { value: raw, failed: false })
-        window.localStorage.removeItem(key)
-        emitStorageWrite(key)
-        return
-      }
-      const encrypted = await encryptPayload(ENCRYPTION_STATE.password, raw)
-      const payload = JSON.stringify(encrypted)
-      window.localStorage.setItem(key, payload)
-      encryptedSnapshots.set(key, { value: raw, failed: false })
-      emitStorageWrite(key)
-      return
-    }
-    window.localStorage.setItem(key, raw)
-    encryptedSnapshots.set(key, { value: raw, failed: false })
-    emitStorageWrite(key)
-  } catch (error) {
-    console.log(error)
-  }
+  return writeEncryptedLocalStorage(key, value)
 }
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
@@ -348,14 +162,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     readLocalStorage(key, initialValue).then((value) => {
       if (cancelled) return
       if (localWriteVersionRef.current !== writeVersionWhenReadStarted) return
-      const nextSerializedValue = JSON.stringify(value)
-      setSerializedValue(nextSerializedValue)
-      setStoredValue((prev) => {
-        if (JSON.stringify(prev) === nextSerializedValue) {
-          return prev
-        }
-        return value
-      })
+      setStoredValue(value)
+      setSerializedValue(JSON.stringify(value))
     })
     return () => {
       cancelled = true
@@ -363,49 +171,34 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   }, [key])
 
   useEffect(() => {
-    const refreshValue = () => {
-      const writeVersionWhenReadStarted = localWriteVersionRef.current
-      readLocalStorage(key, initialValue).then((value) => {
-        if (localWriteVersionRef.current !== writeVersionWhenReadStarted) return
-        const nextSerializedValue = JSON.stringify(value)
-        setSerializedValue(nextSerializedValue)
-        setStoredValue((prev) => {
-          if (JSON.stringify(prev) === nextSerializedValue) {
-            return prev
-          }
-          return value
-        })
+    const handleStorage = (
+      event: StorageEvent | CustomEvent<{ key: string }>,
+    ) => {
+      const changedKey = 'key' in event ? event.key : event.detail?.key
+      if (changedKey !== key) return
+      void readLocalStorage(key, initialValue).then((value) => {
+        setStoredValue(value)
+        setSerializedValue(JSON.stringify(value))
       })
     }
-
-    const unsubscribe = subscribeEncryptionState(() => {
-      const state = getEncryptionState()
-      if (state.ready) {
-        refreshValue()
-      }
-    })
-
-    const handleStorageWritten = (event: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }>
-      if (customEvent.detail?.key === key) {
-        refreshValue()
-      }
-    }
-
-    window.addEventListener('local-storage-written', handleStorageWritten)
+    window.addEventListener('storage', handleStorage as EventListener)
+    window.addEventListener(
+      'local-storage-written',
+      handleStorage as EventListener,
+    )
     return () => {
-      unsubscribe()
-      window.removeEventListener('local-storage-written', handleStorageWritten)
+      window.removeEventListener('storage', handleStorage as EventListener)
+      window.removeEventListener(
+        'local-storage-written',
+        handleStorage as EventListener,
+      )
     }
-  }, [key, initialValue])
+  }, [key])
 
   useEffect(() => {
-    const nextSerializedValue = JSON.stringify(storedValue)
-    if (nextSerializedValue === serializedValue) {
-      return
-    }
-
-    setSerializedValue(nextSerializedValue)
+    const nextSerialized = JSON.stringify(storedValue)
+    if (nextSerialized === serializedValue) return
+    setSerializedValue(nextSerialized)
     void writeLocalStorage(key, storedValue)
   }, [key, serializedValue, storedValue])
 

@@ -41,7 +41,18 @@ import UserProfileButton, {
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useCalendar } from '@/components/providers/calendar-context'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
-import { addDays, addYears, subDays, subYears } from 'date-fns'
+import {
+  addDays,
+  addMonths,
+  addYears,
+  endOfMonth,
+  endOfYear,
+  startOfMonth,
+  startOfYear,
+  subDays,
+  subMonths,
+  subYears,
+} from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -124,7 +135,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const { events, setEvents, calendars } = useCalendar()
+  const { events, setEvents, calendars, loadRange, saveEvents, deleteEvent } =
+    useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
   const searchInputRef = useRef<HTMLDivElement>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -266,6 +278,18 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
     return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
   }, [backupEnabled, backupSyncStatus])
+
+  useEffect(() => {
+    if (view === 'analytics' || view === 'settings') return
+    const range =
+      view === 'year'
+        ? { start: startOfYear(date), end: endOfYear(date) }
+        : {
+            start: startOfMonth(subMonths(date, 1)),
+            end: endOfMonth(addMonths(date, 1)),
+          }
+    void loadRange(range)
+  }, [date, loadRange, view])
 
   useEffect(() => {
     const prefetch = () => {
@@ -462,6 +486,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
+    void saveEvents([newEvent])
     toast(t.eventCreated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -474,6 +499,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
     )
+    void saveEvents([updatedEvent])
     toast(t.eventUpdated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -540,6 +566,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
+    void deleteEvent(deletedEvent.id)
     void readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
       (bookmarks) =>
         writeEncryptedLocalStorage(
@@ -579,6 +606,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       id: event.id || Math.random().toString(36).substring(7),
     })) as CalendarEvent[]
     setEvents((prevEvents) => [...prevEvents, ...newEvents])
+    void saveEvents(newEvents)
   }
 
   const handleEventEdit = (event?: CalendarEvent) => {
@@ -598,6 +626,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       id: Math.random().toString(36).substring(7),
     }
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
+    void saveEvents([duplicatedEvent])
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
   }
@@ -967,7 +996,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent)
                 }}
-                onBackToCalendar={() => setView(defaultView)}
               />
             )}
             {view === 'week' && (
@@ -1078,7 +1106,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 focusUserProfileSection={focusUserProfileSection}
                 toastPosition={toastPosition}
                 setToastPosition={setToastPosition}
-                onBackToCalendar={() => setView(defaultView)}
               />
             )}
           </div>

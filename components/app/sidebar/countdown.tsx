@@ -670,7 +670,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     setSelectedDate(date)
                     setCalendarOpen(false)
                   }}
-                  initialFocus
                   locale={isZh ? zhCN : enUS}
                 />
               </PopoverContent>
