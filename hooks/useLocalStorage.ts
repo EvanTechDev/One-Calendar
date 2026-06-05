@@ -150,6 +150,11 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     JSON.stringify(initialValue),
   )
   const localWriteVersionRef = useRef(0)
+  const initialValueRef = useRef(initialValue)
+
+  useEffect(() => {
+    initialValueRef.current = initialValue
+  }, [initialValue])
 
   const updateStoredValue = (value: SetStateAction<T>) => {
     localWriteVersionRef.current += 1
@@ -159,7 +164,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   useEffect(() => {
     let cancelled = false
     const writeVersionWhenReadStarted = localWriteVersionRef.current
-    readLocalStorage(key, initialValue).then((value) => {
+    readLocalStorage(key, initialValueRef.current).then((value) => {
       if (cancelled) return
       if (localWriteVersionRef.current !== writeVersionWhenReadStarted) return
       setStoredValue(value)
@@ -176,7 +181,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     ) => {
       const changedKey = 'key' in event ? event.key : event.detail?.key
       if (changedKey !== key) return
-      void readLocalStorage(key, initialValue).then((value) => {
+      void readLocalStorage(key, initialValueRef.current).then((value) => {
         setStoredValue(value)
         setSerializedValue(JSON.stringify(value))
       })

@@ -102,6 +102,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
 
     const hasPassword = typeof password === 'string' && password.length > 0
+    const passwordHash = hasPassword ? await hash(password, 12) : null
     const now = new Date()
     await db
       .insert(shares)
@@ -109,7 +110,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
         userId: user.id,
         shareId,
         eventId: targetEventId,
-        passwordHash: hasPassword ? await hash(password, 12) : null,
+        passwordHash,
         isProtected: hasPassword,
         isBurn: Boolean(burnAfterRead),
         createdAt: now,
@@ -120,7 +121,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
         set: {
           userId: user.id,
           eventId: targetEventId,
-          passwordHash: hasPassword ? await hash(password, 12) : null,
+          passwordHash,
           isProtected: hasPassword,
           isBurn: Boolean(burnAfterRead),
           updatedAt: now,

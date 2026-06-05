@@ -221,6 +221,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [defaultView])
 
   useEffect(() => {
+    if (!backupEnabled || !isSignedIn) return
+
     const timeoutId = window.setTimeout(() => {
       void fetch('/api/blob', {
         method: 'POST',
@@ -240,8 +242,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     }, 400)
     return () => window.clearTimeout(timeoutId)
   }, [
+    backupEnabled,
     defaultView,
     enableShortcuts,
+    isSignedIn,
     normalizedFirstDayOfWeek,
     notificationSound,
     timeFormat,

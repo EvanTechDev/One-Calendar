@@ -10,11 +10,20 @@ import {
   userSettings,
 } from '@/lib/drizzle/schema'
 import { and, eq } from 'drizzle-orm'
-import { decryptServerJson, encryptServerJson } from '@/lib/server-crypto'
+import {
+  decryptServerJson,
+  encryptServerJson,
+  hashServerSearchText,
+  validateBackupSalt,
+} from '@/lib/server-crypto'
 import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function ensureBackupCryptoConfigured() {
+  validateBackupSalt()
+}
 
 const NO_STORE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -268,6 +277,11 @@ function eventValues(userId: string, input: CalendarEventPayload) {
     typeof input.recurrence === 'string' ? input.recurrence : 'none'
   const color =
     typeof input.color === 'string' && input.color ? input.color : '#3b82f6'
+  const searchableText = hashServerSearchText([
+    title,
+    input.description,
+    input.location,
+  ])
   const encrypted = encryptServerJson(
     {
       ...input,
@@ -298,7 +312,7 @@ function eventValues(userId: string, input: CalendarEventPayload) {
     recurrence: 'none',
     calendarId,
     color: '#3b82f6',
-    searchableText: '',
+    searchableText,
     ...encrypted,
     createdAt: now,
     updatedAt: now,
@@ -392,6 +406,8 @@ export const GET = withEvlog(async function GET(req: NextRequest) {
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    ensureBackupCryptoConfigured()
+
     const start = req.nextUrl.searchParams.get('start')
     const end = req.nextUrl.searchParams.get('end')
     const rangeStart = start ? asDate(start) : null
@@ -467,6 +483,8 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
 
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    ensureBackupCryptoConfigured()
 
     const events = Array.isArray(body?.events)
       ? body.events
