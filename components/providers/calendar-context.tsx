@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { create } from 'zustand'
 import {
   readEncryptedLocalStorage,
@@ -14,6 +14,7 @@ export interface CalendarCategory {
   name: string
   color: string
   keywords?: string[]
+  position?: number
 }
 
 export interface CalendarEvent {
@@ -31,6 +32,8 @@ export interface CalendarEvent {
   calendarId: string
 }
 
+type DateRange = { start: Date; end: Date }
+
 interface CalendarContextType {
   calendars: CalendarCategory[]
   setCalendars: Dispatch<SetStateAction<CalendarCategory[]>>
@@ -41,6 +44,9 @@ interface CalendarContextType {
   updateCategory: (id: string, category: Partial<CalendarCategory>) => void
   moveCategory: (id: string, direction: 'up' | 'down') => void
   addEvent: (newEvent: CalendarEvent) => void
+  loadRange: (range: DateRange) => Promise<void>
+  saveEvents: (events: CalendarEvent[]) => Promise<void>
+  deleteEvent: (eventId: string) => Promise<void>
 }
 
 interface CalendarState {
@@ -55,6 +61,32 @@ interface CalendarState {
   addEvent: (newEvent: CalendarEvent) => void
 }
 
+function normalizeEvent(event: CalendarEvent): CalendarEvent {
+  return {
+    ...event,
+    startDate: new Date(event.startDate),
+    endDate: new Date(event.endDate),
+    participants: Array.isArray(event.participants) ? event.participants : [],
+    notification:
+      typeof event.notification === 'number' ? event.notification : 0,
+    recurrence: event.recurrence ?? 'none',
+    calendarId: event.calendarId ?? '',
+    color: event.color ?? '#3b82f6',
+  }
+}
+
+function mergeEvents(current: CalendarEvent[], incoming: CalendarEvent[]) {
+  const map = new Map(current.map((event) => [event.id, event]))
+  incoming.forEach((event) => map.set(event.id, normalizeEvent(event)))
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+  )
+}
+
+function rangeKey(range: DateRange) {
+  return `${range.start.toISOString()}..${range.end.toISOString()}`
+}
+
 const useCalendarStore = create<CalendarState>()((set) => ({
   calendars: [],
   events: [],
@@ -67,11 +99,22 @@ const useCalendarStore = create<CalendarState>()((set) => ({
       events: typeof value === 'function' ? value(state.events) : value,
     })),
   addCategory: (category: CalendarCategory) =>
-    set((state: CalendarState) => ({ calendars: [...state.calendars, category] })),
-  removeCategory: (id: string) =>
+    set((state: CalendarState) => ({
+      calendars: [...state.calendars, category],
+    })),
+  removeCategory: (id: string) => {
+    void fetch('/api/blob', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: id }),
+    }).catch(() => undefined)
     set((state: CalendarState) => ({
       calendars: state.calendars.filter((cal) => cal.id !== id),
-    })),
+      events: state.events.map((event) =>
+        event.calendarId === id ? { ...event, calendarId: '' } : event,
+      ),
+    }))
+  },
   updateCategory: (id: string, category: Partial<CalendarCategory>) =>
     set((state: CalendarState) => ({
       calendars: state.calendars.map((cal) =>
@@ -82,34 +125,20 @@ const useCalendarStore = create<CalendarState>()((set) => ({
     set((state: CalendarState) => {
       const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
       if (currentIndex === -1) return { calendars: state.calendars }
-
       const targetIndex =
         direction === 'up' ? currentIndex - 1 : currentIndex + 1
-
       if (targetIndex < 0 || targetIndex >= state.calendars.length) {
         return { calendars: state.calendars }
       }
-
       const nextCalendars = [...state.calendars]
       const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
       nextCalendars.splice(targetIndex, 0, movedCalendar)
-
       return { calendars: nextCalendars }
     }),
   addEvent: (newEvent: CalendarEvent) =>
-    set((state: CalendarState) => {
-      const eventExists = state.events.some((event) => event.id === newEvent.id)
-
-      if (eventExists) {
-        return {
-          events: state.events.map((event) =>
-            event.id === newEvent.id ? newEvent : event,
-          ),
-        }
-      }
-
-      return { events: [...state.events, newEvent] }
-    }),
+    set((state: CalendarState) => ({
+      events: mergeEvents(state.events, [newEvent]),
+    })),
 }))
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
@@ -117,7 +146,48 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
   const events = useCalendarStore((state) => state.events)
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
+  const loadedRangesRef = useRef(new Set<string>())
   const hydratedRef = useRef(false)
+
+  const saveEvents = useCallback(async (nextEvents: CalendarEvent[]) => {
+    await fetch('/api/blob', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events: nextEvents }),
+    }).catch(() => undefined)
+  }, [])
+
+  const loadRange = useCallback(
+    async (range: DateRange) => {
+      const key = rangeKey(range)
+      if (loadedRangesRef.current.has(key)) return
+      loadedRangesRef.current.add(key)
+      const params = new URLSearchParams({
+        start: range.start.toISOString(),
+        end: range.end.toISOString(),
+      })
+      const response = await fetch(`/api/blob?${params}`, {
+        cache: 'no-store',
+      }).catch(() => null)
+      if (!response?.ok) return
+      const payload = await response.json()
+      if (Array.isArray(payload.events)) {
+        setEvents((current) => mergeEvents(current, payload.events))
+      }
+      if (Array.isArray(payload.categories)) {
+        setCalendars(payload.categories)
+      }
+    },
+    [setCalendars, setEvents],
+  )
+
+  const deleteEvent = useCallback(async (eventId: string) => {
+    await fetch('/api/blob', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId }),
+    }).catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     const hydrate = async () => {
@@ -128,24 +198,21 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
         'calendar-events',
         [],
       )
-
       setCalendars(storedCalendars)
-      setEvents(
-        storedEvents.map((event) => ({
-          ...event,
-          startDate: new Date(event.startDate),
-          endDate: new Date(event.endDate),
-        })),
-      )
+      setEvents(storedEvents.map(normalizeEvent))
       hydratedRef.current = true
     }
-
     void hydrate()
   }, [setCalendars, setEvents])
 
   useEffect(() => {
     if (!hydratedRef.current) return
     void writeEncryptedLocalStorage('calendar-categories', calendars)
+    void fetch('/api/blob', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categories: calendars }),
+    }).catch(() => undefined)
   }, [calendars])
 
   useEffect(() => {
@@ -153,6 +220,36 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     void writeEncryptedLocalStorage('calendar-events', events)
   }, [events])
 
+  return (
+    <CalendarContextBridge
+      loadRange={loadRange}
+      saveEvents={saveEvents}
+      deleteEvent={deleteEvent}
+    >
+      {children}
+    </CalendarContextBridge>
+  )
+}
+
+let bridge: Pick<
+  CalendarContextType,
+  'loadRange' | 'saveEvents' | 'deleteEvent'
+> = {
+  loadRange: async () => {},
+  saveEvents: async () => {},
+  deleteEvent: async () => {},
+}
+
+function CalendarContextBridge({
+  children,
+  loadRange,
+  saveEvents,
+  deleteEvent,
+}: { children: React.ReactNode } & typeof bridge) {
+  bridge = useMemo(
+    () => ({ loadRange, saveEvents, deleteEvent }),
+    [deleteEvent, loadRange, saveEvents],
+  )
   return children
 }
 
@@ -168,6 +265,9 @@ export function useCalendar(): CalendarContextType {
     updateCategory: store.updateCategory,
     moveCategory: store.moveCategory,
     addEvent: store.addEvent,
+    loadRange: bridge.loadRange,
+    saveEvents: bridge.saveEvents,
+    deleteEvent: bridge.deleteEvent,
   }
 }
 

@@ -41,7 +41,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
@@ -670,6 +669,24 @@ export default function UserProfileButton({
     }
   }
 
+  async function enableServerBackup() {
+    const [events, categories] = await Promise.all([
+      readEncryptedLocalStorage('calendar-events', []),
+      readEncryptedLocalStorage('calendar-categories', []),
+    ])
+    await apiPost({
+      events,
+      categories,
+      settings: { backupMode: 'server-managed' },
+    })
+    localStorage.setItem(AUTO_KEY, 'true')
+    restoredRef.current = true
+    setEnabled(true)
+    setBackupOpen(false)
+    broadcastBackupStatus('done')
+    toast(t.autoBackupEnabled)
+  }
+
   async function enable() {
     if (!password) {
       setError(t.setEncryptionPasswordDescription || 'Encryption key not ready')
@@ -1048,28 +1065,6 @@ export default function UserProfileButton({
                   >
                     <CloudUpload className="h-4 w-4 mr-2" />
                     {t.openBackupSettings}
-                  </Button>
-                </div>
-
-                <div className="space-y-3 rounded-md border p-3">
-                  <p className="text-sm font-semibold">{t.changeKey}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.rotateKeyHelp}
-                  </p>
-                  <Button
-                    id="settings-account-key"
-                    variant="outline"
-                    onClick={() => {
-                      setRotateStep('verify')
-                      setOldPassword('')
-                      setPassword('')
-                      setConfirm('')
-                      setError('')
-                      setRotateOpen(true)
-                    }}
-                  >
-                    <KeyRound className="h-4 w-4 mr-2" />
-                    {t.changeEncryptionKeyAction}
                   </Button>
                 </div>
 
@@ -1497,116 +1492,11 @@ export default function UserProfileButton({
                 {t.disable}
               </Button>
             ) : (
-              <Button
-                onClick={() => {
-                  setBackupOpen(false)
-                  const generated = generateHighEntropyKey()
-                  setPassword(generated)
-                  setConfirm(generated)
-                  setSetPwdOpen(true)
-                }}
-              >
+              <Button onClick={() => void enableServerBackup()}>
                 {t.enable}
               </Button>
             )}
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={setPwdOpen} onOpenChange={setSetPwdOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.setEncryptionPassword}</DialogTitle>
-            <DialogDescription>
-              {t.setEncryptionPasswordDescription}
-            </DialogDescription>
-          </DialogHeader>
-          <Label>{t.password}</Label>
-          <Input type="text" value={password} readOnly />
-          <Label>{t.confirmPassword}</Label>
-          <Input type="text" value={confirm} readOnly />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <DialogFooter>
-            <Button onClick={enable}>{t.confirm}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={unlockOpen}
-        onOpenChange={(open) => {
-          if (open) setUnlockOpen(true)
-        }}
-      >
-        <DialogContent
-          onInteractOutside={(e: Event) => e.preventDefault()}
-          onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>{t.enterPasswordTitle}</DialogTitle>
-            <DialogDescription>{t.enterPasswordDescription}</DialogDescription>
-          </DialogHeader>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <DialogFooter>
-            <Button onClick={unlock} disabled={isUnlocking}>
-              {isUnlocking ? (
-                <span className="flex items-center">
-                  <Spinner className="mr-2" />
-                  {t.verifying}
-                </span>
-              ) : (
-                t.confirm
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.changeEncryptionKey}</DialogTitle>
-          </DialogHeader>
-          {rotateStep === 'verify' ? (
-            <>
-              <Label>{t.oldPassword}</Label>
-              <Input
-                type="password"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-              />
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <DialogFooter>
-                <Button
-                  onClick={verifyOldPasswordForRotation}
-                  disabled={isVerifyingRotationKey}
-                >
-                  {isVerifyingRotationKey ? t.verifying : t.next || 'Next'}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <Label>{t.newPassword}</Label>
-              <Input type="text" value={password} readOnly />
-              <Label>{t.confirmNewPassword}</Label>
-              <Input type="text" value={confirm} readOnly />
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setRotateStep('verify')}
-                >
-                  {t.back || 'Back'}
-                </Button>
-                <Button onClick={rotate}>{t.confirmChange}</Button>
-              </DialogFooter>
-            </>
-          )}
         </DialogContent>
       </Dialog>
     </>
