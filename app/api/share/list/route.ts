@@ -1,35 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
-import { shares } from '@/lib/drizzle/schema'
-import { eq, desc } from 'drizzle-orm'
+import { calendarBackups, shares } from '@/lib/drizzle/schema'
+import { desc, eq, and } from 'drizzle-orm'
+import { decryptServerJson } from '@/lib/server-crypto'
 
 export const runtime = 'nodejs'
-
-const ALGORITHM = 'aes-256-gcm'
-
-function keyV2Unprotected(shareId: string) {
-  return crypto.createHash('sha256').update(shareId, 'utf8').digest()
-}
-
-function decryptWithKey(
-  encryptedData: string,
-  iv: string,
-  authTag: string,
-  key: Buffer,
-) {
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM,
-    key,
-    Buffer.from(iv, 'hex'),
-  )
-  decipher.setAuthTag(Buffer.from(authTag, 'hex'))
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
-  return decrypted
-}
 
 export const GET = withEvlog(async function GET(_req: NextRequest) {
   const log = useLogger()
@@ -52,47 +29,40 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
     .where(eq(shares.userId, user.id))
     .orderBy(desc(shares.timestamp))
 
-  const shareList = result.map((row) => {
-    let eventId = ''
-    let eventTitle = ''
-    if (!row.isProtected) {
+  const shareList = await Promise.all(
+    result.map(async (row) => {
+      let eventTitle = row.isProtected ? '受保护' : ''
       try {
-        const decrypted = decryptWithKey(
-          row.encryptedData,
-          row.iv,
-          row.authTag,
-          keyV2Unprotected(row.shareId),
-        )
-        const dataObj = JSON.parse(decrypted)
-        eventId = dataObj.id ?? ''
-        eventTitle = dataObj.title ?? ''
+        const [eventRow] = await db
+          .select()
+          .from(calendarBackups)
+          .where(
+            and(
+              eq(calendarBackups.userId, user.id),
+              eq(calendarBackups.id, row.eventId),
+            ),
+          )
+        if (eventRow && !row.isProtected) {
+          const event = decryptServerJson<any>(
+            eventRow.encryptedData,
+            eventRow.iv,
+            eventRow.authTag,
+            'calendar-event',
+          )
+          eventTitle = event?.title ?? ''
+        }
       } catch {}
-    } else {
-      eventId = '受保护'
-      eventTitle = '受保护'
-    }
-    return {
-      id: row.shareId,
-      eventId,
-      eventTitle,
-      sharedBy: user.id,
-      shareDate: row.timestamp.toISOString(),
-      shareLink: `/share/${row.shareId}`,
-      isProtected: row.isProtected,
-    }
-  })
-
-  log.audit?.({
-    action: 'share.list',
-    actor: getAuditActor(log, {
-      type: 'user',
-      id: user.id,
-      email: user.email,
+      return {
+        id: row.shareId,
+        eventId: row.eventId,
+        eventTitle,
+        sharedBy: user.id,
+        shareDate: row.timestamp.toISOString(),
+        shareLink: `/share/${row.shareId}`,
+        isProtected: row.isProtected,
+      }
     }),
-    target: { type: 'share_collection', id: user.id },
-    outcome: 'success',
-    reason: 'User listed shares',
-  })
+  )
 
   return NextResponse.json({ shares: shareList })
 })

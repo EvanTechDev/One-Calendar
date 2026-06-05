@@ -654,7 +654,6 @@ export default function EventDialog({
                           setStartDateOpen(false)
                         }
                       }}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -703,7 +702,6 @@ export default function EventDialog({
                           }
                         }
                       }}
-                      initialFocus
                       disabled={(date) => date < startDate}
                     />
                   </PopoverContent>

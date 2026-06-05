@@ -20,6 +20,7 @@ import { translations, type Language } from '@/lib/i18n'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -97,6 +98,7 @@ export default function Sidebar({
     removeCategory: removeCategoryFromContext,
     updateCategory: updateCategoryInContext,
     moveCategory: moveCategoryInContext,
+    isLoadingCalendarData,
   } = useCalendar()
 
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -217,7 +219,15 @@ export default function Sidebar({
           events.filter((event) => event.calendarId !== categoryToDelete),
         )
       }
-      removeCategoryFromContext(categoryToDelete)
+      void fetch('/api/blob', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: categoryToDelete,
+          deleteEvents: deleteCategoryEvents,
+        }),
+      })
+      removeCategoryFromContext(categoryToDelete, deleteCategoryEvents)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
           ? t.categoryDeletedWithEvents
@@ -285,6 +295,16 @@ export default function Sidebar({
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t.myCalendars}</span>
           </div>
+          {isLoadingCalendarData && calendars.length === 0 && (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ))}
+            </div>
+          )}
           {calendars.map((calendar) => (
             <div
               key={calendar.id}

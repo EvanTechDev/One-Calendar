@@ -48,6 +48,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { APP_CONFIG } from '@/lib/config'
 import {
   isCalendarView,
@@ -124,7 +125,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const { events, setEvents, calendars } = useCalendar()
+  const {
+    events,
+    setEvents,
+    calendars,
+    isLoadingCalendarData,
+    loadCalendarRange,
+  } = useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
   const searchInputRef = useRef<HTMLDivElement>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -254,6 +261,61 @@ export default function Calendar({ className, ...props }: CalendarProps) {
       window.removeEventListener('storage', refreshBackupState)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    let start: Date
+    let end: Date
+    if (view === 'year') {
+      start = new Date(date.getFullYear(), 0, 1)
+      end = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999)
+    } else {
+      start = new Date(date.getFullYear(), date.getMonth() - 1, 1)
+      end = new Date(
+        date.getFullYear(),
+        date.getMonth() + 2,
+        0,
+        23,
+        59,
+        59,
+        999,
+      )
+    }
+    void loadCalendarRange(start, end)
+  }, [date, view, isSignedIn, loadCalendarRange])
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    const timer = window.setTimeout(() => {
+      void fetch('/api/blob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            language,
+            firstDayOfWeek: normalizedFirstDayOfWeek,
+            timezone,
+            notificationSound,
+            defaultView,
+            enableShortcuts,
+            timeFormat,
+            toastPosition,
+          },
+        }),
+      })
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [
+    isSignedIn,
+    language,
+    normalizedFirstDayOfWeek,
+    timezone,
+    notificationSound,
+    defaultView,
+    enableShortcuts,
+    timeFormat,
+    toastPosition,
+  ])
 
   const backupStatusIcon = useMemo(() => {
     if (!backupEnabled) return null
@@ -942,7 +1004,23 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               />
             </div>
           </header>
-          <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
+          <div
+            className="relative flex-1 overflow-auto pr-14"
+            ref={calendarRef}
+          >
+            {isLoadingCalendarData && (
+              <div className="pointer-events-none absolute inset-0 z-30 space-y-3 bg-background/45 p-6 backdrop-blur-[1px]">
+                <div className="flex gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from({ length: 21 }).map((_, index) => (
+                    <Skeleton key={index} className="h-16 w-full" />
+                  ))}
+                </div>
+              </div>
+            )}
             {view === 'day' && (
               <DayView
                 date={date}
@@ -967,7 +1045,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent)
                 }}
-                onBackToCalendar={() => setView(defaultView)}
               />
             )}
             {view === 'week' && (
@@ -1078,7 +1155,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 focusUserProfileSection={focusUserProfileSection}
                 toastPosition={toastPosition}
                 setToastPosition={setToastPosition}
-                onBackToCalendar={() => setView(defaultView)}
               />
             )}
           </div>

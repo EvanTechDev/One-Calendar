@@ -1,53 +1,17 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
-import { shares } from '@/lib/drizzle/schema'
-import { eq, and } from 'drizzle-orm'
+import { calendarBackups, shares } from '@/lib/drizzle/schema'
+import { and, eq } from 'drizzle-orm'
+import {
+  decryptServerJson,
+  decryptSharePassword,
+  encryptServerJson,
+  encryptSharePassword,
+} from '@/lib/server-crypto'
 
 export const runtime = 'nodejs'
-
-const ALGORITHM = 'aes-256-gcm'
-
-function keyV2Unprotected(shareId: string) {
-  return crypto.createHash('sha256').update(shareId, 'utf8').digest()
-}
-
-function keyV3Password(password: string, shareId: string) {
-  return crypto.scryptSync(password, shareId, 32)
-}
-
-function encryptWithKey(
-  data: string,
-  key: Buffer,
-): { encryptedData: string; iv: string; authTag: string } {
-  const iv = crypto.randomBytes(16)
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
-  let encrypted = cipher.update(data, 'utf8', 'hex')
-  encrypted += cipher.final('hex')
-  const authTag = cipher.getAuthTag()
-  return {
-    encryptedData: encrypted,
-    iv: iv.toString('hex'),
-    authTag: authTag.toString('hex'),
-  }
-}
-
-function decryptWithKey(
-  encryptedData: string,
-  iv: string,
-  authTag: string,
-  key: Buffer,
-): string {
-  const ivBuffer = Buffer.from(iv, 'hex')
-  const authTagBuffer = Buffer.from(authTag, 'hex')
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBuffer)
-  decipher.setAuthTag(authTagBuffer)
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
-  return decrypted
-}
 
 export const POST = withEvlog(async function POST(request: NextRequest) {
   try {
@@ -55,15 +19,17 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
     const body = await request.json()
     const { id, data, password, burnAfterRead } = body as {
       id?: string
-      data?: unknown
+      data?: any
       password?: string
       burnAfterRead?: boolean
     }
-    if (!id || data === undefined || data === null)
+    const eventId = String(data?.id || body?.eventId || '')
+    if (!id || !eventId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 },
       )
+    }
 
     const session = await getServerSession()
     const user = session?.user
@@ -79,12 +45,9 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
     }
 
     const hasPassword = typeof password === 'string' && password.length > 0
-    const burn = !!burnAfterRead
-    const dataString = typeof data === 'string' ? data : JSON.stringify(data)
-    const key = hasPassword
-      ? keyV3Password(password as string, id)
-      : keyV2Unprotected(id)
-    const { encryptedData, iv, authTag } = encryptWithKey(dataString, key)
+    const encrypted = hasPassword
+      ? encryptSharePassword(password as string, id)
+      : encryptServerJson({ unprotected: true }, `share:${id}`)
     const now = new Date()
 
     await db
@@ -92,47 +55,35 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
       .values({
         userId: user.id,
         shareId: id,
-        encryptedData,
-        iv,
-        authTag,
+        eventId,
+        encryptedData: encrypted.encryptedData,
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
         timestamp: now,
         isProtected: hasPassword,
-        isBurn: burn,
-        encVersion: hasPassword ? 3 : 2,
+        isBurn: Boolean(burnAfterRead),
+        encVersion: hasPassword ? 4 : 4,
       })
       .onConflictDoUpdate({
         target: shares.shareId,
         set: {
           userId: user.id,
-          encryptedData,
-          iv,
-          authTag,
+          eventId,
+          encryptedData: encrypted.encryptedData,
+          iv: encrypted.iv,
+          authTag: encrypted.authTag,
           timestamp: now,
           isProtected: hasPassword,
-          isBurn: burn,
-          encVersion: hasPassword ? 3 : 2,
+          isBurn: Boolean(burnAfterRead),
+          encVersion: 4,
         },
       })
-
-    log.audit?.({
-      action: 'share.create',
-      actor: getAuditActor(log, {
-        type: 'user',
-        id: user.id,
-        email: user.email,
-      }),
-      target: { type: 'share', id },
-      outcome: 'success',
-      reason: burn
-        ? 'User created burn-after-read share'
-        : 'User created share',
-    })
 
     return NextResponse.json({
       success: true,
       id,
       protected: hasPassword,
-      burnAfterRead: burn,
+      burnAfterRead: Boolean(burnAfterRead),
       shareLink: `/share/${id}`,
     })
   } catch (error) {
@@ -159,30 +110,41 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
         .select()
         .from(shares)
         .where(eq(shares.shareId, id))
-
       if (!share) return { status: 404 as const }
-      if (share.isProtected && !password)
-        return { status: 401 as const, burnAfterRead: share.isBurn }
-
-      const key = share.isProtected
-        ? keyV3Password(password, id)
-        : keyV2Unprotected(id)
-      let decryptedData: string
-      try {
-        decryptedData = decryptWithKey(
+      if (share.isProtected) {
+        if (!password)
+          return { status: 401 as const, burnAfterRead: share.isBurn }
+        const expectedPassword = decryptSharePassword(
           share.encryptedData,
           share.iv,
           share.authTag,
-          key,
+          share.shareId,
         )
-      } catch {
-        return { status: 403 as const, protected: share.isProtected }
+        if (password !== expectedPassword) return { status: 403 as const }
       }
+
+      const [eventRow] = await tx
+        .select()
+        .from(calendarBackups)
+        .where(
+          and(
+            eq(calendarBackups.userId, share.userId),
+            eq(calendarBackups.id, share.eventId),
+          ),
+        )
+      if (!eventRow) return { status: 404 as const }
+
+      const event = decryptServerJson(
+        eventRow.encryptedData,
+        eventRow.iv,
+        eventRow.authTag,
+        'calendar-event',
+      )
       if (share.isBurn) await tx.delete(shares).where(eq(shares.shareId, id))
 
       return {
         status: 200 as const,
-        data: decryptedData,
+        data: JSON.stringify(event),
         timestamp: share.timestamp.toISOString(),
         protected: share.isProtected,
         burnAfterRead: share.isBurn,
@@ -195,18 +157,11 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
         actor: getAuditActor(log),
         target: { type: 'share', id },
         outcome: 'failure',
-        reason: 'Share not found',
+        reason: 'Share or event not found',
       })
       return NextResponse.json({ error: 'Share not found' }, { status: 404 })
     }
     if (result.status === 401) {
-      log.audit?.({
-        action: 'share.export',
-        actor: getAuditActor(log),
-        target: { type: 'share', id },
-        outcome: 'denied',
-        reason: 'Password required',
-      })
       return NextResponse.json(
         {
           error: 'Password required',
@@ -217,34 +172,8 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
       )
     }
     if (result.status === 403) {
-      log.audit?.({
-        action: 'share.export',
-        actor: getAuditActor(log),
-        target: { type: 'share', id },
-        outcome: 'denied',
-        reason: result.protected
-          ? 'Invalid password'
-          : 'Failed to decrypt share data',
-      })
-      return NextResponse.json(
-        {
-          error: result.protected
-            ? 'Invalid password'
-            : 'Failed to decrypt share data.',
-        },
-        { status: 403 },
-      )
+      return NextResponse.json({ error: 'Invalid password' }, { status: 403 })
     }
-
-    log.audit?.({
-      action: result.burnAfterRead ? 'share.burn_after_read' : 'share.export',
-      actor: getAuditActor(log),
-      target: { type: 'share', id },
-      outcome: 'success',
-      reason: result.burnAfterRead
-        ? 'Burn-after-read share exported and deleted'
-        : 'Share exported',
-    })
 
     return NextResponse.json({
       success: true,
@@ -287,18 +216,5 @@ export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
   await db
     .delete(shares)
     .where(and(eq(shares.shareId, id), eq(shares.userId, user.id)))
-
-  log.audit?.({
-    action: 'share.delete',
-    actor: getAuditActor(log, {
-      type: 'user',
-      id: user.id,
-      email: user.email,
-    }),
-    target: { type: 'share', id },
-    outcome: 'success',
-    reason: 'User deleted share',
-  })
-
   return NextResponse.json({ success: true })
 })
