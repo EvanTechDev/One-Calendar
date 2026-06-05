@@ -49,7 +49,6 @@ This project is built for individuals and small teams who value clarity over com
 
 - **No AI tracking** &ndash; no behavioral profiling or data mining
 - **No analytics by default** &ndash; zero third-party tracking scripts
-- **End-to-end encryption (E2EE)** &ndash; optional encrypted data handling
 - **User-controlled exports** &ndash; backup and portability without lock-in
 - **Secure authentication** &ndash; hardened session management via Better Auth
 
@@ -83,14 +82,12 @@ This project is built for individuals and small teams who value clarity over com
 | Quick add / natural input                |      ✅      |       ✅        |       ⚠️       |        ✅        |       ⚠️        |
 | Cloud sync                               |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
 | Web application                          |      ✅      |       ✅        |       ⚠️       |        ✅        |       ✅        |
-| End-to-end encryption (E2EE)             |      ✅      |       ❌        |       ❌       |        ❌        |       ✅        |
 | Privacy-first architecture               |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
 | No analytics / tracking by default       |      ✅      |       ❌        |       ⚠️       |        ❌        |       ✅        |
 | Open-source                              |      ✅      |       ❌        |       ❌       |        ❌        |       ⚠️        |
 | Self-hostable                            |      ✅      |       ❌        |       ❌       |        ❌        |       ❌        |
 | Data export                              |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
 | ICS import / export                      |      ✅      |       ✅        |       ✅       |        ✅        |       ✅        |
-| Custom default view                      |      ✅      |       ⚠️        |       ❌       |        ⚠️        |       ⚠️        |
 
 ⚠️ = limited or partial support
 
