@@ -31,7 +31,7 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
 
   const shareList = await Promise.all(
     result.map(async (row) => {
-      let eventTitle = row.isProtected ? '受保护' : ''
+      let eventTitle = ''
       try {
         const [eventRow] = await db
           .select()

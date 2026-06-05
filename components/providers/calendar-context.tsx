@@ -2,7 +2,13 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
-import { useCallback, useEffect, useRef } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react'
 import { create } from 'zustand'
 import {
   readEncryptedLocalStorage,
@@ -31,6 +37,14 @@ export interface CalendarEvent {
   calendarId: string
 }
 
+type LoadCalendarRange = (
+  start: Date,
+  end: Date,
+  replace?: boolean,
+) => Promise<void>
+
+const CalendarLoadRangeContext = createContext<LoadCalendarRange | null>(null)
+
 interface CalendarContextType {
   calendars: CalendarCategory[]
   setCalendars: Dispatch<SetStateAction<CalendarCategory[]>>
@@ -38,11 +52,7 @@ interface CalendarContextType {
   setEvents: Dispatch<SetStateAction<CalendarEvent[]>>
   isLoadingCalendarData: boolean
   loadedRanges: Array<{ start: Date; end: Date }>
-  loadCalendarRange: (
-    start: Date,
-    end: Date,
-    replace?: boolean,
-  ) => Promise<void>
+  loadCalendarRange: LoadCalendarRange
   addCategory: (category: CalendarCategory) => void
   removeCategory: (id: string, deleteEvents?: boolean) => void
   updateCategory: (id: string, category: Partial<CalendarCategory>) => void
@@ -290,11 +300,17 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     return undefined
   }, [events])
 
-  return children
+  return (
+    <CalendarLoadRangeContext.Provider value={loadCalendarRange}>
+      {children}
+    </CalendarLoadRangeContext.Provider>
+  )
 }
 
 export function useCalendar(): CalendarContextType {
   const store = useCalendarStore()
+  const loadCalendarRange = useContext(CalendarLoadRangeContext)
+
   return {
     calendars: store.calendars,
     setCalendars: store.setCalendars,
@@ -302,33 +318,7 @@ export function useCalendar(): CalendarContextType {
     setEvents: store.setEvents,
     isLoadingCalendarData: store.isLoadingCalendarData,
     loadedRanges: store.loadedRanges,
-    loadCalendarRange: async (start, end, replace) => {
-      useCalendarStore.getState().setLoading(true)
-      try {
-        const params = new URLSearchParams({
-          start: start.toISOString(),
-          end: end.toISOString(),
-        })
-        const response = await fetch(`/api/blob?${params}`, {
-          cache: 'no-store',
-        })
-        if (!response.ok) return
-        const data = await response.json()
-        useCalendarStore
-          .getState()
-          .setCalendars(Array.isArray(data.calendars) ? data.calendars : [])
-        useCalendarStore
-          .getState()
-          .mergeEvents(
-            Array.isArray(data.events) ? data.events.map(toEvent) : [],
-            { start, end },
-            replace,
-          )
-        useCalendarStore.getState().addLoadedRange({ start, end })
-      } finally {
-        useCalendarStore.getState().setLoading(false)
-      }
-    },
+    loadCalendarRange: loadCalendarRange ?? (async () => {}),
     addCategory: store.addCategory,
     removeCategory: store.removeCategory,
     updateCategory: store.updateCategory,
