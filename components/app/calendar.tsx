@@ -138,6 +138,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const { events, setEvents, calendars, loadRange, saveEvents, deleteEvent } =
     useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
+  const [focusedSearchEventId, setFocusedSearchEventId] = useState<
+    string | null
+  >(null)
   const searchInputRef = useRef<HTMLDivElement>(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
@@ -216,6 +219,39 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   useEffect(() => {
     setView(isCalendarView(defaultView) ? defaultView : 'week')
   }, [defaultView])
+
+  useEffect(() => {
+    if (!backupEnabled || !isSignedIn) return
+
+    const timeoutId = window.setTimeout(() => {
+      void fetch('/api/blob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            'first-day-of-week': normalizedFirstDayOfWeek,
+            timezone,
+            'notification-sound': notificationSound,
+            'default-view': defaultView,
+            'enable-shortcuts': enableShortcuts,
+            'time-format': timeFormat,
+            'toast-position': toastPosition,
+          },
+        }),
+      }).catch(() => undefined)
+    }, 400)
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    backupEnabled,
+    defaultView,
+    enableShortcuts,
+    isSignedIn,
+    normalizedFirstDayOfWeek,
+    notificationSound,
+    timeFormat,
+    timezone,
+    toastPosition,
+  ])
 
   useEffect(() => {
     const applyRestoredPreferences = () => {
@@ -477,6 +513,18 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setPreviewOpen(true)
   }
 
+  const jumpToSearchResult = (event: CalendarEvent) => {
+    const eventDate = new Date(event.startDate)
+    setDate(eventDate)
+    setSidebarDate(eventDate)
+    setFocusedSearchEventId(event.id)
+    setSearchTerm(event.title || t.unnamedEvent)
+    setIsSearchFocused(false)
+    setPreviewOpen(false)
+    setPreviewEvent(null)
+    setPreviewAnchorRect(null)
+  }
+
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
@@ -690,6 +738,12 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }, [events, selectedCategoryFilters, calendars])
 
   const filteredEvents = useMemo(() => {
+    if (focusedSearchEventId) {
+      return eventsByCategory.filter(
+        (event) => event.id === focusedSearchEventId,
+      )
+    }
+
     const keyword = searchTerm.trim().toLowerCase()
     if (!keyword) return eventsByCategory
 
@@ -708,12 +762,28 @@ export default function Calendar({ className, ...props }: CalendarProps) {
         (a, b) =>
           new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
       )
-  }, [eventsByCategory, searchTerm])
+  }, [eventsByCategory, focusedSearchEventId, searchTerm])
 
   const searchResultEvents = useMemo(() => {
-    if (!searchTerm.trim()) return []
-    return filteredEvents.slice(0, 8)
-  }, [filteredEvents, searchTerm])
+    const keyword = searchTerm.trim().toLowerCase()
+    if (!keyword) return []
+    return eventsByCategory
+      .filter((event) => {
+        const title = event.title?.toLowerCase() || ''
+        const location = event.location?.toLowerCase() || ''
+        const description = event.description?.toLowerCase() || ''
+        return (
+          title.includes(keyword) ||
+          location.includes(keyword) ||
+          description.includes(keyword)
+        )
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      )
+      .slice(0, 8)
+  }, [eventsByCategory, searchTerm])
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {
@@ -850,24 +920,20 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                     onBlur={() => {
                       window.setTimeout(() => setIsSearchFocused(false), 120)
                     }}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setFocusedSearchEventId(null)
+                      setSearchTerm(e.target.value)
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                        setPreviewEvent(searchResultEvents[0])
-                        setPreviewAnchorRect(
-                          searchInputRef.current?.getBoundingClientRect() ??
-                            null,
-                        )
-                        setPreviewOpen(true)
-                        setSearchTerm('')
-                        setIsSearchFocused(false)
+                        jumpToSearchResult(searchResultEvents[0])
                       }
                     }}
                     className="pr-4"
                   />
                 </InputGroup>
                 {isSearchFocused && !!searchTerm && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
+                  <div className="absolute right-0 top-[calc(100%+6px)] w-80 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl z-50">
                     {searchResultEvents.length > 0 ? (
                       <ScrollArea className="max-h-[320px]">
                         <div className="space-y-1">
@@ -875,25 +941,31 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                             <button
                               key={event.id}
                               type="button"
-                              className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                              className="w-full cursor-pointer rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none"
                               onMouseDown={(e) => {
                                 e.preventDefault()
-                                setPreviewEvent(event)
-                                setPreviewAnchorRect(
-                                  searchInputRef.current?.getBoundingClientRect() ??
-                                    null,
-                                )
-                                setPreviewOpen(true)
-                                setSearchTerm('')
-                                setIsSearchFocused(false)
+                                jumpToSearchResult(event)
                               }}
                             >
-                              <div className="font-medium leading-none">
+                              <div className="truncate font-medium leading-none">
                                 {event.title || t.unnamedEvent}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {formatDateDisplay(new Date(event.startDate))}
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                {new Date(event.startDate).toLocaleString(
+                                  language,
+                                  {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  },
+                                )}
                               </div>
+                              {event.location ? (
+                                <div className="mt-1 truncate text-xs text-muted-foreground/80">
+                                  {event.location}
+                                </div>
+                              ) : null}
                             </button>
                           ))}
                         </div>
@@ -907,13 +979,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 )}
               </div>
               {backupEnabled ? (
-                <div
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-8 w-8"
                   title="Backup status"
                   aria-label="Backup status"
+                  onClick={() => handleUserProfileSectionNavigate('backup')}
                 >
                   {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
-                </div>
+                </Button>
               ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

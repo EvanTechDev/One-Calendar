@@ -2,6 +2,15 @@ import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 
+export class BackupCryptoConfigurationError extends Error {
+  constructor() {
+    super(
+      'Missing BACKUP_SALT. Configure BACKUP_SALT to enable encrypted calendar backups.',
+    )
+    this.name = 'BackupCryptoConfigurationError'
+  }
+}
+
 export type ServerEncryptedPayload = {
   encryptedData: string
   iv: string
@@ -10,8 +19,35 @@ export type ServerEncryptedPayload = {
 
 function getBackupSalt() {
   const salt = process.env.BACKUP_SALT
-  if (!salt) throw new Error('Missing BACKUP_SALT')
+  if (!salt) throw new BackupCryptoConfigurationError()
   return salt
+}
+
+export function validateBackupSalt() {
+  return getBackupSalt()
+}
+
+export function hashServerSearchText(values: unknown[]) {
+  const normalizedValues = values
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+  const normalizedText = normalizedValues.join(' ')
+  const tokens = new Set([
+    normalizedText,
+    ...normalizedText.split(/\s+/u).filter(Boolean),
+  ])
+
+  return Array.from(tokens)
+    .map((token) =>
+      crypto
+        .createHash('sha256')
+        .update(getBackupSalt(), 'utf8')
+        .update(':search:')
+        .update(token, 'utf8')
+        .digest('hex'),
+    )
+    .join(' ')
 }
 
 function keyForContext(context: string) {

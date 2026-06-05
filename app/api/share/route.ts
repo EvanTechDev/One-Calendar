@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
-import { calendarBackups, shares } from '@/lib/drizzle/schema'
+import { calendarBackups, shares, user as users } from '@/lib/drizzle/schema'
 import { and, eq } from 'drizzle-orm'
 import { compare, hash } from 'bcryptjs'
 import { randomUUID } from 'crypto'
@@ -14,25 +14,48 @@ function eventContext(userId: string, eventId: string) {
   return `calendar-event:${userId}:${eventId}`
 }
 
-function serializeEvent(row: typeof calendarBackups.$inferSelect) {
-  const extra = decryptServerJson<Record<string, unknown>>(
+function serializeEvent(
+  row: typeof calendarBackups.$inferSelect,
+  sharedBy: string,
+) {
+  const decrypted = decryptServerJson<Record<string, unknown>>(
     row.encryptedData,
     row.iv,
     row.authTag,
     eventContext(row.userId, row.id),
     {},
   )
+  const legacyExtensions =
+    decrypted.extensions && typeof decrypted.extensions === 'object'
+      ? (decrypted.extensions as Record<string, unknown>)
+      : {}
   return {
-    ...extra,
+    ...legacyExtensions,
+    ...decrypted,
     id: row.id,
-    title: row.title,
-    startDate: row.startDate.toISOString(),
-    endDate: row.endDate.toISOString(),
-    isAllDay: row.isAllDay,
-    recurrence: row.recurrence,
-    color: row.color,
-    calendarId: row.calendarId ?? '',
-    sharedBy: row.userId,
+    title: typeof decrypted.title === 'string' ? decrypted.title : row.title,
+    startDate:
+      typeof decrypted.startDate === 'string'
+        ? decrypted.startDate
+        : row.startDate.toISOString(),
+    endDate:
+      typeof decrypted.endDate === 'string'
+        ? decrypted.endDate
+        : row.endDate.toISOString(),
+    isAllDay:
+      typeof decrypted.isAllDay === 'boolean'
+        ? decrypted.isAllDay
+        : row.isAllDay,
+    recurrence:
+      typeof decrypted.recurrence === 'string'
+        ? decrypted.recurrence
+        : row.recurrence,
+    color: typeof decrypted.color === 'string' ? decrypted.color : row.color,
+    calendarId:
+      typeof decrypted.calendarId === 'string'
+        ? decrypted.calendarId
+        : (row.calendarId ?? ''),
+    sharedBy,
   }
 }
 
@@ -79,6 +102,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
 
     const hasPassword = typeof password === 'string' && password.length > 0
+    const passwordHash = hasPassword ? await hash(password, 12) : null
     const now = new Date()
     await db
       .insert(shares)
@@ -86,7 +110,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
         userId: user.id,
         shareId,
         eventId: targetEventId,
-        passwordHash: hasPassword ? await hash(password, 12) : null,
+        passwordHash,
         isProtected: hasPassword,
         isBurn: Boolean(burnAfterRead),
         createdAt: now,
@@ -97,7 +121,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
         set: {
           userId: user.id,
           eventId: targetEventId,
-          passwordHash: hasPassword ? await hash(password, 12) : null,
+          passwordHash,
           isProtected: hasPassword,
           isBurn: Boolean(burnAfterRead),
           updatedAt: now,
@@ -173,11 +197,15 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
           ),
         )
       if (!event) return { status: 404 as const }
+      const [owner] = await tx
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, share.userId))
       if (share.isBurn) await tx.delete(shares).where(eq(shares.shareId, id))
 
       return {
         status: 200 as const,
-        data: JSON.stringify(serializeEvent(event)),
+        data: JSON.stringify(serializeEvent(event, owner?.name ?? 'Unknown')),
         timestamp: share.updatedAt.toISOString(),
         protected: share.isProtected,
         burnAfterRead: share.isBurn,

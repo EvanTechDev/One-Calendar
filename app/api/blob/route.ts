@@ -9,12 +9,21 @@ import {
   calendarCountdowns,
   userSettings,
 } from '@/lib/drizzle/schema'
-import { and, eq, gte, lte, or } from 'drizzle-orm'
-import { decryptServerJson, encryptServerJson } from '@/lib/server-crypto'
+import { and, eq } from 'drizzle-orm'
+import {
+  decryptServerJson,
+  encryptServerJson,
+  hashServerSearchText,
+  validateBackupSalt,
+} from '@/lib/server-crypto'
 import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function ensureBackupCryptoConfigured() {
+  validateBackupSalt()
+}
 
 const NO_STORE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -46,6 +55,35 @@ type CalendarCategoryPayload = {
   position?: number
   [key: string]: unknown
 }
+
+type CalendarBookmarkPayload = {
+  id?: string
+  eventId?: string
+  title?: string
+  startDate?: string | Date
+  endDate?: string | Date
+  color?: string
+  [key: string]: unknown
+}
+
+type CalendarCountdownPayload = {
+  id?: string
+  title?: string
+  name?: string
+  dueDate?: string | Date
+  date?: string | Date
+  eventId?: string
+  [key: string]: unknown
+}
+
+type EncryptedSettingsEnvelope = {
+  encryptedData?: string
+  iv?: string
+  authTag?: string
+}
+
+const ENCRYPTED_TEXT_PLACEHOLDER = '[encrypted]'
+const ENCRYPTED_DATE_PLACEHOLDER = new Date(0)
 
 function jsonNoStore(body: unknown, init?: ResponseInit) {
   return NextResponse.json(body, {
@@ -80,43 +118,150 @@ function countdownContext(userId: string, countdownId: string) {
   return `calendar-countdown:${userId}:${countdownId}`
 }
 
+function settingsContext(userId: string) {
+  return `user-settings:${userId}`
+}
+
 function serializeEvent(row: typeof calendarBackups.$inferSelect) {
-  const extra = decryptServerJson<Record<string, unknown>>(
+  const decrypted = decryptServerJson<Record<string, unknown>>(
     row.encryptedData,
     row.iv,
     row.authTag,
     eventContext(row.userId, row.id),
     {},
   )
+  const legacyExtensions =
+    decrypted.extensions && typeof decrypted.extensions === 'object'
+      ? (decrypted.extensions as Record<string, unknown>)
+      : {}
   return {
-    ...extra,
+    ...legacyExtensions,
+    ...decrypted,
     id: row.id,
-    title: row.title,
-    startDate: row.startDate.toISOString(),
-    endDate: row.endDate.toISOString(),
-    isAllDay: row.isAllDay,
-    recurrence: row.recurrence,
-    color: row.color,
-    calendarId: row.calendarId ?? '',
+    title: typeof decrypted.title === 'string' ? decrypted.title : row.title,
+    startDate:
+      typeof decrypted.startDate === 'string'
+        ? decrypted.startDate
+        : row.startDate.toISOString(),
+    endDate:
+      typeof decrypted.endDate === 'string'
+        ? decrypted.endDate
+        : row.endDate.toISOString(),
+    isAllDay:
+      typeof decrypted.isAllDay === 'boolean'
+        ? decrypted.isAllDay
+        : row.isAllDay,
+    recurrence:
+      typeof decrypted.recurrence === 'string'
+        ? decrypted.recurrence
+        : row.recurrence,
+    color: typeof decrypted.color === 'string' ? decrypted.color : row.color,
+    calendarId:
+      typeof decrypted.calendarId === 'string'
+        ? decrypted.calendarId
+        : (row.calendarId ?? ''),
   }
 }
 
 function serializeCategory(row: typeof calendarCategories.$inferSelect) {
-  const extra = decryptServerJson<Record<string, unknown>>(
+  const decrypted = decryptServerJson<Record<string, unknown>>(
     row.encryptedData,
     row.iv,
     row.authTag,
     categoryContext(row.userId, row.id),
     {},
   )
+  const legacyExtensions =
+    decrypted.extensions && typeof decrypted.extensions === 'object'
+      ? (decrypted.extensions as Record<string, unknown>)
+      : {}
   return {
-    ...extra,
+    ...legacyExtensions,
+    ...decrypted,
     id: row.id,
-    name: row.name,
-    color: row.color,
-    keywords: row.keywords,
-    position: row.position,
+    name: typeof decrypted.name === 'string' ? decrypted.name : row.name,
+    color: typeof decrypted.color === 'string' ? decrypted.color : row.color,
+    keywords: Array.isArray(decrypted.keywords)
+      ? decrypted.keywords
+      : row.keywords,
+    position:
+      typeof decrypted.position === 'number'
+        ? decrypted.position
+        : row.position,
   }
+}
+
+function serializeBookmark(row: typeof calendarBookmarks.$inferSelect) {
+  const decrypted = decryptServerJson<Record<string, unknown>>(
+    row.encryptedData,
+    row.iv,
+    row.authTag,
+    bookmarkContext(row.userId, row.id),
+    {},
+  )
+  return {
+    ...decrypted,
+    id: row.id,
+    eventId:
+      typeof decrypted.eventId === 'string' ? decrypted.eventId : row.eventId,
+    title: typeof decrypted.title === 'string' ? decrypted.title : row.title,
+    startDate:
+      typeof decrypted.startDate === 'string'
+        ? decrypted.startDate
+        : row.startDate.toISOString(),
+    endDate:
+      typeof decrypted.endDate === 'string'
+        ? decrypted.endDate
+        : row.endDate.toISOString(),
+    color: typeof decrypted.color === 'string' ? decrypted.color : row.color,
+  }
+}
+
+function serializeCountdown(row: typeof calendarCountdowns.$inferSelect) {
+  const decrypted = decryptServerJson<Record<string, unknown>>(
+    row.encryptedData,
+    row.iv,
+    row.authTag,
+    countdownContext(row.userId, row.id),
+    {},
+  )
+  return {
+    ...decrypted,
+    id: row.id,
+    title:
+      typeof decrypted.title === 'string'
+        ? decrypted.title
+        : typeof decrypted.name === 'string'
+          ? decrypted.name
+          : row.title,
+    dueDate:
+      typeof decrypted.dueDate === 'string'
+        ? decrypted.dueDate
+        : typeof decrypted.date === 'string'
+          ? decrypted.date
+          : row.dueDate.toISOString(),
+    eventId:
+      typeof decrypted.eventId === 'string'
+        ? decrypted.eventId
+        : (row.eventId ?? ''),
+  }
+}
+
+function serializeSettings(
+  userId: string,
+  value: Record<string, unknown> | null | undefined,
+) {
+  const envelope = value as EncryptedSettingsEnvelope | null | undefined
+  if (envelope?.encryptedData && envelope.iv && envelope.authTag) {
+    return decryptServerJson<Record<string, unknown>>(
+      envelope.encryptedData,
+      envelope.iv,
+      envelope.authTag,
+      settingsContext(userId),
+      {},
+    )
+  }
+  return value ?? {}
 }
 
 function eventValues(userId: string, input: CalendarEventPayload) {
@@ -128,46 +273,122 @@ function eventValues(userId: string, input: CalendarEventPayload) {
     typeof input.calendarId === 'string' && input.calendarId
       ? input.calendarId
       : null
-  const extra = {
-    description: input.description ?? '',
-    location: input.location ?? '',
-    participants: Array.isArray(input.participants) ? input.participants : [],
-    notification:
-      typeof input.notification === 'number' ? input.notification : 0,
-    extensions: Object.fromEntries(
-      Object.entries(input).filter(
-        ([key]) =>
-          ![
-            'id',
-            'title',
-            'startDate',
-            'endDate',
-            'isAllDay',
-            'recurrence',
-            'calendarId',
-            'color',
-          ].includes(key),
-      ),
-    ),
-  }
-  const encrypted = encryptServerJson(extra, eventContext(userId, eventId))
+  const recurrence =
+    typeof input.recurrence === 'string' ? input.recurrence : 'none'
+  const color =
+    typeof input.color === 'string' && input.color ? input.color : '#3b82f6'
+  const searchableText = hashServerSearchText([
+    title,
+    input.description,
+    input.location,
+  ])
+  const encrypted = encryptServerJson(
+    {
+      ...input,
+      id: eventId,
+      title,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      isAllDay: Boolean(input.isAllDay),
+      recurrence,
+      calendarId: calendarId ?? '',
+      color,
+      participants: Array.isArray(input.participants) ? input.participants : [],
+      notification:
+        typeof input.notification === 'number' ? input.notification : 0,
+      description: input.description ?? '',
+      location: input.location ?? '',
+    },
+    eventContext(userId, eventId),
+  )
   const now = new Date()
   return {
     id: eventId,
     userId,
-    title,
-    startDate,
-    endDate,
-    isAllDay: Boolean(input.isAllDay),
-    recurrence:
-      typeof input.recurrence === 'string' ? input.recurrence : 'none',
+    title: ENCRYPTED_TEXT_PLACEHOLDER,
+    startDate: ENCRYPTED_DATE_PLACEHOLDER,
+    endDate: ENCRYPTED_DATE_PLACEHOLDER,
+    isAllDay: false,
+    recurrence: 'none',
     calendarId,
-    color:
-      typeof input.color === 'string' && input.color ? input.color : '#3b82f6',
-    searchableText: [title, input.description, input.location]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase(),
+    color: '#3b82f6',
+    searchableText,
+    ...encrypted,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function settingsValues(userId: string, settings: Record<string, unknown>) {
+  return encryptServerJson(settings, settingsContext(userId))
+}
+
+function bookmarkValues(userId: string, input: CalendarBookmarkPayload) {
+  const bookmarkId = input.id || id('bmk')
+  const startDate = asDate(input.startDate)
+  const endDate = asDate(input.endDate, startDate)
+  const title = typeof input.title === 'string' ? input.title : 'Untitled event'
+  const color =
+    typeof input.color === 'string' && input.color ? input.color : '#3b82f6'
+  const encrypted = encryptServerJson(
+    {
+      ...input,
+      id: bookmarkId,
+      eventId: typeof input.eventId === 'string' ? input.eventId : bookmarkId,
+      title,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      color,
+    },
+    bookmarkContext(userId, bookmarkId),
+  )
+  const now = new Date()
+  return {
+    id: bookmarkId,
+    userId,
+    eventId: typeof input.eventId === 'string' ? input.eventId : bookmarkId,
+    title: ENCRYPTED_TEXT_PLACEHOLDER,
+    startDate: ENCRYPTED_DATE_PLACEHOLDER,
+    endDate: ENCRYPTED_DATE_PLACEHOLDER,
+    color: '#3b82f6',
+    ...encrypted,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function countdownValues(userId: string, input: CalendarCountdownPayload) {
+  const countdownId = input.id || id('cnt')
+  const dueDate = asDate(input.dueDate ?? input.date)
+  const title =
+    typeof input.title === 'string'
+      ? input.title
+      : typeof input.name === 'string'
+        ? input.name
+        : 'Untitled countdown'
+  const encrypted = encryptServerJson(
+    {
+      ...input,
+      id: countdownId,
+      title,
+      name: typeof input.name === 'string' ? input.name : title,
+      dueDate: dueDate.toISOString(),
+      date:
+        typeof input.date === 'string' || input.date instanceof Date
+          ? asDate(input.date).toISOString()
+          : dueDate.toISOString(),
+      eventId: typeof input.eventId === 'string' ? input.eventId : '',
+    },
+    countdownContext(userId, countdownId),
+  )
+  const now = new Date()
+  return {
+    id: countdownId,
+    userId,
+    title: ENCRYPTED_TEXT_PLACEHOLDER,
+    dueDate: ENCRYPTED_DATE_PLACEHOLDER,
+    eventId:
+      typeof input.eventId === 'string' && input.eventId ? input.eventId : null,
     ...encrypted,
     createdAt: now,
     updatedAt: now,
@@ -185,28 +406,19 @@ export const GET = withEvlog(async function GET(req: NextRequest) {
       return jsonNoStore({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    ensureBackupCryptoConfigured()
+
     const start = req.nextUrl.searchParams.get('start')
     const end = req.nextUrl.searchParams.get('end')
-    const where =
-      start && end
-        ? and(
-            eq(calendarBackups.userId, userId),
-            or(
-              and(
-                gte(calendarBackups.startDate, asDate(start)),
-                lte(calendarBackups.startDate, asDate(end)),
-              ),
-              and(
-                gte(calendarBackups.endDate, asDate(start)),
-                lte(calendarBackups.endDate, asDate(end)),
-              ),
-            ),
-          )
-        : eq(calendarBackups.userId, userId)
+    const rangeStart = start ? asDate(start) : null
+    const rangeEnd = end ? asDate(end) : null
 
     const [events, categories, settings, bookmarks, countdowns] =
       await Promise.all([
-        db.select().from(calendarBackups).where(where),
+        db
+          .select()
+          .from(calendarBackups)
+          .where(eq(calendarBackups.userId, userId)),
         db
           .select()
           .from(calendarCategories)
@@ -237,38 +449,23 @@ export const GET = withEvlog(async function GET(req: NextRequest) {
           : 'User exported calendar data',
     })
 
+    const serializedEvents = events.map(serializeEvent).filter((event) => {
+      if (!rangeStart || !rangeEnd) return true
+      const eventStart = asDate(event.startDate)
+      const eventEnd = asDate(event.endDate, eventStart)
+      return (
+        (eventStart >= rangeStart && eventStart <= rangeEnd) ||
+        (eventEnd >= rangeStart && eventEnd <= rangeEnd) ||
+        (eventStart <= rangeStart && eventEnd >= rangeEnd)
+      )
+    })
+
     return jsonNoStore({
-      events: events.map(serializeEvent),
+      events: serializedEvents,
       categories: categories.map(serializeCategory),
-      settings: settings[0]?.settings ?? {},
-      bookmarks: bookmarks.map((row) => ({
-        ...decryptServerJson(
-          row.encryptedData,
-          row.iv,
-          row.authTag,
-          bookmarkContext(row.userId, row.id),
-          {},
-        ),
-        id: row.id,
-        eventId: row.eventId,
-        title: row.title,
-        startDate: row.startDate.toISOString(),
-        endDate: row.endDate.toISOString(),
-        color: row.color,
-      })),
-      countdowns: countdowns.map((row) => ({
-        ...decryptServerJson(
-          row.encryptedData,
-          row.iv,
-          row.authTag,
-          countdownContext(row.userId, row.id),
-          {},
-        ),
-        id: row.id,
-        title: row.title,
-        dueDate: row.dueDate.toISOString(),
-        eventId: row.eventId ?? '',
-      })),
+      settings: serializeSettings(userId, settings[0]?.settings),
+      bookmarks: bookmarks.map(serializeBookmark),
+      countdowns: countdowns.map(serializeCountdown),
       backend: 'postgres',
     })
   } catch (e: unknown) {
@@ -287,6 +484,8 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
     if (!userId)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    ensureBackupCryptoConfigured()
+
     const events = Array.isArray(body?.events)
       ? body.events
       : body?.event
@@ -295,6 +494,8 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
           ? []
           : []
     const categories = Array.isArray(body?.categories) ? body.categories : []
+    const bookmarks = Array.isArray(body?.bookmarks) ? body.bookmarks : null
+    const countdowns = Array.isArray(body?.countdowns) ? body.countdowns : null
     const now = new Date()
 
     await db.transaction(async (tx) => {
@@ -332,16 +533,25 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
       for (const category of categories as CalendarCategoryPayload[]) {
         const categoryId = category.id || id('cat')
         const encrypted = encryptServerJson(
-          { extensions: category },
+          {
+            ...category,
+            id: categoryId,
+            name:
+              typeof category.name === 'string' ? category.name : 'Untitled',
+            color:
+              typeof category.color === 'string' ? category.color : '#3b82f6',
+            keywords: Array.isArray(category.keywords) ? category.keywords : [],
+            position:
+              typeof category.position === 'number' ? category.position : 0,
+          },
           categoryContext(userId, categoryId),
         )
         const values = {
           id: categoryId,
           userId,
-          name: typeof category.name === 'string' ? category.name : 'Untitled',
-          color:
-            typeof category.color === 'string' ? category.color : '#3b82f6',
-          keywords: Array.isArray(category.keywords) ? category.keywords : [],
+          name: ENCRYPTED_TEXT_PLACEHOLDER,
+          color: '#3b82f6',
+          keywords: [],
           position:
             typeof category.position === 'number' ? category.position : 0,
           ...encrypted,
@@ -373,18 +583,44 @@ export const POST = withEvlog(async function POST(req: NextRequest) {
           })
       }
 
+      if (bookmarks) {
+        await tx
+          .delete(calendarBookmarks)
+          .where(eq(calendarBookmarks.userId, userId))
+        for (const bookmark of bookmarks as CalendarBookmarkPayload[]) {
+          await tx
+            .insert(calendarBookmarks)
+            .values(bookmarkValues(userId, bookmark))
+        }
+      }
+
+      if (countdowns) {
+        await tx
+          .delete(calendarCountdowns)
+          .where(eq(calendarCountdowns.userId, userId))
+        for (const countdown of countdowns as CalendarCountdownPayload[]) {
+          await tx
+            .insert(calendarCountdowns)
+            .values(countdownValues(userId, countdown))
+        }
+      }
+
       if (body?.settings && typeof body.settings === 'object') {
+        const encryptedSettings = settingsValues(
+          userId,
+          body.settings as Record<string, unknown>,
+        )
         await tx
           .insert(userSettings)
           .values({
             userId,
-            settings: body.settings,
+            settings: encryptedSettings,
             createdAt: now,
             updatedAt: now,
           })
           .onConflictDoUpdate({
             target: userSettings.userId,
-            set: { settings: body.settings, updatedAt: now },
+            set: { settings: encryptedSettings, updatedAt: now },
           })
       }
     })

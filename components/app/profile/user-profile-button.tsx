@@ -670,14 +670,49 @@ export default function UserProfileButton({
   }
 
   async function enableServerBackup() {
-    const [events, categories] = await Promise.all([
+    const [
+      events,
+      categories,
+      bookmarks,
+      countdowns,
+      firstDayOfWeek,
+      timezone,
+      notificationSound,
+      defaultView,
+      enableShortcuts,
+      timeFormat,
+      toastPosition,
+    ] = await Promise.all([
       readEncryptedLocalStorage('calendar-events', []),
       readEncryptedLocalStorage('calendar-categories', []),
+      readEncryptedLocalStorage('bookmarked-events', []),
+      readEncryptedLocalStorage('countdowns', []),
+      readEncryptedLocalStorage('first-day-of-week', 0),
+      readEncryptedLocalStorage(
+        'timezone',
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ),
+      readEncryptedLocalStorage('notification-sound', 'telegram'),
+      readEncryptedLocalStorage('default-view', 'week'),
+      readEncryptedLocalStorage('enable-shortcuts', true),
+      readEncryptedLocalStorage('time-format', '24h'),
+      readEncryptedLocalStorage('toast-position', 'bottom-right'),
     ])
     await apiPost({
       events,
       categories,
-      settings: { backupMode: 'server-managed' },
+      bookmarks,
+      countdowns,
+      settings: {
+        backupMode: 'server-managed',
+        'first-day-of-week': firstDayOfWeek,
+        timezone,
+        'notification-sound': notificationSound,
+        'default-view': defaultView,
+        'enable-shortcuts': enableShortcuts,
+        'time-format': timeFormat,
+        'toast-position': toastPosition,
+      },
     })
     localStorage.setItem(AUTO_KEY, 'true')
     restoredRef.current = true
