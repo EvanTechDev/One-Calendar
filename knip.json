@@ -2,9 +2,6 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "ignoreFiles": [
     "components/app/analytics/events-calendar.tsx",
-    "components/app/profile/daily-toast.tsx",
-    "components/auth/oauth-provider-icon.tsx",
-    "components/landing/pricing-section.tsx",
     "hooks/use-toast.ts",
     "hooks/useMobile.ts",
     "lib/time-analytics.ts",
