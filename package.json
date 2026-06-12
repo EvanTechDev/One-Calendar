@@ -5,13 +5,14 @@
   "packageManager": "pnpm@11.5.2",
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm --silent run generate:locales && next build",
+    "build": "pnpm --silent run generate:i18n && next build",
     "start": "next start",
     "prepare": "husky",
     "lint": "oxlint --fix && eslint . --fix",
     "lint:check": "oxlint && eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
-    "generate:locales": "node lib/gen-locales.mjs"
+    "generate:i18n": "node lib/gen-locales.mjs",
+    "cleanup:i18n": "node lib/cleanup-i18n.mjs"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.6.16",
