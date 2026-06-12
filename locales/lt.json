@@ -189,15 +189,7 @@
   "noEventsFound": "Įvykių nerasta",
   "less": "Mažiau",
   "more": "Daugiau",
-  "weekdays": [
-    "Sek",
-    "Pir",
-    "Ant",
-    "Tre",
-    "Ket",
-    "Pen",
-    "Šeš"
-  ],
+  "weekdays": ["Sek", "Pir", "Ant", "Tre", "Ket", "Pen", "Šeš"],
   "months": [
     "Sau",
     "Vas",
@@ -359,15 +351,7 @@
   "protected": "Apsaugota",
   "colorAmber": "Gintarinė",
   "colorTeal": "Žalsvai mėlyna",
-  "sidebarCalendarWeekdaysShort": [
-    "sk",
-    "pr",
-    "an",
-    "tr",
-    "kt",
-    "pn",
-    "št"
-  ],
+  "sidebarCalendarWeekdaysShort": ["sk", "pr", "an", "tr", "kt", "pn", "št"],
   "sidebarCalendarMonthsLong": [
     "sausis",
     "vasaris",
