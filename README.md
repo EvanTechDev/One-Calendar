@@ -34,7 +34,6 @@ This project is built for individuals and small teams who value clarity over com
 
 - **Drag & drop scheduling** &ndash; move and resize events directly on the calendar
 - **Inline editing** &ndash; create and update events without modal overload
-- **Right-click actions** &ndash; fast contextual controls for power users
 - **Keyboard-friendly interactions** &ndash; efficient navigation and editing workflows
 
 ### Event management
