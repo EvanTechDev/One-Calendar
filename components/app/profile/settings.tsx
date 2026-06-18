@@ -46,6 +46,7 @@ import {
   Palette,
   ArrowLeft,
 } from 'lucide-react'
+import { Kbd } from "@/components/ui/kbd"
 
 interface SettingsProps {
   language: Language
