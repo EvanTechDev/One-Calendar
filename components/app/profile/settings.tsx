@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { useTheme } from 'next-themes'
 import {
-  Bell,
+  Clock,
   CalendarDays,
   Globe2,
   Keyboard,
@@ -290,7 +290,7 @@ export default function Settings({
           </div>
           <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <Bell className="h-4 w-4" />
+              <Clock className="h-4 w-4" />
               {t.timeFormat}
             </div>
             <Select
