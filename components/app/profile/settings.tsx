@@ -334,63 +334,63 @@ export default function Settings({
                   </DialogHeader>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         N
-                      </kbd>
+                      </Kbd>
                       <span>{t.newEvent}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         /
-                      </kbd>
+                      </Kbd>
                       <span>{t.searchEvents}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         T
-                      </kbd>
+                      </Kbd>
                       <span>{t.today}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         1
-                      </kbd>
+                      </Kbd>
                       <span>{t.day}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         2
-                      </kbd>
+                      </Kbd>
                       <span>{t.week}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         3
-                      </kbd>
+                      </Kbd>
                       <span>{t.month}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         4
-                      </kbd>
+                      </Kbd>
                       <span>{t.year}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         5
-                      </kbd>
+                      </Kbd>
                       <span>{t.fourDay}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         ←
-                      </kbd>
+                      </Kbd>
                       <span>{t.previousPeriod}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <kbd className="min-w-8 rounded-md border bg-muted px-2 py-0.5 text-center font-mono text-xs">
+                      <Kbd>
                         →
-                      </kbd>
+                      </Kbd>
                       <span>{t.nextPeriod}</span>
                     </div>
                   </div>
