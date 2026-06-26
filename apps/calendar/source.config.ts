@@ -8,7 +8,7 @@ import { z } from "zod"
 export default defineConfig({
   lastModifiedTime: "git",
   mdxOptions: {
-    providerImportSource: "./mdx-components",
+    providerImportSource: "@/mdx-components",
   },
 })
 
