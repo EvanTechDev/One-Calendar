@@ -2,6 +2,13 @@ import "./globals.css";
 import { Instrument_Sans, Inter, Geist } from "next/font/google";
 import { GeistSans } from 'geist/font/sans';
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { PwaProvider } from '@/components/providers/pwa-provider';
+import { Toaster } from '@/components/ui/sonner'
+import { CalendarProvider } from '@/components/providers/calendar-context'
+import type { Metadata, Viewport } from 'next'
+import type React from 'react'
+import { AVAILABLE_THEMES } from '@/lib/theme'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
