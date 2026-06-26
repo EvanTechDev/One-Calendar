@@ -1,0 +1,22 @@
+{
+  "name": "@zntr/utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./utils": "./src/utils.ts",
+    "./crypto": "./src/crypto.ts",
+    "./useLocalStorage": "./src/useLocalStorage.ts"
+  },
+  "scripts": {
+    "lint": "oxlint --fix src && eslint src --fix",
+    "lint:check": "oxlint src && eslint src --quiet",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "3.6.0",
+    "react": "19.2.7"
+  }
+}

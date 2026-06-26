@@ -1,0 +1,220 @@
+'use client'
+
+import type React from 'react'
+
+import { useState, useEffect } from 'react'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@zntr/ui/sheet'
+import { Button } from '@zntr/ui/button'
+import { ScrollArea } from '@zntr/ui/scroll-area'
+import { Bookmark, Search, Trash2 } from 'lucide-react'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@zntr/ui/input-group'
+import { format } from 'date-fns'
+import { zhCN, enUS } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { cn } from '@zntr/utils'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@zntr/ui/empty'
+import { isZhLanguage, translations, useLanguage } from '@zntr/i18n'
+import {
+  getEncryptionState,
+  readEncryptedLocalStorage,
+  subscribeEncryptionState,
+  writeEncryptedLocalStorage,
+} from '@zntr/utils/useLocalStorage'
+
+interface BookmarkPanelProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEventClick: (event: any) => void
+}
+
+interface BookmarkedEvent {
+  id: string
+  title: string
+  startDate: string | Date
+  endDate: string | Date
+  color: string
+  location?: string
+  bookmarkedAt: string
+}
+
+function getDarkerColorClass(color: string) {
+  const colorMapping: Record<string, string> = {
+    'bg-[#E6F6FD]': '#3B82F6',
+    'bg-[#E7F8F2]': '#10B981',
+    'bg-[#FEF5E6]': '#F59E0B',
+    'bg-[#FFE4E6]': '#EF4444',
+    'bg-[#F3EEFE]': '#8B5CF6',
+    'bg-[#FCE7F3]': '#EC4899',
+    'bg-[#EEF2FF]': '#6366F1',
+    'bg-[#FFF0E5]': '#FB923C',
+    'bg-[#E6FAF7]': '#14B8A6',
+  }
+
+  return colorMapping[color] || '#3A3A3A'
+}
+
+export default function BookmarkPanel({
+  open,
+  onOpenChange,
+  onEventClick,
+}: BookmarkPanelProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
+  const isZh = isZhLanguage(language)
+  const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      const loadBookmarks = () =>
+        readEncryptedLocalStorage<BookmarkedEvent[]>(
+          'bookmarked-events',
+          [],
+        ).then((stored) => {
+          const parsedBookmarks = [...stored]
+
+          parsedBookmarks.sort(
+            (a: BookmarkedEvent, b: BookmarkedEvent) =>
+              new Date(b.bookmarkedAt).getTime() -
+              new Date(a.bookmarkedAt).getTime(),
+          )
+          setBookmarks(parsedBookmarks)
+        })
+
+      loadBookmarks()
+
+      const unsubscribe = subscribeEncryptionState(() => {
+        if (!getEncryptionState().ready) return
+        loadBookmarks()
+      })
+      return () => {
+        unsubscribe()
+      }
+    }
+    return undefined
+  }, [open])
+
+  const formatEventDate = (dateString: string | Date) => {
+    const date = new Date(dateString)
+    return format(date, 'yyyy-MM-dd HH:mm', { locale: isZh ? zhCN : enUS })
+  }
+
+  const removeBookmark = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
+    void writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
+    setBookmarks(updatedBookmarks)
+    toast(t.bookmarkRemoved, {
+      description: t.eventRemovedFromBookmarks,
+    })
+  }
+
+  const handleEventClick = (event: BookmarkedEvent) => {
+    onOpenChange(false)
+
+    onEventClick(event)
+  }
+
+  const filteredBookmarks = bookmarks.filter(
+    (bookmark) =>
+      bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bookmark.location &&
+        bookmark.location.toLowerCase().includes(searchTerm.toLowerCase())),
+  )
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="flex items-center">
+            <Bookmark className="mr-2 h-5 w-5" />
+            {t.bookmarks}
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="p-4">
+          <div className="mb-4">
+            <InputGroup>
+              <InputGroupAddon>
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </InputGroupAddon>
+              <InputGroupInput
+                type="search"
+                placeholder={t.searchBookmarks}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
+          </div>
+
+          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+            {filteredBookmarks.length === 0 ? (
+              <Empty className="h-32 border-0 p-0">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Bookmark className="h-4 w-4" />
+                  </EmptyMedia>
+                  <EmptyTitle>{t.bookmarks}</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? t.noMatchingBookmarks : t.noBookmarks}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="space-y-3">
+                {filteredBookmarks.map((bookmark) => (
+                  <div
+                    key={bookmark.id}
+                    className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
+                    onClick={() => handleEventClick(bookmark)}
+                  >
+                    <div
+                      className={cn('w-1.5 self-stretch rounded-full mr-3')}
+                      style={{
+                        backgroundColor: getDarkerColorClass(bookmark.color),
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium truncate">{bookmark.title}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {formatEventDate(bookmark.startDate)}
+                      </p>
+                      {bookmark.location && (
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {bookmark.location}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => removeBookmark(bookmark.id, e)}
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
