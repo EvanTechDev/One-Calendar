@@ -116,7 +116,7 @@ export function Calendar({
 
   const dayPickerProps = {
     className: cn(
-      "w-fit [--cell-size:--spacing(10)] sm:[--cell-size:--spacing(9)]",
+      "w-fit [--cell-size:--spacing(8)]",
       className,
     ),
     classNames: mergedClassNames,
