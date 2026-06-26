@@ -6,6 +6,7 @@
       "@/*": [
         "./*"
       ],
+      "@/.source": ["./.source"],
       "@zntr/ui": [
         "../../packages/ui/src/index.ts"
       ],

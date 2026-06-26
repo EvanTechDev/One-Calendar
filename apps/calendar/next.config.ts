@@ -1,6 +1,9 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import type { NextConfig } from 'next'
+import { createMDX } from "fumadocs-mdx/next"
+
+const withMDX = createMDX()
 
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'))
 
@@ -28,4 +31,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withMDX(nextConfig)
