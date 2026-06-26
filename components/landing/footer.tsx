@@ -100,7 +100,7 @@ export function Footer() {
       </div>
       <div className="via-border h-px w-full bg-linear-to-r" />
       <div className="overflow-hidden pt-8">
-        <h2 className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground/10 md:text-[10rem] lg:text-[14rem]`}>
+        <h2 className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground/10 md:text-[10rem] lg:text-[14rem] text-white`}>
           ZENTRA
         </h2>
       </div>
