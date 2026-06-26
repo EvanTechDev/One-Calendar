@@ -12,7 +12,10 @@
     "type-check": "turbo type-check",
     "generate:i18n": "turbo generate:i18n",
     "cleanup:i18n": "turbo cleanup:i18n",
-    "prepare": "husky"
+    "prepare": "husky",
+    "knip": "knip",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@nx/js": "latest",
@@ -23,18 +26,24 @@
     "@commitlint/types": "20.5.0",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
-    "prettier": "3.8.4"
+    "prettier": "3.8.4",
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.2.9",
+    "eslint": "10.5.0",
+    "eslint-plugin-oxlint": "1.71.0",
+    "eslint-plugin-unused-imports": "4.4.1",
+    "knip": "latest",
+    "oxlint": "1.71.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.62.0"
   },
   "lint-staged": {
-    "apps/calendar/**/*.{ts,tsx,js,jsx}": [
+    "*.{ts,tsx,js,jsx}": [
       "prettier --write",
-      "pnpm --filter @one-calendar/calendar exec oxlint --fix",
-      "pnpm --filter @one-calendar/calendar exec eslint --fix"
+      "oxlint --fix",
+      "eslint --fix"
     ],
-    "apps/calendar/**/*.{json,md,css}": [
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml}": [
+    "*.{json,md,css,yml,yaml}": [
       "prettier --write"
     ]
   }

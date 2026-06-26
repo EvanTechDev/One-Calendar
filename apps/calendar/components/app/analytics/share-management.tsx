@@ -7,11 +7,11 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from '@/components/ui/alert-dialog'
+} from '@one-calendar/ui/alert-dialog'
 import { Copy, ExternalLink, Lock, Trash2 } from 'lucide-react'
 import { translations, useLanguage } from '@/lib/i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@one-calendar/ui/button'
+import { Input } from '@one-calendar/ui/input'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -22,7 +22,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
+} from '@one-calendar/ui/empty'
 
 interface SharedEvent {
   id: string

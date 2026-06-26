@@ -12,7 +12,7 @@ import {
   BarChart2,
   Settings,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@one-calendar/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,17 +31,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from '@one-calendar/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Spinner } from '@/components/ui/spinner'
+} from '@one-calendar/ui/dropdown-menu'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
+import { ScrollArea } from '@one-calendar/ui/scroll-area'
+import { Spinner } from '@one-calendar/ui/spinner'
 import { toast } from 'sonner'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'

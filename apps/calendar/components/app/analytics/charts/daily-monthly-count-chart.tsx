@@ -2,8 +2,8 @@
 
 import type { ComponentProps, ComponentType } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@one-calendar/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@one-calendar/ui/card'
 import { format } from 'date-fns'
 import { translations, useLanguage } from '@/lib/i18n'
 import {
@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from '@/components/ui/chart'
+} from '@one-calendar/ui/chart'
 
 type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
   radius?: number | [number, number, number, number]

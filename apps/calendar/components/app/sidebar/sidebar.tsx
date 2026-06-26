@@ -7,21 +7,21 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog'
+} from '@one-calendar/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, type Language } from '@/lib/i18n'
-import { Calendar } from '@/components/ui/calendar'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Calendar } from '@one-calendar/ui/calendar'
+import { Checkbox } from '@one-calendar/ui/checkbox'
+import { Button } from '@one-calendar/ui/button'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
 import {
   ArrowDown,
   ArrowUp,
@@ -39,7 +39,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@one-calendar/ui/dropdown-menu'
 
 import type { ViewType } from '@/components/app/calendar-types'
 

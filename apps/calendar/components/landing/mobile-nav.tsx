@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import React from "react";
-import { Portal, PortalBackdrop } from "@/components/ui/portal";
-import { Button } from "@/components/ui/button";
+import { Portal, PortalBackdrop } from "@one-calendar/ui/portal";
+import { Button } from "@one-calendar/ui/button";
 import { XIcon, MenuIcon } from "lucide-react";
 
 const links = [

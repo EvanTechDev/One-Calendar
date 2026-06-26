@@ -13,13 +13,13 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
+} from '@one-calendar/ui/sheet'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { CalendarDays, ChevronRight } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@one-calendar/ui/scroll-area'
 import type { CalendarEvent } from '../calendar'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import {
@@ -28,7 +28,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
+} from '@one-calendar/ui/empty'
 
 const getWeekStartsOn = (locale: string): 0 | 1 => {
   try {

@@ -1,7 +1,7 @@
 'use client'
 
 import { translations, type Language } from '@/lib/i18n'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { useEffect, useMemo, useState } from 'react'
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown'

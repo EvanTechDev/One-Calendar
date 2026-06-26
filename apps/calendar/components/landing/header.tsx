@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useScroll } from "@/hooks/use-scroll";
-import { Button } from "@/components/ui/button";
+import { Button } from "@one-calendar/ui/button";
 import { DesktopNav } from "./desktop-nav";
 import { MobileNav } from "./mobile-nav";
 

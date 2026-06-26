@@ -25,7 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import { DailyMonthlyCountChart } from './charts/daily-monthly-count-chart'
 import { YearHeatmapChart } from './charts/year-heatmap-chart'
 import { CategoryDonutChart } from './charts/category-donut-chart'

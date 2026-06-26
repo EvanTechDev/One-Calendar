@@ -3,14 +3,14 @@
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import {
   getLanguageAutonym,
   supportedLanguages,
@@ -27,15 +27,15 @@ import {
   type CalendarViewType,
   type FirstDayOfWeek,
 } from '@/components/app/calendar-types'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { Switch } from '@one-calendar/ui/switch'
+import { Label } from '@one-calendar/ui/label'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from '@one-calendar/ui/dialog'
 import { useTheme } from 'next-themes'
 import {
   Clock,
@@ -46,7 +46,7 @@ import {
   Palette,
   ArrowLeft,
 } from 'lucide-react'
-import { Kbd } from "@/components/ui/kbd"
+import { Kbd } from "@one-calendar/ui/kbd"
 
 interface SettingsProps {
   language: Language

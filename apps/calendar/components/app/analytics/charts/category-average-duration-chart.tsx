@@ -1,13 +1,13 @@
 'use client'
 
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@one-calendar/ui/card'
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from '@/components/ui/chart'
+} from '@one-calendar/ui/chart'
 import { translations, useLanguage } from '@/lib/i18n'
 
 interface DurationDatum {

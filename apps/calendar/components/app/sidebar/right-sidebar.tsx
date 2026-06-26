@@ -1,7 +1,7 @@
 import { Calendar, Bookmark } from 'lucide-react'
 import { ClockDashed } from '@/components/icons/clock-dashed'
 import MiniCalendarSheet from './mini-calendar-sheet'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import BookmarkPanel from './bookmark-panel'
 import { CountdownTool } from './countdown'
 import { useState } from 'react'

@@ -4,17 +4,17 @@ import { Turnstile } from '@marsidev/react-turnstile'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { InputOTP } from '@/components/ui/input-otp'
-import { Label } from '@/components/ui/label'
+} from '@one-calendar/ui/card'
+import { Input } from '@one-calendar/ui/input'
+import { InputOTP } from '@one-calendar/ui/input-otp'
+import { Label } from '@one-calendar/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 

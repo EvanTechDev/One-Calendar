@@ -12,7 +12,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
+} from '@one-calendar/ui/popover'
 import { isZhLanguage, translations, type Language } from '@/lib/i18n'
 import type { CalendarEvent } from '../calendar'
 import { useMemo, useState } from 'react'

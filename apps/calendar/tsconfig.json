@@ -21,7 +21,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@one-calendar/ui/*": ["../../packages/ui/src/*"],
+      "@one-calendar/utils": ["../../packages/utils/src/index.ts"]
     }
   },
   "include": [

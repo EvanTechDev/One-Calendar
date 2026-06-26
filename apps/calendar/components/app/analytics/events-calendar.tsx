@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import { translations, useLanguage } from '@/lib/i18n'
 import React, { useEffect, useState } from 'react'
 

@@ -5,7 +5,7 @@ import type { CalendarEvent } from '@/components/app/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
 interface AnalyticsViewProps {

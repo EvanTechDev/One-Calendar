@@ -15,7 +15,7 @@
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",
-    "ui": "@/components/ui",
+    "ui": "@one-calendar/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@one-calendar/ui/button";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 

@@ -6,13 +6,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@one-calendar/ui/dialog'
 import { Download, Upload, AlertCircle } from 'lucide-react'
 import {
   decryptPayload,
@@ -23,16 +23,16 @@ import {
   readEncryptedLocalStorage,
   writeEncryptedLocalStorage,
 } from '@/hooks/useLocalStorage'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@one-calendar/ui/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@one-calendar/ui/alert'
 import { translations, useLanguage } from '@/lib/i18n'
 import { normalizeTheme, type ThemeOption } from '@/lib/theme'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@one-calendar/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button } from '@one-calendar/ui/button'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 

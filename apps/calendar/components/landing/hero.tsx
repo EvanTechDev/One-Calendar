@@ -1,6 +1,6 @@
 import * as motion from "motion/react-client";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@one-calendar/ui/button";
 import { ArrowRightIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 

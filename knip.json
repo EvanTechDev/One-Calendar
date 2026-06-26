@@ -1,0 +1,52 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "ignoreFiles": [
+    "apps/calendar/components/app/analytics/events-calendar.tsx",
+    "apps/calendar/hooks/use-toast.ts",
+    "apps/calendar/hooks/useMobile.ts",
+    "apps/calendar/lib/time-analytics.ts",
+    "apps/calendar/public/sw.js"
+  ],
+  "ignoreIssues": {
+    "apps/calendar/components/app/analytics/analytics-utils.ts": [
+      "exports"
+    ],
+    "apps/calendar/components/providers/calendar-context.tsx": [
+      "exports",
+      "duplicates"
+    ],
+    "packages/ui/**": [
+      "exports"
+    ],
+    "apps/calendar/hooks/useLocalStorage.ts": [
+      "exports"
+    ],
+    "apps/calendar/lib/evlog.ts": [
+      "exports"
+    ],
+    "apps/calendar/lib/notifications.ts": [
+      "exports"
+    ]
+  },
+  "workspaces": {
+    ".": {
+      "entry": [
+        "package.json"
+      ]
+    },
+    "apps/calendar": {
+      "entry": [
+        "app/**/*.{ts,tsx}",
+        "components/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}",
+        "hooks/**/*.{ts,tsx}",
+        "next.config.ts"
+      ]
+    },
+    "packages/ui": {
+      "entry": [
+        "src/**/*.{ts,tsx}"
+      ]
+    }
+  }
+}

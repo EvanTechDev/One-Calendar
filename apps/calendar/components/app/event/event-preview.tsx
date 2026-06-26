@@ -21,7 +21,7 @@ import {
   Download,
 } from 'lucide-react'
 import { Share as Share2 } from '@/components/icons/share'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { zhCN, enUS } from 'date-fns/locale'
 import { format } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
@@ -29,18 +29,18 @@ import type { Language } from '@/lib/i18n'
 import { isZhLanguage, translations } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent } from '@one-calendar/ui/popover'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Spinner } from '@/components/ui/spinner'
-import { Checkbox } from '@/components/ui/checkbox'
+} from '@one-calendar/ui/dialog'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
+import { Spinner } from '@one-calendar/ui/spinner'
+import { Checkbox } from '@one-calendar/ui/checkbox'
 import { toast } from 'sonner'
 import QRCodeStyling from 'qr-code-styling'
 import { authClient } from '@/lib/auth/client'

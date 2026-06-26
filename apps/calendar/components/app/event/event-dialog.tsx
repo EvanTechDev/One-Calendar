@@ -6,28 +6,28 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@one-calendar/ui/dialog'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
+} from '@one-calendar/ui/popover'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { isZhLanguage, translations, type Language } from '@/lib/i18n'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Checkbox } from '@one-calendar/ui/checkbox'
+import { Textarea } from '@one-calendar/ui/textarea'
+import { Calendar } from '@one-calendar/ui/calendar'
+import { Button } from '@one-calendar/ui/button'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '@/components/app/calendar'

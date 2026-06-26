@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectGroup,
-} from '@/components/ui/select'
+} from '@one-calendar/ui/select'
 import {
   ChevronLeft,
   ChevronRight,
@@ -44,10 +44,10 @@ import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@one-calendar/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@/lib/i18n'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {
   isCalendarView,
@@ -60,13 +60,13 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@/components/ui/input-group'
+} from '@one-calendar/ui/input-group'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@one-calendar/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,7 +76,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from '@one-calendar/ui/alert-dialog'
 
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth/client'

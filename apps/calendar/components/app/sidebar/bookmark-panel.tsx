@@ -8,15 +8,15 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+} from '@one-calendar/ui/sheet'
+import { Button } from '@one-calendar/ui/button'
+import { ScrollArea } from '@one-calendar/ui/scroll-area'
 import { Bookmark, Search, Trash2 } from 'lucide-react'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@/components/ui/input-group'
+} from '@one-calendar/ui/input-group'
 import { format } from 'date-fns'
 import { zhCN, enUS } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -27,7 +27,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
+} from '@one-calendar/ui/empty'
 import { isZhLanguage, translations, useLanguage } from '@/lib/i18n'
 import {
   getEncryptionState,

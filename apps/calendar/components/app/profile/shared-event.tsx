@@ -21,22 +21,22 @@ import {
   Lock,
   Flame,
 } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '@one-calendar/ui/use-toast'
 import { cn } from '@/lib/utils'
 import { isZhLanguage, useLanguage } from '@/lib/i18n'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { motion } from 'framer-motion'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@one-calendar/ui/badge'
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from '@one-calendar/ui/card'
+import { Input } from '@one-calendar/ui/input'
+import { Label } from '@one-calendar/ui/label'
 
 interface SharedEvent {
   id: string

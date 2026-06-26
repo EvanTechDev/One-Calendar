@@ -23,9 +23,12 @@
 This repository is organized as a production monorepo:
 
 - `apps/calendar` contains the Next.js calendar application.
+- `packages/ui` contains the shared shadcn/ui component package used by the app.
+- `packages/utils` contains shared utility helpers used by app and package code.
+- Root-level `eslint.config.ts`, `.oxlintrc.json`, `.prettierrc`, `.prettierignore`, and `knip.json` centralize code-quality tooling.
 - `turbo.json` defines the Turborepo task pipeline.
 - `nx.json` and `apps/calendar/project.json` define the Nx workspace/project graph.
-- `pnpm-workspace.yaml` manages workspace packages under `apps/*`.
+- `pnpm-workspace.yaml` manages workspace packages under `apps/*` and `packages/*`.
 
 Root-level scripts use Turborepo by default, while the calendar app can also be targeted directly with `pnpm --filter @one-calendar/calendar <script>`.
 

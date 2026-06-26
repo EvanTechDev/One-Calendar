@@ -4,7 +4,7 @@ import { GeistSans } from 'geist/font/sans';
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { PwaProvider } from '@/components/providers/pwa-provider';
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@one-calendar/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
 import type { Metadata, Viewport } from 'next'
 import type React from 'react'

@@ -1,36 +1,36 @@
 'use client'
 
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { useMemo, useState } from 'react'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
-import { Input } from '@/components/ui/input'
+} from '@one-calendar/ui/sheet'
+import { Input } from '@one-calendar/ui/input'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@/components/ui/input-group'
-import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+} from '@one-calendar/ui/input-group'
+import { Label } from '@one-calendar/ui/label'
+import { ScrollArea } from '@one-calendar/ui/scroll-area'
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
+} from '@one-calendar/ui/select'
+import { Textarea } from '@one-calendar/ui/textarea'
+import { Calendar } from '@one-calendar/ui/calendar'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
+} from '@one-calendar/ui/popover'
 import {
   Plus,
   ArrowLeft,
@@ -41,7 +41,7 @@ import {
   Search,
 } from 'lucide-react'
 import { icons as lucideIcons } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@one-calendar/ui/avatar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { zhCN, enUS } from 'date-fns/locale'
@@ -54,7 +54,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
+} from '@one-calendar/ui/empty'
 
 interface Countdown {
   id: string

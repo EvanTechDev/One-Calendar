@@ -13,6 +13,7 @@ const getGitCommit = () => {
 }
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@one-calendar/ui', '@one-calendar/utils'],
   typescript: {
     ignoreBuildErrors: true,
   },

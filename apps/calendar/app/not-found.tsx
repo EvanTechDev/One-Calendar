@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { Button } from '@one-calendar/ui/button'
 import { isZhLanguage, useLanguage } from '@/lib/i18n'
 
 export default function NotFound() {
