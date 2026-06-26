@@ -1,6 +1,9 @@
 import "./globals.css";
-import { Instrument_Sans } from "next/font/google";
+import { Instrument_Sans, Inter } from "next/font/google";
+import { GeistSans } from 'geist/font/sans';
 import { cn } from "@/lib/utils";
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const instrumentSans = Instrument_Sans({ subsets: ["latin"] });
 
@@ -36,7 +39,7 @@ export default function EfferdLayout({
       className={cn('font-sans', inter.variable, geistHeading.variable)}
     >
       <body
-        className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${GeistSans.className} ${instrumentSans.variable} antialiased`}
       >
         <ThemeProvider
           themes={[...AVAILABLE_THEMES]}
