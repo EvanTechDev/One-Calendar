@@ -1,93 +1,30 @@
-import type React from 'react'
-import type { Metadata, Viewport } from 'next'
-import {
-  Instrument_Sans,
-  Instrument_Serif,
-  JetBrains_Mono,
-  Inter,
-  Geist,
-} from 'next/font/google'
-import './globals.css'
-import { Toaster } from '@/components/ui/sonner'
-import { CalendarProvider } from '@/components/providers/calendar-context'
-import { GeistSans } from 'geist/font/sans'
-import { ThemeProvider } from '@/components/providers/theme-provider'
-import { PwaProvider } from '@/components/providers/pwa-provider'
-import { cn } from '@/lib/utils'
-import { AVAILABLE_THEMES } from '@/lib/theme'
+import "./globals.css";
+import { Instrument_Sans } from "next/font/google";
+import { cn } from "@/lib/utils";
 
-const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
+const instrumentSans = Instrument_Sans({ subsets: ["latin"] });
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+export const metadata = {
+  metadataBase: new URL("https://ui.abdulrahmanasif.dev"),
+  title: "Efferd - Modern Landing Page",
+  description: "A beautiful, modern landing page template.",
+};
 
-const instrumentSans = Instrument_Sans({
-  subsets: ['latin'],
-  variable: '--font-instrument',
-})
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-instrument-serif',
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains',
-})
-
-export const APP_TITLE = 'One Calendar'
-export const APP_SUBTITLE = 'Your life, stay safe.'
-
-export const metadata: Metadata = {
-  title: APP_TITLE,
-  description: APP_SUBTITLE,
-  manifest: '/manifest.webmanifest',
-  openGraph: {
-    title: APP_TITLE,
-    description: APP_SUBTITLE,
-    url: '/',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@One__Cal',
-    title: APP_TITLE,
-    description: APP_SUBTITLE,
-  },
-}
-
-export const viewport: Viewport = {
-  themeColor: '#0b0f1a',
-}
-
-export default function RootLayout({
+export default function EfferdLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn('font-sans', inter.variable, geistHeading.variable)}
-    >
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+        className={cn(
+          "bg-background text-foreground antialiased min-h-screen",
+          instrumentSans.className,
+        )}
       >
-        <ThemeProvider
-          themes={[...AVAILABLE_THEMES]}
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <CalendarProvider>
-            <PwaProvider />
-            {children}
-            <Toaster />
-          </CalendarProvider>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
-  )
+  );
 }
