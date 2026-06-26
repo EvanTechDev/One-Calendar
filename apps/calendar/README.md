@@ -111,7 +111,7 @@ This project is built for individuals and small teams who value clarity over com
 
 Required Versions:
 
-- [NodeJS](https://nodejs.org) (v20 or higher)
+- [Node.js](https://nodejs.org) (v20 or higher)
 - [pnpm](https://pnpm.io)
 
 ### Quick Start
