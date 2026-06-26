@@ -1,4 +1,4 @@
-import { source } from "@/.source"
+import { source } from ".source"
 import { loader } from "fumadocs-core/source"
 import { ThemeToggle } from "@zntr/ui/theme-toggle"
 import { useMemo } from "react"
