@@ -4,11 +4,25 @@ import { cn } from "@/lib/utils";
 
 const instrumentSans = Instrument_Sans({ subsets: ["latin"] });
 
-export const metadata = {
-  metadataBase: new URL("https://ui.abdulrahmanasif.dev"),
-  title: "Efferd - Modern Landing Page",
-  description: "A beautiful, modern landing page template.",
-};
+export const APP_TITLE = 'One Calendar'
+export const APP_SUBTITLE = 'Your life, stay safe.'
+
+export const metadata: Metadata = {
+  title: APP_TITLE,
+  description: APP_SUBTITLE,
+  manifest: '/manifest.webmanifest',
+  openGraph: {
+    title: APP_TITLE,
+    description: APP_SUBTITLE,
+    url: '/',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@One__Cal',
+    title: APP_TITLE,
+    description: APP_SUBTITLE,
+  },
+}
 
 export default function EfferdLayout({
   children,
@@ -16,14 +30,27 @@ export default function EfferdLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn('font-sans', inter.variable, geistHeading.variable)}
+    >
       <body
-        className={cn(
-          "bg-background text-foreground antialiased min-h-screen",
-          instrumentSans.className,
-        )}
+        className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider
+          themes={[...AVAILABLE_THEMES]}
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <CalendarProvider>
+            <PwaProvider />
+            {children}
+            <Toaster />
+          </CalendarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
