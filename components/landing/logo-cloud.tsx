@@ -12,7 +12,7 @@ export function LogoCloud() {
 		<div className="relative flex flex-wrap items-center justify-center gap-x-10 gap-y-8 py-6 sm:gap-x-12 sm:gap-y-12">
 			{logos.map((logo) => (
 				<div key={logo.alt} className="flex items-center gap-2 text-muted-foreground">
-					<logo.icon className="h-6 w-6 ${logo.color}" />
+					<logo.icon className={`h-6 w-6 ${logo.color ?? ""}`} />
 					<span className="font-semibold">{logo.label}</span>
 				</div>
 			))}
@@ -21,7 +21,7 @@ export function LogoCloud() {
 }
 
 const logos = [
-	{ icon: SiVercel, label: "Vercel", alt: "Vercel Logo", color: "text-[#ffffff ]" },
+	{ icon: SiVercel, label: "Vercel", alt: "Vercel Logo", color: "text-[#ffffff]" },
 	{ icon: SupabaseIcon, label: "Supabase", alt: "Supabase Logo" },
 	{ icon: GitHubIcon, label: "GitHub", alt: "GitHub Logo", color: "text-[#ffffff]" },
 	{ icon: BiLogoTypescript, label: "TypeScript", alt: "TS Logo", color: "text-[#3178C6]" },
