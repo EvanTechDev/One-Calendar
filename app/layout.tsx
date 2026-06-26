@@ -1,7 +1,9 @@
 import "./globals.css";
-import { Instrument_Sans, Inter } from "next/font/google";
+import { Instrument_Sans, Inter, Geist } from "next/font/google";
 import { GeistSans } from 'geist/font/sans';
 import { cn } from "@/lib/utils";
+
+const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function EfferdLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;

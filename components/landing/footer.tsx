@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
-import { Logo } from "@/components/templates/orbit/ui/logo";
+import { Logo } from "@/components/ui/logo";
 
 function FacebookIcon() {
   return (

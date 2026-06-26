@@ -1,12 +1,12 @@
-import { Header } from "@/components/templates/orbit/sections/header";
-import { HeroSection } from "@/components/templates/orbit/sections/hero";
-import { LogosSection } from "@/components/templates/orbit/sections/logos-section";
-import { FeatureSection } from "@/components/templates/orbit/sections/feature-section";
-import { Integrations } from "@/components/templates/orbit/sections/integrations";
-import { CallToAction } from "@/components/templates/orbit/sections/cta";
-import { Footer } from "@/components/templates/orbit/sections/footer";
+import { Header } from "@/components/landing/header";
+import { HeroSection } from "@/components/landing/hero";
+import { LogosSection } from "@/components/landing/logos-section";
+import { FeatureSection } from "@/components/landing/feature-section";
+import { Integrations } from "@/components/landing/integrations";
+import { CallToAction } from "@/components/landing/cta";
+import { Footer } from "@/components/landing/footer";
 
-export default function OrbitDemoPage() {
+export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center">
       <Header />

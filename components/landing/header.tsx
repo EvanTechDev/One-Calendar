@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/templates/orbit/ui/logo";
-import { useScroll } from "@/components/templates/orbit/hooks/use-scroll";
+import { Logo } from "@/components/ui/logo";
+import { useScroll } from "@/hooks/use-scroll";
 import { Button } from "@/components/ui/button";
 import { DesktopNav } from "./desktop-nav";
 import { MobileNav } from "./mobile-nav";

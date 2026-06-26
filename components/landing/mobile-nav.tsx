@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import React from "react";
-import { Portal, PortalBackdrop } from "@/components/templates/orbit/ui/portal";
+import { Portal, PortalBackdrop } from "@/components/ui/portal";
 import { Button } from "@/components/ui/button";
 import { XIcon, MenuIcon } from "lucide-react";
 
