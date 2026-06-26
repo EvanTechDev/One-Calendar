@@ -12,7 +12,7 @@ export default defineConfig({
   },
 })
 
-export const { docs, meta } = defineDocs({
+export const { docs } = defineDocs({
   dir: "./content",
   docs: {
     schema: frontmatterSchema.extend({
