@@ -2,7 +2,7 @@
 import localFont from "next/font/local";
 
 export const generalSansBold = localFont({
-  src: "../public/GeneralSans-Bold.ttf",
+  src: "../app/GeneralSans-Bold.ttf",
   display: "swap",
   variable: "--font-general-sans-bold",
 });
