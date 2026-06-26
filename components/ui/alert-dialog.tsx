@@ -1,8 +1,9 @@
 "use client";
 
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
-import type React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export const AlertDialogCreateHandle: typeof AlertDialogPrimitive.createHandle =
   AlertDialogPrimitive.createHandle;
@@ -157,6 +158,24 @@ export function AlertDialogClose(
 ): React.ReactElement {
   return (
     <AlertDialogPrimitive.Close data-slot="alert-dialog-close" {...props} />
+  );
+}
+
+type AlertDialogButtonProps = AlertDialogPrimitive.Close.Props & React.ComponentProps<typeof Button>;
+
+export function AlertDialogAction({ children, ...props }: AlertDialogButtonProps): React.ReactElement {
+  return (
+    <AlertDialogClose render={<Button {...props} />}>
+      {children}
+    </AlertDialogClose>
+  );
+}
+
+export function AlertDialogCancel({ children, ...props }: AlertDialogButtonProps): React.ReactElement {
+  return (
+    <AlertDialogClose render={<Button variant="outline" {...props} />}>
+      {children}
+    </AlertDialogClose>
   );
 }
 

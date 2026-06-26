@@ -24,7 +24,7 @@ const ContextMenuTrigger = ({
 }) => <>{children}</>
 const ContextMenuContent = ({
   children,
-  className,
+  className: _className,
 }: {
   children: React.ReactNode
   className?: string
@@ -52,6 +52,7 @@ interface DayViewProps {
     newStartDate: Date,
     newEndDate: Date,
   ) => void
+  onBackToCalendar?: () => void
 }
 
 export default function DayView({

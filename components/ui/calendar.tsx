@@ -18,8 +18,11 @@ export function Calendar({
   showOutsideDays = true,
   components: userComponents,
   mode = "single",
+  initialFocus: _initialFocus,
   ...props
-}: React.ComponentProps<typeof DayPicker>): React.ReactElement {
+}: React.ComponentProps<typeof DayPicker> & {
+  initialFocus?: boolean;
+}): React.ReactElement {
   const defaultClassNames = {
     button_next: buttonClassNames,
     button_previous: buttonClassNames,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import type React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
@@ -10,10 +10,22 @@ export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 
 export function PopoverTrigger({
+  asChild = false,
   className,
   children,
   ...props
-}: PopoverPrimitive.Trigger.Props): React.ReactElement {
+}: PopoverPrimitive.Trigger.Props & { asChild?: boolean }): React.ReactElement {
+  if (asChild && React.isValidElement(children)) {
+    return (
+      <PopoverPrimitive.Trigger
+        className={className}
+        data-slot="popover-trigger"
+        render={children}
+        {...props}
+      />
+    );
+  }
+
   return (
     <PopoverPrimitive.Trigger
       className={className}
@@ -36,7 +48,9 @@ export function PopoverPopup({
   anchor,
   portalProps,
   ...props
-}: PopoverPrimitive.Popup.Props & {
+}: Omit<PopoverPrimitive.Popup.Props, "onOpenAutoFocus" | "onInteractOutside"> & {
+  onOpenAutoFocus?: (event: Event) => void;
+  onInteractOutside?: (event: Event) => void;
   portalProps?: PopoverPrimitive.Portal.Props;
   side?: PopoverPrimitive.Positioner.Props["side"];
   align?: PopoverPrimitive.Positioner.Props["align"];
@@ -113,6 +127,18 @@ export function PopoverDescription({
       {...props}
     />
   );
+}
+
+export function PopoverAnchor({
+  asChild = false,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement> & { asChild?: boolean }): React.ReactElement {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, props as React.HTMLAttributes<HTMLElement>);
+  }
+
+  return <span {...props}>{children}</span>;
 }
 
 export { PopoverPrimitive, PopoverPopup as PopoverContent };
