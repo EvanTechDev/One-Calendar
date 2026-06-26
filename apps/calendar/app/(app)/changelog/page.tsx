@@ -24,14 +24,12 @@ interface ChangelogPage {
 }
 
 export default function HomePage() {
-  const sortedChangelogs = useMemo(() => {
-    const allPages = source.getPages() as ChangelogPage[]
-    return allPages.sort((a, b) => {
+  const allPages = source.getPages() as ChangelogPage[]
+    const sortedChangelogs = allPages.sort((a, b) => {
       const dateA = new Date(a.data.date).getTime()
       const dateB = new Date(b.data.date).getTime()
       return dateB - dateA
     })
-  }, [])
 
   return (
     <div className="min-h-screen bg-background relative">
