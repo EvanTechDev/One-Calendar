@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { generalSansBold } from "@/lib/font";
 
 type FooterLink = {
   title: string;
@@ -71,7 +72,7 @@ export function Footer() {
           </g>
         </svg>
           <p className="text-muted-foreground mt-8 text-sm md:mt-0">
-            The operating system for modern teams.
+            Schedule everything. Own your time.
           </p>
         </div>
 
@@ -98,10 +99,10 @@ export function Footer() {
         </div>
       </div>
       <div className="via-border h-px w-full bg-linear-to-r" />
-      <div className="flex w-full items-center justify-start py-4">
-        <p className="text-muted-foreground text-sm">
-          &copy; {new Date().getFullYear()} One Calendar, All rights reserved
-        </p>
+      <div className="overflow-hidden pt-8">
+        <h2 className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground/10 md:text-[10rem] lg:text-[14rem]`}>
+          ZENTRA
+        </h2>
       </div>
     </footer>
   );
