@@ -568,6 +568,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Select
               value={newCountdown.color}
               onValueChange={(value) =>
+                value !== null &&
                 setNewCountdown({ ...newCountdown, color: value })
               }
             >
@@ -670,7 +671,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     setSelectedDate(date)
                     setCalendarOpen(false)
                   }}
-                  initialFocus
                   locale={isZh ? zhCN : enUS}
                 />
               </PopoverContent>
@@ -681,7 +681,8 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Label>{t.countdownRepeat}</Label>
             <Select
               value={newCountdown.repeat || 'none'}
-              onValueChange={(value: Countdown['repeat']) =>
+              onValueChange={(value) =>
+                value !== null &&
                 setNewCountdown({ ...newCountdown, repeat: value })
               }
             >

@@ -3,6 +3,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type React from "react";
 import { cn } from "@/lib/utils";
+import { Button, type ButtonProps } from "@/components/ui/button";
 
 export const AlertDialogCreateHandle: typeof AlertDialogPrimitive.createHandle =
   AlertDialogPrimitive.createHandle;
@@ -152,11 +153,19 @@ export function AlertDialogDescription({
   );
 }
 
-export function AlertDialogClose(
-  props: AlertDialogPrimitive.Close.Props,
-): React.ReactElement {
+export function AlertDialogClose({
+  variant,
+  size,
+  className,
+  ...props
+}: AlertDialogPrimitive.Close.Props & Pick<ButtonProps, "variant" | "size">): React.ReactElement {
   return (
-    <AlertDialogPrimitive.Close data-slot="alert-dialog-close" {...props} />
+    <AlertDialogPrimitive.Close
+      className={className}
+      data-slot="alert-dialog-close"
+      render={variant || size ? <Button size={size} variant={variant} /> : undefined}
+      {...props}
+    />
   );
 }
 
@@ -165,3 +174,5 @@ export {
   AlertDialogBackdrop as AlertDialogOverlay,
   AlertDialogPopup as AlertDialogContent,
 };
+
+export { AlertDialogClose as AlertDialogAction, AlertDialogClose as AlertDialogCancel };

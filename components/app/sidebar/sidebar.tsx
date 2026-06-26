@@ -452,7 +452,9 @@ export default function Sidebar({
               <Label htmlFor="category-color">{t.color}</Label>
               <Select
                 value={newCategoryColor}
-                onValueChange={setNewCategoryColor}
+                onValueChange={(value) =>
+                  value !== null && setNewCategoryColor(value)
+                }
               >
                 <SelectTrigger id="category-color">
                   <SelectValue placeholder={t.selectColor} />
@@ -509,7 +511,9 @@ export default function Sidebar({
               <Label htmlFor="edit-category-color">{t.color}</Label>
               <Select
                 value={editingCategoryColor}
-                onValueChange={setEditingCategoryColor}
+                onValueChange={(value) =>
+                  value !== null && setEditingCategoryColor(value)
+                }
               >
                 <SelectTrigger id="edit-category-color">
                   <SelectValue placeholder={t.selectColor} />

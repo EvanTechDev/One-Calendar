@@ -4,7 +4,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { XIcon } from "lucide-react";
-import type React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,9 +18,18 @@ export const DialogPortal: typeof DialogPrimitive.Portal =
   DialogPrimitive.Portal;
 
 export function DialogTrigger(
-  props: DialogPrimitive.Trigger.Props,
+  props: DialogPrimitive.Trigger.Props & { asChild?: boolean },
 ): React.ReactElement {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
+  const { asChild, children, ...triggerProps } = props;
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      render={asChild && React.isValidElement(children) ? children : undefined}
+      {...triggerProps}
+    >
+      {asChild && React.isValidElement(children) ? (children.props as { children?: React.ReactNode }).children : children}
+    </DialogPrimitive.Trigger>
+  );
 }
 
 export function DialogClose(

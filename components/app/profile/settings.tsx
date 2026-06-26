@@ -46,7 +46,7 @@ import {
   Palette,
   ArrowLeft,
 } from 'lucide-react'
-import { Kbd } from "@/components/ui/kbd"
+import { Kbd } from '@/components/ui/kbd'
 
 interface SettingsProps {
   language: Language
@@ -191,7 +191,12 @@ export default function Settings({
               <Palette className="h-4 w-4" />
               {t.theme}
             </div>
-            <Select value={theme || 'system'} onValueChange={handleThemeChange}>
+            <Select
+              value={theme || 'system'}
+              onValueChange={(value) =>
+                value !== null && handleThemeChange(value)
+              }
+            >
               <SelectTrigger id="theme">
                 <SelectValue />
               </SelectTrigger>
@@ -209,7 +214,9 @@ export default function Settings({
             </div>
             <Select
               value={language}
-              onValueChange={(value: Language) => handleLanguageChange(value)}
+              onValueChange={(value) =>
+                value !== null && handleLanguageChange(value)
+              }
             >
               <SelectTrigger id="language">
                 <SelectValue />
@@ -253,7 +260,7 @@ export default function Settings({
             <Select
               value={defaultView}
               onValueChange={(value) => {
-                if (isCalendarView(value)) {
+                if (value !== null && isCalendarView(value)) {
                   setDefaultView(value)
                 }
               }}
@@ -275,7 +282,10 @@ export default function Settings({
               <Globe2 className="h-4 w-4" />
               {t.timezone}
             </div>
-            <Select value={timezone} onValueChange={setTimezone}>
+            <Select
+              value={timezone}
+              onValueChange={(value) => value !== null && setTimezone(value)}
+            >
               <SelectTrigger id="timezone">
                 <SelectValue />
               </SelectTrigger>
@@ -295,7 +305,7 @@ export default function Settings({
             </div>
             <Select
               value={timeFormat}
-              onValueChange={(value: '24h' | '12h') => setTimeFormat(value)}
+              onValueChange={(value) => value !== null && setTimeFormat(value)}
             >
               <SelectTrigger id="time-format">
                 <SelectValue />
@@ -334,63 +344,43 @@ export default function Settings({
                   </DialogHeader>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        N
-                      </Kbd>
+                      <Kbd>N</Kbd>
                       <span>{t.newEvent}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        /
-                      </Kbd>
+                      <Kbd>/</Kbd>
                       <span>{t.searchEvents}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        T
-                      </Kbd>
+                      <Kbd>T</Kbd>
                       <span>{t.today}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        1
-                      </Kbd>
+                      <Kbd>1</Kbd>
                       <span>{t.day}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        2
-                      </Kbd>
+                      <Kbd>2</Kbd>
                       <span>{t.week}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        3
-                      </Kbd>
+                      <Kbd>3</Kbd>
                       <span>{t.month}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        4
-                      </Kbd>
+                      <Kbd>4</Kbd>
                       <span>{t.year}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        5
-                      </Kbd>
+                      <Kbd>5</Kbd>
                       <span>{t.fourDay}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        ←
-                      </Kbd>
+                      <Kbd>←</Kbd>
                       <span>{t.previousPeriod}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        →
-                      </Kbd>
+                      <Kbd>→</Kbd>
                       <span>{t.nextPeriod}</span>
                     </div>
                   </div>

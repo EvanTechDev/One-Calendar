@@ -5,8 +5,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  AlertDialogClose,
 } from '@/components/ui/alert-dialog'
 import { Copy, ExternalLink, Lock, Trash2 } from 'lucide-react'
 import { translations, useLanguage } from '@/lib/i18n'
@@ -240,8 +239,8 @@ export default function ShareManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogClose>{t.cancel}</AlertDialogClose>
+            <AlertDialogClose
               onClick={deleteShare}
               disabled={isDeleting}
               variant="destructive"
@@ -273,7 +272,7 @@ export default function ShareManagement() {
               ) : (
                 <>{t.delete}</>
               )}
-            </AlertDialogAction>
+            </AlertDialogClose>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -303,18 +302,18 @@ export default function ShareManagement() {
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel
+            <AlertDialogClose
               onClick={() => {
                 setDecryptingShare(null)
                 setPasswordInput('')
               }}
             >
               {t.cancel}
-            </AlertDialogCancel>
+            </AlertDialogClose>
 
-            <AlertDialogAction onClick={handleDecrypt} disabled={isDecrypting}>
+            <AlertDialogClose onClick={handleDecrypt} disabled={isDecrypting}>
               {isDecrypting ? t.decrypting : t.decrypt}
-            </AlertDialogAction>
+            </AlertDialogClose>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

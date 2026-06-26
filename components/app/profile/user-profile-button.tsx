@@ -24,8 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
+  AlertDialogClose,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -1423,8 +1422,8 @@ export default function UserProfileButton({
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogClose>{t.cancel}</AlertDialogClose>
+            <AlertDialogClose
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault()
@@ -1436,7 +1435,7 @@ export default function UserProfileButton({
               }
             >
               {isDeletingAccount ? t.deleting : t.confirmDeleteAccount}
-            </AlertDialogAction>
+            </AlertDialogClose>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1465,8 +1464,8 @@ export default function UserProfileButton({
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogClose>{t.cancel}</AlertDialogClose>
+            <AlertDialogClose
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault()
@@ -1479,7 +1478,7 @@ export default function UserProfileButton({
               disabled={deleteCloudConfirmText !== 'DELETE CLOUD DATA'}
             >
               {t.confirmDeleteData}
-            </AlertDialogAction>
+            </AlertDialogClose>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1538,10 +1537,7 @@ export default function UserProfileButton({
           if (open) setUnlockOpen(true)
         }}
       >
-        <DialogContent
-          onInteractOutside={(e: Event) => e.preventDefault()}
-          onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
-        >
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{t.enterPasswordTitle}</DialogTitle>
             <DialogDescription>{t.enterPasswordDescription}</DialogDescription>

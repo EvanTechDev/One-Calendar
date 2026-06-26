@@ -69,8 +69,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
+  AlertDialogClose,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -789,7 +788,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                         : 'week'
                   }
                   onValueChange={(value) => {
-                    if (isCalendarView(value)) {
+                    if (value !== null && isCalendarView(value)) {
                       setView(value)
                     }
                   }}
@@ -1147,15 +1146,15 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setPendingDeleteEvent(null)}>
+              <AlertDialogClose onClick={() => setPendingDeleteEvent(null)}>
                 {t.cancel}
-              </AlertDialogCancel>
-              <AlertDialogAction
+              </AlertDialogClose>
+              <AlertDialogClose
                 className="bg-destructive text-destructive-foreground"
                 onClick={confirmEventDelete}
               >
                 {t.delete}
-              </AlertDialogAction>
+              </AlertDialogClose>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

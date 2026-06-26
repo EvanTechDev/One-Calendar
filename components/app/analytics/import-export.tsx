@@ -1103,7 +1103,9 @@ END:VEVENT
                 </Label>
                 <Select
                   value={importCalendarId}
-                  onValueChange={setImportCalendarId}
+                  onValueChange={(value) =>
+                    value !== null && setImportCalendarId(value)
+                  }
                 >
                   <SelectTrigger id="import-calendar-category">
                     <SelectValue />
@@ -1226,7 +1228,12 @@ END:VEVENT
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="export-format">{t.exportFormat}</Label>
-              <Select value={exportFormat} onValueChange={setExportFormat}>
+              <Select
+                value={exportFormat}
+                onValueChange={(value) =>
+                  value !== null && setExportFormat(value)
+                }
+              >
                 <SelectTrigger id="export-format">
                   <SelectValue />
                 </SelectTrigger>
@@ -1242,7 +1249,9 @@ END:VEVENT
               <Label htmlFor="date-range">{t.dateRange}</Label>
               <Select
                 value={dateRangeOption}
-                onValueChange={setDateRangeOption}
+                onValueChange={(value) =>
+                  value !== null && setDateRangeOption(value)
+                }
               >
                 <SelectTrigger id="date-range">
                   <SelectValue />

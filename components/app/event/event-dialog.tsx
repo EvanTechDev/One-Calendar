@@ -526,7 +526,9 @@ export default function EventDialog({
             <div className="flex items-center space-x-2">
               <Select
                 value={value.hours}
-                onValueChange={(newHour) => onChange(newHour, value.minutes)}
+                onValueChange={(newHour) =>
+                  newHour !== null && onChange(newHour, value.minutes)
+                }
               >
                 <SelectTrigger className="w-[70px]">
                   <SelectValue placeholder={isZh ? '时' : 'Hour'} />
@@ -544,7 +546,9 @@ export default function EventDialog({
 
               <Select
                 value={value.minutes}
-                onValueChange={(newMinute) => onChange(value.hours, newMinute)}
+                onValueChange={(newMinute) =>
+                  newMinute !== null && onChange(value.hours, newMinute)
+                }
               >
                 <SelectTrigger className="w-[70px]">
                   <SelectValue placeholder={isZh ? '分' : 'Min'} />
@@ -654,7 +658,6 @@ export default function EventDialog({
                           setStartDateOpen(false)
                         }
                       }}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -703,7 +706,6 @@ export default function EventDialog({
                           }
                         }
                       }}
-                      initialFocus
                       disabled={(date) => date < startDate}
                     />
                   </PopoverContent>
@@ -746,6 +748,7 @@ export default function EventDialog({
             <Select
               value={calendarSelectValue}
               onValueChange={(value) => {
+                if (value === null) return
                 setSelectedCalendar(value)
                 if (value !== '__uncategorized__') {
                   setColor(getEventColorByCalendarId(value))
@@ -783,7 +786,10 @@ export default function EventDialog({
 
           <div className="space-y-2">
             <Label htmlFor="color">{t.color}</Label>
-            <Select value={color} onValueChange={setColor}>
+            <Select
+              value={color}
+              onValueChange={(value) => value !== null && setColor(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t.selectColor} />
               </SelectTrigger>
@@ -824,7 +830,12 @@ export default function EventDialog({
 
           <div className="space-y-2">
             <Label htmlFor="notification">{t.notification}</Label>
-            <Select value={notification} onValueChange={setNotification}>
+            <Select
+              value={notification}
+              onValueChange={(value) =>
+                value !== null && setNotification(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t.selectNotification} />
               </SelectTrigger>

@@ -29,7 +29,7 @@ import type { Language } from '@/lib/i18n'
 import { isZhLanguage, translations } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverContent } from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
@@ -94,6 +94,7 @@ export default function EventPreview({
   const [sharePassword, setSharePassword] = useState('')
   const [burnAfterRead, setBurnAfterRead] = useState(false)
   const ignoreOutsideUntilRef = useRef(0)
+  const popoverAnchorRef = useRef<HTMLDivElement>(null)
   const colorMapping: Record<string, string> = {
     'bg-[#E6F6FD]': '#3B82F6',
     'bg-[#E7F8F2]': '#10B981',
@@ -560,24 +561,13 @@ export default function EventPreview({
     <>
       {!shareOnlyMode && (
         <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
-          <PopoverAnchor asChild>
-            <div style={anchorStyle} />
-          </PopoverAnchor>
+          <div ref={popoverAnchorRef} style={anchorStyle} />
           <PopoverContent
+            anchor={popoverAnchorRef}
             side={popoverSide}
             align="center"
             sideOffset={12}
             className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={(e) => {
-              if (!modal) {
-                if (Date.now() < ignoreOutsideUntilRef.current) {
-                  e.preventDefault()
-                  return
-                }
-                onOpenChange(false)
-              }
-            }}
           >
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />

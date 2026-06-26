@@ -47,6 +47,7 @@ interface DayViewProps {
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
+  onBackToCalendar?: () => void
   onEventDrop?: (
     event: CalendarEvent,
     newStartDate: Date,

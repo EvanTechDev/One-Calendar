@@ -3,7 +3,7 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
-import type * as React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -52,6 +52,7 @@ export interface ButtonProps extends useRender.ComponentProps<"button"> {
   variant?: VariantProps<typeof buttonVariants>["variant"];
   size?: VariantProps<typeof buttonVariants>["size"];
   loading?: boolean;
+  asChild?: boolean;
 }
 
 export function Button({
@@ -59,19 +60,25 @@ export function Button({
   variant,
   size,
   render,
+  asChild,
   children,
   loading = false,
   disabled: disabledProp,
   ...props
 }: ButtonProps): React.ReactElement {
   const isDisabled: boolean = Boolean(loading || disabledProp);
+  const child = asChild && React.isValidElement(children) ? children : null;
+  const renderElement = render ?? child ?? undefined;
+  const content = child
+    ? (child.props as { children?: React.ReactNode }).children
+    : children;
   const typeValue: React.ButtonHTMLAttributes<HTMLButtonElement>["type"] =
-    render ? undefined : "button";
+    renderElement ? undefined : "button";
 
   const defaultProps = {
     children: (
       <>
-        {children}
+        {content}
         {loading && (
           <Spinner
             className="pointer-events-none absolute"
@@ -91,6 +98,6 @@ export function Button({
   return useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(defaultProps, props),
-    render,
+    render: renderElement,
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import type React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
@@ -13,14 +13,16 @@ export function PopoverTrigger({
   className,
   children,
   ...props
-}: PopoverPrimitive.Trigger.Props): React.ReactElement {
+}: PopoverPrimitive.Trigger.Props & { asChild?: boolean }): React.ReactElement {
+  const { asChild, ...triggerProps } = props as PopoverPrimitive.Trigger.Props & { asChild?: boolean };
   return (
     <PopoverPrimitive.Trigger
       className={className}
       data-slot="popover-trigger"
-      {...props}
+      render={asChild && React.isValidElement(children) ? children : undefined}
+      {...triggerProps}
     >
-      {children}
+      {asChild && React.isValidElement(children) ? (children.props as { children?: React.ReactNode }).children : children}
     </PopoverPrimitive.Trigger>
   );
 }
