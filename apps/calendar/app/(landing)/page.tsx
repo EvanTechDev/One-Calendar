@@ -4,7 +4,6 @@ import { LogosSection } from "@/components/landing/logos-section";
 import { FeatureSection } from "@/components/landing/feature-section";
 import { CallToAction } from "@/components/landing/cta";
 import { Footer } from "@/components/landing/footer";
-import styles from "./page.module.css"
 
 export default function LandingPage() {
   return (
