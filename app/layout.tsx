@@ -5,19 +5,18 @@ import {
   Instrument_Serif,
   JetBrains_Mono,
   Inter,
-  Geist,
+  Geist_Mono,
 } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
-import { GeistSans } from 'geist/font/sans'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { cn } from '@/lib/utils'
 import { AVAILABLE_THEMES } from '@/lib/theme'
 
-const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
-
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' })
+const interHeading = Inter({ subsets: ['latin'], variable: '--font-heading' })
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const instrumentSans = Instrument_Sans({
@@ -69,10 +68,15 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn('font-sans', inter.variable, geistHeading.variable)}
+      className={cn(
+        'font-sans',
+        inter.variable,
+        interHeading.variable,
+        geistMono.variable,
+      )}
     >
       <body
-        className={`${GeistSans.className} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <ThemeProvider
           themes={[...AVAILABLE_THEMES]}

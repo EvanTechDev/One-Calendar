@@ -63,7 +63,7 @@ This project is built for individuals and small teams who value clarity over com
 - **Default view control** &ndash; choose how your calendar opens
 - **Locale-aware formatting** &ndash; proper date and time formatting per region
 - **Internationalization (i18n)** &ndash; language support built-in
-- **Composable UI system** &ndash; built with reusable components (shadcn/ui + Tailwind)
+- **Composable UI system** &ndash; built with reusable components (coss ui + Tailwind)
 
 ### Comparison with other calendar tools
 
@@ -162,7 +162,7 @@ pnpm dlx drizzle-kit migrate
 
 ## Tech Stack
 
-![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,drizzle,betterauth,resend)
+![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,coss,zustand,drizzle,betterauth,resend)
 
 ## Contributing
 
