@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "3.0.0-rc.1",
+  "version": "3.0.0-rc.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,13 @@
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup"
   },
   "dependencies": {
+    "@mdx-js/loader": "^3.1.0",
+    "@mdx-js/react": "^3.1.0",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/mdx": "^2.0.13",
+    "fumadocs-core": "^15.6.2",
+    "fumadocs-mdx": "^11.6.10",
+    "fumadocs-ui": "^15.6.2",
     "@better-auth/drizzle-adapter": "1.6.20",
     "@better-auth/infra": "0.3.2",
     "@marsidev/react-turnstile": "1.5.3",
