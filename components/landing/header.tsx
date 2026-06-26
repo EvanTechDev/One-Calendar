@@ -16,7 +16,7 @@ export function Header() {
           scrolled,
       })}
     >
-      <nav className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
+      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <div className="flex items-center gap-5">
           <a
             className="rounded-lg px-3 py-2.5 hover:bg-muted dark:hover:bg-muted/50"

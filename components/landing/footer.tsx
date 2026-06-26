@@ -43,7 +43,7 @@ export function Footer() {
     >
       <div className="bg-foreground/20 absolute top-0 right-1/2 left-1/2 h-px w-1/3 -translate-x-1/2 -translate-y-1/2 rounded-full blur" />
 
-      <div className="grid w-full gap-8 py-6 md:py-8 lg:grid-cols-3 lg:gap-8">
+      <div className="grid gap-8 py-6 md:py-8 lg:grid-cols-3 lg:gap-8">
         <div className="space-y-4">
           <svg
           version="1.0"
@@ -101,7 +101,7 @@ export function Footer() {
       <div className="via-border h-px w-full bg-linear-to-r" />
       <div className="flex w-full items-center justify-center py-4">
         <p className="text-muted-foreground text-sm">
-          &copy; {new Date().getFullYear()} Orbit, All rights reserved
+          &copy; {new Date().getFullYear()} One Calendar, All rights reserved
         </p>
       </div>
     </footer>

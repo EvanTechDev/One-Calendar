@@ -143,10 +143,10 @@ export function HeroSection() {
           <div className="inset-shadow-foreground/10 bg-background/5 ring-foreground/5 relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] border p-2 shadow-2xl ring-1 inset-shadow-2xs">
             <div className="relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden border border-foreground/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
               <img
-                alt="Dashboard screen preview"
+                alt="App screen preview"
                 className="z-2 aspect-video w-full rounded-[calc(2.5rem-0.5rem)] object-cover"
                 height="1080"
-                src="https://github-production-user-asset-6210df.s3.amazonaws.com/138128991/600455179-a076623e-3132-42e4-a947-d3e3e3c0cf53.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20260626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260626T060950Z&X-Amz-Expires=300&X-Amz-Signature=9c7c53224cc31ee5e061d9dfa200ac9735818d4c0edb33492ab8ee771dade62d&X-Amz-SignedHeaders=host&response-content-type=image%2Fjpeg"
+                src="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53"
                 width="1920"
               />
             </div>
