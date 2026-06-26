@@ -29,7 +29,7 @@ export function Header() {
           preserveAspectRatio="xMidYMid meet"
           aria-label="One Calendar"
           role="img"
-          className="text-white h-6 w-6"
+          className="text-white h-9 w-9"
         >
           <g
             transform="translate(0,1000) scale(0.1,-0.1)"
