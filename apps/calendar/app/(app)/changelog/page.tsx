@@ -1,13 +1,12 @@
-import { docs } from "@/.source"
+import { source } from "@/.source"
 import { loader } from "fumadocs-core/source"
-import { createMDXSource } from "fumadocs-mdx"
 import { ThemeToggle } from "@zntr/ui/theme-toggle"
 import { useMemo } from "react"
 import { formatDate } from "@zntr/utils"
 
-const source = loader({
+const docsSource = loader({
   baseUrl: "/docs",
-  source: createMDXSource(docs),
+  source,
 })
 
 interface ChangelogData {
@@ -24,12 +23,12 @@ interface ChangelogPage {
 }
 
 export default function HomePage() {
-  const allPages = source.getPages() as ChangelogPage[]
-    const sortedChangelogs = allPages.sort((a, b) => {
-      const dateA = new Date(a.data.date).getTime()
-      const dateB = new Date(b.data.date).getTime()
-      return dateB - dateA
-    })
+  const allPages = docsSource.getPages() as ChangelogPage[]
+
+  const sortedChangelogs = allPages.sort((a, b) => {
+    return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  })
+}
 
   return (
     <div className="min-h-screen bg-background relative">
