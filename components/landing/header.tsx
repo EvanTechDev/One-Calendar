@@ -25,13 +25,11 @@ export function Header() {
             <svg
           version="1.0"
           xmlns="http://www.w3.org/2000/svg"
-          width="136"
-          height="136"
           viewBox="0 0 1000 1000"
           preserveAspectRatio="xMidYMid meet"
           aria-label="One Calendar"
           role="img"
-          className="text-black dark:text-white h-4"
+          className="text-white h-4 w-4"
         >
           <g
             transform="translate(0,1000) scale(0.1,-0.1)"
