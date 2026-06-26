@@ -1,0 +1,22 @@
+{
+  "name": "@zntr/utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "oxlint --config ../../.oxlintrc.json --fix src && eslint --config ../../eslint.config.ts src --fix",
+    "lint:check": "oxlint --config ../../.oxlintrc.json src && eslint --config ../../eslint.config.ts src --max-warnings=0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "3.6.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

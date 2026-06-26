@@ -1,6 +1,6 @@
-# Zntr
+# One Calendar
 
-> A production pnpm/Turborepo/Nx monorepo for Zntr applications and shared packages.
+> A privacy-first, weekly-focused open-source calendar built for clarity and control.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53"> 

@@ -1,18 +1,57 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "ignoreFiles": [
-    "components/app/analytics/events-calendar.tsx",
-    "hooks/use-toast.ts",
-    "hooks/useMobile.ts",
-    "lib/time-analytics.ts",
-    "public/sw.js"
+    "apps/one-calendar/components/app/analytics/events-calendar.tsx",
+    "apps/one-calendar/hooks/use-toast.ts",
+    "apps/one-calendar/hooks/useMobile.ts",
+    "apps/one-calendar/lib/time-analytics.ts",
+    "apps/one-calendar/public/sw.js"
   ],
   "ignoreIssues": {
-    "components/app/analytics/analytics-utils.ts": ["exports"],
-    "components/providers/calendar-context.tsx": ["exports", "duplicates"],
-    "components/ui/**": ["exports"],
-    "hooks/useLocalStorage.ts": ["exports"],
-    "lib/evlog.ts": ["exports"],
-    "lib/notifications.ts": ["exports"]
+    "apps/one-calendar/components/app/analytics/analytics-utils.ts": [
+      "exports"
+    ],
+    "apps/one-calendar/components/providers/calendar-context.tsx": [
+      "exports",
+      "duplicates"
+    ],
+    "packages/ui/**": [
+      "exports"
+    ],
+    "apps/one-calendar/hooks/useLocalStorage.ts": [
+      "exports"
+    ],
+    "apps/one-calendar/lib/evlog.ts": [
+      "exports"
+    ],
+    "apps/one-calendar/lib/notifications.ts": [
+      "exports"
+    ]
+  },
+  "workspaces": {
+    ".": {
+      "entry": [
+        "package.json"
+      ]
+    },
+    "apps/one-calendar": {
+      "entry": [
+        "app/**/*.{ts,tsx}",
+        "components/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}",
+        "hooks/**/*.{ts,tsx}",
+        "next.config.ts"
+      ]
+    },
+    "packages/ui": {
+      "entry": [
+        "src/**/*.{ts,tsx}"
+      ]
+    },
+    "packages/utils": {
+      "entry": [
+        "src/**/*.ts"
+      ]
+    }
   }
 }

@@ -1,0 +1,13 @@
+{
+  "extends": "../../apps/one-calendar/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../apps/one-calendar/*"],
+      "@zntr/ui/*": ["./src/*"],
+      "@zntr/utils": ["../utils/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"]
+}

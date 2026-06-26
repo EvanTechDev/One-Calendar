@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": []
+    },
+    "lint:check": {
+      "outputs": []
+    },
+    "type-check": {
+      "outputs": []
+    },
+    "generate:i18n": {
+      "outputs": ["locales/**", "i18n.lock"]
+    },
+    "cleanup:i18n": {
+      "outputs": ["locales/**", "i18n.lock"]
+    }
+  }
+}
