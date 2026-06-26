@@ -31,7 +31,7 @@ export function HeroSection() {
             <p className="font-mono text-xs">NOW</p>
           </div>
 
-          <span className="text-xs">Announcing One Calendar 2.0</span>
+          <span className="text-xs">Announcing One Calendar 3.0</span>
           <span className="block h-5 border-l" />
 
           <div className="pr-1">
@@ -114,7 +114,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.4, delay: 0.6, ease: [0.23, 1, 0.32, 1] }}
         >
-            <Link href="/sign-up">
+            <Link href="/sign-up" replace>
               <Button className="rounded-full pl-4 pr-1 py-2 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group">
                 <span className="mr-3">Get started</span>
                 <div className="flex size-6 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">

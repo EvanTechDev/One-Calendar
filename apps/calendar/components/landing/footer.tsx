@@ -33,6 +33,24 @@ const footerLinks: FooterSection[] = [
       { title: "Status", href: "https://calendarstatus.xyehr.cn" },
     ],
   },
+  {
+    label: "Product",
+    links: [
+      { title: "Features", href: "#" },
+      { title: "Pricing", href: "#" },
+      { title: "Testimonials", href: "#" },
+      { title: "Integration", href: "#" },
+    ],
+  },
+  {
+    label: "Product",
+    links: [
+      { title: "Features", href: "#" },
+      { title: "Pricing", href: "#" },
+      { title: "Testimonials", href: "#" },
+      { title: "Integration", href: "#" },
+    ],
+  },
 ];
 
 export function Footer() {
