@@ -36,7 +36,7 @@ const config: ConfigArray = tseslint.config(
     },
   },
   {
-    files: ['lib/**/*.mjs'],
+    files: ['**/*.mjs'],
     languageOptions: {
       globals: {
         console: 'readonly',

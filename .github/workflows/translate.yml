@@ -3,8 +3,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'i18n.json'
-      - 'locales/en.json'
+      - 'packages/i18n/i18n.json'
+      - 'packages/i18n/src/locales/en.json'
   workflow_dispatch:
 permissions:
   contents: write
@@ -20,7 +20,10 @@ jobs:
         with:
           node-version: 25
           cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Translate
+        working-directory: packages/i18n
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
         run: pnpm dlx lingo.dev run
