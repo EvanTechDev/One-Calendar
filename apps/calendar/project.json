@@ -1,7 +1,7 @@
 {
-  "name": "one-calendar",
+  "name": "calendar",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/one-calendar",
+  "sourceRoot": "apps/calendar",
   "projectType": "application",
   "targets": {
     "dev": {
@@ -38,6 +38,18 @@
       "executor": "nx:run-script",
       "options": {
         "script": "type-check"
+      }
+    },
+    "generate:i18n": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "generate:i18n"
+      }
+    },
+    "cleanup:i18n": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "cleanup:i18n"
       }
     }
   }

@@ -1,9 +1,9 @@
 {
-  "extends": "../../apps/one-calendar/tsconfig.json",
+  "extends": "../../apps/calendar/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../../apps/one-calendar/*"],
+      "@/*": ["../../apps/calendar/*"],
       "@zntr/ui/*": ["./src/*"],
       "@zntr/utils": ["../utils/src/index.ts"]
     }

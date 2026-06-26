@@ -1,5 +1,5 @@
 {
-  "extends": "../../apps/one-calendar/tsconfig.json",
+  "extends": "../../apps/calendar/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "."
   },

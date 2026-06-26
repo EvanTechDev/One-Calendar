@@ -1,6 +1,6 @@
 # Zntr
 
-> A production pnpm/Turborepo/Nx monorepo for Zntr applications and shared packages.
+> A production pnpm/Nx monorepo for Zntr applications and shared packages.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53"> 
@@ -22,15 +22,14 @@
 
 This repository is organized as a production monorepo:
 
-- `apps/one-calendar` contains the One Calendar Next.js application.
+- `apps/calendar` contains the One Calendar Next.js application.
 - `packages/ui` contains the shared shadcn/ui component package used by the app.
 - `packages/utils` contains shared utility helpers used by app and package code.
 - Root-level `eslint.config.ts`, `.oxlintrc.json`, `.prettierrc`, `.prettierignore`, `knip.json`, `.lintstagedrc.json`, Husky, and Commitlint centralize code-quality tooling.
-- `turbo.json` defines the Turborepo task pipeline.
-- `nx.json` and `apps/one-calendar/project.json` define the Nx workspace/project graph.
+- `nx.json` and `apps/calendar/project.json` define the Nx workspace/project graph.
 - `pnpm-workspace.yaml` manages workspace packages under `apps/*` and `packages/*`.
 
-Root-level scripts use Turborepo by default, while the calendar app can also be targeted directly with `pnpm --filter one-calendar <script>`.
+Root-level scripts use Nx by default, while the calendar app can also be targeted directly with `pnpm --filter calendar <script>` or `pnpm nx <target> calendar`.
 
 ## Vision
 
@@ -132,7 +131,7 @@ Then visit `http://localhost:3000`
 
 ### Environment Variables
 
-Copy `apps/one-calendar/.env.example` to `apps/one-calendar/.env` and fill in.
+Copy `apps/calendar/.env.example` to `apps/calendar/.env` and fill in.
 
 Key variables:
 

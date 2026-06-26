@@ -1,5 +1,5 @@
 {
-  "name": "one-calendar",
+  "name": "calendar",
   "version": "3.0.0-rc.1",
   "private": true,
   "packageManager": "pnpm@11.5.2",
@@ -19,7 +19,6 @@
     "@marsidev/react-turnstile": "1.5.3",
     "bcryptjs": "latest",
     "better-auth": "1.6.20",
-    "cobe": "0.6.4",
     "date-fns": "4.4.0",
     "drizzle-orm": "^0.45.2",
     "evlog": "2.19.2",
