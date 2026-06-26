@@ -11,8 +11,8 @@ export default function LandingPage() {
       <Header />
       <main className="flex w-full flex-col gap-20">
         <HeroSection />
-        <LogosSection />
         <FeatureSection />
+        <LogosSection />
         <CallToAction />
       </main>
       <Footer />
