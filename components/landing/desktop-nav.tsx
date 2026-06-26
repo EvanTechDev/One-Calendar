@@ -1,10 +1,9 @@
 import { cn } from "@/lib/utils";
 
 const links = [
-  { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Company", href: "#company" },
-  { label: "Blog", href: "#blog" },
+  { label: "Code", href: "https://github.com/EvanTechDev/One-Calendar" },
+  { label: "Changelog", href: "/changelog" },
+  { label: "Contact", href: "mailto:evan.huang000@proton.me" },
 ];
 
 export function DesktopNav() {

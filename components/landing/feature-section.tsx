@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type React from "react";
-import { CobeGlobe } from "./cobe-globe";
+import { Globe } from "@/components/ui/globe";
 import { TrendingUpIcon, SquareMousePointerIcon, GlobeIcon } from "lucide-react";
 
 const features = [
@@ -93,7 +93,7 @@ function SetupVisual() {
 			<div className="relative mt-8 space-y-1.5 text-center">
 				<FeatureTitle>Instant Setup</FeatureTitle>
 				<FeatureDescription>
-					Get your entire team onboarded and ready to work in just a few clicks.
+					Connect your calendars in just a few clicks and start managing your schedule instantly.
 				</FeatureDescription>
 			</div>
 		</>
@@ -111,8 +111,7 @@ function UserBasedSecurity() {
 			<div className="relative mt-8 space-y-1.5 text-center">
 				<FeatureTitle>Enterprise Security</FeatureTitle>
 				<FeatureDescription>
-					Protect your data with role-based access control and
-					enterprise-grade encryption.
+					Keep your events and personal data protected with secure authentication and encrypted synchronization.
 				</FeatureDescription>
 			</div>
 		</>
@@ -134,7 +133,7 @@ function ReportsVisual() {
 			<div className="relative z-10 mt-8 space-y-1.5 text-center">
 				<FeatureTitle>Advanced Analytics</FeatureTitle>
 				<FeatureDescription>
-					Gain actionable insights into your team&apos;s performance with customizable dashboards.
+					Understand your schedule with productivity insights, event statistics, and customizable calendar views.
 				</FeatureDescription>
 			</div>
 		</>
@@ -153,8 +152,7 @@ function DashboardVisual() {
 						Intuitive Interface
 					</FeatureTitle>
 					<FeatureDescription>
-						Navigate your workflow effortlessly with our beautiful,
-						meticulously crafted design.
+						Plan your day effortlessly with a clean, responsive interface designed for speed and focus.
 					</FeatureDescription>
 				</div>
 			</div>
@@ -188,13 +186,12 @@ function PresenceVisual() {
 						Global Availability
 					</FeatureTitle>
 					<FeatureDescription>
-						Access your workspace from anywhere in the world with our
-						reliable edge network.
+						Access your calendars and events from anywhere with reliable cloud synchronization across all your devices.
 					</FeatureDescription>
 				</div>
 			</div>
 			<div className="relative">
-				<CobeGlobe className="-top-[12%] right-0 sm:absolute" />
+				<Globe className="-top-[12%] right-0 sm:absolute" />
 			</div>
 		</div>
 	);

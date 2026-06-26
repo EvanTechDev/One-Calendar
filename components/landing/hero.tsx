@@ -2,6 +2,7 @@ import * as motion from "motion/react-client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon, PlayIcon } from "lucide-react";
+import Link from "next/link";
 
 export function HeroSection() {
   return (
@@ -22,7 +23,6 @@ export function HeroSection() {
           className={cn(
             "group bg-card flex w-fit items-center gap-3 rounded-sm border p-1 shadow-xs",
           )}
-          href="#link"
           initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.4, delay: 0.05, ease: [0.23, 1, 0.32, 1] }}
@@ -31,7 +31,7 @@ export function HeroSection() {
             <p className="font-mono text-xs">NOW</p>
           </div>
 
-          <span className="text-xs">Announcing Efferd 2.0</span>
+          <span className="text-xs">Announcing One Calendar 2.0</span>
           <span className="block h-5 border-l" />
 
           <div className="pr-1">
@@ -52,7 +52,7 @@ export function HeroSection() {
             },
           }}
         >
-          {"Manage your entire workflow in one place"
+          {"Manage your all schedules in one place"
             .split(" ")
             .map((word, i) => (
               <motion.span
@@ -87,7 +87,7 @@ export function HeroSection() {
             },
           }}
         >
-          {"A unified platform to plan, execute, and track all your team's projects with powerful automation and insights."
+          {"A calm calendar for people and teams who value clarity over complexity."
             .split(" ")
             .map((word, i) => (
               <motion.span
@@ -114,19 +114,14 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.4, delay: 0.6, ease: [0.23, 1, 0.32, 1] }}
         >
-          <Button
-            variant="outline"
-            className="rounded-full px-4 py-2 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group"
-          >
-            <PlayIcon data-icon="inline-start" className="mr-1.5 size-4" />
-            View Demo
-          </Button>
-          <Button className="rounded-full pl-4 pr-1 py-2 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group">
-            <span className="mr-3">Get started</span>
-            <div className="flex size-6 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
-              <ArrowRightIcon data-icon="inline-end" />
-            </div>
-          </Button>
+            <Link href="/sign-up">
+              <Button className="rounded-full pl-4 pr-1 py-2 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group">
+                <span className="mr-3">Get started</span>
+                <div className="flex size-6 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
+                  <ArrowRightIcon data-icon="inline-end" />
+                </div>
+              </Button>
+            </Link>
         </motion.div>
       </div>
       <div className="relative">
@@ -151,7 +146,7 @@ export function HeroSection() {
                 alt="Dashboard screen preview"
                 className="z-2 aspect-video w-full rounded-[calc(2.5rem-0.5rem)] object-cover"
                 height="1080"
-                src="https://i.postimg.cc/1RLJhP8H/orbit.png"
+                src="https://github-production-user-asset-6210df.s3.amazonaws.com/138128991/600455179-a076623e-3132-42e4-a947-d3e3e3c0cf53.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20260626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260626T060950Z&X-Amz-Expires=300&X-Amz-Signature=9c7c53224cc31ee5e061d9dfa200ac9735818d4c0edb33492ab8ee771dade62d&X-Amz-SignedHeaders=host&response-content-type=image%2Fjpeg"
                 width="1920"
               />
             </div>

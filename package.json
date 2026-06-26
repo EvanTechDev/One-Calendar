@@ -23,7 +23,7 @@
     "better-auth": "1.6.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cobe": "^2.0.1",
+    "cobe": "0.6.4",
     "date-fns": "4.4.0",
     "drizzle-orm": "^0.45.2",
     "evlog": "2.19.2",
