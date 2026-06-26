@@ -1,0 +1,14 @@
+{
+  "name": "calendar",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/calendar",
+  "projectType": "application",
+  "targets": {
+    "dev": { "executor": "nx:run-script", "options": { "script": "dev" } },
+    "build": { "executor": "nx:run-script", "options": { "script": "build" } },
+    "start": { "executor": "nx:run-script", "options": { "script": "start" } },
+    "lint": { "executor": "nx:run-script", "options": { "script": "lint" } },
+    "lint:check": { "executor": "nx:run-script", "options": { "script": "lint:check" } },
+    "type-check": { "executor": "nx:run-script", "options": { "script": "type-check" } }
+  }
+}

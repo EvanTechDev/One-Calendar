@@ -1,8 +1,10 @@
 packages:
-  - "."
+  - "apps/*"
+
 allowBuilds:
   esbuild: false
   msw: false
+  nx: true
   sharp: false
   unrs-resolver: false
 
@@ -72,3 +74,4 @@ minimumReleaseAgeExclude:
 onlyBuiltDependencies:
   - sharp
   - esbuild
+  - nx

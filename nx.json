@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "defaultBase": "main"
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*"],
+    "production": ["default", "!{projectRoot}/.next/**/*"]
+  },
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/.next", "{projectRoot}/dist"]
+    },
+    "type-check": {
+      "cache": true,
+      "inputs": ["production", "^production"]
+    },
+    "lint:check": {
+      "cache": true,
+      "inputs": ["production", "^production"]
+    }
+  }
+}
