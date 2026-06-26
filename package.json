@@ -15,6 +15,7 @@
     "cleanup:i18n": "node lib/cleanup-i18n.mjs"
   },
   "dependencies": {
+    "@base-ui/react": "latest",
     "@better-auth/drizzle-adapter": "1.6.20",
     "@better-auth/infra": "0.3.2",
     "@marsidev/react-turnstile": "1.5.3",
