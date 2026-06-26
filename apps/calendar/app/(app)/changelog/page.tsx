@@ -28,7 +28,6 @@ export default function HomePage() {
   const sortedChangelogs = allPages.sort((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
   })
-}
 
   return (
     <div className="min-h-screen bg-background relative">
