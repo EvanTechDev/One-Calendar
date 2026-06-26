@@ -1,4 +1,4 @@
-import { docs, meta } from "@/.source"
+import { docs } from "@/.source"
 import { loader } from "fumadocs-core/source"
 import { createMDXSource } from "fumadocs-mdx"
 import { ThemeToggle } from "@zntr/ui/theme-toggle"
@@ -7,7 +7,7 @@ import { formatDate } from "@zntr/utils"
 
 const source = loader({
   baseUrl: "/docs",
-  source: createMDXSource(docs, meta),
+  source: createMDXSource(docs),
 })
 
 interface ChangelogData {
