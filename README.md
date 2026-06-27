@@ -1,3 +1,5 @@
+<img width="1280" height="720" alt="1000067665" src="https://github.com/user-attachments/assets/8b71cd65-bdc1-480e-ae3b-98a4210f0cec" />
+
 ## Zntr
 
 Zntr is a service offering a fully open-source, self-hosted cloud platform.
