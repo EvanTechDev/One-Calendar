@@ -1,31 +1,17 @@
-import { source } from ".source"
-import { loader } from "fumadocs-core/source"
-import { ThemeToggle } from "@zntr/ui/theme-toggle"
-import { useMemo } from "react"
-import { formatDate } from "@zntr/utils"
+import { loader } from 'fumadocs-core/source'
+import { docs } from 'collections/server'
+import { ThemeToggle } from '@zntr/ui/theme-toggle'
+import { formatDate } from '@zntr/utils'
 
 const docsSource = loader({
-  baseUrl: "/docs",
-  source,
+  baseUrl: '/changelog',
+  source: docs.toFumadocsSource(),
 })
 
-interface ChangelogData {
-  title: string
-  date: string
-  version?: string
-  tags?: string[]
-  body: React.ComponentType
-}
-
-interface ChangelogPage {
-  url: string
-  data: ChangelogData
-}
-
 export default function HomePage() {
-  const allPages = docsSource.getPages() as ChangelogPage[]
+  const allPages = docsSource.getPages()
 
-  const sortedChangelogs = allPages.sort((a, b) => {
+  const sortedChangelogs = [...allPages].sort((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
   })
 
