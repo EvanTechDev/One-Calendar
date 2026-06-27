@@ -28,7 +28,7 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-:landing {
+.landing {
   --background: oklch(0.05 0 0); /* very dark, almost black */
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.08 0 0);
