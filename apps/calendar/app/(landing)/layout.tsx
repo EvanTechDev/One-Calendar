@@ -2,13 +2,11 @@ import './landing.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
 import { cn } from '@zntr/utils'
-import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
 import type { Metadata } from 'next'
 import type React from 'react'
-import { AVAILABLE_THEMES } from '@/lib/theme'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -48,29 +46,21 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(
-        'landing',
-        'font-sans',
-        inter.variable,
-        geistHeading.variable,
-      )}
+      className={cn('font-sans', inter.variable, geistHeading.variable)}
     >
       <body
-        className={`${GeistSans.className} ${instrumentSans.variable} antialiased`}
+        className={cn(
+          'landing',
+          GeistSans.className,
+          instrumentSans.variable,
+          'antialiased',
+        )}
       >
-        <ThemeProvider
-          themes={[...AVAILABLE_THEMES]}
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <CalendarProvider>
-            <PwaProvider />
-            {children}
-            <Toaster />
-          </CalendarProvider>
-        </ThemeProvider>
+        <CalendarProvider>
+          <PwaProvider />
+          {children}
+          <Toaster />
+        </CalendarProvider>
       </body>
     </html>
   )
