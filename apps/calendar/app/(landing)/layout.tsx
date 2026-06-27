@@ -1,3 +1,5 @@
+// app/(landing)/layout.tsx
+
 import './landing.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
@@ -37,31 +39,26 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default function LandingLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn('font-sans', inter.variable, geistHeading.variable)}
+    <div
+      className={cn(
+        'landing min-h-dvh font-sans antialiased',
+        inter.variable,
+        geistHeading.variable,
+        GeistSans.className,
+        instrumentSans.variable,
+      )}
     >
-      <body
-        className={cn(
-          'landing',
-          GeistSans.className,
-          instrumentSans.variable,
-          'antialiased',
-        )}
-      >
-        <CalendarProvider>
-          <PwaProvider />
-          {children}
-          <Toaster />
-        </CalendarProvider>
-      </body>
-    </html>
+      <CalendarProvider>
+        <PwaProvider />
+        {children}
+        <Toaster />
+      </CalendarProvider>
+    </div>
   )
 }
