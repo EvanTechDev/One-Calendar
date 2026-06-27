@@ -4,9 +4,6 @@ import './landing.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
 import { cn } from '@zntr/utils'
-import { PwaProvider } from '@/components/providers/pwa-provider'
-import { Toaster } from '@zntr/ui/sonner'
-import { CalendarProvider } from '@/components/providers/calendar-context'
 import type { Metadata } from 'next'
 import type React from 'react'
 
@@ -54,11 +51,7 @@ export default function LandingLayout({
         instrumentSans.variable,
       )}
     >
-      <CalendarProvider>
-        <PwaProvider />
-        {children}
-        <Toaster />
-      </CalendarProvider>
+      {children}
     </div>
   )
 }
