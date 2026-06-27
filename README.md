@@ -1,6 +1,6 @@
 ## Zntr
 
-Zntr is a service offering a fully open-source, self-hosted cloud storage platform, allowing you to store data in the cloud without needing to trust the service provider.
+Zntr is a service offering a fully open-source, self-hosted cloud platform.
 
 This monorepo contains all our source code, covering client applications for our various products (as well as those planned for future release).
 
