@@ -3,12 +3,7 @@
 import type React from 'react'
 
 import { useState, useEffect } from 'react'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@zntr/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { Button } from '@zntr/ui/button'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import { Bookmark, Search, Trash2 } from 'lucide-react'

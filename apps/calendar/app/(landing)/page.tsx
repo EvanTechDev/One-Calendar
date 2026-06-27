@@ -1,9 +1,9 @@
-import { Header } from "@/components/landing/header";
-import { HeroSection } from "@/components/landing/hero";
-import { LogosSection } from "@/components/landing/logos-section";
-import { FeatureSection } from "@/components/landing/feature-section";
-import { CallToAction } from "@/components/landing/cta";
-import { Footer } from "@/components/landing/footer";
+import { Header } from '@/components/landing/header'
+import { HeroSection } from '@/components/landing/hero'
+import { LogosSection } from '@/components/landing/logos-section'
+import { FeatureSection } from '@/components/landing/feature-section'
+import { CallToAction } from '@/components/landing/cta'
+import { Footer } from '@/components/landing/footer'
 
 export default function LandingPage() {
   return (
@@ -17,5 +17,5 @@ export default function LandingPage() {
       </main>
       <Footer />
     </div>
-  );
+  )
 }

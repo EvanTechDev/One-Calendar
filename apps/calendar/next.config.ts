@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import type { NextConfig } from 'next'
-import { createMDX } from "fumadocs-mdx/next"
+import { createMDX } from 'fumadocs-mdx/next'
 
 const withMDX = createMDX()
 

@@ -67,7 +67,9 @@ const useCalendarStore = create<CalendarState>()((set) => ({
       events: typeof value === 'function' ? value(state.events) : value,
     })),
   addCategory: (category: CalendarCategory) =>
-    set((state: CalendarState) => ({ calendars: [...state.calendars, category] })),
+    set((state: CalendarState) => ({
+      calendars: [...state.calendars, category],
+    })),
   removeCategory: (id: string) =>
     set((state: CalendarState) => ({
       calendars: state.calendars.filter((cal) => cal.id !== id),

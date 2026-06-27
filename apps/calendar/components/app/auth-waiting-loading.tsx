@@ -47,9 +47,7 @@ export default function AuthWaitingLoading() {
             <path d="M6311 2784 c-76 -20 -146 -60 -212 -122 -113 -104 -159 -211 -159 -371 0 -189 74 -329 228 -431 103 -68 259 -97 385 -71 130 28 271 129 336 245 86 151 86 361 1 512 -38 65 -141 164 -208 198 -109 55 -256 71 -371 40z" />
           </g>
         </svg>
-        <p
-          className={`text-sm text-slate-700 dark:text-slate-300`}
-        >
+        <p className={`text-sm text-slate-700 dark:text-slate-300`}>
           {t.loadingCalendar}
           {'.'.repeat(dotCount)}
         </p>

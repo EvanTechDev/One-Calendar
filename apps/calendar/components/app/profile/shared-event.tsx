@@ -29,12 +29,7 @@ import { Button } from '@zntr/ui/button'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { motion } from 'framer-motion'
 import { Badge } from '@zntr/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from '@zntr/ui/card'
+import { Card, CardContent, CardDescription, CardTitle } from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 

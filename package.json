@@ -12,7 +12,9 @@
     "lint:check": "nx run-many -t lint:check",
     "type-check": "nx run-many -t type-check",
     "generate:i18n": "nx run i18n:generate",
-    "cleanup:i18n": "nx run i18n:cleanup"
+    "cleanup:i18n": "nx run i18n:cleanup",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",

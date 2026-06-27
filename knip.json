@@ -8,24 +8,14 @@
     "apps/calendar/public/sw.js"
   ],
   "ignoreIssues": {
-    "apps/calendar/components/app/analytics/analytics-utils.ts": [
-      "exports"
-    ],
+    "apps/calendar/components/app/analytics/analytics-utils.ts": ["exports"],
     "apps/calendar/components/providers/calendar-context.tsx": [
       "exports",
       "duplicates"
     ],
-    "packages/ui/src/**": [
-      "exports"
-    ],
-    "packages/utils/src/useLocalStorage.ts": [
-      "exports"
-    ],
-    "apps/calendar/lib/evlog.ts": [
-      "exports"
-    ],
-    "apps/calendar/lib/notifications.ts": [
-      "exports"
-    ]
+    "packages/ui/src/**": ["exports"],
+    "packages/utils/src/useLocalStorage.ts": ["exports"],
+    "apps/calendar/lib/evlog.ts": ["exports"],
+    "apps/calendar/lib/notifications.ts": ["exports"]
   }
 }

@@ -46,7 +46,7 @@ import {
   Palette,
   ArrowLeft,
 } from 'lucide-react'
-import { Kbd } from "@zntr/ui/kbd"
+import { Kbd } from '@zntr/ui/kbd'
 
 interface SettingsProps {
   language: Language
@@ -334,63 +334,43 @@ export default function Settings({
                   </DialogHeader>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        N
-                      </Kbd>
+                      <Kbd>N</Kbd>
                       <span>{t.newEvent}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        /
-                      </Kbd>
+                      <Kbd>/</Kbd>
                       <span>{t.searchEvents}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        T
-                      </Kbd>
+                      <Kbd>T</Kbd>
                       <span>{t.today}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        1
-                      </Kbd>
+                      <Kbd>1</Kbd>
                       <span>{t.day}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        2
-                      </Kbd>
+                      <Kbd>2</Kbd>
                       <span>{t.week}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        3
-                      </Kbd>
+                      <Kbd>3</Kbd>
                       <span>{t.month}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        4
-                      </Kbd>
+                      <Kbd>4</Kbd>
                       <span>{t.year}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        5
-                      </Kbd>
+                      <Kbd>5</Kbd>
                       <span>{t.fourDay}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        ←
-                      </Kbd>
+                      <Kbd>←</Kbd>
                       <span>{t.previousPeriod}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <Kbd>
-                        →
-                      </Kbd>
+                      <Kbd>→</Kbd>
                       <span>{t.nextPeriod}</span>
                     </div>
                   </div>

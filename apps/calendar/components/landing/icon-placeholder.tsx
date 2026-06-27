@@ -1,13 +1,13 @@
-import React from "react";
-import * as LucideIcons from "lucide-react";
+import React from 'react'
+import * as LucideIcons from 'lucide-react'
 
 export interface IconPlaceholderProps extends React.SVGProps<SVGSVGElement> {
-  lucide?: string;
-  hugeicons?: string;
-  phosphor?: string;
-  remixicon?: string;
-  tabler?: string;
-  "data-icon"?: string;
+  lucide?: string
+  hugeicons?: string
+  phosphor?: string
+  remixicon?: string
+  tabler?: string
+  'data-icon'?: string
 }
 
 export function IconPlaceholder({
@@ -16,9 +16,9 @@ export function IconPlaceholder({
   ...props
 }: IconPlaceholderProps) {
   if (lucide) {
-    const Icon = (LucideIcons as any)[lucide];
+    const Icon = (LucideIcons as any)[lucide]
     if (Icon) {
-      return <Icon className={className} {...props} />;
+      return <Icon className={className} {...props} />
     }
   }
 
@@ -41,5 +41,5 @@ export function IconPlaceholder({
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
-  );
+  )
 }

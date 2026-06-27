@@ -1,9 +1,9 @@
-import "./globals.css";
-import { Instrument_Sans, Inter, Geist } from "next/font/google";
-import { GeistSans } from 'geist/font/sans';
-import { cn } from "@zntr/utils";
-import { ThemeProvider } from '@/components/providers/theme-provider';
-import { PwaProvider } from '@/components/providers/pwa-provider';
+import './globals.css'
+import { Instrument_Sans, Inter, Geist } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
+import { cn } from '@zntr/utils'
+import { ThemeProvider } from '@/components/providers/theme-provider'
+import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
 import type { Metadata } from 'next'
@@ -14,7 +14,10 @@ const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
-const instrumentSans = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" });
+const instrumentSans = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-instrument-sans',
+})
 
 export const APP_TITLE = 'One Calendar'
 export const APP_SUBTITLE = 'Your life, stay safe.'
@@ -39,7 +42,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html
@@ -65,5 +68,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

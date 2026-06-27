@@ -1,22 +1,22 @@
-import defaultMdxComponents from "fumadocs-ui/mdx"
-import type { MDXComponents } from "mdx/types"
+import defaultMdxComponents from 'fumadocs-ui/mdx'
+import type { MDXComponents } from 'mdx/types'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@zntr/ui/accordion"
-import { cn } from "@zntr/utils"
+} from '@zntr/ui/accordion'
+import { cn } from '@zntr/utils'
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    img: ({ className, ...props }: React.ComponentProps<"img">) => (
-      <img className={cn("rounded-md border", className)} {...props} />
+    img: ({ className, ...props }: React.ComponentProps<'img'>) => (
+      <img className={cn('rounded-md border', className)} {...props} />
     ),
-    Video: ({ className, ...props }: React.ComponentProps<"video">) => (
+    Video: ({ className, ...props }: React.ComponentProps<'video'>) => (
       <video
-        className={cn("rounded-md border", className)}
+        className={cn('rounded-md border', className)}
         controls
         loop
         {...props}
