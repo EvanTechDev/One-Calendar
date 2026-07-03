@@ -2,6 +2,7 @@
   "name": "one-calendar",
   "version": "3.0.0-rc.5",
   "private": true,
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "dev": "next dev",
     "start": "next start",
