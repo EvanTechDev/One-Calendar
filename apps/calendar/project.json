@@ -7,19 +7,19 @@
     "generate-i18n": {
       "command": "pnpm --filter @zntr/i18n generate",
       "cache": true,
-      "outputs": ["libs/i18n/src/generated"]
+      "outputs": ["{workspaceRoot}/packages/i18n/src/locales.ts"]
     },
     "mdx": {
       "command": "fumadocs-mdx",
       "cache": true,
-      "outputs": [".source"]
+      "outputs": ["{projectRoot}/.source"]
     },
     "build": {
       "executor": "@nx/next:build",
       "outputs": [".next"],
       "dependsOn": ["generate-i18n", "mdx"],
       "options": {
-        "outputPath": "apps/calendar/.next"
+        "outputPath": "{projectRoot}/.next"
       }
     },
     "dev": {
