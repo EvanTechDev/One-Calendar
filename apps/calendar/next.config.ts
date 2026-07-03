@@ -1,11 +1,16 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
 
 const withMDX = createMDX()
 
-const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'))
+const currentDir = dirname(fileURLToPath(import.meta.url))
+const packageJson = JSON.parse(
+  readFileSync(join(currentDir, 'package.json'), 'utf8'),
+)
 
 const getGitCommit = () => {
   try {

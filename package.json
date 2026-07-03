@@ -22,6 +22,7 @@
     "@commitlint/types": "20.5.0",
     "@eslint/js": "10.0.1",
     "@next/eslint-plugin-next": "16.2.9",
+    "@nx/next": "^23.0.1",
     "@tailwindcss/postcss": "4.3.1",
     "@types/node": "25.6.0",
     "@types/react": "^19.2.14",

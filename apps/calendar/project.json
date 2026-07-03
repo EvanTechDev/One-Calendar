@@ -10,13 +10,13 @@
       "outputs": ["{workspaceRoot}/packages/i18n/src/locales.ts"]
     },
     "mdx": {
-      "command": "fumadocs-mdx",
+      "command": "pnpm --filter one-calendar exec fumadocs-mdx",
       "cache": true,
       "outputs": ["{projectRoot}/.source"]
     },
     "build": {
       "executor": "@nx/next:build",
-      "outputs": [".next"],
+      "outputs": ["{projectRoot}/.next"],
       "dependsOn": ["generate-i18n", "mdx"],
       "options": {
         "outputPath": "{projectRoot}/.next"
@@ -32,11 +32,19 @@
       "executor": "@nx/next:start"
     },
     "lint": {
-      "command": "oxlint app components hooks lib proxy.ts && eslint app components hooks lib proxy.ts",
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/calendar",
+        "command": "oxlint app components hooks lib proxy.ts && eslint app components hooks lib proxy.ts"
+      },
       "cache": true
     },
     "type-check": {
-      "command": "tsc --noEmit",
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/calendar",
+        "command": "tsc --noEmit"
+      },
       "cache": true
     }
   },
