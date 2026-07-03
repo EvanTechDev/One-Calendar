@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - 'i18n.json'
-      - 'locales/en.json'
+      - 'locales/calendar/en.json'
   workflow_dispatch:
 permissions:
   contents: write
