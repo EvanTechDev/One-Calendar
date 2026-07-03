@@ -1,8 +1,22 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
-    "build": { "dependsOn": ["^build"], "cache": true },
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true,
+      "outputs": ["{projectRoot}/.next"]
+    },
     "type-check": { "cache": true },
     "lint:check": { "cache": true }
-  }
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/next/plugin",
+      "options": {
+        "startTargetName": "start",
+        "devTargetName": "dev",
+        "buildTargetName": "build"
+      }
+    }
+  ]
 }
