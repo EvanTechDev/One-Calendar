@@ -6,8 +6,12 @@
       "cache": true,
       "outputs": ["{projectRoot}/.next"]
     },
-    "type-check": { "cache": true },
-    "lint:check": { "cache": true }
+    "type-check": {
+      "cache": true
+    },
+    "lint:check": {
+      "cache": true
+    }
   },
   "plugins": [
     {
@@ -22,5 +26,13 @@
   "affected": {
     "defaultBase": "main"
   },
-  "nxCloudId": "zntr"
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "lint:check", "type-check"],
+        "parallel": 4
+      }
+    }
+  }
 }

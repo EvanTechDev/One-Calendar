@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm nx build calendar",
+  "devCommand": "pnpm nx dev calendar",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/calendar/.next"
+}
