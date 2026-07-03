@@ -16,7 +16,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check"
   },
-  "dependencis":  {
+  "dependencies": {
     "next": "16.2.9"
   },
   "devDependencies": {
