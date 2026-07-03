@@ -16,6 +16,9 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check"
   },
+  "dependencis":  {
+    "next": "16.2.9"
+  },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
     "@commitlint/config-conventional": "20.5.3",
