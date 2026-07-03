@@ -37,24 +37,6 @@ const footerLinks: FooterSection[] = [
       { title: 'Status', href: 'https://calendarstatus.xyehr.cn' },
     ],
   },
-  {
-    label: 'Product',
-    links: [
-      { title: 'Features', href: '#' },
-      { title: 'Pricing', href: '#' },
-      { title: 'Testimonials', href: '#' },
-      { title: 'Integration', href: '#' },
-    ],
-  },
-  {
-    label: 'Product',
-    links: [
-      { title: 'Features', href: '#' },
-      { title: 'Pricing', href: '#' },
-      { title: 'Testimonials', href: '#' },
-      { title: 'Integration', href: '#' },
-    ],
-  },
 ]
 
 const docsSource = loader({
@@ -218,7 +200,7 @@ export default function HomePage() {
 
         <div className="overflow-hidden pt-8">
           <h2
-            className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground/10 md:text-[10rem] lg:text-[14rem]`}
+            className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground md:text-[10rem] lg:text-[14rem]`}
           >
             ZENTRA
           </h2>
