@@ -9,7 +9,7 @@ import {
   isSameDay,
   subDays,
 } from 'date-fns'
-import { translations, type Language } from '@zntr/i18n'
+import { translations, type Language } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import { cn } from '@zntr/utils'
 

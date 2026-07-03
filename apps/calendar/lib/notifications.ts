@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
-import { getStoredLanguage, translations } from '@zntr/i18n'
+import { getStoredLanguage, translations } from '@zntr/i18n/calendar'
 
 let notificationInterval: NodeJS.Timeout | null = null
 const firedNotifications = new Map<string, number>()

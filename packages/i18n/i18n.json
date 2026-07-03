@@ -41,7 +41,7 @@
   },
   "buckets": {
     "json": {
-      "include": ["locales/[locale].json"]
+      "include": ["src/calendar/locales/[locale].json"]
     }
   },
   "$schema": "https://lingo.dev/schema/i18n.json",

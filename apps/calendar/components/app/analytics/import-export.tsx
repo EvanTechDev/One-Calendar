@@ -25,7 +25,7 @@ import {
 } from '@zntr/utils/useLocalStorage'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { normalizeTheme, type ThemeOption } from '@/lib/theme'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { Checkbox } from '@zntr/ui/checkbox'

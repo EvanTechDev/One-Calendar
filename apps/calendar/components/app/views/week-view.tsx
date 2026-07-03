@@ -15,7 +15,7 @@ import {
   startOfDay,
 } from 'date-fns'
 import { cn } from '@zntr/utils'
-import { translations, type Language } from '@zntr/i18n'
+import { translations, type Language } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import type { FirstDayOfWeek } from '@/components/app/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'

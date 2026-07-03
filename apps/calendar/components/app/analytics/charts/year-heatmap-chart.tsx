@@ -10,7 +10,7 @@ import {
   startOfWeek,
   startOfYear,
 } from 'date-fns'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 
 interface HeatmapDatum {
   date: Date

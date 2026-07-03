@@ -16,7 +16,7 @@ import {
   supportedLanguages,
   translations,
   type Language,
-} from '@zntr/i18n'
+} from '@zntr/i18n/calendar'
 import ShareManagement from '@/components/app/analytics/share-management'
 import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'

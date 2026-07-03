@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { translations, type Language } from '@zntr/i18n'
+import { translations, type Language } from '@zntr/i18n/calendar'
 import { Calendar } from '@zntr/ui/calendar'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Button } from '@zntr/ui/button'

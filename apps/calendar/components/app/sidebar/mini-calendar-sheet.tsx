@@ -10,7 +10,7 @@ import {
 } from 'date-fns'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { CalendarDays, ChevronRight } from 'lucide-react'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import type { CalendarEvent } from '../calendar'

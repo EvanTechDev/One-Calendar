@@ -3,7 +3,7 @@
 import TimeAnalyticsComponent from '@/components/app/analytics/time-analytics'
 import type { CalendarEvent } from '@/components/app/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { useState, useEffect } from 'react'
 import { Button } from '@zntr/ui/button'
 import { ArrowLeft } from 'lucide-react'

@@ -46,7 +46,7 @@ import EventPreview from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {

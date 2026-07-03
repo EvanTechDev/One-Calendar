@@ -1,6 +1,6 @@
 'use client'
 
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { useEffect, useState } from 'react'
 
 export default function AuthWaitingLoading() {

@@ -9,7 +9,7 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
-import { isZhLanguage, translations, type Language } from '@zntr/i18n'
+import { isZhLanguage, translations, type Language } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import { useMemo, useState } from 'react'
 import { cn } from '@zntr/utils'

@@ -1,6 +1,6 @@
 'use client'
 
-import { translations, type Language } from '@zntr/i18n'
+import { translations, type Language } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { useEffect, useMemo, useState } from 'react'
 

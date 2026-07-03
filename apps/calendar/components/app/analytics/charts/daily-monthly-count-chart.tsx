@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@zntr/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import { format } from 'date-fns'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import {
   ChartContainer,
   ChartLegend,

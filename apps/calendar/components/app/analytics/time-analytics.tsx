@@ -32,7 +32,7 @@ import { CategoryDonutChart } from './charts/category-donut-chart'
 import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
 import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]

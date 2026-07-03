@@ -6,7 +6,7 @@ import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
 import { format, isSameDay, isWithinInterval, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
-import { translations, type Language } from '@zntr/i18n'
+import { translations, type Language } from '@zntr/i18n/calendar'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,

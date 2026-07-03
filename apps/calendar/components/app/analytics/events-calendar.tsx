@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import React, { useEffect, useState } from 'react'
 
 interface CalendarEvent {

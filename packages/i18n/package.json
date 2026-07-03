@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./i18n": "./src/i18n.ts",
-    "./locales": "./src/locales.ts"
+    "./calendar": "./src/calendar/index.ts"
   },
   "scripts": {
     "generate": "node src/gen-locales.mjs",

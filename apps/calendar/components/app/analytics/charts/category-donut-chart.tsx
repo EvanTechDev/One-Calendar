@@ -8,7 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@zntr/ui/chart'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 
 interface DonutDatum {
   category: string

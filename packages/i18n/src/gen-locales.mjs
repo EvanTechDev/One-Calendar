@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname)
-const localesDir = path.join(projectRoot, 'locales')
-const outputFile = path.join(projectRoot, 'locales.ts')
+const localesDir = path.join(projectRoot, 'calendar', 'locales')
+const outputFile = path.join(projectRoot, 'calendar', 'locales.ts')
 
 const toIdentifier = (value) =>
   `locale${value.replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase()).replace(/^[a-z]/, (chr) => chr.toUpperCase())}`

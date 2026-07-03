@@ -7,7 +7,7 @@
     "generate-i18n": {
       "command": "pnpm --filter @zntr/i18n generate",
       "cache": true,
-      "outputs": ["{workspaceRoot}/packages/i18n/src/locales.ts"]
+      "outputs": ["{workspaceRoot}/packages/i18n/src/calendar/locales.ts"]
     },
     "mdx": {
       "command": "pnpm --filter one-calendar exec fumadocs-mdx",

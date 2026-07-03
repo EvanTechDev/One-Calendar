@@ -23,7 +23,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@zntr/ui/empty'
-import { isZhLanguage, translations, useLanguage } from '@zntr/i18n'
+import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
 import {
   getEncryptionState,
   readEncryptedLocalStorage,

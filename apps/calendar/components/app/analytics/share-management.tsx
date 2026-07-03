@@ -9,7 +9,7 @@ import {
   AlertDialogAction,
 } from '@zntr/ui/alert-dialog'
 import { Copy, ExternalLink, Lock, Trash2 } from 'lucide-react'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { useEffect, useState } from 'react'

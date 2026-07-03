@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@zntr/ui/use-toast'
 import { cn } from '@zntr/utils'
-import { isZhLanguage, useLanguage } from '@zntr/i18n'
+import { isZhLanguage, useLanguage } from '@zntr/i18n/calendar'
 
 import { Button } from '@zntr/ui/button'
 import { useCalendar } from '@/components/providers/calendar-context'

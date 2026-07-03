@@ -11,7 +11,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@zntr/ui/chart'
-import { translations, useLanguage } from '@zntr/i18n'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 
 type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
   radius?: number | [number, number, number, number]

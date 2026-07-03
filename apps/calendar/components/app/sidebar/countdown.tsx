@@ -36,7 +36,7 @@ import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
 import { cn } from '@zntr/utils'
 import { format } from 'date-fns'
 import { zhCN, enUS } from 'date-fns/locale'
-import { isZhLanguage, translations, useLanguage } from '@zntr/i18n'
+import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
 import { toast } from 'sonner'
 import { ClockDashed } from '@/components/icons/clock-dashed'
 import {
