@@ -1,0 +1,44 @@
+{
+  "name": "calendar",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/calendar",
+  "projectType": "application",
+  "targets": {
+    "generate-i18n": {
+      "command": "pnpm --filter @zntr/i18n generate",
+      "cache": true,
+      "outputs": ["libs/i18n/src/generated"]
+    },
+    "mdx": {
+      "command": "fumadocs-mdx",
+      "cache": true,
+      "outputs": [".source"]
+    },
+    "build": {
+      "executor": "@nx/next:build",
+      "outputs": [".next"],
+      "dependsOn": ["generate-i18n", "mdx"],
+      "options": {
+        "outputPath": "apps/calendar/.next"
+      }
+    },
+    "dev": {
+      "executor": "@nx/next:dev",
+      "options": {
+        "port": 3000
+      }
+    },
+    "start": {
+      "executor": "@nx/next:start"
+    },
+    "lint": {
+      "command": "oxlint app components hooks lib proxy.ts && eslint app components hooks lib proxy.ts",
+      "cache": true
+    },
+    "type-check": {
+      "command": "tsc --noEmit",
+      "cache": true
+    }
+  },
+  "tags": []
+}
