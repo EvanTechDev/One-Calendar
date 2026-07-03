@@ -18,5 +18,9 @@
         "buildTargetName": "build"
       }
     }
-  ]
+  ],
+  "affected": {
+    "defaultBase": "main"
+  },
+  "nxCloudId": "zntr"
 }
