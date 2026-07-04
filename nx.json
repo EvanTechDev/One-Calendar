@@ -34,5 +34,6 @@
         "parallel": 4
       }
     }
-  }
+  },
+  "analytics": false
 }

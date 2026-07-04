@@ -122,9 +122,7 @@ export function ResetPasswordForm() {
         {isTokenFlow ? (
           <>
             <div className="grid gap-2">
-              <Label htmlFor="password">
-                New password <span className="text-muted-foreground">*</span>
-              </Label>
+              <Label htmlFor="password">New password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -153,10 +151,7 @@ export function ResetPasswordForm() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">
-                Confirm password{' '}
-                <span className="text-muted-foreground">*</span>
-              </Label>
+              <Label htmlFor="confirmPassword">Confirm password </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -187,9 +182,7 @@ export function ResetPasswordForm() {
           </>
         ) : (
           <div className="grid gap-2">
-            <Label htmlFor="email">
-              Email <span className="text-muted-foreground">*</span>
-            </Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"

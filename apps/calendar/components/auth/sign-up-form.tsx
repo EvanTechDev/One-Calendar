@@ -153,9 +153,7 @@ export function SignUpForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="firstName">
-                First name <span className="text-muted-foreground">*</span>
-              </Label>
+              <Label htmlFor="firstName">First name</Label>
               <Input
                 id="firstName"
                 name="firstName"
@@ -169,9 +167,7 @@ export function SignUpForm() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="lastName">
-                Last name <span className="text-muted-foreground">*</span>
-              </Label>
+              <Label htmlFor="lastName">Last name</Label>
               <Input
                 id="lastName"
                 name="lastName"
@@ -186,9 +182,7 @@ export function SignUpForm() {
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="email">
-              Email <span className="text-muted-foreground">*</span>
-            </Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -202,9 +196,7 @@ export function SignUpForm() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">
-              Password <span className="text-muted-foreground">*</span>
-            </Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
                 id="password"

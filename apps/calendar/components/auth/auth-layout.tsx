@@ -5,6 +5,7 @@ import { ChevronLeftIcon, MailIcon, ShuffleIcon } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@zntr/ui/button'
 import { Separator } from '@zntr/ui/separator'
+import { useRouter } from 'next/router'
 
 type Palette = {
   name: string
@@ -310,6 +311,7 @@ function MeshShader({ palette }: { palette: Palette }) {
 function LeftPanel() {
   const [paletteIndex, setPaletteIndex] = useState(1)
   const palette = PALETTES[paletteIndex]
+  const router = useRouter()
 
   const shuffle = () => {
     setPaletteIndex((current) => {
@@ -337,13 +339,17 @@ function LeftPanel() {
 
       <div className="relative flex h-full flex-col justify-between p-12">
         <div className="flex items-start justify-between">
-          <a
-            href="#"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              router.back()
+            }}
             className="inline-flex items-center gap-2 text-sm font-medium text-white/75 transition hover:text-white"
           >
             <ChevronLeftIcon className="size-3.5" />
             Back
-          </a>
+          </button>
         </div>
 
         <div className="max-w-md">
@@ -354,7 +360,7 @@ function LeftPanel() {
             <span className="text-white">Zentra.</span>
             <br />
             <span className="text-white/55">
-              The Open source workspace
+              The Open Source workspace
             </span>{' '}
             <span className="text-white">you want.</span>{' '}
           </h2>
@@ -379,7 +385,7 @@ function BrandMark() {
         alt="One Calendar"
         width={16}
         height={16}
-        className="size-4"
+        className="size-8"
       />
     </div>
   )
@@ -564,7 +570,7 @@ export function AuthLayout({
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
               <BrandMark />
               <Heading title={title} description={description} />
-              {children}
+              <div className="mt-6">{children}</div>
               {footer ? <div className="mt-5">{footer}</div> : null}
             </div>
           </div>
