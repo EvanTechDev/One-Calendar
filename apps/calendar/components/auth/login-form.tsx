@@ -3,6 +3,7 @@
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -14,6 +15,7 @@ import { AuthLayout } from './auth-layout'
 export function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [revealPassword, setRevealPassword] = useState(false)
   const [totp, setTotp] = useState('')
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -143,15 +145,30 @@ export function LoginForm() {
             <Label htmlFor="password">
               Password <span className="text-muted-foreground">*</span>
             </Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={revealPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setRevealPassword((value) => !value)}
+                aria-label={revealPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              >
+                {revealPassword ? (
+                  <EyeOffIcon className="size-4" />
+                ) : (
+                  <EyeIcon className="size-4" />
+                )}
+              </button>
+            </div>
           </div>
           {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
             <Turnstile

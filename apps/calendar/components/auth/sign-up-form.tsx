@@ -3,6 +3,7 @@
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -19,6 +20,7 @@ export function SignUpForm() {
     email: '',
     password: '',
   })
+  const [revealPassword, setRevealPassword] = useState(false)
   const [otp, setOtp] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
@@ -158,6 +160,8 @@ export function SignUpForm() {
                 id="firstName"
                 name="firstName"
                 required
+                placeholder="First name"
+                autoComplete="given-name"
                 value={formData.firstName}
                 onChange={(e) =>
                   setFormData({ ...formData, firstName: e.target.value })
@@ -172,6 +176,8 @@ export function SignUpForm() {
                 id="lastName"
                 name="lastName"
                 required
+                placeholder="Last name"
+                autoComplete="family-name"
                 value={formData.lastName}
                 onChange={(e) =>
                   setFormData({ ...formData, lastName: e.target.value })
@@ -188,6 +194,7 @@ export function SignUpForm() {
               type="email"
               required
               placeholder="Enter your email"
+              autoComplete="email"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -198,17 +205,32 @@ export function SignUpForm() {
             <Label htmlFor="password">
               Password <span className="text-muted-foreground">*</span>
             </Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={revealPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                autoComplete="new-password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setRevealPassword((value) => !value)}
+                aria-label={revealPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              >
+                {revealPassword ? (
+                  <EyeOffIcon className="size-4" />
+                ) : (
+                  <EyeIcon className="size-4" />
+                )}
+              </button>
+            </div>
           </div>
           {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
             <Turnstile

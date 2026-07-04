@@ -4,6 +4,7 @@ import { Turnstile } from '@marsidev/react-turnstile'
 import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type React from 'react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -17,6 +18,8 @@ export function ResetPasswordForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [revealPassword, setRevealPassword] = useState(false)
+  const [revealConfirmPassword, setRevealConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -122,30 +125,64 @@ export function ResetPasswordForm() {
               <Label htmlFor="password">
                 New password <span className="text-muted-foreground">*</span>
               </Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                placeholder="••••••••"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={revealPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealPassword((value) => !value)}
+                  aria-label={
+                    revealPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="confirmPassword">
                 Confirm password{' '}
                 <span className="text-muted-foreground">*</span>
               </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                required
-                placeholder="••••••••"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={revealConfirmPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealConfirmPassword((value) => !value)}
+                  aria-label={
+                    revealConfirmPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealConfirmPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </>
         ) : (
