@@ -1,0 +1,4 @@
+{
+  "buildCommand": "hugo mod get && hugo --gc --minify",
+  "outputDirectory": "public"
+}
