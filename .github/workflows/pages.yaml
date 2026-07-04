@@ -38,21 +38,27 @@ jobs:
         with:
           fetch-depth: 0  # fetch all history for .GitInfo and .Lastmod
           submodules: recursive
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.26'
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
+
       - name: Setup Hugo
         run: |
           wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
           && sudo dpkg -i ${{ runner.temp }}/hugo.deb
+
       - name: Download Hugo modules
-        run: |
-          hugo mod get
+        working-directory: ./docs
+        run: hugo mod get
+
       - name: Build with Hugo
+        working-directory: ./docs
         env:
           # For maximum backward compatibility with Hugo modules
           HUGO_ENVIRONMENT: production
@@ -61,10 +67,11 @@ jobs:
           hugo \
             --gc --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./public
+          path: ./docs/public
 
   # Deployment job
   deploy:
