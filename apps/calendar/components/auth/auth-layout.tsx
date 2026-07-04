@@ -5,7 +5,7 @@ import { ChevronLeftIcon, MailIcon, ShuffleIcon } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@zntr/ui/button'
 import { Separator } from '@zntr/ui/separator'
-import { useRouter } from 'next/router'
+import { useRouter } from 'next/navigation'
 
 type Palette = {
   name: string

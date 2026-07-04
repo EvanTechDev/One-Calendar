@@ -5,6 +5,7 @@ import { useScroll } from '@/hooks/use-scroll'
 import { Button } from '@zntr/ui/button'
 import { DesktopNav } from './desktop-nav'
 import { MobileNav } from './mobile-nav'
+import Link from 'next/link'
 
 export function Header() {
   const scrolled = useScroll(10)
@@ -50,8 +51,12 @@ export function Header() {
           <DesktopNav />
         </div>
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="outline">Sign In</Button>
-          <Button>Get Started</Button>
+          <Link href="/sign-in">
+            <Button variant="outline">Sign In</Button>
+          </Link>
+          <Link href="/sign-up">
+            <Button>Get Started</Button>
+          </Link>
         </div>
         <MobileNav />
       </nav>
