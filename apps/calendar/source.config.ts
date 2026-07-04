@@ -14,7 +14,6 @@ export const docs = defineDocs({
 })
 
 export default defineConfig({
-  lastModifiedTime: 'git',
   mdxOptions: {
     providerImportSource: '@/mdx-components',
   },

@@ -1055,6 +1055,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                   setQuickCreateStartTime(startDate)
                   setEventDialogOpen(true)
                 }}
+                onBackToCalendar={() => setView(defaultView)}
               />
             )}
             {view === 'settings' && (
