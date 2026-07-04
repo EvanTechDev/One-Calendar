@@ -1,9 +1,4 @@
 {
-  "buildCommand": "pnpm nx build calendar",
-  "devCommand": "pnpm nx dev calendar",
-  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
-  "framework": "nextjs",
-  "outputDirectory": "apps/calendar/.next",
   "crons": [
     {
       "path": "/api/blob/check",
