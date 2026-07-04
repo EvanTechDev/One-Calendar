@@ -258,8 +258,9 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="mx-auto mb-4 h-10 w-full justify-center bg-[#0066FF] text-white hover:bg-[#0052CC]"
+          className="mx-auto mb-4 h-10 w-full justify-center"
           onClick={onCreateEvent}
+          variant="secondary"
         >
           {t.createEvent}
         </Button>
