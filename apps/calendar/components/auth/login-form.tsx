@@ -128,9 +128,7 @@ export function LoginForm() {
       ) : (
         <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">
-              Email <span className="text-muted-foreground">*</span>
-            </Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -142,9 +140,7 @@ export function LoginForm() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">
-              Password <span className="text-muted-foreground">*</span>
-            </Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
                 id="password"

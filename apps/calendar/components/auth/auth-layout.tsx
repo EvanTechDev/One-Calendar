@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { ChevronLeftIcon, MailIcon, ShuffleIcon } from 'lucide-react'
-
+import Image from 'next/image'
 import { Button } from '@zntr/ui/button'
 import { Separator } from '@zntr/ui/separator'
 
@@ -344,8 +344,6 @@ function LeftPanel() {
             <ChevronLeftIcon className="size-3.5" />
             Back
           </a>
-
-          <ShuffleButton onClick={shuffle} paletteName={palette.name} />
         </div>
 
         <div className="max-w-md">
@@ -353,18 +351,19 @@ function LeftPanel() {
             className="font-heading text-3xl font-semibold leading-tight md:text-4xl"
             style={{ textShadow: '0 1px 24px rgba(0,0,0,0.55)' }}
           >
-            <span className="text-white">Orbit.</span>
+            <span className="text-white">Zentra.</span>
             <br />
-            <span className="text-white/55">The SaaS starter</span>{' '}
-            <span className="text-white">you want</span>{' '}
-            <span className="text-white/55">and need.</span>
+            <span className="text-white/55">
+              The Open source workspace
+            </span>{' '}
+            <span className="text-white">you want.</span>{' '}
           </h2>
 
           <p
             className="mt-5 max-w-sm text-sm leading-relaxed text-white/65"
             style={{ textShadow: '0 1px 16px rgba(0,0,0,0.55)' }}
           >
-            Auth, billing, emails — the boring week, already wired up.
+            Zentra is a free and open source workspace that helps you.
           </p>
         </div>
       </div>
@@ -375,7 +374,13 @@ function LeftPanel() {
 function BrandMark() {
   return (
     <div className="flex items-center justify-center">
-      <OrbitMark />
+      <Image
+        src="/icon.svg"
+        alt="One Calendar"
+        width={16}
+        height={16}
+        className="size-4"
+      />
     </div>
   )
 }
@@ -559,9 +564,6 @@ export function AuthLayout({
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
               <BrandMark />
               <Heading title={title} description={description} />
-              {showOAuth ? <OAuthRow /> : null}
-              {showMagicLink ? <MagicLinkButton /> : null}
-              {showOAuth || showMagicLink ? <OrSeparator /> : null}
               {children}
               {footer ? <div className="mt-5">{footer}</div> : null}
             </div>
