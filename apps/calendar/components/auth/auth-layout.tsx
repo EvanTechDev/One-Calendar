@@ -1,53 +1,10 @@
 'use client'
 
-import {
-  type FormEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import {
-  ChevronLeftIcon,
-  EyeIcon,
-  EyeOffIcon,
-  MailIcon,
-  ShuffleIcon,
-} from 'lucide-react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { ChevronLeftIcon, MailIcon, ShuffleIcon } from 'lucide-react'
 
 import { Button } from '@zntr/ui/button'
-import { Input } from '@zntr/ui/input'
-import { Label } from '@zntr/ui/label'
 import { Separator } from '@zntr/ui/separator'
-
-export function InsetLoginShowcasePage() {
-  return (
-    <div className="relative min-h-svh bg-background text-foreground">
-      <PageBackdrop />
-      <div className="relative mx-auto flex min-h-svh max-w-[1440px] items-stretch p-4 md:p-10 lg:p-16">
-        <div className="relative grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-foreground/10 lg:grid-cols-[1fr_minmax(440px,560px)]">
-          <LeftPanel />
-          <RightPanel />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function PageBackdrop() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0"
-      style={{
-        background: [
-          'radial-gradient(60% 50% at 10% 10%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 65%)',
-          'radial-gradient(50% 50% at 90% 100%, color-mix(in srgb, var(--foreground) 6%, transparent), transparent 65%)',
-        ].join(', '),
-      }}
-    />
-  )
-}
 
 type Palette = {
   name: string
@@ -134,68 +91,18 @@ const PALETTES: Palette[] = [
   },
 ]
 
-function LeftPanel() {
-  const [paletteIndex, setPaletteIndex] = useState(1)
-  const palette = PALETTES[paletteIndex]
-
-  const shuffle = () => {
-    setPaletteIndex((current) => {
-      let next = current
-
-      while (next === current) {
-        next = Math.floor(Math.random() * PALETTES.length)
-      }
-
-      return next
-    })
-  }
-
+function PageBackdrop() {
   return (
-    <div className="relative hidden overflow-hidden bg-[#0a0a0c] lg:block">
-      <MeshShader palette={palette} />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(120% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.55) 100%)',
-        }}
-      />
-
-      <div className="relative flex h-full flex-col justify-between p-12">
-        <div className="flex items-start justify-between">
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 text-sm font-medium text-white/75 transition hover:text-white"
-          >
-            <ChevronLeftIcon className="size-3.5" />
-            Back
-          </a>
-
-          <ShuffleButton onClick={shuffle} paletteName={palette.name} />
-        </div>
-
-        <div className="max-w-md">
-          <h2
-            className="font-heading text-3xl font-semibold leading-tight md:text-4xl"
-            style={{ textShadow: '0 1px 24px rgba(0,0,0,0.55)' }}
-          >
-            <span className="text-white">Orbit.</span>
-            <br />
-            <span className="text-white/55">The SaaS starter</span>{' '}
-            <span className="text-white">you want</span>{' '}
-            <span className="text-white/55">and need.</span>
-          </h2>
-
-          <p
-            className="mt-5 max-w-sm text-sm leading-relaxed text-white/65"
-            style={{ textShadow: '0 1px 16px rgba(0,0,0,0.55)' }}
-          >
-            Auth, billing, emails — the boring week, already wired up.
-          </p>
-        </div>
-      </div>
-    </div>
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background: [
+          'radial-gradient(60% 50% at 10% 10%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 65%)',
+          'radial-gradient(50% 50% at 90% 100%, color-mix(in srgb, var(--foreground) 6%, transparent), transparent 65%)',
+        ].join(', '),
+      }}
+    />
   )
 }
 
@@ -400,17 +307,66 @@ function MeshShader({ palette }: { palette: Palette }) {
   )
 }
 
-function RightPanel() {
+function LeftPanel() {
+  const [paletteIndex, setPaletteIndex] = useState(1)
+  const palette = PALETTES[paletteIndex]
+
+  const shuffle = () => {
+    setPaletteIndex((current) => {
+      let next = current
+
+      while (next === current) {
+        next = Math.floor(Math.random() * PALETTES.length)
+      }
+
+      return next
+    })
+  }
+
   return (
-    <div className="relative flex min-h-[680px] flex-col overflow-y-auto bg-card text-foreground">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
-        <BrandMark />
-        <Heading />
-        <OAuthRow />
-        <MagicLinkButton />
-        <OrSeparator />
-        <SignInForm />
-        <FooterLinks />
+    <div className="relative hidden overflow-hidden bg-[#0a0a0c] lg:block">
+      <MeshShader palette={palette} />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
+
+      <div className="relative flex h-full flex-col justify-between p-12">
+        <div className="flex items-start justify-between">
+          <a
+            href="#"
+            className="inline-flex items-center gap-2 text-sm font-medium text-white/75 transition hover:text-white"
+          >
+            <ChevronLeftIcon className="size-3.5" />
+            Back
+          </a>
+
+          <ShuffleButton onClick={shuffle} paletteName={palette.name} />
+        </div>
+
+        <div className="max-w-md">
+          <h2
+            className="font-heading text-3xl font-semibold leading-tight md:text-4xl"
+            style={{ textShadow: '0 1px 24px rgba(0,0,0,0.55)' }}
+          >
+            <span className="text-white">Orbit.</span>
+            <br />
+            <span className="text-white/55">The SaaS starter</span>{' '}
+            <span className="text-white">you want</span>{' '}
+            <span className="text-white/55">and need.</span>
+          </h2>
+
+          <p
+            className="mt-5 max-w-sm text-sm leading-relaxed text-white/65"
+            style={{ textShadow: '0 1px 16px rgba(0,0,0,0.55)' }}
+          >
+            Auth, billing, emails — the boring week, already wired up.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -475,157 +431,19 @@ function OrbitMark() {
   )
 }
 
-function Heading() {
+function Heading({
+  title,
+  description,
+}: {
+  title: string
+  description: string
+}) {
   return (
     <div className="mt-12 flex flex-col gap-1.5">
       <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        Welcome back
+        {title}
       </h1>
-      <p className="text-sm text-muted-foreground">
-        Sign in to your account to continue.
-      </p>
-    </div>
-  )
-}
-
-function OAuthRow() {
-  return (
-    <div className="mt-6 grid grid-cols-2 gap-2.5">
-      <OAuthButton icon={<GitHubIcon />} label="GitHub" />
-      <OAuthButton icon={<GoogleIcon />} label="Google" badge="Last used" />
-    </div>
-  )
-}
-
-function OAuthButton({
-  icon,
-  label,
-  badge,
-}: {
-  icon: ReactNode
-  label: string
-  badge?: string
-}) {
-  return (
-    <div className="relative">
-      {badge ? (
-        <span className="absolute -top-2 right-2 z-10 whitespace-nowrap rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-          {badge}
-        </span>
-      ) : null}
-
-      <Button variant="outline" size="lg" className="w-full">
-        <span className="size-4 shrink-0 [&_svg]:size-4">{icon}</span>
-        <span className="truncate whitespace-nowrap">{label}</span>
-      </Button>
-    </div>
-  )
-}
-
-function MagicLinkButton() {
-  return (
-    <Button variant="outline" size="lg" className="mt-2.5 w-full">
-      <MailIcon className="size-4" />
-      Sign in with Magic Link
-    </Button>
-  )
-}
-
-function OrSeparator() {
-  return (
-    <div className="my-6 flex items-center gap-3">
-      <Separator className="flex-1" />
-      <span className="text-[11px] text-muted-foreground">Or</span>
-      <Separator className="flex-1" />
-    </div>
-  )
-}
-
-function SignInForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [reveal, setReveal] = useState(false)
-  const [pending, setPending] = useState(false)
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    if (!email.trim() || !password) return
-
-    setPending(true)
-    window.setTimeout(() => setPending(false), 800)
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="login-email">
-          Email <span className="text-muted-foreground">*</span>
-        </Label>
-
-        <Input
-          id="login-email"
-          type="email"
-          required
-          placeholder="Enter your email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="login-password">
-          Password <span className="text-muted-foreground">*</span>
-        </Label>
-
-        <div className="relative">
-          <Input
-            id="login-password"
-            type={reveal ? 'text' : 'password'}
-            required
-            placeholder="••••••••"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="pr-10"
-          />
-
-          <button
-            type="button"
-            onClick={() => setReveal((value) => !value)}
-            aria-label={reveal ? 'Hide password' : 'Show password'}
-            className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-          >
-            {reveal ? (
-              <EyeOffIcon className="size-4" />
-            ) : (
-              <EyeIcon className="size-4" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <Button type="submit" size="lg" disabled={pending} className="mt-2">
-        {pending ? 'Signing in...' : 'Sign in'}
-      </Button>
-    </form>
-  )
-}
-
-function FooterLinks() {
-  return (
-    <div className="mt-5 flex items-baseline justify-between gap-4 text-sm">
-      <p className="whitespace-nowrap text-muted-foreground">
-        Don&apos;t have an account?{' '}
-        <a href="#" className="text-primary underline">
-          Sign up
-        </a>
-      </p>
-
-      <a href="#" className="text-primary underline">
-        Forgot password?
-      </a>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }
@@ -658,5 +476,98 @@ function GoogleIcon() {
         d="M12 23.5c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.3 0-6-2-6.9-4.6l-3.8 3C3.3 20.8 7.3 23.5 12 23.5Z"
       />
     </svg>
+  )
+}
+
+function OAuthButton({
+  icon,
+  label,
+  badge,
+}: {
+  icon: ReactNode
+  label: string
+  badge?: string
+}) {
+  return (
+    <div className="relative">
+      {badge ? (
+        <span className="absolute -top-2 right-2 z-10 whitespace-nowrap rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+          {badge}
+        </span>
+      ) : null}
+
+      <Button variant="outline" size="lg" className="w-full">
+        <span className="size-4 shrink-0 [&_svg]:size-4">{icon}</span>
+        <span className="truncate whitespace-nowrap">{label}</span>
+      </Button>
+    </div>
+  )
+}
+
+function OAuthRow() {
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-2.5">
+      <OAuthButton icon={<GitHubIcon />} label="GitHub" />
+      <OAuthButton icon={<GoogleIcon />} label="Google" badge="Last used" />
+    </div>
+  )
+}
+
+function MagicLinkButton() {
+  return (
+    <Button variant="outline" size="lg" className="mt-2.5 w-full">
+      <MailIcon className="size-4" />
+      Sign in with Magic Link
+    </Button>
+  )
+}
+
+function OrSeparator() {
+  return (
+    <div className="my-6 flex items-center gap-3">
+      <Separator className="flex-1" />
+      <span className="text-[11px] text-muted-foreground">Or</span>
+      <Separator className="flex-1" />
+    </div>
+  )
+}
+
+type AuthLayoutProps = {
+  title: string
+  description: string
+  showOAuth?: boolean
+  showMagicLink?: boolean
+  children: ReactNode
+  footer?: ReactNode
+}
+
+export function AuthLayout({
+  title,
+  description,
+  showOAuth = false,
+  showMagicLink = false,
+  children,
+  footer,
+}: AuthLayoutProps) {
+  return (
+    <div className="relative min-h-svh bg-background text-foreground">
+      <PageBackdrop />
+      <div className="relative mx-auto flex min-h-svh max-w-[1440px] items-stretch p-4 md:p-10 lg:p-16">
+        <div className="relative grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-foreground/10 lg:grid-cols-[1fr_minmax(440px,560px)]">
+          <LeftPanel />
+          <div className="relative flex min-h-[680px] flex-col overflow-y-auto bg-card text-foreground">
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
+              <BrandMark />
+              <Heading title={title} description={description} />
+              {showOAuth ? <OAuthRow /> : null}
+              {showMagicLink ? <MagicLinkButton /> : null}
+              {showOAuth || showMagicLink ? <OrSeparator /> : null}
+              {children}
+              {footer ? <div className="mt-5">{footer}</div> : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

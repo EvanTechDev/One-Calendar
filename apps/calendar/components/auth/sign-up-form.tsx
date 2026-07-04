@@ -5,23 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@zntr/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
 import { authClient } from '@/lib/auth/client'
-import { cn } from '@zntr/utils'
+import { AuthLayout } from './auth-layout'
 
-export function SignUpForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'>) {
+export function SignUpForm() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: '',
@@ -110,150 +100,139 @@ export function SignUpForm({
   }
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            {sent
-              ? `Verification code sent to ${formData.email}`
-              : 'Sign up with your email and password'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {sent ? (
-            <div className="grid gap-6">
-              <div className="rounded-lg border p-4">
-                <div className="text-sm font-medium">Step 2 of 2</div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  A verification code has been sent to{' '}
-                  <span className="font-medium text-foreground">
-                    {formData.email}
-                  </span>
-                  . Enter the code below to activate your account.
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="otp">Verification code</Label>
-                <InputOTP
-                  value={otp}
-                  onChange={(value) =>
-                    setOtp(value.replace(/\D/g, '').slice(0, 6))
-                  }
-                  maxLength={6}
-                />
-              </div>
-              {error && <div className="text-sm text-red-500">{error}</div>}
-              <Button
-                type="button"
-                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                onClick={verifyOtp}
-                disabled={isVerifying || isResending || otp.length < 6}
-              >
-                {isVerifying ? 'Verifying...' : 'Verify code'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleResend}
-                disabled={isResending || isVerifying}
-              >
-                {isResending ? 'Resending...' : 'Resend code'}
-              </Button>
+    <AuthLayout
+      title={sent ? 'Verify your email' : 'Create your account'}
+      description={
+        sent
+          ? `Verification code sent to ${formData.email}`
+          : 'Sign up with your email and password'
+      }
+      footer={
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <a href="/sign-in" className="text-primary underline">
+            Sign in
+          </a>
+        </p>
+      }
+    >
+      {sent ? (
+        <div className="flex flex-col gap-6">
+          <div className="grid gap-2">
+            <Label htmlFor="otp">Verification code</Label>
+            <InputOTP
+              value={otp}
+              onChange={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+            />
+          </div>
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          <Button
+            type="button"
+            className="w-full"
+            onClick={verifyOtp}
+            disabled={isVerifying || isResending || otp.length < 6}
+            size="lg"
+          >
+            {isVerifying ? 'Verifying...' : 'Verify code'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleResend}
+            disabled={isResending || isVerifying}
+            size="lg"
+          >
+            {isResending ? 'Resending...' : 'Resend code'}
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="firstName">
+                First name <span className="text-muted-foreground">*</span>
+              </Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                required
+                value={formData.firstName}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="firstName">First name</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      required
-                      value={formData.firstName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, firstName: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="lastName">Last name</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      required
-                      value={formData.lastName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, lastName: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                  />
-                </div>
-                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    options={{ size: 'flexible' }}
-                    onSuccess={() => setIsCaptchaCompleted(true)}
-                    onExpire={() => setIsCaptchaCompleted(false)}
-                    onError={() => {
-                      setIsCaptchaCompleted(false)
-                      setError(
-                        'CAPTCHA initialization failed. Please try again.',
-                      )
-                    }}
-                  />
-                )}
-                {error && <div className="text-sm text-red-500">{error}</div>}
-                <Button
-                  type="submit"
-                  className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                  disabled={isLoading || !isCaptchaCompleted}
-                >
-                  {isLoading ? 'Creating account...' : 'Sign up'}
-                </Button>
-                <div className="text-center text-sm">
-                  Already have an account?{' '}
-                  <a href="/sign-in" className="underline underline-offset-4">
-                    Sign in
-                  </a>
-                </div>
-              </div>
-            </form>
+            <div className="grid gap-2">
+              <Label htmlFor="lastName">
+                Last name <span className="text-muted-foreground">*</span>
+              </Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                required
+                value={formData.lastName}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="email">
+              Email <span className="text-muted-foreground">*</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">
+              Password <span className="text-muted-foreground">*</span>
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              placeholder="••••••••"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+            />
+          </div>
+          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+            <Turnstile
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              options={{ size: 'flexible' }}
+              onSuccess={() => setIsCaptchaCompleted(true)}
+              onExpire={() => setIsCaptchaCompleted(false)}
+              onError={() => {
+                setIsCaptchaCompleted(false)
+                setError('CAPTCHA initialization failed. Please try again.')
+              }}
+            />
           )}
-        </CardContent>
-      </Card>
-
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By clicking continue, you agree to our{' '}
-        <a href="/terms">Terms of Service</a> and{' '}
-        <a href="/privacy">Privacy Policy</a>.
-      </div>
-    </div>
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isLoading || !isCaptchaCompleted}
+            className="mt-2"
+          >
+            {isLoading ? 'Creating account...' : 'Sign up'}
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

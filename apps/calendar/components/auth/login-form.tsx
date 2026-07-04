@@ -5,23 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@zntr/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
 import { authClient } from '@/lib/auth/client'
-import { cn } from '@zntr/utils'
+import { AuthLayout } from './auth-layout'
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'>) {
+export function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [totp, setTotp] = useState('')
@@ -86,109 +76,106 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>
-            {needsTwoFactor
-              ? 'Enter your authenticator app code'
-              : 'Login with your email and password'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {needsTwoFactor ? (
-            <div className="grid gap-6">
-              <div className="grid gap-2">
-                <Label>Two-factor code</Label>
-                <InputOTP
-                  value={totp}
-                  onChange={(value) =>
-                    setTotp(value.replace(/\D/g, '').slice(0, 6))
-                  }
-                  maxLength={6}
-                />
-              </div>
-              {error && <div className="text-sm text-red-500">{error}</div>}
-              <Button
-                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                onClick={handleVerifyTotp}
-                disabled={isVerifyingTotp || totp.length < 6}
-              >
-                {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleEmailLogin}>
-              <div className="grid gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="/reset-password"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    options={{ size: 'flexible' }}
-                    onSuccess={() => setIsCaptchaCompleted(true)}
-                    onExpire={() => setIsCaptchaCompleted(false)}
-                    onError={() => {
-                      setIsCaptchaCompleted(false)
-                      setError(
-                        'CAPTCHA initialization failed. Please try again.',
-                      )
-                    }}
-                  />
-                )}
-                {error && <div className="text-sm text-red-500">{error}</div>}
-                <Button
-                  type="submit"
-                  className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                  disabled={isLoading || !isCaptchaCompleted}
-                >
-                  {isLoading ? 'Signing in...' : 'Sign in'}
-                </Button>
-                <div className="text-center text-sm">
-                  Don't have an account?{' '}
-                  <a href="/sign-up" className="underline underline-offset-4">
-                    Sign up
-                  </a>
-                </div>
-              </div>
-            </form>
+    <AuthLayout
+      title={needsTwoFactor ? 'Two-factor authentication' : 'Welcome back'}
+      description={
+        needsTwoFactor
+          ? 'Enter your authenticator app code'
+          : 'Sign in to your account to continue.'
+      }
+      showOAuth={!needsTwoFactor}
+      showMagicLink={!needsTwoFactor}
+      footer={
+        needsTwoFactor ? undefined : (
+          <div className="flex items-baseline justify-between gap-4 text-sm">
+            <p className="whitespace-nowrap text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <a href="/sign-up" className="text-primary underline">
+                Sign up
+              </a>
+            </p>
+            <a href="/reset-password" className="text-primary underline">
+              Forgot password?
+            </a>
+          </div>
+        )
+      }
+    >
+      {needsTwoFactor ? (
+        <div className="flex flex-col gap-6">
+          <div className="grid gap-2">
+            <Label>Two-factor code</Label>
+            <InputOTP
+              value={totp}
+              onChange={(value) =>
+                setTotp(value.replace(/\D/g, '').slice(0, 6))
+              }
+              maxLength={6}
+            />
+          </div>
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          <Button
+            className="w-full"
+            onClick={handleVerifyTotp}
+            disabled={isVerifyingTotp || totp.length < 6}
+            size="lg"
+          >
+            {isVerifyingTotp ? 'Verifying...' : 'Verify and sign in'}
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">
+              Email <span className="text-muted-foreground">*</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">
+              Password <span className="text-muted-foreground">*</span>
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              placeholder="••••••••"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+            <Turnstile
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              options={{ size: 'flexible' }}
+              onSuccess={() => setIsCaptchaCompleted(true)}
+              onExpire={() => setIsCaptchaCompleted(false)}
+              onError={() => {
+                setIsCaptchaCompleted(false)
+                setError('CAPTCHA initialization failed. Please try again.')
+              }}
+            />
           )}
-        </CardContent>
-      </Card>
-
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By clicking continue, you agree to our{' '}
-        <a href="/terms">Terms of Service</a> and{' '}
-        <a href="/privacy">Privacy Policy</a>.
-      </div>
-    </div>
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isLoading || !isCaptchaCompleted}
+            className="mt-2"
+          >
+            {isLoading ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

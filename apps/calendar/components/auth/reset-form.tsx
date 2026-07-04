@@ -6,22 +6,12 @@ import { useState } from 'react'
 import type React from 'react'
 
 import { Button } from '@zntr/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { authClient } from '@/lib/auth/client'
-import { cn } from '@zntr/utils'
+import { AuthLayout } from './auth-layout'
 
-export function ResetPasswordForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'>) {
+export function ResetPasswordForm() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const [email, setEmail] = useState('')
@@ -101,98 +91,110 @@ export function ResetPasswordForm({
 
   const isTokenFlow = Boolean(token)
 
-  return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Reset your password</CardTitle>
-          <CardDescription>
-            {isTokenFlow
-              ? done
-                ? 'Password updated successfully. You can sign in now.'
-                : 'Enter your new password to complete reset.'
-              : done
-                ? 'Reset email sent. Please check your inbox.'
-                : "Enter your email and we'll send a reset link"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={isTokenFlow ? handleResetPassword : handleSubmit}>
-            <div className="grid gap-6">
-              {isTokenFlow ? (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">New password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Confirm password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              )}
-              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  options={{ size: 'flexible' }}
-                  onSuccess={() => setIsCaptchaCompleted(true)}
-                  onExpire={() => setIsCaptchaCompleted(false)}
-                  onError={() => {
-                    setIsCaptchaCompleted(false)
-                    setError('CAPTCHA initialization failed. Please try again.')
-                  }}
-                />
-              )}
-              {!isTokenFlow && notice ? (
-                <div className="text-sm text-emerald-600">{notice}</div>
-              ) : null}
-              {error && <div className="text-sm text-red-500">{error}</div>}
-              <Button
-                type="submit"
-                className="w-full bg-[#0066ff] text-white hover:bg-[#0047cc]"
-                disabled={isLoading || !isCaptchaCompleted}
-              >
-                {isLoading
-                  ? isTokenFlow
-                    ? 'Updating...'
-                    : 'Sending...'
-                  : isTokenFlow
-                    ? 'Update password'
-                    : 'Send reset email'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+  const getDescription = () => {
+    if (isTokenFlow) {
+      if (done) return 'Password updated successfully. You can sign in now.'
+      return 'Enter your new password to complete reset.'
+    }
+    if (done) return 'Reset email sent. Please check your inbox.'
+    return "Enter your email and we'll send a reset link"
+  }
 
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By clicking continue, you agree to our{' '}
-        <a href="/terms">Terms of Service</a> and{' '}
-        <a href="/privacy">Privacy Policy</a>.
-      </div>
-    </div>
+  return (
+    <AuthLayout
+      title="Reset your password"
+      description={getDescription()}
+      footer={
+        <p className="text-center text-sm text-muted-foreground">
+          <a href="/sign-in" className="text-primary underline">
+            Back to sign in
+          </a>
+        </p>
+      }
+    >
+      <form
+        onSubmit={isTokenFlow ? handleResetPassword : handleSubmit}
+        className="flex flex-col gap-4"
+      >
+        {isTokenFlow ? (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="password">
+                New password <span className="text-muted-foreground">*</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                placeholder="••••••••"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">
+                Confirm password{' '}
+                <span className="text-muted-foreground">*</span>
+              </Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                required
+                placeholder="••••••••"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="grid gap-2">
+            <Label htmlFor="email">
+              Email <span className="text-muted-foreground">*</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+        )}
+        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            options={{ size: 'flexible' }}
+            onSuccess={() => setIsCaptchaCompleted(true)}
+            onExpire={() => setIsCaptchaCompleted(false)}
+            onError={() => {
+              setIsCaptchaCompleted(false)
+              setError('CAPTCHA initialization failed. Please try again.')
+            }}
+          />
+        )}
+        {!isTokenFlow && notice ? (
+          <div className="text-sm text-emerald-600">{notice}</div>
+        ) : null}
+        {error && <div className="text-sm text-red-500">{error}</div>}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isLoading || !isCaptchaCompleted}
+          className="mt-2"
+        >
+          {isLoading
+            ? isTokenFlow
+              ? 'Updating...'
+              : 'Sending...'
+            : isTokenFlow
+              ? 'Update password'
+              : 'Send reset email'}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
