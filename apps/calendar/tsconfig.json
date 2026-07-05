@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "collections/*": ["./.source/*"],
+      "@zntr/ui": ["../../packages/ui/src/index.ts"],
+      "@zntr/ui/*": ["../../packages/ui/src/*"],
+      "@zntr/utils": ["../../packages/utils/src/index.ts"],
+      "@zntr/utils/*": ["../../packages/utils/src/*"],
+      "@zntr/i18n": ["../../packages/i18n/src/index.ts"],
+      "@zntr/i18n/*": ["../../packages/i18n/src/*"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "../../packages/**/*.ts",
+    "../../packages/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}

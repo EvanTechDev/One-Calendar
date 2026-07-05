@@ -1,0 +1,42 @@
+.landing {
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.98 0 0);
+
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.05 0 0);
+
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+
+  --accent: oklch(0.15 0 0);
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.15 0 0);
+  --input: oklch(0.15 0 0);
+  --ring: oklch(0.98 0 0);
+
+  --radius: 1rem;
+
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.landing * {
+  border-color: var(--border);
+}
+
+.landing :focus-visible {
+  outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+}

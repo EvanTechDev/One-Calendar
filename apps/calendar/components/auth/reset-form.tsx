@@ -1,0 +1,230 @@
+'use client'
+
+import { Turnstile } from '@marsidev/react-turnstile'
+import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import type React from 'react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
+
+import { Button } from '@zntr/ui/button'
+import { Input } from '@zntr/ui/input'
+import { Label } from '@zntr/ui/label'
+import { authClient } from '@/lib/auth/client'
+import { AuthLayout } from './auth-layout'
+
+export function ResetPasswordForm() {
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [revealPassword, setRevealPassword] = useState(false)
+  const [revealConfirmPassword, setRevealConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
+  )
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted)
+      return setError('Please complete the CAPTCHA verification.')
+    setIsLoading(true)
+    setError('')
+    setNotice('')
+    const res = await authClient.requestPasswordReset({
+      email,
+      redirectTo: '/reset-password',
+    } as never)
+    if (!res.error) {
+      setDone(true)
+      setNotice('Reset email sent. Please check your inbox.')
+      setIsLoading(false)
+      return
+    }
+    const fallbackBody = JSON.stringify({
+      email,
+      redirectTo: '/reset-password',
+    })
+    const fallbackEndpoints = [
+      '/api/auth/forget-password',
+      '/api/auth/forgot-password',
+      '/api/auth/request-password-reset',
+    ]
+    let fallbackSucceeded = false
+    for (const endpoint of fallbackEndpoints) {
+      try {
+        const fallback = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: fallbackBody,
+        })
+        if (fallback.ok) {
+          fallbackSucceeded = true
+          break
+        }
+      } catch {}
+    }
+    if (fallbackSucceeded) {
+      setDone(true)
+      setNotice('Reset email sent. Please check your inbox.')
+    } else setError(res.error.message || 'An error occurred. Please try again.')
+    setIsLoading(false)
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted)
+      return setError('Please complete the CAPTCHA verification.')
+    if (password !== confirmPassword) return setError('Passwords do not match.')
+    setIsLoading(true)
+    setError('')
+    const { error } = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    } as never)
+    if (error)
+      setError(error.message || 'Failed to reset password. Please try again.')
+    else setDone(true)
+    setIsLoading(false)
+  }
+
+  const isTokenFlow = Boolean(token)
+
+  const getDescription = () => {
+    if (isTokenFlow) {
+      if (done) return 'Password updated successfully. You can sign in now.'
+      return 'Enter your new password to complete reset.'
+    }
+    if (done) return 'Reset email sent. Please check your inbox.'
+    return "Enter your email and we'll send a reset link"
+  }
+
+  return (
+    <AuthLayout
+      title="Reset your password"
+      description={getDescription()}
+      footer={
+        <p className="text-center text-sm text-muted-foreground">
+          <a href="/sign-in" className="text-primary underline">
+            Back to sign in
+          </a>
+        </p>
+      }
+    >
+      <form
+        onSubmit={isTokenFlow ? handleResetPassword : handleSubmit}
+        className="flex flex-col gap-4"
+      >
+        {isTokenFlow ? (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="password">New password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={revealPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealPassword((value) => !value)}
+                  aria-label={
+                    revealPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirm password </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={revealConfirmPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealConfirmPassword((value) => !value)}
+                  aria-label={
+                    revealConfirmPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealConfirmPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+        )}
+        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            options={{ size: 'flexible' }}
+            onSuccess={() => setIsCaptchaCompleted(true)}
+            onExpire={() => setIsCaptchaCompleted(false)}
+            onError={() => {
+              setIsCaptchaCompleted(false)
+              setError('CAPTCHA initialization failed. Please try again.')
+            }}
+          />
+        )}
+        {!isTokenFlow && notice ? (
+          <div className="text-sm text-emerald-600">{notice}</div>
+        ) : null}
+        {error && <div className="text-sm text-red-500">{error}</div>}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isLoading || !isCaptchaCompleted}
+          className="mt-2"
+        >
+          {isLoading
+            ? isTokenFlow
+              ? 'Updating...'
+              : 'Sending...'
+            : isTokenFlow
+              ? 'Update password'
+              : 'Send reset email'}
+        </Button>
+      </form>
+    </AuthLayout>
+  )
+}
