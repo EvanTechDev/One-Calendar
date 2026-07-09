@@ -1,7 +1,5 @@
-# Hugo output
+node_modules/
 public/
 resources/
-.hugo_build.lock
 
-# Editor
-.vscode/
+.hugo_build.lock
