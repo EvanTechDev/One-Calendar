@@ -29,7 +29,11 @@ languages:
     title: Zentra 帮助文档
 
 
-theme: hextra
+layoutDir: ../layouts
+i18nDir: ../i18n
+assetDir: ../assets
+staticDir: ../static
+dataDir: ../data
 
 markup:
   goldmark:
