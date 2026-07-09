@@ -1,6 +1,7 @@
 import { Header } from '@/components/landing/header'
 import { HeroSection } from '@/components/landing/hero'
 import { LogosSection } from '@/components/landing/logos-section'
+import { FaqSection } from '@/components/landing/faq-section'
 import { FeatureSection } from '@/components/landing/feature-section'
 import { CallToAction } from '@/components/landing/cta'
 import { Footer } from '@/components/landing/footer'
@@ -13,6 +14,7 @@ export default function LandingPage() {
         <HeroSection />
         <FeatureSection />
         <LogosSection />
+        <FaqSection />
         <CallToAction />
       </main>
       <Footer />
