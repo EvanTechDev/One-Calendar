@@ -98,7 +98,7 @@ export default function ImportExport({
   const [importCalendarId, setImportCalendarId] =
     useState<string>('__uncategorized__')
 
-  const [forceUpdate, setForceUpdate] = useState(0)
+  const [_forceUpdate, _setForceUpdate] = useState(0)
 
   const SETTINGS_KEYS = {
     language: 'preferred-language',
@@ -114,7 +114,7 @@ export default function ImportExport({
 
   useEffect(() => {
     const handleLanguageChange = () => {
-      setForceUpdate((prev) => prev + 1)
+      _setForceUpdate((prev) => prev + 1)
     }
 
     window.addEventListener('languagechange', handleLanguageChange)
@@ -689,7 +689,6 @@ END:VEVENT
 
     let currentEvent: Partial<CalendarEvent> = {}
     let inEvent = false
-    const continuationLine = ''
 
     const processedLines: string[] = []
     for (let i = 0; i < lines.length; i++) {
@@ -795,7 +794,7 @@ END:VEVENT
     return events
   }
 
-  const parseICSDate = (dateString: string, hasTimeZone: boolean): Date => {
+  const parseICSDate = (dateString: string, _hasTimeZone: boolean): Date => {
     let year,
       month,
       day,

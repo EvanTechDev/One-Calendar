@@ -115,7 +115,7 @@ interface CalendarProps {
   className?: string
 }
 
-export default function Calendar({ className, ...props }: CalendarProps) {
+export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -945,7 +945,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <UserProfileButton
                 variant="outline"
                 className="rounded-full h-8 w-8"
-                onNavigateToSettings={handleUserProfileSectionNavigate}
+                _onNavigateToSettings={handleUserProfileSectionNavigate}
                 onNavigateToView={setView}
               />
             </div>
@@ -958,7 +958,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
-                timezone={timezone}
+                _timezone={timezone}
                 timeFormat={timeFormat}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -990,10 +990,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 timeFormat={timeFormat}
                 _onEditEvent={handleEventEdit}
                 _onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
+                _onShareEvent={(event) => {
                   handleShare(event, true)
                 }}
-                onBookmarkEvent={toggleBookmark}
+                _onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
                   const updatedEvent = {
                     ...event,
@@ -1017,10 +1017,10 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 timeFormat={timeFormat}
                 _onEditEvent={handleEventEdit}
                 _onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
+                _onShareEvent={(event) => {
                   handleShare(event, true)
                 }}
-                onBookmarkEvent={toggleBookmark}
+                _onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
                   const updatedEvent = {
                     ...event,
@@ -1041,7 +1041,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 language={language}
                 firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
+                _timezone={timezone}
               />
             )}
             {view === 'year' && (
@@ -1058,9 +1058,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             {view === 'analytics' && (
               <AnalyticsView
                 events={events}
-                onCreateEvent={(startDate, endDate) => {
+                onCreateEvent={(_startDate, _endDate) => {
                   setSelectedEvent(null)
-                  setQuickCreateStartTime(startDate)
+                  setQuickCreateStartTime(_startDate)
                   setEventDialogOpen(true)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
@@ -1074,8 +1074,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
                 setTimezone={setTimezone}
-                notificationSound={notificationSound}
-                setNotificationSound={setNotificationSound}
+                _notificationSound={notificationSound}
+                _setNotificationSound={setNotificationSound}
                 defaultView={defaultView}
                 setDefaultView={setDefaultView}
                 enableShortcuts={enableShortcuts}
@@ -1085,8 +1085,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
-                toastPosition={toastPosition}
-                setToastPosition={setToastPosition}
+                _toastPosition={toastPosition}
+                _setToastPosition={setToastPosition}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}

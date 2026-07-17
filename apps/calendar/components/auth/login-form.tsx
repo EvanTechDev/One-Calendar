@@ -85,8 +85,8 @@ export function LoginForm() {
           ? 'Enter your authenticator app code'
           : 'Sign in to your account to continue.'
       }
-      showOAuth={!needsTwoFactor}
-      showMagicLink={!needsTwoFactor}
+      _showOAuth={!needsTwoFactor}
+      _showMagicLink={!needsTwoFactor}
       footer={
         needsTwoFactor ? undefined : (
           <div className="flex items-baseline justify-between gap-4 text-sm">

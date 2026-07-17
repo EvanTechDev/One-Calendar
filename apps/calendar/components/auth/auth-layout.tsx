@@ -107,7 +107,7 @@ function PageBackdrop() {
   )
 }
 
-function ShuffleButton({
+function _ShuffleButton({
   onClick,
   paletteName,
 }: {
@@ -313,7 +313,7 @@ function LeftPanel() {
   const palette = PALETTES[paletteIndex]
   const router = useRouter()
 
-  const shuffle = () => {
+  const _shuffle = () => {
     setPaletteIndex((current) => {
       let next = current
 
@@ -391,7 +391,7 @@ function BrandMark() {
   )
 }
 
-function OrbitMark() {
+function _OrbitMark() {
   return (
     <svg
       viewBox="0 0 64 64"
@@ -515,7 +515,7 @@ function OAuthButton({
   )
 }
 
-function OAuthRow() {
+function _OAuthRow() {
   return (
     <div className="mt-6 grid grid-cols-2 gap-2.5">
       <OAuthButton icon={<GitHubIcon />} label="GitHub" />
@@ -524,7 +524,7 @@ function OAuthRow() {
   )
 }
 
-function MagicLinkButton() {
+function _MagicLinkButton() {
   return (
     <Button variant="outline" size="lg" className="mt-2.5 w-full">
       <MailIcon className="size-4" />
@@ -533,7 +533,7 @@ function MagicLinkButton() {
   )
 }
 
-function OrSeparator() {
+function _OrSeparator() {
   return (
     <div className="my-6 flex items-center gap-3">
       <Separator className="flex-1" />
@@ -546,8 +546,8 @@ function OrSeparator() {
 type AuthLayoutProps = {
   title: string
   description: string
-  showOAuth?: boolean
-  showMagicLink?: boolean
+  _showOAuth?: boolean
+  _showMagicLink?: boolean
   children: ReactNode
   footer?: ReactNode
 }
@@ -555,8 +555,8 @@ type AuthLayoutProps = {
 export function AuthLayout({
   title,
   description,
-  showOAuth = false,
-  showMagicLink = false,
+  _showOAuth = false,
+  _showMagicLink = false,
   children,
   footer,
 }: AuthLayoutProps) {

@@ -34,8 +34,8 @@ interface WeekViewProps {
   timeFormat: '24h' | '12h'
   _onEditEvent?: (event: CalendarEvent) => void
   _onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
-  onBookmarkEvent?: (event: CalendarEvent) => void
+  _onShareEvent?: (event: CalendarEvent) => void
+  _onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDrop?: (
     event: CalendarEvent,
     newStartDate: Date,
@@ -56,8 +56,8 @@ export default function WeekView({
   timeFormat,
   _onEditEvent,
   _onDeleteEvent,
-  onShareEvent,
-  onBookmarkEvent,
+  _onShareEvent,
+  _onBookmarkEvent,
   onEventDrop,
   daysToShow,
   fixedStartDate,
@@ -376,7 +376,7 @@ export default function WeekView({
     }
   }
 
-  const separateEvents = (dayEvents: CalendarEvent[], day: Date) => {
+  const separateEvents = (dayEvents: CalendarEvent[], _day: Date) => {
     const allDayEvents: CalendarEvent[] = []
     const regularEvents: CalendarEvent[] = []
 

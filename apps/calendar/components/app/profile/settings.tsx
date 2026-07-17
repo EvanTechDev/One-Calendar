@@ -55,8 +55,8 @@ interface SettingsProps {
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void
   timezone: string
   setTimezone: (timezone: string) => void
-  notificationSound: NOTIFICATION_SOUNDS
-  setNotificationSound: (sound: NOTIFICATION_SOUNDS) => void
+  _notificationSound: NOTIFICATION_SOUNDS
+  _setNotificationSound: (sound: NOTIFICATION_SOUNDS) => void
   defaultView: CalendarViewType
   setDefaultView: (view: CalendarViewType) => void
   enableShortcuts: boolean
@@ -66,8 +66,8 @@ interface SettingsProps {
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
   focusUserProfileSection?: UserProfileSection | null
-  toastPosition: 'bottom-left' | 'bottom-center' | 'bottom-right'
-  setToastPosition: (
+  _toastPosition: 'bottom-left' | 'bottom-center' | 'bottom-right'
+  _setToastPosition: (
     position: 'bottom-left' | 'bottom-center' | 'bottom-right',
   ) => void
   onBackToCalendar?: () => void
@@ -80,8 +80,8 @@ export default function Settings({
   setFirstDayOfWeek,
   timezone,
   setTimezone,
-  notificationSound,
-  setNotificationSound,
+  _notificationSound,
+  _setNotificationSound,
   defaultView,
   setDefaultView,
   enableShortcuts,
@@ -91,8 +91,8 @@ export default function Settings({
   events,
   onImportEvents,
   focusUserProfileSection = null,
-  toastPosition,
-  setToastPosition,
+  _toastPosition,
+  _setToastPosition,
   onBackToCalendar,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()

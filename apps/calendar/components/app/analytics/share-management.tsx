@@ -41,7 +41,7 @@ export default function ShareManagement() {
   const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [loadingDecrypt, setLoadingDecrypt] = useState(false)
+  const [loadingDecrypt, _setLoadingDecrypt] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
   const [decryptingShare, setDecryptingShare] = useState<SharedEvent | null>(
@@ -96,7 +96,7 @@ export default function ShareManagement() {
       if (!res.ok) throw new Error('Failed to delete share')
       setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id))
       toast.success(t.shareDeleted)
-    } catch (error) {
+    } catch (_error) {
       toast.error(t.shareDeleteFailed)
     } finally {
       setIsDeleting(false)
@@ -139,7 +139,7 @@ export default function ShareManagement() {
       setPasswordDialogOpen(false)
       setDecryptingShare(null)
       setPasswordInput('')
-    } catch (error) {
+    } catch (_error) {
       toast.error(t.decryptFailed)
     } finally {
       setIsDecrypting(false)

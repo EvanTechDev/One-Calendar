@@ -174,7 +174,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-4 lg:col-span-2 lg:mt-0">
-            {footerLinks.map((section, index) => (
+            {footerLinks.map((section, _index) => (
               <div className="mb-10 md:mb-0" key={section.label}>
                 <h3 className="text-xs">{section.label}</h3>
                 <ul className="text-muted-foreground mt-4 space-y-2 text-sm">
