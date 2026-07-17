@@ -57,6 +57,7 @@ export default function ShareManagement() {
         )
         setSharedEvents(data.shares || [])
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error fetching shared events:', error)
         toast.error(t.shareManagementLoadFailed, {
           description: error instanceof Error ? error.message : '',
