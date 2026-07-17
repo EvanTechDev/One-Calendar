@@ -13,8 +13,8 @@
     "test": "turbo test",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
-    "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format": "prettier . --write --ignore-path config/.prettierignore",
+    "format:check": "prettier . --check --ignore-path config/.prettierignore"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
@@ -39,5 +39,80 @@
     "tailwindcss": "4.3.1",
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 80,
+    "tabWidth": 2,
+    "arrowParens": "always"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "oxlint --fix --config config/oxlint.json",
+      "eslint --fix --config config/eslint.config.ts"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "test",
+          "chore",
+          "revert"
+        ]
+      ],
+      "subject-max-length": [
+        2,
+        "always",
+        100
+      ]
+    }
+  },
+  "knip": {
+    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "ignoreFiles": [
+      "apps/calendar/components/app/analytics/events-calendar.tsx",
+      "apps/calendar/hooks/use-toast.ts",
+      "apps/calendar/hooks/useMobile.ts",
+      "apps/calendar/lib/time-analytics.ts",
+      "apps/calendar/public/sw.js"
+    ],
+    "ignoreIssues": {
+      "apps/calendar/components/app/analytics/analytics-utils.ts": [
+        "exports"
+      ],
+      "apps/calendar/components/providers/calendar-context.tsx": [
+        "exports",
+        "duplicates"
+      ],
+      "packages/ui/src/**": [
+        "exports"
+      ],
+      "packages/utils/src/useLocalStorage.ts": [
+        "exports"
+      ],
+      "apps/calendar/lib/evlog.ts": [
+        "exports"
+      ],
+      "apps/calendar/lib/notifications.ts": [
+        "exports"
+      ]
+    }
   }
 }

@@ -8,8 +8,8 @@
     "./*": "./src/*.tsx"
   },
   "scripts": {
-    "lint": "oxlint --fix src && eslint src --fix",
-    "lint:check": "oxlint src && eslint src --quiet",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --fix",
+    "lint:check": "oxlint --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --quiet",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

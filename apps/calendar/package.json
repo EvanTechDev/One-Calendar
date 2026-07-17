@@ -10,8 +10,8 @@
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
     "mdx": "fumadocs-mdx",
-    "lint": "oxlint --fix app components hooks lib proxy.ts && eslint app components hooks lib proxy.ts --fix",
-    "lint:check": "oxlint app components hooks lib proxy.ts && eslint app components hooks lib proxy.ts --quiet",
+    "lint": "oxlint --fix --config ../../config/oxlint.json app components hooks lib proxy.ts && eslint --config ../../config/eslint.config.ts app components hooks lib proxy.ts --fix",
+    "lint:check": "oxlint --config ../../config/oxlint.json app components hooks lib proxy.ts && eslint --config ../../config/eslint.config.ts app components hooks lib proxy.ts --quiet",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
