@@ -16,9 +16,7 @@ import {
   addDurationByDayCategory,
 } from '@/components/app/analytics/analytics-utils'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type {
-  AnalyticsEvent,
-} from '@/components/app/analytics/analytics-types'
+import type { AnalyticsEvent } from '@/components/app/analytics/analytics-types'
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return {
@@ -30,6 +28,8 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     recurrence: 'none',
     participants: [],
     notification: 0,
+    description: '',
+    location: '',
     color: 'bg-blue-500',
     calendarId: 'cal-1',
     ...overrides,
@@ -147,16 +147,16 @@ describe('mapEventsToAnalyticsEvents', () => {
   })
 
   it('falls back to start date for missing createdAt', () => {
-    const event = createEvent({ createdAt: undefined })
+    const event = createEvent({ description: '' })
     const result = mapEventsToAnalyticsEvents([event])
     expect(result[0].createdAt).toEqual(event.startDate)
   })
 
   it('parses ISO string dates', () => {
     const event = createEvent({
-      startDate: '2025-01-15T10:00:00.000Z',
-      endDate: '2025-01-15T11:00:00.000Z',
-      createdAt: '2025-01-01T00:00:00.000Z',
+      startDate: new Date('2025-01-15T10:00:00.000Z'),
+      endDate: new Date('2025-01-15T11:00:00.000Z'),
+      description: '',
     })
     const result = mapEventsToAnalyticsEvents([event])
     expect(result[0].start).toEqual(new Date('2025-01-15T10:00:00.000Z'))

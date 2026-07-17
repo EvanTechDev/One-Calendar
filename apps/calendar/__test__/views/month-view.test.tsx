@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import MonthView from '@/components/app/views/month-view'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import type { Language } from '@zntr/i18n/calendar'
 
 const baseEvent: CalendarEvent = {
   id: '1',
@@ -13,8 +14,10 @@ const baseEvent: CalendarEvent = {
   recurrence: 'none',
   participants: [],
   notification: 0,
+  description: '',
   color: 'bg-[#E6F6FD]',
   calendarId: 'cal-1',
+  location: '',
 }
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
@@ -23,9 +26,9 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
 
 function renderMonthView({
   date = new Date(2025, 0, 15),
-  events = [],
+  events = [] as CalendarEvent[],
   onEventClick = vi.fn(),
-  language = 'en',
+  language = 'en' as Language,
   firstDayOfWeek = 0 as FirstDayOfWeek,
   timezone = 'UTC',
 } = {}) {

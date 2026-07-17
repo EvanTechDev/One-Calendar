@@ -988,8 +988,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 firstDayOfWeek={normalizedFirstDayOfWeek}
                 timezone={timezone}
                 timeFormat={timeFormat}
-                onEditEvent={handleEventEdit}
-                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                _onEditEvent={handleEventEdit}
+                _onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
                   handleShare(event, true)
                 }}
@@ -1015,8 +1015,8 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 firstDayOfWeek={normalizedFirstDayOfWeek}
                 timezone={timezone}
                 timeFormat={timeFormat}
-                onEditEvent={handleEventEdit}
-                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                _onEditEvent={handleEventEdit}
+                _onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
                   handleShare(event, true)
                 }}

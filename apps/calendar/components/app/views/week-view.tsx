@@ -32,8 +32,8 @@ interface WeekViewProps {
   firstDayOfWeek: FirstDayOfWeek
   timezone: string
   timeFormat: '24h' | '12h'
-  onEditEvent?: (event: CalendarEvent) => void
-  onDeleteEvent?: (event: CalendarEvent) => void
+  _onEditEvent?: (event: CalendarEvent) => void
+  _onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDrop?: (
