@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:calendar": "pnpm --filter @one-calendar build",
     "build:check": "turbo build:check",
     "prepare": "husky",
     "lint": "turbo lint",
