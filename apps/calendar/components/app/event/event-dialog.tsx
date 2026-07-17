@@ -53,7 +53,7 @@ interface EventDialogProps {
   initialEndDate?: Date | null
   event: CalendarEvent | null
   language: Language
-  timezone: string
+  _timezone: string
 }
 
 interface TimeInput {
@@ -73,7 +73,7 @@ export default function EventDialog({
   initialEndDate,
   event,
   language,
-  timezone,
+  _timezone,
 }: EventDialogProps) {
   const { calendars } = useCalendar()
   const [participants, setParticipants] = useState('')
@@ -116,7 +116,10 @@ export default function EventDialog({
   const getEventColorByCalendarId = (calendarId: string) => {
     const calendar = calendars.find((item) => item.id === calendarId)
     if (!calendar) return EVENT_COLOR_OPTIONS[0].value
-    return CALENDAR_COLOR_TO_EVENT_COLOR[calendar.color] ?? EVENT_COLOR_OPTIONS[0].value
+    return (
+      CALENDAR_COLOR_TO_EVENT_COLOR[calendar.color] ??
+      EVENT_COLOR_OPTIONS[0].value
+    )
   }
 
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
@@ -740,7 +743,9 @@ export default function EventDialog({
                     <div className="flex items-center">
                       <div
                         className={cn('w-4 h-4 rounded-full mr-2')}
-                        style={{ backgroundColor: EVENT_BG_TO_ACCENT[option.value] }}
+                        style={{
+                          backgroundColor: EVENT_BG_TO_ACCENT[option.value],
+                        }}
                       />
                       {t[option.labelKey]}
                     </div>

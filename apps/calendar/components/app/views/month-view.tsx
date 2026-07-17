@@ -26,7 +26,7 @@ interface MonthViewProps {
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   language: Language
   firstDayOfWeek: FirstDayOfWeek
-  timezone: string
+  _timezone: string
 }
 
 export default function MonthView({
@@ -35,7 +35,7 @@ export default function MonthView({
   onEventClick,
   language,
   firstDayOfWeek,
-  timezone,
+  _timezone,
 }: MonthViewProps) {
   const t = translations[language]
   const monthStart = startOfMonth(date)
@@ -116,12 +116,15 @@ export default function MonthView({
                       'absolute left-0 top-0 w-1 h-full rounded-l-md',
                     )}
                     style={{
-                      backgroundColor: EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                      backgroundColor:
+                        EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
                     }}
                   />
                   <div
                     className="pl-1.5 truncate"
-                    style={{ color: EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT }}
+                    style={{
+                      color: EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                    }}
                   >
                     {event.title}
                   </div>

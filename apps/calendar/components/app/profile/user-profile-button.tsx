@@ -229,7 +229,7 @@ type UserProfileButtonProps = {
   variant?: React.ComponentProps<typeof Button>['variant']
   className?: string
   mode?: 'dropdown' | 'settings'
-  onNavigateToSettings?: (section: UserProfileSection) => void
+  _onNavigateToSettings?: (section: UserProfileSection) => void
   onNavigateToView?: (view: 'analytics' | 'settings') => void
   focusSection?: UserProfileSection | null
 }
@@ -238,7 +238,7 @@ export default function UserProfileButton({
   variant = 'ghost',
   className = '',
   mode = 'dropdown',
-  onNavigateToSettings,
+  _onNavigateToSettings,
   onNavigateToView,
   focusSection = null,
 }: UserProfileButtonProps) {

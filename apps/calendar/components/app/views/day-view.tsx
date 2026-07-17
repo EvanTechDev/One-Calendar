@@ -24,7 +24,7 @@ const ContextMenuTrigger = ({
 }) => <>{children}</>
 const ContextMenuContent = ({
   children,
-  className,
+  _className,
 }: {
   children: React.ReactNode
   className?: string
@@ -41,7 +41,7 @@ interface DayViewProps {
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   language: Language
-  timezone: string
+  _timezone: string
   timeFormat: '24h' | '12h'
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void

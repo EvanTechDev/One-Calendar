@@ -160,7 +160,8 @@ describe('mapEventsToAnalyticsEvents', () => {
     })
     const result = mapEventsToAnalyticsEvents([event])
     expect(result[0].start).toEqual(new Date('2025-01-15T10:00:00.000Z'))
-    expect(result[0].createdAt).toEqual(new Date('2025-01-01T00:00:00.000Z'))
+    // createdAt falls back to start since CalendarEvent has no createdAt field
+    expect(result[0].createdAt).toEqual(result[0].start)
   })
 })
 

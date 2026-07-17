@@ -958,7 +958,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
-                _timezone={timezone}
+                timezone={timezone}
                 timeFormat={timeFormat}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -1041,7 +1041,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 language={language}
                 firstDayOfWeek={normalizedFirstDayOfWeek}
-                _timezone={timezone}
+                timezone={timezone}
               />
             )}
             {view === 'year' && (

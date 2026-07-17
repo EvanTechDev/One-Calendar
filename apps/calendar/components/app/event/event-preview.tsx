@@ -51,9 +51,9 @@ interface EventPreviewProps {
   onOpenChange: (open: boolean) => void
   onEdit: () => void
   onDelete: () => void
-  onDuplicate: () => void
+  _onDuplicate: () => void
   language: Language
-  timezone: string
+  _timezone: string
   openShareImmediately?: boolean
   shareOnlyMode?: boolean
   anchorRect?: DOMRect | null
@@ -66,9 +66,9 @@ export default function EventPreview({
   onOpenChange,
   onEdit,
   onDelete,
-  onDuplicate,
+  _onDuplicate,
   language,
-  timezone,
+  _timezone,
   openShareImmediately,
   shareOnlyMode = false,
   anchorRect = null,
