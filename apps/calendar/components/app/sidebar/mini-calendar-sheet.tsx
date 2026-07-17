@@ -33,7 +33,7 @@ const getWeekStartsOn = (locale: string): 0 | 1 => {
     ).weekInfo?.firstDay
     if (firstDay === 1) return 1
     if (firstDay === 7) return 0
-  } catch (_error) {}
+  } catch {}
 
   return [
     'zh-CN',

@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 
-export function Share(props: React.SVGProps<SVGSVGElement>) {
+export function Share(_props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       data-testid="geist-icon"

@@ -308,7 +308,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           setQuickCreateStartTime(new Date())
           setEventDialogOpen(true)
           break
-        case '/':
+        case '/': {
           e.preventDefault()
 
           const searchInput = document.querySelector(
@@ -318,6 +318,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             searchInput.focus()
           }
           break
+        }
         case 't':
         case 'T':
           e.preventDefault()
@@ -488,10 +489,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<{ id: string; eventId: string }[]>(
-      'shared-events',
-      [],
-    )
+    const storedShares = await readEncryptedLocalStorage<
+      { id: string; eventId: string }[]
+    >('shared-events', [])
     const relatedShares = storedShares.filter(
       (share) => share.eventId === eventId,
     )
@@ -540,12 +540,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    void readEncryptedLocalStorage<{ id: string }[]>('bookmarked-events', []).then(
-      (bookmarks) =>
-        writeEncryptedLocalStorage(
-          'bookmarked-events',
-          bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-        ),
+    void readEncryptedLocalStorage<{ id: string }[]>(
+      'bookmarked-events',
+      [],
+    ).then((bookmarks) =>
+      writeEncryptedLocalStorage(
+        'bookmarked-events',
+        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+      ),
     )
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -611,10 +613,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<{ id: string; title: string; startDate: Date; endDate: Date; color: string; location?: string }[]>(
-      'bookmarked-events',
-      [],
-    )
+    const bookmarks = await readEncryptedLocalStorage<
+      {
+        id: string
+        title: string
+        startDate: Date
+        endDate: Date
+        color: string
+        location?: string
+      }[]
+    >('bookmarked-events', [])
 
     const isBookmarked = bookmarks.some((b) => b.id === event.id)
     if (isBookmarked) {

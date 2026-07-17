@@ -54,8 +54,8 @@ export default function WeekView({
   firstDayOfWeek,
   timezone,
   timeFormat,
-  onEditEvent,
-  onDeleteEvent,
+  _onEditEvent,
+  _onDeleteEvent,
   onShareEvent,
   onBookmarkEvent,
   onEventDrop,
@@ -783,10 +783,7 @@ export default function WeekView({
                       onClick={(e) => {
                         e.stopPropagation()
                         if (!isDraggingRef.current) {
-                          onEventClick(
-                            event,
-                            e.currentTarget as HTMLElement,
-                          )
+                          onEventClick(event, e.currentTarget as HTMLElement)
                         }
                       }}
                     >
