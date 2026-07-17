@@ -6,10 +6,8 @@ allowBuilds:
   esbuild: false
   less: false
   msw: false
-  nx: true
   sharp: false
   unrs-resolver: false
 onlyBuiltDependencies:
   - sharp
   - esbuild
-  - nx
