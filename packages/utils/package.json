@@ -10,13 +10,20 @@
     "./useLocalStorage": "./src/useLocalStorage.ts"
   },
   "scripts": {
+    "build": "tsc",
+    "build:check": "tsc && tsc --noEmit",
     "lint": "oxlint --fix --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --fix",
     "lint:check": "oxlint --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --quiet",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "tailwind-merge": "3.6.0",
     "react": "19.2.7"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

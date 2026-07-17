@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:check": "turbo build:check",
     "prepare": "husky",
     "lint": "turbo lint",
     "lint:check": "turbo lint:check",
     "type-check": "turbo type-check",
     "test": "turbo test",
+    "test:watch": "turbo test:watch",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
     "format": "prettier . --write --ignore-path config/.prettierignore",
