@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
 import { getStoredLanguage, translations } from '@zntr/i18n/calendar'
+import type { CalendarEvent } from '@/components/app/calendar'
 
 let notificationInterval: NodeJS.Timeout | null = null
 const firedNotifications = new Map<string, number>()
@@ -37,8 +38,8 @@ export const checkPendingNotifications = async (
 
 const getPendingEvents = async (currentTime: number) => {
   cleanupFiredNotifications(currentTime)
-  const events = await readEncryptedLocalStorage<any[]>('calendar-events', [])
-  return events.filter((event: any) => {
+  const events = await readEncryptedLocalStorage<CalendarEvent[]>('calendar-events', [])
+  return events.filter((event) => {
     const notificationTime = getNotificationTime(event)
     if (!notificationTime) return false
     if (notificationTime > currentTime) return false
@@ -50,7 +51,7 @@ const getPendingEvents = async (currentTime: number) => {
 }
 
 const triggerNotification = async (
-  event: any,
+  event: CalendarEvent,
   soundKey: NOTIFICATION_SOUNDS,
 ) => {
   const sound = notificationSounds[soundKey] ?? notificationSounds.telegram
@@ -59,7 +60,7 @@ const triggerNotification = async (
   await showSystemNotification(event)
 }
 
-const showToast = async (event: any) => {
+const showToast = async (event: CalendarEvent) => {
   const language = await getStoredLanguage()
   const t = translations[language]
   toast(`${event.title}`, {
@@ -85,7 +86,7 @@ const getServiceWorkerRegistration = async () => {
   }
 }
 
-const showSystemNotification = async (event: any) => {
+const showSystemNotification = async (event: CalendarEvent) => {
   if (typeof window === 'undefined') return
   if (!('Notification' in window)) return
 
@@ -128,8 +129,8 @@ const showSystemNotification = async (event: any) => {
   }
 }
 
-const getNotificationTime = (event: any) => {
-  if (!event?.startDate) return null
+const getNotificationTime = (event: CalendarEvent) => {
+  if (!event.startDate) return null
   const startTime = new Date(event.startDate).getTime()
   if (Number.isNaN(startTime)) return null
   const notificationMinutes = Number.isFinite(event.notification)
@@ -139,12 +140,11 @@ const getNotificationTime = (event: any) => {
   return startTime - notificationMinutes * 60 * 1000
 }
 
-const getNotificationKey = (event: any, notificationTime: number) => {
-  const eventId = event?.id ?? 'unknown'
-  return `${eventId}-${notificationTime}`
+const getNotificationKey = (event: CalendarEvent, notificationTime: number) => {
+  return `${event.id}-${notificationTime}`
 }
 
-const markNotificationFired = (event: any, currentTime: number) => {
+const markNotificationFired = (event: CalendarEvent, currentTime: number) => {
   const notificationTime = getNotificationTime(event)
   if (!notificationTime) return
   const key = getNotificationKey(event, notificationTime)

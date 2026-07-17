@@ -229,7 +229,7 @@ export async function readEncryptedLocalStorage<T>(
     }
     return coerceStoredValue(item, initialValue)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return initialValue
   }
 }
@@ -257,7 +257,7 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
     encryptedSnapshots.set(key, { value: raw, failed: false })
     emitStorageWrite(key)
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -298,7 +298,7 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     }
     return coerceStoredValue(item, initialValue)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return initialValue
   }
 }

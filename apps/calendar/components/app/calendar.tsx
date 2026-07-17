@@ -488,17 +488,17 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<any[]>(
+    const storedShares = await readEncryptedLocalStorage<{ id: string; eventId: string }[]>(
       'shared-events',
       [],
     )
     const relatedShares = storedShares.filter(
-      (share: any) => share?.eventId === eventId,
+      (share) => share.eventId === eventId,
     )
     if (!relatedShares.length) return
 
     const results = await Promise.allSettled(
-      relatedShares.map((share: any) =>
+      relatedShares.map((share) =>
         fetch('/api/share', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -509,7 +509,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
     await writeEncryptedLocalStorage(
       'shared-events',
-      storedShares.filter((share: any) => share?.eventId !== eventId),
+      storedShares.filter((share) => share.eventId !== eventId),
     )
 
     const failed = results.filter(
@@ -540,7 +540,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    void readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
+    void readEncryptedLocalStorage<{ id: string }[]>('bookmarked-events', []).then(
       (bookmarks) =>
         writeEncryptedLocalStorage(
           'bookmarked-events',
@@ -611,14 +611,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<any[]>(
+    const bookmarks = await readEncryptedLocalStorage<{ id: string; title: string; startDate: Date; endDate: Date; color: string; location?: string }[]>(
       'bookmarked-events',
       [],
     )
 
-    const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
+    const isBookmarked = bookmarks.some((b) => b.id === event.id)
     if (isBookmarked) {
-      const updated = bookmarks.filter((b: any) => b.id !== event.id)
+      const updated = bookmarks.filter((b) => b.id !== event.id)
       await writeEncryptedLocalStorage('bookmarked-events', updated)
     } else {
       const bookmarkData = {

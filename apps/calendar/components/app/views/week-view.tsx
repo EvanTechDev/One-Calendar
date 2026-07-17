@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
 import {
   format,
   startOfWeek,
@@ -23,28 +22,6 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
-
-const ContextMenu = ({ children }: { children: React.ReactNode }) => (
-  <>{children}</>
-)
-const ContextMenuTrigger = ({
-  children,
-}: {
-  children: React.ReactNode
-  asChild?: boolean
-}) => <>{children}</>
-const ContextMenuContent = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) => <>{children}</>
-const ContextMenuItem = (_props: {
-  children?: React.ReactNode
-  className?: string
-  onSelect?: (event: React.SyntheticEvent) => void
-}) => null
 
 interface WeekViewProps {
   date: Date
@@ -138,13 +115,6 @@ export default function WeekView({
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
-
-  const menuLabels = {
-    edit: t.edit,
-    share: t.share,
-    bookmark: t.bookmark,
-    delete: t.delete,
-  }
 
   useEffect(() => {
     if (!hasScrolledRef.current && scrollContainerRef.current) {
@@ -586,103 +556,49 @@ export default function WeekView({
     const eventSpacing = 2
 
     return allDayEvents.map((event, index) => (
-      <ContextMenu
+      <div
         key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
+        className={cn(
+          'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
+          event.color,
+        )}
+        style={{
+          height: '20px',
+          top: index * (20 + eventSpacing) + 'px',
+          position: 'absolute',
+          left: '0',
+          right: '0',
+          opacity: isDark ? 1 : 0.9,
+          backgroundColor: getEventBackgroundColor(event.color, isDark),
+          zIndex: 10 + index,
+        }}
+        onMouseDown={(e) => handleEventDragStart(event, e)}
+        onMouseUp={handleEventDragEnd}
+        onMouseLeave={handleEventDragEnd}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          queueIgnoreEventClick()
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (ignoreNextEventClickRef.current) return
+          if (!isDraggingRef.current) {
+            onEventClick(event, e.currentTarget as HTMLElement)
+          }
+        }}
       >
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
-              event.color,
-            )}
-            style={{
-              height: '20px',
-
-              top: index * (20 + eventSpacing) + 'px',
-              position: 'absolute',
-              left: '0',
-              right: '0',
-              opacity: isDark ? 1 : 0.9,
-              backgroundColor: getEventBackgroundColor(event.color, isDark),
-              zIndex: 10 + index,
-            }}
-            onMouseDown={(e) => handleEventDragStart(event, e)}
-            onMouseUp={handleEventDragEnd}
-            onMouseLeave={handleEventDragEnd}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (ignoreNextEventClickRef.current) return
-              if (!isDraggingRef.current) {
-                onEventClick(event, e.currentTarget as HTMLElement)
-              }
-            }}
-          >
-            <div
-              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-              style={{ backgroundColor: getEventAccentColor(event.color) }}
-            />
-            <div
-              className="pl-1.5 truncate"
-              style={{ color: getEventAccentColor(event.color) }}
-            >
-              {event.title}
-            </div>
-          </div>
-        </ContextMenuTrigger>
-
-        <ContextMenuContent className="w-40">
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onEditEvent?.(event)
-            }}
-          >
-            <Edit3 className="mr-2 h-4 w-4" />
-            {menuLabels.edit}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onShareEvent?.(event)
-            }}
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            {menuLabels.share}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onBookmarkEvent?.(event)
-            }}
-          >
-            <Bookmark className="mr-2 h-4 w-4" />
-            {menuLabels.bookmark}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onDeleteEvent?.(event)
-            }}
-            className="text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {menuLabels.delete}
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
+        <div
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          style={{ backgroundColor: getEventAccentColor(event.color) }}
+        />
+        <div
+          className="pl-1.5 truncate"
+          style={{ color: getEventAccentColor(event.color) }}
+        >
+          {event.title}
+        </div>
+      </div>
     ))
   }
 
@@ -843,128 +759,75 @@ export default function WeekView({
                   const left = `calc(${column} * ${width})`
 
                   return (
-                    <ContextMenu
+                    <div
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
+                      className={cn(
+                        'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+                        event.color,
+                      )}
+                      style={{
+                        top: `${startMinutes}px`,
+                        height: `${height}px`,
+                        opacity: isDark ? 1 : 0.92,
+                        backgroundColor: getEventBackgroundColor(
+                          event.color,
+                          isDark,
+                        ),
+                        width,
+                        left,
+                        zIndex: column + 1,
+                      }}
+                      onMouseDown={(e) => handleEventDragStart(event, e)}
+                      onMouseUp={handleEventDragEnd}
+                      onMouseLeave={handleEventDragEnd}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (!isDraggingRef.current) {
+                          onEventClick(
+                            event,
+                            e.currentTarget as HTMLElement,
+                          )
+                        }
+                      }}
                     >
-                      <ContextMenuTrigger asChild>
+                      <div
+                        className={cn(
+                          'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                        )}
+                        style={{
+                          backgroundColor: getEventAccentColor(event.color),
+                        }}
+                      />
+                      <div className="pl-1">
                         <div
-                          className={cn(
-                            'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
-                            event.color,
-                          )}
+                          className="font-medium leading-tight break-words"
                           style={{
-                            top: `${startMinutes}px`,
-                            height: `${height}px`,
-                            opacity: isDark ? 1 : 0.92,
-                            backgroundColor: getEventBackgroundColor(
-                              event.color,
-                              isDark,
+                            color: getEventAccentColor(event.color),
+                            display: '-webkit-box',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: Math.max(
+                              1,
+                              Math.floor((height - 8) / 16),
                             ),
-                            width,
-                            left,
-                            zIndex: column + 1,
-                          }}
-                          onMouseDown={(e) => handleEventDragStart(event, e)}
-                          onMouseUp={handleEventDragEnd}
-                          onMouseLeave={handleEventDragEnd}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (!isDraggingRef.current) {
-                              onEventClick(
-                                event,
-                                e.currentTarget as HTMLElement,
-                              )
-                            }
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
-                          <div
-                            className={cn(
-                              'absolute left-0 top-0 w-1 h-full rounded-l-md',
-                            )}
-                            style={{
-                              backgroundColor: getEventAccentColor(event.color),
-                            }}
-                          />
-                          <div className="pl-1">
-                            <div
-                              className="font-medium leading-tight break-words"
-                              style={{
-                                color: getEventAccentColor(event.color),
-                                display: '-webkit-box',
-                                WebkitBoxOrient: 'vertical',
-                                WebkitLineClamp: Math.max(
-                                  1,
-                                  Math.floor((height - 8) / 16),
-                                ),
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              {event.title}
-                            </div>
-                            {height >= 40 && (
-                              <div
-                                className="text-xs truncate"
-                                style={{
-                                  color: getEventAccentColor(event.color),
-                                }}
-                              >
-                                {formatDateWithTimezone(start)} -{' '}
-                                {formatDateWithTimezone(end)}
-                              </div>
-                            )}
-                          </div>
+                          {event.title}
                         </div>
-                      </ContextMenuTrigger>
-
-                      <ContextMenuContent className="w-40">
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onEditEvent?.(event)
-                          }}
-                        >
-                          <Edit3 className="mr-2 h-4 w-4" />
-                          {menuLabels.edit}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onShareEvent?.(event)
-                          }}
-                        >
-                          <Share2 className="mr-2 h-4 w-4" />
-                          {menuLabels.share}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onBookmarkEvent?.(event)
-                          }}
-                        >
-                          <Bookmark className="mr-2 h-4 w-4" />
-                          {menuLabels.bookmark}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onDeleteEvent?.(event)
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {menuLabels.delete}
-                        </ContextMenuItem>
-                      </ContextMenuContent>
-                    </ContextMenu>
+                        {height >= 40 && (
+                          <div
+                            className="text-xs truncate"
+                            style={{
+                              color: getEventAccentColor(event.color),
+                            }}
+                          >
+                            {formatDateWithTimezone(start)} -{' '}
+                            {formatDateWithTimezone(end)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )
                 },
               )}
