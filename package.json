@@ -29,6 +29,7 @@
     "@types/node": "25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/rrule": "^2.2.9",
     "drizzle-kit": "latest",
     "eslint": "10.5.0",
     "eslint-plugin-oxlint": "1.71.0",
@@ -117,5 +118,8 @@
         "exports"
       ]
     }
+  },
+  "dependencies": {
+    "rrule": "^2.8.1"
   }
 }
