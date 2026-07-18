@@ -96,7 +96,7 @@ export default function ShareManagement() {
       if (!res.ok) throw new Error('Failed to delete share')
       setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id))
       toast.success(t.shareDeleted)
-    } catch (_error) {
+    } catch {
       toast.error(t.shareDeleteFailed)
     } finally {
       setIsDeleting(false)
@@ -139,7 +139,7 @@ export default function ShareManagement() {
       setPasswordDialogOpen(false)
       setDecryptingShare(null)
       setPasswordInput('')
-    } catch (_error) {
+    } catch {
       toast.error(t.decryptFailed)
     } finally {
       setIsDecrypting(false)
