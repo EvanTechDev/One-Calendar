@@ -96,6 +96,7 @@ export function EventRenderer({
   showTime = true,
   className: _className,
 }: EventRendererProps) {
+  if (!config) return null
   const layoutEngine = EventLayoutEngineClass.create(config)
   const t = translations[config.language.code as keyof typeof translations]
 
@@ -314,6 +315,7 @@ export function AllDayEventRenderer({
   eventSpacing = 3,
   className,
 }: AllDayEventRendererProps) {
+  if (!config) return null
   const t = translations[config.language.code as keyof typeof translations]
 
   const menuLabels = {
@@ -455,7 +457,7 @@ export function DragPreviewRenderer({
   isDark,
   layoutEngine: providedLayoutEngine,
 }: DragPreviewRendererProps) {
-  if (!dragPreview || !draggingEvent) return null
+  if (!dragPreview || !draggingEvent || !config) return null
 
   const layoutEngine =
     providedLayoutEngine ?? EventLayoutEngineClass.create(config)
@@ -521,7 +523,7 @@ export function SelectionRenderer({
   config,
   layoutEngine: providedLayoutEngine,
 }: SelectionRendererProps) {
-  if (!createSelection) return null
+  if (!createSelection || !config) return null
 
   const layoutEngine =
     providedLayoutEngine ?? EventLayoutEngineClass.create(config)
@@ -559,6 +561,7 @@ export function CurrentTimeIndicator({
   currentTime,
   _isDark,
 }: CurrentTimeIndicatorProps) {
+  if (!config) return null
   const today = new Date()
   const isToday = date.toDateString() === today.toDateString()
 
