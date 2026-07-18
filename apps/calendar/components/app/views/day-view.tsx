@@ -41,8 +41,12 @@ export default function DayView({
   onEventDrop,
   onBackToCalendar: _onBackToCalendar,
 }: DayViewProps) {
-  const { allDayEventsForDate, regularEventsForDate, layoutEventsForDate } =
-    useEventFilter({ events, config, date })
+  const {
+    allDayEventsForDate,
+    regularEventsForDate,
+    layoutEventsForDate,
+    layoutEngine,
+  } = useEventFilter({ events, config, date })
 
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
