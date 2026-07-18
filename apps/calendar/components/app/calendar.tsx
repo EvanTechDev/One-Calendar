@@ -204,9 +204,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     'bottom-left' | 'bottom-center' | 'bottom-right'
   >('toast-position', 'bottom-right')
 
-  const firstDayOfWeekObj = FirstDayOfWeek.create(firstDayOfWeek)
-  const timeFormatObj = TimeFormat.create(timeFormat)
-  const languageObj = Language.create(language)
+  const firstDayOfWeekObj = useMemo(
+    () => FirstDayOfWeek.create(firstDayOfWeek),
+    [firstDayOfWeek],
+  )
+  const timeFormatObj = useMemo(
+    () => TimeFormat.create(timeFormat),
+    [timeFormat],
+  )
+  const languageObj = useMemo(() => Language.create(language), [language])
 
   const viewConfig = useMemo(
     () =>

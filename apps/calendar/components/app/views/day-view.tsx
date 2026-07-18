@@ -8,6 +8,10 @@ import type { CalendarEvent } from '../calendar'
 import { translations } from '@zntr/i18n/calendar'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import type { ViewConfig } from '@/components/app/calendar-types'
+import {
+  getEventAccentColor,
+  getEventBackgroundColor,
+} from '@/components/app/views/event-colors'
 import { EventRenderer } from '@/components/app/views/EventRenderer'
 import { useEventFilter } from '@/components/app/hooks/useEventFilter'
 
@@ -465,7 +469,7 @@ export default function DayView({
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
-                  layoutEngine.formatHourMinute,
+                  (hour, min) => layoutEngine.formatHourMinute(hour, min),
                 )}
               </div>
             </div>

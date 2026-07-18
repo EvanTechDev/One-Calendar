@@ -150,7 +150,7 @@ export function EventRenderer({
           className={cn(
             'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
             event.color,
-            className,
+            _className,
           )}
           style={{
             top: `${startMinutes}px`,
@@ -541,7 +541,7 @@ export function SelectionRenderer({
         {formatSelectionRange(
           createSelection.startMinute,
           createSelection.endMinute,
-          layoutEngine.formatHourMinute,
+          (hour, min) => layoutEngine.formatHourMinute(hour, min),
         )}
       </div>
     </div>
