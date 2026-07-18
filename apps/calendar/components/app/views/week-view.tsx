@@ -51,10 +51,10 @@ export default function WeekView({
   onEventDrop,
   daysToShow,
   fixedStartDate,
-  onEditEvent,
-  onDeleteEvent,
-  onShareEvent,
-  onBookmarkEvent,
+  onEditEvent: _onEditEvent,
+  onDeleteEvent: _onDeleteEvent,
+  onShareEvent: _onShareEvent,
+  onBookmarkEvent: _onBookmarkEvent,
 }: WeekViewProps) {
   const layoutEngine = useMemo(
     () => EventLayoutEngineClass.create(config),

@@ -106,7 +106,7 @@ export default function EventDialog({
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endTimeOpen, setEndTimeOpen] = useState(false)
   const [startTimeOpen, setStartTimeOpen] = useState(false)
-  const [recurrenceOpen, setRecurrenceOpen] = useState(false)
+  const [_recurrenceOpen, _setRecurrenceOpen] = useState(false)
 
   const [startDate, setStartDate] = useState(initialDate)
   const [endDate, setEndDate] = useState(initialDate)

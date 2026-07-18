@@ -1,42 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
-import { format, isSameDay, isWithinInterval, add } from 'date-fns'
+import { format, isSameDay, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
 import { translations } from '@zntr/i18n/calendar'
-import { formatSelectionRange } from '@/components/app/views/selection-range'
-import {
-  getEventAccentColor,
-  getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 import type { ViewConfig } from '@/components/app/calendar-types'
-
-const ContextMenu = ({ children }: { children: React.ReactNode }) => (
-  <>{children}</>
-)
-const ContextMenuTrigger = ({
-  children,
-}: {
-  children: React.ReactNode
-  asChild?: boolean
-}) => <>{children}</>
-const ContextMenuContent = ({
-  children,
-  _className,
-}: {
-  children: React.ReactNode
-  className?: string
-  _className?: string
-}) => <>{children}</>
-const ContextMenuItem = (_props: {
-  children?: React.ReactNode
-  className?: string
-  onSelect?: (event: React.SyntheticEvent) => void
-}) => null
+import { EventRenderer } from '@/components/app/views/EventRenderer'
+import { useEventFilter } from '@/components/app/hooks/useEventFilter'
 
 interface DayViewProps {
   date: Date
@@ -67,12 +39,10 @@ export default function DayView({
   onShareEvent,
   onBookmarkEvent,
   onEventDrop,
-  onBackToCalendar,
+  onBackToCalendar: _onBackToCalendar,
 }: DayViewProps) {
-  const layoutEngine = useMemo(
-    () => EventLayoutEngineClass.create(config),
-    [config],
-  )
+  const { allDayEventsForDate, regularEventsForDate, layoutEventsForDate } =
+    useEventFilter({ events, config, date })
 
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -110,12 +80,11 @@ export default function DayView({
   } | null>(null)
   const createStartMinuteRef = useRef<number | null>(null)
   const isCreatingRef = useRef(false)
-
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
 
-  const menuLabels = {
+  const _menuLabels = {
     edit: t.edit,
     share: t.share,
     bookmark: t.bookmark,
@@ -311,106 +280,15 @@ export default function DayView({
     setCreateSelection({ startMinute, endMinute: startMinute })
   }
 
-  const renderAllDayEvents = (allDayEvents: CalendarEvent[]) => {
-    const eventSpacing = 3
+  const allDayEvents = allDayEventsForDate(date)
+  const _regularEvents = regularEventsForDate(date)
+  const eventLayouts = layoutEventsForDate(date)
 
-    return allDayEvents.map((event, index) => (
-      <ContextMenu key={`allday-${event.id}`}>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
-              event.color,
-            )}
-            style={{
-              height: '20px',
-              top: index * (20 + eventSpacing) + 'px',
-              position: 'absolute',
-              left: '0',
-              right: '0',
-              opacity: isDark ? 1 : 0.9,
-              backgroundColor: getEventBackgroundColor(event.color, isDark),
-              zIndex: 10 + index,
-            }}
-            onMouseDown={(e) => handleEventDragStart(event, e)}
-            onMouseUp={handleEventDragEnd}
-            onMouseLeave={handleEventDragEnd}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (ignoreNextEventClickRef.current) return
-              if (!isDraggingRef.current) {
-                onEventClick(event, e.currentTarget as HTMLElement)
-              }
-            }}
-          >
-            <div
-              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-              style={{ backgroundColor: getEventAccentColor(event.color) }}
-            />
-            <div
-              className="pl-1.5 truncate"
-              style={{ color: getEventAccentColor(event.color) }}
-            >
-              {event.title}
-            </div>
-          </div>
-        </ContextMenuTrigger>
-
-        <ContextMenuContent className="w-40">
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onEditEvent?.(event)
-            }}
-          >
-            <Edit3 className="mr-2 h-4 w-4" />
-            {menuLabels.edit}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onShareEvent?.(event)
-            }}
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            {menuLabels.share}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onBookmarkEvent?.(event)
-            }}
-          >
-            <Bookmark className="mr-2 h-4 w-4" />
-            {menuLabels.bookmark}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onDeleteEvent?.(event)
-            }}
-            className="text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {menuLabels.delete}
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-    ))
-  }
+  const eventSpacing = 3
+  const allDayEventsHeight =
+    allDayEvents.length > 0
+      ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
+      : 0
 
   const renderDragPreview = () => {
     if (!dragPreview || !draggingEvent) return null
@@ -468,40 +346,6 @@ export default function DayView({
     )
   }
 
-  const dayEvents = events.filter((event) => {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    if (!layoutEngine.isAllDayEvent(event)) {
-      if (isSameDay(start, date)) return true
-
-      if (layoutEngine.isMultiDayEvent(start, end)) {
-        return isWithinInterval(date, { start, end })
-      }
-
-      return false
-    }
-
-    if (layoutEngine.isMultiDayEvent(start, end)) {
-      return isSameDay(start, date)
-    }
-
-    return isSameDay(start, date)
-  })
-
-  const { allDayEvents, regularEvents } = layoutEngine.separateEvents(
-    dayEvents,
-    date,
-  )
-
-  const eventSpacing = 2
-  const allDayEventsHeight =
-    allDayEvents.length > 0
-      ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
-      : 0
-
-  const eventLayouts = layoutEngine.layoutEventsForDay(regularEvents, date)
-
   return (
     <div className="flex flex-col h-full">
       <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
@@ -524,7 +368,33 @@ export default function DayView({
             className="relative"
             style={{ height: allDayEventsHeight + 'px' }}
           >
-            {renderAllDayEvents(allDayEvents)}
+            {allDayEvents.map((event, _index) => (
+              <EventRenderer
+                key={`allday-${event.id}`}
+                event={event}
+                layout={{
+                  start: new Date(event.startDate),
+                  end: new Date(event.endDate),
+                  column: 0,
+                  totalColumns: 1,
+                  isMultiDay: false,
+                }}
+                config={config}
+                isDark={isDark}
+                onEventClick={onEventClick}
+                onEditEvent={onEditEvent}
+                onDeleteEvent={onDeleteEvent}
+                onShareEvent={onShareEvent}
+                onBookmarkEvent={onBookmarkEvent}
+                onEventDragStart={handleEventDragStart}
+                onEventDragEnd={handleEventDragEnd}
+                isDragging={isDraggingRef.current}
+                ignoreNextEventClickRef={ignoreNextEventClickRef}
+                isDraggingRef={isDraggingRef}
+                queueIgnoreEventClick={queueIgnoreEventClick}
+                showTime={false}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -556,145 +426,26 @@ export default function DayView({
             <div key={hour} className="h-[60px] border-t" />
           ))}
 
-          {eventLayouts.map(({ event, column, totalColumns }) => {
-            const start = new Date(event.startDate)
-            const end = new Date(event.endDate)
-
-            const startMinutes = start.getHours() * 60 + start.getMinutes()
-            const endMinutes = end.getHours() * 60 + end.getMinutes()
-            const duration = endMinutes - startMinutes
-
-            const maxEndMinutes = 24 * 60
-            const displayDuration = Math.min(
-              duration,
-              maxEndMinutes - startMinutes,
-            )
-
-            const minHeight = 20
-            const height = Math.max(displayDuration, minHeight)
-
-            const width = `calc((100% - 8px) / ${totalColumns})`
-            const left = `calc(${column} * ${width})`
-
-            return (
-              <ContextMenu key={event.id}>
-                <ContextMenuTrigger asChild>
-                  <div
-                    className={cn(
-                      'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
-                      event.color,
-                    )}
-                    style={{
-                      top: `${startMinutes}px`,
-                      height: `${height}px`,
-                      opacity: isDark ? 1 : 0.9,
-                      backgroundColor: getEventBackgroundColor(
-                        event.color,
-                        isDark,
-                      ),
-                      width,
-                      left,
-                      zIndex: column + 1,
-                    }}
-                    onMouseDown={(e) => handleEventDragStart(event, e)}
-                    onMouseUp={handleEventDragEnd}
-                    onMouseLeave={handleEventDragEnd}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (ignoreNextEventClickRef.current) return
-                      if (!isDraggingRef.current) {
-                        onEventClick(event, e.currentTarget as HTMLElement)
-                      }
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        'absolute left-0 top-0 w-1 h-full rounded-l-md',
-                      )}
-                      style={{
-                        backgroundColor: getEventAccentColor(event.color),
-                      }}
-                    />
-                    <div className="pl-1">
-                      <div
-                        className="font-medium leading-tight break-words"
-                        style={{
-                          color: getEventAccentColor(event.color),
-                          display: '-webkit-box',
-                          WebkitBoxOrient: 'vertical',
-                          WebkitLineClamp: Math.max(
-                            1,
-                            Math.floor((height - 8) / 16),
-                          ),
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {event.title}
-                      </div>
-                      {height >= 40 && (
-                        <div
-                          className="text-xs truncate"
-                          style={{ color: getEventAccentColor(event.color) }}
-                        >
-                          {layoutEngine.formatDateWithTimezone(start)} -{' '}
-                          {layoutEngine.formatDateWithTimezone(end)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </ContextMenuTrigger>
-
-                <ContextMenuContent className="w-40">
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onEditEvent?.(event)
-                    }}
-                  >
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    {menuLabels.edit}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onShareEvent?.(event)
-                    }}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    {menuLabels.share}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onBookmarkEvent?.(event)
-                    }}
-                  >
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    {menuLabels.bookmark}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onDeleteEvent?.(event)
-                    }}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {menuLabels.delete}
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            )
-          })}
+          {eventLayouts.map(({ event, start, end, column, totalColumns }) => (
+            <EventRenderer
+              key={event.id}
+              event={event}
+              layout={{ start, end, column, totalColumns, isMultiDay: false }}
+              config={config}
+              isDark={isDark}
+              onEventClick={onEventClick}
+              onEditEvent={onEditEvent}
+              onDeleteEvent={onDeleteEvent}
+              onShareEvent={onShareEvent}
+              onBookmarkEvent={onBookmarkEvent}
+              onEventDragStart={handleEventDragStart}
+              onEventDragEnd={handleEventDragEnd}
+              isDragging={isDraggingRef.current}
+              ignoreNextEventClickRef={ignoreNextEventClickRef}
+              isDraggingRef={isDraggingRef}
+              queueIgnoreEventClick={queueIgnoreEventClick}
+            />
+          ))}
 
           {createSelection && (
             <div

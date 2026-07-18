@@ -127,14 +127,7 @@ export default function MonthView({
 
   return (
     <div className="p-3 md:p-4">
-      <div
-        className={cn(
-          'grid gap-y-4',
-          false
-            ? 'md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6'
-            : 'md:grid-cols-3 md:gap-x-4',
-        )}
-      >
+      <div className={cn('grid gap-y-4', 'md:grid-cols-3 md:gap-x-4')}>
         {months.map((month) => (
           <section key={month.label} className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">

@@ -133,7 +133,7 @@ export async function decryptSnapshots(password: string) {
   if (entries.length === 0) return
 
   await Promise.all(
-    entries.map(async ([key, snapshot]) => {
+    entries.map(async ([_key, snapshot]) => {
       if (!snapshot.value) return
       try {
         const parsed = tryParse(snapshot.value)
@@ -157,7 +157,7 @@ export async function encryptSnapshots(password: string) {
   if (entries.length === 0) return
 
   await Promise.all(
-    entries.map(async ([key, snapshot]) => {
+    entries.map(async ([_key, snapshot]) => {
       if (!snapshot.value) return
       try {
         const parsed = tryParse(snapshot.value)

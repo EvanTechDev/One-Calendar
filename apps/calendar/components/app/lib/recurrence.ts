@@ -55,7 +55,7 @@ const DAY_MAP: Record<string, number> = {
   SA: 6,
 }
 
-const DAY_MAP_REV: Record<number, string> = {
+const _DAY_MAP_REV: Record<number, string> = {
   0: 'SU',
   1: 'MO',
   2: 'TU',
