@@ -47,17 +47,20 @@ export function useEventOperations({
       setEvents((prevEvents) => [...prevEvents, newEvent])
       toast(t.eventCreated)
     },
-    [setEvents],
+    [setEvents, t],
   )
 
-  const handleEventUpdate = useCallback((updatedEvent: CalendarEvent) => {
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
-        event.id === updatedEvent.id ? updatedEvent : event,
-      ),
-    )
-    toast(t.eventUpdated)
-  }, [])
+  const handleEventUpdate = useCallback(
+    (updatedEvent: CalendarEvent) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === updatedEvent.id ? updatedEvent : event,
+        ),
+      )
+      toast(t.eventUpdated)
+    },
+    [setEvents, t],
+  )
 
   const handleEventDelete = useCallback(
     async (eventId: string) => {
@@ -95,8 +98,8 @@ export function useEventOperations({
         )
 
         if (failed.length) {
-          toast.error('Share deletion failed', {
-            description: 'Some shares could not be deleted',
+          toast.error(t.shareDeleteFailed, {
+            description: t.shareDeletePartialFailedDescription,
           })
         }
       }
@@ -116,11 +119,10 @@ export function useEventOperations({
         ),
       )
 
-      // Clean up bookmarks
-      toast('Event deleted', {
+      toast(t.eventDeleted, {
         description: targetEvent.title,
         action: {
-          label: 'Undo',
+          label: t.undo,
           onClick: () => {
             setEvents((prevEvents) => {
               if (prevEvents.some((event) => event.id === targetEvent.id))
@@ -131,12 +133,12 @@ export function useEventOperations({
                   new Date(b.startDate).getTime(),
               )
             })
-            toast('Deletion undone')
+            toast(t.deletionUndone)
           },
         },
       })
     },
-    [events],
+    [events, t],
   )
 
   return { updateEvent, handleEventAdd, handleEventUpdate, handleEventDelete }

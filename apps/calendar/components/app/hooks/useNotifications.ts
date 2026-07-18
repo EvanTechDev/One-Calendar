@@ -8,8 +8,8 @@ import {
 } from '@/lib/notifications'
 
 export function useNotifications(notificationSound: NOTIFICATION_SOUNDS) {
-  const notificationsInitializedRef = useRef(false)
   const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const notificationsInitializedRef = useRef(false)
 
   useEffect(() => {
     if (!notificationsInitializedRef.current) {

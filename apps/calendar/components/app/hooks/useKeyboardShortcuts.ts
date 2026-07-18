@@ -2,15 +2,15 @@
 
 import { useEffect } from 'react'
 import { useLanguage } from '@zntr/i18n/calendar'
-import type {
-  CalendarViewType,
-  ViewType,
+import {
+  type CalendarViewType,
+  type ViewType,
 } from '@/components/app/calendar-types'
 
 interface UseKeyboardShortcutsOptions {
   date: Date
   view: ViewType
-  setDate: (date: Date) => void
+  _setDate: (date: Date) => void
   setView: (view: ViewType) => void
   setSelectedEvent: (event: null) => void
   setQuickCreateStartTime: (date: Date) => void
@@ -25,6 +25,7 @@ interface UseKeyboardShortcutsOptions {
 export function useKeyboardShortcuts({
   date,
   view,
+  _setDate,
   setView,
   setSelectedEvent,
   setQuickCreateStartTime,
@@ -35,7 +36,7 @@ export function useKeyboardShortcuts({
   defaultView,
   enableShortcuts,
 }: UseKeyboardShortcutsOptions) {
-  const [_language] = useLanguage()
+  useLanguage()
 
   useEffect(() => {
     if (!enableShortcuts) return
@@ -59,6 +60,7 @@ export function useKeyboardShortcuts({
           break
         case '/': {
           e.preventDefault()
+
           const searchInput = document.querySelector(
             'input[placeholder="Search events"]',
           ) as HTMLInputElement

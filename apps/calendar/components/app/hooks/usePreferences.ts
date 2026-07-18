@@ -1,47 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
-import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import type {
+  CalendarViewType,
+  FirstDayOfWeek,
+} from '@/components/app/calendar-types'
 import { isCalendarView } from '@/components/app/calendar-types'
+import { useLocalStorage } from '@zntr/utils/useLocalStorage'
 
-interface UsePreferencesReturn {
-  firstDayOfWeek: FirstDayOfWeek
-  setFirstDayOfWeek: (day: FirstDayOfWeek) => void
-  timezone: string
-  setTimezone: (tz: string) => void
-  notificationSound: string
-  setNotificationSound: (sound: string) => void
-  defaultView: string
-  setDefaultView: (view: string) => void
-  enableShortcuts: boolean
-  setEnableShortcuts: (enabled: boolean) => void
-  timeFormat: '24h' | '12h'
-  setTimeFormat: (format: '24h' | '12h') => void
-  toastPosition: 'bottom-left' | 'bottom-center' | 'bottom-right'
-  setToastPosition: (
-    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
-  ) => void
-}
-
-export function usePreferences(): UsePreferencesReturn {
-  const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeek>(0)
-  const [timezone, setTimezone] = useState(
+export function usePreferences() {
+  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
+    'first-day-of-week',
+    0,
+  )
+  const [timezone, setTimezone] = useLocalStorage<string>(
+    'timezone',
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   )
-  const [notificationSound, setNotificationSound] = useState('telegram')
-  const [defaultView, setDefaultView] = useState('week')
-  const [enableShortcuts, setEnableShortcuts] = useState(true)
-  const [timeFormat, setTimeFormat] = useState<'24h' | '12h'>('24h')
-  const [toastPosition, setToastPosition] = useState<
+  const [notificationSound, setNotificationSound] = useLocalStorage<string>(
+    'notification-sound',
+    'telegram',
+  )
+  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewType>(
+    'default-view',
+    'week',
+  )
+  const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>(
+    'enable-shortcuts',
+    true,
+  )
+  const [timeFormat, setTimeFormat] = useLocalStorage<'24h' | '12h'>(
+    'time-format',
+    '24h',
+  )
+  const [toastPosition, setToastPosition] = useLocalStorage<
     'bottom-left' | 'bottom-center' | 'bottom-right'
-  >('bottom-right')
+  >('toast-position', 'bottom-right')
 
   useEffect(() => {
     const applyRestoredPreferences = async () => {
       const [restoredFirstDayOfWeek, restoredDefaultView] = await Promise.all([
         readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
-        readEncryptedLocalStorage<string>('default-view', 'week'),
+        readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
       ])
 
       setFirstDayOfWeek(
@@ -60,9 +61,9 @@ export function usePreferences(): UsePreferencesReturn {
     return () => {
       window.removeEventListener('backup-restored', applyRestoredPreferences)
     }
-  }, [])
+  }, [setDefaultView, setFirstDayOfWeek])
 
-  const handleFirstDayOfWeekChange = (day: 0 | 1 | 6) => {
+  const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
     setFirstDayOfWeek(day)
   }
 

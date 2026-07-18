@@ -130,7 +130,17 @@ export function getAllEventsInRange(
   events: CalendarEvent[],
   rangeStart: Date,
   rangeEnd: Date,
-): ExpandedEvent[] {
+): Array<
+  Partial<ExpandedEvent> & {
+    id: string
+    startDate: Date
+    endDate: Date
+    isRecurrence: boolean
+    recurrenceIndex: number
+    originalEventId: string
+    [key: string]: any
+  }
+> {
   const allEvents: Array<{
     id: string
     startDate: Date
