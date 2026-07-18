@@ -76,7 +76,7 @@ export function getEventTimesForDay(
   const start = new Date(event.startDate)
   const end = new Date(event.endDate)
 
-  if (!start || !end) return null
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null
 
   const isMultiDay = isMultiDayEvent(start, end)
 
@@ -86,12 +86,12 @@ export function getEventTimesForDay(
   if (isMultiDay) {
     if (!isSameDay(start, day)) {
       dayStart = new Date(day)
-      dayStart.setHours(0, 0, 0, 0)
+      dayStart.setUTCHours(0, 0, 0, 0)
     }
 
     if (!isSameDay(end, day)) {
       dayEnd = new Date(day)
-      dayEnd.setHours(23, 59, 59, 999)
+      dayEnd.setUTCHours(23, 59, 59, 999)
     }
   }
 
