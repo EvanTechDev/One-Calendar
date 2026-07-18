@@ -86,6 +86,7 @@ export default function EventDialog({
   event,
   config,
 }: EventDialogProps) {
+  if (!config) return null
   const { calendars } = useCalendar()
   const [participants, setParticipants] = useState('')
   const [customNotificationTime, setCustomNotificationTime] = useState('10')
