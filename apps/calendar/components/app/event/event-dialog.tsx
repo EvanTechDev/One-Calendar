@@ -32,10 +32,6 @@ import {
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
 } from '@/components/app/views/event-colors'
-import {
-  type RecurrenceRule,
-  type RecurrenceFrequency,
-} from '@/components/app/lib/recurrence'
 import type { ViewConfig } from '@/components/app/calendar-types'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
@@ -67,14 +63,6 @@ interface TimeInput {
   isCustomInput: boolean
 }
 
-const recurrenceOptions: { value: RecurrenceFrequency; labelKey: string }[] = [
-  { value: 'none', labelKey: 'recurrenceNone' },
-  { value: 'daily', labelKey: 'recurrenceDaily' },
-  { value: 'weekly', labelKey: 'recurrenceWeekly' },
-  { value: 'monthly', labelKey: 'recurrenceMonthly' },
-  { value: 'yearly', labelKey: 'recurrenceYearly' },
-]
-
 export default function EventDialog({
   open,
   onOpenChange,
@@ -96,9 +84,6 @@ export default function EventDialog({
   const [location, setLocation] = useState('')
   const [title, setTitle] = useState('')
   const [color, setColor] = useState(EVENT_COLOR_OPTIONS[0].value)
-  const [recurrence, setRecurrence] = useState<RecurrenceRule>({
-    frequency: 'none',
-  })
 
   const [isAllDay, setIsAllDay] = useState(false)
   const [endTimeError, setEndTimeError] = useState(false)
@@ -107,7 +92,6 @@ export default function EventDialog({
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endTimeOpen, setEndTimeOpen] = useState(false)
   const [startTimeOpen, setStartTimeOpen] = useState(false)
-  const [_recurrenceOpen, _setRecurrenceOpen] = useState(false)
 
   const [startDate, setStartDate] = useState(initialDate)
   const [endDate, setEndDate] = useState(initialDate)
@@ -272,16 +256,6 @@ export default function EventDialog({
         setDescription(event.description || '')
         setColor(event.color)
         setSelectedCalendar(event.calendarId || '')
-
-        if (event.recurrence && event.recurrence !== 'none') {
-          try {
-            setRecurrence(JSON.parse(event.recurrence))
-          } catch {
-            setRecurrence({ frequency: 'none' })
-          }
-        } else {
-          setRecurrence({ frequency: 'none' })
-        }
       } else {
         resetForm()
         if (initialDate) {
@@ -337,7 +311,6 @@ export default function EventDialog({
     setSelectedCalendar('')
     setStartTimeError(false)
     setEndTimeError(false)
-    setRecurrence({ frequency: 'none' })
   }
 
   const handleStartDateChange = (newDate: Date | undefined) => {
@@ -452,8 +425,7 @@ export default function EventDialog({
       isAllDay,
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
-      recurrence:
-        recurrence.frequency === 'none' ? 'none' : JSON.stringify(recurrence),
+      recurrence: 'none',
       location,
       participants: participants
         .split(',')
@@ -800,29 +772,6 @@ export default function EventDialog({
               onChange={(e) => setParticipants(e.target.value)}
               placeholder={t.participantsPlaceholder}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="recurrence">{t.recurrence || 'Recurrence'}</Label>
-            <Select
-              value={recurrence.frequency}
-              onValueChange={(value: RecurrenceFrequency) => {
-                setRecurrence((prev) => ({ ...prev, frequency: value }))
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={t.selectRecurrence || 'Select recurrence'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {recurrenceOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {t[option.labelKey] || option.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
