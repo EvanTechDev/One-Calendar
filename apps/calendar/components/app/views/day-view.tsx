@@ -1,23 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
 import { format, isSameDay, isWithinInterval, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
-import { translations, type Language } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
-import {
-  layoutEventsForDay,
-  separateEvents,
-  isAllDayEvent,
-  isMultiDayEvent,
-} from '@/components/app/views/engine/EventLayoutEngine'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
+import type { ViewConfig } from '@/components/app/calendar-types'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -47,9 +43,7 @@ interface DayViewProps {
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
-  language: Language
-  _timezone: string
-  timeFormat: '24h' | '12h'
+  config: ViewConfig
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -67,20 +61,24 @@ export default function DayView({
   events,
   onEventClick,
   onTimeSlotClick,
-  language,
-  _timezone,
-  timeFormat,
+  config,
   onEditEvent,
   onDeleteEvent,
   onShareEvent,
   onBookmarkEvent,
   onEventDrop,
+  onBackToCalendar,
 }: DayViewProps) {
+  const layoutEngine = useMemo(
+    () => EventLayoutEngineClass.create(config),
+    [config],
+  )
+
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasScrolledRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const t = translations[language]
+  const t = translations[config.language.code as keyof typeof translations]
 
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
   const [dragStartPosition, setDragStartPosition] = useState<{
@@ -122,34 +120,6 @@ export default function DayView({
     share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
-  }
-
-  const formatTime = (hour: number) => {
-    if (timeFormat === '12h') {
-      const period = hour >= 12 ? 'PM' : 'AM'
-      const twelveHour = hour % 12 || 12
-      return `${twelveHour} ${period}`
-    }
-    return `${hour.toString().padStart(2, '0')}:00`
-  }
-
-  const formatHourMinute = (hour: number, minute: number) => {
-    if (timeFormat === '12h') {
-      const period = hour >= 12 ? 'PM' : 'AM'
-      const twelveHour = hour % 12 || 12
-      return `${twelveHour}:${minute.toString().padStart(2, '0')} ${period}`
-    }
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-  }
-
-  const formatDateWithTimezone = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-      timeZone: _timezone,
-    }
-    return new Intl.DateTimeFormat(language, options).format(date)
   }
 
   useEffect(() => {
@@ -482,8 +452,15 @@ export default function DayView({
           </div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
-              {formatHourMinute(dragPreview.hour, dragPreview.minute)} -{' '}
-              {formatHourMinute(Math.floor(endMinutes / 60), endMinutes % 60)}
+              {layoutEngine.formatHourMinute(
+                dragPreview.hour,
+                dragPreview.minute,
+              )}{' '}
+              -{' '}
+              {layoutEngine.formatHourMinute(
+                Math.floor(endMinutes / 60),
+                endMinutes % 60,
+              )}
             </div>
           )}
         </div>
@@ -495,24 +472,27 @@ export default function DayView({
     const start = new Date(event.startDate)
     const end = new Date(event.endDate)
 
-    if (!isAllDayEvent(event)) {
+    if (!layoutEngine.isAllDayEvent(event)) {
       if (isSameDay(start, date)) return true
 
-      if (isMultiDayEvent(start, end)) {
+      if (layoutEngine.isMultiDayEvent(start, end)) {
         return isWithinInterval(date, { start, end })
       }
 
       return false
     }
 
-    if (isMultiDayEvent(start, end)) {
+    if (layoutEngine.isMultiDayEvent(start, end)) {
       return isSameDay(start, date)
     }
 
     return isSameDay(start, date)
   })
 
-  const { allDayEvents, regularEvents } = separateEvents(dayEvents, date)
+  const { allDayEvents, regularEvents } = layoutEngine.separateEvents(
+    dayEvents,
+    date,
+  )
 
   const eventSpacing = 2
   const allDayEventsHeight =
@@ -520,7 +500,7 @@ export default function DayView({
       ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
       : 0
 
-  const eventLayouts = layoutEventsForDay(regularEvents, date)
+  const eventLayouts = layoutEngine.layoutEventsForDay(regularEvents, date)
 
   return (
     <div className="flex flex-col h-full">
@@ -562,7 +542,7 @@ export default function DayView({
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >
-                {formatTime(hour)}
+                {layoutEngine.formatTimeForDisplay(hour, 0)}
               </span>
             </div>
           ))}
@@ -657,8 +637,8 @@ export default function DayView({
                           className="text-xs truncate"
                           style={{ color: getEventAccentColor(event.color) }}
                         >
-                          {formatDateWithTimezone(start)} -{' '}
-                          {formatDateWithTimezone(end)}
+                          {layoutEngine.formatDateWithTimezone(start)} -{' '}
+                          {layoutEngine.formatDateWithTimezone(end)}
                         </div>
                       )}
                     </div>
@@ -729,7 +709,7 @@ export default function DayView({
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
-                  formatHourMinute,
+                  layoutEngine.formatHourMinute,
                 )}
               </div>
             </div>
@@ -745,7 +725,9 @@ export default function DayView({
             if (!isToday) return null
 
             const currentTimeInTimezone = new Date(
-              currentTime.toLocaleString('en-US', { timeZone: _timezone }),
+              currentTime.toLocaleString('en-US', {
+                timeZone: config.timezone,
+              }),
             )
             const currentHours = currentTimeInTimezone.getHours()
             const currentMinutes = currentTimeInTimezone.getMinutes()

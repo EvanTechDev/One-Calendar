@@ -50,10 +50,16 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {
+  CalendarViewType,
+  FirstDayOfWeek,
+  Language,
+  TimeFormat,
+  ViewConfig,
+  ViewType,
   isCalendarView,
-  type CalendarViewType,
-  type FirstDayOfWeek,
-  type ViewType,
+  type CalendarViewTypeValue,
+  type FirstDayOfWeekValue,
+  type TimeFormatValue,
 } from '@/components/app/calendar-types'
 import { toast } from 'sonner'
 import {
@@ -134,15 +140,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
-    'first-day-of-week',
-    0,
-  )
-  const normalizedFirstDayOfWeek: FirstDayOfWeek =
-    firstDayOfWeek === 1 || firstDayOfWeek === 6 ? firstDayOfWeek : 0
+  const [firstDayOfWeek, setFirstDayOfWeek] =
+    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
-    setFirstDayOfWeek(day)
+    setFirstDayOfWeek(day.value)
   }
   const [timezone, setTimezone] = useLocalStorage<string>(
     'timezone',
@@ -186,7 +188,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     null,
   )
 
-  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewType>(
+  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewTypeValue>(
     'default-view',
     'week',
   )
@@ -194,13 +196,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     'enable-shortcuts',
     true,
   )
-  const [timeFormat, setTimeFormat] = useLocalStorage<'24h' | '12h'>(
+  const [timeFormat, setTimeFormat] = useLocalStorage<TimeFormatValue>(
     'time-format',
     '24h',
   )
   const [toastPosition, setToastPosition] = useLocalStorage<
     'bottom-left' | 'bottom-center' | 'bottom-right'
   >('toast-position', 'bottom-right')
+
+  const firstDayOfWeekObj = FirstDayOfWeek.create(firstDayOfWeek)
+  const timeFormatObj = TimeFormat.create(timeFormat)
+  const languageObj = Language.create(language)
+
+  const viewConfig = useMemo(
+    () =>
+      ViewConfig.create({
+        firstDayOfWeek: firstDayOfWeekObj,
+        timezone,
+        timeFormat: timeFormatObj,
+        language: languageObj,
+        date,
+        viewType: CalendarViewType.create(view as CalendarViewTypeValue),
+      }),
+    [firstDayOfWeekObj, timezone, timeFormatObj, languageObj, date, view],
+  )
+
   useEffect(() => {
     setView(isCalendarView(defaultView) ? defaultView : 'week')
   }, [defaultView])
@@ -208,13 +228,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   useEffect(() => {
     const applyRestoredPreferences = () => {
       void Promise.all([
-        readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
-        readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
+        readEncryptedLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0),
+        readEncryptedLocalStorage<CalendarViewTypeValue>(
+          'default-view',
+          'week',
+        ),
       ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
         setFirstDayOfWeek(
-          restoredFirstDayOfWeek === 1 || restoredFirstDayOfWeek === 6
-            ? restoredFirstDayOfWeek
-            : 0,
+          [1, 6].includes(restoredFirstDayOfWeek) ? restoredFirstDayOfWeek : 0,
         )
         if (isCalendarView(restoredDefaultView)) {
           setDefaultView(restoredDefaultView)
@@ -957,9 +978,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                _timezone={timezone}
-                timeFormat={timeFormat}
+                config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
@@ -984,16 +1003,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                _timezone={timezone}
-                timeFormat={timeFormat}
-                _onEditEvent={handleEventEdit}
-                _onDeleteEvent={(event) => handleEventDelete(event.id)}
-                _onShareEvent={(event) => {
+                config={viewConfig}
+                onEditEvent={handleEventEdit}
+                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                onShareEvent={(event) => {
                   handleShare(event, true)
                 }}
-                _onBookmarkEvent={toggleBookmark}
+                onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
                   const updatedEvent = {
                     ...event,
@@ -1011,16 +1027,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                _timezone={timezone}
-                timeFormat={timeFormat}
-                _onEditEvent={handleEventEdit}
-                _onDeleteEvent={(event) => handleEventDelete(event.id)}
-                _onShareEvent={(event) => {
+                config={viewConfig}
+                daysToShow={4}
+                fixedStartDate={date}
+                onEditEvent={handleEventEdit}
+                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                onShareEvent={(event) => {
                   handleShare(event, true)
                 }}
-                _onBookmarkEvent={toggleBookmark}
+                onBookmarkEvent={toggleBookmark}
                 onEventDrop={(event, newStartDate, newEndDate) => {
                   const updatedEvent = {
                     ...event,
@@ -1030,8 +1045,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
                   updateEvent(updatedEvent)
                 }}
-                daysToShow={4}
-                fixedStartDate={date}
               />
             )}
             {view === 'month' && (
@@ -1039,9 +1052,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                _timezone={timezone}
+                config={viewConfig}
               />
             )}
             {view === 'year' && (
@@ -1049,8 +1060,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
+                config={viewConfig}
                 isSidebarCollapsed={isSidebarCollapsed}
                 isSidebarExpanding={isSidebarExpanding}
               />
@@ -1068,20 +1078,26 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             )}
             {view === 'settings' && (
               <Settings
-                language={language}
-                setLanguage={setLanguage}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
+                language={languageObj.code}
+                setLanguage={(lang: string) => setLanguage(lang as any)}
+                firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
                 setTimezone={setTimezone}
                 _notificationSound={notificationSound}
                 _setNotificationSound={setNotificationSound}
-                defaultView={defaultView}
-                setDefaultView={setDefaultView}
+                defaultView={CalendarViewType.create(
+                  defaultView as CalendarViewTypeValue,
+                )}
+                setDefaultView={(view: CalendarViewType) =>
+                  setDefaultView(view.value as CalendarViewTypeValue)
+                }
                 enableShortcuts={enableShortcuts}
                 setEnableShortcuts={setEnableShortcuts}
-                timeFormat={timeFormat}
-                setTimeFormat={setTimeFormat}
+                timeFormat={timeFormatObj}
+                setTimeFormat={(format: TimeFormat) =>
+                  setTimeFormat(format.value as TimeFormatValue)
+                }
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
@@ -1140,8 +1156,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
-          language={language}
-          _timezone={timezone}
+          config={viewConfig}
         />
 
         <AlertDialog

@@ -24,8 +24,11 @@ import type { NOTIFICATION_SOUNDS } from '@/lib/notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   isCalendarView,
-  type CalendarViewType,
-  type FirstDayOfWeek,
+  CalendarViewType,
+  CalendarViewTypeValue,
+  FirstDayOfWeek,
+  FirstDayOfWeekValue,
+  TimeFormat,
 } from '@/components/app/calendar-types'
 import { Switch } from '@zntr/ui/switch'
 import { Label } from '@zntr/ui/label'
@@ -49,8 +52,8 @@ import {
 import { Kbd } from '@zntr/ui/kbd'
 
 interface SettingsProps {
-  language: Language
-  setLanguage: (lang: Language) => void
+  language: string
+  setLanguage: (lang: string) => void
   firstDayOfWeek: FirstDayOfWeek
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void
   timezone: string
@@ -61,8 +64,8 @@ interface SettingsProps {
   setDefaultView: (view: CalendarViewType) => void
   enableShortcuts: boolean
   setEnableShortcuts: (enable: boolean) => void
-  timeFormat: '24h' | '12h'
-  setTimeFormat: (format: '24h' | '12h') => void
+  timeFormat: TimeFormat
+  setTimeFormat: (format: TimeFormat) => void
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
   focusUserProfileSection?: UserProfileSection | null
@@ -96,7 +99,8 @@ export default function Settings({
   onBackToCalendar,
 }: SettingsProps) {
   const { theme, setTheme } = useTheme()
-  const t = translations[language]
+  const langCode = language as keyof typeof translations
+  const t = translations[langCode]
 
   const getGMTTimezones = () => {
     const timezones = Intl.supportedValuesOf('timeZone')
@@ -159,7 +163,7 @@ export default function Settings({
 
   const gmtTimezones = getGMTTimezones()
 
-  const handleLanguageChange = (newLang: Language) => {
+  const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang)
     window.dispatchEvent(
       new CustomEvent('languagechange', { detail: { language: newLang } }),
@@ -229,10 +233,10 @@ export default function Settings({
               {t.firstDayOfWeek}
             </div>
             <Select
-              value={firstDayOfWeek.toString()}
+              value={firstDayOfWeek.value.toString()}
               onValueChange={(value) => {
-                const day = Number(value)
-                setFirstDayOfWeek(day === 0 || day === 1 || day === 6 ? day : 0)
+                const day = Number(value) as FirstDayOfWeekValue
+                setFirstDayOfWeek(FirstDayOfWeek.create(day))
               }}
             >
               <SelectTrigger id="first-day">
@@ -251,10 +255,12 @@ export default function Settings({
               {t.defaultView}
             </div>
             <Select
-              value={defaultView}
+              value={defaultView.value}
               onValueChange={(value) => {
                 if (isCalendarView(value)) {
-                  setDefaultView(value)
+                  setDefaultView(
+                    CalendarViewType.create(value as CalendarViewTypeValue),
+                  )
                 }
               }}
             >
@@ -294,8 +300,10 @@ export default function Settings({
               {t.timeFormat}
             </div>
             <Select
-              value={timeFormat}
-              onValueChange={(value: '24h' | '12h') => setTimeFormat(value)}
+              value={timeFormat.value}
+              onValueChange={(value: '24h' | '12h') =>
+                setTimeFormat(TimeFormat.create(value))
+              }
             >
               <SelectTrigger id="time-format">
                 <SelectValue />
@@ -390,7 +398,7 @@ export default function Settings({
       </div>
       <ShareManagement />
       <ImportExport events={events} onImportEvents={onImportEvents} />
-      <BuildInfoCard language={language} />
+      <BuildInfoCard language={langCode} />
     </div>
   )
 }

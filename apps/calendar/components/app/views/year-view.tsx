@@ -9,19 +9,17 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
-import { isZhLanguage, translations, type Language } from '@zntr/i18n/calendar'
+import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import { useMemo, useState } from 'react'
 import { cn } from '@zntr/utils'
-
-import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/components/app/calendar-types'
 
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
-  language: Language
-  firstDayOfWeek: FirstDayOfWeek
+  config: ViewConfig
   isSidebarCollapsed?: boolean
   isSidebarExpanding?: boolean
 }
@@ -60,12 +58,11 @@ export default function YearView({
   date,
   events,
   onEventClick,
-  language,
-  firstDayOfWeek,
+  config,
   isSidebarCollapsed = false,
   isSidebarExpanding = false,
 }: YearViewProps) {
-  const t = translations[language]
+  const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
   const today = new Date()
   const [openDayKey, setOpenDayKey] = useState<string | null>(null)
@@ -75,10 +72,10 @@ export default function YearView({
 
   const weekdayLabels = useMemo(
     () => [
-      ...t.weekdays.slice(firstDayOfWeek),
-      ...t.weekdays.slice(0, firstDayOfWeek),
+      ...t.weekdays.slice(config.firstDayOfWeek.value),
+      ...t.weekdays.slice(0, config.firstDayOfWeek.value),
     ],
-    [firstDayOfWeek, t.weekdays],
+    [config.firstDayOfWeek.value, t.weekdays],
   )
 
   const eventsByDayKey = useMemo(() => {
@@ -107,7 +104,7 @@ export default function YearView({
         const monthStart = new Date(currentYear, monthIndex, 1)
         const monthEnd = endOfMonth(monthStart)
         const gridStart = startOfWeek(monthStart, {
-          weekStartsOn: firstDayOfWeek,
+          weekStartsOn: config.firstDayOfWeek.value,
         })
         const monthDays = eachDayOfInterval({
           start: gridStart,
@@ -131,7 +128,7 @@ export default function YearView({
           days: monthDays,
         }
       }),
-    [currentYear, firstDayOfWeek, t.months],
+    [currentYear, config.firstDayOfWeek.value, t.months],
   )
 
   return (
@@ -196,7 +193,9 @@ export default function YearView({
                       <div className="space-y-2">
                         <div className="text-sm font-medium">
                           {day.toLocaleDateString(
-                            isZhLanguage(language) ? 'zh-CN' : 'en-US',
+                            isZhLanguage(config.language.code as any)
+                              ? 'zh-CN'
+                              : 'en-US',
                             {
                               year: 'numeric',
                               month: 'long',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import {
   format,
@@ -13,33 +13,22 @@ import {
   startOfDay,
 } from 'date-fns'
 import { cn } from '@zntr/utils'
-import { translations, type Language } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/components/app/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
-import {
-  layoutEventsForDay,
-  separateEvents,
-  shouldShowEventOnDay,
-} from '@/components/app/views/engine/EventLayoutEngine'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 
 interface WeekViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
-  language: Language
-  firstDayOfWeek: FirstDayOfWeek
-  _timezone: string
-  timeFormat: '24h' | '12h'
-  _onEditEvent?: (event: CalendarEvent) => void
-  _onDeleteEvent?: (event: CalendarEvent) => void
-  _onShareEvent?: (event: CalendarEvent) => void
-  _onBookmarkEvent?: (event: CalendarEvent) => void
+  config: ViewConfig
   onEventDrop?: (
     event: CalendarEvent,
     newStartDate: Date,
@@ -47,6 +36,10 @@ interface WeekViewProps {
   ) => void
   daysToShow?: number
   fixedStartDate?: Date
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 export default function WeekView({
@@ -54,20 +47,24 @@ export default function WeekView({
   events,
   onEventClick,
   onTimeSlotClick,
-  language,
-  firstDayOfWeek,
-  _timezone,
-  timeFormat,
-  _onEditEvent,
-  _onDeleteEvent,
-  _onShareEvent,
-  _onBookmarkEvent,
+  config,
   onEventDrop,
   daysToShow,
   fixedStartDate,
+  onEditEvent,
+  onDeleteEvent,
+  onShareEvent,
+  onBookmarkEvent,
 }: WeekViewProps) {
-  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
-  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
+  const layoutEngine = useMemo(
+    () => EventLayoutEngineClass.create(config),
+    [config],
+  )
+
+  const weekStart = startOfWeek(date, {
+    weekStartsOn: config.firstDayOfWeek.value,
+  })
+  const weekEnd = endOfWeek(date, { weekStartsOn: config.firstDayOfWeek.value })
   const weekDays = daysToShow
     ? Array.from({ length: daysToShow }, (_, index) =>
         addDays(startOfDay(fixedStartDate ?? date), index),
@@ -76,7 +73,7 @@ export default function WeekView({
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const gridTemplateColumns = `100px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
-  const t = translations[language]
+  const t = translations[config.language.code as keyof typeof translations]
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasScrolledRef = useRef(false)
@@ -279,7 +276,7 @@ export default function WeekView({
   }, [createSelection, onTimeSlotClick, weekDays])
 
   const formatTime = (hour: number) => {
-    if (timeFormat === '12h') {
+    if (config.timeFormat.is12Hour()) {
       const period = hour >= 12 ? 'PM' : 'AM'
       const twelveHour = hour % 12 || 12
       return `${twelveHour} ${period}`
@@ -288,7 +285,7 @@ export default function WeekView({
   }
 
   const formatHourMinute = (hour: number, minute: number) => {
-    if (timeFormat === '12h') {
+    if (config.timeFormat.is12Hour()) {
       const period = hour >= 12 ? 'PM' : 'AM'
       const twelveHour = hour % 12 || 12
       return `${twelveHour}:${minute.toString().padStart(2, '0')} ${period}`
@@ -297,13 +294,7 @@ export default function WeekView({
   }
 
   const formatDateWithTimezone = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-      timeZone: _timezone,
-    }
-    return new Intl.DateTimeFormat(language, options).format(date)
+    return layoutEngine.formatDateWithTimezone(date)
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
@@ -469,10 +460,10 @@ export default function WeekView({
         <div className="sticky top-0 z-30 bg-background" />
         {weekDays.map((day) => {
           const dayEvents = events.filter((event) =>
-            shouldShowEventOnDay(event, day),
+            layoutEngine.shouldShowEventOnDay(event, day),
           )
 
-          const { allDayEvents } = separateEvents(dayEvents, day)
+          const { allDayEvents } = layoutEngine.separateEvents(dayEvents, day)
 
           const eventSpacing = 2
           const allDayEventsHeight =
@@ -532,12 +523,15 @@ export default function WeekView({
 
         {weekDays.map((day, dayIndex) => {
           const dayEvents = events.filter((event) =>
-            shouldShowEventOnDay(event, day),
+            layoutEngine.shouldShowEventOnDay(event, day),
           )
 
-          const { regularEvents } = separateEvents(dayEvents, day)
+          const { regularEvents } = layoutEngine.separateEvents(dayEvents, day)
 
-          const eventLayouts = layoutEventsForDay(regularEvents, day)
+          const eventLayouts = layoutEngine.layoutEventsForDay(
+            regularEvents,
+            day,
+          )
 
           return (
             <div
@@ -661,7 +655,7 @@ export default function WeekView({
                 (() => {
                   const currentTimeInTimezone = new Date(
                     currentTime.toLocaleString('en-US', {
-                      timeZone: _timezone,
+                      timeZone: config.timezone,
                     }),
                   )
                   const currentHours = currentTimeInTimezone.getHours()

@@ -3,17 +3,16 @@
 import { useEffect } from 'react'
 import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
 import type {
-  CalendarViewType,
-  FirstDayOfWeek,
+  CalendarViewTypeValue,
+  FirstDayOfWeekValue,
+  TimeFormatValue,
 } from '@/components/app/calendar-types'
 import { isCalendarView } from '@/components/app/calendar-types'
 import { useLocalStorage } from '@zntr/utils/useLocalStorage'
 
 export function usePreferences() {
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
-    'first-day-of-week',
-    0,
-  )
+  const [firstDayOfWeek, setFirstDayOfWeek] =
+    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
   const [timezone, setTimezone] = useLocalStorage<string>(
     'timezone',
     Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -22,7 +21,7 @@ export function usePreferences() {
     'notification-sound',
     'telegram',
   )
-  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewType>(
+  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewTypeValue>(
     'default-view',
     'week',
   )
@@ -30,7 +29,7 @@ export function usePreferences() {
     'enable-shortcuts',
     true,
   )
-  const [timeFormat, setTimeFormat] = useLocalStorage<'24h' | '12h'>(
+  const [timeFormat, setTimeFormat] = useLocalStorage<TimeFormatValue>(
     'time-format',
     '24h',
   )
@@ -41,14 +40,15 @@ export function usePreferences() {
   useEffect(() => {
     const applyRestoredPreferences = async () => {
       const [restoredFirstDayOfWeek, restoredDefaultView] = await Promise.all([
-        readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
-        readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
+        readEncryptedLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0),
+        readEncryptedLocalStorage<CalendarViewTypeValue>(
+          'default-view',
+          'week',
+        ),
       ])
 
       setFirstDayOfWeek(
-        restoredFirstDayOfWeek === 1 || restoredFirstDayOfWeek === 6
-          ? restoredFirstDayOfWeek
-          : 0,
+        [1, 6].includes(restoredFirstDayOfWeek) ? restoredFirstDayOfWeek : 0,
       )
       if (isCalendarView(restoredDefaultView)) {
         setDefaultView(restoredDefaultView)
@@ -63,7 +63,7 @@ export function usePreferences() {
     }
   }, [setDefaultView, setFirstDayOfWeek])
 
-  const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
+  const handleFirstDayOfWeekChange = (day: FirstDayOfWeekValue) => {
     setFirstDayOfWeek(day)
   }
 

@@ -2,7 +2,10 @@ import { useEffect } from 'react'
 import { useLanguage } from '@zntr/i18n/calendar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import { isCalendarView } from '@/components/app/calendar-types'
-import type { FirstDayOfWeek, ViewType } from '@/components/app/calendar-types'
+import type {
+  FirstDayOfWeekValue,
+  ViewType,
+} from '@/components/app/calendar-types'
 import { useLocalStorage } from '@zntr/utils/useLocalStorage'
 
 interface UseViewManagementOptions {
@@ -24,18 +27,19 @@ export function useViewManagement({
 }: UseViewManagementOptions) {
   const [language] = useLanguage()
 
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
-    'first-day-of-week',
-    0,
+  const [firstDayOfWeek, setFirstDayOfWeek] =
+    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
+  const normalizedFirstDayOfWeek: FirstDayOfWeekValue = [1, 6].includes(
+    firstDayOfWeek,
   )
-  const normalizedFirstDayOfWeek: FirstDayOfWeek =
-    firstDayOfWeek === 1 || firstDayOfWeek === 6 ? firstDayOfWeek : 0
+    ? firstDayOfWeek
+    : 0
 
   useEffect(() => {
     setView(isCalendarView(_defaultView) ? _defaultView : 'week')
   }, [_defaultView])
 
-  const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
+  const handleFirstDayOfWeekChange = (day: FirstDayOfWeekValue) => {
     setFirstDayOfWeek(day)
   }
 
