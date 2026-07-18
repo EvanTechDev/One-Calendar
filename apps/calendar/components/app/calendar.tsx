@@ -216,7 +216,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         timeFormat: timeFormatObj,
         language: languageObj,
         date,
-        viewType: CalendarViewType.create(view as CalendarViewTypeValue),
+        viewType: isCalendarView(view)
+          ? CalendarViewType.create(view as CalendarViewTypeValue)
+          : undefined,
       }),
     [firstDayOfWeekObj, timezone, timeFormatObj, languageObj, date, view],
   )

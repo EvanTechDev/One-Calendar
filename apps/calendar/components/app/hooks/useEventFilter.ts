@@ -18,6 +18,7 @@ interface UseEventFilterReturn {
   regularEventsForDate: (date: Date) => CalendarEvent[]
   layoutEventsForDate: (date: Date) => LayoutEvent[]
   getDayEvents: (date: Date) => CalendarEvent[]
+  layoutEngine: InstanceType<typeof EventLayoutEngineClass>
 }
 
 export function useEventFilter({
@@ -90,5 +91,6 @@ export function useEventFilter({
     regularEventsForDate,
     layoutEventsForDate,
     getDayEvents,
+    layoutEngine,
   }
 }
