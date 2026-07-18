@@ -2,18 +2,22 @@
 
 import {
   format,
+  startOfMonth,
   endOfMonth,
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
   subDays,
 } from 'date-fns'
-import { isZhLanguage, translations } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useMemo, useState } from 'react'
 import { cn } from '@zntr/utils'
+import {
+  EVENT_BG_TO_ACCENT,
+  EVENT_BG_TO_DARK,
+  DEFAULT_ACCENT,
+} from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { createPortal } from 'react-dom'
 
 interface MonthViewProps {
   date: Date
@@ -22,258 +26,119 @@ interface MonthViewProps {
   config: ViewConfig
 }
 
-function getDarkerColorClass(color: string) {
-  const colorMapping: Record<string, string> = {
-    'bg-[#E6F6FD]': '#3B82F6',
-    'bg-[#E7F8F2]': '#10B981',
-    'bg-[#FEF5E6]': '#F59E0B',
-    'bg-[#FFE4E6]': '#EF4444',
-    'bg-[#F3EEFE]': '#8B5CF6',
-    'bg-[#FCE7F3]': '#EC4899',
-    'bg-[#EEF2FF]': '#6366F1',
-    'bg-[#FFF0E5]': '#FB923C',
-    'bg-[#E6FAF7]': '#14B8A6',
-  }
-
-  return colorMapping[color] || '#3A3A3A'
-}
-
-function getDarkModeEventBackgroundColor(color: string) {
-  const darkModeColorMapping: Record<string, string> = {
-    'bg-[#E6F6FD]': '#2F4655',
-    'bg-[#E7F8F2]': '#2D4935',
-    'bg-[#FEF5E6]': '#4F3F1B',
-    'bg-[#FFE4E6]': '#6C2920',
-    'bg-[#F3EEFE]': '#483A63',
-    'bg-[#FCE7F3]': '#5A334A',
-    'bg-[#E6FAF7]': '#1F4A47',
-  }
-
-  return darkModeColorMapping[color]
-}
-
-interface PopoverState {
-  key: string
-  anchorRect: DOMRect
-  day: Date
-  dayEvents: CalendarEvent[]
-}
-
 export default function MonthView({
   date,
   events,
   onEventClick,
   config,
 }: MonthViewProps) {
-  const t = translations[config.language.code as keyof typeof translations]
-  const currentYear = date.getFullYear()
-  const today = useMemo(() => new Date(), [])
-  const [popover, setPopover] = useState<PopoverState | null>(null)
+  const language = config.language
+  const firstDayOfWeek = config.firstDayOfWeek
+  const t = translations[language.code as keyof typeof translations]
+  const monthStart = startOfMonth(date)
+  const monthEnd = endOfMonth(date)
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const today = new Date()
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
 
-  const weekdayLabels = useMemo(
-    () => [
-      ...t.weekdays.slice(config.firstDayOfWeek.value),
-      ...t.weekdays.slice(0, config.firstDayOfWeek.value),
-    ],
-    [config.firstDayOfWeek.value, t.weekdays],
-  )
+  const startWeekDay = monthStart.getDay()
+  const leadingEmptyDays = (7 + (startWeekDay - firstDayOfWeek.value)) % 7
 
-  const eventsByDayKey = useMemo(() => {
-    const grouped = new Map<string, CalendarEvent[]>()
-    events.forEach((event) => {
-      const eventDate = new Date(event.startDate)
-      const key = format(eventDate, 'yyyy-MM-dd')
-      const existing = grouped.get(key) ?? []
-      existing.push(event)
-      grouped.set(key, existing)
-    })
+  const prevMonthDays: Date[] = []
+  for (let i = leadingEmptyDays; i > 0; i--) {
+    prevMonthDays.push(subDays(monthStart, i))
+  }
 
-    grouped.forEach((dayEvents) => {
-      dayEvents.sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      )
-    })
-
-    return grouped
-  }, [events])
-
-  const months = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, monthIndex) => {
-        const monthStart = new Date(currentYear, monthIndex, 1)
-        const monthEnd = endOfMonth(monthStart)
-        const gridStart = subDays(monthStart, 0)
-        const monthDays = eachDayOfInterval({
-          start: gridStart,
-          end: monthEnd,
-        })
-
-        while (monthDays.length < 42) {
-          const lastDay = monthDays[monthDays.length - 1]
-          monthDays.push(
-            new Date(
-              lastDay.getFullYear(),
-              lastDay.getMonth(),
-              lastDay.getDate() + 1,
-            ),
-          )
-        }
-
-        return {
-          monthIndex,
-          label: t.months[monthIndex] ?? format(monthStart, 'LLLL'),
-          days: monthDays,
-        }
-      }),
-    [currentYear, t.months],
-  )
-
-  const handleDayClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, day: Date, dayKey: string) => {
-      const key = `${day.getMonth()}-${dayKey}`
-      if (popover?.key === key) {
-        setPopover(null)
-        return
-      }
-      const rect = e.currentTarget.getBoundingClientRect()
-      const dayEvents = eventsByDayKey.get(dayKey) ?? []
-      setPopover({ key, anchorRect: rect, day, dayEvents })
-    },
-    [popover, eventsByDayKey],
-  )
-
-  const closePopover = useCallback(() => setPopover(null), [])
+  const totalDays = [...prevMonthDays, ...monthDays]
 
   return (
-    <div className="p-3 md:p-4">
-      <div className={cn('grid gap-y-4', 'md:grid-cols-3 md:gap-x-4')}>
-        {months.map((month) => (
-          <section key={month.label} className="space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">
-              {month.label}
-            </h2>
-            <div className="grid grid-cols-7 gap-y-1 text-center">
-              {weekdayLabels.map((weekday) => (
-                <div key={weekday} className="text-xs text-muted-foreground">
-                  {weekday}
+    <div className="grid grid-cols-7 gap-1 p-4">
+      {(() => {
+        const orderedDays = [
+          ...t.weekdays.slice(firstDayOfWeek.value),
+          ...t.weekdays.slice(0, firstDayOfWeek.value),
+        ]
+        return orderedDays.map((day) => (
+          <div key={day} className="text-center font-medium text-sm py-2">
+            {day}
+          </div>
+        ))
+      })()}
+
+      {totalDays.map((day) => {
+        const dayEvents = events.filter((event) =>
+          isSameDay(new Date(event.startDate), day),
+        )
+        const visibleEvents = dayEvents.slice(0, 3)
+        const remainingCount = dayEvents.length - visibleEvents.length
+
+        return (
+          <div
+            key={day.toString()}
+            className="min-h-[100px] p-2 border rounded-xl border"
+          >
+            <div
+              className={cn(
+                'font-medium text-sm',
+                isSameMonth(day, date) ? '' : 'text-gray-400',
+                isSameMonth(day, date) && isSameDay(day, today)
+                  ? 'text-[#0066FF] font-bold'
+                  : '',
+              )}
+            >
+              {format(day, 'd')}
+            </div>
+            <div className="space-y-1">
+              {visibleEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className={cn(
+                    'relative text-xs truncate rounded-md p-1 cursor-pointer text-white',
+                    event.color,
+                  )}
+                  onClick={(e) =>
+                    onEventClick(event, e.currentTarget as HTMLElement)
+                  }
+                  style={{
+                    opacity: 1,
+                    backgroundColor: isDark
+                      ? EVENT_BG_TO_DARK[event.color]
+                      : undefined,
+                  }}
+                >
+                  <div
+                    className={cn(
+                      'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                    )}
+                    style={{
+                      backgroundColor:
+                        EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                    }}
+                  />
+                  <div
+                    className="pl-1.5 truncate"
+                    style={{
+                      color: EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                    }}
+                  >
+                    {event.title}
+                  </div>
                 </div>
               ))}
-
-              {month.days.map((day) => {
-                const dayKey = format(day, 'yyyy-MM-dd')
-                const isToday = isSameDay(day, today)
-                const isCurrentMonth = isSameMonth(
-                  day,
-                  new Date(currentYear, month.monthIndex, 1),
-                )
-                const dayEvents = eventsByDayKey.get(dayKey)
-
-                return (
-                  <button
-                    key={`${month.label}-${dayKey}`}
-                    type="button"
-                    className={cn(
-                      'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
-                      !isCurrentMonth && 'text-muted-foreground',
-                      dayEvents && dayEvents.length > 0 && 'font-semibold',
-                      isToday &&
-                        isCurrentMonth &&
-                        'bg-[#0052CC] text-white hover:bg-[#0047B3]',
-                    )}
-                    onClick={(e) => handleDayClick(e, day, dayKey)}
-                  >
-                    {format(day, 'd')}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      {popover &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            role="dialog"
-            className="fixed z-50 w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
-            style={{
-              left: Math.min(popover.anchorRect.left, window.innerWidth - 300),
-              top: popover.anchorRect.bottom + 4,
-            }}
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  {popover.day.toLocaleDateString(
-                    isZhLanguage(config.language.code as any)
-                      ? 'zh-CN'
-                      : 'en-US',
-                    {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    },
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={closePopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {popover.dayEvents.length > 0 ? (
-                <div className="space-y-1.5">
-                  {popover.dayEvents.map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      className={cn(
-                        'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
-                        event.color,
-                      )}
-                      onClick={(e) => {
-                        onEventClick(event, e.currentTarget)
-                        closePopover()
-                      }}
-                      style={{
-                        backgroundColor: isDark
-                          ? getDarkModeEventBackgroundColor(event.color)
-                          : undefined,
-                      }}
-                    >
-                      <div
-                        className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                        style={{
-                          backgroundColor: getDarkerColorClass(event.color),
-                        }}
-                      />
-                      <div
-                        style={{ color: getDarkerColorClass(event.color) }}
-                        className="truncate"
-                      >
-                        {event.title || t.unnamedEvent}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
+              {remainingCount > 0 && (
                 <div className="text-xs text-muted-foreground">
-                  {t.noEventsFound}
+                  {(remainingCount === 1
+                    ? t.moreEvents
+                    : t.moreEventsPlural
+                  ).replace('{count}', remainingCount.toString())}
                 </div>
               )}
             </div>
-          </div>,
-          document.body,
-        )}
+          </div>
+        )
+      })}
     </div>
   )
 }
