@@ -958,7 +958,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
-                timezone={timezone}
+                _timezone={timezone}
                 timeFormat={timeFormat}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -986,7 +986,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
                 firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
+                _timezone={timezone}
                 timeFormat={timeFormat}
                 _onEditEvent={handleEventEdit}
                 _onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -1013,7 +1013,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onTimeSlotClick={handleTimeRangeSelect}
                 language={language}
                 firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
+                _timezone={timezone}
                 timeFormat={timeFormat}
                 _onEditEvent={handleEventEdit}
                 _onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -1041,7 +1041,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 language={language}
                 firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
+                _timezone={timezone}
               />
             )}
             {view === 'year' && (
@@ -1118,13 +1118,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               setPreviewAnchorRect(null)
             }
           }}
-          onDuplicate={() => {
+          _onDuplicate={() => {
             if (previewEvent) {
               handleEventDuplicate(previewEvent)
             }
           }}
           language={language}
-          timezone={timezone}
+          _timezone={timezone}
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
@@ -1141,7 +1141,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           language={language}
-          timezone={timezone}
+          _timezone={timezone}
         />
 
         <AlertDialog

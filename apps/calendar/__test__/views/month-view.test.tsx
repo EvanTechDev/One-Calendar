@@ -30,7 +30,7 @@ function renderMonthView({
   onEventClick = vi.fn(),
   language = 'en' as Language,
   firstDayOfWeek = 0 as FirstDayOfWeek,
-  timezone = 'UTC',
+  _timezone = 'UTC',
 } = {}) {
   return render(
     <MonthView
@@ -39,7 +39,7 @@ function renderMonthView({
       onEventClick={onEventClick}
       language={language}
       firstDayOfWeek={firstDayOfWeek}
-      timezone={timezone}
+      _timezone={_timezone}
     />,
   )
 }
@@ -84,7 +84,7 @@ describe('MonthView', () => {
         onEventClick={vi.fn()}
         language="en"
         firstDayOfWeek={0 as FirstDayOfWeek}
-        timezone="UTC"
+        _timezone="UTC"
       />,
     )
     const prevMonthDay = container.querySelector('.text-gray-400')
@@ -191,7 +191,7 @@ describe('MonthView', () => {
   })
 
   it('handles different timezones', () => {
-    renderMonthView({ timezone: 'America/New_York' })
+    renderMonthView({ _timezone: 'America/New_York' })
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 })

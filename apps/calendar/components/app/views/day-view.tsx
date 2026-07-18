@@ -12,6 +12,12 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
+import {
+  layoutEventsForDay,
+  separateEvents,
+  isAllDayEvent,
+  isMultiDayEvent,
+} from '@/components/app/views/engine/EventLayoutEngine'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -28,6 +34,7 @@ const ContextMenuContent = ({
 }: {
   children: React.ReactNode
   className?: string
+  _className?: string
 }) => <>{children}</>
 const ContextMenuItem = (_props: {
   children?: React.ReactNode
@@ -61,7 +68,7 @@ export default function DayView({
   onEventClick,
   onTimeSlotClick,
   language,
-  timezone,
+  _timezone,
   timeFormat,
   onEditEvent,
   onDeleteEvent,
@@ -140,49 +147,9 @@ export default function DayView({
       hour: '2-digit',
       minute: '2-digit',
       hour12: timeFormat === '12h',
-      timeZone: timezone,
+      timeZone: _timezone,
     }
     return new Intl.DateTimeFormat(language, options).format(date)
-  }
-
-  const isAllDayEvent = (event: CalendarEvent) => {
-    if (event.isAllDay) return true
-
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    const isFullDay =
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      ((end.getHours() === 23 && end.getMinutes() === 59) ||
-        (end.getHours() === 0 &&
-          end.getMinutes() === 0 &&
-          end.getDate() !== start.getDate()))
-
-    return isFullDay
-  }
-
-  const isMultiDayEvent = (start: Date, end: Date) => {
-    return (
-      start.getDate() !== end.getDate() ||
-      start.getMonth() !== end.getMonth() ||
-      start.getFullYear() !== end.getFullYear()
-    )
-  }
-
-  const separateEvents = (dayEvents: CalendarEvent[]) => {
-    const allDayEvents: CalendarEvent[] = []
-    const regularEvents: CalendarEvent[] = []
-
-    dayEvents.forEach((event) => {
-      if (isAllDayEvent(event)) {
-        allDayEvents.push(event)
-      } else {
-        regularEvents.push(event)
-      }
-    })
-
-    return { allDayEvents, regularEvents }
   }
 
   useEffect(() => {
@@ -326,110 +293,6 @@ export default function DayView({
       document.removeEventListener('mouseup', handleMouseUp)
     }
   }, [createSelection, date, onTimeSlotClick])
-
-  const layoutEvents = (events: CalendarEvent[]) => {
-    if (!events || events.length === 0) return []
-
-    const sortedEvents = [...events].sort((a, b) => {
-      const startA = new Date(a.startDate).getTime()
-      const startB = new Date(b.startDate).getTime()
-      return startA - startB
-    })
-
-    type TimePoint = { time: number; isStart: boolean; eventIndex: number }
-    const timePoints: TimePoint[] = []
-
-    sortedEvents.forEach((event, index) => {
-      const start = new Date(event.startDate)
-      const end = new Date(event.endDate)
-
-      timePoints.push({
-        time: start.getTime(),
-        isStart: true,
-        eventIndex: index,
-      })
-      timePoints.push({
-        time: end.getTime(),
-        isStart: false,
-        eventIndex: index,
-      })
-    })
-
-    timePoints.sort((a, b) => {
-      if (a.time === b.time) {
-        return a.isStart ? 1 : -1
-      }
-      return a.time - b.time
-    })
-
-    const eventLayouts: Array<{
-      event: CalendarEvent
-      column: number
-      totalColumns: number
-    }> = []
-
-    const activeEvents = new Set<number>()
-
-    const eventToColumn = new Map<number, number>()
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const point = timePoints[i]
-
-      if (point.isStart) {
-        activeEvents.add(point.eventIndex)
-
-        let column = 0
-        const usedColumns = new Set<number>()
-
-        activeEvents.forEach((eventIndex) => {
-          if (eventToColumn.has(eventIndex)) {
-            usedColumns.add(eventToColumn.get(eventIndex)!)
-          }
-        })
-
-        while (usedColumns.has(column)) {
-          column++
-        }
-
-        eventToColumn.set(point.eventIndex, column)
-      } else {
-        activeEvents.delete(point.eventIndex)
-      }
-
-      if (
-        i === timePoints.length - 1 ||
-        timePoints[i + 1].time !== point.time
-      ) {
-        const totalColumns =
-          activeEvents.size > 0
-            ? Math.max(
-                ...Array.from(activeEvents).map(
-                  (idx) => eventToColumn.get(idx)!,
-                ),
-              ) + 1
-            : 0
-
-        activeEvents.forEach((eventIndex) => {
-          const column = eventToColumn.get(eventIndex)!
-          const event = sortedEvents[eventIndex]
-
-          const existingLayout = eventLayouts.find(
-            (layout) => layout.event.id === event.id,
-          )
-
-          if (!existingLayout) {
-            eventLayouts.push({
-              event,
-              column,
-              totalColumns: Math.max(totalColumns, 1),
-            })
-          }
-        })
-      }
-    }
-
-    return eventLayouts
-  }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
     e.preventDefault()
@@ -649,7 +512,7 @@ export default function DayView({
     return isSameDay(start, date)
   })
 
-  const { allDayEvents, regularEvents } = separateEvents(dayEvents)
+  const { allDayEvents, regularEvents } = separateEvents(dayEvents, date)
 
   const eventSpacing = 2
   const allDayEventsHeight =
@@ -657,7 +520,7 @@ export default function DayView({
       ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
       : 0
 
-  const eventLayouts = layoutEvents(regularEvents)
+  const eventLayouts = layoutEventsForDay(regularEvents, date)
 
   return (
     <div className="flex flex-col h-full">
@@ -882,7 +745,7 @@ export default function DayView({
             if (!isToday) return null
 
             const currentTimeInTimezone = new Date(
-              currentTime.toLocaleString('en-US', { timeZone: timezone }),
+              currentTime.toLocaleString('en-US', { timeZone: _timezone }),
             )
             const currentHours = currentTimeInTimezone.getHours()
             const currentMinutes = currentTimeInTimezone.getMinutes()
