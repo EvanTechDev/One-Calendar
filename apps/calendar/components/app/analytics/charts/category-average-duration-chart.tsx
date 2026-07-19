@@ -1,5 +1,6 @@
 'use client'
 
+import type { ComponentProps, ComponentType } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import {
@@ -9,6 +10,12 @@ import {
   type ChartConfig,
 } from '@zntr/ui/chart'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+
+type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
+  radius?: number | [number, number, number, number]
+}
+
+const RoundedCell = Cell as ComponentType<RoundedCellProps>
 
 interface DurationDatum {
   category: string
@@ -59,9 +66,13 @@ export function CategoryAverageDurationChart({
                   />
                 }
               />
-              <Bar dataKey="hours" radius={[0, 8, 8, 0]}>
+              <Bar dataKey="hours">
                 {data.map((entry) => (
-                  <Cell key={entry.category} fill={entry.color} />
+                  <RoundedCell
+                    key={entry.category}
+                    fill={entry.color}
+                    radius={[0, 8, 8, 0]}
+                  />
                 ))}
               </Bar>
             </BarChart>
