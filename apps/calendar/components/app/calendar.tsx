@@ -50,10 +50,16 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {
+  CalendarViewType,
+  FirstDayOfWeek,
+  Language,
+  TimeFormat,
+  ViewConfig,
+  ViewType,
   isCalendarView,
-  type CalendarViewType,
-  type FirstDayOfWeek,
-  type ViewType,
+  type CalendarViewTypeValue,
+  type FirstDayOfWeekValue,
+  type TimeFormatValue,
 } from '@/components/app/calendar-types'
 import { toast } from 'sonner'
 import {
@@ -115,7 +121,7 @@ interface CalendarProps {
   className?: string
 }
 
-export default function Calendar({ className, ...props }: CalendarProps) {
+export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -134,15 +140,11 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] = useLocalStorage<FirstDayOfWeek>(
-    'first-day-of-week',
-    0,
-  )
-  const normalizedFirstDayOfWeek: FirstDayOfWeek =
-    firstDayOfWeek === 1 || firstDayOfWeek === 6 ? firstDayOfWeek : 0
+  const [firstDayOfWeek, setFirstDayOfWeek] =
+    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
-    setFirstDayOfWeek(day)
+    setFirstDayOfWeek(day.value)
   }
   const [timezone, setTimezone] = useLocalStorage<string>(
     'timezone',
@@ -186,7 +188,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     null,
   )
 
-  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewType>(
+  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewTypeValue>(
     'default-view',
     'week',
   )
@@ -194,13 +196,39 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     'enable-shortcuts',
     true,
   )
-  const [timeFormat, setTimeFormat] = useLocalStorage<'24h' | '12h'>(
+  const [timeFormat, setTimeFormat] = useLocalStorage<TimeFormatValue>(
     'time-format',
     '24h',
   )
   const [toastPosition, setToastPosition] = useLocalStorage<
     'bottom-left' | 'bottom-center' | 'bottom-right'
   >('toast-position', 'bottom-right')
+
+  const firstDayOfWeekObj = useMemo(
+    () => FirstDayOfWeek.create(firstDayOfWeek),
+    [firstDayOfWeek],
+  )
+  const timeFormatObj = useMemo(
+    () => TimeFormat.create(timeFormat),
+    [timeFormat],
+  )
+  const languageObj = useMemo(() => Language.create(language), [language])
+
+  const viewConfig = useMemo(
+    () =>
+      ViewConfig.create({
+        firstDayOfWeek: firstDayOfWeekObj,
+        timezone,
+        timeFormat: timeFormatObj,
+        language: languageObj,
+        date,
+        viewType: isCalendarView(view)
+          ? CalendarViewType.create(view as CalendarViewTypeValue)
+          : undefined,
+      }),
+    [firstDayOfWeekObj, timezone, timeFormatObj, languageObj, date, view],
+  )
+
   useEffect(() => {
     setView(isCalendarView(defaultView) ? defaultView : 'week')
   }, [defaultView])
@@ -208,13 +236,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   useEffect(() => {
     const applyRestoredPreferences = () => {
       void Promise.all([
-        readEncryptedLocalStorage<FirstDayOfWeek>('first-day-of-week', 0),
-        readEncryptedLocalStorage<CalendarViewType>('default-view', 'week'),
+        readEncryptedLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0),
+        readEncryptedLocalStorage<CalendarViewTypeValue>(
+          'default-view',
+          'week',
+        ),
       ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
         setFirstDayOfWeek(
-          restoredFirstDayOfWeek === 1 || restoredFirstDayOfWeek === 6
-            ? restoredFirstDayOfWeek
-            : 0,
+          [1, 6].includes(restoredFirstDayOfWeek) ? restoredFirstDayOfWeek : 0,
         )
         if (isCalendarView(restoredDefaultView)) {
           setDefaultView(restoredDefaultView)
@@ -308,7 +337,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           setQuickCreateStartTime(new Date())
           setEventDialogOpen(true)
           break
-        case '/':
+        case '/': {
           e.preventDefault()
 
           const searchInput = document.querySelector(
@@ -318,6 +347,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             searchInput.focus()
           }
           break
+        }
         case 't':
         case 'T':
           e.preventDefault()
@@ -488,17 +518,16 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<any[]>(
-      'shared-events',
-      [],
-    )
+    const storedShares = await readEncryptedLocalStorage<
+      { id: string; eventId: string }[]
+    >('shared-events', [])
     const relatedShares = storedShares.filter(
-      (share: any) => share?.eventId === eventId,
+      (share) => share.eventId === eventId,
     )
     if (!relatedShares.length) return
 
     const results = await Promise.allSettled(
-      relatedShares.map((share: any) =>
+      relatedShares.map((share) =>
         fetch('/api/share', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -509,7 +538,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
     await writeEncryptedLocalStorage(
       'shared-events',
-      storedShares.filter((share: any) => share?.eventId !== eventId),
+      storedShares.filter((share) => share.eventId !== eventId),
     )
 
     const failed = results.filter(
@@ -540,12 +569,14 @@ export default function Calendar({ className, ...props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    void readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
-      (bookmarks) =>
-        writeEncryptedLocalStorage(
-          'bookmarked-events',
-          bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-        ),
+    void readEncryptedLocalStorage<{ id: string }[]>(
+      'bookmarked-events',
+      [],
+    ).then((bookmarks) =>
+      writeEncryptedLocalStorage(
+        'bookmarked-events',
+        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
+      ),
     )
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -611,14 +642,20 @@ export default function Calendar({ className, ...props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<any[]>(
-      'bookmarked-events',
-      [],
-    )
+    const bookmarks = await readEncryptedLocalStorage<
+      {
+        id: string
+        title: string
+        startDate: Date
+        endDate: Date
+        color: string
+        location?: string
+      }[]
+    >('bookmarked-events', [])
 
-    const isBookmarked = bookmarks.some((b: any) => b.id === event.id)
+    const isBookmarked = bookmarks.some((b) => b.id === event.id)
     if (isBookmarked) {
-      const updated = bookmarks.filter((b: any) => b.id !== event.id)
+      const updated = bookmarks.filter((b) => b.id !== event.id)
       await writeEncryptedLocalStorage('bookmarked-events', updated)
     } else {
       const bookmarkData = {
@@ -937,7 +974,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               <UserProfileButton
                 variant="outline"
                 className="rounded-full h-8 w-8"
-                onNavigateToSettings={handleUserProfileSectionNavigate}
+                _onNavigateToSettings={handleUserProfileSectionNavigate}
                 onNavigateToView={setView}
               />
             </div>
@@ -949,9 +986,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                timezone={timezone}
-                timeFormat={timeFormat}
+                config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
@@ -976,10 +1011,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
-                timeFormat={timeFormat}
+                config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
@@ -1003,10 +1035,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
-                timeFormat={timeFormat}
+                config={viewConfig}
+                daysToShow={4}
+                fixedStartDate={date}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onShareEvent={(event) => {
@@ -1022,8 +1053,6 @@ export default function Calendar({ className, ...props }: CalendarProps) {
 
                   updateEvent(updatedEvent)
                 }}
-                daysToShow={4}
-                fixedStartDate={date}
               />
             )}
             {view === 'month' && (
@@ -1031,9 +1060,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
-                timezone={timezone}
+                config={viewConfig}
               />
             )}
             {view === 'year' && (
@@ -1041,8 +1068,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
                 date={date}
                 events={filteredEvents}
                 onEventClick={handleEventClick}
-                language={language}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
+                config={viewConfig}
                 isSidebarCollapsed={isSidebarCollapsed}
                 isSidebarExpanding={isSidebarExpanding}
               />
@@ -1050,9 +1076,9 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             {view === 'analytics' && (
               <AnalyticsView
                 events={events}
-                onCreateEvent={(startDate, endDate) => {
+                onCreateEvent={(_startDate, _endDate) => {
                   setSelectedEvent(null)
-                  setQuickCreateStartTime(startDate)
+                  setQuickCreateStartTime(_startDate)
                   setEventDialogOpen(true)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
@@ -1060,25 +1086,31 @@ export default function Calendar({ className, ...props }: CalendarProps) {
             )}
             {view === 'settings' && (
               <Settings
-                language={language}
-                setLanguage={setLanguage}
-                firstDayOfWeek={normalizedFirstDayOfWeek}
+                language={languageObj.code}
+                setLanguage={(lang: string) => setLanguage(lang as any)}
+                firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
                 setTimezone={setTimezone}
-                notificationSound={notificationSound}
-                setNotificationSound={setNotificationSound}
-                defaultView={defaultView}
-                setDefaultView={setDefaultView}
+                _notificationSound={notificationSound}
+                _setNotificationSound={setNotificationSound}
+                defaultView={CalendarViewType.create(
+                  defaultView as CalendarViewTypeValue,
+                )}
+                setDefaultView={(view: CalendarViewType) =>
+                  setDefaultView(view.value as CalendarViewTypeValue)
+                }
                 enableShortcuts={enableShortcuts}
                 setEnableShortcuts={setEnableShortcuts}
-                timeFormat={timeFormat}
-                setTimeFormat={setTimeFormat}
+                timeFormat={timeFormatObj}
+                setTimeFormat={(format: TimeFormat) =>
+                  setTimeFormat(format.value as TimeFormatValue)
+                }
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
-                toastPosition={toastPosition}
-                setToastPosition={setToastPosition}
+                _toastPosition={toastPosition}
+                _setToastPosition={setToastPosition}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}
@@ -1110,13 +1142,13 @@ export default function Calendar({ className, ...props }: CalendarProps) {
               setPreviewAnchorRect(null)
             }
           }}
-          onDuplicate={() => {
+          _onDuplicate={() => {
             if (previewEvent) {
               handleEventDuplicate(previewEvent)
             }
           }}
           language={language}
-          timezone={timezone}
+          _timezone={timezone}
           openShareImmediately={openShareImmediately}
           shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
@@ -1132,8 +1164,7 @@ export default function Calendar({ className, ...props }: CalendarProps) {
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
-          language={language}
-          timezone={timezone}
+          config={viewConfig}
         />
 
         <AlertDialog

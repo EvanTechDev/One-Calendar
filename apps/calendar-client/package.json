@@ -6,8 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:check": "tsc && vite build",
+    "build:tauri": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --fix",
+    "lint:check": "oxlint --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --quiet",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^19.1.0",

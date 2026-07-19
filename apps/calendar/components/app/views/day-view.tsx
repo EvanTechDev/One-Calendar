@@ -2,47 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
-import { format, isSameDay, isWithinInterval, add } from 'date-fns'
+import { format, isSameDay, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
-import { translations, type Language } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
+import type { ViewConfig } from '@/components/app/calendar-types'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
-
-const ContextMenu = ({ children }: { children: React.ReactNode }) => (
-  <>{children}</>
-)
-const ContextMenuTrigger = ({
-  children,
-}: {
-  children: React.ReactNode
-  asChild?: boolean
-}) => <>{children}</>
-const ContextMenuContent = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) => <>{children}</>
-const ContextMenuItem = (_props: {
-  children?: React.ReactNode
-  className?: string
-  onSelect?: (event: React.SyntheticEvent) => void
-}) => null
+import { EventRenderer } from '@/components/app/views/EventRenderer'
+import { useEventFilter } from '@/components/app/hooks/useEventFilter'
 
 interface DayViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
-  language: Language
-  timezone: string
-  timeFormat: '24h' | '12h'
+  config: ViewConfig
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -60,20 +38,26 @@ export default function DayView({
   events,
   onEventClick,
   onTimeSlotClick,
-  language,
-  timezone,
-  timeFormat,
+  config,
   onEditEvent,
   onDeleteEvent,
   onShareEvent,
   onBookmarkEvent,
   onEventDrop,
+  onBackToCalendar: _onBackToCalendar,
 }: DayViewProps) {
+  const {
+    allDayEventsForDate,
+    regularEventsForDate,
+    layoutEventsForDate,
+    layoutEngine,
+  } = useEventFilter({ events, config, date })
+
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasScrolledRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const t = translations[language]
+  const t = translations[config.language.code as keyof typeof translations]
 
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
   const [dragStartPosition, setDragStartPosition] = useState<{
@@ -105,84 +89,15 @@ export default function DayView({
   } | null>(null)
   const createStartMinuteRef = useRef<number | null>(null)
   const isCreatingRef = useRef(false)
-
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
 
-  const menuLabels = {
+  const _menuLabels = {
     edit: t.edit,
     share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
-  }
-
-  const formatTime = (hour: number) => {
-    if (timeFormat === '12h') {
-      const period = hour >= 12 ? 'PM' : 'AM'
-      const twelveHour = hour % 12 || 12
-      return `${twelveHour} ${period}`
-    }
-    return `${hour.toString().padStart(2, '0')}:00`
-  }
-
-  const formatHourMinute = (hour: number, minute: number) => {
-    if (timeFormat === '12h') {
-      const period = hour >= 12 ? 'PM' : 'AM'
-      const twelveHour = hour % 12 || 12
-      return `${twelveHour}:${minute.toString().padStart(2, '0')} ${period}`
-    }
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-  }
-
-  const formatDateWithTimezone = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-      timeZone: timezone,
-    }
-    return new Intl.DateTimeFormat(language, options).format(date)
-  }
-
-  const isAllDayEvent = (event: CalendarEvent) => {
-    if (event.isAllDay) return true
-
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    const isFullDay =
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      ((end.getHours() === 23 && end.getMinutes() === 59) ||
-        (end.getHours() === 0 &&
-          end.getMinutes() === 0 &&
-          end.getDate() !== start.getDate()))
-
-    return isFullDay
-  }
-
-  const isMultiDayEvent = (start: Date, end: Date) => {
-    return (
-      start.getDate() !== end.getDate() ||
-      start.getMonth() !== end.getMonth() ||
-      start.getFullYear() !== end.getFullYear()
-    )
-  }
-
-  const separateEvents = (dayEvents: CalendarEvent[]) => {
-    const allDayEvents: CalendarEvent[] = []
-    const regularEvents: CalendarEvent[] = []
-
-    dayEvents.forEach((event) => {
-      if (isAllDayEvent(event)) {
-        allDayEvents.push(event)
-      } else {
-        regularEvents.push(event)
-      }
-    })
-
-    return { allDayEvents, regularEvents }
   }
 
   useEffect(() => {
@@ -327,110 +242,6 @@ export default function DayView({
     }
   }, [createSelection, date, onTimeSlotClick])
 
-  const layoutEvents = (events: CalendarEvent[]) => {
-    if (!events || events.length === 0) return []
-
-    const sortedEvents = [...events].sort((a, b) => {
-      const startA = new Date(a.startDate).getTime()
-      const startB = new Date(b.startDate).getTime()
-      return startA - startB
-    })
-
-    type TimePoint = { time: number; isStart: boolean; eventIndex: number }
-    const timePoints: TimePoint[] = []
-
-    sortedEvents.forEach((event, index) => {
-      const start = new Date(event.startDate)
-      const end = new Date(event.endDate)
-
-      timePoints.push({
-        time: start.getTime(),
-        isStart: true,
-        eventIndex: index,
-      })
-      timePoints.push({
-        time: end.getTime(),
-        isStart: false,
-        eventIndex: index,
-      })
-    })
-
-    timePoints.sort((a, b) => {
-      if (a.time === b.time) {
-        return a.isStart ? 1 : -1
-      }
-      return a.time - b.time
-    })
-
-    const eventLayouts: Array<{
-      event: CalendarEvent
-      column: number
-      totalColumns: number
-    }> = []
-
-    const activeEvents = new Set<number>()
-
-    const eventToColumn = new Map<number, number>()
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const point = timePoints[i]
-
-      if (point.isStart) {
-        activeEvents.add(point.eventIndex)
-
-        let column = 0
-        const usedColumns = new Set<number>()
-
-        activeEvents.forEach((eventIndex) => {
-          if (eventToColumn.has(eventIndex)) {
-            usedColumns.add(eventToColumn.get(eventIndex)!)
-          }
-        })
-
-        while (usedColumns.has(column)) {
-          column++
-        }
-
-        eventToColumn.set(point.eventIndex, column)
-      } else {
-        activeEvents.delete(point.eventIndex)
-      }
-
-      if (
-        i === timePoints.length - 1 ||
-        timePoints[i + 1].time !== point.time
-      ) {
-        const totalColumns =
-          activeEvents.size > 0
-            ? Math.max(
-                ...Array.from(activeEvents).map(
-                  (idx) => eventToColumn.get(idx)!,
-                ),
-              ) + 1
-            : 0
-
-        activeEvents.forEach((eventIndex) => {
-          const column = eventToColumn.get(eventIndex)!
-          const event = sortedEvents[eventIndex]
-
-          const existingLayout = eventLayouts.find(
-            (layout) => layout.event.id === event.id,
-          )
-
-          if (!existingLayout) {
-            eventLayouts.push({
-              event,
-              column,
-              totalColumns: Math.max(totalColumns, 1),
-            })
-          }
-        })
-      }
-    }
-
-    return eventLayouts
-  }
-
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -478,106 +289,15 @@ export default function DayView({
     setCreateSelection({ startMinute, endMinute: startMinute })
   }
 
-  const renderAllDayEvents = (allDayEvents: CalendarEvent[]) => {
-    const eventSpacing = 3
+  const allDayEvents = allDayEventsForDate(date)
+  const _regularEvents = regularEventsForDate(date)
+  const eventLayouts = layoutEventsForDate(date)
 
-    return allDayEvents.map((event, index) => (
-      <ContextMenu key={`allday-${event.id}`}>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
-              event.color,
-            )}
-            style={{
-              height: '20px',
-              top: index * (20 + eventSpacing) + 'px',
-              position: 'absolute',
-              left: '0',
-              right: '0',
-              opacity: isDark ? 1 : 0.9,
-              backgroundColor: getEventBackgroundColor(event.color, isDark),
-              zIndex: 10 + index,
-            }}
-            onMouseDown={(e) => handleEventDragStart(event, e)}
-            onMouseUp={handleEventDragEnd}
-            onMouseLeave={handleEventDragEnd}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (ignoreNextEventClickRef.current) return
-              if (!isDraggingRef.current) {
-                onEventClick(event, e.currentTarget as HTMLElement)
-              }
-            }}
-          >
-            <div
-              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-              style={{ backgroundColor: getEventAccentColor(event.color) }}
-            />
-            <div
-              className="pl-1.5 truncate"
-              style={{ color: getEventAccentColor(event.color) }}
-            >
-              {event.title}
-            </div>
-          </div>
-        </ContextMenuTrigger>
-
-        <ContextMenuContent className="w-40">
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onEditEvent?.(event)
-            }}
-          >
-            <Edit3 className="mr-2 h-4 w-4" />
-            {menuLabels.edit}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onShareEvent?.(event)
-            }}
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            {menuLabels.share}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onBookmarkEvent?.(event)
-            }}
-          >
-            <Bookmark className="mr-2 h-4 w-4" />
-            {menuLabels.bookmark}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onDeleteEvent?.(event)
-            }}
-            className="text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {menuLabels.delete}
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-    ))
-  }
+  const eventSpacing = 3
+  const allDayEventsHeight =
+    allDayEvents.length > 0
+      ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
+      : 0
 
   const renderDragPreview = () => {
     if (!dragPreview || !draggingEvent) return null
@@ -619,45 +339,21 @@ export default function DayView({
           </div>
           {dragEventDuration >= 40 && (
             <div className="text-xs text-white/90 truncate">
-              {formatHourMinute(dragPreview.hour, dragPreview.minute)} -{' '}
-              {formatHourMinute(Math.floor(endMinutes / 60), endMinutes % 60)}
+              {layoutEngine.formatHourMinute(
+                dragPreview.hour,
+                dragPreview.minute,
+              )}{' '}
+              -{' '}
+              {layoutEngine.formatHourMinute(
+                Math.floor(endMinutes / 60),
+                endMinutes % 60,
+              )}
             </div>
           )}
         </div>
       </div>
     )
   }
-
-  const dayEvents = events.filter((event) => {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    if (!isAllDayEvent(event)) {
-      if (isSameDay(start, date)) return true
-
-      if (isMultiDayEvent(start, end)) {
-        return isWithinInterval(date, { start, end })
-      }
-
-      return false
-    }
-
-    if (isMultiDayEvent(start, end)) {
-      return isSameDay(start, date)
-    }
-
-    return isSameDay(start, date)
-  })
-
-  const { allDayEvents, regularEvents } = separateEvents(dayEvents)
-
-  const eventSpacing = 2
-  const allDayEventsHeight =
-    allDayEvents.length > 0
-      ? allDayEvents.length * 20 + (allDayEvents.length - 1) * eventSpacing
-      : 0
-
-  const eventLayouts = layoutEvents(regularEvents)
 
   return (
     <div className="flex flex-col h-full">
@@ -681,7 +377,33 @@ export default function DayView({
             className="relative"
             style={{ height: allDayEventsHeight + 'px' }}
           >
-            {renderAllDayEvents(allDayEvents)}
+            {allDayEvents.map((event, _index) => (
+              <EventRenderer
+                key={`allday-${event.id}`}
+                event={event}
+                layout={{
+                  start: new Date(event.startDate),
+                  end: new Date(event.endDate),
+                  column: 0,
+                  totalColumns: 1,
+                  isMultiDay: false,
+                }}
+                config={config}
+                isDark={isDark}
+                onEventClick={onEventClick}
+                onEditEvent={onEditEvent}
+                onDeleteEvent={onDeleteEvent}
+                onShareEvent={onShareEvent}
+                onBookmarkEvent={onBookmarkEvent}
+                onEventDragStart={handleEventDragStart}
+                onEventDragEnd={handleEventDragEnd}
+                isDragging={isDraggingRef.current}
+                ignoreNextEventClickRef={ignoreNextEventClickRef}
+                isDraggingRef={isDraggingRef}
+                queueIgnoreEventClick={queueIgnoreEventClick}
+                showTime={false}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -699,7 +421,7 @@ export default function DayView({
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >
-                {formatTime(hour)}
+                {layoutEngine.formatTimeForDisplay(hour, 0)}
               </span>
             </div>
           ))}
@@ -713,145 +435,26 @@ export default function DayView({
             <div key={hour} className="h-[60px] border-t" />
           ))}
 
-          {eventLayouts.map(({ event, column, totalColumns }) => {
-            const start = new Date(event.startDate)
-            const end = new Date(event.endDate)
-
-            const startMinutes = start.getHours() * 60 + start.getMinutes()
-            const endMinutes = end.getHours() * 60 + end.getMinutes()
-            const duration = endMinutes - startMinutes
-
-            const maxEndMinutes = 24 * 60
-            const displayDuration = Math.min(
-              duration,
-              maxEndMinutes - startMinutes,
-            )
-
-            const minHeight = 20
-            const height = Math.max(displayDuration, minHeight)
-
-            const width = `calc((100% - 8px) / ${totalColumns})`
-            const left = `calc(${column} * ${width})`
-
-            return (
-              <ContextMenu key={event.id}>
-                <ContextMenuTrigger asChild>
-                  <div
-                    className={cn(
-                      'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
-                      event.color,
-                    )}
-                    style={{
-                      top: `${startMinutes}px`,
-                      height: `${height}px`,
-                      opacity: isDark ? 1 : 0.9,
-                      backgroundColor: getEventBackgroundColor(
-                        event.color,
-                        isDark,
-                      ),
-                      width,
-                      left,
-                      zIndex: column + 1,
-                    }}
-                    onMouseDown={(e) => handleEventDragStart(event, e)}
-                    onMouseUp={handleEventDragEnd}
-                    onMouseLeave={handleEventDragEnd}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (ignoreNextEventClickRef.current) return
-                      if (!isDraggingRef.current) {
-                        onEventClick(event, e.currentTarget as HTMLElement)
-                      }
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        'absolute left-0 top-0 w-1 h-full rounded-l-md',
-                      )}
-                      style={{
-                        backgroundColor: getEventAccentColor(event.color),
-                      }}
-                    />
-                    <div className="pl-1">
-                      <div
-                        className="font-medium leading-tight break-words"
-                        style={{
-                          color: getEventAccentColor(event.color),
-                          display: '-webkit-box',
-                          WebkitBoxOrient: 'vertical',
-                          WebkitLineClamp: Math.max(
-                            1,
-                            Math.floor((height - 8) / 16),
-                          ),
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {event.title}
-                      </div>
-                      {height >= 40 && (
-                        <div
-                          className="text-xs truncate"
-                          style={{ color: getEventAccentColor(event.color) }}
-                        >
-                          {formatDateWithTimezone(start)} -{' '}
-                          {formatDateWithTimezone(end)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </ContextMenuTrigger>
-
-                <ContextMenuContent className="w-40">
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onEditEvent?.(event)
-                    }}
-                  >
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    {menuLabels.edit}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onShareEvent?.(event)
-                    }}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    {menuLabels.share}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onBookmarkEvent?.(event)
-                    }}
-                  >
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    {menuLabels.bookmark}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      queueIgnoreEventClick()
-                      onDeleteEvent?.(event)
-                    }}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {menuLabels.delete}
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            )
-          })}
+          {eventLayouts.map(({ event, start, end, column, totalColumns }) => (
+            <EventRenderer
+              key={event.id}
+              event={event}
+              layout={{ start, end, column, totalColumns, isMultiDay: false }}
+              config={config}
+              isDark={isDark}
+              onEventClick={onEventClick}
+              onEditEvent={onEditEvent}
+              onDeleteEvent={onDeleteEvent}
+              onShareEvent={onShareEvent}
+              onBookmarkEvent={onBookmarkEvent}
+              onEventDragStart={handleEventDragStart}
+              onEventDragEnd={handleEventDragEnd}
+              isDragging={isDraggingRef.current}
+              ignoreNextEventClickRef={ignoreNextEventClickRef}
+              isDraggingRef={isDraggingRef}
+              queueIgnoreEventClick={queueIgnoreEventClick}
+            />
+          ))}
 
           {createSelection && (
             <div
@@ -866,7 +469,7 @@ export default function DayView({
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
-                  formatHourMinute,
+                  (hour, min) => layoutEngine.formatHourMinute(hour, min),
                 )}
               </div>
             </div>
@@ -882,7 +485,9 @@ export default function DayView({
             if (!isToday) return null
 
             const currentTimeInTimezone = new Date(
-              currentTime.toLocaleString('en-US', { timeZone: timezone }),
+              currentTime.toLocaleString('en-US', {
+                timeZone: config.timezone,
+              }),
             )
             const currentHours = currentTimeInTimezone.getHours()
             const currentMinutes = currentTimeInTimezone.getMinutes()

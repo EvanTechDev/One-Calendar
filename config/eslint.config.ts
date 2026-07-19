@@ -45,13 +45,14 @@ const config: ConfigArray = tseslint.config(
     },
   },
   {
-    files: ['public/sw.js'],
+    files: ['**/public/sw.js'],
     languageOptions: {
       globals: {
         self: 'readonly',
         caches: 'readonly',
         fetch: 'readonly',
         URL: 'readonly',
+        clients: 'readonly',
       },
     },
   },

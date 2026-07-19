@@ -229,7 +229,7 @@ type UserProfileButtonProps = {
   variant?: React.ComponentProps<typeof Button>['variant']
   className?: string
   mode?: 'dropdown' | 'settings'
-  onNavigateToSettings?: (section: UserProfileSection) => void
+  _onNavigateToSettings?: (section: UserProfileSection) => void
   onNavigateToView?: (view: 'analytics' | 'settings') => void
   focusSection?: UserProfileSection | null
 }
@@ -238,13 +238,18 @@ export default function UserProfileButton({
   variant = 'ghost',
   className = '',
   mode = 'dropdown',
-  onNavigateToSettings,
+  _onNavigateToSettings,
   onNavigateToView,
   focusSection = null,
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const { events, calendars, setEvents, setCalendars } = useCalendar()
+  const {
+    events: _events,
+    calendars: _calendars,
+    setEvents,
+    setCalendars,
+  } = useCalendar()
   const { data: session } = authClient.useSession()
   const user: any = session?.user
   const isSignedIn = Boolean(session?.user)
@@ -555,7 +560,7 @@ export default function UserProfileButton({
     toast('Password updated successfully.')
   }
 
-  const hydrateEvent = (raw: any): CalendarEvent => {
+  const _hydrateEvent = (raw: any): CalendarEvent => {
     const startDate = raw?.startDate ? new Date(raw.startDate) : new Date()
     const endDate = raw?.endDate
       ? new Date(raw.endDate)

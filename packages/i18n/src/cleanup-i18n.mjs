@@ -85,7 +85,7 @@ async function run() {
       allCodeFiles = allCodeFiles.concat(
         files.filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f)),
       )
-    } catch (e) {
+    } catch {
       // Directory might not exist
     }
   }
@@ -185,7 +185,7 @@ async function run() {
         console.log(
           '\n⚠️  Detected i18n.lock file. You may need to run your translation tool (e.g., lingo) to resync.',
         )
-      } catch (e) {
+      } catch {
         // No lock file, ignore
       }
 

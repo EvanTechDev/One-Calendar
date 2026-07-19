@@ -4,17 +4,20 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "dev": "nx dev calendar",
-    "build": "nx build calendar",
-    "start": "nx start calendar",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "build:calendar": "pnpm --filter one-calendar build",
+    "build:check": "turbo build:check",
     "prepare": "husky",
-    "lint": "nx run-many -t lint --fix",
-    "lint:check": "nx run-many -t lint:check",
-    "type-check": "nx run-many -t type-check",
-    "generate:i18n": "nx run i18n:generate",
-    "cleanup:i18n": "nx run i18n:cleanup",
-    "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "lint": "turbo lint",
+    "lint:check": "turbo lint:check",
+    "type-check": "turbo type-check",
+    "test": "turbo test",
+    "test:watch": "turbo test:watch",
+    "generate:i18n": "pnpm --filter @zntr/i18n generate",
+    "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
+    "format": "prettier . --write --ignore-path config/.prettierignore",
+    "format:check": "prettier . --check --ignore-path config/.prettierignore"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
@@ -22,11 +25,11 @@
     "@commitlint/types": "20.5.0",
     "@eslint/js": "10.0.1",
     "@next/eslint-plugin-next": "16.2.9",
-    "@nx/next": "^23.0.1",
     "@tailwindcss/postcss": "4.3.1",
     "@types/node": "25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/rrule": "^2.2.9",
     "drizzle-kit": "latest",
     "eslint": "10.5.0",
     "eslint-plugin-oxlint": "1.71.0",
@@ -34,12 +37,89 @@
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
     "next": "16.2.9",
-    "nx": "latest",
     "oxlint": "1.71.0",
     "postcss": "8.5.15",
     "prettier": "3.8.4",
     "tailwindcss": "4.3.1",
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 80,
+    "tabWidth": 2,
+    "arrowParens": "always"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "oxlint --fix --config config/oxlint.json",
+      "eslint --fix --config config/eslint.config.ts"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "test",
+          "chore",
+          "revert"
+        ]
+      ],
+      "subject-max-length": [
+        2,
+        "always",
+        100
+      ]
+    }
+  },
+  "knip": {
+    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "ignoreFiles": [
+      "apps/calendar/components/app/analytics/events-calendar.tsx",
+      "apps/calendar/hooks/use-toast.ts",
+      "apps/calendar/hooks/useMobile.ts",
+      "apps/calendar/lib/time-analytics.ts",
+      "apps/calendar/public/sw.js"
+    ],
+    "ignoreIssues": {
+      "apps/calendar/components/app/analytics/analytics-utils.ts": [
+        "exports"
+      ],
+      "apps/calendar/components/providers/calendar-context.tsx": [
+        "exports",
+        "duplicates"
+      ],
+      "packages/ui/src/**": [
+        "exports"
+      ],
+      "packages/utils/src/useLocalStorage.ts": [
+        "exports"
+      ],
+      "apps/calendar/lib/evlog.ts": [
+        "exports"
+      ],
+      "apps/calendar/lib/notifications.ts": [
+        "exports"
+      ]
+    }
+  },
+  "dependencies": {
+    "rrule": "^2.8.1"
   }
 }

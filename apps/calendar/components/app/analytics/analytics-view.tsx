@@ -21,17 +21,17 @@ export default function AnalyticsView({
   const { calendars } = useCalendar()
   const [language] = useLanguage()
   const t = translations[language]
-  const [forceUpdate, setForceUpdate] = useState(0)
+  const [_forceUpdate, _setForceUpdate] = useState(0)
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'preferred-language') {
-        setForceUpdate((prev) => prev + 1)
+        _setForceUpdate((prev) => prev + 1)
       }
     }
 
     const handleLanguageChange = () => {
-      setForceUpdate((prev) => prev + 1)
+      _setForceUpdate((prev) => prev + 1)
     }
 
     window.addEventListener('storage', handleStorageChange)
@@ -59,7 +59,7 @@ export default function AnalyticsView({
       <TimeAnalyticsComponent
         events={events}
         calendars={calendars}
-        key={`time-analytics-${language}-${forceUpdate}`}
+        key={`time-analytics-${language}-${_forceUpdate}`}
       />
     </div>
   )

@@ -16,7 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
-import { isZhLanguage, translations, type Language } from '@zntr/i18n/calendar'
+import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Textarea } from '@zntr/ui/textarea'
@@ -27,58 +27,12 @@ import { Label } from '@zntr/ui/label'
 import { useState, useEffect } from 'react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
-
-const colorOptions = [
-  {
-    value: 'bg-[#E6F6FD]',
-    labelKey: 'colorBlue' as const,
-    calendarColor: 'bg-blue-500',
-  },
-  {
-    value: 'bg-[#E7F8F2]',
-    labelKey: 'colorGreen' as const,
-    calendarColor: 'bg-green-500',
-  },
-  {
-    value: 'bg-[#FEF5E6]',
-    labelKey: 'colorAmber' as const,
-    calendarColor: 'bg-yellow-500',
-  },
-  {
-    value: 'bg-[#FFE4E6]',
-    labelKey: 'colorRed' as const,
-    calendarColor: 'bg-red-500',
-  },
-  {
-    value: 'bg-[#F3EEFE]',
-    labelKey: 'colorPurple' as const,
-    calendarColor: 'bg-purple-500',
-  },
-  {
-    value: 'bg-[#FCE7F3]',
-    labelKey: 'colorPink' as const,
-    calendarColor: 'bg-pink-500',
-  },
-  {
-    value: 'bg-[#E6FAF7]',
-    labelKey: 'colorTeal' as const,
-    calendarColor: 'bg-teal-500',
-  },
-]
-
-const calendarColorToEventColor = Object.fromEntries(
-  colorOptions.map((option) => [option.calendarColor, option.value]),
-)
-
-const colorMapping: Record<string, string> = {
-  'bg-[#E6F6FD]': '#3B82F6',
-  'bg-[#E7F8F2]': '#10B981',
-  'bg-[#FEF5E6]': '#F59E0B',
-  'bg-[#FFE4E6]': '#EF4444',
-  'bg-[#F3EEFE]': '#8B5CF6',
-  'bg-[#FCE7F3]': '#EC4899',
-  'bg-[#E6FAF7]': '#14B8A6',
-}
+import {
+  EVENT_COLOR_OPTIONS,
+  CALENDAR_COLOR_TO_EVENT_COLOR,
+  EVENT_BG_TO_ACCENT,
+} from '@/components/app/views/event-colors'
+import type { ViewConfig } from '@/components/app/calendar-types'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -99,8 +53,7 @@ interface EventDialogProps {
   initialDate: Date
   initialEndDate?: Date | null
   event: CalendarEvent | null
-  language: Language
-  timezone: string
+  config: ViewConfig
 }
 
 interface TimeInput {
@@ -119,9 +72,9 @@ export default function EventDialog({
   initialDate,
   initialEndDate,
   event,
-  language,
-  timezone,
+  config,
 }: EventDialogProps) {
+  if (!config) return null
   const { calendars } = useCalendar()
   const [participants, setParticipants] = useState('')
   const [customNotificationTime, setCustomNotificationTime] = useState('10')
@@ -130,7 +83,7 @@ export default function EventDialog({
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [title, setTitle] = useState('')
-  const [color, setColor] = useState(colorOptions[0].value)
+  const [color, setColor] = useState(EVENT_COLOR_OPTIONS[0].value)
 
   const [isAllDay, setIsAllDay] = useState(false)
   const [endTimeError, setEndTimeError] = useState(false)
@@ -157,13 +110,16 @@ export default function EventDialog({
 
   const calendarSelectValue =
     selectedCalendar || (calendars.length > 0 ? '__uncategorized__' : '')
-  const isZh = isZhLanguage(language)
-  const t = translations[language]
+  const isZh = isZhLanguage(config.language.code as any)
+  const t = translations[config.language.code as keyof typeof translations]
 
   const getEventColorByCalendarId = (calendarId: string) => {
     const calendar = calendars.find((item) => item.id === calendarId)
-    if (!calendar) return colorOptions[0].value
-    return calendarColorToEventColor[calendar.color] ?? colorOptions[0].value
+    if (!calendar) return EVENT_COLOR_OPTIONS[0].value
+    return (
+      CALENDAR_COLOR_TO_EVENT_COLOR[calendar.color] ??
+      EVENT_COLOR_OPTIONS[0].value
+    )
   }
 
   const combineDateTime = (date: Date, timeInput: TimeInput): Date => {
@@ -351,7 +307,7 @@ export default function EventDialog({
     setNotification('0')
     setCustomNotificationTime('10')
     setDescription('')
-    setColor(colorOptions[0].value)
+    setColor(EVENT_COLOR_OPTIONS[0].value)
     setSelectedCalendar('')
     setStartTimeError(false)
     setEndTimeError(false)
@@ -782,12 +738,14 @@ export default function EventDialog({
                 <SelectValue placeholder={t.selectColor} />
               </SelectTrigger>
               <SelectContent>
-                {colorOptions.map((option) => (
+                {EVENT_COLOR_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center">
                       <div
                         className={cn('w-4 h-4 rounded-full mr-2')}
-                        style={{ backgroundColor: colorMapping[option.value] }}
+                        style={{
+                          backgroundColor: EVENT_BG_TO_ACCENT[option.value],
+                        }}
                       />
                       {t[option.labelKey]}
                     </div>

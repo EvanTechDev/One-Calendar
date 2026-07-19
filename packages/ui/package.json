@@ -8,9 +8,13 @@
     "./*": "./src/*.tsx"
   },
   "scripts": {
-    "lint": "oxlint --fix src && eslint src --fix",
-    "lint:check": "oxlint src && eslint src --quiet",
-    "type-check": "tsc --noEmit"
+    "build": "tsc",
+    "build:check": "tsc && tsc --noEmit",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --fix",
+    "lint:check": "oxlint --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --quiet",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@zntr/utils": "workspace:*",
@@ -25,5 +29,8 @@
     "cobe": "0.6.4",
     "motion": "^12.41.0",
     "next-themes": "latest"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

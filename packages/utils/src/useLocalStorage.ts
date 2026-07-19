@@ -133,7 +133,7 @@ export async function decryptSnapshots(password: string) {
   if (entries.length === 0) return
 
   await Promise.all(
-    entries.map(async ([key, snapshot]) => {
+    entries.map(async ([_key, snapshot]) => {
       if (!snapshot.value) return
       try {
         const parsed = tryParse(snapshot.value)
@@ -157,7 +157,7 @@ export async function encryptSnapshots(password: string) {
   if (entries.length === 0) return
 
   await Promise.all(
-    entries.map(async ([key, snapshot]) => {
+    entries.map(async ([_key, snapshot]) => {
       if (!snapshot.value) return
       try {
         const parsed = tryParse(snapshot.value)
@@ -229,7 +229,7 @@ export async function readEncryptedLocalStorage<T>(
     }
     return coerceStoredValue(item, initialValue)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return initialValue
   }
 }
@@ -257,7 +257,7 @@ export async function writeEncryptedLocalStorage<T>(key: string, value: T) {
     encryptedSnapshots.set(key, { value: raw, failed: false })
     emitStorageWrite(key)
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -298,7 +298,7 @@ async function readLocalStorage<T>(key: string, initialValue: T): Promise<T> {
     }
     return coerceStoredValue(item, initialValue)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return initialValue
   }
 }

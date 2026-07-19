@@ -9,14 +9,21 @@
     "./calendar": "./src/calendar/index.ts"
   },
   "scripts": {
+    "build": "tsc",
+    "build:check": "tsc && tsc --noEmit",
     "generate": "node src/gen-locales.mjs",
     "cleanup": "node src/cleanup-i18n.mjs",
-    "lint": "oxlint --fix src && eslint src --fix",
-    "lint:check": "oxlint src && eslint src --quiet",
-    "type-check": "tsc --noEmit"
+    "lint": "oxlint --fix --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --fix",
+    "lint:check": "oxlint --config ../../config/oxlint.json src && eslint --config ../../config/eslint.config.ts src --quiet",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@zntr/utils": "workspace:*",
     "react": "19.2.7"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

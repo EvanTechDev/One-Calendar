@@ -1,64 +1,34 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
 import {
   format,
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
   isSameDay,
-  isWithinInterval,
   add,
   addDays,
   startOfDay,
 } from 'date-fns'
 import { cn } from '@zntr/utils'
-import { translations, type Language } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import type { FirstDayOfWeek } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/components/app/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
-
-const ContextMenu = ({ children }: { children: React.ReactNode }) => (
-  <>{children}</>
-)
-const ContextMenuTrigger = ({
-  children,
-}: {
-  children: React.ReactNode
-  asChild?: boolean
-}) => <>{children}</>
-const ContextMenuContent = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) => <>{children}</>
-const ContextMenuItem = (_props: {
-  children?: React.ReactNode
-  className?: string
-  onSelect?: (event: React.SyntheticEvent) => void
-}) => null
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 
 interface WeekViewProps {
   date: Date
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
-  language: Language
-  firstDayOfWeek: FirstDayOfWeek
-  timezone: string
-  timeFormat: '24h' | '12h'
-  onEditEvent?: (event: CalendarEvent) => void
-  onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
-  onBookmarkEvent?: (event: CalendarEvent) => void
+  config: ViewConfig
   onEventDrop?: (
     event: CalendarEvent,
     newStartDate: Date,
@@ -66,6 +36,10 @@ interface WeekViewProps {
   ) => void
   daysToShow?: number
   fixedStartDate?: Date
+  onEditEvent?: (event: CalendarEvent) => void
+  onDeleteEvent?: (event: CalendarEvent) => void
+  onShareEvent?: (event: CalendarEvent) => void
+  onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
 export default function WeekView({
@@ -73,20 +47,24 @@ export default function WeekView({
   events,
   onEventClick,
   onTimeSlotClick,
-  language,
-  firstDayOfWeek,
-  timezone,
-  timeFormat,
-  onEditEvent,
-  onDeleteEvent,
-  onShareEvent,
-  onBookmarkEvent,
+  config,
   onEventDrop,
   daysToShow,
   fixedStartDate,
+  onEditEvent: _onEditEvent,
+  onDeleteEvent: _onDeleteEvent,
+  onShareEvent: _onShareEvent,
+  onBookmarkEvent: _onBookmarkEvent,
 }: WeekViewProps) {
-  const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
-  const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
+  const layoutEngine = useMemo(
+    () => EventLayoutEngineClass.create(config),
+    [config],
+  )
+
+  const weekStart = startOfWeek(date, {
+    weekStartsOn: config.firstDayOfWeek.value,
+  })
+  const weekEnd = endOfWeek(date, { weekStartsOn: config.firstDayOfWeek.value })
   const weekDays = daysToShow
     ? Array.from({ length: daysToShow }, (_, index) =>
         addDays(startOfDay(fixedStartDate ?? date), index),
@@ -95,7 +73,7 @@ export default function WeekView({
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const gridTemplateColumns = `100px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
-  const t = translations[language]
+  const t = translations[config.language.code as keyof typeof translations]
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasScrolledRef = useRef(false)
@@ -138,13 +116,6 @@ export default function WeekView({
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
-
-  const menuLabels = {
-    edit: t.edit,
-    share: t.share,
-    bookmark: t.bookmark,
-    delete: t.delete,
-  }
 
   useEffect(() => {
     if (!hasScrolledRef.current && scrollContainerRef.current) {
@@ -305,7 +276,7 @@ export default function WeekView({
   }, [createSelection, onTimeSlotClick, weekDays])
 
   const formatTime = (hour: number) => {
-    if (timeFormat === '12h') {
+    if (config.timeFormat.is12Hour()) {
       const period = hour >= 12 ? 'PM' : 'AM'
       const twelveHour = hour % 12 || 12
       return `${twelveHour} ${period}`
@@ -314,7 +285,7 @@ export default function WeekView({
   }
 
   const formatHourMinute = (hour: number, minute: number) => {
-    if (timeFormat === '12h') {
+    if (config.timeFormat.is12Hour()) {
       const period = hour >= 12 ? 'PM' : 'AM'
       const twelveHour = hour % 12 || 12
       return `${twelveHour}:${minute.toString().padStart(2, '0')} ${period}`
@@ -323,213 +294,7 @@ export default function WeekView({
   }
 
   const formatDateWithTimezone = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-      timeZone: timezone,
-    }
-    return new Intl.DateTimeFormat(language, options).format(date)
-  }
-
-  const isAllDayEvent = (event: CalendarEvent) => {
-    if (event.isAllDay) return true
-
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    const isFullDay =
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      ((end.getHours() === 23 && end.getMinutes() === 59) ||
-        (end.getHours() === 0 &&
-          end.getMinutes() === 0 &&
-          end.getDate() !== start.getDate()))
-
-    return isFullDay
-  }
-
-  const isMultiDayEvent = (start: Date, end: Date) => {
-    if (!start || !end) return false
-
-    return (
-      start.getDate() !== end.getDate() ||
-      start.getMonth() !== end.getMonth() ||
-      start.getFullYear() !== end.getFullYear()
-    )
-  }
-
-  const shouldShowEventOnDay = (event: CalendarEvent, day: Date) => {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    if (isAllDayEvent(event) && isMultiDayEvent(start, end)) {
-      return isSameDay(start, day)
-    }
-
-    if (isSameDay(start, day)) return true
-
-    if (isMultiDayEvent(start, end) && !isAllDayEvent(event)) {
-      return isWithinInterval(day, { start, end })
-    }
-
-    return false
-  }
-
-  const getEventTimesForDay = (event: CalendarEvent, day: Date) => {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    if (!start || !end) return null
-
-    const isMultiDay = isMultiDayEvent(start, end)
-
-    let dayStart = start
-    let dayEnd = end
-
-    if (isMultiDay) {
-      if (!isSameDay(start, day)) {
-        dayStart = new Date(day)
-        dayStart.setHours(0, 0, 0, 0)
-      }
-
-      if (!isSameDay(end, day)) {
-        dayEnd = new Date(day)
-        dayEnd.setHours(23, 59, 59, 999)
-      }
-    }
-
-    return {
-      start: dayStart,
-      end: dayEnd,
-      isMultiDay,
-    }
-  }
-
-  const separateEvents = (dayEvents: CalendarEvent[], day: Date) => {
-    const allDayEvents: CalendarEvent[] = []
-    const regularEvents: CalendarEvent[] = []
-
-    dayEvents.forEach((event) => {
-      if (isAllDayEvent(event)) {
-        allDayEvents.push(event)
-      } else {
-        regularEvents.push(event)
-      }
-    })
-
-    return { allDayEvents, regularEvents }
-  }
-
-  const layoutEventsForDay = (dayEvents: CalendarEvent[], day: Date) => {
-    if (!dayEvents || dayEvents.length === 0) return []
-
-    const eventsWithTimes = dayEvents
-      .map((event) => {
-        const times = getEventTimesForDay(event, day)
-        if (!times) return null
-        return { event, ...times }
-      })
-      .filter(Boolean) as Array<{
-      event: CalendarEvent
-      start: Date
-      end: Date
-      isMultiDay: boolean
-    }>
-
-    eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
-
-    type TimePoint = { time: number; isStart: boolean; eventIndex: number }
-    const timePoints: TimePoint[] = []
-
-    eventsWithTimes.forEach((eventWithTime, index) => {
-      const startTime = eventWithTime.start.getTime()
-      const endTime = eventWithTime.end.getTime()
-
-      timePoints.push({ time: startTime, isStart: true, eventIndex: index })
-      timePoints.push({ time: endTime, isStart: false, eventIndex: index })
-    })
-
-    timePoints.sort((a, b) => {
-      if (a.time === b.time) {
-        return a.isStart ? 1 : -1
-      }
-      return a.time - b.time
-    })
-
-    const eventLayouts: Array<{
-      event: CalendarEvent
-      start: Date
-      end: Date
-      column: number
-      totalColumns: number
-      isMultiDay: boolean
-    }> = []
-
-    const activeEvents = new Set<number>()
-
-    const eventToColumn = new Map<number, number>()
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const point = timePoints[i]
-
-      if (point.isStart) {
-        activeEvents.add(point.eventIndex)
-
-        let column = 0
-        const usedColumns = new Set<number>()
-
-        activeEvents.forEach((eventIndex) => {
-          if (eventToColumn.has(eventIndex)) {
-            usedColumns.add(eventToColumn.get(eventIndex)!)
-          }
-        })
-
-        while (usedColumns.has(column)) {
-          column++
-        }
-
-        eventToColumn.set(point.eventIndex, column)
-      } else {
-        activeEvents.delete(point.eventIndex)
-      }
-
-      if (
-        i === timePoints.length - 1 ||
-        timePoints[i + 1].time !== point.time
-      ) {
-        const totalColumns =
-          activeEvents.size > 0
-            ? Math.max(
-                ...Array.from(activeEvents).map(
-                  (idx) => eventToColumn.get(idx)!,
-                ),
-              ) + 1
-            : 0
-
-        activeEvents.forEach((eventIndex) => {
-          const column = eventToColumn.get(eventIndex)!
-          const { event, start, end, isMultiDay } = eventsWithTimes[eventIndex]
-
-          const existingLayout = eventLayouts.find(
-            (layout) => layout.event.id === event.id,
-          )
-
-          if (!existingLayout) {
-            eventLayouts.push({
-              event,
-              start,
-              end,
-              column,
-              totalColumns: Math.max(totalColumns, 1),
-              isMultiDay,
-            })
-          }
-        })
-      }
-    }
-
-    return eventLayouts
+    return layoutEngine.formatDateWithTimezone(date)
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
@@ -586,103 +351,49 @@ export default function WeekView({
     const eventSpacing = 2
 
     return allDayEvents.map((event, index) => (
-      <ContextMenu
+      <div
         key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
+        className={cn(
+          'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
+          event.color,
+        )}
+        style={{
+          height: '20px',
+          top: index * (20 + eventSpacing) + 'px',
+          position: 'absolute',
+          left: '0',
+          right: '0',
+          opacity: isDark ? 1 : 0.9,
+          backgroundColor: getEventBackgroundColor(event.color, isDark),
+          zIndex: 10 + index,
+        }}
+        onMouseDown={(e) => handleEventDragStart(event, e)}
+        onMouseUp={handleEventDragEnd}
+        onMouseLeave={handleEventDragEnd}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          queueIgnoreEventClick()
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (ignoreNextEventClickRef.current) return
+          if (!isDraggingRef.current) {
+            onEventClick(event, e.currentTarget as HTMLElement)
+          }
+        }}
       >
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
-              event.color,
-            )}
-            style={{
-              height: '20px',
-
-              top: index * (20 + eventSpacing) + 'px',
-              position: 'absolute',
-              left: '0',
-              right: '0',
-              opacity: isDark ? 1 : 0.9,
-              backgroundColor: getEventBackgroundColor(event.color, isDark),
-              zIndex: 10 + index,
-            }}
-            onMouseDown={(e) => handleEventDragStart(event, e)}
-            onMouseUp={handleEventDragEnd}
-            onMouseLeave={handleEventDragEnd}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (ignoreNextEventClickRef.current) return
-              if (!isDraggingRef.current) {
-                onEventClick(event, e.currentTarget as HTMLElement)
-              }
-            }}
-          >
-            <div
-              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-              style={{ backgroundColor: getEventAccentColor(event.color) }}
-            />
-            <div
-              className="pl-1.5 truncate"
-              style={{ color: getEventAccentColor(event.color) }}
-            >
-              {event.title}
-            </div>
-          </div>
-        </ContextMenuTrigger>
-
-        <ContextMenuContent className="w-40">
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onEditEvent?.(event)
-            }}
-          >
-            <Edit3 className="mr-2 h-4 w-4" />
-            {menuLabels.edit}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onShareEvent?.(event)
-            }}
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            {menuLabels.share}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onBookmarkEvent?.(event)
-            }}
-          >
-            <Bookmark className="mr-2 h-4 w-4" />
-            {menuLabels.bookmark}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              queueIgnoreEventClick()
-              onDeleteEvent?.(event)
-            }}
-            className="text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {menuLabels.delete}
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
+        <div
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          style={{ backgroundColor: getEventAccentColor(event.color) }}
+        />
+        <div
+          className="pl-1.5 truncate"
+          style={{ color: getEventAccentColor(event.color) }}
+        >
+          {event.title}
+        </div>
+      </div>
     ))
   }
 
@@ -749,10 +460,10 @@ export default function WeekView({
         <div className="sticky top-0 z-30 bg-background" />
         {weekDays.map((day) => {
           const dayEvents = events.filter((event) =>
-            shouldShowEventOnDay(event, day),
+            layoutEngine.shouldShowEventOnDay(event, day),
           )
 
-          const { allDayEvents } = separateEvents(dayEvents, day)
+          const { allDayEvents } = layoutEngine.separateEvents(dayEvents, day)
 
           const eventSpacing = 2
           const allDayEventsHeight =
@@ -812,12 +523,15 @@ export default function WeekView({
 
         {weekDays.map((day, dayIndex) => {
           const dayEvents = events.filter((event) =>
-            shouldShowEventOnDay(event, day),
+            layoutEngine.shouldShowEventOnDay(event, day),
           )
 
-          const { regularEvents } = separateEvents(dayEvents, day)
+          const { regularEvents } = layoutEngine.separateEvents(dayEvents, day)
 
-          const eventLayouts = layoutEventsForDay(regularEvents, day)
+          const eventLayouts = layoutEngine.layoutEventsForDay(
+            regularEvents,
+            day,
+          )
 
           return (
             <div
@@ -843,128 +557,72 @@ export default function WeekView({
                   const left = `calc(${column} * ${width})`
 
                   return (
-                    <ContextMenu
+                    <div
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
+                      className={cn(
+                        'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+                        event.color,
+                      )}
+                      style={{
+                        top: `${startMinutes}px`,
+                        height: `${height}px`,
+                        opacity: isDark ? 1 : 0.92,
+                        backgroundColor: getEventBackgroundColor(
+                          event.color,
+                          isDark,
+                        ),
+                        width,
+                        left,
+                        zIndex: column + 1,
+                      }}
+                      onMouseDown={(e) => handleEventDragStart(event, e)}
+                      onMouseUp={handleEventDragEnd}
+                      onMouseLeave={handleEventDragEnd}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (!isDraggingRef.current) {
+                          onEventClick(event, e.currentTarget as HTMLElement)
+                        }
+                      }}
                     >
-                      <ContextMenuTrigger asChild>
+                      <div
+                        className={cn(
+                          'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                        )}
+                        style={{
+                          backgroundColor: getEventAccentColor(event.color),
+                        }}
+                      />
+                      <div className="pl-1">
                         <div
-                          className={cn(
-                            'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
-                            event.color,
-                          )}
+                          className="font-medium leading-tight break-words"
                           style={{
-                            top: `${startMinutes}px`,
-                            height: `${height}px`,
-                            opacity: isDark ? 1 : 0.92,
-                            backgroundColor: getEventBackgroundColor(
-                              event.color,
-                              isDark,
+                            color: getEventAccentColor(event.color),
+                            display: '-webkit-box',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: Math.max(
+                              1,
+                              Math.floor((height - 8) / 16),
                             ),
-                            width,
-                            left,
-                            zIndex: column + 1,
-                          }}
-                          onMouseDown={(e) => handleEventDragStart(event, e)}
-                          onMouseUp={handleEventDragEnd}
-                          onMouseLeave={handleEventDragEnd}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (!isDraggingRef.current) {
-                              onEventClick(
-                                event,
-                                e.currentTarget as HTMLElement,
-                              )
-                            }
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
-                          <div
-                            className={cn(
-                              'absolute left-0 top-0 w-1 h-full rounded-l-md',
-                            )}
-                            style={{
-                              backgroundColor: getEventAccentColor(event.color),
-                            }}
-                          />
-                          <div className="pl-1">
-                            <div
-                              className="font-medium leading-tight break-words"
-                              style={{
-                                color: getEventAccentColor(event.color),
-                                display: '-webkit-box',
-                                WebkitBoxOrient: 'vertical',
-                                WebkitLineClamp: Math.max(
-                                  1,
-                                  Math.floor((height - 8) / 16),
-                                ),
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              {event.title}
-                            </div>
-                            {height >= 40 && (
-                              <div
-                                className="text-xs truncate"
-                                style={{
-                                  color: getEventAccentColor(event.color),
-                                }}
-                              >
-                                {formatDateWithTimezone(start)} -{' '}
-                                {formatDateWithTimezone(end)}
-                              </div>
-                            )}
-                          </div>
+                          {event.title}
                         </div>
-                      </ContextMenuTrigger>
-
-                      <ContextMenuContent className="w-40">
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onEditEvent?.(event)
-                          }}
-                        >
-                          <Edit3 className="mr-2 h-4 w-4" />
-                          {menuLabels.edit}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onShareEvent?.(event)
-                          }}
-                        >
-                          <Share2 className="mr-2 h-4 w-4" />
-                          {menuLabels.share}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onBookmarkEvent?.(event)
-                          }}
-                        >
-                          <Bookmark className="mr-2 h-4 w-4" />
-                          {menuLabels.bookmark}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            queueIgnoreEventClick()
-                            onDeleteEvent?.(event)
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {menuLabels.delete}
-                        </ContextMenuItem>
-                      </ContextMenuContent>
-                    </ContextMenu>
+                        {height >= 40 && (
+                          <div
+                            className="text-xs truncate"
+                            style={{
+                              color: getEventAccentColor(event.color),
+                            }}
+                          >
+                            {formatDateWithTimezone(start)} -{' '}
+                            {formatDateWithTimezone(end)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )
                 },
               )}
@@ -996,7 +654,9 @@ export default function WeekView({
               {isSameDay(day, today) &&
                 (() => {
                   const currentTimeInTimezone = new Date(
-                    currentTime.toLocaleString('en-US', { timeZone: timezone }),
+                    currentTime.toLocaleString('en-US', {
+                      timeZone: config.timezone,
+                    }),
                   )
                   const currentHours = currentTimeInTimezone.getHours()
                   const currentMinutes = currentTimeInTimezone.getMinutes()

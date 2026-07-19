@@ -1,3 +1,5 @@
+import type { CalendarEvent } from '@/components/app/calendar'
+
 export interface TimeCategory {
   id: string
   name: string
@@ -21,7 +23,7 @@ export interface TimeAnalytics {
 }
 
 export function analyzeTimeUsage(
-  events: any[],
+  events: CalendarEvent[],
   categories: TimeCategory[] = [],
 ): TimeAnalytics {
   const result: TimeAnalytics = {
