@@ -17,6 +17,7 @@ import {
   type BookmarkData,
   type SettingsData,
 } from '@/lib/api-client'
+import { toast } from 'sonner'
 
 type LoadingState = 'idle' | 'loading' | 'loaded' | 'error'
 
@@ -120,7 +121,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const language = localStorage.getItem('preferred-language')
       if (language) {
-        await api.settings.update({ language } as SettingsData).catch(() => {})
+        await api.settings.update({ language } as SettingsData).catch((e) => {
+          toast.error('Migration failed', {
+            description: `language: ${e instanceof Error ? e.message : 'Unknown'}`,
+          })
+        })
         migrated.push('language')
       }
 
@@ -128,13 +133,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (firstDayOfWeek) {
         await api.settings
           .update({ firstDayOfWeek: Number(firstDayOfWeek) } as SettingsData)
-          .catch(() => {})
+          .catch((e) => {
+            toast.error('Migration failed', {
+              description: `firstDayOfWeek: ${e instanceof Error ? e.message : 'Unknown'}`,
+            })
+          })
         migrated.push('firstDayOfWeek')
       }
 
       const timezone = localStorage.getItem('timezone')
       if (timezone) {
-        await api.settings.update({ timezone } as SettingsData).catch(() => {})
+        await api.settings.update({ timezone } as SettingsData).catch((e) => {
+          toast.error('Migration failed', {
+            description: `timezone: ${e instanceof Error ? e.message : 'Unknown'}`,
+          })
+        })
         migrated.push('timezone')
       }
 
@@ -142,7 +155,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (defaultView) {
         await api.settings
           .update({ defaultView } as SettingsData)
-          .catch(() => {})
+          .catch((e) => {
+            toast.error('Migration failed', {
+              description: `defaultView: ${e instanceof Error ? e.message : 'Unknown'}`,
+            })
+          })
         migrated.push('defaultView')
       }
 

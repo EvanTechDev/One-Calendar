@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS "calendar_backups" CASCADE;
 --> statement-breakpoint
+DROP TABLE IF EXISTS "shares" CASCADE;
+--> statement-breakpoint
 CREATE TABLE "Account" (
 	"id" text PRIMARY KEY NOT NULL,
 	"accountId" text NOT NULL,

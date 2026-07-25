@@ -410,8 +410,13 @@ ${rawContent.substring(0, 500)}...`)
               name: cat.name,
               color: cat.color,
             })
-          } catch {
-            // category creation failed, skip
+          } catch (e) {
+            toast.error(
+              t.importError.replace(
+                '{error}',
+                `${t.events || 'Category'} "${cat.name}": ${e instanceof Error ? e.message : 'Unknown'}`,
+              ),
+            )
           }
         }
       }
@@ -429,8 +434,13 @@ ${rawContent.substring(0, 500)}...`)
               color: cd.color || null,
               icon: cd.icon || null,
             })
-          } catch {
-            // skip
+          } catch (e) {
+            toast.error(
+              t.importError.replace(
+                '{error}',
+                `Countdown "${cd.name || 'Untitled'}": ${e instanceof Error ? e.message : 'Unknown'}`,
+              ),
+            )
           }
         }
       }
@@ -440,8 +450,13 @@ ${rawContent.substring(0, 500)}...`)
         for (const bm of payload.data.bookmarks as any[]) {
           try {
             await api.bookmarks.create({ eventId: bm.eventId || bm.id })
-          } catch {
-            // skip
+          } catch (e) {
+            toast.error(
+              t.importError.replace(
+                '{error}',
+                `Bookmark: ${e instanceof Error ? e.message : 'Unknown'}`,
+              ),
+            )
           }
         }
       }
@@ -451,8 +466,13 @@ ${rawContent.substring(0, 500)}...`)
       if (Object.keys(settingsData).length > 0) {
         try {
           await api.settings.update(settingsData as any)
-        } catch {
-          // skip
+        } catch (e) {
+          toast.error(
+            t.importError.replace(
+              '{error}',
+              `Settings: ${e instanceof Error ? e.message : 'Unknown'}`,
+            ),
+          )
         }
       }
 
