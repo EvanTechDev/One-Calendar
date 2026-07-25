@@ -158,33 +158,64 @@ CREATE INDEX idx_shares_event_id ON shares(event_id);
 
 ## TODO 清单
 
-- [ ] **1. 设计最终 schema 并写入** ← 当前步骤
-- [ ] **2. 写 schema.ts** — 所有新表定义 + 旧表删除
-- [ ] **3. run `drizzle-kit push`** 建表
-- [ ] **4. 在 `packages/utils/src/crypto.ts` 加服务端加密函数**
-- [ ] **5. 写 CRUD API:**
-  - [ ] 5a. `/api/events` — calendar_events CRUD
-  - [ ] 5b. `/api/settings` — settings CRUD
-  - [ ] 5c. `/api/categories` — categories CRUD
-  - [ ] 5d. `/api/countdowns` — countdowns CRUD
-  - [ ] 5e. `/api/bookmarks` — bookmarked_events CRUD
-  - [ ] 5f. `/api/share` — shares 重建
-- [ ] **6. 写前端 DataProvider + hooks 层**
-  - [ ] 6a. `useEvents()` hook
-  - [ ] 6b. `useSettings()` hook
-  - [ ] 6c. `useCategories()` hook
-  - [ ] 6d. `useCountdowns()` hook
-  - [ ] 6e. `useBookmarks()` hook
-  - [ ] 6f. 内存缓存层
-- [ ] **7. 逐个 feature 迁移**
-  - [ ] 7a. settings → 数据库
-  - [ ] 7b. categories → 数据库
-  - [ ] 7c. events + bookmarks → 数据库
-  - [ ] 7d. countdowns → 数据库
-  - [ ] 7e. share → 新表
+### ✅ 已完成
+- [x] **1. 设计最终 schema 并写入 status.md**
+- [x] **2. 写 schema.ts** — 6 个新表定义 + 所有 relations
+- [x] **3. 生成 drizzle migration SQL** (`drizzle-kit generate` 成功)
+  - ⏳ 需要你配置 `.env` 后手动 `drizzle-kit push`
+- [x] **4. 加服务端加密函数** → `lib/field-crypto.ts` (HKDF + AES-GCM)
+- [x] **5. 写 CRUD API:**
+  - [x] 5a. `/api/events` — calendar_events CRUD
+  - [x] 5b. `/api/settings` — settings CRUD
+  - [x] 5c. `/api/categories` — categories CRUD
+  - [x] 5d. `/api/countdowns` — countdowns CRUD
+  - [x] 5e. `/api/bookmarks` — bookmarked_events CRUD
+  - [x] 5f. `/api/share` — shares 重建 (HKDF + event_id)
+- [x] **6. 写前端 DataProvider + hooks 层**
+  - [x] 6a. `lib/api-client.ts` — 类型化 API 封装
+  - [x] 6b. `components/providers/data-provider.tsx` — React context + hooks
+  - [x] 6c. 更新 CalendarProvider 从 DataProvider 读取数据
+
+### ⏳ 待完成
+- [ ] **7. 前端 feature 迁移**
+  - [ ] 7a. settings 组件 → useSettings() hook
+  - [ ] 7b. categories 组件 → useCategories() hook
+  - [ ] 7c. events + bookmarks 组件 → DataProvider API
+  - [ ] 7d. countdowns 组件 → useCountdowns() hook
+  - [ ] 7e. share 组件 → 新 api-client
 - [ ] **8. 移除所有 localStorage 代码**
+  - [ ] `packages/utils/src/useLocalStorage.ts` 移除
+  - [ ] `packages/utils/src/crypto.ts` 清理（Web Crypto API 保留？）
+  - [ ] 所有 `readEncryptedLocalStorage`/`writeEncryptedLocalStorage` 调用移除
 - [ ] **9. 一次性数据迁移逻辑（localStorage → server）**
 - [ ] **10. 清理旧表（DROP calendar_backups, old shares）**
+
+## 新增文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `lib/drizzle/schema.ts` | 全部新表定义 |
+| `lib/field-crypto.ts` | SALT + HKDF + AES-GCM 服务端加解密 |
+| `lib/api-client.ts` | 前端类型化 API 客户端 |
+| `components/providers/data-provider.tsx` | DataProvider + useData hooks |
+| `app/api/events/route.ts` | events CRUD |
+| `app/api/settings/route.ts` | settings CRUD |
+| `app/api/categories/route.ts` | categories CRUD |
+| `app/api/countdowns/route.ts` | countdowns CRUD |
+| `app/api/bookmarks/route.ts` | bookmarks CRUD |
+| `app/api/share/route.ts` | shares 重建 |
+| `app/api/share/list/route.ts` | shares 列表 |
+| `drizzle/0000_opposite_joystick.sql` | 初始 migration |
+
+## 修改文件清单
+
+| 文件 | 改动 |
+|------|------|
+| `.gitignore` | 添加 status.md |
+| `app/layout.tsx` | 添加 DataProvider 包裹层 |
+| `app/api/blob/route.ts` | 标记为 deprecated（410） |
+| `app/api/account/route.ts` | 适配新表名 |
+| `components/providers/calendar-context.tsx` | 使用 DataProvider 替代 localStorage |
 
 ---
 
