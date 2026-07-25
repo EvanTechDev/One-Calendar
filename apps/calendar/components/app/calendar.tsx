@@ -30,16 +30,18 @@ import {
   House,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import {
-  readEncryptedLocalStorage,
-  useLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
+import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useCalendar } from '@/components/providers/calendar-context'
+import {
+  useSettings,
+  useEvents,
+  useBookmarks,
+} from '@/components/providers/data-provider'
+import { api } from '@/lib/api-client'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
@@ -140,18 +142,26 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] =
-    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
+  const { settings, updateSettings } = useSettings()
+  const { createEvent, deleteEvent } = useEvents()
+  const { deleteBookmarkByEvent } = useBookmarks()
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
+    (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
+  )
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
     setFirstDayOfWeek(day.value)
+    updateSettings({ firstDayOfWeek: day.value })
   }
-  const [timezone, setTimezone] = useLocalStorage<string>(
-    'timezone',
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  const [timezone, setTimezone] = useState<string>(
+    settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
   )
+  const handleTimezoneChange = (tz: string) => {
+    setTimezone(tz)
+    updateSettings({ timezone: tz })
+  }
   const [notificationSound, setNotificationSound] =
-    useLocalStorage<NOTIFICATION_SOUNDS>('notification-sound', 'telegram')
+    useState<NOTIFICATION_SOUNDS>('telegram')
   const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
@@ -188,21 +198,41 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     null,
   )
 
-  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewTypeValue>(
-    'default-view',
-    'week',
+  const [defaultView, setDefaultView] = useState<CalendarViewTypeValue>(
+    (settings.defaultView as CalendarViewTypeValue) ?? 'week',
   )
-  const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>(
-    'enable-shortcuts',
-    true,
+  const handleDefaultViewChange = (view: CalendarViewTypeValue) => {
+    setDefaultView(view)
+    updateSettings({ defaultView: view })
+  }
+  const [enableShortcuts, setEnableShortcuts] = useState<boolean>(
+    settings.enableShortcuts ?? true,
   )
-  const [timeFormat, setTimeFormat] = useLocalStorage<TimeFormatValue>(
-    'time-format',
-    '24h',
+  const handleEnableShortcutsChange = (enabled: boolean) => {
+    setEnableShortcuts(enabled)
+    updateSettings({ enableShortcuts: enabled })
+  }
+  const [timeFormat, setTimeFormat] = useState<TimeFormatValue>(
+    (settings.timeFormat as TimeFormatValue) ?? '24h',
   )
-  const [toastPosition, setToastPosition] = useLocalStorage<
+  const handleTimeFormatChange = (format: TimeFormatValue) => {
+    setTimeFormat(format)
+    updateSettings({ timeFormat: format })
+  }
+  const [toastPosition, setToastPosition] = useState<
     'bottom-left' | 'bottom-center' | 'bottom-right'
-  >('toast-position', 'bottom-right')
+  >(
+    (settings.toastPosition as
+      | 'bottom-left'
+      | 'bottom-center'
+      | 'bottom-right') ?? 'bottom-right',
+  )
+  const handleToastPositionChange = (
+    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
+  ) => {
+    setToastPosition(position)
+    updateSettings({ toastPosition: position })
+  }
 
   const firstDayOfWeekObj = useMemo(
     () => FirstDayOfWeek.create(firstDayOfWeek),
@@ -233,6 +263,27 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setView(isCalendarView(defaultView) ? defaultView : 'week')
   }, [defaultView])
 
+  const settingsInitializedRef = useRef(false)
+
+  useEffect(() => {
+    if (settingsInitializedRef.current) return
+    if (Object.keys(settings).length === 0) return
+    settingsInitializedRef.current = true
+
+    if (settings.firstDayOfWeek !== undefined)
+      setFirstDayOfWeek(settings.firstDayOfWeek as FirstDayOfWeekValue)
+    if (settings.timezone) setTimezone(settings.timezone)
+    if (settings.defaultView && isCalendarView(settings.defaultView)) {
+      setDefaultView(settings.defaultView as CalendarViewTypeValue)
+      setView(settings.defaultView as ViewType)
+    }
+    if (settings.enableShortcuts !== undefined)
+      setEnableShortcuts(settings.enableShortcuts)
+    if (settings.timeFormat)
+      setTimeFormat(settings.timeFormat as TimeFormatValue)
+    if (settings.toastPosition) setToastPosition(settings.toastPosition as any)
+  }, [settings])
+
   useEffect(() => {
     const applyRestoredPreferences = () => {
       void Promise.all([
@@ -256,7 +307,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return () => {
       window.removeEventListener('backup-restored', applyRestoredPreferences)
     }
-  }, [setDefaultView, setFirstDayOfWeek])
+  }, [])
 
   useEffect(() => {
     const refreshBackupState = () => {
@@ -492,6 +543,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
+    createEvent({
+      id: newEvent.id,
+      title: newEvent.title,
+      startDate: newEvent.startDate.toISOString(),
+      endDate: newEvent.endDate.toISOString(),
+      isAllDay: newEvent.isAllDay,
+      color: newEvent.color,
+      location: newEvent.location,
+      description: newEvent.description,
+      notificationMinutes: newEvent.notification,
+    })
     toast(t.eventCreated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -504,6 +566,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
     )
+    createEvent({
+      id: updatedEvent.id,
+      title: updatedEvent.title,
+      startDate: updatedEvent.startDate.toISOString(),
+      endDate: updatedEvent.endDate.toISOString(),
+      isAllDay: updatedEvent.isAllDay,
+      color: updatedEvent.color,
+      location: updatedEvent.location,
+      description: updatedEvent.description,
+      notificationMinutes: updatedEvent.notification,
+    })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -518,27 +591,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<
-      { id: string; eventId: string }[]
-    >('shared-events', [])
-    const relatedShares = storedShares.filter(
-      (share) => share.eventId === eventId,
+    const response = await fetch('/api/share/list')
+    if (!response.ok) return
+    const { shares: shareList } = await response.json()
+    const relatedShares = shareList.filter(
+      (share: any) => share.eventId === eventId,
     )
     if (!relatedShares.length) return
 
     const results = await Promise.allSettled(
-      relatedShares.map((share) =>
+      relatedShares.map((share: any) =>
         fetch('/api/share', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: share.id }),
         }),
       ),
-    )
-
-    await writeEncryptedLocalStorage(
-      'shared-events',
-      storedShares.filter((share) => share.eventId !== eventId),
     )
 
     const failed = results.filter(
@@ -569,15 +637,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    void readEncryptedLocalStorage<{ id: string }[]>(
-      'bookmarked-events',
-      [],
-    ).then((bookmarks) =>
-      writeEncryptedLocalStorage(
-        'bookmarked-events',
-        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-      ),
-    )
+    try {
+      await deleteBookmarkByEvent(deletedEvent.id)
+    } catch {}
+    try {
+      await deleteEvent(deletedEvent.id)
+    } catch {}
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setPreviewOpen(false)
@@ -642,35 +707,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<
-      {
-        id: string
-        title: string
-        startDate: Date
-        endDate: Date
-        color: string
-        location?: string
-      }[]
-    >('bookmarked-events', [])
-
-    const isBookmarked = bookmarks.some((b) => b.id === event.id)
+    const { bookmarks } = await api.bookmarks.list()
+    const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
     if (isBookmarked) {
-      const updated = bookmarks.filter((b) => b.id !== event.id)
-      await writeEncryptedLocalStorage('bookmarked-events', updated)
+      const bm = bookmarks.find((b) => b.eventId === event.id)
+      if (bm) await api.bookmarks.delete(bm.id)
     } else {
-      const bookmarkData = {
-        id: event.id,
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        color: event.color,
-        location: event.location,
-        bookmarkedAt: new Date().toISOString(),
-      }
-      await writeEncryptedLocalStorage('bookmarked-events', [
-        ...bookmarks,
-        bookmarkData,
-      ])
+      await api.bookmarks.create({ eventId: event.id })
     }
   }
 
@@ -1091,26 +1134,26 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
-                setTimezone={setTimezone}
+                setTimezone={handleTimezoneChange}
                 _notificationSound={notificationSound}
                 _setNotificationSound={setNotificationSound}
                 defaultView={CalendarViewType.create(
                   defaultView as CalendarViewTypeValue,
                 )}
                 setDefaultView={(view: CalendarViewType) =>
-                  setDefaultView(view.value as CalendarViewTypeValue)
+                  handleDefaultViewChange(view.value as CalendarViewTypeValue)
                 }
                 enableShortcuts={enableShortcuts}
-                setEnableShortcuts={setEnableShortcuts}
+                setEnableShortcuts={handleEnableShortcutsChange}
                 timeFormat={timeFormatObj}
                 setTimeFormat={(format: TimeFormat) =>
-                  setTimeFormat(format.value as TimeFormatValue)
+                  handleTimeFormatChange(format.value as TimeFormatValue)
                 }
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
                 _toastPosition={toastPosition}
-                _setToastPosition={setToastPosition}
+                _setToastPosition={handleToastPositionChange}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}
