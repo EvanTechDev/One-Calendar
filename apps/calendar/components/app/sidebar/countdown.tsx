@@ -1,8 +1,8 @@
 'use client'
 
-import { useLocalStorage } from '@zntr/utils/useLocalStorage'
+import { useCountdowns } from '@/components/providers/data-provider'
 import { Button } from '@zntr/ui/button'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { Input } from '@zntr/ui/input'
 import {
@@ -101,10 +101,12 @@ const toDateString = (date: Date) => {
 }
 
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
-  const [countdowns, setCountdowns] = useLocalStorage<Countdown[]>(
-    'countdowns',
-    [],
-  )
+  const {
+    countdowns: serverCountdowns,
+    createCountdown,
+    deleteCountdown: deleteCountdownApi,
+  } = useCountdowns()
+  const [countdowns, setCountdowns] = useState<Countdown[]>([])
   const [selectedCountdown, setSelectedCountdown] = useState<Countdown | null>(
     null,
   )
@@ -117,6 +119,20 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const t = translations[language]
   const isZh = isZhLanguage(language)
   const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    setCountdowns(
+      serverCountdowns.map((c) => ({
+        id: c.id,
+        name: c.name,
+        date: c.targetDate.split('T')[0],
+        repeat: c.repeat as Countdown['repeat'],
+        description: c.description ?? '',
+        color: c.color ?? 'bg-blue-500',
+        icon: c.icon ?? 'Clock',
+      })),
+    )
+  }, [serverCountdowns])
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [iconSearch, setIconSearch] = useState('')
@@ -276,11 +292,12 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     setSelectedCountdown(null)
   }
 
-  const saveCountdown = () => {
+  const saveCountdown = async () => {
     if (!newCountdown.name || !selectedDate || !newCountdown.color) return
 
+    const id = selectedCountdown?.id || Date.now().toString()
     const countdown: Countdown = {
-      id: selectedCountdown?.id || Date.now().toString(),
+      id,
       name: newCountdown.name,
       date: toDateString(selectedDate),
       repeat: newCountdown.repeat || 'none',
@@ -288,6 +305,22 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       color: newCountdown.color,
       icon: newCountdown.icon || 'Clock',
     }
+
+    try {
+      await createCountdown({
+        id,
+        name: newCountdown.name,
+        targetDate: selectedDate.toISOString(),
+        repeat: (newCountdown.repeat || 'none') as
+          | 'none'
+          | 'weekly'
+          | 'monthly'
+          | 'yearly',
+        description: newCountdown.description || null,
+        color: newCountdown.color,
+        icon: newCountdown.icon || 'Clock',
+      })
+    } catch {}
 
     if (selectedCountdown) {
       setCountdowns((prev) =>
@@ -308,6 +341,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const deleteCountdown = (id: string) => {
     const target = countdowns.find((c) => c.id === id)
     setCountdowns((prev) => prev.filter((c) => c.id !== id))
+    deleteCountdownApi(id).catch(() => {})
     setView('list')
     setSelectedCountdown(null)
     toast(t.countdownDeleted, { description: target?.name || '' })
