@@ -112,6 +112,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchAll])
 
+  const refreshEvents = useCallback(async () => {
+    const res = await api.events.list()
+    setEvents(res.events)
+  }, [])
+
+  const refreshCategories = useCallback(async () => {
+    const res = await api.categories.list()
+    setCategories(res.categories)
+  }, [])
+
+  const refreshCountdowns = useCallback(async () => {
+    const res = await api.countdowns.list()
+    setCountdowns(res.countdowns)
+  }, [])
+
+  const refreshBookmarks = useCallback(async () => {
+    const res = await api.bookmarks.list()
+    setBookmarks(res.bookmarks)
+  }, [])
+
+  const refreshSettings = useCallback(async () => {
+    const res = await api.settings.get()
+    setSettings(res.settings)
+  }, [])
+
   useEffect(() => {
     if (loading !== 'loaded') return
     if (Object.keys(settings).length > 0) return
@@ -167,31 +192,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     void migrateFromLocalStorage()
   }, [loading, settings, refreshSettings])
-
-  const refreshEvents = useCallback(async () => {
-    const res = await api.events.list()
-    setEvents(res.events)
-  }, [])
-
-  const refreshCategories = useCallback(async () => {
-    const res = await api.categories.list()
-    setCategories(res.categories)
-  }, [])
-
-  const refreshCountdowns = useCallback(async () => {
-    const res = await api.countdowns.list()
-    setCountdowns(res.countdowns)
-  }, [])
-
-  const refreshBookmarks = useCallback(async () => {
-    const res = await api.bookmarks.list()
-    setBookmarks(res.bookmarks)
-  }, [])
-
-  const refreshSettings = useCallback(async () => {
-    const res = await api.settings.get()
-    setSettings(res.settings)
-  }, [])
 
   const upsertEvent = useCallback(
     async (data: Parameters<typeof api.events.create>[0]) => {
