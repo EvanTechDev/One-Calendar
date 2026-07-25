@@ -24,12 +24,7 @@ import {
   EmptyTitle,
 } from '@zntr/ui/empty'
 import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
-import {
-  getEncryptionState,
-  readEncryptedLocalStorage,
-  subscribeEncryptionState,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
+import { useBookmarks } from '@/components/providers/data-provider'
 
 interface BookmarkPanelProps {
   open: boolean
@@ -45,6 +40,7 @@ interface BookmarkedEvent {
   color: string
   location?: string
   bookmarkedAt: string
+  eventId: string
 }
 
 function getDarkerColorClass(color: string) {
@@ -71,49 +67,46 @@ export default function BookmarkPanel({
   const [language] = useLanguage()
   const t = translations[language]
   const isZh = isZhLanguage(language)
+  const {
+    bookmarks: serverBookmarks,
+    deleteBookmark,
+    refreshBookmarks,
+  } = useBookmarks()
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     if (open) {
-      const loadBookmarks = () =>
-        readEncryptedLocalStorage<BookmarkedEvent[]>(
-          'bookmarked-events',
-          [],
-        ).then((stored) => {
-          const parsedBookmarks = [...stored]
-
-          parsedBookmarks.sort(
-            (a: BookmarkedEvent, b: BookmarkedEvent) =>
-              new Date(b.bookmarkedAt).getTime() -
-              new Date(a.bookmarkedAt).getTime(),
-          )
-          setBookmarks(parsedBookmarks)
-        })
-
-      loadBookmarks()
-
-      const unsubscribe = subscribeEncryptionState(() => {
-        if (!getEncryptionState().ready) return
-        loadBookmarks()
-      })
-      return () => {
-        unsubscribe()
-      }
+      refreshBookmarks()
     }
-    return undefined
-  }, [open])
+  }, [open, refreshBookmarks])
+
+  useEffect(() => {
+    setBookmarks(
+      serverBookmarks.map((bm) => ({
+        id: bm.id,
+        eventId: bm.eventId,
+        title: bm.event?.title ?? '',
+        startDate: bm.event?.startDate ?? '',
+        endDate: bm.event?.endDate ?? '',
+        color: bm.event?.color ?? 'bg-[#E6F6FD]',
+        location: bm.event?.location ?? undefined,
+        bookmarkedAt: bm.createdAt,
+      })),
+    )
+  }, [serverBookmarks])
 
   const formatEventDate = (dateString: string | Date) => {
     const date = new Date(dateString)
     return format(date, 'yyyy-MM-dd HH:mm', { locale: isZh ? zhCN : enUS })
   }
 
-  const removeBookmark = (id: string, e: React.MouseEvent) => {
+  const removeBookmark = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const updatedBookmarks = bookmarks.filter((bookmark) => bookmark.id !== id)
-    void writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
-    setBookmarks(updatedBookmarks)
+    setBookmarks((prev) => prev.filter((b) => b.id !== id))
+    try {
+      await deleteBookmark(id)
+    } catch {}
     toast(t.bookmarkRemoved, {
       description: t.eventRemovedFromBookmarks,
     })
@@ -121,7 +114,6 @@ export default function BookmarkPanel({
 
   const handleEventClick = (event: BookmarkedEvent) => {
     onOpenChange(false)
-
     onEventClick(event)
   }
 
