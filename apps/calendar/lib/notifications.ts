@@ -1,5 +1,4 @@
 import { toast } from 'sonner'
-import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
 import { getStoredLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '@/components/app/calendar'
 
@@ -22,10 +21,11 @@ export const clearAllNotificationTimers = () => {
 }
 
 export const checkPendingNotifications = async (
+  events: CalendarEvent[],
   sound: NOTIFICATION_SOUNDS = 'telegram',
 ) => {
   const now = Date.now()
-  const pendingEvents = await getPendingEvents(now)
+  const pendingEvents = getPendingEvents(events, now)
 
   await Promise.all(
     pendingEvents.map(async (event) => {
@@ -36,9 +36,8 @@ export const checkPendingNotifications = async (
   )
 }
 
-const getPendingEvents = async (currentTime: number) => {
+const getPendingEvents = (events: CalendarEvent[], currentTime: number) => {
   cleanupFiredNotifications(currentTime)
-  const events = await readEncryptedLocalStorage<CalendarEvent[]>('calendar-events', [])
   return events.filter((event) => {
     const notificationTime = getNotificationTime(event)
     if (!notificationTime) return false
@@ -162,7 +161,7 @@ const cleanupFiredNotifications = (currentTime: number) => {
 export const startNotificationChecking = () => {
   if (!notificationInterval) {
     notificationInterval = setInterval(() => {
-      checkPendingNotifications()
+      checkPendingNotifications([])
     }, 30000)
   }
 }

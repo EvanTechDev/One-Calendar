@@ -111,6 +111,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchAll])
 
+  useEffect(() => {
+    if (loading !== 'loaded') return
+    if (Object.keys(settings).length > 0) return
+
+    const migrateFromLocalStorage = async () => {
+      const migrated: string[] = []
+
+      const language = localStorage.getItem('preferred-language')
+      if (language) {
+        await api.settings.update({ language } as SettingsData).catch(() => {})
+        migrated.push('language')
+      }
+
+      const firstDayOfWeek = localStorage.getItem('first-day-of-week')
+      if (firstDayOfWeek) {
+        await api.settings
+          .update({ firstDayOfWeek: Number(firstDayOfWeek) } as SettingsData)
+          .catch(() => {})
+        migrated.push('firstDayOfWeek')
+      }
+
+      const timezone = localStorage.getItem('timezone')
+      if (timezone) {
+        await api.settings.update({ timezone } as SettingsData).catch(() => {})
+        migrated.push('timezone')
+      }
+
+      const defaultView = localStorage.getItem('default-view')
+      if (defaultView) {
+        await api.settings
+          .update({ defaultView } as SettingsData)
+          .catch(() => {})
+        migrated.push('defaultView')
+      }
+
+      if (migrated.length > 0) {
+        await refreshSettings()
+      }
+    }
+
+    void migrateFromLocalStorage()
+  }, [loading, settings, refreshSettings])
+
   const refreshEvents = useCallback(async () => {
     const res = await api.events.list()
     setEvents(res.events)

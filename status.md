@@ -200,38 +200,33 @@ RootLayout
 
 ### ⏳ 待完成
 
-#### 7g. import-export 重写（`components/app/analytics/import-export.tsx`，1321 行）
-- 当前读写 localStorage，需要改为从 API fetch 数据导出 / POST 导入
-- 文件已存在，搜索 `readEncryptedLocalStorage` / `writeEncryptedLocalStorage` 定位所有需要改的地方
-- 导出格式不变但数据来源改为 API，目标改为让用户下载
-- 导入改为 POST 到对应 API
+所有代码重构已完成。剩下需要用户操作：
 
-#### 7h. user-profile-button 重写（`components/app/profile/user-profile-button.tsx`，1619 行）
-- **移除 backup 功能**（blob API 已返回 410）
-- 保留：账户信息展示、邮箱更改、密码更改、2FA、删除账号
-- 移除：auto-backup toggle、backup key rotation、sync status
-- 这是一个大文件，建议分段重写
+#### 11. 建表 & 测试
+- 用户需配置 `.env`（POSTGRES_URL + SALT）后运行 `drizzle-kit push` 建表
+- 然后测试所有功能是否正常
 
-#### 8. 移除所有 localStorage 代码
-- `packages/utils/src/useLocalStorage.ts` — 确认无引用后可删除
-- `packages/utils/src/crypto.ts` — Web Crypto API 部分（客户端加密）是否保留？旧版客户端加密密码可能不再需要
-- 确保所有 `readEncryptedLocalStorage` / `writeEncryptedLocalStorage` 调用已移除
-- `localStorage.getItem` / `setItem` 调用（主要在 user-profile-button 中）
-
-#### 9. 一次性数据迁移逻辑
-- 已登录用户首次打开时，把 localStorage 中现有的 events/categories/countdowns/bookmarks/settings POST 到对应的 API
-- 建议放在 `DataProvider` 首次加载时检查 `settings` 表是否有数据，如果为空则尝试从 localStorage 迁移
-
-#### 10. 清理旧表
-- `DROP TABLE IF EXISTS calendar_backups CASCADE;`
-- `DROP TABLE IF EXISTS shares CASCADE;`（旧的 shares 表）
-- 注意：新 shares 表同名但结构不同，migration 应该会自动处理
+#### 12. 后续可做（非必须）
+- 删除 dead code 文件：`usePreferences.ts`, `useEventOperations.ts`, `useViewManagement.ts`, `events-calendar.tsx`, `useBackupSync.ts`, `packages/utils/src/useLocalStorage.ts`, `packages/utils/src/crypto.ts`
 
 ---
 
 ## 八、Git 提交历史（重构相关）
 
 ```
+(未提交的更改)
+- user-profile-button 重写（移除 backup，保留账户管理）
+- import-export 重写（localStorage → API）
+- notifications.ts / useNotifications.ts 改为接受 events 参数
+- notifications.ts 移除 readEncryptedLocalStorage 依赖
+- calendar.tsx 改用 useNotifications(events, sound) hook
+- packages/i18n/src/i18n.ts useLanguage 改为 plain localStorage
+- packages/utils/src/index.ts 移除 useLocalStorage / crypto re-export
+- data-provider.tsx 添加 localStorage → API 迁移逻辑
+- drizzle migration 添加 DROP calendar_backups
+- status.md 更新
+
+此前提交：
 aa95e1f docs: update status.md with current progress
 71cab3d refactor: migrate bookmark-panel from localStorage to DataProvider
 3558e0d refactor: migrate countdown component from localStorage to DataProvider
@@ -271,10 +266,19 @@ bf6260c feat: add new schema tables (events, settings, categories, countdowns, b
 | `apps/calendar/app/api/blob/route.ts` | 标记为 deprecated（410） |
 | `apps/calendar/app/api/account/route.ts` | 适配新表名（calendarEvents, settings 等） |
 | `apps/calendar/components/providers/calendar-context.tsx` | 从 DataProvider 读取数据替代 localStorage |
-| `apps/calendar/components/app/calendar.tsx` | useLocalStorage → useSettings/useEvents |
+| `apps/calendar/components/app/calendar.tsx` | useLocalStorage → useSettings/useEvents; 移除 backup 状态/效果；notification 改为 `useNotifications(events, sound)` hook |
 | `apps/calendar/components/app/event/event-preview.tsx` | share/bookmark 改用 API |
 | `apps/calendar/components/app/sidebar/countdown.tsx` | useLocalStorage → useCountdowns |
 | `apps/calendar/components/app/sidebar/bookmark-panel.tsx` | localStorage → useBookmarks |
+| `apps/calendar/components/app/profile/user-profile-button.tsx` | 重写（移除 backup，保留账户管理），1619 → ~570 行 |
+| `apps/calendar/components/app/analytics/import-export.tsx` | 重写（移除 localStorage/crypto，全部走 API），1321 → ~1127 行 |
+| `apps/calendar/components/providers/data-provider.tsx` | 添加 localStorage → API 一次性迁移逻辑 |
+| `apps/calendar/lib/notifications.ts` | 改为接受 events 参数而非读 localStorage |
+| `apps/calendar/components/app/hooks/useNotifications.ts` | 改为接受 events 参数 |
+| `apps/calendar/components/app/hooks/usePreferences.ts` | 移除 backup-restored 事件监听 |
+| `packages/i18n/src/i18n.ts` | useLanguage hook 改为 plain localStorage |
+| `packages/utils/src/index.ts` | 移除 useLocalStorage / crypto 的 re-export |
+| `apps/calendar/drizzle/0000_opposite_joystick.sql` | 顶部添加 DROP calendar_backups |
 
 ---
 

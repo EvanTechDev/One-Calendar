@@ -1,10 +1,7 @@
 'use client'
 
-import {
-  checkPendingNotifications,
-  clearAllNotificationTimers,
-  type NOTIFICATION_SOUNDS,
-} from '@/lib/notifications'
+import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
+import { useNotifications } from '@/components/app/hooks/useNotifications'
 import {
   Select,
   SelectContent,
@@ -18,10 +15,6 @@ import {
   ChevronRight,
   Search,
   PanelLeft,
-  CloudUpload,
-  CheckCircle2,
-  AlertCircle,
-  LoaderIcon,
   CircleHelp,
   ShieldCheck,
   MessageSquare,
@@ -30,7 +23,6 @@ import {
   House,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { readEncryptedLocalStorage } from '@zntr/utils/useLocalStorage'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
@@ -162,8 +154,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
   const [notificationSound, setNotificationSound] =
     useState<NOTIFICATION_SOUNDS>('telegram')
-  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const notificationsInitializedRef = useRef(false)
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
@@ -175,10 +165,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [backupEnabled, setBackupEnabled] = useState(false)
-  const [backupSyncStatus, setBackupSyncStatus] = useState<
-    'uploading' | 'failed' | 'done' | null
-  >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
@@ -283,69 +269,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       setTimeFormat(settings.timeFormat as TimeFormatValue)
     if (settings.toastPosition) setToastPosition(settings.toastPosition as any)
   }, [settings])
-
-  useEffect(() => {
-    const applyRestoredPreferences = () => {
-      void Promise.all([
-        readEncryptedLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0),
-        readEncryptedLocalStorage<CalendarViewTypeValue>(
-          'default-view',
-          'week',
-        ),
-      ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
-        setFirstDayOfWeek(
-          [1, 6].includes(restoredFirstDayOfWeek) ? restoredFirstDayOfWeek : 0,
-        )
-        if (isCalendarView(restoredDefaultView)) {
-          setDefaultView(restoredDefaultView)
-          setView(restoredDefaultView)
-        }
-      })
-    }
-
-    window.addEventListener('backup-restored', applyRestoredPreferences)
-    return () => {
-      window.removeEventListener('backup-restored', applyRestoredPreferences)
-    }
-  }, [])
-
-  useEffect(() => {
-    const refreshBackupState = () => {
-      const enabled = localStorage.getItem('auto-backup-enabled') === 'true'
-      setBackupEnabled(enabled)
-      if (!enabled) {
-        setBackupSyncStatus(null)
-        return
-      }
-
-      const status = localStorage.getItem('auto-backup-sync-status')
-      if (status === 'uploading' || status === 'failed' || status === 'done') {
-        setBackupSyncStatus(status)
-      } else {
-        setBackupSyncStatus('done')
-      }
-    }
-
-    refreshBackupState()
-    window.addEventListener('backup-status-change', refreshBackupState)
-    window.addEventListener('storage', refreshBackupState)
-    return () => {
-      window.removeEventListener('backup-status-change', refreshBackupState)
-      window.removeEventListener('storage', refreshBackupState)
-    }
-  }, [])
-
-  const backupStatusIcon = useMemo(() => {
-    if (!backupEnabled) return null
-
-    if (backupSyncStatus === 'uploading') {
-      return <LoaderIcon className="h-4 w-4 animate-spin" />
-    }
-    if (backupSyncStatus === 'failed') {
-      return <AlertCircle className="h-4 w-4 text-destructive" />
-    }
-    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-  }, [backupEnabled, backupSyncStatus])
 
   useEffect(() => {
     const prefetch = () => {
@@ -766,31 +689,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return filteredEvents.slice(0, 8)
   }, [filteredEvents, searchTerm])
 
-  useEffect(() => {
-    if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(notificationSound)
-      notificationsInitializedRef.current = true
-    }
-
-    if (!notificationIntervalRef.current) {
-      notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications(notificationSound)
-      }, 60000)
-    }
-
-    return () => {
-      if (notificationIntervalRef.current) {
-        clearInterval(notificationIntervalRef.current)
-      }
-    }
-  }, [notificationSound])
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', clearAllNotificationTimers)
-    return () => {
-      window.removeEventListener('beforeunload', clearAllNotificationTimers)
-    }
-  }, [])
+  useNotifications(events, notificationSound)
 
   return (
     <div className={className}>
@@ -957,15 +856,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   </div>
                 )}
               </div>
-              {backupEnabled ? (
-                <div
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                  title="Backup status"
-                  aria-label="Backup status"
-                >
-                  {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
-                </div>
-              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

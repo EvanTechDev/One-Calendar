@@ -14,27 +14,28 @@ import {
   DialogTitle,
 } from '@zntr/ui/dialog'
 import { Download, Upload, AlertCircle } from 'lucide-react'
-import {
-  decryptPayload,
-  encryptPayload,
-  isEncryptedPayload,
-} from '@zntr/utils/crypto'
-import {
-  readEncryptedLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import { normalizeTheme, type ThemeOption } from '@/lib/theme'
-import { useCalendar } from '@/components/providers/calendar-context'
 import { Checkbox } from '@zntr/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+  useCategories,
+  useBookmarks,
+  useCountdowns,
+  useSettings,
+  useEvents,
+} from '@/components/providers/data-provider'
+import type {
+  CategoryData,
+  BookmarkData,
+  CountdownData,
+} from '@/lib/api-client'
 
 interface ImportExportProps {
   events: CalendarEvent[]
@@ -57,7 +58,7 @@ interface AppSettingsSnapshot {
   enableShortcuts?: boolean
   timeFormat?: '24h' | '12h'
   toastPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right'
-  theme?: ThemeOption
+  theme?: string
 }
 
 interface JsonBackupPayloadV2 {
@@ -86,42 +87,17 @@ export default function ImportExport({
   const [includeCompleted, setIncludeCompleted] = useState(true)
   const [dateRangeOption, setDateRangeOption] = useState('all')
   const [isLoading, setIsLoading] = useState(false)
-  const [jsonPassword, setJsonPassword] = useState('')
-  const [jsonPasswordConfirm, setJsonPasswordConfirm] = useState('')
-  const [jsonImportEncrypted, setJsonImportEncrypted] = useState(false)
-  const [jsonImportPassword, setJsonImportPassword] = useState('')
   const [debugMode, setDebugMode] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>('')
   const [language] = useLanguage()
   const t = translations[language]
-  const { calendars, setCalendars } = useCalendar()
+  const { categories } = useCategories()
+  const { bookmarks } = useBookmarks()
+  const { countdowns } = useCountdowns()
+  const { settings } = useSettings()
+  const { createEvent } = useEvents()
   const [importCalendarId, setImportCalendarId] =
     useState<string>('__uncategorized__')
-
-  const [_forceUpdate, _setForceUpdate] = useState(0)
-
-  const SETTINGS_KEYS = {
-    language: 'preferred-language',
-    firstDayOfWeek: 'first-day-of-week',
-    timezone: 'timezone',
-    notificationSound: 'notification-sound',
-    defaultView: 'default-view',
-    enableShortcuts: 'enable-shortcuts',
-    timeFormat: 'time-format',
-    toastPosition: 'toast-position',
-    theme: 'theme',
-  } as const
-
-  useEffect(() => {
-    const handleLanguageChange = () => {
-      _setForceUpdate((prev) => prev + 1)
-    }
-
-    window.addEventListener('languagechange', handleLanguageChange)
-    return () => {
-      window.removeEventListener('languagechange', handleLanguageChange)
-    }
-  }, [])
 
   const handleExport = async () => {
     try {
@@ -161,87 +137,46 @@ export default function ImportExport({
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
       } else if (exportFormat === 'json') {
-        const bookmarks = await readEncryptedLocalStorage<unknown[]>(
-          'bookmarked-events',
-          [],
-        )
-        const countdowns = await readEncryptedLocalStorage<unknown[]>(
-          'countdowns',
-          [],
-        )
-        const settings = {
-          language: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.language,
-            undefined,
-          ),
-          firstDayOfWeek: await readEncryptedLocalStorage<number | undefined>(
-            SETTINGS_KEYS.firstDayOfWeek,
-            undefined,
-          ),
-          timezone: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.timezone,
-            undefined,
-          ),
-          notificationSound: await readEncryptedLocalStorage<
-            string | undefined
-          >(SETTINGS_KEYS.notificationSound, undefined),
-          defaultView: await readEncryptedLocalStorage<string | undefined>(
-            SETTINGS_KEYS.defaultView,
-            undefined,
-          ),
-          enableShortcuts: await readEncryptedLocalStorage<boolean | undefined>(
-            SETTINGS_KEYS.enableShortcuts,
-            undefined,
-          ),
-          timeFormat: await readEncryptedLocalStorage<
-            '24h' | '12h' | undefined
-          >(SETTINGS_KEYS.timeFormat, undefined),
-          toastPosition: await readEncryptedLocalStorage<
-            'bottom-left' | 'bottom-center' | 'bottom-right' | undefined
-          >(SETTINGS_KEYS.toastPosition, undefined),
-          theme: normalizeTheme(
-            await readEncryptedLocalStorage<string | undefined>(
-              SETTINGS_KEYS.theme,
-              undefined,
-            ),
-          ),
-        }
         const exportPayload: JsonBackupPayloadV2 = {
           format: 'one-calendar-json-v2',
           exportedAt: new Date().toISOString(),
           data: {
             events: filteredEvents,
-            calendars,
+            calendars: categories.map((c: CategoryData) => ({
+              id: c.id,
+              name: c.name,
+              color: c.color,
+            })),
             eventCategoryMap: Object.fromEntries(
               filteredEvents.map((event) => [event.id, event.calendarId || '']),
             ),
-            bookmarks,
-            countdowns,
-            settings,
+            bookmarks: bookmarks.map((b: BookmarkData) => ({
+              eventId: b.eventId,
+            })),
+            countdowns: countdowns.map((c: CountdownData) => ({
+              id: c.id,
+              name: c.name,
+              targetDate: c.targetDate,
+              repeat: c.repeat,
+              description: c.description,
+              color: c.color,
+              icon: c.icon,
+            })),
+            settings: {
+              language: settings.language,
+              firstDayOfWeek: settings.firstDayOfWeek,
+              timezone: settings.timezone,
+              notificationSound: settings.notificationSound,
+              defaultView: settings.defaultView,
+              enableShortcuts: settings.enableShortcuts,
+              timeFormat: settings.timeFormat,
+              toastPosition: settings.toastPosition,
+              theme: settings.theme,
+            },
           },
         }
 
-        let jsonContent = JSON.stringify(exportPayload, null, 2)
-
-        const hasAnyPasswordInput =
-          jsonPassword.trim() || jsonPasswordConfirm.trim()
-        if (hasAnyPasswordInput) {
-          if (!jsonPassword.trim()) {
-            throw new Error(t.passwordRequired || 'Password is required')
-          }
-
-          if (jsonPassword !== jsonPasswordConfirm) {
-            throw new Error(t.passwordsDoNotMatch || 'Passwords do not match')
-          }
-
-          const encrypted = await encryptPayload(jsonPassword, jsonContent)
-          jsonContent = JSON.stringify(
-            { ...encrypted, encrypted: true, format: 'one-calendar-json-v1' },
-            null,
-            2,
-          )
-        }
-
+        const jsonContent = JSON.stringify(exportPayload, null, 2)
         downloadFile(jsonContent, 'calendar-export.json', 'application/json')
       } else if (exportFormat === 'csv') {
         const csvContent = generateCSV(filteredEvents)
@@ -281,8 +216,8 @@ export default function ImportExport({
   }
 
   const applyImportCategory = (eventsToImport: CalendarEvent[]) => {
-    const targetCategory = calendars.find(
-      (calendar) => calendar.id === importCalendarId,
+    const targetCategory = categories.find(
+      (calendar: CategoryData) => calendar.id === importCalendarId,
     )
     const categoryId =
       importCalendarId === '__uncategorized__' ? '' : importCalendarId
@@ -350,7 +285,25 @@ ${rawContent.substring(0, 500)}...`)
       const normalizedImportedEvents = shouldApplyCategory
         ? applyImportCategory(importedEvents)
         : importedEvents
-      onImportEvents(normalizedImportedEvents)
+
+      for (const event of normalizedImportedEvents) {
+        await createEvent({
+          id: event.id,
+          title: event.title,
+          startDate: event.startDate.toISOString(),
+          endDate: event.endDate.toISOString(),
+          isAllDay: event.isAllDay,
+          location: event.location || null,
+          participants: event.participants?.length
+            ? event.participants.map((p: any) =>
+                typeof p === 'string' ? { name: p } : p,
+              )
+            : null,
+          notificationMinutes: event.notification || null,
+          color: event.color || null,
+          categoryId: event.calendarId || null,
+        })
+      }
 
       toast(
         t.importSuccess.replace('{count}', importedEvents.length.toString()),
@@ -395,59 +348,6 @@ ${rawContent.substring(0, 500)}...`)
     }
   }
 
-  const normalizeImportedEvent = (
-    input: Partial<CalendarEvent>,
-  ): CalendarEvent => {
-    const start = input.startDate ? new Date(input.startDate) : new Date()
-    const parsedEnd = input.endDate
-      ? new Date(input.endDate)
-      : new Date(start.getTime() + 60 * 60 * 1000)
-    const end =
-      parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
-
-    return {
-      id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
-      title: input.title || t.unnamedEvent || 'Unnamed Event',
-      startDate: start,
-      endDate: end,
-      isAllDay: Boolean(input.isAllDay),
-      recurrence: input.recurrence || 'none',
-      location: input.location,
-      participants: Array.isArray(input.participants) ? input.participants : [],
-      notification:
-        typeof input.notification === 'number' ? input.notification : 0,
-      description: input.description,
-      color: input.color || 'bg-[#E6F6FD]',
-      calendarId: input.calendarId || '',
-    }
-  }
-
-  const mergeCategoriesFromBackup = (
-    importedCategories: ImportedCategory[],
-  ) => {
-    if (importedCategories.length === 0) return
-
-    const merged = [...calendars]
-    importedCategories.forEach((category) => {
-      const index = merged.findIndex((item) => item.id === category.id)
-      if (index === -1) {
-        merged.push({
-          id: category.id,
-          name: category.name,
-          color: category.color,
-          keywords: category.keywords ?? [],
-        })
-      } else {
-        merged[index] = {
-          ...merged[index],
-          ...category,
-          keywords: category.keywords ?? merged[index].keywords ?? [],
-        }
-      }
-    })
-    setCalendars(merged)
-  }
-
   const parseJsonEvents = async (
     rawContent: string,
   ): Promise<{
@@ -455,32 +355,6 @@ ${rawContent.substring(0, 500)}...`)
     shouldApplyImportCategory: boolean
   }> => {
     const parsed = JSON.parse(rawContent)
-
-    if (isEncryptedPayload(parsed) || parsed?.encrypted) {
-      if (!jsonImportEncrypted) {
-        throw new Error(
-          t.encryptedJsonNeedToggle ||
-            'This JSON file is encrypted. Please enable encrypted import.',
-        )
-      }
-
-      if (!jsonImportPassword.trim()) {
-        throw new Error(t.passwordRequired || 'Password is required')
-      }
-
-      if (!isEncryptedPayload(parsed)) {
-        throw new Error(
-          t.invalidEncryptedJson || 'Invalid encrypted JSON payload',
-        )
-      }
-
-      const decrypted = await decryptPayload(
-        jsonImportPassword,
-        parsed.ciphertext,
-        parsed.iv,
-      )
-      return parseJsonEvents(decrypted)
-    }
 
     if (Array.isArray(parsed)) {
       return {
@@ -524,87 +398,63 @@ ${rawContent.substring(0, 500)}...`)
         color: 'bg-blue-500',
         keywords: [],
       }))
-      mergeCategoriesFromBackup([...importedCategories, ...autoCategories])
+
+      const allCategories = [...importedCategories, ...autoCategories]
+      const existingIds = new Set(categories.map((c: CategoryData) => c.id))
+      for (const cat of allCategories) {
+        if (!existingIds.has(cat.id)) {
+          try {
+            const { api } = await import('@/lib/api-client')
+            await api.categories.create({
+              id: cat.id,
+              name: cat.name,
+              color: cat.color,
+            })
+          } catch {
+            // category creation failed, skip
+          }
+        }
+      }
+
+      if (Array.isArray(payload.data.countdowns)) {
+        const { api } = await import('@/lib/api-client')
+        for (const cd of payload.data.countdowns as any[]) {
+          try {
+            await api.countdowns.create({
+              id: cd.id,
+              name: cd.name || 'Untitled',
+              targetDate: cd.targetDate || new Date().toISOString(),
+              repeat: cd.repeat || 'none',
+              description: cd.description || null,
+              color: cd.color || null,
+              icon: cd.icon || null,
+            })
+          } catch {
+            // skip
+          }
+        }
+      }
 
       if (Array.isArray(payload.data.bookmarks)) {
-        await writeEncryptedLocalStorage(
-          'bookmarked-events',
-          payload.data.bookmarks,
-        )
-      }
-      if (Array.isArray(payload.data.countdowns)) {
-        await writeEncryptedLocalStorage('countdowns', payload.data.countdowns)
+        const { api } = await import('@/lib/api-client')
+        for (const bm of payload.data.bookmarks as any[]) {
+          try {
+            await api.bookmarks.create({ eventId: bm.eventId || bm.id })
+          } catch {
+            // skip
+          }
+        }
       }
 
-      const settings = payload.data.settings || {}
-      const settingWrites: Promise<void>[] = []
-      if (settings.language !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(SETTINGS_KEYS.language, settings.language),
-        )
+      const settingsData = payload.data.settings || {}
+      const { api } = await import('@/lib/api-client')
+      if (Object.keys(settingsData).length > 0) {
+        try {
+          await api.settings.update(settingsData as any)
+        } catch {
+          // skip
+        }
       }
-      if (settings.firstDayOfWeek !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.firstDayOfWeek,
-            settings.firstDayOfWeek,
-          ),
-        )
-      }
-      if (settings.timezone !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(SETTINGS_KEYS.timezone, settings.timezone),
-        )
-      }
-      if (settings.notificationSound !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.notificationSound,
-            settings.notificationSound,
-          ),
-        )
-      }
-      if (settings.defaultView !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.defaultView,
-            settings.defaultView,
-          ),
-        )
-      }
-      if (settings.enableShortcuts !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.enableShortcuts,
-            settings.enableShortcuts,
-          ),
-        )
-      }
-      if (settings.timeFormat !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.timeFormat,
-            settings.timeFormat,
-          ),
-        )
-      }
-      if (settings.toastPosition !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.toastPosition,
-            settings.toastPosition,
-          ),
-        )
-      }
-      if (settings.theme !== undefined) {
-        settingWrites.push(
-          writeEncryptedLocalStorage(
-            SETTINGS_KEYS.theme,
-            normalizeTheme(settings.theme),
-          ),
-        )
-      }
-      await Promise.all(settingWrites)
 
       return {
         events: importedEvents,
@@ -613,6 +463,33 @@ ${rawContent.substring(0, 500)}...`)
     }
 
     throw new Error(t.unsupportedFormat || 'Unsupported file format')
+  }
+
+  const normalizeImportedEvent = (
+    input: Partial<CalendarEvent>,
+  ): CalendarEvent => {
+    const start = input.startDate ? new Date(input.startDate) : new Date()
+    const parsedEnd = input.endDate
+      ? new Date(input.endDate)
+      : new Date(start.getTime() + 60 * 60 * 1000)
+    const end =
+      parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
+
+    return {
+      id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
+      title: input.title || t.unnamedEvent || 'Unnamed Event',
+      startDate: start,
+      endDate: end,
+      isAllDay: Boolean(input.isAllDay),
+      recurrence: input.recurrence || 'none',
+      location: input.location,
+      participants: Array.isArray(input.participants) ? input.participants : [],
+      notification:
+        typeof input.notification === 'number' ? input.notification : 0,
+      description: input.description,
+      color: input.color || 'bg-[#E6F6FD]',
+      calendarId: input.calendarId || '',
+    }
   }
 
   const generateICSFile = (events: CalendarEvent[]): string => {
@@ -1016,8 +893,6 @@ END:VEVENT
       setSelectedFile(null)
       setImportUrl('')
       setDebugInfo('')
-      setJsonImportEncrypted(false)
-      setJsonImportPassword('')
     }
   }
 
@@ -1065,7 +940,6 @@ END:VEVENT
         </div>
       </div>
 
-      {}
       <Dialog
         open={importDialogOpen}
         onOpenChange={handleImportDialogOpenChange}
@@ -1115,7 +989,7 @@ END:VEVENT
                     <SelectItem value="__uncategorized__">
                       {t.uncategorized}
                     </SelectItem>
-                    {calendars.map((calendar) => (
+                    {categories.map((calendar: CategoryData) => (
                       <SelectItem key={calendar.id} value={calendar.id}>
                         {calendar.name}
                       </SelectItem>
@@ -1139,35 +1013,6 @@ END:VEVENT
                 />
                 <Label htmlFor="debug-mode">{t.debugMode}</Label>
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="json-import-encrypted"
-                  checked={jsonImportEncrypted}
-                  onCheckedChange={(checked) =>
-                    setJsonImportEncrypted(checked as boolean)
-                  }
-                />
-                <Label htmlFor="json-import-encrypted">
-                  {t.thisJsonEncrypted ||
-                    'This JSON file is password-encrypted'}
-                </Label>
-              </div>
-
-              {jsonImportEncrypted && (
-                <div className="space-y-2">
-                  <Label htmlFor="json-import-password">
-                    {t.password || 'Password'}
-                  </Label>
-                  <Input
-                    id="json-import-password"
-                    type="password"
-                    value={jsonImportPassword}
-                    onChange={(e) => setJsonImportPassword(e.target.value)}
-                    placeholder={t.enterPassword || 'Enter a password'}
-                  />
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="url" className="space-y-4 pt-4">
@@ -1219,7 +1064,6 @@ END:VEVENT
         </DialogContent>
       </Dialog>
 
-      {}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1259,37 +1103,6 @@ END:VEVENT
                 </SelectContent>
               </Select>
             </div>
-
-            {exportFormat === 'json' && (
-              <div className="space-y-3 rounded-md border p-3">
-                <div className="space-y-2">
-                  <Label htmlFor="json-password">
-                    {t.passwordOptionalForEncryption}
-                  </Label>
-                  <Input
-                    id="json-password"
-                    type="password"
-                    value={jsonPassword}
-                    onChange={(e) => setJsonPassword(e.target.value)}
-                    placeholder={t.enterPassword || 'Enter a password'}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="json-password-confirm">
-                    {t.confirmYourPassword || 'Confirm your password'}
-                  </Label>
-                  <Input
-                    id="json-password-confirm"
-                    type="password"
-                    value={jsonPasswordConfirm}
-                    onChange={(e) => setJsonPasswordConfirm(e.target.value)}
-                    placeholder={
-                      t.confirmYourPassword || 'Confirm your password'
-                    }
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="flex items-center space-x-2">
               <Checkbox

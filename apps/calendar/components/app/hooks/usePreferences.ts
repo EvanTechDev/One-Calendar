@@ -56,11 +56,6 @@ export function usePreferences() {
     }
 
     applyRestoredPreferences()
-
-    window.addEventListener('backup-restored', applyRestoredPreferences)
-    return () => {
-      window.removeEventListener('backup-restored', applyRestoredPreferences)
-    }
   }, [setDefaultView, setFirstDayOfWeek])
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeekValue) => {
