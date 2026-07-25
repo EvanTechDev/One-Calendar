@@ -198,13 +198,19 @@ RootLayout
 - [x] **7e. bookmark-panel 迁移** — `readEncryptedLocalStorage` → `useBookmarks()`
 - [x] **7f. categories/sidebar** — 已通过 CalendarProvider 间接从 DataProvider 读取
 
-### ✅ 全部已修复（P0-P4，2026-07-25）
+### ✅ 全部已修复（P0-P4 + 二次 review 修复，2026-07-25）
 
 - **P0**：share 双重加密 Bug
 - **P1**：migration SQL 添加 DROP 旧 shares 表
 - **P2**：API 失败 toast 提示（8 处 silent catch 替换）
 - **P3**：`getAuthedUser()` + `decryptEvent()` 提取到共享 lib；`createEvent` → `upsertEvent`
 - **P4**：`as any` 类型全部替换为 domain 类型；settings if-cascade 改为循环；删除 7 个 dead code 文件；更新 hooks/index.ts & utils/package.json exports
+- **二次 review 修复**：
+  - Share routes 改用 `getAuthedUser()`（移除重复的 `getServerSession()` 调用）
+  - `account/route.ts` 移除多余的存在性检查
+  - `autoBackupEnabled` 从 SettingsData 移除（no backup feature）
+  - DataProvider 所有 CRUD 方法添加 try/catch + toast.error
+  - `migrateFromLocalStorage` 改为循环模式（消除重复 if-blocks）
 
 ---
 

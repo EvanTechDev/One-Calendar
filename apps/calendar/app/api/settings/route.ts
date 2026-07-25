@@ -16,7 +16,6 @@ export type SettingsData = {
   enableShortcuts?: boolean
   notificationSound?: string
   toastPosition?: string
-  autoBackupEnabled?: boolean
   skipLanding?: boolean
   todayToast?: string | null
 }

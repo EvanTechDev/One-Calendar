@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { getServerSession } from '@/lib/auth/server'
 import crypto from 'crypto'
+import { getAuthedUser } from '@/lib/api-helpers'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
@@ -66,8 +66,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
     if (!eventId)
       return NextResponse.json({ error: 'Missing eventId' }, { status: 400 })
 
-    const session = await getServerSession()
-    const user = session?.user
+    const user = await getAuthedUser()
     if (!user) {
       log.audit?.({
         action: 'share.create',
@@ -288,8 +287,7 @@ export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
   if (!id)
     return NextResponse.json({ error: 'Missing share ID' }, { status: 400 })
 
-  const session = await getServerSession()
-  const user = session?.user
+  const user = await getAuthedUser()
   if (!user) {
     log.audit?.({
       action: 'share.delete',

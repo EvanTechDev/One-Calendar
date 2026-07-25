@@ -1,17 +1,16 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, desc } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
 export const GET = withEvlog(async function GET(_req: NextRequest) {
   const log = useLogger()
-  const session = await getServerSession()
-  const user = session?.user
+  const user = await getAuthedUser()
   if (!user) {
     log.audit?.({
       action: 'share.list',

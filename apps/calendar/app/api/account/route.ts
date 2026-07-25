@@ -10,7 +10,7 @@ import {
   bookmarkedEvents,
   shares,
 } from '@/lib/drizzle/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -41,16 +41,6 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
         .where(eq(calendarCategories.userId, user.id))
       await tx.delete(settings).where(eq(settings.userId, user.id))
       await tx.delete(calendarEvents).where(eq(calendarEvents.userId, user.id))
-
-      const hasCalendarEventsTable = await tx.execute(sql`
-        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
-      `)
-
-      if (hasCalendarEventsTable.length > 0) {
-        await tx.execute(
-          sql`DELETE FROM calendar_events WHERE user_id = ${user.id}`,
-        )
-      }
     })
 
     log.audit?.({
