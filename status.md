@@ -177,18 +177,31 @@ CREATE INDEX idx_shares_event_id ON shares(event_id);
   - [x] 6c. 更新 CalendarProvider 从 DataProvider 读取数据
 
 ### ⏳ 待完成
-- [ ] **7. 前端 feature 迁移**
-  - [ ] 7a. settings 组件 → useSettings() hook
-  - [ ] 7b. categories 组件 → useCategories() hook
-  - [ ] 7c. events + bookmarks 组件 → DataProvider API
-  - [ ] 7d. countdowns 组件 → useCountdowns() hook
-  - [ ] 7e. share 组件 → 新 api-client
+- [x] **7a. settings → useSettings()** ✅
+- [x] **7b. calendar.tsx events → useEvents() + useBookmarks()** ✅
+- [x] **7c. event-preview share/bookmark → API** ✅
+- [x] **7d. countdowns → useCountdowns()** ✅
+- [x] **7e. bookmark-panel → useBookmarks()** ✅
+- [ ] **7f. import-export** — 需要重写为从 Server/API 导入导出（大改动）
+- [ ] **7g. user-profile-button (backup)** — 移除 backup 功能（blob API 已 410），改为仅账户管理
 - [ ] **8. 移除所有 localStorage 代码**
-  - [ ] `packages/utils/src/useLocalStorage.ts` 移除
+  - [ ] `packages/utils/src/useLocalStorage.ts` 移除（仍有 calendar.tsx 中 backup-restored 事件引用）
   - [ ] `packages/utils/src/crypto.ts` 清理（Web Crypto API 保留？）
-  - [ ] 所有 `readEncryptedLocalStorage`/`writeEncryptedLocalStorage` 调用移除
+  - [ ] 清理所有剩余 `readEncryptedLocalStorage`/`writeEncryptedLocalStorage` 调用
 - [ ] **9. 一次性数据迁移逻辑（localStorage → server）**
 - [ ] **10. 清理旧表（DROP calendar_backups, old shares）**
+
+### Git 提交历史（重构相关）
+```
+71cab3d refactor: migrate bookmark-panel from localStorage to DataProvider
+3558e0d refactor: migrate countdown component from localStorage to DataProvider
+1b8d8cb refactor: migrate event-preview share + bookmark logic to API
+c3eeb4f refactor: migrate settings + event mutations from localStorage to DataProvider
+08b927d feat: add DataProvider + API client frontend layer
+5e14933 feat: add field-level encryption and CRUD APIs
+bf6260c feat: add new schema tables (events, settings, categories, countdowns, bookmarks, shares)
+47f51be chore: add status.md tracking file (gitignored)
+```
 
 ## 新增文件清单
 
