@@ -7,10 +7,10 @@ import {
 } from 'evlog'
 import { createAuthMiddleware } from 'evlog/better-auth'
 import { createEvlog } from 'evlog/next'
-import { auth } from '@/lib/auth'
 
 let _evlog: ReturnType<typeof createEvlog> | null = null
-let _identify: ReturnType<typeof createAuthMiddleware> | null = null
+let _identifyPromise: Promise<ReturnType<typeof createAuthMiddleware>> | null =
+  null
 
 function getEvlog() {
   if (!_evlog) {
@@ -37,10 +37,12 @@ function getEvlog() {
 }
 
 function getIdentify() {
-  if (!_identify) {
-    _identify = createAuthMiddleware(auth)
+  if (!_identifyPromise) {
+    _identifyPromise = import('@/lib/auth').then((mod) =>
+      createAuthMiddleware(mod.auth),
+    )
   }
-  return _identify
+  return _identifyPromise
 }
 
 const mainDrain = async (ctx: unknown) => {
@@ -103,7 +105,8 @@ export function withEvlog<T extends (...args: any[]) => any>(handler: T): T {
     const request = args[0]
     if (request instanceof Request) {
       const log = getEvlog().useLogger()
-      await getIdentify()(log, request.headers, new URL(request.url).pathname)
+      const identify = await getIdentify()
+      await identify(log, request.headers, new URL(request.url).pathname)
     }
     return handler(...args)
   }
