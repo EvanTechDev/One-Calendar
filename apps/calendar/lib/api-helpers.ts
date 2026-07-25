@@ -1,3 +1,4 @@
+import '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
 import { decryptField, decryptJsonField } from '@/lib/field-crypto'
 import { calendarEvents } from '@/lib/drizzle/schema'
