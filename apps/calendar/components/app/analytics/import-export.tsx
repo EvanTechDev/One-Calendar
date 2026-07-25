@@ -35,6 +35,7 @@ import type {
   CategoryData,
   BookmarkData,
   CountdownData,
+  SettingsData,
 } from '@/lib/api-client'
 
 interface ImportExportProps {
@@ -423,7 +424,7 @@ ${rawContent.substring(0, 500)}...`)
 
       if (Array.isArray(payload.data.countdowns)) {
         const { api } = await import('@/lib/api-client')
-        for (const cd of payload.data.countdowns as any[]) {
+        for (const cd of (payload.data.countdowns ?? []) as CountdownData[]) {
           try {
             await api.countdowns.create({
               id: cd.id,
@@ -447,7 +448,7 @@ ${rawContent.substring(0, 500)}...`)
 
       if (Array.isArray(payload.data.bookmarks)) {
         const { api } = await import('@/lib/api-client')
-        for (const bm of payload.data.bookmarks as any[]) {
+        for (const bm of (payload.data.bookmarks ?? []) as BookmarkData[]) {
           try {
             await api.bookmarks.create({ eventId: bm.eventId || bm.id })
           } catch (e) {
@@ -465,7 +466,7 @@ ${rawContent.substring(0, 500)}...`)
       const { api } = await import('@/lib/api-client')
       if (Object.keys(settingsData).length > 0) {
         try {
-          await api.settings.update(settingsData as any)
+          await api.settings.update(settingsData as SettingsData)
         } catch (e) {
           toast.error(
             t.importError.replace(

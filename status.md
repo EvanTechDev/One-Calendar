@@ -198,25 +198,17 @@ RootLayout
 - [x] **7e. bookmark-panel 迁移** — `readEncryptedLocalStorage` → `useBookmarks()`
 - [x] **7f. categories/sidebar** — 已通过 CalendarProvider 间接从 DataProvider 读取
 
-### ✅ 已修复（P0-P3 均已完成，2026-07-25）
+### ✅ 全部已修复（P0-P4，2026-07-25）
 
-- **P0**：share 双重加密 Bug — POST 前 `decryptField()`，list 中 `decryptField()`
-- **P1**：migration SQL 添加 `DROP TABLE IF EXISTS "shares" CASCADE`
-- **P2**：import-export.tsx 4 处 + data-provider.tsx 4 处 `catch(() => {})` → `toast.error()`
-- **P3**：`getAuthedUser()` + `decryptEvent()` 提取到 `lib/api-helpers.ts`；`createEvent` → `upsertEvent`
-
----
-
-### ⏳ 待完成（P4 — 非必须，可选做）
-
-1. **Primitive Obsession**：替换 `any` 类型转换，使用 `EventData` / `BookmarkData` / `CountdownData` 等已有 domain 类型（import-export.tsx, calendar.tsx, event-preview.tsx 中多处）。
-2. **Repeated Switches**：calendar.tsx 中 settings 字段的 if-cascade 改为循环或 map。
-3. **删除 dead code 文件**：`usePreferences.ts`, `useEventOperations.ts`, `useViewManagement.ts`, `events-calendar.tsx`, `useBackupSync.ts`, `packages/utils/src/useLocalStorage.ts`, `packages/utils/src/crypto.ts`
-4. **i18n.ts 残留 localStorage**：语言偏好仍用 `localStorage.getItem/setItem`，理论上可用 API 通过 settings 表存。但 i18n 是独立包，改起来会导致循环依赖，当前方案可接受。
+- **P0**：share 双重加密 Bug
+- **P1**：migration SQL 添加 DROP 旧 shares 表
+- **P2**：API 失败 toast 提示（8 处 silent catch 替换）
+- **P3**：`getAuthedUser()` + `decryptEvent()` 提取到共享 lib；`createEvent` → `upsertEvent`
+- **P4**：`as any` 类型全部替换为 domain 类型；settings if-cascade 改为循环；删除 7 个 dead code 文件；更新 hooks/index.ts & utils/package.json exports
 
 ---
 
-#### 建表 & 测试（用户操作）
+### 建表 & 测试（用户操作）
 - 配置 `.env`（POSTGRES_URL + SALT）后运行 `drizzle-kit push` 建表
 - 测试所有功能
 
@@ -225,6 +217,7 @@ RootLayout
 ## 八、Git 提交历史（重构相关）
 
 ```
+eceebd4 docs: update status.md - mark P0-P3 fixed, update git log + manifest
 9ee928e refactor: extract shared getAuthedUser/decryptEvent, rename createEvent->upsertEvent (P3)
 e7dd90b fix: add DROP old shares table and add toast on API errors (P1+P2)
 2d83a18 fix: decrypt event fields before embedding in share payload (P0)

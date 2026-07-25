@@ -256,18 +256,39 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (Object.keys(settings).length === 0) return
     settingsInitializedRef.current = true
 
-    if (settings.firstDayOfWeek !== undefined)
-      setFirstDayOfWeek(settings.firstDayOfWeek as FirstDayOfWeekValue)
-    if (settings.timezone) setTimezone(settings.timezone)
-    if (settings.defaultView && isCalendarView(settings.defaultView)) {
-      setDefaultView(settings.defaultView as CalendarViewTypeValue)
-      setView(settings.defaultView as ViewType)
-    }
-    if (settings.enableShortcuts !== undefined)
-      setEnableShortcuts(settings.enableShortcuts)
-    if (settings.timeFormat)
-      setTimeFormat(settings.timeFormat as TimeFormatValue)
-    if (settings.toastPosition) setToastPosition(settings.toastPosition as any)
+    const settingsSync: Array<() => void> = [
+      () => {
+        if (settings.firstDayOfWeek !== undefined)
+          setFirstDayOfWeek(settings.firstDayOfWeek as FirstDayOfWeekValue)
+      },
+      () => {
+        if (settings.timezone) setTimezone(settings.timezone)
+      },
+      () => {
+        if (settings.defaultView && isCalendarView(settings.defaultView)) {
+          setDefaultView(settings.defaultView as CalendarViewTypeValue)
+          setView(settings.defaultView as ViewType)
+        }
+      },
+      () => {
+        if (settings.enableShortcuts !== undefined)
+          setEnableShortcuts(settings.enableShortcuts)
+      },
+      () => {
+        if (settings.timeFormat)
+          setTimeFormat(settings.timeFormat as TimeFormatValue)
+      },
+      () => {
+        if (settings.toastPosition)
+          setToastPosition(
+            settings.toastPosition as
+              | 'bottom-left'
+              | 'bottom-center'
+              | 'bottom-right',
+          )
+      },
+    ]
+    settingsSync.forEach((fn) => fn())
   }, [settings])
 
   useEffect(() => {
@@ -1020,7 +1041,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'settings' && (
               <Settings
                 language={languageObj.code}
-                setLanguage={(lang: string) => setLanguage(lang as any)}
+                setLanguage={setLanguage}
                 firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
