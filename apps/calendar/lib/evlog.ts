@@ -9,7 +9,39 @@ import { createAuthMiddleware } from 'evlog/better-auth'
 import { createEvlog } from 'evlog/next'
 import { auth } from '@/lib/auth'
 
-const identify = createAuthMiddleware(auth)
+let _evlog: ReturnType<typeof createEvlog> | null = null
+let _identify: ReturnType<typeof createAuthMiddleware> | null = null
+
+function getEvlog() {
+  if (!_evlog) {
+    const auditEnrich = auditEnricher({
+      bridge: {
+        getSession: ({ event }) =>
+          actorFromEvent(event as Record<string, unknown>),
+      },
+    })
+    _evlog = createEvlog({
+      service: 'one-calendar',
+      drain: async (ctx) => {
+        const results = await Promise.allSettled([
+          mainDrain(ctx),
+          auditDrain(ctx),
+        ])
+        const rejected = results.find((r) => r.status === 'rejected')
+        if (rejected?.status === 'rejected') throw rejected.reason
+      },
+      enrich: auditEnrich,
+    })
+  }
+  return _evlog
+}
+
+function getIdentify() {
+  if (!_identify) {
+    _identify = createAuthMiddleware(auth)
+  }
+  return _identify
+}
 
 const mainDrain = async (ctx: unknown) => {
   // eslint-disable-next-line no-console
@@ -66,32 +98,36 @@ export function getAuditActor(
   return actorFromEvent(logger.getContext()) ?? fallback
 }
 
-const auditEnrich = auditEnricher({
-  bridge: {
-    getSession: ({ event }) => actorFromEvent(event as Record<string, unknown>),
-  },
-})
-
-const evlog = createEvlog({
-  service: 'one-calendar',
-  drain: async (ctx) => {
-    const results = await Promise.allSettled([mainDrain(ctx), auditDrain(ctx)])
-    const rejected = results.find((r) => r.status === 'rejected')
-    if (rejected?.status === 'rejected') throw rejected.reason
-  },
-  enrich: auditEnrich,
-})
-
-const withEvlogBase = evlog.withEvlog
-
-export const withEvlog: typeof evlog.withEvlog = (handler) =>
-  withEvlogBase(async (...args: Parameters<typeof handler>) => {
+export function withEvlog<T extends (...args: any[]) => any>(handler: T): T {
+  const wrapped = async (...args: any[]) => {
     const request = args[0]
     if (request instanceof Request) {
-      const log = evlog.useLogger()
-      await identify(log, request.headers, new URL(request.url).pathname)
+      const log = getEvlog().useLogger()
+      await getIdentify()(log, request.headers, new URL(request.url).pathname)
     }
     return handler(...args)
-  })
+  }
+  return getEvlog().withEvlog(wrapped) as T
+}
 
-export const { useLogger, log, createError, createEvlogError } = evlog
+export function useLogger() {
+  return getEvlog().useLogger()
+}
+
+export function log(
+  ...args: Parameters<ReturnType<typeof createEvlog>['log']>
+) {
+  return getEvlog().log(...args)
+}
+
+export function createError(
+  ...args: Parameters<ReturnType<typeof createEvlog>['createError']>
+) {
+  return getEvlog().createError(...args)
+}
+
+export function createEvlogError(
+  ...args: Parameters<ReturnType<typeof createEvlog>['createEvlogError']>
+) {
+  return getEvlog().createEvlogError(...args)
+}
