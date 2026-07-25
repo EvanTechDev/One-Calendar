@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
+import { decryptField } from '@/lib/field-crypto'
 
 export const runtime = 'nodejs'
 
@@ -102,9 +103,9 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
 
     const eventData = JSON.stringify({
       id: event.id,
-      title: event.title,
-      description: event.description,
-      location: event.location,
+      title: decryptField(event.id, event.title),
+      description: decryptField(event.id, event.description),
+      location: decryptField(event.id, event.location),
       startDate: event.startDate,
       endDate: event.endDate,
       isAllDay: event.isAllDay,

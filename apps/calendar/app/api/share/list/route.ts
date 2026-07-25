@@ -4,6 +4,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, desc } from 'drizzle-orm'
+import { decryptField } from '@/lib/field-crypto'
 
 export const runtime = 'nodejs'
 
@@ -39,7 +40,9 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
   const shareList = result.map((row) => ({
     id: row.id,
     eventId: row.eventId,
-    eventTitle: row.hasPassword ? '受保护' : (row.eventTitle ?? ''),
+    eventTitle: row.hasPassword
+      ? '受保护'
+      : (decryptField(row.eventId, row.eventTitle) ?? ''),
     sharedBy: user.id,
     shareDate: row.createdAt.toISOString(),
     shareLink: `/share/${row.id}`,
