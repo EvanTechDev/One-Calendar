@@ -1,35 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { bookmarkedEvents, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, desc } from 'drizzle-orm'
-import { decryptField, decryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
+import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
 type BookmarkInput = {
   id?: string
   eventId: string
-}
-
-function decryptEvent(event: typeof calendarEvents.$inferSelect) {
-  return {
-    ...event,
-    title: decryptField(event.id, event.title) ?? event.title,
-    description: decryptField(event.id, event.description),
-    location: decryptField(event.id, event.location),
-    participants: decryptJsonField(
-      event.id,
-      event.participants as string | null | undefined,
-    ),
-  }
-}
-
-async function getAuthedUser() {
-  const session = await getServerSession()
-  if (!session?.user) return null
-  return session.user
 }
 
 export const GET = async function GET() {

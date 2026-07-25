@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
@@ -19,12 +19,6 @@ export type SettingsData = {
   autoBackupEnabled?: boolean
   skipLanding?: boolean
   todayToast?: string | null
-}
-
-async function getAuthedUser() {
-  const session = await getServerSession()
-  if (!session?.user) return null
-  return session.user
 }
 
 export const GET = async function GET() {

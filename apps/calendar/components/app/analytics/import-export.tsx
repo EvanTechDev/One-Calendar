@@ -95,7 +95,7 @@ export default function ImportExport({
   const { bookmarks } = useBookmarks()
   const { countdowns } = useCountdowns()
   const { settings } = useSettings()
-  const { createEvent } = useEvents()
+  const { upsertEvent } = useEvents()
   const [importCalendarId, setImportCalendarId] =
     useState<string>('__uncategorized__')
 
@@ -287,7 +287,7 @@ ${rawContent.substring(0, 500)}...`)
         : importedEvents
 
       for (const event of normalizedImportedEvents) {
-        await createEvent({
+        await upsertEvent({
           id: event.id,
           title: event.title,
           startDate: event.startDate.toISOString(),

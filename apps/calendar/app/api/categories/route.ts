@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { calendarCategories } from '@/lib/drizzle/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
@@ -20,12 +20,6 @@ function decryptCategory(cat: typeof calendarCategories.$inferSelect) {
     ...cat,
     name: decryptField(cat.id, cat.name) ?? cat.name,
   }
-}
-
-async function getAuthedUser() {
-  const session = await getServerSession()
-  if (!session?.user) return null
-  return session.user
 }
 
 export const GET = async function GET() {

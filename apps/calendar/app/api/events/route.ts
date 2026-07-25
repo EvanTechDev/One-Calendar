@@ -1,15 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/server'
 import { db } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, gte, lte, inArray } from 'drizzle-orm'
-import {
-  encryptField,
-  decryptField,
-  encryptJsonField,
-  decryptJsonField,
-} from '@/lib/field-crypto'
+import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
+import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
@@ -25,25 +20,6 @@ type EventInput = {
   categoryId?: string | null
   participants?: Array<{ name: string; email?: string; userId?: string }> | null
   notificationMinutes?: number | null
-}
-
-function decryptEvent(event: typeof calendarEvents.$inferSelect) {
-  return {
-    ...event,
-    title: decryptField(event.id, event.title) ?? event.title,
-    description: decryptField(event.id, event.description),
-    location: decryptField(event.id, event.location),
-    participants: decryptJsonField(
-      event.id,
-      event.participants as string | null | undefined,
-    ),
-  }
-}
-
-async function getAuthedUser() {
-  const session = await getServerSession()
-  if (!session?.user) return null
-  return session.user
 }
 
 export const GET = async function GET(request: NextRequest) {

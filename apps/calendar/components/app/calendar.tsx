@@ -135,7 +135,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
-  const { createEvent, deleteEvent } = useEvents()
+  const { upsertEvent, deleteEvent } = useEvents()
   const { deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
@@ -466,7 +466,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
-    createEvent({
+    upsertEvent({
       id: newEvent.id,
       title: newEvent.title,
       startDate: newEvent.startDate.toISOString(),
@@ -489,7 +489,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
     )
-    createEvent({
+    upsertEvent({
       id: updatedEvent.id,
       title: updatedEvent.title,
       startDate: updatedEvent.startDate.toISOString(),

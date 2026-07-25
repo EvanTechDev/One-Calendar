@@ -37,7 +37,7 @@ interface DataContextValue {
   refreshBookmarks: () => Promise<void>
   refreshSettings: () => Promise<void>
 
-  createEvent: (
+  upsertEvent: (
     data: Parameters<typeof api.events.create>[0],
   ) => Promise<EventData>
   deleteEvent: (id: string) => Promise<void>
@@ -196,7 +196,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSettings(res.settings)
   }, [])
 
-  const createEvent = useCallback(
+  const upsertEvent = useCallback(
     async (data: Parameters<typeof api.events.create>[0]) => {
       const res = await api.events.create(data)
       setEvents((prev) => {
@@ -301,7 +301,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refreshCountdowns,
         refreshBookmarks,
         refreshSettings,
-        createEvent,
+        upsertEvent,
         deleteEvent,
         createCategory,
         deleteCategory,
@@ -325,8 +325,8 @@ export function useData(): DataContextValue {
 }
 
 export function useEvents() {
-  const { events, loading, createEvent, deleteEvent, refreshEvents } = useData()
-  return { events, loading, createEvent, deleteEvent, refreshEvents }
+  const { events, loading, upsertEvent, deleteEvent, refreshEvents } = useData()
+  return { events, loading, upsertEvent, deleteEvent, refreshEvents }
 }
 
 export function useCategories() {
