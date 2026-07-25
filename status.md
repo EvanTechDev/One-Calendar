@@ -198,53 +198,16 @@ RootLayout
 - [x] **7e. bookmark-panel 迁移** — `readEncryptedLocalStorage` → `useBookmarks()`
 - [x] **7f. categories/sidebar** — 已通过 CalendarProvider 间接从 DataProvider 读取
 
-### ⏳ 待完成 + ⚠️ 已知 Bug（必须先修复）
+### ✅ 已修复（P0-P3 均已完成，2026-07-25）
 
-#### P0 — Share 双重加密 Bug（关键缺陷，分享功能完全不可用）
-
-**Bug 1（share/route.ts POST）**：创建分享时，代码从 DB 读取 `event.title` / `description` / `location`——这些是字段级加密后的密文字符串（`{"ct":"...","iv":"...","tag":"..."}`）。代码直接把这些密文放进 share payload 然后用 share key 再加密一次。接收方解密 share 后拿到的是密文字符串而非可读内容。
-
-**需求**：在放入 share payload 之前，必须用 `decryptField(eventId, event.title)` 解密每个字段。
-
-**Bug 2（share/list/route.ts GET）**：分享列表 JOIN calendarEvents 后直接 select `calendarEvents.title` 作为 `eventTitle` 返回——这是原始加密密文。前端显示分享列表时标题会显示为加密 JSON blob。
-
-**需求**：返回前用 `decryptField(row.id, row.title)` 解密 title。
-
-**修改文件**：`apps/calendar/app/api/share/route.ts` + `apps/calendar/app/api/share/list/route.ts`
+- **P0**：share 双重加密 Bug — POST 前 `decryptField()`，list 中 `decryptField()`
+- **P1**：migration SQL 添加 `DROP TABLE IF EXISTS "shares" CASCADE`
+- **P2**：import-export.tsx 4 处 + data-provider.tsx 4 处 `catch(() => {})` → `toast.error()`
+- **P3**：`getAuthedUser()` + `decryptEvent()` 提取到 `lib/api-helpers.ts`；`createEvent` → `upsertEvent`
 
 ---
 
-#### P1 — Migration SQL 未 DROP 旧 shares 表
-
-**问题**：migration SQL 只添加了 `DROP TABLE IF EXISTS "calendar_backups"`。旧 `shares` 表（列：`shareId, encryptedData, iv, authTag, isProtected, isBurn, encVersion`）从未被 DROP。新 `CREATE TABLE "shares"` 同名但结构不同，如果旧表存在会冲突。
-
-**需求**：在 migration SQL 顶部添加 `DROP TABLE IF EXISTS "shares" CASCADE;`（注意：新 shares 表同名，第一次运行时 DROP 会删掉刚建的表——需要确保执行顺序是 DROP → CREATE，或只在建表前执行一次）。
-
-**修改文件**：`apps/calendar/drizzle/0000_opposite_joystick.sql`
-
----
-
-#### P2 — API 失败无 Toast 提示
-
-**问题**：多处 API 调用使用 `.catch(() => {})` 无声吞掉错误，包括 import-export.tsx、countdown.tsx、data-provider.tsx 中的迁移逻辑。Spec §Q5 明确要求 "API 失败 toast 提示"。
-
-**需求**：将 `catch(() => {})` 替换为 `catch((e) => toast.error(t.operationFailed, { description: e.message }))`。最少需要修复：import-export.tsx 中 categories/countdowns/bookmarks 的 catch blocks；data-provider.tsx 中 migrateFromLocalStorage 的 catch blocks。
-
-**修改文件**：`apps/calendar/components/app/analytics/import-export.tsx`、`apps/calendar/components/providers/data-provider.tsx`
-
----
-
-#### P3 — Standards 代码味道修复
-
-1. **Duplicated Code**：`getAuthedUser()` 在 5 个 route 文件（bookmarks, categories, countdowns, events, settings）中重复定义。提取到 `apps/calendar/lib/api-helpers.ts`。
-2. **Duplicated Code**：`decryptEvent()` 在 bookmarks/route.ts 和 events/route.ts 中主体相同。提取到共享 lib。
-3. **Mysterious Name**：`createEvent` 在 calendar.tsx 中实际用于创建和更新（upsert，服务端 upsert）。重命名为 `upsertEvent` 或拆分调用点。
-
-**修改文件**：`apps/calendar/app/api/*/route.ts`、`apps/calendar/components/app/calendar.tsx`
-
----
-
-#### P4 — 后续可做（非必须）
+### ⏳ 待完成（P4 — 非必须，可选做）
 
 1. **Primitive Obsession**：替换 `any` 类型转换，使用 `EventData` / `BookmarkData` / `CountdownData` 等已有 domain 类型（import-export.tsx, calendar.tsx, event-preview.tsx 中多处）。
 2. **Repeated Switches**：calendar.tsx 中 settings 字段的 if-cascade 改为循环或 map。
@@ -253,21 +216,19 @@ RootLayout
 
 ---
 
-#### 11. 建表 & 测试（用户操作）
+#### 建表 & 测试（用户操作）
 - 配置 `.env`（POSTGRES_URL + SALT）后运行 `drizzle-kit push` 建表
-- 修复上述 P0-P3 后测试所有功能
+- 测试所有功能
 
 ---
 
 ## 八、Git 提交历史（重构相关）
 
 ```
-（最新 commit 在 866879a 之后）
-xx(未定) fix: decrypt event fields before embedding in share payload
-xx(未定) fix: add DROP old shares table to migration SQL
-xx(未定) fix: add toast on API failure for import-export and data-provider
-xx(未定) refactor: extract shared getAuthedUser() and decryptEvent() to api-helpers
-xx(未定) docs: add review findings to status.md with priority levels
+9ee928e refactor: extract shared getAuthedUser/decryptEvent, rename createEvent->upsertEvent (P3)
+e7dd90b fix: add DROP old shares table and add toast on API errors (P1+P2)
+2d83a18 fix: decrypt event fields before embedding in share payload (P0)
+fd31d9f docs: add code review findings to status.md with priority levels
 
 866879a refactor: complete localStorage purge across all components
 
@@ -293,14 +254,15 @@ bf6260c feat: add new schema tables (events, settings, categories, countdowns, b
 | `apps/calendar/lib/drizzle/schema.ts` | 全部新表定义（170 行） |
 | `apps/calendar/lib/field-crypto.ts` | SALT + HKDF + AES-GCM 服务端加解密 |
 | `apps/calendar/lib/api-client.ts` | 前端类型化 API 客户端 |
+| `apps/calendar/lib/api-helpers.ts` | 共享 `getAuthedUser()` + `decryptEvent()` |
 | `apps/calendar/components/providers/data-provider.tsx` | DataProvider + useData/useEvents/useSettings/useCategories/useCountdowns/useBookmarks |
 | `apps/calendar/app/api/events/route.ts` | events CRUD（加密存储 title/description/location/participants） |
 | `apps/calendar/app/api/settings/route.ts` | settings CRUD（jsonb merge） |
 | `apps/calendar/app/api/categories/route.ts` | categories CRUD（加密 name） |
 | `apps/calendar/app/api/countdowns/route.ts` | countdowns CRUD（加密 name/description） |
 | `apps/calendar/app/api/bookmarks/route.ts` | bookmarks CRUD（含 JOIN events） |
-| `apps/calendar/app/api/share/route.ts` | shares 重建（HKDF + event_id 引用）⚠️ 需修复：分享前未解密事件字段 |
-| `apps/calendar/app/api/share/list/route.ts` | shares 列表 ⚠️ 需修复：eventTitle 返回加密密文 |
+| `apps/calendar/app/api/share/route.ts` | shares 重建（HKDF + event_id 引用） |
+| `apps/calendar/app/api/share/list/route.ts` | shares 列表 |
 | `apps/calendar/drizzle/0000_opposite_joystick.sql` | 初始 migration |
 
 ### 修改文件
