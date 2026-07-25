@@ -10,6 +10,7 @@ import {
   formatTimeForDisplay,
   formatHourMinute,
 } from '@/components/app/views/engine/EventLayoutEngine'
+import { TimeFormat } from '@/components/app/calendar-types'
 import type { CalendarEvent } from '@/components/app/calendar'
 
 // Use UTC dates to avoid timezone issues in test environment
@@ -382,31 +383,31 @@ describe('EventLayoutEngine', () => {
 
   describe('formatTimeForDisplay', () => {
     it('formats 24h correctly', () => {
-      expect(formatTimeForDisplay(0, 0, '24h')).toBe('00:00')
-      expect(formatTimeForDisplay(9, 5, '24h')).toBe('09:05')
-      expect(formatTimeForDisplay(13, 30, '24h')).toBe('13:30')
-      expect(formatTimeForDisplay(23, 59, '24h')).toBe('23:59')
+      expect(formatTimeForDisplay(0, 0, TimeFormat.h24())).toBe('00:00')
+      expect(formatTimeForDisplay(9, 5, TimeFormat.h24())).toBe('09:05')
+      expect(formatTimeForDisplay(13, 30, TimeFormat.h24())).toBe('13:30')
+      expect(formatTimeForDisplay(23, 59, TimeFormat.h24())).toBe('23:59')
     })
 
     it('formats 12h correctly', () => {
-      expect(formatTimeForDisplay(0, 0, '12h')).toBe('12:00 AM')
-      expect(formatTimeForDisplay(9, 5, '12h')).toBe('9:05 AM')
-      expect(formatTimeForDisplay(12, 0, '12h')).toBe('12:00 PM')
-      expect(formatTimeForDisplay(13, 30, '12h')).toBe('1:30 PM')
-      expect(formatTimeForDisplay(23, 59, '12h')).toBe('11:59 PM')
+      expect(formatTimeForDisplay(0, 0, TimeFormat.h12())).toBe('12:00 AM')
+      expect(formatTimeForDisplay(9, 5, TimeFormat.h12())).toBe('9:05 AM')
+      expect(formatTimeForDisplay(12, 0, TimeFormat.h12())).toBe('12:00 PM')
+      expect(formatTimeForDisplay(13, 30, TimeFormat.h12())).toBe('1:30 PM')
+      expect(formatTimeForDisplay(23, 59, TimeFormat.h12())).toBe('11:59 PM')
     })
   })
 
   describe('formatHourMinute', () => {
     it('formats 24h correctly', () => {
-      expect(formatHourMinute(0, 0, '24h')).toBe('00:00')
-      expect(formatHourMinute(9, 5, '24h')).toBe('09:05')
+      expect(formatHourMinute(0, 0, TimeFormat.h24())).toBe('00:00')
+      expect(formatHourMinute(9, 5, TimeFormat.h24())).toBe('09:05')
     })
 
     it('formats 12h correctly', () => {
-      expect(formatHourMinute(0, 0, '12h')).toBe('12:00 AM')
-      expect(formatHourMinute(12, 0, '12h')).toBe('12:00 PM')
-      expect(formatHourMinute(13, 30, '12h')).toBe('1:30 PM')
+      expect(formatHourMinute(0, 0, TimeFormat.h12())).toBe('12:00 AM')
+      expect(formatHourMinute(12, 0, TimeFormat.h12())).toBe('12:00 PM')
+      expect(formatHourMinute(13, 30, TimeFormat.h12())).toBe('1:30 PM')
     })
   })
 })
