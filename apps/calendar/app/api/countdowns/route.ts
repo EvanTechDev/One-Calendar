@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { countdowns } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
@@ -31,7 +31,7 @@ export const GET = async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const results = await db
+  const results = await getDb()
     .select()
     .from(countdowns)
     .where(eq(countdowns.userId, user.id))
@@ -47,7 +47,7 @@ export const POST = async function POST(request: NextRequest) {
   const body: CountdownInput = await request.json()
   const id = body.id ?? crypto.randomUUID()
 
-  const [cd] = await db
+  const [cd] = await getDb()
     .insert(countdowns)
     .values({
       id,
@@ -85,7 +85,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!id)
     return NextResponse.json({ error: 'Missing countdown id' }, { status: 400 })
 
-  await db
+  await getDb()
     .delete(countdowns)
     .where(and(eq(countdowns.id, id), eq(countdowns.userId, user.id)))
 

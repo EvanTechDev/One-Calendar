@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
 import { toNextJsHandler } from 'better-auth/next-js'
@@ -32,7 +32,7 @@ function authAction(pathname: string) {
 }
 
 async function findUserByEmail(email: string) {
-  const [result] = await db
+  const [result] = await getDb()
     .select({ id: users.id, email: users.email })
     .from(users)
     .where(eq(users.email, email))

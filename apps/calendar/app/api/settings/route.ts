@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { getAuthedUser } from '@/lib/api-helpers'
@@ -25,7 +25,7 @@ export const GET = async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const [result] = await db
+  const [result] = await getDb()
     .select()
     .from(settings)
     .where(eq(settings.userId, user.id))
@@ -42,7 +42,7 @@ export const PUT = async function PUT(request: NextRequest) {
 
   const body: SettingsData = await request.json()
 
-  const existingSettings = await db
+  const existingSettings = await getDb()
     .select()
     .from(settings)
     .where(eq(settings.userId, user.id))
@@ -52,7 +52,7 @@ export const PUT = async function PUT(request: NextRequest) {
     ...body,
   }
 
-  await db
+  await getDb()
     .insert(settings)
     .values({
       userId: user.id,

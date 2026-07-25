@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, desc } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
@@ -22,7 +22,7 @@ export const GET = withEvlog(async function GET(_req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await db
+  const result = await getDb()
     .select({
       id: shares.id,
       eventId: shares.eventId,

@@ -1,5 +1,5 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import * as schema from '@/lib/drizzle/schema'
 import { betterAuth } from 'better-auth'
 import { emailOTP, twoFactor } from 'better-auth/plugins'
@@ -9,7 +9,7 @@ import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, {
+  database: drizzleAdapter(getDb(), {
     provider: 'pg',
     schema,
   }),

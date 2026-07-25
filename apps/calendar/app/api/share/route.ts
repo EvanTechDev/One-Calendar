@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import crypto from 'crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { shares, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
@@ -78,7 +78,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [event] = await db
+    const [event] = await getDb()
       .select()
       .from(calendarEvents)
       .where(
@@ -117,7 +117,7 @@ export const POST = withEvlog(async function POST(request: NextRequest) {
 
     const { encryptedPayload } = encryptWithKey(eventData, key)
 
-    await db.insert(shares).values({
+    await getDb().insert(shares).values({
       id: shareId,
       userId: user.id,
       eventId: event.id,
@@ -167,7 +167,7 @@ export const GET = withEvlog(async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing share ID' }, { status: 400 })
 
   try {
-    const result = await db.transaction(async (tx) => {
+    const result = await getDb().transaction(async (tx) => {
       const [share] = await tx.select().from(shares).where(eq(shares.id, id))
 
       if (!share) return { status: 404 as const }
@@ -299,7 +299,7 @@ export const DELETE = withEvlog(async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  await db
+  await getDb()
     .delete(shares)
     .where(and(eq(shares.id, id), eq(shares.userId, user.id)))
 

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
@@ -43,7 +43,7 @@ export const GET = async function GET(request: NextRequest) {
     filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
   }
 
-  const results = await db
+  const results = await getDb()
     .select()
     .from(calendarEvents)
     .where(and(...filters))
@@ -59,7 +59,7 @@ export const POST = async function POST(request: NextRequest) {
   const body: EventInput = await request.json()
   const id = body.id ?? crypto.randomUUID()
 
-  const [event] = await db
+  const [event] = await getDb()
     .insert(calendarEvents)
     .values({
       id,
@@ -106,7 +106,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!id)
     return NextResponse.json({ error: 'Missing event id' }, { status: 400 })
 
-  await db
+  await getDb()
     .delete(calendarEvents)
     .where(and(eq(calendarEvents.id, id), eq(calendarEvents.userId, user.id)))
 

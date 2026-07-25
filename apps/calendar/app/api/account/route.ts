@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import {
   calendarEvents,
   settings,
@@ -30,7 +30,7 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await db.transaction(async (tx) => {
+    await getDb().transaction(async (tx) => {
       await tx.delete(shares).where(eq(shares.userId, user.id))
       await tx
         .delete(bookmarkedEvents)

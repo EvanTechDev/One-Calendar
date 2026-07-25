@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { bookmarkedEvents, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import crypto from 'crypto'
@@ -17,7 +17,7 @@ export const GET = async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const results = await db
+  const results = await getDb()
     .select({
       bookmark: bookmarkedEvents,
       event: calendarEvents,
@@ -48,7 +48,7 @@ export const POST = async function POST(request: NextRequest) {
 
   const id = body.id ?? crypto.randomUUID()
 
-  const [bm] = await db
+  const [bm] = await getDb()
     .insert(bookmarkedEvents)
     .values({
       id,
@@ -70,13 +70,13 @@ export const DELETE = async function DELETE(request: NextRequest) {
   const { id, eventId } = body as { id?: string; eventId?: string }
 
   if (id) {
-    await db
+    await getDb()
       .delete(bookmarkedEvents)
       .where(
         and(eq(bookmarkedEvents.id, id), eq(bookmarkedEvents.userId, user.id)),
       )
   } else if (eventId) {
-    await db
+    await getDb()
       .delete(bookmarkedEvents)
       .where(
         and(

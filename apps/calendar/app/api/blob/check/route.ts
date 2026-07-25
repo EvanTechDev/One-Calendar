@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { sql } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tables = await db.execute(sql<{ table_name: string }>`
+    const tables = await getDb().execute(sql<{ table_name: string }>`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'

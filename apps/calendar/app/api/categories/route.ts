@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/drizzle/client'
+import { getDb } from '@/lib/drizzle/client'
 import { calendarCategories } from '@/lib/drizzle/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
@@ -27,7 +27,7 @@ export const GET = async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const results = await db
+  const results = await getDb()
     .select()
     .from(calendarCategories)
     .where(eq(calendarCategories.userId, user.id))
@@ -44,7 +44,7 @@ export const POST = async function POST(request: NextRequest) {
   const body: CategoryInput = await request.json()
   const id = body.id ?? crypto.randomUUID()
 
-  const [cat] = await db
+  const [cat] = await getDb()
     .insert(calendarCategories)
     .values({
       id,
@@ -76,7 +76,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!id)
     return NextResponse.json({ error: 'Missing category id' }, { status: 400 })
 
-  await db
+  await getDb()
     .delete(calendarCategories)
     .where(
       and(
