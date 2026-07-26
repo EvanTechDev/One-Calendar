@@ -40,18 +40,18 @@ export default function Home() {
       return
     }
     let active = true
-    const checkDb = async () => {
+    const initAndReady = async () => {
       try {
-        const response = await fetch('/api/blob', { cache: 'no-store' })
-        if (!active) return
-        if (response.status === 200 || response.status === 404) {
-          setDbReady(true)
-        }
+        // Ensure the user has default data (settings, categories, etc.).
+        // The endpoint is idempotent – it's a no-op when data already exists.
+        await fetch('/api/init', { method: 'POST', cache: 'no-store' })
       } catch {
-        if (active) setDbReady(true)
+        // Initialization failed, but we still let the user through so the
+        // app can load with empty state rather than showing a spinner forever.
       }
+      if (active) setDbReady(true)
     }
-    void checkDb()
+    void initAndReady()
     return () => {
       active = false
     }
