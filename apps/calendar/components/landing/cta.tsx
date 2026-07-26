@@ -4,7 +4,7 @@ import { Button } from '@zntr/ui/button'
 import { ArrowRightIcon, Asterisk } from 'lucide-react'
 import Link from 'next/link'
 
-const stars = Array.from({ length: 60 }, (_, i) => ({
+const stars = Array.from({ length: 100 }, (_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
@@ -99,7 +99,7 @@ export function CallToAction() {
         
         <div className="flex items-center justify-center gap-4 mt-8">
           <Link href="/sign-up">
-            <Button className="rounded-full pl-4 pr-1 py-2.5 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group bg-white text-black hover:bg-white/90 border border-transparent shadow-lg shadow-black/10">
+            <Button className="rounded-full pl-4 pr-1 py-2.5 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group bg-white text-black hover:bg-white/90 shadow-lg shadow-black/10">
               <span className="mr-3 font-medium">Get started</span>
               <div className="flex size-6 items-center justify-center rounded-full bg-black/10 transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105 text-black">
                 <ArrowRightIcon data-icon="inline-end" />
