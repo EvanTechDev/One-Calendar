@@ -4,11 +4,11 @@ import { Button } from '@zntr/ui/button'
 import { ArrowRightIcon, Asterisk } from 'lucide-react'
 import Link from 'next/link'
 
-const stars = Array.from({ length: 100 }, (_, i) => ({
+const stars = Array.from({ length: 300 }, (_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  opacity: 0.05 + Math.random() * 0.4,
+  opacity: 0.3 + Math.random() * 0.5,
   size: Math.random() > 0.95 ? 2.5 : 1.5,
 }))
 
@@ -67,7 +67,7 @@ export function CallToAction() {
             'linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.4) 100%)',
         }}
       />
-      
+
       <div
         className="absolute inset-0"
         style={{
@@ -96,7 +96,7 @@ export function CallToAction() {
             sync. Free forever.
           </p>
         </div>
-        
+
         <div className="flex items-center justify-center gap-4 mt-8">
           <Link href="/sign-up">
             <Button className="rounded-full pl-4 pr-1 py-2.5 text-sm active:scale-[0.97] transition-transform duration-[160ms] ease-[var(--ease-out)] group bg-white text-black hover:bg-white/90 shadow-lg shadow-black/10">

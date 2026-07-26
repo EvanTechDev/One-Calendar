@@ -301,11 +301,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+
   const createBookmark = useCallback(
     async (data: Parameters<typeof api.bookmarks.create>[0]) => {
       try {
-        await api.bookmarks.create(data)
-        void refreshBookmarks()
+        const res = await api.bookmarks.create(data)
+        if (res.bookmark) {
+          const evt = eventsRef.current.find((e) => e.id === data.eventId)
+          if (evt) {
+            setBookmarks((prev) => [
+              {
+                id: res.bookmark.id,
+                eventId: res.bookmark.eventId,
+                createdAt: res.bookmark.createdAt,
+                event: evt,
+              },
+              ...prev,
+            ])
+          }
+        }
       } catch (e) {
         toast.error('Failed to create bookmark', {
           description: e instanceof Error ? e.message : 'Unknown',
@@ -313,7 +329,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [refreshBookmarks],
+    [],
   )
 
   const deleteBookmark = useCallback(async (id: string) => {

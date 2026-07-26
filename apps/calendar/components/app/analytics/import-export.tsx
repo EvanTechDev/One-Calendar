@@ -25,11 +25,11 @@ import { Label } from '@zntr/ui/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
+  useData,
   useCategories,
   useBookmarks,
   useCountdowns,
   useSettings,
-  useEvents,
 } from '@/components/providers/data-provider'
 import type {
   CategoryData,
@@ -92,11 +92,12 @@ export default function ImportExport({
   const [debugInfo, setDebugInfo] = useState<string>('')
   const [language] = useLanguage()
   const t = translations[language]
+  const { refresh } = useData()
   const { categories } = useCategories()
   const { bookmarks } = useBookmarks()
   const { countdowns } = useCountdowns()
   const { settings } = useSettings()
-  const { upsertEvent } = useEvents()
+
   const [importCalendarId, setImportCalendarId] =
     useState<string>('__uncategorized__')
 
@@ -238,6 +239,10 @@ export default function ImportExport({
       let importedEvents: CalendarEvent[] = []
       let shouldApplyCategory = true
       let rawContent = ''
+      let extraCategories: ImportedCategory[] = []
+      let extraCountdowns: CountdownData[] = []
+      let extraBookmarks: BookmarkData[] = []
+      let extraSettings: SettingsData = {}
 
       if (importTab === 'file' && selectedFile) {
         const fileExt = selectedFile.name.split('.').pop()?.toLowerCase()
@@ -249,6 +254,10 @@ export default function ImportExport({
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
           shouldApplyCategory = parsedResult.shouldApplyImportCategory
+          extraCategories = parsedResult.categories
+          extraCountdowns = parsedResult.countdowns
+          extraBookmarks = parsedResult.bookmarks
+          extraSettings = parsedResult.settings
         } else if (fileExt === 'csv') {
           importedEvents = parseCSV(rawContent)
         } else {
@@ -264,6 +273,10 @@ export default function ImportExport({
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
           shouldApplyCategory = parsedResult.shouldApplyImportCategory
+          extraCategories = parsedResult.categories
+          extraCountdowns = parsedResult.countdowns
+          extraBookmarks = parsedResult.bookmarks
+          extraSettings = parsedResult.settings
         } else {
           throw new Error(t.unsupportedUrlFormat || 'Unsupported URL format')
         }
@@ -287,24 +300,39 @@ ${rawContent.substring(0, 500)}...`)
         ? applyImportCategory(importedEvents)
         : importedEvents
 
-      for (const event of normalizedImportedEvents) {
-        await upsertEvent({
-          id: event.id,
-          title: event.title,
-          startDate: event.startDate.toISOString(),
-          endDate: event.endDate.toISOString(),
-          isAllDay: event.isAllDay,
-          location: event.location || null,
-          participants: event.participants?.length
-            ? event.participants.map((p: any) =>
-                typeof p === 'string' ? { name: p } : p,
-              )
-            : null,
-          notificationMinutes: event.notification || null,
-          color: event.color || null,
-          categoryId: event.calendarId || null,
-        })
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          events: normalizedImportedEvents.map((event) => ({
+            id: event.id,
+            title: event.title,
+            startDate: event.startDate.toISOString(),
+            endDate: event.endDate.toISOString(),
+            isAllDay: event.isAllDay,
+            location: event.location || null,
+            participants: event.participants?.length
+              ? event.participants.map((p: any) =>
+                  typeof p === 'string' ? { name: p } : p,
+                )
+              : null,
+            notificationMinutes: event.notification || null,
+            color: event.color || null,
+            categoryId: event.calendarId || null,
+          })),
+          categories: extraCategories.length > 0 ? extraCategories : undefined,
+          countdowns: extraCountdowns.length > 0 ? extraCountdowns : undefined,
+          bookmarks: extraBookmarks.length > 0 ? extraBookmarks : undefined,
+          settings:
+            Object.keys(extraSettings).length > 0 ? extraSettings : undefined,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Import failed: ${res.status}`)
       }
+
+      void refresh()
 
       toast(
         t.importSuccess.replace('{count}', importedEvents.length.toString()),
@@ -354,6 +382,10 @@ ${rawContent.substring(0, 500)}...`)
   ): Promise<{
     events: CalendarEvent[]
     shouldApplyImportCategory: boolean
+    categories: ImportedCategory[]
+    countdowns: CountdownData[]
+    bookmarks: BookmarkData[]
+    settings: SettingsData
   }> => {
     const parsed = JSON.parse(rawContent)
 
@@ -361,6 +393,10 @@ ${rawContent.substring(0, 500)}...`)
       return {
         events: parsed.map((event) => normalizeImportedEvent(event)),
         shouldApplyImportCategory: true,
+        categories: [],
+        countdowns: [],
+        bookmarks: [],
+        settings: {},
       }
     }
 
@@ -402,84 +438,27 @@ ${rawContent.substring(0, 500)}...`)
 
       const allCategories = [...importedCategories, ...autoCategories]
       const existingIds = new Set(categories.map((c: CategoryData) => c.id))
-      for (const cat of allCategories) {
-        if (!existingIds.has(cat.id)) {
-          try {
-            const { api } = await import('@/lib/api-client')
-            await api.categories.create({
-              id: cat.id,
-              name: cat.name,
-              color: cat.color,
-            })
-          } catch (e) {
-            toast.error(
-              t.importError.replace(
-                '{error}',
-                `${t.events || 'Category'} "${cat.name}": ${e instanceof Error ? e.message : 'Unknown'}`,
-              ),
-            )
-          }
-        }
-      }
+      const newCategories = allCategories.filter(
+        (cat) => !existingIds.has(cat.id),
+      )
 
-      if (Array.isArray(payload.data.countdowns)) {
-        const { api } = await import('@/lib/api-client')
-        for (const cd of (payload.data.countdowns ?? []) as CountdownData[]) {
-          try {
-            await api.countdowns.create({
-              id: cd.id,
-              name: cd.name || 'Untitled',
-              targetDate: cd.targetDate || new Date().toISOString(),
-              repeat: cd.repeat || 'none',
-              description: cd.description || null,
-              color: cd.color || null,
-              icon: cd.icon || null,
-            })
-          } catch (e) {
-            toast.error(
-              t.importError.replace(
-                '{error}',
-                `Countdown "${cd.name || 'Untitled'}": ${e instanceof Error ? e.message : 'Unknown'}`,
-              ),
-            )
-          }
-        }
-      }
+      const countdownsData = Array.isArray(payload.data.countdowns)
+        ? (payload.data.countdowns as CountdownData[])
+        : []
 
-      if (Array.isArray(payload.data.bookmarks)) {
-        const { api } = await import('@/lib/api-client')
-        for (const bm of (payload.data.bookmarks ?? []) as BookmarkData[]) {
-          try {
-            await api.bookmarks.create({ eventId: bm.eventId || bm.id })
-          } catch (e) {
-            toast.error(
-              t.importError.replace(
-                '{error}',
-                `Bookmark: ${e instanceof Error ? e.message : 'Unknown'}`,
-              ),
-            )
-          }
-        }
-      }
+      const bookmarksData = Array.isArray(payload.data.bookmarks)
+        ? (payload.data.bookmarks as BookmarkData[])
+        : []
 
-      const settingsData = payload.data.settings || {}
-      const { api } = await import('@/lib/api-client')
-      if (Object.keys(settingsData).length > 0) {
-        try {
-          await api.settings.update(settingsData as SettingsData)
-        } catch (e) {
-          toast.error(
-            t.importError.replace(
-              '{error}',
-              `Settings: ${e instanceof Error ? e.message : 'Unknown'}`,
-            ),
-          )
-        }
-      }
+      const settingsData = (payload.data.settings || {}) as SettingsData
 
       return {
         events: importedEvents,
         shouldApplyImportCategory: false,
+        categories: newCategories,
+        countdowns: countdownsData,
+        bookmarks: bookmarksData,
+        settings: settingsData,
       }
     }
 

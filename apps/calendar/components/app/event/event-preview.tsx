@@ -289,10 +289,19 @@ export default function EventPreview({
           : 'Event has been removed from your bookmarks',
       })
     } else {
-      await api.bookmarks.create({ eventId: event.id })
+      const res = await api.bookmarks.create({ eventId: event.id })
       setIsBookmarked(true)
-      const res = await api.bookmarks.list()
-      setBookmarks(res.bookmarks)
+      if (res.bookmark) {
+        setBookmarks((prev) => [
+          ...prev,
+          {
+            id: res.bookmark.id,
+            eventId: res.bookmark.eventId,
+            createdAt: res.bookmark.createdAt,
+            event: event,
+          },
+        ])
+      }
       toast(isZh ? '已收藏' : 'Bookmarked', {
         description: isZh
           ? '事件已添加到收藏夹'

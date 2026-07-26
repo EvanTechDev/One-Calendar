@@ -67,19 +67,9 @@ export default function BookmarkPanel({
   const [language] = useLanguage()
   const t = translations[language]
   const isZh = isZhLanguage(language)
-  const {
-    bookmarks: serverBookmarks,
-    deleteBookmark,
-    refreshBookmarks,
-  } = useBookmarks()
+  const { bookmarks: serverBookmarks, deleteBookmark } = useBookmarks()
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-
-  useEffect(() => {
-    if (open) {
-      refreshBookmarks()
-    }
-  }, [open, refreshBookmarks])
 
   useEffect(() => {
     setBookmarks(
