@@ -181,6 +181,35 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     )
   }
 
+  const handleEventDrop = (
+    event: CalendarEvent,
+    newStartDate: Date,
+    newEndDate: Date,
+  ) => {
+    const updatedEvent = {
+      ...event,
+      startDate: newStartDate,
+      endDate: newEndDate,
+    }
+    updateEvent(updatedEvent)
+    upsertEvent({
+      id: updatedEvent.id,
+      title: updatedEvent.title,
+      startDate: updatedEvent.startDate.toISOString(),
+      endDate: updatedEvent.endDate.toISOString(),
+      isAllDay: updatedEvent.isAllDay,
+      location: updatedEvent.location || null,
+      participants: updatedEvent.participants?.length
+        ? updatedEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
+      notificationMinutes: updatedEvent.notification || null,
+      color: updatedEvent.color || null,
+      categoryId: updatedEvent.calendarId || null,
+    }).catch(() => {})
+  }
+
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
   )
@@ -933,15 +962,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}
@@ -958,15 +979,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
               />
             )}
             {view === 'four-day' && (
@@ -984,15 +997,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
               />
             )}
             {view === 'month' && (
