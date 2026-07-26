@@ -46,7 +46,7 @@ export function CallToAction() {
         </div>
 
         <div className="mt-10 flex items-center justify-center">
-          sign-up">
+          <Link href="/sign-up">
             <Button className="group rounded-full pl-4 pr-1 py-2 text-sm active:scale-[0.97] transition-transform duration-200">
               <span className="mr-3">Get started</span>
 
