@@ -538,49 +538,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setDeleteConfirmOpen(true)
   }
 
-  const cleanupSharesForEvent = async (eventId: string) => {
-    const response = await fetch('/api/share/list')
-    if (!response.ok) return
-    const { shares: shareList } = await response.json()
-    const relatedShares = shareList.filter(
-      (share: any) => share.eventId === eventId,
-    )
-    if (!relatedShares.length) return
-
-    const results = await Promise.allSettled(
-      relatedShares.map((share: any) =>
-        fetch('/api/share', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: share.id }),
-        }),
-      ),
-    )
-
-    const failed = results.filter(
-      (result) =>
-        result.status === 'rejected' ||
-        (result.status === 'fulfilled' && !result.value.ok),
-    )
-
-    if (failed.length) {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareDeletePartialFailedDescription,
-      })
-    }
-  }
-
   const confirmEventDelete = async () => {
     if (!pendingDeleteEvent) return
 
     const deletedEvent = pendingDeleteEvent
-    try {
-      await cleanupSharesForEvent(deletedEvent.id)
-    } catch {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareCleanupErrorDescription,
-      })
-    }
 
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
