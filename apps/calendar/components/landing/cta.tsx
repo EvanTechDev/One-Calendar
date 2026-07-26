@@ -16,9 +16,10 @@ function StarLayer() {
       {[0, 1].map((copy) => (
         <div
           key={copy}
-          className="absolute top-0 h-full w-full animate-[starDrift_120s_linear_infinite]"
+          className="absolute inset-0"
           style={{
             left: copy === 0 ? '0%' : '100%',
+            animation: 'starDrift 120s linear infinite',
           }}
         >
           {stars.map((star) => (
@@ -42,7 +43,7 @@ function StarLayer() {
 
 export function CallToAction() {
   return (
-    <section className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-[2.5rem] border border-white/5">
+    <section className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-md border border-white/5">
       <div
         className="absolute inset-0"
         style={{
@@ -86,24 +87,23 @@ export function CallToAction() {
         }}
       />
 
-      <div className="relative flex min-h-[560px] flex-col items-center justify-center px-8 py-24">
-        <div className="max-w-3xl space-y-5 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white md:text-6xl">
+      <div className="relative flex h-full w-full flex-col items-center justify-center rounded-[calc(2.5rem-0.375rem)] border border-foreground/10 bg-background/80 px-6 py-20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] backdrop-blur-2xl md:py-24">
+        <div className="space-y-4">
+          <h2 className="text-center text-3xl font-semibold leading-none tracking-tight md:text-5xl">
             Ready to take control of your time?
           </h2>
-
-          <p className="mx-auto max-w-2xl text-base text-sm leading-7 text-white/55 md:text-lg">
+          <p className="text-balance text-center text-sm text-muted-foreground md:text-base">
             One Calendar helps you keep every event, reminder, and schedule in
             sync. Free forever.
           </p>
         </div>
 
-        <div className="mt-10 flex items-center justify-center">
+        <div className="mt-6 flex items-center justify-center gap-4">
           <Link href="/sign-up">
-            <Button className="group h-12 rounded-full bg-white/8 px-5 text-white backdrop-blur-sm transition-all duration-300 hover:bg-white/12">
+            <Button className="group rounded-full py-2 pl-4 pr-1 text-sm transition-transform duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]">
               <span className="mr-3">Get started</span>
-              <div className="flex size-7 items-center justify-center rounded-full bg-white/10 transition-all duration-300 group-hover:translate-x-1">
-                <ArrowRightIcon className="size-4" />
+              <div className="flex size-6 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
+                <ArrowRightIcon data-icon="inline-end" />
               </div>
             </Button>
           </Link>
