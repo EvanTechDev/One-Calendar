@@ -34,6 +34,7 @@ import {
   useBookmarks,
 } from '@/components/providers/data-provider'
 import { api } from '@/lib/api-client'
+import { getValidTimezone } from '@/lib/timezone'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
@@ -146,11 +147,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     updateSettings({ firstDayOfWeek: day.value })
   }
   const [timezone, setTimezone] = useState<string>(
-    settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    getValidTimezone(
+      settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ),
   )
   const handleTimezoneChange = (tz: string) => {
-    setTimezone(tz)
-    updateSettings({ timezone: tz })
+    const validTz = getValidTimezone(tz)
+    setTimezone(validTz)
+    updateSettings({ timezone: validTz })
   }
   const [notificationSound, setNotificationSound] =
     useState<NOTIFICATION_SOUNDS>('telegram')
@@ -262,7 +266,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           setFirstDayOfWeek(settings.firstDayOfWeek as FirstDayOfWeekValue)
       },
       () => {
-        if (settings.timezone) setTimezone(settings.timezone)
+        if (settings.timezone) setTimezone(getValidTimezone(settings.timezone))
       },
       () => {
         if (settings.defaultView && isCalendarView(settings.defaultView)) {
