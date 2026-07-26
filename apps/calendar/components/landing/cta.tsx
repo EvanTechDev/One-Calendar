@@ -4,12 +4,12 @@ import { Button } from '@zntr/ui/button'
 import { ArrowRightIcon, Asterisk } from 'lucide-react'
 import Link from 'next/link'
 
-const stars = Array.from({ length: 80 }, (_, i) => ({
+const stars = Array.from({ length: 60 }, (_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  opacity: 0.15 + Math.random() * 0.7,
-  size: Math.random() > 0.9 ? 2 : 1,
+  opacity: 0.05 + Math.random() * 0.4,
+  size: Math.random() > 0.95 ? 2.5 : 1.5,
 }))
 
 function StarLayer() {
@@ -44,7 +44,7 @@ function StarLayer() {
 
 export function CallToAction() {
   return (
-    <section className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-neutral-800/50 shadow-xl shadow-neutral-900/20">
+    <section className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-xl border border-neutral-800/50 shadow-xl shadow-neutral-900/20">
       <div
         className="absolute inset-0"
         style={{
@@ -52,9 +52,9 @@ export function CallToAction() {
             linear-gradient(
               to bottom,
               #000000 0%,
-              #2a2a2a 30%,
-              #666666 65%,
-              #e5e5e5 100%
+              #1c1c1c 35%,
+              #4d4d4d 70%,
+              #7a7a7a 100%
             )
           `,
         }}
