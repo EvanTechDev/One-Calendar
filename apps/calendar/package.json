@@ -1,6 +1,6 @@
 {
   "name": "one-calendar",
-  "version": "3.0.0-rc.11",
+  "version": "3.0.0-rc.12",
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
