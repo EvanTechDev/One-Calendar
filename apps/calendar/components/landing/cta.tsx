@@ -8,8 +8,8 @@ const stars = Array.from({ length: 220 }, (_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  opacity: 0.3 + Math.random() * 0.5,
-  size: Math.random() > 0.95 ? 2.5 : 1.5,
+  opacity: 0.45 + Math.random() * 0.5,
+  size: Math.random() > 0.95 ? 2.8 : 2,
 }))
 
 function StarLayer() {
