@@ -4,11 +4,11 @@ import { Button } from '@zntr/ui/button'
 import { ArrowRightIcon, Asterisk } from 'lucide-react'
 import Link from 'next/link'
 
-const stars = Array.from({ length: 220 }, (_, i) => ({
+const stars = Array.from({ length: 165 }, (_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  opacity: 0.45 + Math.random() * 0.5,
+  opacity: 0.5 + Math.random() * 0.5,
   size: Math.random() > 0.95 ? 2.8 : 2,
 }))
 
