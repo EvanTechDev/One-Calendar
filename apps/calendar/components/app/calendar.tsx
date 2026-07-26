@@ -542,27 +542,18 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (!pendingDeleteEvent) return
 
     const deletedEvent = pendingDeleteEvent
+    let cancelled = false
 
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    try {
-      await deleteBookmarkByEvent(deletedEvent.id)
-    } catch {}
-    try {
-      await deleteEvent(deletedEvent.id)
-    } catch {}
-    setEventDialogOpen(false)
-    setSelectedEvent(null)
-    setPreviewOpen(false)
-    setDeleteConfirmOpen(false)
-    setPendingDeleteEvent(null)
 
     toast(t.eventDeleted, {
       description: deletedEvent.title,
       action: {
         label: t.undo,
         onClick: () => {
+          cancelled = true
           setEvents((prevEvents) => {
             if (prevEvents.some((event) => event.id === deletedEvent.id))
               return prevEvents
@@ -572,10 +563,40 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 new Date(b.startDate).getTime(),
             )
           })
+          upsertEvent({
+            id: deletedEvent.id,
+            title: deletedEvent.title,
+            startDate: deletedEvent.startDate.toISOString(),
+            endDate: deletedEvent.endDate.toISOString(),
+            isAllDay: deletedEvent.isAllDay,
+            location: deletedEvent.location || null,
+            participants: deletedEvent.participants?.length
+              ? deletedEvent.participants.map((p: any) =>
+                  typeof p === 'string' ? { name: p } : p,
+                )
+              : null,
+            notificationMinutes: deletedEvent.notification || null,
+            color: deletedEvent.color || null,
+            categoryId: deletedEvent.calendarId || null,
+          }).catch(() => {})
           toast(t.deletionUndone)
         },
       },
     })
+
+    setEventDialogOpen(false)
+    setSelectedEvent(null)
+    setPreviewOpen(false)
+    setDeleteConfirmOpen(false)
+    setPendingDeleteEvent(null)
+
+    try {
+      await deleteBookmarkByEvent(deletedEvent.id)
+    } catch {}
+    if (cancelled) return
+    try {
+      await deleteEvent(deletedEvent.id)
+    } catch {}
   }
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
