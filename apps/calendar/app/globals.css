@@ -321,12 +321,3 @@ html {
     z-index: 1;
   }
 }
-
-@keyframes starDrift {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
