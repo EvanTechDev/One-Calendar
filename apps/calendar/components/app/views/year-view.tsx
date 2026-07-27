@@ -259,7 +259,6 @@ export default function YearView({
                           e.clientX,
                           e.clientY,
                         )
-                        setTimeout(closePopover, 100)
                       }}
                       style={{
                         backgroundColor: isDark
