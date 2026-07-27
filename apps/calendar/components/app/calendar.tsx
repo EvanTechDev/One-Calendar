@@ -524,24 +524,27 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setView(defaultView as ViewType)
     setPreviewEvent(event)
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-event-id="${event.id}"]`)
-        if (el) {
+      const el = document.querySelector(`[data-event-id="${event.id}"]`)
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'instant' })
+        requestAnimationFrame(() => {
           setPreviewAnchorRect(el.getBoundingClientRect())
-        } else if (calendarRef.current) {
-          setPreviewAnchorRect(
-            DOMRect.fromRect({
-              x: calendarRef.current.getBoundingClientRect().left + 16,
-              y: calendarRef.current.getBoundingClientRect().top + 16,
-              width: 0,
-              height: 0,
-            }),
-          )
-        } else {
-          setPreviewAnchorRect(null)
-        }
+          setPreviewOpen(true)
+        })
+      } else if (calendarRef.current) {
+        setPreviewAnchorRect(
+          DOMRect.fromRect({
+            x: calendarRef.current.getBoundingClientRect().left + 16,
+            y: calendarRef.current.getBoundingClientRect().top + 16,
+            width: 0,
+            height: 0,
+          }),
+        )
         setPreviewOpen(true)
-      })
+      } else {
+        setPreviewAnchorRect(null)
+        setPreviewOpen(true)
+      }
     })
   }
 
