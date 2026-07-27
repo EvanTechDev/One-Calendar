@@ -38,11 +38,13 @@ interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
   key?: string
+  isSidebarTransitioning?: boolean
 }
 
 export default function TimeAnalyticsComponent({
   events,
   calendars = [],
+  isSidebarTransitioning = false,
 }: TimeAnalyticsProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -463,26 +465,34 @@ export default function TimeAnalyticsComponent({
 
       <AnalyticsMetricsGrid items={metrics} />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <DailyMonthlyCountChart
-          dailyData={countChart.dailyData}
-          monthlyData={countChart.monthlyData}
-          series={countChart.series}
-          mode={countMode}
-          onModeChange={setCountMode}
-        />
-        <CategoryDonutChart data={categoryDonutData} />
-      </div>
+      {isSidebarTransitioning ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          {t.analytics || 'Analytics'}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <DailyMonthlyCountChart
+              dailyData={countChart.dailyData}
+              monthlyData={countChart.monthlyData}
+              series={countChart.series}
+              mode={countMode}
+              onModeChange={setCountMode}
+            />
+            <CategoryDonutChart data={categoryDonutData} />
+          </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <CategoryAverageDurationChart data={categoryAvgDurationData} />
-        <WeekdayStackedDurationChart
-          data={weekdayStacked.data}
-          series={weekdayStacked.series}
-        />
-      </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <CategoryAverageDurationChart data={categoryAvgDurationData} />
+            <WeekdayStackedDurationChart
+              data={weekdayStacked.data}
+              series={weekdayStacked.series}
+            />
+          </div>
 
-      <YearHeatmapChart data={heatmapData} />
+          <YearHeatmapChart data={heatmapData} />
+        </>
+      )}
     </div>
   )
 }
