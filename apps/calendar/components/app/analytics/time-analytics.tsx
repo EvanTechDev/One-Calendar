@@ -33,6 +33,7 @@ import { CategoryAverageDurationChart } from './charts/category-average-duration
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
 import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { cn } from '@zntr/utils'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
@@ -465,34 +466,28 @@ export default function TimeAnalyticsComponent({
 
       <AnalyticsMetricsGrid items={metrics} />
 
-      {isSidebarTransitioning ? (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          {t.analytics || 'Analytics'}
+      <div className={cn(isSidebarTransitioning && 'hidden')}>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <DailyMonthlyCountChart
+            dailyData={countChart.dailyData}
+            monthlyData={countChart.monthlyData}
+            series={countChart.series}
+            mode={countMode}
+            onModeChange={setCountMode}
+          />
+          <CategoryDonutChart data={categoryDonutData} />
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <DailyMonthlyCountChart
-              dailyData={countChart.dailyData}
-              monthlyData={countChart.monthlyData}
-              series={countChart.series}
-              mode={countMode}
-              onModeChange={setCountMode}
-            />
-            <CategoryDonutChart data={categoryDonutData} />
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <CategoryAverageDurationChart data={categoryAvgDurationData} />
-            <WeekdayStackedDurationChart
-              data={weekdayStacked.data}
-              series={weekdayStacked.series}
-            />
-          </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <CategoryAverageDurationChart data={categoryAvgDurationData} />
+          <WeekdayStackedDurationChart
+            data={weekdayStacked.data}
+            series={weekdayStacked.series}
+          />
+        </div>
 
-          <YearHeatmapChart data={heatmapData} />
-        </>
-      )}
+        <YearHeatmapChart data={heatmapData} />
+      </div>
     </div>
   )
 }
