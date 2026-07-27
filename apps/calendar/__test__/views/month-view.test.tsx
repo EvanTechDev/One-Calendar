@@ -79,7 +79,9 @@ describe('MonthView', () => {
   })
 
   it('renders weekday headers starting from Monday when firstDayOfWeek=1', () => {
-    renderMonthView({ firstDayOfWeek: 1 as FirstDayOfWeek })
+    renderMonthView({
+      config: makeConfig({ firstDayOfWeek: FirstDayOfWeek.create(1) }),
+    })
     expect(screen.getByText('Mon')).toBeInTheDocument()
     expect(screen.getByText('Sun')).toBeInTheDocument()
   })

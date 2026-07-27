@@ -1032,7 +1032,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'settings' && (
               <Settings
                 language={languageObj.code}
-                setLanguage={setLanguage}
+                setLanguage={(lang: string) =>
+                  setLanguage(lang as Parameters<typeof setLanguage>[0])
+                }
                 firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}

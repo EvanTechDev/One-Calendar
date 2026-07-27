@@ -501,7 +501,7 @@ export default function DayView({
                   top: `${topPosition}px`,
                 }}
               >
-                <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                <span className="absolute -left-1.5 -top-[4px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
               </div>
             )
           })()}

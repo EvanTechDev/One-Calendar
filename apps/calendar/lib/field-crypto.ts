@@ -9,12 +9,14 @@ function getSalt(): string {
 }
 
 function deriveKey(salt: string, rowId: string): Buffer {
-  return crypto.hkdfSync(
-    'sha256',
-    Buffer.from(salt, 'utf8'),
-    Buffer.from(rowId, 'utf8'),
-    'field-encryption',
-    32,
+  return Buffer.from(
+    crypto.hkdfSync(
+      'sha256',
+      Buffer.from(salt, 'utf8'),
+      Buffer.from(rowId, 'utf8'),
+      'field-encryption',
+      32,
+    ),
   )
 }
 

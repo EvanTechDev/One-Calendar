@@ -4,17 +4,19 @@ import crypto from 'crypto'
 const ALGORITHM = 'aes-256-gcm'
 
 function deriveKey(salt: string, shareId: string): Buffer {
-  return crypto.hkdfSync(
-    'sha256',
-    Buffer.from(salt, 'utf8'),
-    Buffer.from(shareId, 'utf8'),
-    'share-key',
-    32,
+  return Buffer.from(
+    crypto.hkdfSync(
+      'sha256',
+      Buffer.from(salt, 'utf8'),
+      Buffer.from(shareId, 'utf8'),
+      'share-key',
+      32,
+    ),
   )
 }
 
 function deriveKeyWithPassword(password: string, shareId: string): Buffer {
-  return crypto.scryptSync(password, shareId, 32)
+  return Buffer.from(crypto.scryptSync(password, shareId, 32))
 }
 
 function encryptWithKey(

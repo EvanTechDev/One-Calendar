@@ -77,7 +77,7 @@ interface JsonBackupPayloadV2 {
 
 export default function ImportExport({
   events,
-  onImportEvents,
+  onImportEvents: _onImportEvents,
 }: ImportExportProps) {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
@@ -172,7 +172,8 @@ export default function ImportExport({
               defaultView: settings.defaultView,
               enableShortcuts: settings.enableShortcuts,
               timeFormat: settings.timeFormat,
-              toastPosition: settings.toastPosition,
+              toastPosition:
+                settings.toastPosition as AppSettingsSnapshot['toastPosition'],
               theme: settings.theme,
             },
           },

@@ -4,7 +4,8 @@ import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
-import { useData, type EventData } from '@/components/providers/data-provider'
+import { useData } from '@/components/providers/data-provider'
+import type { EventData } from '@/lib/api-client'
 import type { CategoryData } from '@/lib/api-client'
 
 export interface CalendarCategory {
@@ -38,7 +39,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     isAllDay: e.isAllDay,
     recurrence: 'none',
     location: e.location ?? undefined,
-    participants: e.participants?.map((p) => p.name) ?? [],
+    participants: e.participants?.map((p: { name: string }) => p.name) ?? [],
     notification: e.notificationMinutes ?? 0,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
@@ -139,8 +140,6 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
   const { events: serverEvents, categories: serverCategories } = useData()
-  const calendars = useCalendarStore((state) => state.calendars)
-  const events = useCalendarStore((state) => state.events)
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const hydratedRef = useRef(false)

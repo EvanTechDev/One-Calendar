@@ -86,6 +86,8 @@ export default function UserProfileButton({
   const [emailOtp, setEmailOtp] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const [changePasswordValue, setChangePasswordValue] = useState('')
+  const [passwordStep, setPasswordStep] = useState<1 | 2>(1)
+  const [passwordOtp, setPasswordOtp] = useState('')
   const [emailStep, setEmailStep] = useState<1 | 2>(1)
   const [twoFaStep, setTwoFaStep] = useState<1 | 2 | 3>(1)
   const [profileSaving, setProfileSaving] = useState(false)
@@ -249,23 +251,44 @@ export default function UserProfileButton({
     setPendingEmail('')
     setEmailOtp('')
     toast('Email updated successfully.')
-    await authClient.getSession()
+    await (authClient as any).$store.atoms.session.get().refetch()
     setEmailStep(1)
     setTwoFactorPending(false)
   }
 
-  async function confirmChangePassword() {
-    if (!changePasswordValue || !twoFactorPassword) return
-    const updateRes = await authClient.changePassword({
-      currentPassword: twoFactorPassword,
-      newPassword: changePasswordValue,
-      revokeOtherSessions: false,
-    } as any)
-    if (updateRes.error) {
-      toast(updateRes.error.message || 'Failed to change password.')
+  async function sendPasswordResetOtp() {
+    if (!user?.email) return
+    setTwoFactorPending(true)
+    const res = await (authClient as any).emailOtp.requestPasswordReset({
+      email: user.email,
+    })
+    if (res.error) {
+      toast(res.error.message || 'Failed to send verification code.')
+      setTwoFactorPending(false)
+      return
+    }
+    setPasswordStep(2)
+    setTwoFactorPending(false)
+    toast('Verification code sent to your email.')
+  }
+
+  async function confirmPasswordReset() {
+    if (!user?.email || !passwordOtp || !changePasswordValue) return
+    setTwoFactorPending(true)
+    const res = await (authClient as any).emailOtp.resetPassword({
+      email: user.email,
+      otp: passwordOtp,
+      password: changePasswordValue,
+    })
+    if (res.error) {
+      toast(res.error.message || 'Failed to reset password.')
+      setTwoFactorPending(false)
       return
     }
     setChangePasswordValue('')
+    setPasswordOtp('')
+    setPasswordStep(1)
+    setTwoFactorPending(false)
     toast('Password updated successfully.')
   }
 
@@ -805,23 +828,60 @@ export default function UserProfileButton({
                 hidden={profileSection !== 'password'}
               >
                 <h3 className="font-medium">{t.changePassword}</h3>
-                <div className="space-y-2 pt-2 border-t">
-                  <Label>{t.currentPassword}</Label>
-                  <Input
-                    type="password"
-                    value={twoFactorPassword}
-                    onChange={(e) => setTwoFactorPassword(e.target.value)}
-                  />
-                  <Label>{t.newPassword || 'New password'}</Label>
-                  <Input
-                    type="password"
-                    value={changePasswordValue}
-                    onChange={(e) => setChangePasswordValue(e.target.value)}
-                  />
-                  <Button variant="outline" onClick={confirmChangePassword}>
-                    {t.updatePassword || 'Update password'}
-                  </Button>
-                </div>
+                {passwordStep === 1 ? (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      {t.changePasswordDescription}
+                    </p>
+                    <div className="rounded-md border px-3 py-2 text-sm">
+                      <p className="text-muted-foreground">{t.currentEmail}</p>
+                      <p className="font-medium">{user?.email || '-'}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={sendPasswordResetOtp}
+                      disabled={twoFactorPending}
+                    >
+                      {t.next}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label>{t.emailOtpCode}</Label>
+                    <Input
+                      value={passwordOtp}
+                      onChange={(e) =>
+                        setPasswordOtp(
+                          e.target.value.replace(/\D/g, '').slice(0, 6),
+                        )
+                      }
+                    />
+                    <Label>{t.newPassword || 'New password'}</Label>
+                    <Input
+                      type="password"
+                      value={changePasswordValue}
+                      onChange={(e) => setChangePasswordValue(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={confirmPasswordReset}
+                        disabled={twoFactorPending}
+                      >
+                        {t.updatePassword || 'Update password'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setPasswordStep(1)
+                          setPasswordOtp('')
+                        }}
+                      >
+                        {t.back}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </section>
             </div>
           </ScrollArea>

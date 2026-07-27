@@ -12,12 +12,14 @@ export const runtime = 'nodejs'
 const ALGORITHM = 'aes-256-gcm'
 
 function deriveKey(salt: string, shareId: string): Buffer {
-  return crypto.hkdfSync(
-    'sha256',
-    Buffer.from(salt, 'utf8'),
-    Buffer.from(shareId, 'utf8'),
-    'share-key',
-    32,
+  return Buffer.from(
+    crypto.hkdfSync(
+      'sha256',
+      Buffer.from(salt, 'utf8'),
+      Buffer.from(shareId, 'utf8'),
+      'share-key',
+      32,
+    ),
   )
 }
 

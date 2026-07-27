@@ -117,10 +117,8 @@ export function useLogger() {
   return getEvlog().useLogger()
 }
 
-export function log(
-  ...args: Parameters<ReturnType<typeof createEvlog>['log']>
-) {
-  return getEvlog().log(...args)
+export function log(...args: any[]) {
+  return (getEvlog().log as unknown as (...args: any[]) => void)(...args)
 }
 
 export function createError(
