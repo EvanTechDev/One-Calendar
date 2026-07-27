@@ -504,12 +504,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   ) => {
     setShareOnlyMode(false)
     setPreviewEvent(event)
-    if (clientX !== undefined && clientY !== undefined) {
+    if (clientY !== undefined && anchorEl) {
+      const rect = anchorEl.getBoundingClientRect()
       setPreviewAnchorRect(
         DOMRect.fromRect({
-          x: clientX,
+          x: rect.left,
           y: clientY,
-          width: 0,
+          width: rect.width,
           height: 0,
         }),
       )
@@ -523,8 +524,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setDate(new Date(event.startDate))
     setView(defaultView as ViewType)
     setPreviewEvent(event)
+    const eventId = (event as any).eventId ?? event.id
     requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-event-id="${event.id}"]`)
+      const el = document.querySelector(`[data-event-id="${eventId}"]`)
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'instant' })
         requestAnimationFrame(() => {
