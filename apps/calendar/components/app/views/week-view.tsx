@@ -670,7 +670,7 @@ export default function WeekView({
                         top: `${topPosition}px`,
                       }}
                     >
-                      <span className="absolute -left-[5px] -top-[4px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
                     </div>
                   )
                 })()}
