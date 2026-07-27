@@ -506,11 +506,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewEvent(event)
     if (clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
-        Object.assign(new DOMRect(), {
-          left: clientX,
-          top: clientY,
-          right: clientX,
-          bottom: clientY,
+        DOMRect.fromRect({
+          x: clientX,
+          y: clientY,
           width: 0,
           height: 0,
         }),
@@ -525,7 +523,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setDate(new Date(event.startDate))
     setView(defaultView as ViewType)
     setPreviewEvent(event)
-    setPreviewAnchorRect(null)
+    setPreviewAnchorRect(
+      calendarRef.current
+        ? DOMRect.fromRect({
+            x: calendarRef.current.getBoundingClientRect().left + 16,
+            y: calendarRef.current.getBoundingClientRect().top + 16,
+            width: 0,
+            height: 0,
+          })
+        : null,
+    )
     setPreviewOpen(true)
   }
 
