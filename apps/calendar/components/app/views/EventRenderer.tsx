@@ -152,6 +152,7 @@ export function EventRenderer({
     <ContextMenu key={event.id}>
       <ContextMenuTrigger asChild>
         <div
+          data-event-id={event.id}
           className={cn(
             'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
             event.color,
@@ -365,6 +366,7 @@ export function AllDayEventRenderer({
     <ContextMenu key={`allday-${event.id}`}>
       <ContextMenuTrigger asChild>
         <div
+          data-event-id={event.id}
           className={cn(
             'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
             event.color,

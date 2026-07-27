@@ -358,6 +358,7 @@ export default function WeekView({
     return allDayEvents.map((event, index) => (
       <div
         key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
+        data-event-id={event.id}
         className={cn(
           'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
           event.color,
@@ -569,6 +570,7 @@ export default function WeekView({
                   return (
                     <div
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
+                      data-event-id={event.id}
                       className={cn(
                         'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
                         event.color,

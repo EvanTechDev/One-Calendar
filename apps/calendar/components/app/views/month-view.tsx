@@ -99,6 +99,7 @@ export default function MonthView({
               {visibleEvents.map((event) => (
                 <div
                   key={event.id}
+                  data-event-id={event.id}
                   className={cn(
                     'relative text-xs truncate rounded-md p-1 cursor-pointer text-white',
                     event.color,
