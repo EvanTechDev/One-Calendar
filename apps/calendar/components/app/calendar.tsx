@@ -2,6 +2,7 @@
 
 import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
 import { useNotifications } from '@/components/app/hooks/useNotifications'
+import { cn } from '@zntr/utils'
 import {
   Select,
   SelectContent,
@@ -722,30 +723,43 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     <div className={className}>
       <div className="relative flex h-dvh overflow-hidden bg-background">
         {}
-        <Sidebar
-          onCreateEvent={() => {
-            setSelectedEvent(null)
-            setQuickCreateStartTime(new Date())
-            setEventDialogOpen(true)
-          }}
-          onDateSelect={handleDateSelect}
-          onViewChange={handleViewChange}
-          language={language}
-          selectedDate={sidebarDate}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebar}
-          selectedCategoryFilters={selectedCategoryFilters}
-          onCategoryFilterChange={(categoryId, checked) => {
-            setSelectedCategoryFilters((prev) => {
-              if (checked) {
-                return prev.includes(categoryId) ? prev : [...prev, categoryId]
-              }
-              return prev.filter((id) => id !== categoryId)
-            })
-          }}
-        />
+        <div
+          className={cn(
+            'absolute left-0 top-0 z-10 h-full',
+            'transition-transform duration-300 ease-in-out',
+            isSidebarCollapsed ? '-translate-x-full' : 'translate-x-0',
+          )}
+        >
+          <Sidebar
+            onCreateEvent={() => {
+              setSelectedEvent(null)
+              setQuickCreateStartTime(new Date())
+              setEventDialogOpen(true)
+            }}
+            onDateSelect={handleDateSelect}
+            onViewChange={handleViewChange}
+            language={language}
+            selectedDate={sidebarDate}
+            selectedCategoryFilters={selectedCategoryFilters}
+            onCategoryFilterChange={(categoryId, checked) => {
+              setSelectedCategoryFilters((prev) => {
+                if (checked) {
+                  return prev.includes(categoryId)
+                    ? prev
+                    : [...prev, categoryId]
+                }
+                return prev.filter((id) => id !== categoryId)
+              })
+            }}
+          />
+        </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col',
+            isSidebarCollapsed ? '' : 'pl-[247px]',
+          )}
+        >
           {' '}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
             <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
