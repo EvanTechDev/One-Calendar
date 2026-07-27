@@ -216,19 +216,12 @@ export default function UserProfileButton({
   }
 
   async function sendEmailChangeOtp() {
-    if (!newEmail || !twoFactorPassword) return
+    if (!newEmail) return
     setTwoFactorPending(true)
     const nextEmail = newEmail.trim().toLowerCase()
-    const primary = await authClient.emailOtp.sendVerificationOtp({
-      email: nextEmail,
-      type: 'email-verification',
-    })
-    const res = primary.error
-      ? await authClient.emailOtp.sendVerificationOtp({
-          email: nextEmail,
-          type: 'sign-in',
-        })
-      : primary
+    const res = await authClient.emailOtp.requestEmailChange({
+      newEmail: nextEmail,
+    } as any)
     if (res.error) {
       toast(res.error.message || 'Failed to send verification code.')
       setTwoFactorPending(false)
@@ -241,25 +234,14 @@ export default function UserProfileButton({
   }
 
   async function confirmEmailChange() {
-    if (!pendingEmail || !emailOtp || !twoFactorPassword) return
+    if (!pendingEmail || !emailOtp) return
     setTwoFactorPending(true)
-    const verifyRes = await authClient.emailOtp.verifyEmail({
-      email: pendingEmail,
-      otp: emailOtp,
-      type: 'email-verification',
-    } as any)
-    if (verifyRes.error) {
-      toast(verifyRes.error.message || 'Invalid verification code.')
-      setTwoFactorPending(false)
-      return
-    }
-    const updateRes = await authClient.changeEmail({
+    const res = await authClient.emailOtp.changeEmail({
       newEmail: pendingEmail,
-      callbackURL: '/app',
-      password: twoFactorPassword,
+      otp: emailOtp,
     } as any)
-    if (updateRes.error) {
-      toast(updateRes.error.message || 'Failed to update email.')
+    if (res.error) {
+      toast(res.error.message || 'Failed to update email.')
       setTwoFactorPending(false)
       return
     }
@@ -269,7 +251,6 @@ export default function UserProfileButton({
     toast('Email updated successfully.')
     await authClient.getSession()
     setEmailStep(1)
-    setTwoFactorPassword('')
     setTwoFactorPending(false)
   }
 
@@ -691,14 +672,6 @@ export default function UserProfileButton({
                     <div className="rounded-md border px-3 py-2 text-sm">
                       <p className="text-muted-foreground">{t.currentEmail}</p>
                       <p className="font-medium">{user?.email || '-'}</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t.currentPassword}</Label>
-                      <Input
-                        type="password"
-                        value={twoFactorPassword}
-                        onChange={(e) => setTwoFactorPassword(e.target.value)}
-                      />
                     </div>
                     <div className="space-y-2">
                       <Label>{t.newEmail}</Label>

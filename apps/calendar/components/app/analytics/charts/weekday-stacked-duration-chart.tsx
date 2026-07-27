@@ -51,9 +51,11 @@ export function WeekdayStackedDurationChart({
   const topDataKeyByDay = new Map(
     data.map((datum) => {
       let topKey = ''
+      let maxValue = 0
       series.forEach((item) => {
         const value = Number(datum[item.key] ?? 0)
-        if (value > 0) {
+        if (value > maxValue) {
+          maxValue = value
           topKey = item.key
         }
       })

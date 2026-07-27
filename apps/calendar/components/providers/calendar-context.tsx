@@ -42,7 +42,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     notification: e.notificationMinutes ?? 0,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
-    calendarId: e.categoryId ?? 'default',
+    calendarId: e.categoryId ?? '',
   }
 }
 

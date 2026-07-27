@@ -100,6 +100,9 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
+      changeEmail: {
+        enabled: true,
+      },
       sendVerificationOTP: async ({
         email,
         otp,
