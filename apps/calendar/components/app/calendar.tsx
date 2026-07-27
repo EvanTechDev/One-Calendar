@@ -120,7 +120,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -419,15 +418,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents, view])
 
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => {
-      const nextCollapsed = !prev
-      if (!nextCollapsed) {
-        setIsSidebarExpanding(true)
-      } else {
-        setIsSidebarExpanding(false)
-      }
-      return nextCollapsed
-    })
+    setIsSidebarCollapsed((prev) => !prev)
   }
 
   const handleDateSelect = (date: Date) => {
@@ -743,7 +734,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
@@ -1014,8 +1004,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
-                isSidebarCollapsed={isSidebarCollapsed}
-                isSidebarExpanding={isSidebarExpanding}
               />
             )}
             {view === 'analytics' && (

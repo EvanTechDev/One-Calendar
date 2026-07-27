@@ -20,8 +20,6 @@ interface YearViewProps {
   events: CalendarEvent[]
   onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   config: ViewConfig
-  isSidebarCollapsed?: boolean
-  isSidebarExpanding?: boolean
 }
 
 const COLOR_TO_ACCENT: Record<string, string> = {
@@ -66,8 +64,6 @@ export default function YearView({
   events,
   onEventClick,
   config,
-  isSidebarCollapsed = false,
-  isSidebarExpanding = false,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
@@ -158,14 +154,7 @@ export default function YearView({
 
   return (
     <div className="p-3 md:p-4" ref={containerRef}>
-      <div
-        className={cn(
-          'grid gap-y-4',
-          isSidebarCollapsed || isSidebarExpanding
-            ? 'md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6'
-            : 'md:grid-cols-3 md:gap-x-6',
-        )}
-      >
+      <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
         {months.map((month) => (
           <section key={month.label} className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">
