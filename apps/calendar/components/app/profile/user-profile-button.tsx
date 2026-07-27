@@ -225,14 +225,14 @@ export default function UserProfileButton({
       newEmail: nextEmail,
     } as any)
     if (res.error) {
-      toast(res.error.message || 'Failed to send verification code.')
+      toast(res.error.message || t.sendVerificationCodeFailed)
       setTwoFactorPending(false)
       return
     }
     setPendingEmail(nextEmail)
     setEmailStep(2)
     setTwoFactorPending(false)
-    toast('Verification code sent to the new email.')
+    toast(t.verificationCodeSentNewEmail)
   }
 
   async function confirmEmailChange() {
@@ -243,14 +243,14 @@ export default function UserProfileButton({
       otp: emailOtp,
     } as any)
     if (res.error) {
-      toast(res.error.message || 'Failed to update email.')
+      toast(res.error.message || t.updateEmailFailed)
       setTwoFactorPending(false)
       return
     }
     setNewEmail('')
     setPendingEmail('')
     setEmailOtp('')
-    toast('Email updated successfully.')
+    toast(t.emailUpdatedSuccessfully)
     await (authClient as any).$store.atoms.session.get().refetch()
     setEmailStep(1)
     setTwoFactorPending(false)
@@ -263,13 +263,13 @@ export default function UserProfileButton({
       email: user.email,
     })
     if (res.error) {
-      toast(res.error.message || 'Failed to send verification code.')
+      toast(res.error.message || t.sendVerificationCodeFailed)
       setTwoFactorPending(false)
       return
     }
     setPasswordStep(2)
     setTwoFactorPending(false)
-    toast('Verification code sent to your email.')
+    toast(t.verificationCodeSentEmail)
   }
 
   async function confirmPasswordReset() {
@@ -281,7 +281,7 @@ export default function UserProfileButton({
       password: changePasswordValue,
     })
     if (res.error) {
-      toast(res.error.message || 'Failed to reset password.')
+      toast(res.error.message || t.resetPasswordFailed)
       setTwoFactorPending(false)
       return
     }
@@ -289,7 +289,7 @@ export default function UserProfileButton({
     setPasswordOtp('')
     setPasswordStep(1)
     setTwoFactorPending(false)
-    toast('Password updated successfully.')
+    toast(t.passwordUpdatedSuccessfully)
   }
 
   const openProfileSection = (
@@ -318,7 +318,7 @@ export default function UserProfileButton({
       password: twoFactorPassword,
     })
     if (setupRes.error) {
-      toast(setupRes.error.message || 'Failed to enable 2FA')
+      toast(setupRes.error.message || t.enable2faFailed)
       setTwoFactorPending(false)
       return
     }
@@ -356,7 +356,7 @@ export default function UserProfileButton({
       password: twoFactorPassword,
     })
     if (disableRes.error) {
-      toast(disableRes.error.message || 'Failed to disable 2FA')
+      toast(disableRes.error.message || t.disable2faFailed)
       setTwoFactorPending(false)
       return
     }
@@ -374,11 +374,14 @@ export default function UserProfileButton({
       trustDevice: true,
     })
     if (verifyRes.error) {
-      toast(verifyRes.error.message || `Invalid ${t.otpCode}`)
+      toast(
+        verifyRes.error.message ||
+          t.invalidOtpCode.replace('{code}', t.otpCode),
+      )
       setTwoFactorPending(false)
       return
     }
-    toast('2FA setup verified.')
+    toast(t.twoFactorSetupVerified)
     setTwoFactorCode('')
     setTwoFaStep(3)
     setTwoFactorPending(false)
