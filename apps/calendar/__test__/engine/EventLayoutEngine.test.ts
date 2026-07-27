@@ -168,8 +168,8 @@ describe('EventLayoutEngine', () => {
       })
       const times = getEventTimesForDay(event, day)
       expect(times).not.toBeNull()
-      expect(times!.start.getUTCHours()).toBe(0)
-      expect(times!.start.getUTCMinutes()).toBe(0)
+      expect(times!.start.getHours()).toBe(0)
+      expect(times!.start.getMinutes()).toBe(0)
       expect(times!.isMultiDay).toBe(true)
     })
 
@@ -180,8 +180,8 @@ describe('EventLayoutEngine', () => {
       })
       const times = getEventTimesForDay(event, day)
       expect(times).not.toBeNull()
-      expect(times!.end.getUTCHours()).toBe(23)
-      expect(times!.end.getUTCMinutes()).toBe(59)
+      expect(times!.end.getHours()).toBe(23)
+      expect(times!.end.getMinutes()).toBe(59)
       expect(times!.isMultiDay).toBe(true)
     })
 

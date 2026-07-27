@@ -26,7 +26,12 @@ import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/vi
 interface WeekViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   config: ViewConfig
   onEventDrop?: (
@@ -379,7 +384,12 @@ export default function WeekView({
           e.stopPropagation()
           if (ignoreNextEventClickRef.current) return
           if (!isDraggingRef.current) {
-            onEventClick(event, e.currentTarget as HTMLElement)
+            onEventClick(
+              event,
+              e.currentTarget as HTMLElement,
+              e.clientX,
+              e.clientY,
+            )
           }
         }}
       >
@@ -581,7 +591,12 @@ export default function WeekView({
                       onClick={(e) => {
                         e.stopPropagation()
                         if (!isDraggingRef.current) {
-                          onEventClick(event, e.currentTarget as HTMLElement)
+                          onEventClick(
+                            event,
+                            e.currentTarget as HTMLElement,
+                            e.clientX,
+                            e.clientY,
+                          )
                         }
                       }}
                     >

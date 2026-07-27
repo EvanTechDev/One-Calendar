@@ -47,7 +47,12 @@ interface EventRendererProps {
   }
   config: ViewConfig
   isDark: boolean
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -121,7 +126,7 @@ export function EventRenderer({
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
     if (!isDraggingRef?.current) {
-      onEventClick(event, e.currentTarget as HTMLElement)
+      onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
   }
 
@@ -281,7 +286,12 @@ interface AllDayEventRendererProps {
   index: number
   config: ViewConfig
   isDark: boolean
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -329,7 +339,7 @@ export function AllDayEventRenderer({
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
     if (!isDraggingRef?.current) {
-      onEventClick(event, e.currentTarget as HTMLElement)
+      onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
   }
 

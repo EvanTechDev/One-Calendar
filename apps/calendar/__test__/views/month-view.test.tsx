@@ -185,6 +185,8 @@ describe('MonthView', () => {
     expect(onEventClick).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'e1' }),
       expect.any(HTMLElement),
+      expect.any(Number),
+      expect.any(Number),
     )
   })
 

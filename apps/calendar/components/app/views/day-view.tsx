@@ -18,7 +18,12 @@ import { useEventFilter } from '@/components/app/hooks/useEventFilter'
 interface DayViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   config: ViewConfig
   onEditEvent?: (event: CalendarEvent) => void

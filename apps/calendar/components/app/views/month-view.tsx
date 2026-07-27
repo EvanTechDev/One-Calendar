@@ -22,7 +22,12 @@ import type { ViewConfig } from '@/components/app/calendar-types'
 interface MonthViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   config: ViewConfig
 }
 
@@ -99,7 +104,12 @@ export default function MonthView({
                     event.color,
                   )}
                   onClick={(e) =>
-                    onEventClick(event, e.currentTarget as HTMLElement)
+                    onEventClick(
+                      event,
+                      e.currentTarget as HTMLElement,
+                      e.clientX,
+                      e.clientY,
+                    )
                   }
                   style={{
                     opacity: 1,

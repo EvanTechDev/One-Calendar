@@ -1,6 +1,7 @@
 'use client'
 
 import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
+import { getEventAccentColor } from '@/components/app/views/event-colors'
 import { useNotifications } from '@/components/app/hooks/useNotifications'
 import {
   Select,
@@ -27,6 +28,7 @@ import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
   useSettings,
@@ -497,10 +499,33 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventClick = (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
   ) => {
     setShareOnlyMode(false)
     setPreviewEvent(event)
-    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
+    if (clientX !== undefined && clientY !== undefined) {
+      setPreviewAnchorRect(
+        Object.assign(new DOMRect(), {
+          left: clientX,
+          top: clientY,
+          right: clientX,
+          bottom: clientY,
+          width: 0,
+          height: 0,
+        }),
+      )
+    } else {
+      setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
+    }
+    setPreviewOpen(true)
+  }
+
+  const handleNavigateAndPreview = (event: CalendarEvent) => {
+    setDate(new Date(event.startDate))
+    setView(defaultView as ViewType)
+    setPreviewEvent(event)
+    setPreviewAnchorRect(null)
     setPreviewOpen(true)
   }
 
@@ -832,12 +857,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                        setPreviewEvent(searchResultEvents[0])
-                        setPreviewAnchorRect(
-                          searchInputRef.current?.getBoundingClientRect() ??
-                            null,
-                        )
-                        setPreviewOpen(true)
+                        handleNavigateAndPreview(searchResultEvents[0])
                         setSearchTerm('')
                         setIsSearchFocused(false)
                       }
@@ -845,45 +865,72 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     className="pr-4"
                   />
                 </InputGroup>
-                {isSearchFocused && !!searchTerm && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
-                    {searchResultEvents.length > 0 ? (
-                      <ScrollArea className="max-h-[320px]">
-                        <div className="space-y-1">
-                          {searchResultEvents.map((event) => (
-                            <button
-                              key={event.id}
-                              type="button"
-                              className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                setPreviewEvent(event)
-                                setPreviewAnchorRect(
-                                  searchInputRef.current?.getBoundingClientRect() ??
-                                    null,
-                                )
-                                setPreviewOpen(true)
-                                setSearchTerm('')
-                                setIsSearchFocused(false)
-                              }}
-                            >
-                              <div className="font-medium leading-none">
-                                {event.title || t.unnamedEvent}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {formatDateDisplay(new Date(event.startDate))}
-                              </div>
-                            </button>
-                          ))}
+                {isSearchFocused &&
+                  !!searchTerm &&
+                  searchInputRef.current &&
+                  typeof document !== 'undefined' &&
+                  createPortal(
+                    <div
+                      className="fixed z-[100] w-80 rounded-md border bg-popover p-1 shadow-md"
+                      style={{
+                        left: searchInputRef.current.getBoundingClientRect()
+                          .right,
+                        top:
+                          searchInputRef.current.getBoundingClientRect()
+                            .bottom + 6,
+                        transform: 'translateX(-100%)',
+                      }}
+                    >
+                      {searchResultEvents.length > 0 ? (
+                        <ScrollArea className="max-h-[320px]">
+                          <div className="space-y-1">
+                            {searchResultEvents.map((event) => (
+                              <button
+                                key={event.id}
+                                type="button"
+                                className="flex w-full cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  handleNavigateAndPreview(event)
+                                  setSearchTerm('')
+                                  setIsSearchFocused(false)
+                                }}
+                              >
+                                <div
+                                  className="mt-0.5 h-4 w-1 shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor: getEventAccentColor(
+                                      event.color,
+                                    ),
+                                  }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-sm font-medium leading-none">
+                                    {event.title || t.unnamedEvent}
+                                  </div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {formatDateDisplay(
+                                      new Date(event.startDate),
+                                    )}
+                                  </div>
+                                  {event.location && (
+                                    <div className="truncate text-xs text-muted-foreground">
+                                      {event.location}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      ) : (
+                        <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                          {t.noMatchingEvents}
                         </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        {t.noMatchingEvents}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>,
+                    document.body,
+                  )}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1059,7 +1106,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         {}
         <RightSidebar
           onViewChange={handleViewChange}
-          onEventClick={handleEventClick}
+          onEventClick={(event) => {
+            handleNavigateAndPreview(event)
+          }}
         />
 
         {}
