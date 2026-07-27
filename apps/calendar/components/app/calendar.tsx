@@ -504,7 +504,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   ) => {
     setShareOnlyMode(false)
     setPreviewEvent(event)
-    if (clientY !== undefined && anchorEl) {
+    if (view === 'day' && clientX !== undefined && clientY !== undefined) {
+      setPreviewAnchorRect(
+        DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
+      )
+    } else if (clientY !== undefined && anchorEl) {
       const rect = anchorEl.getBoundingClientRect()
       setPreviewAnchorRect(
         DOMRect.fromRect({

@@ -18,7 +18,12 @@ import { createPortal } from 'react-dom'
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   config: ViewConfig
 }
 
@@ -247,9 +252,14 @@ export default function YearView({
                         'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
                         event.color,
                       )}
-                      onClick={() => {
-                        onEventClick(event)
-                        closePopover()
+                      onClick={(e) => {
+                        onEventClick(
+                          event,
+                          e.currentTarget,
+                          e.clientX,
+                          e.clientY,
+                        )
+                        setTimeout(closePopover, 100)
                       }}
                       style={{
                         backgroundColor: isDark
