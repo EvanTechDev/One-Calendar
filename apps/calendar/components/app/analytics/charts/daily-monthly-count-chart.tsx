@@ -1,7 +1,6 @@
 'use client'
 
-import type { ComponentProps, ComponentType } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, BarStack, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Tabs, TabsList, TabsTrigger } from '@zntr/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import { format } from 'date-fns'
@@ -14,12 +13,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@zntr/ui/chart'
-
-type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
-  radius?: number | [number, number, number, number]
-}
-
-const RoundedCell = Cell as ComponentType<RoundedCellProps>
 
 interface CountDatum {
   label: string
@@ -51,20 +44,6 @@ export function DailyMonthlyCountChart({
   const t = translations[language]
   const activeData = mode === 'day' ? dailyData : monthlyData
   const seriesLabelMap = new Map(series.map((item) => [item.key, item.label]))
-  const topDataKeyByLabel = new Map(
-    activeData.map((datum) => {
-      let topKey = ''
-      let maxValue = 0
-      series.forEach((item) => {
-        const value = Number(datum[item.key] ?? 0)
-        if (value > maxValue) {
-          maxValue = value
-          topKey = item.key
-        }
-      })
-      return [datum.label, topKey]
-    }),
-  )
   const chartConfig = series.reduce<ChartConfig>((acc, item) => {
     acc[item.key] = {
       label: item.label,
@@ -127,25 +106,16 @@ export function DailyMonthlyCountChart({
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item) => (
-                <Bar
-                  key={item.key}
-                  dataKey={item.key}
-                  stackId="count"
-                  fill={item.color}
-                >
-                  {activeData.map((datum) => {
-                    const isTopSegment =
-                      topDataKeyByLabel.get(datum.label) === item.key
-                    return (
-                      <RoundedCell
-                        key={`${item.key}-${datum.label}`}
-                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
-                      />
-                    )
-                  })}
-                </Bar>
-              ))}
+              <BarStack radius={8}>
+                {series.map((item) => (
+                  <Bar
+                    key={item.key}
+                    dataKey={item.key}
+                    stackId="count"
+                    fill={item.color}
+                  />
+                ))}
+              </BarStack>
             </BarChart>
           </ChartContainer>
         )}
