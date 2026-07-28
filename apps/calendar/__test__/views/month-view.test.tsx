@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import MonthView from '@/components/app/views/month-view'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type { FirstDayOfWeek } from '@/components/app/calendar-types'
-import type { Language } from '@zntr/i18n/calendar'
+import {
+  Language,
+  FirstDayOfWeek,
+  ViewConfig,
+  TimeFormat,
+} from '@/components/app/calendar-types'
 
 const baseEvent: CalendarEvent = {
   id: '1',
@@ -24,22 +28,39 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return { ...baseEvent, ...overrides }
 }
 
+function makeConfig(
+  overrides: {
+    language?: Language
+    firstDayOfWeek?: FirstDayOfWeek
+    timezone?: string
+  } = {},
+): ViewConfig {
+  return ViewConfig.create({
+    date: new Date(2025, 0, 15),
+    timezone: overrides.timezone ?? 'UTC',
+    timeFormat: TimeFormat.h24(),
+    firstDayOfWeek: overrides.firstDayOfWeek ?? FirstDayOfWeek.sunday(),
+    language: overrides.language ?? new Language('en'),
+  })
+}
+
 function renderMonthView({
   date = new Date(2025, 0, 15),
   events = [] as CalendarEvent[],
   onEventClick = vi.fn(),
-  language = 'en' as Language,
-  firstDayOfWeek = 0 as FirstDayOfWeek,
-  _timezone = 'UTC',
+  config,
+}: {
+  date?: Date
+  events?: CalendarEvent[]
+  onEventClick?: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  config?: ViewConfig
 } = {}) {
   return render(
     <MonthView
       date={date}
       events={events}
       onEventClick={onEventClick}
-      language={language}
-      firstDayOfWeek={firstDayOfWeek}
-      _timezone={_timezone}
+      config={config ?? makeConfig()}
     />,
   )
 }
@@ -58,7 +79,9 @@ describe('MonthView', () => {
   })
 
   it('renders weekday headers starting from Monday when firstDayOfWeek=1', () => {
-    renderMonthView({ firstDayOfWeek: 1 as FirstDayOfWeek })
+    renderMonthView({
+      config: makeConfig({ firstDayOfWeek: FirstDayOfWeek.create(1) }),
+    })
     expect(screen.getByText('Mon')).toBeInTheDocument()
     expect(screen.getByText('Sun')).toBeInTheDocument()
   })
@@ -82,9 +105,7 @@ describe('MonthView', () => {
         date={new Date(2025, 0, 15)}
         events={[]}
         onEventClick={vi.fn()}
-        language="en"
-        firstDayOfWeek={0 as FirstDayOfWeek}
-        _timezone="UTC"
+        config={makeConfig()}
       />,
     )
     const prevMonthDay = container.querySelector('.text-gray-400')
@@ -164,6 +185,8 @@ describe('MonthView', () => {
     expect(onEventClick).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'e1' }),
       expect.any(HTMLElement),
+      expect.any(Number),
+      expect.any(Number),
     )
   })
 
@@ -185,13 +208,13 @@ describe('MonthView', () => {
   })
 
   it('handles different languages', () => {
-    renderMonthView({ language: 'es' })
+    renderMonthView({ config: makeConfig({ language: new Language('es') }) })
     expect(screen.getByText('Dom')).toBeInTheDocument()
     expect(screen.getByText('Lun')).toBeInTheDocument()
   })
 
   it('handles different timezones', () => {
-    renderMonthView({ _timezone: 'America/New_York' })
+    renderMonthView({ config: makeConfig({ timezone: 'America/New_York' }) })
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 })

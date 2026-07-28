@@ -14,8 +14,8 @@ export default function LandingPage() {
         <HeroSection />
         <FeatureSection />
         <LogosSection />
-        <FaqSection />
         <CallToAction />
+        <FaqSection />
       </main>
       <Footer />
     </div>

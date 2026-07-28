@@ -189,15 +189,7 @@
   "noEventsFound": "No events found",
   "less": "Less",
   "more": "More",
-  "weekdays": [
-    "Sun",
-    "Mon",
-    "Tue",
-    "Wed",
-    "Thu",
-    "Fri",
-    "Sat"
-  ],
+  "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   "months": [
     "Jan",
     "Feb",
@@ -448,5 +440,16 @@
   "twoFactorEnabledMessage": "Two-factor authentication is now active on your account.",
   "twoFactorAuthenticationDescription": "Enable or disable TOTP-based 2FA.",
   "changePasswordDescription": "Use one-time email code to securely change your password.",
-  "twoFactorQrCodeAlt": "Two-factor QR code"
+  "twoFactorQrCodeAlt": "Two-factor QR code",
+  "sendVerificationCodeFailed": "Failed to send verification code.",
+  "verificationCodeSentNewEmail": "Verification code sent to the new email.",
+  "updateEmailFailed": "Failed to update email.",
+  "emailUpdatedSuccessfully": "Email updated successfully.",
+  "verificationCodeSentEmail": "Verification code sent to your email.",
+  "resetPasswordFailed": "Failed to reset password.",
+  "passwordUpdatedSuccessfully": "Password updated successfully.",
+  "enable2faFailed": "Failed to enable 2FA",
+  "disable2faFailed": "Failed to disable 2FA",
+  "twoFactorSetupVerified": "2FA setup verified.",
+  "invalidOtpCode": "Invalid {code}"
 }

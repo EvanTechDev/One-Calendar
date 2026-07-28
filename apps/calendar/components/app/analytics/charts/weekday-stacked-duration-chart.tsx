@@ -1,7 +1,6 @@
 'use client'
 
-import type { ComponentProps, ComponentType } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, BarStack, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import {
   ChartContainer,
@@ -12,12 +11,6 @@ import {
   type ChartConfig,
 } from '@zntr/ui/chart'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-
-type RoundedCellProps = Omit<ComponentProps<typeof Cell>, 'radius'> & {
-  radius?: number | [number, number, number, number]
-}
-
-const RoundedCell = Cell as ComponentType<RoundedCellProps>
 
 interface WeekdayStackDatum {
   day: string
@@ -47,19 +40,6 @@ export function WeekdayStackedDurationChart({
     }
     return acc
   }, {})
-
-  const topDataKeyByDay = new Map(
-    data.map((datum) => {
-      let topKey = ''
-      series.forEach((item) => {
-        const value = Number(datum[item.key] ?? 0)
-        if (value > 0) {
-          topKey = item.key
-        }
-      })
-      return [datum.day, topKey]
-    }),
-  )
 
   return (
     <Card>
@@ -98,25 +78,16 @@ export function WeekdayStackedDurationChart({
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              {series.map((item) => (
-                <Bar
-                  key={item.key}
-                  dataKey={item.key}
-                  stackId="duration"
-                  fill={item.color}
-                >
-                  {data.map((datum) => {
-                    const isTopSegment =
-                      topDataKeyByDay.get(datum.day) === item.key
-                    return (
-                      <RoundedCell
-                        key={`${item.key}-${datum.day}`}
-                        radius={isTopSegment ? [8, 8, 0, 0] : [0, 0, 0, 0]}
-                      />
-                    )
-                  })}
-                </Bar>
-              ))}
+              <BarStack radius={8}>
+                {series.map((item) => (
+                  <Bar
+                    key={item.key}
+                    dataKey={item.key}
+                    stackId="duration"
+                    fill={item.color}
+                  />
+                ))}
+              </BarStack>
             </BarChart>
           </ChartContainer>
         )}

@@ -48,3 +48,6 @@ next-env.d.ts
 .evlog/
 .source
 .nx/
+
+# session status (not committed)
+status.md

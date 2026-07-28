@@ -107,12 +107,12 @@ export class EventLayoutEngine {
     if (isMultiDay) {
       if (!isSameDay(start, day)) {
         dayStart = new Date(day)
-        dayStart.setUTCHours(0, 0, 0, 0)
+        dayStart.setHours(0, 0, 0, 0)
       }
 
       if (!isSameDay(end, day)) {
         dayEnd = new Date(day)
-        dayEnd.setUTCHours(23, 59, 59, 999)
+        dayEnd.setHours(23, 59, 59, 999)
       }
     }
 
@@ -326,12 +326,12 @@ export function getEventTimesForDay(
   if (isMultiDay) {
     if (!isSameDay(start, day)) {
       dayStart = new Date(day)
-      dayStart.setUTCHours(0, 0, 0, 0)
+      dayStart.setHours(0, 0, 0, 0)
     }
 
     if (!isSameDay(end, day)) {
       dayEnd = new Date(day)
-      dayEnd.setUTCHours(23, 59, 59, 999)
+      dayEnd.setHours(23, 59, 59, 999)
     }
   }
 

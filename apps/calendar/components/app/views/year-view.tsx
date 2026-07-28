@@ -14,14 +14,18 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/components/app/calendar-types'
 import { createPortal } from 'react-dom'
+import { ScrollArea } from '@zntr/ui/scroll-area'
 
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   config: ViewConfig
-  isSidebarCollapsed?: boolean
-  isSidebarExpanding?: boolean
 }
 
 const COLOR_TO_ACCENT: Record<string, string> = {
@@ -66,8 +70,6 @@ export default function YearView({
   events,
   onEventClick,
   config,
-  isSidebarCollapsed = false,
-  isSidebarExpanding = false,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
@@ -158,14 +160,7 @@ export default function YearView({
 
   return (
     <div className="p-3 md:p-4" ref={containerRef}>
-      <div
-        className={cn(
-          'grid gap-y-4',
-          isSidebarCollapsed || isSidebarExpanding
-            ? 'md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6'
-            : 'md:grid-cols-3 md:gap-x-4',
-        )}
-      >
+      <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
         {months.map((month) => (
           <section key={month.label} className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">
@@ -249,38 +244,44 @@ export default function YearView({
               </div>
 
               {popover.dayEvents.length > 0 ? (
-                <div className="space-y-1.5">
-                  {popover.dayEvents.map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      className={cn(
-                        'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
-                        event.color,
-                      )}
-                      onClick={() => {
-                        onEventClick(event)
-                        closePopover()
-                      }}
-                      style={{
-                        backgroundColor: isDark
-                          ? getDarkBg(event.color)
-                          : undefined,
-                      }}
-                    >
-                      <div
-                        className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                        style={{ backgroundColor: getAccent(event.color) }}
-                      />
-                      <div
-                        style={{ color: getAccent(event.color) }}
-                        className="truncate"
+                <ScrollArea className="max-h-[260px]">
+                  <div className="space-y-1.5 pr-2">
+                    {popover.dayEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        className={cn(
+                          'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                          event.color,
+                        )}
+                        onClick={(e) => {
+                          onEventClick(
+                            event,
+                            e.currentTarget,
+                            e.clientX,
+                            e.clientY,
+                          )
+                        }}
+                        style={{
+                          backgroundColor: isDark
+                            ? getDarkBg(event.color)
+                            : undefined,
+                        }}
                       >
-                        {event.title || t.unnamedEvent}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                        <div
+                          className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                          style={{ backgroundColor: getAccent(event.color) }}
+                        />
+                        <div
+                          style={{ color: getAccent(event.color) }}
+                          className="truncate"
+                        >
+                          {event.title || t.unnamedEvent}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="text-xs text-muted-foreground">
                   {t.noEventsFound}

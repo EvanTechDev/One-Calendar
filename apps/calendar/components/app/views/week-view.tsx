@@ -26,7 +26,12 @@ import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/vi
 interface WeekViewProps {
   date: Date
   events: CalendarEvent[]
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
   config: ViewConfig
   onEventDrop?: (
@@ -353,6 +358,7 @@ export default function WeekView({
     return allDayEvents.map((event, index) => (
       <div
         key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
+        data-event-id={event.id}
         className={cn(
           'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
           event.color,
@@ -379,7 +385,12 @@ export default function WeekView({
           e.stopPropagation()
           if (ignoreNextEventClickRef.current) return
           if (!isDraggingRef.current) {
-            onEventClick(event, e.currentTarget as HTMLElement)
+            onEventClick(
+              event,
+              e.currentTarget as HTMLElement,
+              e.clientX,
+              e.clientY,
+            )
           }
         }}
       >
@@ -559,6 +570,7 @@ export default function WeekView({
                   return (
                     <div
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
+                      data-event-id={event.id}
                       className={cn(
                         'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
                         event.color,
@@ -581,7 +593,12 @@ export default function WeekView({
                       onClick={(e) => {
                         e.stopPropagation()
                         if (!isDraggingRef.current) {
-                          onEventClick(event, e.currentTarget as HTMLElement)
+                          onEventClick(
+                            event,
+                            e.currentTarget as HTMLElement,
+                            e.clientX,
+                            e.clientY,
+                          )
                         }
                       }}
                     >
@@ -670,7 +687,7 @@ export default function WeekView({
                         top: `${topPosition}px`,
                       }}
                     >
-                      <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
                     </div>
                   )
                 })()}

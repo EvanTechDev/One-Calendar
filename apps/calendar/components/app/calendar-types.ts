@@ -1,3 +1,5 @@
+import { getValidTimezone } from '@/lib/timezone'
+
 export type CalendarViewTypeValue =
   | 'day'
   | 'week'
@@ -193,7 +195,7 @@ export class ViewConfig {
     }
     return new ViewConfig(
       props.date,
-      props.timezone,
+      getValidTimezone(props.timezone),
       props.timeFormat,
       props.firstDayOfWeek,
       props.language,
@@ -204,7 +206,7 @@ export class ViewConfig {
   static default(): ViewConfig {
     return new ViewConfig(
       new Date(),
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      getValidTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone),
       TimeFormat.h24(),
       FirstDayOfWeek.sunday(),
       Language.english(),

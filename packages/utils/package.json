@@ -5,9 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./utils": "./src/utils.ts",
-    "./crypto": "./src/crypto.ts",
-    "./useLocalStorage": "./src/useLocalStorage.ts"
+    "./utils": "./src/utils.ts"
   },
   "scripts": {
     "build": "tsc",

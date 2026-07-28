@@ -10,7 +10,8 @@ export const APP_CONFIG = {
   auth: {
     enabledOAuthProviders: [] as const,
     resend: {
-      sender: process.env.RESEND_SENDER_EMAIL ?? 'no-reply@xyehr.cn',
+      sender:
+        process.env.RESEND_SENDER_EMAIL ?? 'One Calendar <no-reply@xyehr.cn>',
     },
   },
   landing: {

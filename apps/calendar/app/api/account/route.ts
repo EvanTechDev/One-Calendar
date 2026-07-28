@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import { db } from '@/lib/drizzle/client'
-import { shares, calendarBackups } from '@/lib/drizzle/schema'
-import { eq, sql } from 'drizzle-orm'
+import { getDb } from '@/lib/drizzle/client'
+import {
+  calendarEvents,
+  settings,
+  calendarCategories,
+  countdowns,
+  bookmarkedEvents,
+  shares,
+} from '@/lib/drizzle/schema'
+import { eq } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
@@ -23,21 +30,17 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await db.transaction(async (tx) => {
-      const hasCalendarEventsTable = await tx.execute(sql`
-        SELECT 1 as ok FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'calendar_events' LIMIT 1
-      `)
-
-      if (hasCalendarEventsTable.length > 0) {
-        await tx.execute(
-          sql`DELETE FROM calendar_events WHERE user_id = ${user.id}`,
-        )
-      }
-
+    await getDb().transaction(async (tx) => {
       await tx.delete(shares).where(eq(shares.userId, user.id))
       await tx
-        .delete(calendarBackups)
-        .where(eq(calendarBackups.userId, user.id))
+        .delete(bookmarkedEvents)
+        .where(eq(bookmarkedEvents.userId, user.id))
+      await tx.delete(countdowns).where(eq(countdowns.userId, user.id))
+      await tx
+        .delete(calendarCategories)
+        .where(eq(calendarCategories.userId, user.id))
+      await tx.delete(settings).where(eq(settings.userId, user.id))
+      await tx.delete(calendarEvents).where(eq(calendarEvents.userId, user.id))
     })
 
     log.audit?.({

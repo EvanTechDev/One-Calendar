@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  getEncryptionState,
-  readEncryptedLocalStorage,
-  subscribeEncryptionState,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
+import { api } from '@/lib/api-client'
 import React, { useState, useRef, useEffect } from 'react'
 import {
   Edit2,
@@ -126,34 +121,29 @@ export default function EventPreview({
 
   useEffect(() => {
     let active = true
-    const loadBookmarks = () =>
-      readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
-        (stored) => {
-          if (active) {
-            setBookmarks(stored)
-          }
-        },
-      )
+    const loadBookmarks = async () => {
+      try {
+        const res = await api.bookmarks.list()
+        if (active) {
+          setBookmarks(res.bookmarks)
+        }
+      } catch {}
+    }
 
     loadBookmarks()
-    const unsubscribe = subscribeEncryptionState(() => {
-      if (getEncryptionState().ready) {
-        loadBookmarks()
-      }
-    })
     return () => {
       active = false
-      unsubscribe()
     }
   }, [])
 
   useEffect(() => {
     if (!open || !event) return
-    readEncryptedLocalStorage<any[]>('bookmarked-events', []).then(
-      (storedBookmarks) => {
-        setBookmarks(storedBookmarks)
-      },
-    )
+    api.bookmarks
+      .list()
+      .then((res) => {
+        setBookmarks(res.bookmarks)
+      })
+      .catch(() => {})
   }, [open, event])
 
   useEffect(() => {
@@ -167,7 +157,7 @@ export default function EventPreview({
   useEffect(() => {
     if (event) {
       const isCurrentEventBookmarked = bookmarks.some(
-        (bookmark: any) => bookmark.id === event.id,
+        (bookmark: any) => bookmark.eventId === event.id,
       )
       setIsBookmarked(isCurrentEventBookmarked)
     }
@@ -262,31 +252,24 @@ export default function EventPreview({
       qrCodeObjectURLRef.current = null
     }
 
-    const storedShares = await readEncryptedLocalStorage<any[]>(
-      'shared-events',
-      [],
-    )
-    const existingShare = storedShares
-      .filter((share) => share?.eventId === event.id && !!share?.shareLink)
-      .sort(
-        (a, b) =>
-          new Date(b.shareDate || 0).getTime() -
-          new Date(a.shareDate || 0).getTime(),
-      )[0]
+    try {
+      const sharesRes = await api.shares.list()
+      const existingShare = sharesRes.shares
+        .filter((share) => share?.eventId === event.id && !!share?.shareLink)
+        .sort(
+          (a, b) =>
+            new Date(b.shareDate || 0).getTime() -
+            new Date(a.shareDate || 0).getTime(),
+        )[0]
 
-    if (existingShare) {
-      const res = await fetch(`/api/share?id=${existingShare.id}`)
-      if (res.ok) {
-        setShareLink(existingShare.shareLink)
-        await generateStyledQRCode(existingShare.shareLink)
-      } else {
-        // Share no longer exists, remove from storage
-        const updatedShares = storedShares.filter(
-          (s) => s.id !== existingShare.id,
-        )
-        await writeEncryptedLocalStorage('shared-events', updatedShares)
+      if (existingShare) {
+        const res = await fetch(`/api/share?id=${existingShare.id}`)
+        if (res.ok) {
+          setShareLink(existingShare.shareLink)
+          await generateStyledQRCode(existingShare.shareLink)
+        }
       }
-    }
+    } catch {}
 
     setShareDialogOpen(true)
   }
@@ -294,11 +277,11 @@ export default function EventPreview({
   const toggleBookmark = async () => {
     if (!event) return
     if (isBookmarked) {
-      const updatedBookmarks = bookmarks.filter(
-        (bookmark: any) => bookmark.id !== event.id,
-      )
-      await writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
-      setBookmarks(updatedBookmarks)
+      const bm = bookmarks.find((b: any) => b.eventId === event.id)
+      if (bm) {
+        await api.bookmarks.delete(bm.id)
+        setBookmarks(bookmarks.filter((b: any) => b.id !== bm.id))
+      }
       setIsBookmarked(false)
       toast(isZh ? '已取消收藏' : 'Removed from bookmarks', {
         description: isZh
@@ -306,19 +289,19 @@ export default function EventPreview({
           : 'Event has been removed from your bookmarks',
       })
     } else {
-      const bookmarkData = {
-        id: event.id,
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        color: event.color,
-        location: event.location,
-        bookmarkedAt: new Date().toISOString(),
-      }
-      const updatedBookmarks = [...bookmarks, bookmarkData]
-      await writeEncryptedLocalStorage('bookmarked-events', updatedBookmarks)
-      setBookmarks(updatedBookmarks)
+      const res = await api.bookmarks.create({ eventId: event.id })
       setIsBookmarked(true)
+      if (res.bookmark) {
+        setBookmarks((prev) => [
+          ...prev,
+          {
+            id: res.bookmark.id,
+            eventId: res.bookmark.eventId,
+            createdAt: res.bookmark.createdAt,
+            event: event,
+          },
+        ])
+      }
       toast(isZh ? '已收藏' : 'Bookmarked', {
         description: isZh
           ? '事件已添加到收藏夹'
@@ -350,33 +333,15 @@ export default function EventPreview({
 
     try {
       setIsSharing(true)
-      const shareId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9)
-      const sharedByName =
-        user?.name || user?.username || user?.firstName || user?.email || 'User'
-      const sharedEvent = { ...event, sharedBy: sharedByName }
 
-      const payload: any = { id: shareId, data: sharedEvent }
-      if (passwordEnabled) payload.password = sharePassword
-      if (passwordEnabled) payload.burnAfterRead = !!burnAfterRead
-
-      const response = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const result = await api.shares.create({
+        eventId: event.id,
+        password: passwordEnabled ? sharePassword : undefined,
+        burnAfterRead: passwordEnabled ? !!burnAfterRead : undefined,
       })
 
-      if (!response.ok) {
-        const msg = await response.json().catch(() => null)
-        throw new Error(msg?.error || t.shareFailedGeneric)
-      }
-
-      const result = await response.json()
-
       if (result.success) {
-        const link = result?.shareLink
-          ? `${window.location.origin}${result.shareLink}`
-          : `${window.location.origin}/share/${shareId}`
+        const link = `${window.location.origin}${result.shareLink}`
         setShareLink(link)
 
         try {
@@ -415,22 +380,6 @@ export default function EventPreview({
             setQRCodeDataURL(qrURL)
           }
         } catch {}
-
-        const storedShares = await readEncryptedLocalStorage<any[]>(
-          'shared-events',
-          [],
-        )
-        storedShares.push({
-          id: shareId,
-          eventId: event.id,
-          eventTitle: event.title,
-          sharedBy: sharedByName,
-          shareDate: new Date().toISOString(),
-          shareLink: link,
-          protected: !!passwordEnabled,
-          burnAfterRead: !!burnAfterRead,
-        })
-        await writeEncryptedLocalStorage('shared-events', storedShares)
 
         toast.success(t.shareSuccessTitle, {
           description:

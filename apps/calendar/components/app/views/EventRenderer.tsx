@@ -47,7 +47,12 @@ interface EventRendererProps {
   }
   config: ViewConfig
   isDark: boolean
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -121,7 +126,7 @@ export function EventRenderer({
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
     if (!isDraggingRef?.current) {
-      onEventClick(event, e.currentTarget as HTMLElement)
+      onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
   }
 
@@ -147,6 +152,7 @@ export function EventRenderer({
     <ContextMenu key={event.id}>
       <ContextMenuTrigger asChild>
         <div
+          data-event-id={event.id}
           className={cn(
             'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
             event.color,
@@ -281,7 +287,12 @@ interface AllDayEventRendererProps {
   index: number
   config: ViewConfig
   isDark: boolean
-  onEventClick: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onEventClick: (
+    event: CalendarEvent,
+    anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
+  ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onShareEvent?: (event: CalendarEvent) => void
@@ -329,7 +340,7 @@ export function AllDayEventRenderer({
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
     if (!isDraggingRef?.current) {
-      onEventClick(event, e.currentTarget as HTMLElement)
+      onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
   }
 
@@ -355,6 +366,7 @@ export function AllDayEventRenderer({
     <ContextMenu key={`allday-${event.id}`}>
       <ContextMenuTrigger asChild>
         <div
+          data-event-id={event.id}
           className={cn(
             'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
             event.color,
@@ -584,7 +596,7 @@ export function CurrentTimeIndicator({
         top: `${topPosition}px`,
       }}
     >
-      <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
     </div>
   )
 }

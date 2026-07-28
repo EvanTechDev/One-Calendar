@@ -4,10 +4,9 @@ import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
-import {
-  readEncryptedLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
+import { useData } from '@/components/providers/data-provider'
+import type { EventData } from '@/lib/api-client'
+import type { CategoryData } from '@/lib/api-client'
 
 export interface CalendarCategory {
   id: string
@@ -29,6 +28,31 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
+}
+
+function eventDataToCalendarEvent(e: EventData): CalendarEvent {
+  return {
+    id: e.id,
+    title: e.title,
+    startDate: new Date(e.startDate),
+    endDate: new Date(e.endDate),
+    isAllDay: e.isAllDay,
+    recurrence: 'none',
+    location: e.location ?? undefined,
+    participants: e.participants?.map((p: { name: string }) => p.name) ?? [],
+    notification: e.notificationMinutes ?? 0,
+    description: e.description ?? undefined,
+    color: e.color ?? '#3B82F6',
+    calendarId: e.categoryId ?? '',
+  }
+}
+
+function categoryDataToCalendarCategory(c: CategoryData): CalendarCategory {
+  return {
+    id: c.id,
+    name: c.name,
+    color: c.color,
+  }
 }
 
 interface CalendarContextType {
@@ -115,45 +139,18 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 }))
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const calendars = useCalendarStore((state) => state.calendars)
-  const events = useCalendarStore((state) => state.events)
+  const { events: serverEvents, categories: serverCategories } = useData()
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const hydratedRef = useRef(false)
 
   useEffect(() => {
-    const hydrate = async () => {
-      const storedCalendars = await readEncryptedLocalStorage<
-        CalendarCategory[]
-      >('calendar-categories', [])
-      const storedEvents = await readEncryptedLocalStorage<CalendarEvent[]>(
-        'calendar-events',
-        [],
-      )
-
-      setCalendars(storedCalendars)
-      setEvents(
-        storedEvents.map((event) => ({
-          ...event,
-          startDate: new Date(event.startDate),
-          endDate: new Date(event.endDate),
-        })),
-      )
-      hydratedRef.current = true
-    }
-
-    void hydrate()
-  }, [setCalendars, setEvents])
-
-  useEffect(() => {
-    if (!hydratedRef.current) return
-    void writeEncryptedLocalStorage('calendar-categories', calendars)
-  }, [calendars])
-
-  useEffect(() => {
-    if (!hydratedRef.current) return
-    void writeEncryptedLocalStorage('calendar-events', events)
-  }, [events])
+    if (hydratedRef.current) return
+    if (serverEvents.length === 0 && serverCategories.length === 0) return
+    hydratedRef.current = true
+    setCalendars(serverCategories.map(categoryDataToCalendarCategory))
+    setEvents(serverEvents.map(eventDataToCalendarEvent))
+  }, [serverEvents, serverCategories, setCalendars, setEvents])
 
   return children
 }

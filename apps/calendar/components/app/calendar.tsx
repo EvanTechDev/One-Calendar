@@ -1,10 +1,8 @@
 'use client'
 
-import {
-  checkPendingNotifications,
-  clearAllNotificationTimers,
-  type NOTIFICATION_SOUNDS,
-} from '@/lib/notifications'
+import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
+import { getEventAccentColor } from '@/components/app/views/event-colors'
+import { useNotifications } from '@/components/app/hooks/useNotifications'
 import {
   Select,
   SelectContent,
@@ -18,10 +16,6 @@ import {
   ChevronRight,
   Search,
   PanelLeft,
-  CloudUpload,
-  CheckCircle2,
-  AlertCircle,
-  LoaderIcon,
   CircleHelp,
   ShieldCheck,
   MessageSquare,
@@ -30,16 +24,19 @@ import {
   House,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import {
-  readEncryptedLocalStorage,
-  useLocalStorage,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
+import {
+  useSettings,
+  useEvents,
+  useBookmarks,
+} from '@/components/providers/data-provider'
+import { api } from '@/lib/api-client'
+import { getValidTimezone } from '@/lib/timezone'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
@@ -125,7 +122,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isSidebarExpanding, setIsSidebarExpanding] = useState(false)
+  const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
@@ -140,20 +137,29 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const [firstDayOfWeek, setFirstDayOfWeek] =
-    useLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0)
+  const { settings, updateSettings } = useSettings()
+  const { upsertEvent, deleteEvent } = useEvents()
+  const { deleteBookmarkByEvent } = useBookmarks()
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
+    (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
+  )
 
   const handleFirstDayOfWeekChange = (day: FirstDayOfWeek) => {
     setFirstDayOfWeek(day.value)
+    updateSettings({ firstDayOfWeek: day.value })
   }
-  const [timezone, setTimezone] = useLocalStorage<string>(
-    'timezone',
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  const [timezone, setTimezone] = useState<string>(
+    getValidTimezone(
+      settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ),
   )
+  const handleTimezoneChange = (tz: string) => {
+    const validTz = getValidTimezone(tz)
+    setTimezone(validTz)
+    updateSettings({ timezone: validTz })
+  }
   const [notificationSound, setNotificationSound] =
-    useLocalStorage<NOTIFICATION_SOUNDS>('notification-sound', 'telegram')
-  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const notificationsInitializedRef = useRef(false)
+    useState<NOTIFICATION_SOUNDS>('telegram')
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
@@ -165,10 +171,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [backupEnabled, setBackupEnabled] = useState(false)
-  const [backupSyncStatus, setBackupSyncStatus] = useState<
-    'uploading' | 'failed' | 'done' | null
-  >(null)
   const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
@@ -181,6 +183,35 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     )
   }
 
+  const handleEventDrop = (
+    event: CalendarEvent,
+    newStartDate: Date,
+    newEndDate: Date,
+  ) => {
+    const updatedEvent = {
+      ...event,
+      startDate: newStartDate,
+      endDate: newEndDate,
+    }
+    updateEvent(updatedEvent)
+    upsertEvent({
+      id: updatedEvent.id,
+      title: updatedEvent.title,
+      startDate: updatedEvent.startDate.toISOString(),
+      endDate: updatedEvent.endDate.toISOString(),
+      isAllDay: updatedEvent.isAllDay,
+      location: updatedEvent.location || null,
+      participants: updatedEvent.participants?.length
+        ? updatedEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
+      notificationMinutes: updatedEvent.notification || null,
+      color: updatedEvent.color || null,
+      categoryId: updatedEvent.calendarId || null,
+    }).catch(() => {})
+  }
+
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
   )
@@ -188,21 +219,41 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     null,
   )
 
-  const [defaultView, setDefaultView] = useLocalStorage<CalendarViewTypeValue>(
-    'default-view',
-    'week',
+  const [defaultView, setDefaultView] = useState<CalendarViewTypeValue>(
+    (settings.defaultView as CalendarViewTypeValue) ?? 'week',
   )
-  const [enableShortcuts, setEnableShortcuts] = useLocalStorage<boolean>(
-    'enable-shortcuts',
-    true,
+  const handleDefaultViewChange = (view: CalendarViewTypeValue) => {
+    setDefaultView(view)
+    updateSettings({ defaultView: view })
+  }
+  const [enableShortcuts, setEnableShortcuts] = useState<boolean>(
+    settings.enableShortcuts ?? true,
   )
-  const [timeFormat, setTimeFormat] = useLocalStorage<TimeFormatValue>(
-    'time-format',
-    '24h',
+  const handleEnableShortcutsChange = (enabled: boolean) => {
+    setEnableShortcuts(enabled)
+    updateSettings({ enableShortcuts: enabled })
+  }
+  const [timeFormat, setTimeFormat] = useState<TimeFormatValue>(
+    (settings.timeFormat as TimeFormatValue) ?? '24h',
   )
-  const [toastPosition, setToastPosition] = useLocalStorage<
+  const handleTimeFormatChange = (format: TimeFormatValue) => {
+    setTimeFormat(format)
+    updateSettings({ timeFormat: format })
+  }
+  const [toastPosition, setToastPosition] = useState<
     'bottom-left' | 'bottom-center' | 'bottom-right'
-  >('toast-position', 'bottom-right')
+  >(
+    (settings.toastPosition as
+      | 'bottom-left'
+      | 'bottom-center'
+      | 'bottom-right') ?? 'bottom-right',
+  )
+  const handleToastPositionChange = (
+    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
+  ) => {
+    setToastPosition(position)
+    updateSettings({ toastPosition: position })
+  }
 
   const firstDayOfWeekObj = useMemo(
     () => FirstDayOfWeek.create(firstDayOfWeek),
@@ -233,68 +284,47 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setView(isCalendarView(defaultView) ? defaultView : 'week')
   }, [defaultView])
 
+  const settingsInitializedRef = useRef(false)
+
   useEffect(() => {
-    const applyRestoredPreferences = () => {
-      void Promise.all([
-        readEncryptedLocalStorage<FirstDayOfWeekValue>('first-day-of-week', 0),
-        readEncryptedLocalStorage<CalendarViewTypeValue>(
-          'default-view',
-          'week',
-        ),
-      ]).then(([restoredFirstDayOfWeek, restoredDefaultView]) => {
-        setFirstDayOfWeek(
-          [1, 6].includes(restoredFirstDayOfWeek) ? restoredFirstDayOfWeek : 0,
-        )
-        if (isCalendarView(restoredDefaultView)) {
-          setDefaultView(restoredDefaultView)
-          setView(restoredDefaultView)
+    if (settingsInitializedRef.current) return
+    if (Object.keys(settings).length === 0) return
+    settingsInitializedRef.current = true
+
+    const settingsSync: Array<() => void> = [
+      () => {
+        if (settings.firstDayOfWeek !== undefined)
+          setFirstDayOfWeek(settings.firstDayOfWeek as FirstDayOfWeekValue)
+      },
+      () => {
+        if (settings.timezone) setTimezone(getValidTimezone(settings.timezone))
+      },
+      () => {
+        if (settings.defaultView && isCalendarView(settings.defaultView)) {
+          setDefaultView(settings.defaultView as CalendarViewTypeValue)
+          setView(settings.defaultView as ViewType)
         }
-      })
-    }
-
-    window.addEventListener('backup-restored', applyRestoredPreferences)
-    return () => {
-      window.removeEventListener('backup-restored', applyRestoredPreferences)
-    }
-  }, [setDefaultView, setFirstDayOfWeek])
-
-  useEffect(() => {
-    const refreshBackupState = () => {
-      const enabled = localStorage.getItem('auto-backup-enabled') === 'true'
-      setBackupEnabled(enabled)
-      if (!enabled) {
-        setBackupSyncStatus(null)
-        return
-      }
-
-      const status = localStorage.getItem('auto-backup-sync-status')
-      if (status === 'uploading' || status === 'failed' || status === 'done') {
-        setBackupSyncStatus(status)
-      } else {
-        setBackupSyncStatus('done')
-      }
-    }
-
-    refreshBackupState()
-    window.addEventListener('backup-status-change', refreshBackupState)
-    window.addEventListener('storage', refreshBackupState)
-    return () => {
-      window.removeEventListener('backup-status-change', refreshBackupState)
-      window.removeEventListener('storage', refreshBackupState)
-    }
-  }, [])
-
-  const backupStatusIcon = useMemo(() => {
-    if (!backupEnabled) return null
-
-    if (backupSyncStatus === 'uploading') {
-      return <LoaderIcon className="h-4 w-4 animate-spin" />
-    }
-    if (backupSyncStatus === 'failed') {
-      return <AlertCircle className="h-4 w-4 text-destructive" />
-    }
-    return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-  }, [backupEnabled, backupSyncStatus])
+      },
+      () => {
+        if (settings.enableShortcuts !== undefined)
+          setEnableShortcuts(settings.enableShortcuts)
+      },
+      () => {
+        if (settings.timeFormat)
+          setTimeFormat(settings.timeFormat as TimeFormatValue)
+      },
+      () => {
+        if (settings.toastPosition)
+          setToastPosition(
+            settings.toastPosition as
+              | 'bottom-left'
+              | 'bottom-center'
+              | 'bottom-right',
+          )
+      },
+    ]
+    settingsSync.forEach((fn) => fn())
+  }, [settings])
 
   useEffect(() => {
     const prefetch = () => {
@@ -391,15 +421,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents, view])
 
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => {
-      const nextCollapsed = !prev
-      if (!nextCollapsed) {
-        setIsSidebarExpanding(true)
-      } else {
-        setIsSidebarExpanding(false)
-      }
-      return nextCollapsed
-    })
+    setIsSidebarTransitioning(true)
+    setIsSidebarCollapsed((prev) => !prev)
   }
 
   const handleDateSelect = (date: Date) => {
@@ -476,11 +499,59 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventClick = (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
+    clientX?: number,
+    clientY?: number,
   ) => {
     setShareOnlyMode(false)
     setPreviewEvent(event)
-    setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
+    if (view === 'day' && clientX !== undefined && clientY !== undefined) {
+      setPreviewAnchorRect(
+        DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
+      )
+    } else if (clientY !== undefined && anchorEl) {
+      const rect = anchorEl.getBoundingClientRect()
+      setPreviewAnchorRect(
+        DOMRect.fromRect({
+          x: rect.left,
+          y: clientY,
+          width: rect.width,
+          height: 0,
+        }),
+      )
+    } else {
+      setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
+    }
     setPreviewOpen(true)
+  }
+
+  const handleNavigateAndPreview = (event: CalendarEvent) => {
+    setDate(new Date(event.startDate))
+    setView(defaultView as ViewType)
+    setPreviewEvent(event)
+    const eventId = (event as any).eventId ?? event.id
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-event-id="${eventId}"]`)
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'instant' })
+        requestAnimationFrame(() => {
+          setPreviewAnchorRect(el.getBoundingClientRect())
+          setPreviewOpen(true)
+        })
+      } else if (calendarRef.current) {
+        setPreviewAnchorRect(
+          DOMRect.fromRect({
+            x: calendarRef.current.getBoundingClientRect().left + 16,
+            y: calendarRef.current.getBoundingClientRect().top + 16,
+            width: 0,
+            height: 0,
+          }),
+        )
+        setPreviewOpen(true)
+      } else {
+        setPreviewAnchorRect(null)
+        setPreviewOpen(true)
+      }
+    })
   }
 
   const handleEventAdd = (event: CalendarEvent) => {
@@ -492,6 +563,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
+    upsertEvent({
+      id: newEvent.id,
+      title: newEvent.title,
+      startDate: newEvent.startDate.toISOString(),
+      endDate: newEvent.endDate.toISOString(),
+      isAllDay: newEvent.isAllDay,
+      color: newEvent.color,
+      location: newEvent.location,
+      description: newEvent.description,
+      notificationMinutes: newEvent.notification,
+    })
     toast(t.eventCreated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -504,6 +586,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         event.id === updatedEvent.id ? updatedEvent : event,
       ),
     )
+    upsertEvent({
+      id: updatedEvent.id,
+      title: updatedEvent.title,
+      startDate: updatedEvent.startDate.toISOString(),
+      endDate: updatedEvent.endDate.toISOString(),
+      isAllDay: updatedEvent.isAllDay,
+      color: updatedEvent.color,
+      location: updatedEvent.location,
+      description: updatedEvent.description,
+      notificationMinutes: updatedEvent.notification,
+    })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
@@ -517,78 +610,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setDeleteConfirmOpen(true)
   }
 
-  const cleanupSharesForEvent = async (eventId: string) => {
-    const storedShares = await readEncryptedLocalStorage<
-      { id: string; eventId: string }[]
-    >('shared-events', [])
-    const relatedShares = storedShares.filter(
-      (share) => share.eventId === eventId,
-    )
-    if (!relatedShares.length) return
-
-    const results = await Promise.allSettled(
-      relatedShares.map((share) =>
-        fetch('/api/share', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: share.id }),
-        }),
-      ),
-    )
-
-    await writeEncryptedLocalStorage(
-      'shared-events',
-      storedShares.filter((share) => share.eventId !== eventId),
-    )
-
-    const failed = results.filter(
-      (result) =>
-        result.status === 'rejected' ||
-        (result.status === 'fulfilled' && !result.value.ok),
-    )
-
-    if (failed.length) {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareDeletePartialFailedDescription,
-      })
-    }
-  }
-
   const confirmEventDelete = async () => {
     if (!pendingDeleteEvent) return
 
     const deletedEvent = pendingDeleteEvent
-    try {
-      await cleanupSharesForEvent(deletedEvent.id)
-    } catch {
-      toast.error(t.shareDeleteFailed, {
-        description: t.shareCleanupErrorDescription,
-      })
-    }
+    let cancelled = false
 
     setEvents((prevEvents) =>
       prevEvents.filter((event) => event.id !== deletedEvent.id),
     )
-    void readEncryptedLocalStorage<{ id: string }[]>(
-      'bookmarked-events',
-      [],
-    ).then((bookmarks) =>
-      writeEncryptedLocalStorage(
-        'bookmarked-events',
-        bookmarks.filter((bookmark) => bookmark.id !== deletedEvent.id),
-      ),
-    )
-    setEventDialogOpen(false)
-    setSelectedEvent(null)
-    setPreviewOpen(false)
-    setDeleteConfirmOpen(false)
-    setPendingDeleteEvent(null)
 
     toast(t.eventDeleted, {
       description: deletedEvent.title,
       action: {
         label: t.undo,
         onClick: () => {
+          cancelled = true
           setEvents((prevEvents) => {
             if (prevEvents.some((event) => event.id === deletedEvent.id))
               return prevEvents
@@ -598,10 +635,40 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 new Date(b.startDate).getTime(),
             )
           })
+          upsertEvent({
+            id: deletedEvent.id,
+            title: deletedEvent.title,
+            startDate: deletedEvent.startDate.toISOString(),
+            endDate: deletedEvent.endDate.toISOString(),
+            isAllDay: deletedEvent.isAllDay,
+            location: deletedEvent.location || null,
+            participants: deletedEvent.participants?.length
+              ? deletedEvent.participants.map((p: any) =>
+                  typeof p === 'string' ? { name: p } : p,
+                )
+              : null,
+            notificationMinutes: deletedEvent.notification || null,
+            color: deletedEvent.color || null,
+            categoryId: deletedEvent.calendarId || null,
+          }).catch(() => {})
           toast(t.deletionUndone)
         },
       },
     })
+
+    setEventDialogOpen(false)
+    setSelectedEvent(null)
+    setPreviewOpen(false)
+    setDeleteConfirmOpen(false)
+    setPendingDeleteEvent(null)
+
+    try {
+      await deleteBookmarkByEvent(deletedEvent.id)
+    } catch {}
+    if (cancelled) return
+    try {
+      await deleteEvent(deletedEvent.id)
+    } catch {}
   }
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
@@ -642,35 +709,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const bookmarks = await readEncryptedLocalStorage<
-      {
-        id: string
-        title: string
-        startDate: Date
-        endDate: Date
-        color: string
-        location?: string
-      }[]
-    >('bookmarked-events', [])
-
-    const isBookmarked = bookmarks.some((b) => b.id === event.id)
+    const { bookmarks } = await api.bookmarks.list()
+    const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
     if (isBookmarked) {
-      const updated = bookmarks.filter((b) => b.id !== event.id)
-      await writeEncryptedLocalStorage('bookmarked-events', updated)
+      const bm = bookmarks.find((b) => b.eventId === event.id)
+      if (bm) await api.bookmarks.delete(bm.id)
     } else {
-      const bookmarkData = {
-        id: event.id,
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        color: event.color,
-        location: event.location,
-        bookmarkedAt: new Date().toISOString(),
-      }
-      await writeEncryptedLocalStorage('bookmarked-events', [
-        ...bookmarks,
-        bookmarkData,
-      ])
+      await api.bookmarks.create({ eventId: event.id })
     }
   }
 
@@ -723,31 +768,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return filteredEvents.slice(0, 8)
   }, [filteredEvents, searchTerm])
 
-  useEffect(() => {
-    if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(notificationSound)
-      notificationsInitializedRef.current = true
-    }
-
-    if (!notificationIntervalRef.current) {
-      notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications(notificationSound)
-      }, 60000)
-    }
-
-    return () => {
-      if (notificationIntervalRef.current) {
-        clearInterval(notificationIntervalRef.current)
-      }
-    }
-  }, [notificationSound])
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', clearAllNotificationTimers)
-    return () => {
-      window.removeEventListener('beforeunload', clearAllNotificationTimers)
-    }
-  }, [])
+  useNotifications(events, notificationSound)
 
   return (
     <div className={className}>
@@ -765,7 +786,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           selectedDate={sidebarDate}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          onCollapseTransitionEnd={() => setIsSidebarExpanding(false)}
           selectedCategoryFilters={selectedCategoryFilters}
           onCategoryFilterChange={(categoryId, checked) => {
             setSelectedCategoryFilters((prev) => {
@@ -775,6 +795,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               return prev.filter((id) => id !== categoryId)
             })
           }}
+          onCollapseTransitionEnd={() => setIsSidebarTransitioning(false)}
         />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -861,12 +882,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                        setPreviewEvent(searchResultEvents[0])
-                        setPreviewAnchorRect(
-                          searchInputRef.current?.getBoundingClientRect() ??
-                            null,
-                        )
-                        setPreviewOpen(true)
+                        handleNavigateAndPreview(searchResultEvents[0])
                         setSearchTerm('')
                         setIsSearchFocused(false)
                       }
@@ -874,55 +890,73 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     className="pr-4"
                   />
                 </InputGroup>
-                {isSearchFocused && !!searchTerm && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] w-72 rounded-md border bg-popover p-1 shadow-md z-50">
-                    {searchResultEvents.length > 0 ? (
-                      <ScrollArea className="max-h-[320px]">
-                        <div className="space-y-1">
-                          {searchResultEvents.map((event) => (
-                            <button
-                              key={event.id}
-                              type="button"
-                              className="w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent"
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                setPreviewEvent(event)
-                                setPreviewAnchorRect(
-                                  searchInputRef.current?.getBoundingClientRect() ??
-                                    null,
-                                )
-                                setPreviewOpen(true)
-                                setSearchTerm('')
-                                setIsSearchFocused(false)
-                              }}
-                            >
-                              <div className="font-medium leading-none">
-                                {event.title || t.unnamedEvent}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {formatDateDisplay(new Date(event.startDate))}
-                              </div>
-                            </button>
-                          ))}
+                {isSearchFocused &&
+                  !!searchTerm &&
+                  searchInputRef.current &&
+                  typeof document !== 'undefined' &&
+                  createPortal(
+                    <div
+                      className="fixed z-[100] w-80 rounded-md border bg-popover p-1 shadow-md"
+                      style={{
+                        left: searchInputRef.current.getBoundingClientRect()
+                          .right,
+                        top:
+                          searchInputRef.current.getBoundingClientRect()
+                            .bottom + 6,
+                        transform: 'translateX(-100%)',
+                      }}
+                    >
+                      {searchResultEvents.length > 0 ? (
+                        <ScrollArea className="max-h-[320px]">
+                          <div className="space-y-1">
+                            {searchResultEvents.map((event) => (
+                              <button
+                                key={event.id}
+                                type="button"
+                                className="flex w-full cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  handleNavigateAndPreview(event)
+                                  setSearchTerm('')
+                                  setIsSearchFocused(false)
+                                }}
+                              >
+                                <div
+                                  className="mt-0.5 h-4 w-1 shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor: getEventAccentColor(
+                                      event.color,
+                                    ),
+                                  }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-sm font-medium leading-none">
+                                    {event.title || t.unnamedEvent}
+                                  </div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {formatDateDisplay(
+                                      new Date(event.startDate),
+                                    )}
+                                  </div>
+                                  {event.location && (
+                                    <div className="truncate text-xs text-muted-foreground">
+                                      {event.location}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      ) : (
+                        <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                          {t.noMatchingEvents}
                         </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        {t.noMatchingEvents}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>,
+                    document.body,
+                  )}
               </div>
-              {backupEnabled ? (
-                <div
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                  title="Backup status"
-                  aria-label="Backup status"
-                >
-                  {backupStatusIcon ?? <CloudUpload className="h-4 w-4" />}
-                </div>
-              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -993,15 +1027,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}
@@ -1018,15 +1044,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
               />
             )}
             {view === 'four-day' && (
@@ -1044,15 +1062,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleShare(event, true)
                 }}
                 onBookmarkEvent={toggleBookmark}
-                onEventDrop={(event, newStartDate, newEndDate) => {
-                  const updatedEvent = {
-                    ...event,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  }
-
-                  updateEvent(updatedEvent)
-                }}
+                onEventDrop={handleEventDrop}
               />
             )}
             {view === 'month' && (
@@ -1069,8 +1079,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
-                isSidebarCollapsed={isSidebarCollapsed}
-                isSidebarExpanding={isSidebarExpanding}
               />
             )}
             {view === 'analytics' && (
@@ -1082,35 +1090,38 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   setEventDialogOpen(true)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
+                isSidebarTransitioning={isSidebarTransitioning}
               />
             )}
             {view === 'settings' && (
               <Settings
                 language={languageObj.code}
-                setLanguage={(lang: string) => setLanguage(lang as any)}
+                setLanguage={(lang: string) =>
+                  setLanguage(lang as Parameters<typeof setLanguage>[0])
+                }
                 firstDayOfWeek={firstDayOfWeekObj}
                 setFirstDayOfWeek={handleFirstDayOfWeekChange}
                 timezone={timezone}
-                setTimezone={setTimezone}
+                setTimezone={handleTimezoneChange}
                 _notificationSound={notificationSound}
                 _setNotificationSound={setNotificationSound}
                 defaultView={CalendarViewType.create(
                   defaultView as CalendarViewTypeValue,
                 )}
                 setDefaultView={(view: CalendarViewType) =>
-                  setDefaultView(view.value as CalendarViewTypeValue)
+                  handleDefaultViewChange(view.value as CalendarViewTypeValue)
                 }
                 enableShortcuts={enableShortcuts}
-                setEnableShortcuts={setEnableShortcuts}
+                setEnableShortcuts={handleEnableShortcutsChange}
                 timeFormat={timeFormatObj}
                 setTimeFormat={(format: TimeFormat) =>
-                  setTimeFormat(format.value as TimeFormatValue)
+                  handleTimeFormatChange(format.value as TimeFormatValue)
                 }
                 events={events}
                 onImportEvents={handleImportEvents}
                 focusUserProfileSection={focusUserProfileSection}
                 _toastPosition={toastPosition}
-                _setToastPosition={setToastPosition}
+                _setToastPosition={handleToastPositionChange}
                 onBackToCalendar={() => setView(defaultView)}
               />
             )}
@@ -1120,7 +1131,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         {}
         <RightSidebar
           onViewChange={handleViewChange}
-          onEventClick={handleEventClick}
+          onEventClick={(event) => {
+            handleNavigateAndPreview(event)
+          }}
         />
 
         {}

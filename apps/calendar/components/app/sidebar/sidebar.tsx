@@ -33,6 +33,7 @@ import {
 import { useEffect, useState, type CSSProperties } from 'react'
 import { cn } from '@zntr/utils'
 import { toast } from 'sonner'
+import { api } from '@/lib/api-client'
 import Image from 'next/image'
 import {
   DropdownMenu,
@@ -201,7 +202,28 @@ export default function Sidebar({
   }
 
   const handleMoveCategory = (id: string, direction: 'up' | 'down') => {
+    const currentIndex = calendars.findIndex((cal) => cal.id === id)
+    if (currentIndex === -1) return
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= calendars.length) return
+
+    const nextCalendars = [...calendars]
+    const [moved] = nextCalendars.splice(currentIndex, 1)
+    nextCalendars.splice(targetIndex, 0, moved)
+
     moveCategoryInContext(id, direction)
+
+    nextCalendars.forEach((cal, i) => {
+      api.categories
+        .create({
+          id: cal.id,
+          name: cal.name,
+          color: cal.color,
+          sortOrder: i,
+        })
+        .catch(() => {})
+    })
+
     toast(direction === 'up' ? moveUpText : moveDownText, {
       description:
         direction === 'up'

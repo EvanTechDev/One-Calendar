@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import {
-  getEncryptionState,
-  readEncryptedLocalStorage,
-  subscribeEncryptionState,
-  writeEncryptedLocalStorage,
-} from '@zntr/utils/useLocalStorage'
-import {
   translations as localeTranslations,
   type Language,
 } from './calendar/locales'
@@ -103,10 +97,12 @@ export const isZhLanguage = (language: Language) =>
   zhLanguages.includes(language)
 
 export const getStoredLanguage = async (): Promise<Language> => {
-  const storedLanguage = await readEncryptedLocalStorage<string | null>(
-    LANGUAGE_STORAGE_KEY,
-    null,
-  )
+  let storedLanguage: string | null = null
+  try {
+    storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  } catch {
+    // localStorage not available
+  }
   return normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
 }
 
@@ -124,32 +120,27 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   useEffect(() => {
     let active = true
-    const loadLanguage = () =>
-      readEncryptedLocalStorage<string | null>(LANGUAGE_STORAGE_KEY, null).then(
-        (storedLanguage) => {
-          if (!active) return
-          const normalized =
-            normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
-          setLanguageState(normalized)
-          if (storedLanguage && normalized !== storedLanguage) {
-            void writeEncryptedLocalStorage(LANGUAGE_STORAGE_KEY, normalized)
-          }
-        },
-      )
+    const loadLanguage = () => {
+      let storedLanguage: string | null = null
+      try {
+        storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+      } catch {
+        // localStorage not available
+      }
+      if (!active) return
+      const normalized =
+        normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
+      setLanguageState(normalized)
+    }
 
     loadLanguage()
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === LANGUAGE_STORAGE_KEY) {
-        readEncryptedLocalStorage<string | null>(
-          LANGUAGE_STORAGE_KEY,
-          null,
-        ).then((newLanguage) => {
-          const normalized = normalizeLanguage(newLanguage)
-          if (normalized) {
-            setLanguageState(normalized)
-          }
-        })
+        const normalized = normalizeLanguage(e.newValue)
+        if (normalized) {
+          setLanguageState(normalized)
+        }
       }
     }
 
@@ -161,17 +152,10 @@ export function useLanguage(): [Language, (lang: Language) => void] {
       }
     }
 
-    const unsubscribe = subscribeEncryptionState(() => {
-      if (getEncryptionState().ready) {
-        loadLanguage()
-      }
-    })
-
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('languagechange', handleCustomLanguageChange)
     return () => {
       active = false
-      unsubscribe()
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('languagechange', handleCustomLanguageChange)
     }
@@ -179,7 +163,11 @@ export function useLanguage(): [Language, (lang: Language) => void] {
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
-    void writeEncryptedLocalStorage(LANGUAGE_STORAGE_KEY, lang)
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang)
+    } catch {
+      // localStorage not available
+    }
 
     window.dispatchEvent(
       new CustomEvent('languagechange', { detail: { language: lang } }),
