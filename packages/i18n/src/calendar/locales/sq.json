@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Autentikimi me dy faktorë është aktivizuar tani në llogarinë tuaj.",
   "twoFactorAuthenticationDescription": "Aktivizo ose çaktivizo 2FA-në bazuar në TOTP.",
   "changePasswordDescription": "Përdor kodin një herë përmes emailit për të ndryshuar fjalëkalimin në mënyrë të sigurt.",
-  "twoFactorQrCodeAlt": "Kodi QR për dy faktorë"
+  "twoFactorQrCodeAlt": "Kodi QR për dy faktorë",
+  "sendVerificationCodeFailed": "Dështoi dërgimi i kodit të verifikimit.",
+  "verificationCodeSentNewEmail": "Kodi i verifikimit u dërgua në emailin e ri.",
+  "updateEmailFailed": "Dështoi përditësimi i emailit.",
+  "emailUpdatedSuccessfully": "Emaili u përditësua me sukses.",
+  "verificationCodeSentEmail": "Kodi i verifikimit u dërgua në emailin tuaj.",
+  "resetPasswordFailed": "Dështoi ricaktimi i fjalëkalimit.",
+  "passwordUpdatedSuccessfully": "Fjalëkalimi u përditësua me sukses.",
+  "enable2faFailed": "Dështoi aktivizimi i 2FA",
+  "disable2faFailed": "Dështoi çaktivizimi i 2FA",
+  "twoFactorSetupVerified": "2FA u konfigurua me sukses.",
+  "invalidOtpCode": "{code} i pavlefshëm"
 }

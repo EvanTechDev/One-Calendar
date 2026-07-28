@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "你個帳戶已啟用雙重認證。",
   "twoFactorAuthenticationDescription": "啟用或停用 TOTP 雙重認證。",
   "changePasswordDescription": "使用一次性電郵驗證碼以安全更改密碼。",
-  "twoFactorQrCodeAlt": "雙重認證 QR 碼"
+  "twoFactorQrCodeAlt": "雙重認證 QR 碼",
+  "sendVerificationCodeFailed": "傳送驗證碼失敗。",
+  "verificationCodeSentNewEmail": "驗證碼已發送到新電郵。",
+  "updateEmailFailed": "更新電郵失敗。",
+  "emailUpdatedSuccessfully": "電郵已成功更新。",
+  "verificationCodeSentEmail": "驗證碼已發送到你的電郵。",
+  "resetPasswordFailed": "重設密碼失敗。",
+  "passwordUpdatedSuccessfully": "密碼已成功更新。",
+  "enable2faFailed": "啟用2FA失敗",
+  "disable2faFailed": "停用2FA失敗",
+  "twoFactorSetupVerified": "2FA設定已驗證。",
+  "invalidOtpCode": "無效 {code}"
 }

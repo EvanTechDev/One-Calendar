@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "A autenticação em duas etapas agora está ativa em sua conta.",
   "twoFactorAuthenticationDescription": "Ative ou desative a autenticação em duas etapas baseada em TOTP.",
   "changePasswordDescription": "Use o código por e-mail único para alterar sua senha com segurança.",
-  "twoFactorQrCodeAlt": "Código QR de autenticação em duas etapas"
+  "twoFactorQrCodeAlt": "Código QR de autenticação em duas etapas",
+  "sendVerificationCodeFailed": "Falha ao enviar o código de verificação.",
+  "verificationCodeSentNewEmail": "Código de verificação enviado para o novo e-mail.",
+  "updateEmailFailed": "Falha ao atualizar o e-mail.",
+  "emailUpdatedSuccessfully": "E-mail atualizado com sucesso.",
+  "verificationCodeSentEmail": "Código de verificação enviado para o seu e-mail.",
+  "resetPasswordFailed": "Falha ao redefinir a senha.",
+  "passwordUpdatedSuccessfully": "Senha atualizada com sucesso.",
+  "enable2faFailed": "Falha ao ativar a 2FA",
+  "disable2faFailed": "Falha ao desativar a 2FA",
+  "twoFactorSetupVerified": "Configuração da 2FA verificada.",
+  "invalidOtpCode": "Código {code} inválido"
 }

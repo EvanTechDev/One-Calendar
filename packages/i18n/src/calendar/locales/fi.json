@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Kaksivaiheinen tunnistautuminen on nyt aktiivinen tililläsi.",
   "twoFactorAuthenticationDescription": "Ota käyttöön tai poista TOTP-pohjainen kaksivaiheinen tunnistautuminen.",
   "changePasswordDescription": "Käytä kertakäyttöistä sähköpostikoodia salasanan vaihtamiseen turvallisesti.",
-  "twoFactorQrCodeAlt": "Kaksivaiheisen tunnistautumisen QR-koodi"
+  "twoFactorQrCodeAlt": "Kaksivaiheisen tunnistautumisen QR-koodi",
+  "sendVerificationCodeFailed": "Vahvistuskoodin lähettäminen epäonnistui.",
+  "verificationCodeSentNewEmail": "Vahvistuskoodi lähetetty uuteen sähköpostiosoitteeseen.",
+  "updateEmailFailed": "Sähköpostiosoitteen päivitys epäonnistui.",
+  "emailUpdatedSuccessfully": "Sähköpostiosoite päivitetty onnistuneesti.",
+  "verificationCodeSentEmail": "Vahvistuskoodi lähetetty sähköpostiisi.",
+  "resetPasswordFailed": "Salasanan nollaus epäonnistui.",
+  "passwordUpdatedSuccessfully": "Salasana päivitetty onnistuneesti.",
+  "enable2faFailed": "Kaksivaiheisen tunnistautumisen ottaminen käyttöön epäonnistui",
+  "disable2faFailed": "Kaksivaiheisen tunnistautumisen poistaminen käytöstä epäonnistui",
+  "twoFactorSetupVerified": "Kaksivaiheisen tunnistautumisen asetus vahvistettu.",
+  "invalidOtpCode": "Virheellinen {code}"
 }

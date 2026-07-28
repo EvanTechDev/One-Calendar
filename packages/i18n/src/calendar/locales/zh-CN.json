@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "双重身份验证已在你的账户上启用。",
   "twoFactorAuthenticationDescription": "启用或禁用基于 TOTP 的双重身份验证。",
   "changePasswordDescription": "使用一次性邮箱验证码安全地修改密码。",
-  "twoFactorQrCodeAlt": "双重身份验证二维码"
+  "twoFactorQrCodeAlt": "双重身份验证二维码",
+  "sendVerificationCodeFailed": "验证码发送失败。",
+  "verificationCodeSentNewEmail": "验证码已发送至新邮箱。",
+  "updateEmailFailed": "邮箱更新失败。",
+  "emailUpdatedSuccessfully": "邮箱更新成功。",
+  "verificationCodeSentEmail": "验证码已发送至您的邮箱。",
+  "resetPasswordFailed": "重置密码失败。",
+  "passwordUpdatedSuccessfully": "密码更新成功。",
+  "enable2faFailed": "启用2FA失败",
+  "disable2faFailed": "禁用2FA失败",
+  "twoFactorSetupVerified": "2FA设置已验证。",
+  "invalidOtpCode": "无效的{code}"
 }

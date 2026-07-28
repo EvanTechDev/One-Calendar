@@ -886,3 +886,14 @@ checksums:
     twoFactorAuthenticationDescription: b8356e532f95dcbcb726a543b46d22c6
     changePasswordDescription: aa9626176226e69d38a51a292d766921
     twoFactorQrCodeAlt: 0c9041fc1611b44c02aad0c59fa7981f
+    sendVerificationCodeFailed: f01183ebfc4a448c3f559d4a7f705ec7
+    verificationCodeSentNewEmail: 694d4c7f5db04202bc7b4acd7fbb3ad9
+    updateEmailFailed: b75e83b28d79a0879eea5bf10f7334a2
+    emailUpdatedSuccessfully: b0d0cbf02e19e4dc804ac8153c9cc036
+    verificationCodeSentEmail: 4fbe399ab4f51366c82c43e66addfbad
+    resetPasswordFailed: aaa9e56a2ef8a6ca65b746467ec64a36
+    passwordUpdatedSuccessfully: e4bd11118657f6a52c7da969006cfe32
+    enable2faFailed: de4c0438783b77c92a33e33ae50e8689
+    disable2faFailed: 653c2c797a1e8eddeed2d6653cb60887
+    twoFactorSetupVerified: 8fc0a43cc27cff5e0ad5e58d685f840f
+    invalidOtpCode: 77025ce46fb4dbf24d78b4f785c63c26

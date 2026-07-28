@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "2要素認証がアカウントで有効になりました。",
   "twoFactorAuthenticationDescription": "TOTPベースの2FAを有効または無効にします。",
   "changePasswordDescription": "ワンタイムメールコードを使用して、パスワードを安全に変更します。",
-  "twoFactorQrCodeAlt": "2要素認証QRコード"
+  "twoFactorQrCodeAlt": "2要素認証QRコード",
+  "sendVerificationCodeFailed": "認証コードの送信に失敗しました。",
+  "verificationCodeSentNewEmail": "新しいメールアドレスに認証コードを送信しました。",
+  "updateEmailFailed": "メールアドレスの更新に失敗しました。",
+  "emailUpdatedSuccessfully": "メールアドレスを正常に更新しました。",
+  "verificationCodeSentEmail": "認証コードをメールアドレスに送信しました。",
+  "resetPasswordFailed": "パスワードのリセットに失敗しました。",
+  "passwordUpdatedSuccessfully": "パスワードを正常に更新しました。",
+  "enable2faFailed": "2FAの有効化に失敗しました",
+  "disable2faFailed": "2FAの無効化に失敗しました",
+  "twoFactorSetupVerified": "2FAの設定が完了しました。",
+  "invalidOtpCode": "無効な{code}"
 }

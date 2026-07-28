@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Двофакторската аутентификација е активирана на вашиот профил.",
   "twoFactorAuthenticationDescription": "Овозможете или оневозможете TOTP заснованата 2FA.",
   "changePasswordDescription": "Користете едноставен код испратен на вашата е-пошта за безбедна промена на лозинката.",
-  "twoFactorQrCodeAlt": "QR код за двофакторска аутентификација"
+  "twoFactorQrCodeAlt": "QR код за двофакторска аутентификација",
+  "sendVerificationCodeFailed": "Не успеа да се испрати кодот за потврда.",
+  "verificationCodeSentNewEmail": "Кодот за потврда е испратен на новата е-пошта.",
+  "updateEmailFailed": "Не успеа да се ажурира е-поштата.",
+  "emailUpdatedSuccessfully": "Е-поштата е успешно ажурирана.",
+  "verificationCodeSentEmail": "Кодот за потврда е испратен на вашата е-пошта.",
+  "resetPasswordFailed": "Не успеа да се ресетира лозинката.",
+  "passwordUpdatedSuccessfully": "Лозинката е успешно ажурирана.",
+  "enable2faFailed": "Не успеа да се овозможи 2ФА",
+  "disable2faFailed": "Не успеа да се оневозможи 2ФА",
+  "twoFactorSetupVerified": "2ФА е подесена.",
+  "invalidOtpCode": "Невалиден {code}"
 }

@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Tweestapsverificatie is nu actief op je account.",
   "twoFactorAuthenticationDescription": "Schakel TOTP-gebaseerde 2FA in of uit.",
   "changePasswordDescription": "Gebruik een eenmalige e-mailcode om je wachtwoord veilig te wijzigen.",
-  "twoFactorQrCodeAlt": "Tweestapsverificatie QR-code"
+  "twoFactorQrCodeAlt": "Tweestapsverificatie QR-code",
+  "sendVerificationCodeFailed": "Verificatiecode verzenden mislukt.",
+  "verificationCodeSentNewEmail": "Verificatiecode verzonden naar het nieuwe e-mailadres.",
+  "updateEmailFailed": "E-mailadres bijwerken mislukt.",
+  "emailUpdatedSuccessfully": "E-mailadres succesvol bijgewerkt.",
+  "verificationCodeSentEmail": "Verificatiecode verzonden naar je e-mailadres.",
+  "resetPasswordFailed": "Wachtwoord resetten mislukt.",
+  "passwordUpdatedSuccessfully": "Wachtwoord succesvol bijgewerkt.",
+  "enable2faFailed": "2FA inschakelen mislukt",
+  "disable2faFailed": "2FA uitschakelen mislukt",
+  "twoFactorSetupVerified": "2FA-opstelling geverifieerd.",
+  "invalidOtpCode": "Ongeldige {code}"
 }

@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Autentificarea în doi factori este acum activă pe contul tău.",
   "twoFactorAuthenticationDescription": "Activează sau dezactivează autentificarea în doi factori bazată pe TOTP.",
   "changePasswordDescription": "Folosește un cod trimis pe email pentru a-ți schimba parola în siguranță.",
-  "twoFactorQrCodeAlt": "Cod QR pentru autentificarea în doi factori"
+  "twoFactorQrCodeAlt": "Cod QR pentru autentificarea în doi factori",
+  "sendVerificationCodeFailed": "Nu a reușit trimiterea codului de verificare.",
+  "verificationCodeSentNewEmail": "Codul de verificare a fost trimis pe noua adresă de email.",
+  "updateEmailFailed": "Nu s-a putut actualiza adresa de email.",
+  "emailUpdatedSuccessfully": "Adresa de email a fost actualizată cu succes.",
+  "verificationCodeSentEmail": "Codul de verificare a fost trimis pe adresa dvs. de email.",
+  "resetPasswordFailed": "Nu s-a putut reseta parola.",
+  "passwordUpdatedSuccessfully": "Parola a fost actualizată cu succes.",
+  "enable2faFailed": "Nu s-a putut activa 2FA",
+  "disable2faFailed": "Nu s-a putut dezactiva 2FA",
+  "twoFactorSetupVerified": "Configurarea 2FA a fost verificată.",
+  "invalidOtpCode": "Codul {code} este invalid"
 }

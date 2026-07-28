@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Die Zwei-Faktor-Authentifizierung ist jetzt auf deinem Konto aktiviert.",
   "twoFactorAuthenticationDescription": "Aktiviere oder deaktiviere die TOTP-basierte 2FA.",
   "changePasswordDescription": "Nutze einen einmaligen E-Mail-Code, um dein Passwort sicher zu ändern.",
-  "twoFactorQrCodeAlt": "Zwei-Faktor-QR-Code"
+  "twoFactorQrCodeAlt": "Zwei-Faktor-QR-Code",
+  "sendVerificationCodeFailed": "Verifizierungscode konnte nicht gesendet werden.",
+  "verificationCodeSentNewEmail": "Verifizierungscode wurde an die neue E-Mail-Adresse gesendet.",
+  "updateEmailFailed": "E-Mail-Adresse konnte nicht aktualisiert werden.",
+  "emailUpdatedSuccessfully": "E-Mail-Adresse erfolgreich aktualisiert.",
+  "verificationCodeSentEmail": "Verifizierungscode wurde an Ihre E-Mail-Adresse gesendet.",
+  "resetPasswordFailed": "Passwort konnte nicht zurückgesetzt werden.",
+  "passwordUpdatedSuccessfully": "Passwort erfolgreich aktualisiert.",
+  "enable2faFailed": "2FA konnte nicht aktiviert werden.",
+  "disable2faFailed": "2FA konnte nicht deaktiviert werden.",
+  "twoFactorSetupVerified": "2FA-Einrichtung bestätigt.",
+  "invalidOtpCode": "Ungültiger {code}"
 }

@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Tvåfaktorsautentisering är nu aktiverad på ditt konto.",
   "twoFactorAuthenticationDescription": "Aktivera eller inaktivera TOTP-baserad 2FA.",
   "changePasswordDescription": "Använd engångskod via e-post för att säkert ändra ditt lösenord.",
-  "twoFactorQrCodeAlt": "Tvåfaktors QR-kod"
+  "twoFactorQrCodeAlt": "Tvåfaktors QR-kod",
+  "sendVerificationCodeFailed": "Misslyckades med att skicka verifieringskod.",
+  "verificationCodeSentNewEmail": "Verifieringskod skickad till den nya e-postadressen.",
+  "updateEmailFailed": "Misslyckades med att uppdatera e-postadress.",
+  "emailUpdatedSuccessfully": "E-postadressen har uppdaterats.",
+  "verificationCodeSentEmail": "Verifieringskod skickad till din e-postadress.",
+  "resetPasswordFailed": "Misslyckades med att återställa lösenord.",
+  "passwordUpdatedSuccessfully": "Lösenordet har uppdaterats.",
+  "enable2faFailed": "Misslyckades med att aktivera 2FA",
+  "disable2faFailed": "Misslyckades med att inaktivera 2FA",
+  "twoFactorSetupVerified": "2FA-konfigurationen verifierad.",
+  "invalidOtpCode": "Ogiltig {code}"
 }

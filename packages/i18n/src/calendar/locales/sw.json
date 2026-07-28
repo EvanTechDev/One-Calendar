@@ -448,5 +448,16 @@
   "twoFactorEnabledMessage": "Uthibitishaji wa mambo mawili (2FA) sasa umewaka kwenye akaunti yako.",
   "twoFactorAuthenticationDescription": "Washa au zima 2FA inayotegemea TOTP.",
   "changePasswordDescription": "Tumia nambari pepe moja kwa moja ya barua pepe ya kuthibitisha badiliko la nenosiri lako.",
-  "twoFactorQrCodeAlt": "QR code ya uthibitishaji wa mambo mawili"
+  "twoFactorQrCodeAlt": "QR code ya uthibitishaji wa mambo mawili",
+  "sendVerificationCodeFailed": "Kutuma nambari ya kuthibitisha imeshindwa.",
+  "verificationCodeSentNewEmail": "Nambari ya kuthibitisha imetumwa kwa barua pepe mpya.",
+  "updateEmailFailed": "Kupokeza barua pepe imeshindwa.",
+  "emailUpdatedSuccessfully": "Barua pepe imepokezwa kwa mafanikio.",
+  "verificationCodeSentEmail": "Nambari ya kuthibitisha imetumwa kwa barua pepe yako.",
+  "resetPasswordFailed": "Kurejesha nenosiri imeshindwa.",
+  "passwordUpdatedSuccessfully": "Nenosiri limepokezwa kwa mafanikio.",
+  "enable2faFailed": "Kuwezesha 2FA imeshindwa",
+  "disable2faFailed": "Kuzima 2FA imeshindwa",
+  "twoFactorSetupVerified": "Mpangilio wa 2FA umeathibitishwa.",
+  "invalidOtpCode": "{code} si sahihi"
 }

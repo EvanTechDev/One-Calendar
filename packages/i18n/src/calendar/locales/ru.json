@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Двухфакторная аутентификация теперь активна в вашем аккаунте.",
   "twoFactorAuthenticationDescription": "Включите или отключите двухфакторную аутентификацию на основе TOTP.",
   "changePasswordDescription": "Используйте одноразовый код, отправленный на email, для безопасного изменения пароля.",
-  "twoFactorQrCodeAlt": "QR-код для двухфакторной аутентификации"
+  "twoFactorQrCodeAlt": "QR-код для двухфакторной аутентификации",
+  "sendVerificationCodeFailed": "Не удалось отправить код подтверждения.",
+  "verificationCodeSentNewEmail": "Код подтверждения отправлен на новый адрес электронной почты.",
+  "updateEmailFailed": "Не удалось обновить адрес электронной почты.",
+  "emailUpdatedSuccessfully": "Адрес электронной почты успешно обновлён.",
+  "verificationCodeSentEmail": "Код подтверждения отправлен на вашу электронную почту.",
+  "resetPasswordFailed": "Не удалось сбросить пароль.",
+  "passwordUpdatedSuccessfully": "Пароль успешно обновлён.",
+  "enable2faFailed": "Не удалось включить двухфакторную аутентификацию",
+  "disable2faFailed": "Не удалось отключить двухфакторную аутентификацию",
+  "twoFactorSetupVerified": "Двухфакторная аутентификация настроена.",
+  "invalidOtpCode": "Неверный {code}"
 }

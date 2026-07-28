@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Dviejų veiksnių autentifikacija dabar yra aktyvi jūsų paskyroje.",
   "twoFactorAuthenticationDescription": "Įjungti ar išjungti TOTP pagrįstą dviejų veiksnių autentifikaciją.",
   "changePasswordDescription": "Naudokite vienkartinį el. pašto kodą, kad saugiai pakeistumėte slaptažodį.",
-  "twoFactorQrCodeAlt": "Dviejų veiksnių autentifikacijos QR kodas"
+  "twoFactorQrCodeAlt": "Dviejų veiksnių autentifikacijos QR kodas",
+  "sendVerificationCodeFailed": "Nepavyko išsiųsti patvirtinimo kodo.",
+  "verificationCodeSentNewEmail": "Patvirtinimo kodas išsiųstas į naują el. pašto adresą.",
+  "updateEmailFailed": "Nepavyko atnaujinti el. pašto adreso.",
+  "emailUpdatedSuccessfully": "El. pašto adresas atnaujintas sėkmingai.",
+  "verificationCodeSentEmail": "Patvirtinimo kodas išsiųstas į jūsų el. pašto adresą.",
+  "resetPasswordFailed": "Nepavyko atstatyti slaptažodžio.",
+  "passwordUpdatedSuccessfully": "Slaptažodis atnaujintas sėkmingai.",
+  "enable2faFailed": "Nepavyko įjungti dviejų faktorių autentifikacijos",
+  "disable2faFailed": "Nepavyko išjungti dviejų faktorių autentifikacijos",
+  "twoFactorSetupVerified": "Dviejų faktorių autentifikacija įjungta.",
+  "invalidOtpCode": "Neteisingas {code}"
 }

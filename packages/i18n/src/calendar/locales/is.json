@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Tveggja þátta auðkenning er nú virk á reikningnum þínum.",
   "twoFactorAuthenticationDescription": "Virkja eða óvirkja 2FA með TOTP.",
   "changePasswordDescription": "Nota einnota tölvupóstkóða til að breyta lykilorðinu þínu örugglega.",
-  "twoFactorQrCodeAlt": "Tveggja þátta QR-kóði"
+  "twoFactorQrCodeAlt": "Tveggja þátta QR-kóði",
+  "sendVerificationCodeFailed": "Tókst ekki að senda staðfestingarkóða.",
+  "verificationCodeSentNewEmail": "Staðfestingarkóði sendur á nýja netfangið.",
+  "updateEmailFailed": "Tókst ekki að uppfæra netfang.",
+  "emailUpdatedSuccessfully": "Netfang uppfært með góðum árangri.",
+  "verificationCodeSentEmail": "Staðfestingarkóði sendur á netfangið þitt.",
+  "resetPasswordFailed": "Tókst ekki að endurstilla lykilorð.",
+  "passwordUpdatedSuccessfully": "Lykilorð uppfært með góðum árangri.",
+  "enable2faFailed": "Tókst ekki að virkja 2FA",
+  "disable2faFailed": "Tókst ekki að slökkva á 2FA",
+  "twoFactorSetupVerified": "2FA uppsetning staðfest.",
+  "invalidOtpCode": "Ógildur {code}"
 }

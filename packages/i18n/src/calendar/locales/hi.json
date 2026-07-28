@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "आपके खाते पर दो-कारक प्रमाणीकरण अब सक्रिय है।",
   "twoFactorAuthenticationDescription": "TOTP-आधारित 2FA को सक्षम या अक्षम करें।",
   "changePasswordDescription": "अपने पासवर्ड को सुरक्षित रूप से बदलने के लिए एक बार के ईमेल कोड का उपयोग करें।",
-  "twoFactorQrCodeAlt": "दो-कारक क्यूआर कोड"
+  "twoFactorQrCodeAlt": "दो-कारक क्यूआर कोड",
+  "sendVerificationCodeFailed": "सत्यापन कोड भेजने में विफल।",
+  "verificationCodeSentNewEmail": "सत्यापन कोड नए ईमेल पर भेजा गया है।",
+  "updateEmailFailed": "ईमेल अपडेट करने में विफल।",
+  "emailUpdatedSuccessfully": "ईमेल सफलतापूर्वक अपडेट कर दिया गया है।",
+  "verificationCodeSentEmail": "सत्यापन कोड आपके ईमेल पर भेजा गया है।",
+  "resetPasswordFailed": "पासवर्ड रीसेट करने में विफल।",
+  "passwordUpdatedSuccessfully": "पासवर्ड सफलतापूर्वक अपडेट कर दिया गया है।",
+  "enable2faFailed": "2FA सक्षम करने में विफल",
+  "disable2faFailed": "2FA अक्षम करने में विफल",
+  "twoFactorSetupVerified": "2FA सेटअप सत्यापित किया गया है।",
+  "invalidOtpCode": "अमान्य {code}"
 }

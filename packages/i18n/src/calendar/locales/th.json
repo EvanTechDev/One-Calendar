@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "การตรวจสอบสิทธิ์สองขั้นตอนได้เปิดใช้งานบนบัญชีของคุณแล้ว",
   "twoFactorAuthenticationDescription": "เปิดใช้งานหรือปิดใช้งานการตรวจสอบสิทธิ์สองขั้นตอนด้วย TOTP",
   "changePasswordDescription": "ใช้รหัสทางอีเมลฉบับเดียวเพื่อเปลี่ยนรหัสผ่านอย่างปลอดภัย",
-  "twoFactorQrCodeAlt": "รหัสคิวอาร์สำหรับการตรวจสอบสิทธิ์สองขั้นตอน"
+  "twoFactorQrCodeAlt": "รหัสคิวอาร์สำหรับการตรวจสอบสิทธิ์สองขั้นตอน",
+  "sendVerificationCodeFailed": "ไม่สามารถส่งรหัสยืนยันได้",
+  "verificationCodeSentNewEmail": "ส่งรหัสยืนยันไปยังอีเมลใหม่แล้ว",
+  "updateEmailFailed": "ไม่สามารถอัปเดตอีเมลได้",
+  "emailUpdatedSuccessfully": "อัปเดตอีเมลสำเร็จ",
+  "verificationCodeSentEmail": "ส่งรหัสยืนยันไปยังอีเมลของคุณแล้ว",
+  "resetPasswordFailed": "ไม่สามารถรีเซ็ตรหัสผ่านได้",
+  "passwordUpdatedSuccessfully": "รีเซ็ตรหัสผ่านสำเร็จ",
+  "enable2faFailed": "เปิดใช้งาน 2FA ไม่สำเร็จ",
+  "disable2faFailed": "ปิดใช้งาน 2FA ไม่สำเร็จ",
+  "twoFactorSetupVerified": "ตั้งค่า 2FA เสร็จสมบูรณ์",
+  "invalidOtpCode": "รหัส {code} ไม่ถูกต้อง"
 }

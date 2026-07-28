@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "Двофакторна автентифікація тепер активована у вашому обліковому записі.",
   "twoFactorAuthenticationDescription": "Увімкніть або вимкніть двофакторну автентифікацію на основі TOTP.",
   "changePasswordDescription": "Використовуйте одноразовий код з електронної пошти для безпечної зміни пароля.",
-  "twoFactorQrCodeAlt": "QR-код для двофакторної автентифікації"
+  "twoFactorQrCodeAlt": "QR-код для двофакторної автентифікації",
+  "sendVerificationCodeFailed": "Не вдалося надіслати код підтвердження.",
+  "verificationCodeSentNewEmail": "Код підтвердження надіслано на новий email.",
+  "updateEmailFailed": "Не вдалося оновити email.",
+  "emailUpdatedSuccessfully": "Email успішно оновлено.",
+  "verificationCodeSentEmail": "Код підтвердження надіслано на ваш email.",
+  "resetPasswordFailed": "Не вдалося скинути пароль.",
+  "passwordUpdatedSuccessfully": "Пароль успішно оновлено.",
+  "enable2faFailed": "Не вдалося увімкнути 2FA",
+  "disable2faFailed": "Не вдалося вимкнути 2FA",
+  "twoFactorSetupVerified": "2FA налаштовано.",
+  "invalidOtpCode": "Невірний {code}"
 }

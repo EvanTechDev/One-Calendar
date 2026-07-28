@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Η ετεροπροσδιορισμένη πιστοποίηση (2FA) είναι τώρα ενεργή στον λογαριασμό σας.",
   "twoFactorAuthenticationDescription": "Ενεργοποίηση ή απενεργοποίηση ετεροπροσδιορισμένης πιστοποίησης βάσει TOTP.",
   "changePasswordDescription": "Χρησιμοποιήστε έναν μοναδικό κωδικό ηλεκτρονικού ταχυδρομείου για να αλλάξετε με ασφάλεια τον κωδικό σας.",
-  "twoFactorQrCodeAlt": "Δισδιάστατος κωδικός ετεροπροσδιορισμένης πιστοποίησης"
+  "twoFactorQrCodeAlt": "Δισδιάστατος κωδικός ετεροπροσδιορισμένης πιστοποίησης",
+  "sendVerificationCodeFailed": "Απέτυχε η αποστολή του κωδικού επαλήθευσης.",
+  "verificationCodeSentNewEmail": "Ο κωδικός επαλήθευσης στάλθηκε στη νέα διεύθυνση email.",
+  "updateEmailFailed": "Απέτυχε η ενημέρωση της διεύθυνσης email.",
+  "emailUpdatedSuccessfully": "Η διεύθυνση email ενημερώθηκε επιτυχώς.",
+  "verificationCodeSentEmail": "Ο κωδικός επαλήθευσης στάλθηκε στο email σας.",
+  "resetPasswordFailed": "Απέτυχε η επαναφορά του κωδικού πρόσβασης.",
+  "passwordUpdatedSuccessfully": "Ο κωδικός πρόσβασης ενημερώθηκε επιτυχώς.",
+  "enable2faFailed": "Απέτυχε η ενεργοποίηση του 2FA",
+  "disable2faFailed": "Απέτυχε η απενεργοποίηση του 2FA",
+  "twoFactorSetupVerified": "Η ρύθμιση 2FA επιβεβαιώθηκε.",
+  "invalidOtpCode": "Μη έγκυρος {code}"
 }

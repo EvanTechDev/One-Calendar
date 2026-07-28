@@ -448,5 +448,16 @@
   "twoFactorEnabledMessage": "Divu faktoru autentifikācija tagad ir aktīva jūsu kontā.",
   "twoFactorAuthenticationDescription": "Iespējojiet vai atspējojiet TOTP balstītu 2FA.",
   "changePasswordDescription": "Lietojiet vienreizējo e-pasta kodu, lai droši mainītu savu paroli.",
-  "twoFactorQrCodeAlt": "Divu faktoru autentifikācijas QR kods"
+  "twoFactorQrCodeAlt": "Divu faktoru autentifikācijas QR kods",
+  "sendVerificationCodeFailed": "Neizdevās nosūtīt verificēšanas kodu.",
+  "verificationCodeSentNewEmail": "Verificēšanas kods nosūtīts uz jauno e-pastu.",
+  "updateEmailFailed": "Neizdevās atjaunināt e-pastu.",
+  "emailUpdatedSuccessfully": "E-pasts veiksmīgi atjaunināts.",
+  "verificationCodeSentEmail": "Verificēšanas kods nosūtīts uz jūsu e-pastu.",
+  "resetPasswordFailed": "Neizdevās atjaunināt paroli.",
+  "passwordUpdatedSuccessfully": "Parole veiksmīgi atjaunināta.",
+  "enable2faFailed": "Neizdevās aktivizēt divu faktoru autorizāciju",
+  "disable2faFailed": "Neizdevās atspējot divu faktoru autorizāciju",
+  "twoFactorSetupVerified": "Divu faktoru autorizācija ir aktivizēta.",
+  "invalidOtpCode": "Nederīgs {code}"
 }

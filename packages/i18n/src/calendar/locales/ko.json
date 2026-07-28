@@ -432,5 +432,16 @@
   "twoFactorEnabledMessage": "이제 계정에 2단계 인증이 활성화되었습니다.",
   "twoFactorAuthenticationDescription": "TOTP 기반 2단계 인증을 사용 또는 해제하세요.",
   "changePasswordDescription": "일회용 이메일 코드를 사용하여 비밀번호를 안전하게 변경하세요.",
-  "twoFactorQrCodeAlt": "2단계 인증 QR 코드"
+  "twoFactorQrCodeAlt": "2단계 인증 QR 코드",
+  "sendVerificationCodeFailed": "인증 코드 전송에 실패했습니다.",
+  "verificationCodeSentNewEmail": "새 이메일로 인증 코드가 전송되었습니다.",
+  "updateEmailFailed": "이메일 업데이트에 실패했습니다.",
+  "emailUpdatedSuccessfully": "이메일이 성공적으로 업데이트되었습니다.",
+  "verificationCodeSentEmail": "이메일로 인증 코드가 전송되었습니다.",
+  "resetPasswordFailed": "비밀번호 재설정에 실패했습니다.",
+  "passwordUpdatedSuccessfully": "비밀번호가 성공적으로 업데이트되었습니다.",
+  "enable2faFailed": "2FA 활성화에 실패했습니다.",
+  "disable2faFailed": "2FA 비활성화에 실패했습니다.",
+  "twoFactorSetupVerified": "2FA 설정이 완료되었습니다.",
+  "invalidOtpCode": "잘못된 {code}입니다."
 }

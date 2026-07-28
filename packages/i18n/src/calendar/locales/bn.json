@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "আপনার অ্যাকাউন্টে দুই-ফ্যাক্টর প্রমাণীকরণ সক্রিয় করা হয়েছে।",
   "twoFactorAuthenticationDescription": "TOTP-ভিত্তিক 2FA সক্রিয় বা নিষ্ক্রিয় করুন।",
   "changePasswordDescription": "আপনার পাসওয়ার্ড নিরাপদে পরিবর্তন করতে এককালীন ইমেল কোড ব্যবহার করুন।",
-  "twoFactorQrCodeAlt": "দুই-ফ্যাক্টর QR কোড"
+  "twoFactorQrCodeAlt": "দুই-ফ্যাক্টর QR কোড",
+  "sendVerificationCodeFailed": "যাচাইকরণ কোড পাঠাতে ব্যর্থ হয়েছে।",
+  "verificationCodeSentNewEmail": "নতুন ইমেলে যাচাইকরণ কোড পাঠানো হয়েছে।",
+  "updateEmailFailed": "ইমেল আপডেট করতে ব্যর্থ হয়েছে।",
+  "emailUpdatedSuccessfully": "ইমেল সফলভাবে আপডেট হয়েছে।",
+  "verificationCodeSentEmail": "আপনার ইমেলে যাচাইকরণ কোড পাঠানো হয়েছে।",
+  "resetPasswordFailed": "পাসওয়ার্ড রিসেট করতে ব্যর্থ হয়েছে।",
+  "passwordUpdatedSuccessfully": "পাসওয়ার্ড সফলভাবে আপডেট হয়েছে।",
+  "enable2faFailed": "2FA সক্ষম করতে ব্যর্থ হয়েছে",
+  "disable2faFailed": "2FA নিষ্ক্রিয় করতে ব্যর্থ হয়েছে",
+  "twoFactorSetupVerified": "2FA সেটআপ যাচাই করা হয়েছে।",
+  "invalidOtpCode": "অবৈধ {code}"
 }

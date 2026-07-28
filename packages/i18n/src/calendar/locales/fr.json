@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "L'authentification à deux facteurs est désormais active sur votre compte.",
   "twoFactorAuthenticationDescription": "Activez ou désactivez l'authentification à deux facteurs basée sur TOTP.",
   "changePasswordDescription": "Utilisez un code par e-mail à usage unique pour changer votre mot de passe en toute sécurité.",
-  "twoFactorQrCodeAlt": "Code QR pour l'authentification à deux facteurs"
+  "twoFactorQrCodeAlt": "Code QR pour l'authentification à deux facteurs",
+  "sendVerificationCodeFailed": "Échec de l'envoi du code de vérification.",
+  "verificationCodeSentNewEmail": "Code de vérification envoyé à la nouvelle adresse e-mail.",
+  "updateEmailFailed": "Échec de la mise à jour de l'adresse e-mail.",
+  "emailUpdatedSuccessfully": "Adresse e-mail mise à jour avec succès.",
+  "verificationCodeSentEmail": "Code de vérification envoyé à votre adresse e-mail.",
+  "resetPasswordFailed": "Échec de la réinitialisation du mot de passe.",
+  "passwordUpdatedSuccessfully": "Mot de passe mis à jour avec succès.",
+  "enable2faFailed": "Échec de l'activation de l'authentification à deux facteurs",
+  "disable2faFailed": "Échec de la désactivation de l'authentification à deux facteurs",
+  "twoFactorSetupVerified": "Authentification à deux facteurs configurée.",
+  "invalidOtpCode": "Code {code} invalide"
 }

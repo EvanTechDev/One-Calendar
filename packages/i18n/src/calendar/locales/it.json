@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "L'autenticazione a due fattori è ora attiva sul tuo account.",
   "twoFactorAuthenticationDescription": "Attiva o disattiva l'autenticazione a due fattori basata su TOTP.",
   "changePasswordDescription": "Utilizza un codice monouso inviato via email per modificare in modo sicuro la password.",
-  "twoFactorQrCodeAlt": "Codice QR per l'autenticazione a due fattori"
+  "twoFactorQrCodeAlt": "Codice QR per l'autenticazione a due fattori",
+  "sendVerificationCodeFailed": "Invio del codice di verifica non riuscito.",
+  "verificationCodeSentNewEmail": "Codice di verifica inviato alla nuova email.",
+  "updateEmailFailed": "Aggiornamento email non riuscito.",
+  "emailUpdatedSuccessfully": "Email aggiornata correttamente.",
+  "verificationCodeSentEmail": "Codice di verifica inviato alla tua email.",
+  "resetPasswordFailed": "Reset della password non riuscito.",
+  "passwordUpdatedSuccessfully": "Password aggiornata correttamente.",
+  "enable2faFailed": "Abilitazione 2FA non riuscita",
+  "disable2faFailed": "Disabilitazione 2FA non riuscita",
+  "twoFactorSetupVerified": "Configurazione 2FA verificata.",
+  "invalidOtpCode": "Codice {code} non valido"
 }

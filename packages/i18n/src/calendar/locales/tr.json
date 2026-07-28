@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "İki faktörlü kimlik doğrulama hesabınızda etkinleştirildi.",
   "twoFactorAuthenticationDescription": "TOTP tabanlı 2FA'yı etkinleştirin veya devre dışı bırakın.",
   "changePasswordDescription": "Şifrenizi güvenli bir şekilde değiştirmek için tek kullanımlık e-posta kodunu kullanın.",
-  "twoFactorQrCodeAlt": "İki faktörlü QR kodu"
+  "twoFactorQrCodeAlt": "İki faktörlü QR kodu",
+  "sendVerificationCodeFailed": "Doğrulama kodu gönderilemedi.",
+  "verificationCodeSentNewEmail": "Doğrulama kodu yeni e-postaya gönderildi.",
+  "updateEmailFailed": "E-posta güncellenemedi.",
+  "emailUpdatedSuccessfully": "E-posta başarıyla güncellendi.",
+  "verificationCodeSentEmail": "Doğrulama kodu e-postanıza gönderildi.",
+  "resetPasswordFailed": "Parola sıfırlanamadı.",
+  "passwordUpdatedSuccessfully": "Parola başarıyla güncellendi.",
+  "enable2faFailed": "2FA etkinleştirilemedi",
+  "disable2faFailed": "2FA devre dışı bırakılamadı",
+  "twoFactorSetupVerified": "2FA kurulumu doğrulandı.",
+  "invalidOtpCode": "Geçersiz {code}"
 }

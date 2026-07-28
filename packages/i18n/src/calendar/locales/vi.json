@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Xác thực hai yếu tố hiện đã được kích hoạt trên tài khoản của bạn.",
   "twoFactorAuthenticationDescription": "Bật hoặc tắt xác thực hai yếu tố dựa trên TOTP.",
   "changePasswordDescription": "Sử dụng mã email một lần để thay đổi mật khẩu một cách an toàn.",
-  "twoFactorQrCodeAlt": "Mã QR xác thực hai yếu tố"
+  "twoFactorQrCodeAlt": "Mã QR xác thực hai yếu tố",
+  "sendVerificationCodeFailed": "Không thể gửi mã xác minh.",
+  "verificationCodeSentNewEmail": "Mã xác minh đã được gửi đến email mới.",
+  "updateEmailFailed": "Không thể cập nhật email.",
+  "emailUpdatedSuccessfully": "Email đã được cập nhật thành công.",
+  "verificationCodeSentEmail": "Mã xác minh đã được gửi đến email của bạn.",
+  "resetPasswordFailed": "Không thể đặt lại mật khẩu.",
+  "passwordUpdatedSuccessfully": "Mật khẩu đã được cập nhật thành công.",
+  "enable2faFailed": "Không thể bật 2FA",
+  "disable2faFailed": "Không thể tắt 2FA",
+  "twoFactorSetupVerified": "Đã xác minh thiết lập 2FA.",
+  "invalidOtpCode": "{code} không hợp lệ"
 }

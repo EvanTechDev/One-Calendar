@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Uwierzytelnianie dwuskładnikowe jest teraz aktywne na Twoim koncie.",
   "twoFactorAuthenticationDescription": "Włącz lub wyłącz uwierzytelnianie dwuskładnikowe oparte na TOTP.",
   "changePasswordDescription": "Użyj jednorazowego kodu wysłanego e-mailem, aby bezpiecznie zmienić hasło.",
-  "twoFactorQrCodeAlt": "Kod QR do uwierzytelniania dwuskładnikowego"
+  "twoFactorQrCodeAlt": "Kod QR do uwierzytelniania dwuskładnikowego",
+  "sendVerificationCodeFailed": "Nie udało się wysłać kodu weryfikacyjnego.",
+  "verificationCodeSentNewEmail": "Kod weryfikacyjny został wysłany na nowy adres e-mail.",
+  "updateEmailFailed": "Nie udało się zaktualizować adresu e-mail.",
+  "emailUpdatedSuccessfully": "Adres e-mail został pomyślnie zaktualizowany.",
+  "verificationCodeSentEmail": "Kod weryfikacyjny został wysłany na Twój adres e-mail.",
+  "resetPasswordFailed": "Nie udało się zresetować hasła.",
+  "passwordUpdatedSuccessfully": "Hasło zostało pomyślnie zaktualizowane.",
+  "enable2faFailed": "Nie udało się włączyć 2FA",
+  "disable2faFailed": "Nie udało się wyłączyć 2FA",
+  "twoFactorSetupVerified": "Ustawienia 2FA zostały zweryfikowane.",
+  "invalidOtpCode": "Nieprawidłowy {code}"
 }

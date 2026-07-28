@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "Dvofazno overjanje je zdaj aktivno na vašem računu.",
   "twoFactorAuthenticationDescription": "Omogočite ali onemogočite dvofazno overjanje (TOTP).",
   "changePasswordDescription": "Uporabite enkratno kodo po e-pošti za varno spremembo gesla.",
-  "twoFactorQrCodeAlt": "Dvofazni QR koda"
+  "twoFactorQrCodeAlt": "Dvofazni QR koda",
+  "sendVerificationCodeFailed": "Posredovanje kode za overitev ni uspelo.",
+  "verificationCodeSentNewEmail": "Koda za overitev je poslana na novo elektronski naslov.",
+  "updateEmailFailed": "Posodabljanje elektronskega naslova ni uspelo.",
+  "emailUpdatedSuccessfully": "Elektronski naslov uspešno posodobljen.",
+  "verificationCodeSentEmail": "Koda za overitev je poslana na vaš elektronski naslov.",
+  "resetPasswordFailed": "Posodabljanje gesla ni uspelo.",
+  "passwordUpdatedSuccessfully": "Geslo uspešno posodobljeno.",
+  "enable2faFailed": "Vklop 2FA ni uspelo",
+  "disable2faFailed": "Izklop 2FA ni uspelo",
+  "twoFactorSetupVerified": "Vklop 2FA uspešno dokončan.",
+  "invalidOtpCode": "Neveljavna {code}"
 }

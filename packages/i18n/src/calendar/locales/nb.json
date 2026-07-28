@@ -440,5 +440,16 @@
   "twoFactorEnabledMessage": "To-faktor autentisering er nå aktivert på kontoen din.",
   "twoFactorAuthenticationDescription": "Aktiver eller deaktiver TOTP-basert to-faktor autentisering.",
   "changePasswordDescription": "Bruk engangskode sendt på e-post for å endre passordet ditt på en sikker måte.",
-  "twoFactorQrCodeAlt": "To-faktor QR-kode"
+  "twoFactorQrCodeAlt": "To-faktor QR-kode",
+  "sendVerificationCodeFailed": "Klarte ikke sende bekreftelseskode.",
+  "verificationCodeSentNewEmail": "Bekreftelseskode sendt til den nye e-postadressen.",
+  "updateEmailFailed": "Klarte ikke oppdatere e-postadresse.",
+  "emailUpdatedSuccessfully": "E-postadresse oppdatert.",
+  "verificationCodeSentEmail": "Bekreftelseskode sendt til e-postadressen din.",
+  "resetPasswordFailed": "Klarte ikke tilbakestille passord.",
+  "passwordUpdatedSuccessfully": "Passord oppdatert.",
+  "enable2faFailed": "Klarte ikke aktivere tofaktorautentisering",
+  "disable2faFailed": "Klarte ikke deaktivere tofaktorautentisering",
+  "twoFactorSetupVerified": "Tofaktorautentisering er aktivert.",
+  "invalidOtpCode": "Ugyldig {code}"
 }
