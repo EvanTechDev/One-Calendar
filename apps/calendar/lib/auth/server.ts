@@ -1,6 +1,21 @@
 import { headers } from 'next/headers'
+import { getSessionCookie } from 'better-auth/cookies'
 import { auth } from '@/lib/auth'
+import { getCachedSession, setCachedSession } from '@/lib/cache/session'
 
 export async function getServerSession() {
-  return auth.api.getSession({ headers: await headers() })
+  const hdrs = await headers()
+
+  const sessionCookie = getSessionCookie(hdrs)
+  if (sessionCookie) {
+    const cached = await getCachedSession(sessionCookie)
+    if (cached) return cached
+  }
+
+  const session = await auth.api.getSession({ headers: hdrs })
+  if (session) {
+    await setCachedSession(session)
+  }
+
+  return session
 }
