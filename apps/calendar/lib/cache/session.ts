@@ -8,7 +8,7 @@ type Session = {
     email: string
     emailVerified: boolean
     image?: string | null
-    twoFactorEnabled?: boolean
+    twoFactorEnabled?: boolean | null
     createdAt: Date
     updatedAt: Date
   }
@@ -18,8 +18,8 @@ type Session = {
     token: string
     createdAt: Date
     updatedAt: Date
-    ipAddress?: string
-    userAgent?: string
+    ipAddress?: string | null
+    userAgent?: string | null
     userId: string
   }
 } | null
