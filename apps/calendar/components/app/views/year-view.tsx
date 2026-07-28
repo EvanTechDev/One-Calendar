@@ -222,7 +222,9 @@ export default function YearView({
           <div
             style={{
               position: 'fixed',
-              left: popover ? popover.anchorRect.left : 0,
+              left: popover
+                ? popover.anchorRect.left + popover.anchorRect.width / 2
+                : 0,
               top: popover ? popover.anchorRect.bottom : 0,
               width: 0,
               height: 0,
@@ -233,36 +235,35 @@ export default function YearView({
         {popover && (
           <PopoverContent
             side="bottom"
-            align="start"
-            sideOffset={4}
+            align="center"
+            sideOffset={6}
+            sticky="always"
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  {popover.day.toLocaleDateString(
-                    isZhLanguage(config.language.code as any)
-                      ? 'zh-CN'
-                      : 'en-US',
-                    {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    },
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={closePopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">
+                {popover.day.toLocaleDateString(
+                  isZhLanguage(config.language.code as any) ? 'zh-CN' : 'en-US',
+                  {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  },
+                )}
               </div>
+              <button
+                type="button"
+                onClick={closePopover}
+                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
 
-              {popover.dayEvents.length > 0 ? (
-                <ScrollArea className="max-h-[260px]">
+            {popover.dayEvents.length > 0 ? (
+              <div className="min-h-0 max-h-[260px]">
+                <ScrollArea className="h-full">
                   <div className="space-y-1.5 pr-2">
                     {popover.dayEvents.map((event) => (
                       <button
@@ -300,12 +301,12 @@ export default function YearView({
                     ))}
                   </div>
                 </ScrollArea>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {t.noEventsFound}
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                {t.noEventsFound}
+              </div>
+            )}
           </PopoverContent>
         )}
       </Popover>

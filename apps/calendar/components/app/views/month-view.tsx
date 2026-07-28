@@ -207,7 +207,10 @@ export default function MonthView({
           <div
             style={{
               position: 'fixed',
-              left: remainingPopover ? remainingPopover.anchorRect.left : 0,
+              left: remainingPopover
+                ? remainingPopover.anchorRect.left +
+                  remainingPopover.anchorRect.width / 2
+                : 0,
               top: remainingPopover ? remainingPopover.anchorRect.bottom : 0,
               width: 0,
               height: 0,
@@ -218,24 +221,25 @@ export default function MonthView({
         {remainingPopover && (
           <PopoverContent
             side="bottom"
-            align="start"
-            sideOffset={4}
+            align="center"
+            sideOffset={6}
+            sticky="always"
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">{t.events}</div>
-                <button
-                  type="button"
-                  onClick={closeRemainingPopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              {remainingPopover.remainingEvents.length > 0 ? (
-                <ScrollArea className="max-h-[260px]">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">{t.events}</div>
+              <button
+                type="button"
+                onClick={closeRemainingPopover}
+                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            {remainingPopover.remainingEvents.length > 0 ? (
+              <div className="min-h-0 max-h-[260px]">
+                <ScrollArea className="h-full">
                   <div className="space-y-1.5 pr-2">
                     {remainingPopover.remainingEvents.map((event) => (
                       <button
@@ -277,12 +281,12 @@ export default function MonthView({
                     ))}
                   </div>
                 </ScrollArea>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {t.noEventsFound}
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                {t.noEventsFound}
+              </div>
+            )}
           </PopoverContent>
         )}
       </Popover>
