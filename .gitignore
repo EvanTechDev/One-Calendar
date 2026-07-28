@@ -50,4 +50,4 @@ next-env.d.ts
 .nx/
 
 # session status (not committed)
-status.md
+STATUS.md
