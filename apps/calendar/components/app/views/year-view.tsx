@@ -13,7 +13,6 @@ import type { CalendarEvent } from '../calendar'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { ScrollArea } from '@zntr/ui/scroll-area'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface YearViewProps {
@@ -262,45 +261,36 @@ export default function YearView({
             </div>
 
             {popover.dayEvents.length > 0 ? (
-              <div className="min-h-0 max-h-[260px]">
-                <ScrollArea className="h-full">
-                  <div className="space-y-1.5 pr-2">
-                    {popover.dayEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className={cn(
-                          'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
-                          event.color,
-                        )}
-                        onClick={(e) => {
-                          onEventClick(
-                            event,
-                            e.currentTarget,
-                            e.clientX,
-                            e.clientY,
-                          )
-                        }}
-                        style={{
-                          backgroundColor: isDark
-                            ? getDarkBg(event.color)
-                            : undefined,
-                        }}
-                      >
-                        <div
-                          className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                          style={{ backgroundColor: getAccent(event.color) }}
-                        />
-                        <div
-                          style={{ color: getAccent(event.color) }}
-                          className="truncate"
-                        >
-                          {event.title || t.unnamedEvent}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
+              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
+                {popover.dayEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className={cn(
+                      'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                      event.color,
+                    )}
+                    onClick={(e) => {
+                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                    }}
+                    style={{
+                      backgroundColor: isDark
+                        ? getDarkBg(event.color)
+                        : undefined,
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      style={{ backgroundColor: getAccent(event.color) }}
+                    />
+                    <div
+                      style={{ color: getAccent(event.color) }}
+                      className="truncate"
+                    >
+                      {event.title || t.unnamedEvent}
+                    </div>
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="text-xs text-muted-foreground">

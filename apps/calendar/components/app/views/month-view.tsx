@@ -19,7 +19,6 @@ import {
 } from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/components/app/calendar-types'
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollArea } from '@zntr/ui/scroll-area'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface RemainingPopoverState {
@@ -76,7 +75,10 @@ export default function MonthView({
       day: Date,
       allDayEvents: CalendarEvent[],
     ) => {
-      const rect = e.currentTarget.getBoundingClientRect()
+      const cell = (e.currentTarget as HTMLElement).parentElement?.parentElement
+      const rect = cell
+        ? cell.getBoundingClientRect()
+        : e.currentTarget.getBoundingClientRect()
       const key = format(day, 'yyyy-MM-dd')
       setRemainingPopover({
         key,
@@ -207,11 +209,11 @@ export default function MonthView({
           <div
             style={{
               position: 'fixed',
-              left: remainingPopover
-                ? remainingPopover.anchorRect.left +
-                  remainingPopover.anchorRect.width / 2
+              left: remainingPopover ? remainingPopover.anchorRect.right : 0,
+              top: remainingPopover
+                ? remainingPopover.anchorRect.top +
+                  remainingPopover.anchorRect.height / 2
                 : 0,
-              top: remainingPopover ? remainingPopover.anchorRect.bottom : 0,
               width: 0,
               height: 0,
               pointerEvents: 'none',
@@ -220,10 +222,9 @@ export default function MonthView({
         </PopoverAnchor>
         {remainingPopover && (
           <PopoverContent
-            side="bottom"
+            side="right"
             align="center"
-            sideOffset={6}
-            sticky="always"
+            sideOffset={8}
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
             <div className="flex items-center justify-between">
@@ -238,49 +239,39 @@ export default function MonthView({
               </button>
             </div>
             {remainingPopover.remainingEvents.length > 0 ? (
-              <div className="min-h-0 max-h-[260px]">
-                <ScrollArea className="h-full">
-                  <div className="space-y-1.5 pr-2">
-                    {remainingPopover.remainingEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
-                        style={{
-                          backgroundColor: isDark
-                            ? EVENT_BG_TO_DARK[event.color]
-                            : undefined,
-                        }}
-                        onClick={(e) => {
-                          onEventClick(
-                            event,
-                            e.currentTarget,
-                            e.clientX,
-                            e.clientY,
-                          )
-                          closeRemainingPopover()
-                        }}
-                      >
-                        <div
-                          className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                          style={{
-                            backgroundColor:
-                              EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                          }}
-                        />
-                        <div
-                          className="truncate"
-                          style={{
-                            color:
-                              EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                          }}
-                        >
-                          {event.title}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
+              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
+                {remainingPopover.remainingEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
+                    style={{
+                      backgroundColor: isDark
+                        ? EVENT_BG_TO_DARK[event.color]
+                        : undefined,
+                    }}
+                    onClick={(e) => {
+                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      style={{
+                        backgroundColor:
+                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                      }}
+                    />
+                    <div
+                      className="truncate"
+                      style={{
+                        color:
+                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                      }}
+                    >
+                      {event.title}
+                    </div>
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="text-xs text-muted-foreground">
