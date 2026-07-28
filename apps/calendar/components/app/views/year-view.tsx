@@ -221,10 +221,10 @@ export default function YearView({
           <div
             style={{
               position: 'fixed',
-              left: popover
-                ? popover.anchorRect.left + popover.anchorRect.width / 2
+              left: popover ? popover.anchorRect.right : 0,
+              top: popover
+                ? popover.anchorRect.top + popover.anchorRect.height / 2
                 : 0,
-              top: popover ? popover.anchorRect.bottom : 0,
               width: 0,
               height: 0,
               pointerEvents: 'none',
@@ -233,10 +233,9 @@ export default function YearView({
         </PopoverAnchor>
         {popover && (
           <PopoverContent
-            side="bottom"
+            side="right"
             align="center"
-            sideOffset={6}
-            sticky="always"
+            sideOffset={8}
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
             <div className="flex items-center justify-between">
@@ -271,6 +270,7 @@ export default function YearView({
                       event.color,
                     )}
                     onClick={(e) => {
+                      closePopover()
                       onEventClick(event, e.currentTarget, e.clientX, e.clientY)
                     }}
                     style={{
