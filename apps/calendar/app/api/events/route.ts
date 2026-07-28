@@ -39,10 +39,12 @@ export const GET = async function GET(request: NextRequest) {
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
 
+  const filters = [eq(calendarEvents.userId, user.id)]
+
   if (startDate && endDate) {
     const cached = await getCachedEvents(user.id, startDate, endDate)
     if (cached) {
-      let events = cached
+      let events = cached.map(decryptEvent)
       if (categoryIds) {
         const ids = categoryIds.split(',')
         events = events.filter(
@@ -51,11 +53,7 @@ export const GET = async function GET(request: NextRequest) {
       }
       return NextResponse.json({ events })
     }
-  }
 
-  const filters = [eq(calendarEvents.userId, user.id)]
-
-  if (startDate && endDate) {
     const range = fullMonthRange(startDate, endDate)
     filters.push(gte(calendarEvents.startDate, range.start))
     filters.push(lte(calendarEvents.endDate, range.end))
@@ -70,11 +68,9 @@ export const GET = async function GET(request: NextRequest) {
     .from(calendarEvents)
     .where(and(...filters))
 
-  if (startDate && endDate) {
-    const grouped = groupByMonth(results)
-    for (const [ym, monthEvents] of grouped) {
-      await setCachedEvents(user.id, ym, monthEvents)
-    }
+  const grouped = groupByMonth(results)
+  for (const [ym, monthEvents] of grouped) {
+    await setCachedEvents(user.id, ym, monthEvents)
   }
 
   const decrypted = results.map(decryptEvent)
