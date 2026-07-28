@@ -18,9 +18,9 @@ import {
   DEFAULT_ACCENT,
 } from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { useCallback, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollArea } from '@zntr/ui/scroll-area'
+import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface RemainingPopoverState {
   key: string
@@ -76,22 +76,25 @@ export default function MonthView({
       day: Date,
       allDayEvents: CalendarEvent[],
     ) => {
-      const key = format(day, 'yyyy-MM-dd')
-      if (remainingPopover?.key === key) {
-        setRemainingPopover(null)
-        return
-      }
       const rect = e.currentTarget.getBoundingClientRect()
+      const key = format(day, 'yyyy-MM-dd')
       setRemainingPopover({
         key,
         anchorRect: rect,
         remainingEvents: allDayEvents.slice(3),
       })
     },
-    [remainingPopover],
+    [],
   )
 
   const closeRemainingPopover = useCallback(() => setRemainingPopover(null), [])
+
+  useEffect(() => {
+    document.body.style.overflow = remainingPopover ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [remainingPopover])
 
   return (
     <>
@@ -193,19 +196,31 @@ export default function MonthView({
         })}
       </div>
 
-      {remainingPopover &&
-        typeof document !== 'undefined' &&
-        createPortal(
+      <Popover
+        open={!!remainingPopover}
+        onOpenChange={(open) => {
+          if (!open) closeRemainingPopover()
+        }}
+        modal={true}
+      >
+        <PopoverAnchor asChild>
           <div
-            role="dialog"
-            className="fixed z-50 w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             style={{
-              left: Math.min(
-                remainingPopover.anchorRect.left,
-                window.innerWidth - 300,
-              ),
-              top: remainingPopover.anchorRect.bottom + 4,
+              position: 'fixed',
+              left: remainingPopover ? remainingPopover.anchorRect.left : 0,
+              top: remainingPopover ? remainingPopover.anchorRect.bottom : 0,
+              width: 0,
+              height: 0,
+              pointerEvents: 'none',
             }}
+          />
+        </PopoverAnchor>
+        {remainingPopover && (
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -268,9 +283,9 @@ export default function MonthView({
                 </div>
               )}
             </div>
-          </div>,
-          document.body,
+          </PopoverContent>
         )}
+      </Popover>
     </>
   )
 }

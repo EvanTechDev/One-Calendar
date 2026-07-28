@@ -10,11 +10,11 @@ import {
 } from 'date-fns'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { createPortal } from 'react-dom'
 import { ScrollArea } from '@zntr/ui/scroll-area'
+import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface YearViewProps {
   date: Date
@@ -144,19 +144,22 @@ export default function YearView({
 
   const handleDayClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, day: Date, dayKey: string) => {
-      const key = `${day.getMonth()}-${dayKey}`
-      if (popover?.key === key) {
-        setPopover(null)
-        return
-      }
       const rect = e.currentTarget.getBoundingClientRect()
       const dayEvents = eventsByDayKey.get(dayKey) ?? []
+      const key = `${day.getMonth()}-${dayKey}`
       setPopover({ key, anchorRect: rect, day, dayEvents })
     },
-    [popover, eventsByDayKey],
+    [eventsByDayKey],
   )
 
   const closePopover = useCallback(() => setPopover(null), [])
+
+  useEffect(() => {
+    document.body.style.overflow = popover ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [popover])
 
   return (
     <div className="p-3 md:p-4" ref={containerRef}>
@@ -208,16 +211,31 @@ export default function YearView({
         ))}
       </div>
 
-      {popover &&
-        typeof document !== 'undefined' &&
-        createPortal(
+      <Popover
+        open={!!popover}
+        onOpenChange={(open) => {
+          if (!open) closePopover()
+        }}
+        modal={true}
+      >
+        <PopoverAnchor asChild>
           <div
-            role="dialog"
-            className="fixed z-50 w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             style={{
-              left: Math.min(popover.anchorRect.left, window.innerWidth - 300),
-              top: popover.anchorRect.bottom + 4,
+              position: 'fixed',
+              left: popover ? popover.anchorRect.left : 0,
+              top: popover ? popover.anchorRect.bottom : 0,
+              width: 0,
+              height: 0,
+              pointerEvents: 'none',
             }}
+          />
+        </PopoverAnchor>
+        {popover && (
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -288,9 +306,9 @@ export default function YearView({
                 </div>
               )}
             </div>
-          </div>,
-          document.body,
+          </PopoverContent>
         )}
+      </Popover>
     </div>
   )
 }
