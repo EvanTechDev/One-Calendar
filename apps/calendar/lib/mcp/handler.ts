@@ -7,19 +7,6 @@ import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
 import { McpAuthError } from './types'
 
-let transport: WebStandardStreamableHTTPServerTransport | null = null
-
-function getTransport(): WebStandardStreamableHTTPServerTransport {
-  if (!transport) {
-    transport = new WebStandardStreamableHTTPServerTransport({
-      enableJsonResponse: true,
-    })
-    const server = createServer()
-    server.connect(transport)
-  }
-  return transport
-}
-
 export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
@@ -30,7 +17,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
           auth_required: 'Bearer',
           authorization_endpoint: `${process.env.BETTER_AUTH_URL || 'http://localhost:3000'}/oauth/authorize`,
         },
-        { status: 401 },
+        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
       )
     }
 
@@ -80,8 +67,15 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       ''
     const userAgent = request.headers.get('user-agent') ?? ''
 
+    const server = createServer()
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      enableJsonResponse: true,
+      allowedOrigins: ['*'],
+    })
+
+    await server.connect(transport)
+
     try {
-      const transport = getTransport()
       const response = await transport.handleRequest(request, { authInfo })
 
       await logAudit({
