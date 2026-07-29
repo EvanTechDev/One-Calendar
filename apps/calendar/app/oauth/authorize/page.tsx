@@ -1,24 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@zntr/ui/button'
-import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Bot } from 'lucide-react'
 
 export default function OAuthAuthorizePage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
 
   const [status, setStatus] = useState<
     'checking' | 'ready' | 'authorizing' | 'success' | 'error'
   >('checking')
-  const [user, setUser] = useState<{
-    id: string
-    name: string
-    email: string
-    image?: string
-  } | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
@@ -35,12 +28,18 @@ export default function OAuthAuthorizePage() {
     setStatus('authorizing')
 
     try {
+      const sessionRes = await fetch('/api/auth/get-session')
+      const session = await sessionRes.json()
+      if (!session?.user?.id) {
+        throw new Error('Not authenticated')
+      }
+
       const res = await fetch('/api/oauth/authorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_code: code,
-          user_id: user?.id || '',
+          user_id: session.user.id,
         }),
       })
 
@@ -101,16 +100,8 @@ export default function OAuthAuthorizePage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-lg border bg-card p-8 shadow-lg">
         <div className="text-center space-y-6">
-          <div className="rounded-full bg-primary/10 p-4 inline-flex">
-            <img
-              src={user?.image || '/logo.svg'}
-              alt="Calendar"
-              className="h-16 w-16 rounded-full"
-              onError={(e) => {
-                const target = e.currentTarget
-                target.style.display = 'none'
-              }}
-            />
+          <div className="rounded-full bg-primary/10 p-4 inline-flex mx-auto">
+            <Bot className="h-12 w-12 text-primary" />
           </div>
 
           <div className="space-y-2">

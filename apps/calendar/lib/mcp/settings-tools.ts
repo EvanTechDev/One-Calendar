@@ -22,10 +22,8 @@ export async function updateSettings(
     .from(settings)
     .where(eq(settings.userId, userId))
 
-  const merged = {
-    ...((existing?.data as Record<string, unknown>) ?? {}),
-    ...data,
-  }
+  const existingData = existing?.data as Record<string, unknown> | undefined
+  const merged = { ...existingData, ...data }
 
   await db
     .insert(settings)

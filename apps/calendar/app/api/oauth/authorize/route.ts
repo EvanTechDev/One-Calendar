@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       .where(eq(mcpDeviceCodes.id, record.id))
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'server_error', error_description: 'Internal server error' },
       { status: 500 },

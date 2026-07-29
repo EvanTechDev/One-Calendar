@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       expires_in: 300,
       interval: 5,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: 'invalid_request',

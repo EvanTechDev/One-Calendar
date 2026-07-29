@@ -28,10 +28,6 @@ function requireScope(authInfo: AuthInfo | undefined, scope: string): void {
   }
 }
 
-function getClientId(authInfo?: AuthInfo): string {
-  return (authInfo?.extra?.clientId as string) ?? 'unknown'
-}
-
 export function createServer(): McpServer {
   const server = new McpServer(
     { name: 'One Calendar MCP', version: '1.0.0' },

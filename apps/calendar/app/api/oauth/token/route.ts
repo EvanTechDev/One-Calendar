@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         email: userInfo.email,
       },
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'server_error', error_description: 'Internal server error' },
       { status: 500 },
