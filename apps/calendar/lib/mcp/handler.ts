@@ -4,6 +4,7 @@ import { createServer } from './server'
 import { getMcpAuth } from './auth-helpers'
 import { logAudit } from './audit'
 import { getMcpSettings } from './settings'
+import { checkRateLimit } from './rate-limiter'
 import { McpAuthError } from './types'
 
 let transport: WebStandardStreamableHTTPServerTransport | null = null
@@ -41,6 +42,27 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       )
     }
 
+    const rateLimit = await checkRateLimit(auth.user.userId)
+    if (!rateLimit.allowed) {
+      await logAudit({
+        userId: auth.user.userId,
+        authType: auth.user.authType,
+        keyId: auth.user.keyId,
+        action: 'rate_limited',
+        success: false,
+        errorMessage: 'Rate limit exceeded',
+        ipAddress: request.headers.get('x-forwarded-for') ?? '',
+        userAgent: request.headers.get('user-agent') ?? '',
+      })
+      return Response.json(
+        {
+          error: 'rate_limited',
+          retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        { status: 429 },
+      )
+    }
+
     const authInfo: AuthInfo = {
       token: auth.token,
       clientId: `user:${auth.user.userId}`,
@@ -60,7 +82,19 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
 
     try {
       const transport = getTransport()
-      return await transport.handleRequest(request, { authInfo })
+      const response = await transport.handleRequest(request, { authInfo })
+
+      await logAudit({
+        userId: auth.user.userId,
+        authType: auth.user.authType,
+        keyId: auth.user.keyId,
+        action: 'mcp_request',
+        success: response.status < 500,
+        ipAddress: clientIp,
+        userAgent,
+      })
+
+      return response
     } catch (mcpErr) {
       await logAudit({
         userId: auth.user.userId,
