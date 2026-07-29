@@ -84,7 +84,7 @@ export async function createEvent(
     start_date: string
     end_date: string
     is_all_day?: boolean
-    color?: string | null
+    color: string
     category_id?: string | null
     notification_minutes?: number | null
   },
@@ -103,7 +103,7 @@ export async function createEvent(
       startDate: new Date(data.start_date),
       endDate: new Date(data.end_date),
       isAllDay: data.is_all_day ?? false,
-      color: data.color ?? null,
+      color: data.color,
       categoryId: data.category_id ?? null,
       notificationMinutes: data.notification_minutes ?? null,
     })

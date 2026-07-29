@@ -23,7 +23,7 @@ export async function createCountdown(
     name: string
     target_date: string
     description?: string | null
-    color?: string | null
+    color: string
     icon?: string | null
   },
 ) {
@@ -38,7 +38,7 @@ export async function createCountdown(
       name: encryptField(id, data.name) ?? data.name,
       targetDate: new Date(data.target_date),
       description: data.description ? encryptField(id, data.description) : null,
-      color: data.color ?? null,
+      color: data.color,
       icon: data.icon ?? null,
     })
     .returning()

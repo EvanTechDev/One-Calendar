@@ -12,6 +12,102 @@ const SCOPE_SETTINGS_READ = 'settings:read'
 const SCOPE_SETTINGS_WRITE = 'settings:write'
 const SCOPE_PROFILE_READ = 'profile:read'
 
+const ALLOWED_HEX_COLORS = [
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#EF4444',
+  '#8B5CF6',
+  '#EC4899',
+  '#6366F1',
+  '#FB923C',
+  '#14B8A6',
+] as const
+
+const HEX_TO_EVENT_BG: Record<string, string> = {
+  '#3B82F6': 'bg-[#E6F6FD]',
+  '#10B981': 'bg-[#E7F8F2]',
+  '#F59E0B': 'bg-[#FEF5E6]',
+  '#EF4444': 'bg-[#FFE4E6]',
+  '#8B5CF6': 'bg-[#F3EEFE]',
+  '#EC4899': 'bg-[#FCE7F3]',
+  '#6366F1': 'bg-[#EEF2FF]',
+  '#FB923C': 'bg-[#FFF0E5]',
+  '#14B8A6': 'bg-[#E6FAF7]',
+}
+
+const HEX_TO_COUNTDOWN_BG: Record<string, string> = {
+  '#3B82F6': 'bg-blue-500',
+  '#10B981': 'bg-green-500',
+  '#F59E0B': 'bg-yellow-500',
+  '#EF4444': 'bg-red-500',
+  '#8B5CF6': 'bg-purple-500',
+  '#EC4899': 'bg-pink-500',
+  '#6366F1': 'bg-indigo-500',
+  '#FB923C': 'bg-orange-500',
+  '#14B8A6': 'bg-teal-500',
+}
+
+const HEX_TO_CATEGORY_BG: Record<string, string> = {
+  '#3B82F6': 'bg-blue-500',
+  '#10B981': 'bg-green-500',
+  '#F59E0B': 'bg-yellow-500',
+  '#EF4444': 'bg-red-500',
+  '#8B5CF6': 'bg-purple-500',
+  '#EC4899': 'bg-pink-500',
+  '#6366F1': 'bg-indigo-500',
+  '#FB923C': 'bg-orange-500',
+  '#14B8A6': 'bg-teal-500',
+}
+
+const LANGUAGE_OPTIONS = [
+  'bn',
+  'de',
+  'el',
+  'en',
+  'en-GB',
+  'es',
+  'fi',
+  'fr',
+  'hi',
+  'is',
+  'it',
+  'ja',
+  'ko',
+  'lt',
+  'lv',
+  'mk',
+  'nb',
+  'nl',
+  'pl',
+  'pt',
+  'ro',
+  'ru',
+  'sl',
+  'sq',
+  'sr',
+  'sv',
+  'sw',
+  'th',
+  'tr',
+  'uk',
+  'vi',
+  'yue',
+  'zh-CN',
+  'zh-HK',
+  'zh-TW',
+] as const
+
+const DEFAULT_VIEW_OPTIONS = [
+  'day',
+  'week',
+  'four-day',
+  'month',
+  'year',
+] as const
+const TIME_FORMAT_OPTIONS = ['24h', '12h'] as const
+const THEME_OPTIONS = ['light', 'dark', 'system'] as const
+
 function getUserId(authInfo?: AuthInfo): string {
   const id = authInfo?.extra?.userId as string | undefined
   if (!id) throw new Error('Unauthorized')
@@ -46,13 +142,17 @@ export function createServer(): McpServer {
 function registerEventTools(server: McpServer): void {
   server.tool(
     'list_events',
-    '查询日历事件列表，可按时间范围、关键字搜索',
+    'List calendar events, filter by date range or keyword',
     {
-      start_date: z.string().optional().describe('开始日期 (ISO 8601)'),
-      end_date: z.string().optional().describe('结束日期 (ISO 8601)'),
-      query: z.string().optional().describe('搜索关键字'),
-      page: z.number().optional().default(1).describe('页码'),
-      limit: z.number().optional().default(50).describe('每页数量 (最大 50)'),
+      start_date: z.string().optional().describe('Start date (ISO 8601)'),
+      end_date: z.string().optional().describe('End date (ISO 8601)'),
+      query: z.string().optional().describe('Search keyword'),
+      page: z.number().optional().default(1).describe('Page number'),
+      limit: z
+        .number()
+        .optional()
+        .default(50)
+        .describe('Items per page (max 50)'),
     },
     async (params, extra) => {
       const authInfo = extra.authInfo
@@ -82,9 +182,9 @@ function registerEventTools(server: McpServer): void {
 
   server.tool(
     'get_event',
-    '获取单个事件的详细信息',
+    'Get detailed information about a single event',
     {
-      event_id: z.string().describe('事件 ID'),
+      event_id: z.string().describe('Event ID'),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
@@ -112,15 +212,15 @@ function registerEventTools(server: McpServer): void {
 
   server.tool(
     'create_event',
-    '创建新的日历事件',
+    'Create a new calendar event',
     {
-      title: z.string().describe('事件标题'),
-      description: z.string().optional().describe('事件描述'),
-      location: z.string().optional().describe('地点'),
-      start_date: z.string().describe('开始时间 (ISO 8601)'),
-      end_date: z.string().describe('结束时间 (ISO 8601)'),
+      title: z.string().describe('Event title'),
+      description: z.string().optional().describe('Event description'),
+      location: z.string().optional().describe('Location'),
+      start_date: z.string().describe('Start time (ISO 8601)'),
+      end_date: z.string().describe('End time (ISO 8601)'),
       is_all_day: z.boolean().optional().default(false),
-      color: z.string().optional().describe('颜色 (十六进制)'),
+      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -129,7 +229,10 @@ function registerEventTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createEvent } = await import('./event-tools')
-        const result = await createEvent(userId, params)
+        const result = await createEvent(userId, {
+          ...params,
+          color: HEX_TO_EVENT_BG[params.color],
+        })
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         }
@@ -144,16 +247,16 @@ function registerEventTools(server: McpServer): void {
 
   server.tool(
     'update_event',
-    '修改已有的事件',
+    'Update an existing event',
     {
-      event_id: z.string().describe('事件 ID'),
+      event_id: z.string().describe('Event ID'),
       title: z.string().optional(),
       description: z.string().optional(),
       location: z.string().optional(),
       start_date: z.string().optional(),
       end_date: z.string().optional(),
       is_all_day: z.boolean().optional(),
-      color: z.string().optional(),
+      color: z.enum(ALLOWED_HEX_COLORS).optional(),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -162,7 +265,11 @@ function registerEventTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateEvent } = await import('./event-tools')
-        const result = await updateEvent(userId, params.event_id, params)
+        const eventParams = { ...params }
+        if (eventParams.color) {
+          eventParams.color = HEX_TO_EVENT_BG[eventParams.color]
+        }
+        const result = await updateEvent(userId, params.event_id, eventParams)
         if (!result) {
           return {
             content: [{ type: 'text' as const, text: 'Event not found' }],
@@ -183,9 +290,9 @@ function registerEventTools(server: McpServer): void {
 
   server.tool(
     'delete_event',
-    '删除一个事件',
+    'Delete an event',
     {
-      event_id: z.string().describe('事件 ID'),
+      event_id: z.string().describe('Event ID'),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -205,29 +312,34 @@ function registerEventTools(server: McpServer): void {
 }
 
 function registerCategoryTools(server: McpServer): void {
-  server.tool('list_categories', '查询所有分类', {}, async (_params, extra) => {
-    requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
-    const userId = getUserId(extra.authInfo)
-    try {
-      const { listCategories } = await import('./category-tools')
-      const result = await listCategories(userId)
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+  server.tool(
+    'list_categories',
+    'List all categories',
+    {},
+    async (_params, extra) => {
+      requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { listCategories } = await import('./category-tools')
+        const result = await listCategories(userId)
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        }
+      } catch (err) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${err}` }],
+          isError: true,
+        }
       }
-    } catch (err) {
-      return {
-        content: [{ type: 'text' as const, text: `Error: ${err}` }],
-        isError: true,
-      }
-    }
-  })
+    },
+  )
 
   server.tool(
     'create_category',
-    '创建新分类',
+    'Create a new category',
     {
-      name: z.string().describe('分类名称'),
-      color: z.string().describe('颜色 (十六进制)'),
+      name: z.string().describe('Category name'),
+      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
       sort_order: z.number().optional().default(0),
     },
     async (params, extra) => {
@@ -235,7 +347,10 @@ function registerCategoryTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createCategory } = await import('./category-tools')
-        const result = await createCategory(userId, params)
+        const result = await createCategory(userId, {
+          ...params,
+          color: HEX_TO_CATEGORY_BG[params.color],
+        })
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         }
@@ -250,11 +365,11 @@ function registerCategoryTools(server: McpServer): void {
 
   server.tool(
     'update_category',
-    '修改分类',
+    'Update a category',
     {
       category_id: z.string(),
       name: z.string().optional(),
-      color: z.string().optional(),
+      color: z.enum(ALLOWED_HEX_COLORS).optional(),
       sort_order: z.number().optional(),
     },
     async (params, extra) => {
@@ -262,7 +377,15 @@ function registerCategoryTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateCategory } = await import('./category-tools')
-        const result = await updateCategory(userId, params.category_id, params)
+        const categoryParams = { ...params }
+        if (categoryParams.color) {
+          categoryParams.color = HEX_TO_CATEGORY_BG[categoryParams.color]
+        }
+        const result = await updateCategory(
+          userId,
+          params.category_id,
+          categoryParams,
+        )
         if (!result) {
           return {
             content: [{ type: 'text' as const, text: 'Category not found' }],
@@ -283,7 +406,7 @@ function registerCategoryTools(server: McpServer): void {
 
   server.tool(
     'delete_category',
-    '删除分类',
+    'Delete a category',
     {
       category_id: z.string(),
     },
@@ -309,7 +432,7 @@ function registerCategoryTools(server: McpServer): void {
 function registerCountdownTools(server: McpServer): void {
   server.tool(
     'list_countdowns',
-    '查询所有倒计时',
+    'List all countdowns',
     {},
     async (_params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_READ)
@@ -331,12 +454,12 @@ function registerCountdownTools(server: McpServer): void {
 
   server.tool(
     'create_countdown',
-    '创建新的倒计时',
+    'Create a new countdown',
     {
-      name: z.string().describe('倒计时名称'),
-      target_date: z.string().describe('目标日期 (ISO 8601)'),
+      name: z.string().describe('Countdown name'),
+      target_date: z.string().describe('Target date (ISO 8601)'),
       description: z.string().optional(),
-      color: z.string().optional(),
+      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
       icon: z.string().optional(),
     },
     async (params, extra) => {
@@ -344,7 +467,10 @@ function registerCountdownTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createCountdown } = await import('./countdown-tools')
-        const result = await createCountdown(userId, params)
+        const result = await createCountdown(userId, {
+          ...params,
+          color: HEX_TO_COUNTDOWN_BG[params.color],
+        })
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         }
@@ -359,13 +485,13 @@ function registerCountdownTools(server: McpServer): void {
 
   server.tool(
     'update_countdown',
-    '修改倒计时',
+    'Update a countdown',
     {
       countdown_id: z.string(),
       name: z.string().optional(),
       target_date: z.string().optional(),
       description: z.string().optional(),
-      color: z.string().optional(),
+      color: z.enum(ALLOWED_HEX_COLORS).optional(),
       icon: z.string().optional(),
     },
     async (params, extra) => {
@@ -373,10 +499,14 @@ function registerCountdownTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateCountdown } = await import('./countdown-tools')
+        const countdownParams = { ...params }
+        if (countdownParams.color) {
+          countdownParams.color = HEX_TO_COUNTDOWN_BG[countdownParams.color]
+        }
         const result = await updateCountdown(
           userId,
           params.countdown_id,
-          params,
+          countdownParams,
         )
         if (!result) {
           return {
@@ -398,7 +528,7 @@ function registerCountdownTools(server: McpServer): void {
 
   server.tool(
     'delete_countdown',
-    '删除倒计时',
+    'Delete a countdown',
     {
       countdown_id: z.string(),
     },
@@ -422,33 +552,40 @@ function registerCountdownTools(server: McpServer): void {
 }
 
 function registerSettingsTools(server: McpServer): void {
-  server.tool('get_settings', '获取用户设置', {}, async (_params, extra) => {
-    requireScope(extra.authInfo, SCOPE_SETTINGS_READ)
-    const userId = getUserId(extra.authInfo)
-    try {
-      const { getSettings } = await import('./settings-tools')
-      const result = await getSettings(userId)
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+  server.tool(
+    'get_settings',
+    'Get user settings',
+    {},
+    async (_params, extra) => {
+      requireScope(extra.authInfo, SCOPE_SETTINGS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getSettings } = await import('./settings-tools')
+        const result = await getSettings(userId)
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        }
+      } catch (err) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${err}` }],
+          isError: true,
+        }
       }
-    } catch (err) {
-      return {
-        content: [{ type: 'text' as const, text: `Error: ${err}` }],
-        isError: true,
-      }
-    }
-  })
+    },
+  )
 
   server.tool(
     'update_settings',
-    '更新用户设置',
+    'Update user settings',
     {
-      language: z.string().optional(),
+      language: z.enum(LANGUAGE_OPTIONS).optional(),
       timezone: z.string().optional(),
-      default_view: z.string().optional(),
-      time_format: z.string().optional(),
-      first_day_of_week: z.number().optional(),
-      theme: z.string().optional(),
+      default_view: z.enum(DEFAULT_VIEW_OPTIONS).optional(),
+      time_format: z.enum(TIME_FORMAT_OPTIONS).optional(),
+      first_day_of_week: z
+        .union([z.literal(0), z.literal(1), z.literal(6)])
+        .optional(),
+      theme: z.enum(THEME_OPTIONS).optional(),
       enable_shortcuts: z.boolean().optional(),
     },
     async (params, extra) => {
@@ -473,7 +610,7 @@ function registerSettingsTools(server: McpServer): void {
 function registerProfileTool(server: McpServer): void {
   server.tool(
     'get_profile',
-    '获取当前用户信息（名称、邮箱等）',
+    'Get current user info (name, email, etc.)',
     {},
     async (_params, extra) => {
       requireScope(extra.authInfo, SCOPE_PROFILE_READ)
