@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@zntr/ui/button'
 import { Loader2, CheckCircle, XCircle, Bot } from 'lucide-react'
 
-export default function OAuthAuthorizePage() {
+function AuthorizeForm() {
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
 
@@ -141,5 +141,19 @@ export default function OAuthAuthorizePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OAuthAuthorizePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <AuthorizeForm />
+    </Suspense>
   )
 }
