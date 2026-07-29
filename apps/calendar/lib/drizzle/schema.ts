@@ -412,6 +412,28 @@ export const mcpSettings = pgTable('mcp_settings', {
     .notNull(),
 })
 
+// --- MCP OAuth Authorization Requests ---
+export const mcpAuthRequests = pgTable('mcp_auth_requests', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  clientId: text('client_id').notNull(),
+  redirectUri: text('redirect_uri'),
+  scopes: jsonb('scopes').notNull().default([]),
+  codeChallenge: text('code_challenge'),
+  codeChallengeMethod: text('code_challenge_method'),
+  state: text('state'),
+  resource: text('resource'),
+  authorizationCode: text('authorization_code').unique(),
+  codeExpiresAt: timestamp('code_expires_at', {
+    precision: 3,
+    withTimezone: true,
+  }),
+  status: text('status').notNull().default('pending'),
+  createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
 // ============================================================
 // Relations
 // ============================================================
@@ -520,3 +542,13 @@ export const mcpAuditLogsRelations = relations(mcpAuditLogs, ({ one }) => ({
 export const mcpSettingsRelations = relations(mcpSettings, ({ one }) => ({
   user: one(user, { fields: [mcpSettings.userId], references: [user.id] }),
 }))
+
+export const mcpAuthRequestsRelations = relations(
+  mcpAuthRequests,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [mcpAuthRequests.userId],
+      references: [user.id],
+    }),
+  }),
+)

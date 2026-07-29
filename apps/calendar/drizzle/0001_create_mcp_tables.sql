@@ -97,4 +97,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS "mcp_device_codes_device_code_unique" ON "mcp_
 CREATE UNIQUE INDEX IF NOT EXISTS "mcp_device_codes_user_code_unique" ON "mcp_device_codes" ("user_code");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_mcp_api_keys_user_id" ON "mcp_api_keys" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_mcp_audit_user_id" ON "mcp_audit_logs" ("user_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_mcp_audit_created_at" ON "mcp_audit_logs" ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_mcp_audit_created_at" ON "mcp_audit_logs" ("created_at");--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "mcp_auth_requests" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text,
+	"client_id" text NOT NULL,
+	"redirect_uri" text,
+	"scopes" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"code_challenge" text,
+	"code_challenge_method" text,
+	"state" text,
+	"resource" text,
+	"authorization_code" text,
+	"code_expires_at" timestamp (3) with time zone,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"created_at" timestamp (3) with time zone DEFAULT now() NOT NULL
+);--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "mcp_auth_requests" ADD CONSTRAINT "mcp_auth_requests_user_id_User_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "mcp_auth_requests_authorization_code_unique" ON "mcp_auth_requests" ("authorization_code");

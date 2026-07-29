@@ -9,7 +9,10 @@ export async function GET() {
     token_endpoint: `${MCP_BASE_URL}/api/oauth/token`,
     device_authorization_endpoint: `${MCP_BASE_URL}/api/oauth/device`,
     response_types_supported: ['code'],
-    grant_types_supported: ['urn:ietf:params:oauth:grant-type:device_code'],
+    grant_types_supported: [
+      'authorization_code',
+      'urn:ietf:params:oauth:grant-type:device_code',
+    ],
     token_endpoint_auth_methods_supported: ['none'],
     scopes_supported: [
       'events:read',
