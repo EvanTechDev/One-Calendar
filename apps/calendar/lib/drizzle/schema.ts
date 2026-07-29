@@ -291,6 +291,128 @@ export const shares = pgTable(
 )
 
 // ============================================================
+// MCP TABLES
+// ============================================================
+
+// --- MCP API Keys ---
+export const mcpApiKeys = pgTable(
+  'mcp_api_keys',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    keyHash: text('key_hash').notNull(),
+    keyPrefix: text('key_prefix').notNull(),
+    scopes: jsonb('scopes').notNull().default([]),
+    isActive: boolean('is_active').notNull().default(true),
+    lastUsedAt: timestamp('last_used_at', {
+      precision: 3,
+      withTimezone: true,
+    }),
+    createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { precision: 3, withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('idx_mcp_api_keys_user_id').on(table.userId),
+  }),
+)
+
+// --- MCP OAuth Tokens ---
+export const mcpTokens = pgTable('mcp_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  refreshTokenHash: text('refresh_token_hash'),
+  tokenType: text('token_type').notNull().default('bearer'),
+  scopes: jsonb('scopes').notNull().default([]),
+  clientId: text('client_id').notNull(),
+  clientName: text('client_name').notNull(),
+  expiresAt: timestamp('expires_at', {
+    precision: 3,
+    withTimezone: true,
+  }).notNull(),
+  refreshExpiresAt: timestamp('refresh_expires_at', {
+    precision: 3,
+    withTimezone: true,
+  }),
+  isRevoked: boolean('is_revoked').notNull().default(false),
+  createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// --- MCP Device Codes (for OAuth Device Code Grant) ---
+export const mcpDeviceCodes = pgTable('mcp_device_codes', {
+  id: text('id').primaryKey(),
+  deviceCode: text('device_code').notNull().unique(),
+  userCode: text('user_code').notNull().unique(),
+  clientId: text('client_id').notNull(),
+  clientName: text('client_name').notNull(),
+  scopes: jsonb('scopes').notNull().default([]),
+  status: text('status').notNull().default('pending'),
+  userId: text('user_id').references(() => user.id, {
+    onDelete: 'cascade',
+  }),
+  expiresAt: timestamp('expires_at', {
+    precision: 3,
+    withTimezone: true,
+  }).notNull(),
+  createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// --- MCP Audit Logs ---
+export const mcpAuditLogs = pgTable(
+  'mcp_audit_logs',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    authType: text('auth_type').notNull(),
+    keyId: text('key_id'),
+    action: text('action').notNull(),
+    resourceType: text('resource_type'),
+    resourceId: text('resource_id'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    success: boolean('success').notNull().default(true),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('idx_mcp_audit_user_id').on(table.userId),
+    createdAtIdx: index('idx_mcp_audit_created_at').on(table.createdAt),
+  }),
+)
+
+// --- MCP User Settings ---
+export const mcpSettings = pgTable('mcp_settings', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  enabled: boolean('enabled').notNull().default(true),
+  rateLimitRpm: integer('rate_limit_rpm').notNull().default(60),
+  createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// ============================================================
 // Relations
 // ============================================================
 
@@ -300,10 +422,14 @@ export const userRelations = relations(user, ({ many, one }) => ({
   twoFactor: one(twoFactor),
   calendarEvents: many(calendarEvents),
   settings: one(settings),
+  mcpSettings: one(mcpSettings),
   calendarCategories: many(calendarCategories),
   countdowns: many(countdowns),
   bookmarkedEvents: many(bookmarkedEvents),
   shares: many(shares),
+  mcpApiKeys: many(mcpApiKeys),
+  mcpTokens: many(mcpTokens),
+  mcpAuditLogs: many(mcpAuditLogs),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -373,4 +499,24 @@ export const sharesRelations = relations(shares, ({ one }) => ({
     fields: [shares.eventId],
     references: [calendarEvents.id],
   }),
+}))
+
+export const mcpApiKeysRelations = relations(mcpApiKeys, ({ one }) => ({
+  user: one(user, { fields: [mcpApiKeys.userId], references: [user.id] }),
+}))
+
+export const mcpTokensRelations = relations(mcpTokens, ({ one }) => ({
+  user: one(user, { fields: [mcpTokens.userId], references: [user.id] }),
+}))
+
+export const mcpDeviceCodesRelations = relations(mcpDeviceCodes, ({ one }) => ({
+  user: one(user, { fields: [mcpDeviceCodes.userId], references: [user.id] }),
+}))
+
+export const mcpAuditLogsRelations = relations(mcpAuditLogs, ({ one }) => ({
+  user: one(user, { fields: [mcpAuditLogs.userId], references: [user.id] }),
+}))
+
+export const mcpSettingsRelations = relations(mcpSettings, ({ one }) => ({
+  user: one(user, { fields: [mcpSettings.userId], references: [user.id] }),
 }))
