@@ -50,6 +50,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { Kbd } from '@zntr/ui/kbd'
+import MCPSettings from '@/components/app/settings/mcp/mcp-settings'
 
 interface SettingsProps {
   language: string
@@ -397,6 +398,9 @@ export default function Settings({
         />
       </div>
       <ShareManagement />
+      <div className="rounded-lg border p-4 space-y-4">
+        <MCPSettings />
+      </div>
       <ImportExport events={events} onImportEvents={onImportEvents} />
       <BuildInfoCard language={langCode} />
     </div>
