@@ -16,9 +16,21 @@ import crypto from 'crypto'
 
 export const runtime = 'nodejs'
 
+async function parseBody(
+  request: NextRequest,
+): Promise<Record<string, string>> {
+  const ct = request.headers.get('content-type') || ''
+  if (ct.includes('application/x-www-form-urlencoded')) {
+    const text = await request.text()
+    const params = new URLSearchParams(text)
+    return Object.fromEntries(params.entries())
+  }
+  return request.json().catch(() => ({}))
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}))
+    const body = await parseBody(request)
     const grantType = body.grant_type
 
     // --- Device Code Grant ---

@@ -8,7 +8,14 @@ export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}))
+    const ct = request.headers.get('content-type') || ''
+    let body: Record<string, string>
+    if (ct.includes('application/x-www-form-urlencoded')) {
+      const text = await request.text()
+      body = Object.fromEntries(new URLSearchParams(text).entries())
+    } else {
+      body = await request.json().catch(() => ({}))
+    }
     const clientId = body.client_id || 'unknown'
     const clientName = body.client_name || body.client_id || 'Unknown Client'
     const scopes = body.scope ? body.scope.split(' ') : ['events:read']
