@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/drizzle/client'
 import { mcpApiKeys, mcpTokens, mcpSettings } from '@/lib/drizzle/schema'
-import { eq, and, gte } from 'drizzle-orm'
+import { eq, and, gte, or } from 'drizzle-orm'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { type McpAuthUser, ALL_SCOPES } from './types'
@@ -10,14 +10,18 @@ const KEY_PREFIX = 'zc_'
 export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
   if (!key.startsWith(KEY_PREFIX)) return null
 
-  const keyPrefix = KEY_PREFIX + key.slice(-4)
-
   const db = await getDb()
   const keys = await db
     .select()
     .from(mcpApiKeys)
     .where(
-      and(eq(mcpApiKeys.isActive, true), eq(mcpApiKeys.keyPrefix, keyPrefix)),
+      and(
+        eq(mcpApiKeys.isActive, true),
+        or(
+          eq(mcpApiKeys.keyPrefix, key.slice(0, 12)),
+          eq(mcpApiKeys.keyPrefix, KEY_PREFIX + key.slice(-4)),
+        ),
+      ),
     )
 
   for (const row of keys) {
