@@ -24,9 +24,13 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/sign-up', request.url))
   }
 
+  if (!isLoggedIn && pathname.startsWith('/oauth/authorize')) {
+    return NextResponse.redirect(new URL('/sign-in', request.url))
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/', '/landing', '/app/:path*', '/sign-in', '/sign-up'],
+  matcher: ['/', '/landing', '/app/:path*', '/sign-in', '/sign-up', '/oauth/authorize'],
 }
