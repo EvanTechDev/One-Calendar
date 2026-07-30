@@ -30,16 +30,6 @@ export const ALL_SCOPES: McpScope[] = [
   'profile:read',
 ]
 
-export function hasScope(user: McpAuthUser, requiredScope: McpScope): boolean {
-  return user.scopes.includes(requiredScope)
-}
-
-export function requireScope(user: McpAuthUser, requiredScope: McpScope): void {
-  if (!hasScope(user, requiredScope)) {
-    throw new McpAuthError(`Missing required scope: ${requiredScope}`, 403)
-  }
-}
-
 export class McpAuthError extends Error {
   constructor(
     message: string,

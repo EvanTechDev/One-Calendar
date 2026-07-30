@@ -7,15 +7,30 @@ import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
 import { McpAuthError } from './types'
 
+async function parseToolName(request: Request): Promise<string> {
+  try {
+    const cloned = request.clone()
+    const text = await cloned.text()
+    const body = JSON.parse(text)
+    return body?.params?.name ?? 'mcp_request'
+  } catch {
+    return 'mcp_request'
+  }
+}
+
 export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
     if (!auth) {
+      const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
       return Response.json(
         {
           error: 'unauthorized',
           auth_required: 'Bearer',
-          authorization_endpoint: `${process.env.BETTER_AUTH_URL || 'http://localhost:3000'}/oauth/authorize`,
+          authorization_endpoint: `${baseUrl}/oauth/authorize`,
+          issuer: baseUrl,
+          token_endpoint: `${baseUrl}/api/oauth/token`,
+          device_authorization_endpoint: `${baseUrl}/api/oauth/device`,
         },
         { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
       )
@@ -29,17 +44,24 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       )
     }
 
+    const toolName = await parseToolName(request)
+    const clientIp =
+      request.headers.get('x-forwarded-for') ??
+      request.headers.get('x-real-ip') ??
+      ''
+    const userAgent = request.headers.get('user-agent') ?? ''
+
     const rateLimit = await checkRateLimit(auth.user.userId)
     if (!rateLimit.allowed) {
       await logAudit({
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
-        action: 'rate_limited',
+        action: toolName,
         success: false,
         errorMessage: 'Rate limit exceeded',
-        ipAddress: request.headers.get('x-forwarded-for') ?? '',
-        userAgent: request.headers.get('user-agent') ?? '',
+        ipAddress: clientIp,
+        userAgent,
       })
       return Response.json(
         {
@@ -61,12 +83,6 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       },
     }
 
-    const clientIp =
-      request.headers.get('x-forwarded-for') ??
-      request.headers.get('x-real-ip') ??
-      ''
-    const userAgent = request.headers.get('user-agent') ?? ''
-
     const server = createServer()
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
@@ -82,7 +98,8 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
-        action: 'mcp_request',
+        action: toolName,
+        resourceType: toolName.split('_')[0],
         success: response.status < 500,
         ipAddress: clientIp,
         userAgent,
@@ -94,7 +111,8 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
-        action: 'mcp_request',
+        action: toolName,
+        resourceType: toolName.split('_')[0],
         success: false,
         errorMessage: String(mcpErr),
         ipAddress: clientIp,

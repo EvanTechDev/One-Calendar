@@ -10,7 +10,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   hashToken,
-  getFullUserInfo,
+  getUserNameAndEmail,
 } from '@/lib/mcp/auth'
 import crypto from 'crypto'
 
@@ -218,7 +218,7 @@ async function issueTokens(
 ) {
   const accessToken = generateAccessToken()
   const refreshToken = generateRefreshToken()
-  const userInfo = await getFullUserInfo(userId)
+  const userInfo = await getUserNameAndEmail(userId)
 
   const db = await getDb()
   await db.insert(mcpTokens).values({

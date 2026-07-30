@@ -24,42 +24,6 @@ const ALLOWED_HEX_COLORS = [
   '#14B8A6',
 ] as const
 
-const HEX_TO_EVENT_BG: Record<string, string> = {
-  '#3B82F6': 'bg-[#E6F6FD]',
-  '#10B981': 'bg-[#E7F8F2]',
-  '#F59E0B': 'bg-[#FEF5E6]',
-  '#EF4444': 'bg-[#FFE4E6]',
-  '#8B5CF6': 'bg-[#F3EEFE]',
-  '#EC4899': 'bg-[#FCE7F3]',
-  '#6366F1': 'bg-[#EEF2FF]',
-  '#FB923C': 'bg-[#FFF0E5]',
-  '#14B8A6': 'bg-[#E6FAF7]',
-}
-
-const HEX_TO_COUNTDOWN_BG: Record<string, string> = {
-  '#3B82F6': 'bg-blue-500',
-  '#10B981': 'bg-green-500',
-  '#F59E0B': 'bg-yellow-500',
-  '#EF4444': 'bg-red-500',
-  '#8B5CF6': 'bg-purple-500',
-  '#EC4899': 'bg-pink-500',
-  '#6366F1': 'bg-indigo-500',
-  '#FB923C': 'bg-orange-500',
-  '#14B8A6': 'bg-teal-500',
-}
-
-const HEX_TO_CATEGORY_BG: Record<string, string> = {
-  '#3B82F6': 'bg-blue-500',
-  '#10B981': 'bg-green-500',
-  '#F59E0B': 'bg-yellow-500',
-  '#EF4444': 'bg-red-500',
-  '#8B5CF6': 'bg-purple-500',
-  '#EC4899': 'bg-pink-500',
-  '#6366F1': 'bg-indigo-500',
-  '#FB923C': 'bg-orange-500',
-  '#14B8A6': 'bg-teal-500',
-}
-
 const LANGUAGE_OPTIONS = [
   'bn',
   'de',
@@ -114,14 +78,25 @@ function getUserId(authInfo?: AuthInfo): string {
   return id
 }
 
-function hasScope(authInfo: AuthInfo | undefined, scope: string): boolean {
-  return authInfo?.scopes?.includes(scope) ?? false
-}
-
 function requireScope(authInfo: AuthInfo | undefined, scope: string): void {
-  if (!hasScope(authInfo, scope)) {
+  if (!authInfo?.scopes?.includes(scope)) {
     throw new Error(`Missing required scope: ${scope}`)
   }
+}
+
+function respond(data: unknown) {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
+}
+
+function respondError(err: unknown) {
+  return {
+    content: [{ type: 'text' as const, text: `Error: ${err}` }],
+    isError: true as const,
+  }
+}
+
+function respondMessage(msg: string) {
+  return { content: [{ type: 'text' as const, text: msg }] }
 }
 
 export function createServer(): McpServer {
@@ -155,27 +130,22 @@ function registerEventTools(server: McpServer): void {
         .describe('Items per page (max 50)'),
     },
     async (params, extra) => {
-      const authInfo = extra.authInfo
-      requireScope(authInfo, SCOPE_EVENTS_READ)
-      const userId = getUserId(authInfo)
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      const userId = getUserId(extra.authInfo)
       try {
         const { listEvents } = await import('./event-tools')
-        const result = await listEvents(
-          userId,
-          params.start_date,
-          params.end_date,
-          params.query,
-          params.page ?? 1,
-          Math.min(params.limit ?? 50, 50),
+        return respond(
+          await listEvents(
+            userId,
+            params.start_date,
+            params.end_date,
+            params.query,
+            params.page ?? 1,
+            Math.min(params.limit ?? 50, 50),
+          ),
         )
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -183,29 +153,17 @@ function registerEventTools(server: McpServer): void {
   server.tool(
     'get_event',
     'Get detailed information about a single event',
-    {
-      event_id: z.string().describe('Event ID'),
-    },
+    { event_id: z.string().describe('Event ID') },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
       const userId = getUserId(extra.authInfo)
       try {
         const { getEvent } = await import('./event-tools')
         const result = await getEvent(userId, params.event_id)
-        if (!result) {
-          return {
-            content: [{ type: 'text' as const, text: 'Event not found' }],
-            isError: true,
-          }
-        }
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        if (!result) return respondMessage('Event not found')
+        return respond(result)
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -229,18 +187,9 @@ function registerEventTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createEvent } = await import('./event-tools')
-        const result = await createEvent(userId, {
-          ...params,
-          color: HEX_TO_EVENT_BG[params.color],
-        })
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await createEvent(userId, params))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -265,25 +214,12 @@ function registerEventTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateEvent } = await import('./event-tools')
-        const eventParams = { ...params }
-        if (eventParams.color) {
-          eventParams.color = HEX_TO_EVENT_BG[eventParams.color]
-        }
-        const result = await updateEvent(userId, params.event_id, eventParams)
-        if (!result) {
-          return {
-            content: [{ type: 'text' as const, text: 'Event not found' }],
-            isError: true,
-          }
-        }
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        const { event_id, ...data } = params
+        const result = await updateEvent(userId, event_id, data)
+        if (!result) return respondMessage('Event not found')
+        return respond(result)
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -291,21 +227,16 @@ function registerEventTools(server: McpServer): void {
   server.tool(
     'delete_event',
     'Delete an event',
-    {
-      event_id: z.string().describe('Event ID'),
-    },
+    { event_id: z.string().describe('Event ID') },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
       const userId = getUserId(extra.authInfo)
       try {
         const { deleteEvent } = await import('./event-tools')
         await deleteEvent(userId, params.event_id)
-        return { content: [{ type: 'text' as const, text: 'Event deleted' }] }
+        return respondMessage('Event deleted')
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -321,15 +252,9 @@ function registerCategoryTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { listCategories } = await import('./category-tools')
-        const result = await listCategories(userId)
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await listCategories(userId))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -347,18 +272,9 @@ function registerCategoryTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createCategory } = await import('./category-tools')
-        const result = await createCategory(userId, {
-          ...params,
-          color: HEX_TO_CATEGORY_BG[params.color],
-        })
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await createCategory(userId, params))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -377,29 +293,12 @@ function registerCategoryTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateCategory } = await import('./category-tools')
-        const categoryParams = { ...params }
-        if (categoryParams.color) {
-          categoryParams.color = HEX_TO_CATEGORY_BG[categoryParams.color]
-        }
-        const result = await updateCategory(
-          userId,
-          params.category_id,
-          categoryParams,
-        )
-        if (!result) {
-          return {
-            content: [{ type: 'text' as const, text: 'Category not found' }],
-            isError: true,
-          }
-        }
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        const { category_id, ...data } = params
+        const result = await updateCategory(userId, category_id, data)
+        if (!result) return respondMessage('Category not found')
+        return respond(result)
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -407,23 +306,16 @@ function registerCategoryTools(server: McpServer): void {
   server.tool(
     'delete_category',
     'Delete a category',
-    {
-      category_id: z.string(),
-    },
+    { category_id: z.string() },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_CATEGORIES_WRITE)
       const userId = getUserId(extra.authInfo)
       try {
         const { deleteCategory } = await import('./category-tools')
         await deleteCategory(userId, params.category_id)
-        return {
-          content: [{ type: 'text' as const, text: 'Category deleted' }],
-        }
+        return respondMessage('Category deleted')
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -433,21 +325,28 @@ function registerCountdownTools(server: McpServer): void {
   server.tool(
     'list_countdowns',
     'List all countdowns',
-    {},
-    async (_params, extra) => {
+    {
+      page: z.number().optional().default(1).describe('Page number'),
+      limit: z
+        .number()
+        .optional()
+        .default(50)
+        .describe('Items per page (max 50)'),
+    },
+    async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_READ)
       const userId = getUserId(extra.authInfo)
       try {
         const { listCountdowns } = await import('./countdown-tools')
-        const result = await listCountdowns(userId)
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(
+          await listCountdowns(
+            userId,
+            params.page ?? 1,
+            Math.min(params.limit ?? 50, 50),
+          ),
+        )
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -467,18 +366,9 @@ function registerCountdownTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { createCountdown } = await import('./countdown-tools')
-        const result = await createCountdown(userId, {
-          ...params,
-          color: HEX_TO_COUNTDOWN_BG[params.color],
-        })
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await createCountdown(userId, params))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -499,29 +389,12 @@ function registerCountdownTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { updateCountdown } = await import('./countdown-tools')
-        const countdownParams = { ...params }
-        if (countdownParams.color) {
-          countdownParams.color = HEX_TO_COUNTDOWN_BG[countdownParams.color]
-        }
-        const result = await updateCountdown(
-          userId,
-          params.countdown_id,
-          countdownParams,
-        )
-        if (!result) {
-          return {
-            content: [{ type: 'text' as const, text: 'Countdown not found' }],
-            isError: true,
-          }
-        }
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        const { countdown_id, ...data } = params
+        const result = await updateCountdown(userId, countdown_id, data)
+        if (!result) return respondMessage('Countdown not found')
+        return respond(result)
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -529,23 +402,16 @@ function registerCountdownTools(server: McpServer): void {
   server.tool(
     'delete_countdown',
     'Delete a countdown',
-    {
-      countdown_id: z.string(),
-    },
+    { countdown_id: z.string() },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_WRITE)
       const userId = getUserId(extra.authInfo)
       try {
         const { deleteCountdown } = await import('./countdown-tools')
         await deleteCountdown(userId, params.countdown_id)
-        return {
-          content: [{ type: 'text' as const, text: 'Countdown deleted' }],
-        }
+        return respondMessage('Countdown deleted')
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -561,15 +427,9 @@ function registerSettingsTools(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { getSettings } = await import('./settings-tools')
-        const result = await getSettings(userId)
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await getSettings(userId))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -594,14 +454,9 @@ function registerSettingsTools(server: McpServer): void {
       try {
         const { updateSettings } = await import('./settings-tools')
         await updateSettings(userId, params)
-        return {
-          content: [{ type: 'text' as const, text: 'Settings updated' }],
-        }
+        return respondMessage('Settings updated')
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )
@@ -617,15 +472,9 @@ function registerProfileTool(server: McpServer): void {
       const userId = getUserId(extra.authInfo)
       try {
         const { getProfile } = await import('./profile-tools')
-        const result = await getProfile(userId)
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
+        return respond(await getProfile(userId))
       } catch (err) {
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${err}` }],
-          isError: true,
-        }
+        return respondError(err)
       }
     },
   )

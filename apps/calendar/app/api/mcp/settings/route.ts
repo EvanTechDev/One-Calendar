@@ -19,14 +19,14 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json().catch(() => ({}))
-  const { enabled, rate_limit_rpm } = body as {
+  const { enabled, rateLimitRpm } = body as {
     enabled?: boolean
-    rate_limit_rpm?: number
+    rateLimitRpm?: number
   }
 
   const updated = await updateMcpSettings(user.id, {
     enabled,
-    rateLimitRpm: rate_limit_rpm,
+    rateLimitRpm,
   })
 
   return NextResponse.json({ settings: updated })

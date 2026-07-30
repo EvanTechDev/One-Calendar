@@ -1,20 +1,47 @@
 import { getDb } from '@/lib/drizzle/client'
 import { countdowns } from '@/lib/drizzle/schema'
-import { eq, and } from 'drizzle-orm'
-import { encryptField } from '@/lib/field-crypto'
+import { eq, and, desc, sql } from 'drizzle-orm'
+import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 
-export async function listCountdowns(userId: string) {
+export async function listCountdowns(
+  userId: string,
+  page: number = 1,
+  limit: number = 50,
+) {
   const db = await getDb()
-  const rows = await db
-    .select()
-    .from(countdowns)
-    .where(eq(countdowns.userId, userId))
+  const offset = (page - 1) * limit
 
-  return rows.map((c) => ({
+  const [rows, countResult] = await Promise.all([
+    db
+      .select()
+      .from(countdowns)
+      .where(eq(countdowns.userId, userId))
+      .orderBy(desc(countdowns.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(countdowns)
+      .where(eq(countdowns.userId, userId)),
+  ])
+
+  const items = rows.map((c) => ({
     ...c,
-    name: c.name,
+    name: decryptField(c.id, c.name) ?? c.name,
+    description: decryptField(c.id, c.description),
   }))
+  const total = countResult[0]?.count ?? 0
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
 }
 
 export async function createCountdown(
@@ -43,7 +70,11 @@ export async function createCountdown(
     })
     .returning()
 
-  return row
+  return {
+    ...row,
+    name: decryptField(row.id, row.name) ?? row.name,
+    description: decryptField(row.id, row.description),
+  }
 }
 
 export async function updateCountdown(
@@ -75,7 +106,12 @@ export async function updateCountdown(
     .where(and(eq(countdowns.id, countdownId), eq(countdowns.userId, userId)))
     .returning()
 
-  return row ?? null
+  if (!row) return null
+  return {
+    ...row,
+    name: decryptField(row.id, row.name) ?? row.name,
+    description: decryptField(row.id, row.description),
+  }
 }
 
 export async function deleteCountdown(

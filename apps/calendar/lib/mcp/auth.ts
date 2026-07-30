@@ -6,20 +6,18 @@ import bcrypt from 'bcryptjs'
 import { type McpAuthUser, ALL_SCOPES } from './types'
 
 const KEY_PREFIX = 'zc_'
-const KEY_PREFIX_LENGTH = 12
 
 export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
   if (!key.startsWith(KEY_PREFIX)) return null
+
+  const keyPrefix = KEY_PREFIX + key.slice(-4)
 
   const db = await getDb()
   const keys = await db
     .select()
     .from(mcpApiKeys)
     .where(
-      and(
-        eq(mcpApiKeys.isActive, true),
-        eq(mcpApiKeys.keyPrefix, key.slice(0, KEY_PREFIX_LENGTH)),
-      ),
+      and(eq(mcpApiKeys.isActive, true), eq(mcpApiKeys.keyPrefix, keyPrefix)),
     )
 
   for (const row of keys) {
@@ -79,7 +77,7 @@ export async function verifyOAuthToken(
   }
 }
 
-export async function getFullUserInfo(
+export async function getUserNameAndEmail(
   userId: string,
 ): Promise<{ email: string; name: string }> {
   const { user } = await import('@/lib/drizzle/schema')
@@ -110,7 +108,7 @@ export async function generateApiKey(
 ): Promise<string> {
   const raw = crypto.randomBytes(32).toString('hex')
   const key = `${KEY_PREFIX}${raw}`
-  const prefix = key.slice(0, KEY_PREFIX_LENGTH)
+  const prefix = KEY_PREFIX + raw.slice(-4)
   const hash = await bcrypt.hash(key, 10)
 
   const { mcpApiKeys: keysTable } = await import('@/lib/drizzle/schema')

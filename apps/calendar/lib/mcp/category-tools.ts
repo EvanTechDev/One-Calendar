@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/drizzle/client'
 import { calendarCategories } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
-import { encryptField } from '@/lib/field-crypto'
+import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 
 export async function listCategories(userId: string) {
@@ -13,7 +13,7 @@ export async function listCategories(userId: string) {
 
   return rows.map((cat) => ({
     ...cat,
-    name: cat.name,
+    name: decryptField(cat.id, cat.name) ?? cat.name,
   }))
 }
 
@@ -35,7 +35,10 @@ export async function createCategory(
     })
     .returning()
 
-  return row
+  return {
+    ...row,
+    name: decryptField(row.id, row.name) ?? row.name,
+  }
 }
 
 export async function updateCategory(
@@ -62,7 +65,11 @@ export async function updateCategory(
     )
     .returning()
 
-  return row ?? null
+  if (!row) return null
+  return {
+    ...row,
+    name: decryptField(row.id, row.name) ?? row.name,
+  }
 }
 
 export async function deleteCategory(
