@@ -11,7 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@zntr/ui/dialog'
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@zntr/ui/card'
+import { Input } from '@zntr/ui/input'
+import { Checkbox } from '@zntr/ui/checkbox'
+import { Badge } from '@zntr/ui/badge'
+import { Spinner } from '@zntr/ui/spinner'
 
 import {
   Key,
@@ -19,7 +24,6 @@ import {
   ClipboardCopy,
   Trash2,
   Plus,
-  Loader2,
   CheckCircle,
   XCircle,
   Bot,
@@ -38,8 +42,6 @@ const ALL_SCOPE_OPTIONS = [
   { value: 'settings:write', label: 'settings:write' },
   { value: 'profile:read', label: 'profile:read' },
 ]
-
-type Tab = 'overview' | 'api-keys' | 'oauth' | 'audit-logs'
 
 interface ApiKey {
   id: string
@@ -66,14 +68,13 @@ interface AuditLog {
   authType: string
   action: string
   resourceType: string | null
+  resourceId: string | null
   success: boolean
   errorMessage: string | null
   createdAt: string
 }
 
 export default function MCPSettings() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-lg font-semibold">
@@ -84,28 +85,18 @@ export default function MCPSettings() {
         Let AI agents access and manage your calendar data securely.
       </p>
 
-      <div className="flex flex-wrap gap-2 border-b pb-2">
-        {(['overview', 'api-keys', 'oauth', 'audit-logs'] as Tab[]).map(
-          (tab) => (
-            <Button
-              key={tab}
-              variant={activeTab === tab ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'overview' && 'Overview'}
-              {tab === 'api-keys' && 'API Keys'}
-              {tab === 'oauth' && 'Authorized Apps'}
-              {tab === 'audit-logs' && 'Audit Logs'}
-            </Button>
-          ),
-        )}
-      </div>
-
-      {activeTab === 'overview' && <MCPOverview />}
-      {activeTab === 'api-keys' && <MCPApiKeys />}
-      {activeTab === 'oauth' && <MCPOAuthApps />}
-      {activeTab === 'audit-logs' && <MCPAuditLogs />}
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="oauth">Authorized Apps</TabsTrigger>
+          <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview"><MCPOverview /></TabsContent>
+        <TabsContent value="api-keys"><MCPApiKeys /></TabsContent>
+        <TabsContent value="oauth"><MCPOAuthApps /></TabsContent>
+        <TabsContent value="audit-logs"><MCPAuditLogs /></TabsContent>
+      </Tabs>
     </div>
   )
 }
@@ -135,62 +126,72 @@ function MCPOverview() {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <Label className="text-base font-medium">Enable MCP</Label>
-            <p className="text-sm text-muted-foreground">
-              Allow AI agents to connect to your calendar via MCP protocol
-            </p>
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle>Enable MCP</CardTitle>
+              <CardDescription>
+                Allow AI agents to connect to your calendar via MCP protocol
+              </CardDescription>
+            </div>
+            <Switch checked={enabled} onCheckedChange={toggleMcp} />
           </div>
-          <Switch checked={enabled} onCheckedChange={toggleMcp} />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border p-4 space-y-3">
-        <h3 className="font-medium">MCP Endpoint</h3>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 rounded bg-muted px-3 py-2 text-sm font-mono">
-            {typeof window !== 'undefined'
-              ? `${window.location.origin}/api/mcp`
-              : '/api/mcp'}
-          </code>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const url = `${window.location.origin}/api/mcp`
-              navigator.clipboard.writeText(url)
-            }}
-          >
-            <ClipboardCopy className="h-4 w-4" />
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Configure your AI agent to connect to this endpoint using Bearer
-          authentication with an API key or OAuth token.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>MCP Endpoint</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded bg-muted px-3 py-2 text-sm font-mono">
+              {typeof window !== 'undefined'
+                ? `${window.location.origin}/api/mcp`
+                : '/api/mcp'}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const url = `${window.location.origin}/api/mcp`
+                navigator.clipboard.writeText(url)
+              }}
+            >
+              <ClipboardCopy className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>
+            Configure your AI agent to connect to this endpoint using Bearer
+            authentication with an API key or OAuth token.
+          </CardDescription>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border p-4 space-y-3">
-        <h3 className="font-medium">Quick Start</h3>
-        <ol className="text-sm space-y-2 list-decimal list-inside">
-          <li>Create an API key in the API Keys tab</li>
-          <li>Copy the endpoint URL above</li>
-          <li>
-            Configure your AI agent (Claude, ChatGPT, etc.) with the endpoint
-            and API key
-          </li>
-          <li>The agent can now query and manage your calendar</li>
-        </ol>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Start</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="text-sm space-y-2 list-decimal list-inside">
+            <li>Create an API key in the API Keys tab</li>
+            <li>Copy the endpoint URL above</li>
+            <li>
+              Configure your AI agent (Claude, ChatGPT, etc.) with the endpoint
+              and API key
+            </li>
+            <li>The agent can now query and manage your calendar</li>
+          </ol>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -267,7 +268,7 @@ function MCPApiKeys() {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -330,10 +331,10 @@ function MCPApiKeys() {
             <DialogTitle>Create API Key</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Key Name</Label>
-              <input
-                className="w-full rounded border bg-background px-3 py-2 text-sm"
+            <div className="space-y-2">
+              <Label htmlFor="key-name">Key Name</Label>
+              <Input
+                id="key-name"
                 placeholder="e.g., My Claude Agent"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
@@ -347,10 +348,9 @@ function MCPApiKeys() {
                     key={opt.value}
                     className="flex items-center gap-2 text-sm p-2 rounded hover:bg-muted cursor-pointer"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={newKeyScopes.includes(opt.value)}
-                      onChange={() => {
+                      onCheckedChange={() => {
                         setNewKeyScopes((prev) =>
                           prev.includes(opt.value)
                             ? prev.filter((s) => s !== opt.value)
@@ -391,9 +391,7 @@ function MCPApiKeys() {
                   <Key className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-sm">{key.name}</span>
                   {!key.isActive && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      Revoked
-                    </span>
+                    <Badge variant="secondary">Revoked</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -419,13 +417,12 @@ function MCPApiKeys() {
                             key={opt.value}
                             className="flex items-center gap-2 text-sm p-2 rounded hover:bg-muted cursor-pointer"
                           >
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={
                                 editingScopes?.scopes.includes(opt.value) ??
                                 false
                               }
-                              onChange={() => toggleScope(opt.value)}
+                              onCheckedChange={() => toggleScope(opt.value)}
                             />
                             {opt.label}
                           </label>
@@ -457,12 +454,9 @@ function MCPApiKeys() {
               </div>
               <div className="flex flex-wrap gap-1">
                 {key.scopes.map((scope) => (
-                  <span
-                    key={scope}
-                    className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded"
-                  >
+                  <Badge key={scope} variant="secondary">
                     {scope}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -500,7 +494,7 @@ function MCPOAuthApps() {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -532,12 +526,9 @@ function MCPOAuthApps() {
               </div>
               <div className="flex flex-wrap gap-1">
                 {app.scopes.map((scope) => (
-                  <span
-                    key={scope}
-                    className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded"
-                  >
+                  <Badge key={scope} variant="secondary">
                     {scope}
-                  </span>
+                  </Badge>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -574,7 +565,7 @@ function MCPAuditLogs() {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -603,9 +594,7 @@ function MCPAuditLogs() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{log.action}</span>
-                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {log.authType}
-                    </span>
+                    <Badge variant="secondary">{log.authType}</Badge>
                     {log.resourceType && (
                       <span className="text-xs text-muted-foreground">
                         {log.resourceType}
