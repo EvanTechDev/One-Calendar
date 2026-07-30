@@ -146,7 +146,7 @@ function AuthorizeForm() {
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 pt-4">
-          <Avatar size="lg" className="size-28 ring-4 ring-border">
+          <Avatar size="lg" className="size-28">
             <AvatarImage src={session?.user?.image ?? ''} />
             <AvatarFallback className="text-2xl">
               {(session?.user?.name ?? 'U').charAt(0).toUpperCase()}
