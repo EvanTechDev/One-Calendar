@@ -79,6 +79,34 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      try {
+        const uri = new URL(redirectUri)
+        if (
+          uri.protocol !== 'https:' &&
+          !(
+            uri.hostname === 'localhost' ||
+            uri.hostname === '127.0.0.1'
+          )
+        ) {
+          return NextResponse.json(
+            {
+              error: 'invalid_request',
+              error_description:
+                'redirect_uri must use HTTPS (except localhost)',
+            },
+            { status: 400 },
+          )
+        }
+      } catch {
+        return NextResponse.json(
+          {
+            error: 'invalid_request',
+            error_description: 'Invalid redirect_uri',
+          },
+          { status: 400 },
+        )
+      }
+
       const authorizationCode = crypto.randomUUID()
       const db = await getDb()
 
