@@ -1,11 +1,12 @@
 import { getDb } from '@/lib/drizzle/client'
 import { mcpApiKeys, mcpTokens, mcpSettings } from '@/lib/drizzle/schema'
-import { eq, and, gte, or } from 'drizzle-orm'
+import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { type McpAuthUser, ALL_SCOPES } from './types'
 
 const KEY_PREFIX = 'zc_'
+const KEY_PREFIX_LENGTH = 12
 
 export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
   if (!key.startsWith(KEY_PREFIX)) return null
@@ -17,10 +18,7 @@ export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
     .where(
       and(
         eq(mcpApiKeys.isActive, true),
-        or(
-          eq(mcpApiKeys.keyPrefix, key.slice(0, 12)),
-          eq(mcpApiKeys.keyPrefix, KEY_PREFIX + key.slice(-4)),
-        ),
+        eq(mcpApiKeys.keyPrefix, key.slice(0, KEY_PREFIX_LENGTH)),
       ),
     )
 
@@ -112,7 +110,7 @@ export async function generateApiKey(
 ): Promise<string> {
   const raw = crypto.randomBytes(32).toString('hex')
   const key = `${KEY_PREFIX}${raw}`
-  const prefix = KEY_PREFIX + raw.slice(-4)
+  const prefix = key.slice(0, KEY_PREFIX_LENGTH)
   const hash = await bcrypt.hash(key, 10)
 
   const { mcpApiKeys: keysTable } = await import('@/lib/drizzle/schema')
