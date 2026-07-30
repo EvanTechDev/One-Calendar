@@ -21,7 +21,21 @@ async function parseToolName(request: Request): Promise<string> {
 export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
-    if (!auth) {
+
+    const authInfo: AuthInfo | undefined = auth
+      ? {
+          token: auth.token,
+          clientId: `user:${auth.user.userId}`,
+          scopes: auth.user.scopes,
+          extra: {
+            userId: auth.user.userId,
+            clientId: auth.user.keyId ?? auth.user.authType,
+            authType: auth.user.authType,
+          },
+        }
+      : undefined
+
+    if (request.method === 'POST' && !auth) {
       const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
       return Response.json(
         {
@@ -36,51 +50,42 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       )
     }
 
-    const settings = await getMcpSettings(auth.user.userId)
-    if (!settings.enabled) {
-      return Response.json(
-        { error: 'MCP is disabled for this account' },
-        { status: 403 },
-      )
-    }
-
-    const toolName = await parseToolName(request)
+    const toolName = auth ? await parseToolName(request) : 'mcp_request'
     const clientIp =
       request.headers.get('x-forwarded-for') ??
       request.headers.get('x-real-ip') ??
       ''
     const userAgent = request.headers.get('user-agent') ?? ''
 
-    const rateLimit = await checkRateLimit(auth.user.userId)
-    if (!rateLimit.allowed) {
-      await logAudit({
-        userId: auth.user.userId,
-        authType: auth.user.authType,
-        keyId: auth.user.keyId,
-        action: toolName,
-        success: false,
-        errorMessage: 'Rate limit exceeded',
-        ipAddress: clientIp,
-        userAgent,
-      })
-      return Response.json(
-        {
-          error: 'rate_limited',
-          retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
-        },
-        { status: 429 },
-      )
-    }
+    if (auth) {
+      const settings = await getMcpSettings(auth.user.userId)
+      if (!settings.enabled) {
+        return Response.json(
+          { error: 'MCP is disabled for this account' },
+          { status: 403 },
+        )
+      }
 
-    const authInfo: AuthInfo = {
-      token: auth.token,
-      clientId: `user:${auth.user.userId}`,
-      scopes: auth.user.scopes,
-      extra: {
-        userId: auth.user.userId,
-        clientId: auth.user.keyId ?? auth.user.authType,
-        authType: auth.user.authType,
-      },
+      const rateLimit = await checkRateLimit(auth.user.userId)
+      if (!rateLimit.allowed) {
+        await logAudit({
+          userId: auth.user.userId,
+          authType: auth.user.authType,
+          keyId: auth.user.keyId,
+          action: toolName,
+          success: false,
+          errorMessage: 'Rate limit exceeded',
+          ipAddress: clientIp,
+          userAgent,
+        })
+        return Response.json(
+          {
+            error: 'rate_limited',
+            retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+          },
+          { status: 429 },
+        )
+      }
     }
 
     const server = createServer()
@@ -92,32 +97,39 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     await server.connect(transport)
 
     try {
-      const response = await transport.handleRequest(request, { authInfo })
+      const response = await transport.handleRequest(
+        request,
+        authInfo ? { authInfo } : undefined,
+      )
 
-      await logAudit({
-        userId: auth.user.userId,
-        authType: auth.user.authType,
-        keyId: auth.user.keyId,
-        action: toolName,
-        resourceType: toolName.split('_')[0],
-        success: response.status < 500,
-        ipAddress: clientIp,
-        userAgent,
-      })
+      if (auth) {
+        await logAudit({
+          userId: auth.user.userId,
+          authType: auth.user.authType,
+          keyId: auth.user.keyId,
+          action: toolName,
+          resourceType: toolName.split('_')[0],
+          success: response.status < 500,
+          ipAddress: clientIp,
+          userAgent,
+        })
+      }
 
       return response
     } catch (mcpErr) {
-      await logAudit({
-        userId: auth.user.userId,
-        authType: auth.user.authType,
-        keyId: auth.user.keyId,
-        action: toolName,
-        resourceType: toolName.split('_')[0],
-        success: false,
-        errorMessage: String(mcpErr),
-        ipAddress: clientIp,
-        userAgent,
-      })
+      if (auth) {
+        await logAudit({
+          userId: auth.user.userId,
+          authType: auth.user.authType,
+          keyId: auth.user.keyId,
+          action: toolName,
+          resourceType: toolName.split('_')[0],
+          success: false,
+          errorMessage: String(mcpErr),
+          ipAddress: clientIp,
+          userAgent,
+        })
+      }
       throw mcpErr
     }
   } catch (err) {
