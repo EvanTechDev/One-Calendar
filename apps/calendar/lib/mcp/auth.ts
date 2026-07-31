@@ -1,9 +1,14 @@
 import { getDb } from '@/lib/drizzle/client'
-import { mcpApiKeys, mcpTokens, mcpSettings } from '@/lib/drizzle/schema'
+import {
+  mcpApiKeys,
+  mcpOauthClients,
+  mcpTokens,
+  mcpSettings,
+} from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
-import { type McpAuthUser, ALL_SCOPES } from './types'
+import { type McpAuthUser, ALL_SCOPES, McpAuthError } from './types'
 
 const KEY_PREFIX = 'zc_'
 const KEY_PREFIX_LENGTH = 12
@@ -172,6 +177,117 @@ export async function listApiKeys(userId: string) {
     .from(mcpApiKeys)
     .where(eq(mcpApiKeys.userId, userId))
     .orderBy(mcpApiKeys.createdAt)
+}
+
+const CLIENT_PREFIX = 'oc_'
+
+export interface OAuthClientMetadata {
+  redirect_uris: string[]
+  token_endpoint_auth_method?: string
+  grant_types?: string[]
+  response_types?: string[]
+  client_name?: string
+  client_uri?: string
+  logo_uri?: string
+  scope?: string
+  contacts?: string[]
+  tos_uri?: string
+  policy_uri?: string
+  jwks_uri?: string
+  jwks?: unknown
+  software_id?: string
+  software_version?: string
+}
+
+export interface RegisteredOAuthClient {
+  clientId: string
+  clientSecret?: string
+  clientIdIssuedAt: number
+  clientSecretExpiresAt?: number
+}
+
+export async function registerOAuthClient(
+  metadata: OAuthClientMetadata,
+): Promise<RegisteredOAuthClient> {
+  const db = await getDb()
+
+  const redirectUris = Array.isArray(metadata.redirect_uris)
+    ? metadata.redirect_uris
+    : []
+  if (redirectUris.length === 0) {
+    throw new McpAuthError('redirect_uris is required', 400)
+  }
+
+  const grantTypes =
+    metadata.grant_types && metadata.grant_types.length > 0
+      ? metadata.grant_types
+      : ['authorization_code', 'refresh_token']
+
+  const responseTypes =
+    metadata.response_types && metadata.response_types.length > 0
+      ? metadata.response_types
+      : ['code']
+
+  const authMethod = metadata.token_endpoint_auth_method || 'none'
+  if (
+    !['none', 'client_secret_post', 'client_secret_basic'].includes(authMethod)
+  ) {
+    throw new McpAuthError(
+      `Unsupported token_endpoint_auth_method: ${authMethod}`,
+      400,
+    )
+  }
+
+  let clientSecret: string | undefined
+  let clientSecretHash: string | null = null
+  let clientSecretExpiresAt: number | undefined
+
+  if (authMethod !== 'none') {
+    clientSecret = crypto.randomBytes(32).toString('hex')
+    clientSecretHash = bcrypt.hashSync(clientSecret, 10)
+    clientSecretExpiresAt = 0
+  }
+
+  const clientId = `${CLIENT_PREFIX}${crypto.randomBytes(16).toString('hex')}`
+
+  await db.insert(mcpOauthClients).values({
+    id: clientId,
+    clientSecretHash,
+    clientName: metadata.client_name || 'MCP Client',
+    redirectUris,
+    grantTypes,
+    responseTypes,
+    tokenEndpointAuthMethod: authMethod,
+    scopes: metadata.scope ? metadata.scope.split(' ') : [],
+    isRevoked: false,
+  })
+
+  return {
+    clientId,
+    clientSecret,
+    clientIdIssuedAt: Math.floor(Date.now() / 1000),
+    clientSecretExpiresAt,
+  }
+}
+
+export async function verifyOAuthClientSecret(
+  clientId: string,
+  clientSecret: string | undefined,
+): Promise<boolean> {
+  if (!clientSecret) return false
+  const db = await getDb()
+  const [row] = await db
+    .select()
+    .from(mcpOauthClients)
+    .where(
+      and(
+        eq(mcpOauthClients.id, clientId),
+        eq(mcpOauthClients.isRevoked, false),
+      ),
+    )
+
+  if (!row?.clientSecretHash) return false
+  return bcrypt.compare(clientSecret, row.clientSecretHash)
 }
 
 export function generateAccessToken(): string {

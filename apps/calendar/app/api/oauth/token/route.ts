@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
       return handleAuthorizationCodeGrant(body)
     }
 
+    // --- Refresh Token Grant ---
+    if (grantType === 'refresh_token') {
+      return handleRefreshTokenGrant(body)
+    }
+
     return NextResponse.json(
       { error: 'unsupported_grant_type' },
       { status: 400 },
@@ -196,6 +201,45 @@ async function handleAuthorizationCodeGrant(body: Record<string, unknown>) {
     record.scopes as string[],
     record.clientId,
     record.clientId.slice(0, 12) + '...',
+  )
+}
+
+async function handleRefreshTokenGrant(body: Record<string, unknown>) {
+  const refreshToken = body.refresh_token as string | undefined
+  const clientId = body.client_id as string | undefined
+
+  if (!refreshToken) {
+    return NextResponse.json(
+      { error: 'invalid_request', error_description: 'Missing refresh_token' },
+      { status: 400 },
+    )
+  }
+
+  const refreshTokenHash = hashToken(refreshToken)
+  const db = await getDb()
+
+  const [record] = await db
+    .select()
+    .from(mcpTokens)
+    .where(eq(mcpTokens.refreshTokenHash, refreshTokenHash))
+
+  if (!record || record.isRevoked) {
+    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+  }
+
+  if (record.refreshExpiresAt && record.refreshExpiresAt < new Date()) {
+    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+  }
+
+  if (clientId && clientId !== record.clientId) {
+    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+  }
+
+  return issueTokens(
+    record.userId,
+    record.scopes as string[],
+    record.clientId,
+    record.clientName,
   )
 }
 

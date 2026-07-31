@@ -15,6 +15,13 @@
       "when": 1785000000000,
       "tag": "0001_create_mcp_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785467700889,
+      "tag": "0002_create_mcp_oauth_clients",
+      "breakpoints": true
     }
   ]
 }

@@ -412,6 +412,29 @@ export const mcpSettings = pgTable('mcp_settings', {
     .notNull(),
 })
 
+// --- MCP OAuth Clients (RFC 7591 dynamic registration) ---
+export const mcpOauthClients = pgTable('mcp_oauth_clients', {
+  id: text('id').primaryKey(),
+  clientSecretHash: text('client_secret_hash'),
+  clientName: text('client_name').notNull(),
+  redirectUris: jsonb('redirect_uris').notNull().default([]),
+  grantTypes: jsonb('grant_types')
+    .notNull()
+    .default(['authorization_code', 'refresh_token']),
+  responseTypes: jsonb('response_types').notNull().default(['code']),
+  tokenEndpointAuthMethod: text('token_endpoint_auth_method')
+    .notNull()
+    .default('none'),
+  scopes: jsonb('scopes').notNull().default([]),
+  isRevoked: boolean('is_revoked').notNull().default(false),
+  createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
 // --- MCP OAuth Authorization Requests ---
 export const mcpAuthRequests = pgTable('mcp_auth_requests', {
   id: text('id').primaryKey(),

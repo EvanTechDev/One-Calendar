@@ -7,6 +7,7 @@ export async function GET() {
     issuer: MCP_BASE_URL,
     authorization_endpoint: `${MCP_BASE_URL}/oauth/authorize`,
     token_endpoint: `${MCP_BASE_URL}/api/oauth/token`,
+    registration_endpoint: `${MCP_BASE_URL}/api/oauth/register`,
     device_authorization_endpoint: `${MCP_BASE_URL}/api/oauth/device`,
     response_types_supported: ['code'],
     grant_types_supported: [
