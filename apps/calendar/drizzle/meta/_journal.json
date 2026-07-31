@@ -22,6 +22,13 @@
       "when": 1785467700889,
       "tag": "0002_create_mcp_oauth_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785571200000,
+      "tag": "0003_rename_tables",
+      "breakpoints": true
     }
   ]
 }

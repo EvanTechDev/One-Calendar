@@ -11,8 +11,8 @@ import {
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// --- User (Table name: "User") ---
-export const user = pgTable('User', {
+// --- User ---
+export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').unique().notNull(),
@@ -29,8 +29,8 @@ export const user = pgTable('User', {
   }).notNull(),
 })
 
-// --- Session (Table name: "Session") ---
-export const session = pgTable('Session', {
+// --- Session ---
+export const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt', {
     precision: 3,
@@ -52,9 +52,9 @@ export const session = pgTable('Session', {
     .references(() => user.id, { onDelete: 'cascade' }),
 })
 
-// --- Account (Table name: "Account") ---
+// --- Account ---
 export const account = pgTable(
-  'Account',
+  'account',
   {
     id: text('id').primaryKey(),
     accountId: text('accountId').notNull(),
@@ -92,8 +92,8 @@ export const account = pgTable(
   }),
 )
 
-// --- Verification (Table name: "Verification") ---
-export const verification = pgTable('Verification', {
+// --- Verification ---
+export const verification = pgTable('verification', {
   id: text('id').primaryKey(),
   identifier: text('identifier').notNull(),
   value: text('value').notNull(),
@@ -105,8 +105,8 @@ export const verification = pgTable('Verification', {
   updatedAt: timestamp('updatedAt', { precision: 3, withTimezone: true }),
 })
 
-// --- TwoFactor (@@map("twoFactor")) ---
-export const twoFactor = pgTable('twoFactor', {
+// --- Two Factor ---
+export const twoFactor = pgTable('two_factor', {
   id: text('id').primaryKey(),
   secret: text('secret').notNull(),
   backupCodes: text('backupCodes').notNull(),
@@ -170,7 +170,7 @@ export const calendarEvents = pgTable(
 )
 
 // --- Settings ---
-export const settings = pgTable('settings', {
+export const settings = pgTable('calendar_settings', {
   userId: text('user_id')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),

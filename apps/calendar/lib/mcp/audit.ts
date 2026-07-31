@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/drizzle/client'
 import { mcpAuditLogs } from '@/lib/drizzle/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, desc, sql, lt } from 'drizzle-orm'
 import crypto from 'crypto'
 import type { AuditEntry } from './types'
 
@@ -43,4 +43,18 @@ export async function getAuditLogsCount(userId: string): Promise<number> {
     .from(mcpAuditLogs)
     .where(eq(mcpAuditLogs.userId, userId))
   return row?.count ?? 0
+}
+
+const DEFAULT_RETENTION_DAYS = 30
+
+export async function cleanupAuditLogs(
+  retentionDays: number = DEFAULT_RETENTION_DAYS,
+): Promise<number> {
+  const db = await getDb()
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
+  const result = await db
+    .delete(mcpAuditLogs)
+    .where(lt(mcpAuditLogs.createdAt, cutoff))
+    .returning({ id: mcpAuditLogs.id })
+  return result.length
 }
