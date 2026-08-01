@@ -2,7 +2,7 @@ import { getDb } from '@/lib/drizzle/client'
 import { calendarCategories } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
-import { colorNameToValue } from './colors'
+import { normalizeColor } from './colors'
 import crypto from 'crypto'
 
 export async function listCategories(userId: string) {
@@ -31,7 +31,7 @@ export async function createCategory(
       id,
       userId,
       name: encryptField(id, data.name) ?? data.name,
-      color: colorNameToValue(data.color),
+      color: normalizeColor(data.color),
       sortOrder: data.sort_order ?? 0,
     })
     .returning()
@@ -53,7 +53,7 @@ export async function updateCategory(
   if (data.name !== undefined)
     values.name = encryptField(categoryId, data.name) ?? data.name
   if (data.color !== undefined && data.color !== null)
-    values.color = colorNameToValue(data.color)
+    values.color = normalizeColor(data.color)
   if (data.sort_order !== undefined) values.sortOrder = data.sort_order
 
   const [row] = await db

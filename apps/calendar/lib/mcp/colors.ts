@@ -14,7 +14,18 @@ export const COLOR_NAMES = COLOR_OPTIONS.map((c) => c.name)
 
 export const COLOR_NAME_LIST = COLOR_NAMES.join(', ')
 
-export function colorNameToValue(name: string): string {
-  const option = COLOR_OPTIONS.find((c) => c.name === name)
-  return option ? option.value : name
+export const COLOR_HEX_VALUES = COLOR_OPTIONS.map((c) => c.hex)
+
+export const COLOR_HEX_LIST = COLOR_HEX_VALUES.join(', ')
+
+export function normalizeColor(color: string): string {
+  if (!color) return color
+  const trimmed = color.trim()
+  const byName = COLOR_OPTIONS.find((c) => c.name === trimmed)
+  if (byName) return byName.value
+  const byHex = COLOR_OPTIONS.find((c) => c.hex === trimmed.toUpperCase())
+  if (byHex) return byHex.value
+  const byValue = COLOR_OPTIONS.find((c) => c.value === trimmed)
+  if (byValue) return byValue.value
+  return trimmed
 }
