@@ -7,13 +7,13 @@ interface Props {
 }
 
 const {
-  title = "imput",
+  title = "Zentra",
   description = "We develop private, efficient, and respectful software.",
 } = Astro.props
 ---
 
 <!doctype html>
-<html lang="en" class="bg-background h-dvh overflow-hidden">
+<html lang="en" class="bg-background min-h-screen">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,11 +25,11 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="bg-background text-foreground font-sans h-dvh overflow-hidden">
+  <body class="bg-background text-foreground font-sans min-h-screen">
     <slot />
   </body>
 </html>
