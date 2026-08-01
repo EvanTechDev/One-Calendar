@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 
 @theme inline {
-  --font-sans: 'Geist Mono', ui-monospace, monospace;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 
   --color-background: oklch(0.05 0 0);
   --color-foreground: oklch(0.98 0 0);
