@@ -1,0 +1,86 @@
+Changelog analysis for version 3.0.0 (commits from bf6260c6124ddb9f7dbd3ab12c43414ceb0865aa to HEAD)
+
+- feat: add DataProvider + API client frontend layer
+- feat: add field-level encryption and CRUD APIs
+- feat: migrate settings + event mutations from localStorage to DataProvider
+- feat: migrate event-preview share + bookmark logic to API
+- feat: migrate countdown component from localStorage to DataProvider
+- feat: migrate bookmark-panel from localStorage to DataProvider
+- refactor: complete localStorage purge across all components
+- feat: add Redis cache layer — client, keys, session, events modules
+- feat: integrate Redis cache into auth session and calendar events API
+- fix: cache all events by month regardless of date params + decrypt on cache hit
+- fix: harden redis client and event cache date handling
+- feat: add Astro web marketing site with theme-aware logo favicon
+- fix: update astro project and enable page scrolling on web index page
+- feat: implement MCP server with all calendar tools
+- feat: add MCP infrastructure with DB schema, auth module, and audit logging
+- feat: implement OAuth Device Code Grant flow for MCP
+- feat: add MCP management API routes
+- feat: add MCP settings UI components
+- feat: add rate limiting and audit logging for MCP
+- feat: add OAuth dynamic client registration to MCP server
+- feat: show redirect URI and scopes on OAuth authorize page, validate HTTPS redirect
+- fix: implement OAuth Authorization Code Grant with PKCE for ChatGPT compatibility
+- fix: support application/x-www-form-urlencoded in OAuth token/authorize/device endpoints
+- fix: create fresh MCP transport per request, add CORS origins
+- fix: wrap useSearchParams in Suspense boundary on /oauth/authorize
+- fix: decrypt MCP tool responses, add countdown pagination, improve audit and rate limiter
+- fix: restrict MCP tool colors to enum, add English descriptions
+- fix: skip auth for GET/SSE requests in MCP handler
+- fix: query API keys by both old and new prefix formats
+- fix: remove thick ring border from OAuth page avatar
+- refactor: move OAuth auth check to proxy.ts, simplify authorize page UI
+- refactor: replace hand-rolled UI with @zntr/ui library components in MCPSettings
+- feat: redirect unauthenticated /app users to /sign-up
+- fix: align Session type nullability with better-auth return types
+- fix: replace ScrollArea with overflow-y-auto in search results dropdown
+- refactor: replace manual portal popovers with Radix Popover (modal + smart positioning)
+- fix: scrollarea height constraint and popover anchor positioning
+- fix: replace scrollarea with overflow-y-auto, reposition month popover
+- feat: add ScrollArea to year-view popover; make month-view remaining events clickable with popover
+- fix: keep year-view popover open after clicking event (manual close)
+- fix: day view click-position preview; year view anchor+delay for popover
+- fix: use event element edges with click Y for preview anchor; fix bookmark eventId lookup
+- fix: scroll event into view before opening preview in navigate-and-preview
+- fix: position event preview next to event element on navigate
+- fix: use DOMRect.fromRect instead of Object.assign(new DOMRect())
+- fix: improve event preview positioning, bookmarks/search navigation, and search UI
+- fix: use local setHours instead of setUTCHours for day boundary
+- fix: resolve year view popover/countdown bugs, remove mini calendar sheet
+- fix: prevent analytics lag on sidebar toggle
+- fix: defer analytics chart render until sidebar transition completes
+- fix: hide charts instead of showing placeholder during sidebar transition
+- fix: unify year view grid layout to use auto-fit for sidebar-open and collapsed states
+- fix: move current time indicator circle up by 2px
+- fix: translate email/password toast, align current-time circle, add sender name
+- fix: circle alignment, email refresh, password OTP flow, type-check & lint issues
+- fix: use BarStack clipPath for stacked bar rounded corners instead of Cell radius
+- fix: stacked bar chart top rounding, import category default bug, email change OTP flow
+- fix: category reorder and drag-drop not persisting to DB
+- fix: delete event toast slow and undo not persisting to DB
+- fix: remove redundant cleanupSharesForEvent on event delete
+- refactor: optimize bookmark operations and import/export speed
+- fix: validate timezone before using with Intl API to prevent RangeError
+- fix: move faq under cta section
+- fix: lazy init drizzle/client to avoid Turbopack TDZ on schema relations
+- fix: replace static auth import with dynamic import in evlog for Turbopack compat
+- fix: defer evlog module initialization to avoid TDZ error during SSR prerendering
+- fix: resolve circular dependency breaking API route builds
+- feat: add new data refresh callbacks and update import paths in locales
+- feat: update translations via @LingoDotDev
+- refactor: extract shared getAuthedUser/decryptEvent, rename createEvent->upsertEvent (P3)
+- fix: decrypt event fields before embedding in share payload (P0)
+- fix: add DROP old shares table and add toast on API errors (P1+P2)
+- refactor: fix P4 items - types, if-cascade, dead code cleanup
+- fix: second-pass review fixes
+- test: add 22 tests for field-crypto, share-crypto, api-helpers, migration logic
+- fix: update month-view and EventLayoutEngine tests for class-based prop types
+- style: update cta ui
+- chore: bump version to 3.0.0-rc.11
+- chore: bump version to 3.0.0-rc.12
+- chore: bump version to 3.0.0-rc.13
+- chore: bump version to 3.0.0-rc.15
+- chore: strict original auth prefix + original handler with GET skip-auth
+- chore: fix lint warnings in MCP code
+- docs: update status.md with current progress and code review findings

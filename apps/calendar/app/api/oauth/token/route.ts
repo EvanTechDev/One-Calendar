@@ -16,6 +16,9 @@ import crypto from 'crypto'
 
 export const runtime = 'nodejs'
 
+const ACCESS_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
+
 async function parseBody(
   request: NextRequest,
 ): Promise<Record<string, string>> {
@@ -274,14 +277,14 @@ async function issueTokens(
     scopes,
     clientId,
     clientName,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
     refreshExpiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
   })
 
   return NextResponse.json({
     access_token: accessToken,
     token_type: 'bearer',
-    expires_in: 86400,
+    expires_in: ACCESS_TOKEN_TTL_SECONDS,
     refresh_token: refreshToken,
     scope: scopes.join(' '),
     user: { id: userId, name: userInfo.name, email: userInfo.email },

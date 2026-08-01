@@ -3,6 +3,7 @@ import { calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, gte, lte, ilike, or, desc, sql } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
+import { colorNameToValue } from './colors'
 import crypto from 'crypto'
 
 export async function listEvents(
@@ -103,7 +104,7 @@ export async function createEvent(
       startDate: new Date(data.start_date),
       endDate: new Date(data.end_date),
       isAllDay: data.is_all_day ?? false,
-      color: data.color,
+      color: colorNameToValue(data.color),
       categoryId: data.category_id ?? null,
       notificationMinutes: data.notification_minutes ?? null,
     })
@@ -142,7 +143,8 @@ export async function updateEvent(
     values.startDate = new Date(data.start_date)
   if (data.end_date !== undefined) values.endDate = new Date(data.end_date)
   if (data.is_all_day !== undefined) values.isAllDay = data.is_all_day
-  if (data.color !== undefined) values.color = data.color
+  if (data.color !== undefined && data.color !== null)
+    values.color = colorNameToValue(data.color)
   if (data.category_id !== undefined) values.categoryId = data.category_id
   if (data.notification_minutes !== undefined)
     values.notificationMinutes = data.notification_minutes

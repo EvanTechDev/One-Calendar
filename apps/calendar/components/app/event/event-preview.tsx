@@ -24,6 +24,7 @@ import type { Language } from '@zntr/i18n/calendar'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
+import { useBookmarks } from '@/components/providers/data-provider'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import {
   Dialog,
@@ -84,7 +85,7 @@ export default function EventPreview({
   const isSignedIn = Boolean(session?.user)
   const user: any = session?.user
   const dialogContentRef = useRef<HTMLDivElement>(null)
-  const [bookmarks, setBookmarks] = useState<any[]>([])
+  const { bookmarks, createBookmark, deleteBookmark } = useBookmarks()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
   const [sharePassword, setSharePassword] = useState('')
   const [burnAfterRead, setBurnAfterRead] = useState(false)
@@ -118,33 +119,6 @@ export default function EventPreview({
       ignoreOutsideUntilRef.current = Date.now() + 150
     }
   }, [open, modal])
-
-  useEffect(() => {
-    let active = true
-    const loadBookmarks = async () => {
-      try {
-        const res = await api.bookmarks.list()
-        if (active) {
-          setBookmarks(res.bookmarks)
-        }
-      } catch {}
-    }
-
-    loadBookmarks()
-    return () => {
-      active = false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!open || !event) return
-    api.bookmarks
-      .list()
-      .then((res) => {
-        setBookmarks(res.bookmarks)
-      })
-      .catch(() => {})
-  }, [open, event])
 
   useEffect(() => {
     return () => {
@@ -279,8 +253,7 @@ export default function EventPreview({
     if (isBookmarked) {
       const bm = bookmarks.find((b: any) => b.eventId === event.id)
       if (bm) {
-        await api.bookmarks.delete(bm.id)
-        setBookmarks(bookmarks.filter((b: any) => b.id !== bm.id))
+        await deleteBookmark(bm.id)
       }
       setIsBookmarked(false)
       toast(isZh ? '已取消收藏' : 'Removed from bookmarks', {
@@ -289,19 +262,8 @@ export default function EventPreview({
           : 'Event has been removed from your bookmarks',
       })
     } else {
-      const res = await api.bookmarks.create({ eventId: event.id })
+      await createBookmark({ eventId: event.id })
       setIsBookmarked(true)
-      if (res.bookmark) {
-        setBookmarks((prev) => [
-          ...prev,
-          {
-            id: res.bookmark.id,
-            eventId: res.bookmark.eventId,
-            createdAt: res.bookmark.createdAt,
-            event: event,
-          },
-        ])
-      }
       toast(isZh ? '已收藏' : 'Bookmarked', {
         description: isZh
           ? '事件已添加到收藏夹'

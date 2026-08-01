@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import { z } from 'zod'
+import { COLOR_NAME_LIST, COLOR_NAMES } from './colors'
 
 const SCOPE_EVENTS_READ = 'events:read'
 const SCOPE_EVENTS_WRITE = 'events:write'
@@ -12,17 +13,7 @@ const SCOPE_SETTINGS_READ = 'settings:read'
 const SCOPE_SETTINGS_WRITE = 'settings:write'
 const SCOPE_PROFILE_READ = 'profile:read'
 
-const ALLOWED_HEX_COLORS = [
-  '#3B82F6',
-  '#10B981',
-  '#F59E0B',
-  '#EF4444',
-  '#8B5CF6',
-  '#EC4899',
-  '#6366F1',
-  '#FB923C',
-  '#14B8A6',
-] as const
+const COLOR_DESCRIPTION = `Color name (one of: ${COLOR_NAME_LIST})`
 
 const LANGUAGE_OPTIONS = [
   'bn',
@@ -178,7 +169,7 @@ function registerEventTools(server: McpServer): void {
       start_date: z.string().describe('Start time (ISO 8601)'),
       end_date: z.string().describe('End time (ISO 8601)'),
       is_all_day: z.boolean().optional().default(false),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      color: z.enum(COLOR_NAMES).describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -205,7 +196,7 @@ function registerEventTools(server: McpServer): void {
       start_date: z.string().optional(),
       end_date: z.string().optional(),
       is_all_day: z.boolean().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      color: z.enum(COLOR_NAMES).optional().describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -264,7 +255,7 @@ function registerCategoryTools(server: McpServer): void {
     'Create a new category',
     {
       name: z.string().describe('Category name'),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      color: z.enum(COLOR_NAMES).describe(COLOR_DESCRIPTION),
       sort_order: z.number().optional().default(0),
     },
     async (params, extra) => {
@@ -285,7 +276,7 @@ function registerCategoryTools(server: McpServer): void {
     {
       category_id: z.string(),
       name: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      color: z.enum(COLOR_NAMES).optional().describe(COLOR_DESCRIPTION),
       sort_order: z.number().optional(),
     },
     async (params, extra) => {
@@ -358,7 +349,7 @@ function registerCountdownTools(server: McpServer): void {
       name: z.string().describe('Countdown name'),
       target_date: z.string().describe('Target date (ISO 8601)'),
       description: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      color: z.enum(COLOR_NAMES).describe(COLOR_DESCRIPTION),
       icon: z.string().optional(),
     },
     async (params, extra) => {
@@ -381,7 +372,7 @@ function registerCountdownTools(server: McpServer): void {
       name: z.string().optional(),
       target_date: z.string().optional(),
       description: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      color: z.enum(COLOR_NAMES).optional().describe(COLOR_DESCRIPTION),
       icon: z.string().optional(),
     },
     async (params, extra) => {

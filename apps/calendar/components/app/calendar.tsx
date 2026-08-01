@@ -138,7 +138,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
   const { upsertEvent, deleteEvent } = useEvents()
-  const { deleteBookmarkByEvent } = useBookmarks()
+  const { createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
   )
@@ -711,10 +711,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const { bookmarks } = await api.bookmarks.list()
     const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
     if (isBookmarked) {
-      const bm = bookmarks.find((b) => b.eventId === event.id)
-      if (bm) await api.bookmarks.delete(bm.id)
+      await deleteBookmarkByEvent(event.id)
     } else {
-      await api.bookmarks.create({ eventId: event.id })
+      await createBookmark({ eventId: event.id })
     }
   }
 

@@ -1,0 +1,112 @@
+---
+title: '3.0.0 - Smarter, Faster, AI-Ready'
+description: 'One Calendar 3.0.0 introduces AI assistant integration via MCP, a Redis caching layer, field-level encryption, a new DataProvider architecture, and a revamped event experience.'
+date: '2026-12-31'
+tags: ['AI', 'MCP', 'Performance', 'Security', 'UI']
+version: '3.0.0'
+---
+
+This major release turns One Calendar into an AI-ready, faster, and more secure scheduling tool. It ships an MCP server so AI assistants can read and manage your calendar, a Redis cache layer for snappier loads, field-level encryption for your data, and a fully migrated data layer that keeps every view in sync in real time.
+
+<Accordion type="multiple" collapsible className="w-full not-prose">
+  <AccordionItem value="item-1">
+    <AccordionTrigger>Features</AccordionTrigger>
+    <AccordionContent className="flex flex-col gap-4 text-balance">
+      <ul className="list-disc space-y-2 pl-4">
+        <li>
+          feat: add MCP server with all calendar tools plus rate limiting and
+          audit logging
+        </li>
+        <li>
+          feat: implement OAuth Device Code Grant and Authorization Code Grant
+          with PKCE for AI clients
+        </li>
+        <li>feat: add OAuth dynamic client registration to the MCP server</li>
+        <li>
+          feat: show redirect URI and scopes on the OAuth authorize page,
+          validate HTTPS redirect
+        </li>
+        <li>feat: add MCP settings UI components and management API routes</li>
+        <li>
+          feat: add Redis cache layer for sessions and events with automatic
+          invalidation
+        </li>
+        <li>feat: add field-level encryption and CRUD APIs</li>
+        <li>
+          feat: add DataProvider + API client frontend layer, migrating all data
+          from localStorage
+        </li>
+        <li>
+          feat: add Astro web marketing site with theme-aware logo favicon
+        </li>
+        <li>feat: redirect unauthenticated /app users to /sign-up</li>
+        <li>
+          feat: make month-view remaining events clickable with year-view
+          popover scroll
+        </li>
+        <li>
+          feat: add new data refresh callbacks and update import paths in
+          locales
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value="item-2">
+    <AccordionTrigger>Bug Fixes</AccordionTrigger>
+    <AccordionContent className="flex flex-col gap-4 text-balance">
+      <ul className="list-disc space-y-2 pl-4">
+        <li>
+          fix: restrict MCP tool colors to a strict enum with clear English
+          descriptions
+        </li>
+        <li>
+          fix: support application/x-www-form-urlencoded in OAuth
+          token/authorize/device endpoints
+        </li>
+        <li>
+          fix: cache all events by month regardless of date params and decrypt
+          on cache hit
+        </li>
+        <li>fix: harden redis client and event cache date handling</li>
+        <li>
+          fix: improve event preview positioning, bookmarks/search navigation,
+          and search UI
+        </li>
+        <li>
+          fix: replace manual portal popovers with Radix Popover for modal +
+          smart positioning
+        </li>
+        <li>
+          fix: resolve year view popover/countdown bugs and remove mini calendar
+          sheet
+        </li>
+        <li>
+          fix: prevent analytics lag on sidebar toggle by deferring chart
+          renders
+        </li>
+        <li>fix: use BarStack clipPath for rounded stacked bar corners</li>
+        <li>fix: category reorder and drag-drop persisting to DB</li>
+        <li>fix: delete event toast slow and undo not persisting to DB</li>
+        <li>
+          fix: validate timezone before using with Intl API to prevent
+          RangeError
+        </li>
+        <li>
+          fix: resolve circular dependency and Turbopack TDZ errors in API route
+          builds
+        </li>
+        <li>
+          fix: align Session type nullability with better-auth return types
+        </li>
+        <li>
+          fix: wrap useSearchParams in Suspense boundary on /oauth/authorize
+        </li>
+        <li>fix: decrypt event fields before embedding in share payload</li>
+        <li>
+          test: add 22 tests for field-crypto, share-crypto, api-helpers, and
+          migration logic
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
