@@ -1,0 +1,35 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.2",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "build:check": "pnpm build && pnpm type-check",
+    "preview": "astro preview",
+    "start": "astro dev",
+    "astro": "astro",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src astro.config.mjs && eslint --config ../../config/eslint.config.ts src astro.config.mjs --fix --no-error-on-unmatched-pattern",
+    "lint:check": "oxlint --config ../../config/oxlint.json src astro.config.mjs && eslint --config ../../config/eslint.config.ts src astro.config.mjs --quiet --no-error-on-unmatched-pattern",
+    "type-check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.1.6",
+    "clsx": "^2.1.1",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5.7.3"
+  }
+}

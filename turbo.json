@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "generate:i18n", "mdx"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
       "cache": false,

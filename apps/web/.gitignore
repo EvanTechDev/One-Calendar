@@ -1,0 +1,9 @@
+# astro
+dist/
+.astro/
+.vercel/
+
+# environment
+.env*.local
+
+.DS_Store
