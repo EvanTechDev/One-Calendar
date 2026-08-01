@@ -1,4 +1,3 @@
----
 import Layout from "../layouts/Layout.astro"
 import Logo from "../components/Logo.astro"
 import HexagonPattern from "../components/Bg.astro"
@@ -43,13 +42,14 @@ const socials = [
     />
   </div>
 
-    <div class="relative z-10 flex flex-col overflow-hidden px-8 py-10 md:px-10 md:py-12">
+  <div class="relative z-10 min-h-screen flex flex-col overflow-hidden px-8 py-10 md:px-10 md:py-12">
     <header>
       <a href="/" aria-label="imput" class="inline-block text-foreground">
         <Logo class="h-8 w-auto md:h-10" />
       </a>
     </header>
-    <main class="max-w-xl pt-12 pb-2 md:pt-16 md:pb-4">
+    
+    <main class="flex-1 max-w-xl pt-12 pb-2 md:pt-16 md:pb-4">
       <div class="flex flex-col gap-5 text-lg leading-relaxed tracking-tight md:text-base">
         <p class="text-xl">
           We build web and software that respects people. Everything is open source—you own your data and can self-host it. No locked-in services, no privacy invasions.
@@ -83,7 +83,7 @@ const socials = [
       </nav>
     </main>
 
-    <footer class="mt-16">
+    <footer class="mt-auto">
       <nav
         aria-label="Social links"
         class="flex flex-wrap items-center gap-x-6 gap-y-2 text-lg md:text-[0.875rem]"
