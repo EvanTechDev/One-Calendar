@@ -76,12 +76,10 @@ export const GET = async function GET(request: NextRequest) {
   const decrypted = results.map(decryptEvent)
 
   if (startDate && endDate) {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
     return NextResponse.json({
-      events: decrypted.filter((e) => {
-        const start = new Date(startDate)
-        const end = new Date(endDate)
-        return e.startDate >= start && e.endDate <= end
-      }),
+      events: decrypted.filter((e) => e.startDate >= start && e.endDate <= end),
     })
   }
 

@@ -4,7 +4,11 @@ let _redis: Redis | null = null
 
 export function getRedis(): Redis {
   if (!_redis) {
-    _redis = new Redis(process.env.REDIS_URL!, {
+    const url = process.env.REDIS_URL
+    if (!url) {
+      throw new Error('REDIS_URL is not set — falling back to PG')
+    }
+    _redis = new Redis(url, {
       lazyConnect: true,
       enableOfflineQueue: false,
       maxRetriesPerRequest: 2,

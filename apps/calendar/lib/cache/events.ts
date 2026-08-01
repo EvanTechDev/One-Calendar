@@ -6,10 +6,18 @@ const EVENT_CACHE_TTL = 600
 
 export type CachedEvent = typeof calendarEvents.$inferSelect
 
+const DATE_FIELD_KEYS = new Set<string>([
+  'startDate',
+  'endDate',
+  'createdAt',
+  'updatedAt',
+])
+
 function parseCachedEvents(json: string): CachedEvent[] {
-  return JSON.parse(json, (_key, value) => {
+  return JSON.parse(json, (key, value) => {
     if (
       typeof value === 'string' &&
+      DATE_FIELD_KEYS.has(key) &&
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)
     ) {
       return new Date(value)
