@@ -46,14 +46,12 @@ function getIdentify() {
 }
 
 const mainDrain = async (ctx: unknown) => {
-  // eslint-disable-next-line no-console
   console.log(JSON.stringify(ctx))
 }
 
 const auditDrain = auditOnly(
   signed(
     async (ctx: unknown) => {
-      // eslint-disable-next-line no-console
       console.log(JSON.stringify(ctx))
     },
     {

@@ -17,13 +17,13 @@ packages/
 
 ## Essential commands (run from root)
 
-| Command           | What it does                                     |
-| ----------------- | ------------------------------------------------ |
-| `pnpm dev`        | Start all dev servers                            |
-| `pnpm build`      | Full build (i18n generate → mdx → next build)    |
-| `pnpm lint`       | oxlint + eslint via turbo (both run per-package) |
-| `pnpm type-check` | `tsc --noEmit` across all packages               |
-| `pnpm test`       | `vitest run` across all packages                 |
+| Command           | What it does                                  |
+| ----------------- | --------------------------------------------- |
+| `pnpm dev`        | Start all dev servers                         |
+| `pnpm build`      | Full build (i18n generate → mdx → next build) |
+| `pnpm lint`       | oxlint via turbo (runs per-package)           |
+| `pnpm type-check` | `tsc --noEmit` across all packages            |
+| `pnpm test`       | `vitest run` across all packages              |
 
 Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter one-calendar dev`.
 
@@ -31,7 +31,7 @@ Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (bui
 
 ## Linting & formatting
 
-Two linters run sequentially per target: **oxlint** (fast, config at `config/oxlint.json`) then **eslint** (config at `config/eslint.config.ts`). Pre-commit runs `lint-staged` which does prettier → oxlint --fix → eslint --fix.
+**oxlint** is the only linter (config at `config/oxlint.json`). Pre-commit runs `lint-staged` which does prettier → oxlint --fix.
 
 **Prettier** (root `package.json`): no semi, single quotes, trailing commas, 80 width.
 
@@ -43,7 +43,7 @@ TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — b
 
 Vitest (jsdom). Setup: `vitest-setup.ts` loads `@testing-library/jest-dom/vitest`.  
 Run single file: `pnpm --filter one-calendar vitest run path/to/test`.  
-Tests live in `__test__/` mirrors of source directories (`engine/`, `hooks/`, `lib/`, `views/`).
+Tests live in `__tests__/` mirrors of source directories (`engine/`, `hooks/`, `lib/`, `views/`).
 
 ## i18n
 

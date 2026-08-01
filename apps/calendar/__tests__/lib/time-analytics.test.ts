@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  analyzeTimeUsage,
-  type TimeCategory,
-} from '@/lib/time-analytics'
+import { analyzeTimeUsage, type TimeCategory } from '@/lib/time-analytics'
 import type { CalendarEvent } from '@/components/app/calendar'
 
 describe('analyzeTimeUsage', () => {

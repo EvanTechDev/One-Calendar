@@ -23,17 +23,12 @@
     "@commitlint/cli": "20.5.3",
     "@commitlint/config-conventional": "20.5.3",
     "@commitlint/types": "20.5.0",
-    "@eslint/js": "10.0.1",
-    "@next/eslint-plugin-next": "16.2.9",
     "@tailwindcss/postcss": "4.3.1",
     "@types/node": "25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/rrule": "^2.2.9",
     "drizzle-kit": "latest",
-    "eslint": "10.5.0",
-    "eslint-plugin-oxlint": "1.71.0",
-    "eslint-plugin-unused-imports": "4.4.1",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
     "next": "16.2.9",
@@ -41,8 +36,7 @@
     "postcss": "8.5.15",
     "prettier": "3.8.4",
     "tailwindcss": "4.3.1",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.62.0"
+    "typescript": "6.0.3"
   },
   "prettier": {
     "semi": false,
@@ -55,8 +49,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "prettier --write",
-      "oxlint --fix --config config/oxlint.json",
-      "eslint --fix --config config/eslint.config.ts"
+      "oxlint --fix --config config/oxlint.json"
     ],
     "*.{json,md,css}": [
       "prettier --write"
