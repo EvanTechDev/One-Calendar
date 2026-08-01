@@ -1,0 +1,106 @@
+---
+import Layout from "../layouts/Layout.astro"
+import Logo from "../components/Logo.astro"
+import HexagonPattern from "../components/Bg.astro"
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import type { ClassValue } from "clsx";
+
+const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+
+const projects = [
+  { label: "Calendar", href: "https://calendar.xyehr.cn" },
+]
+
+const socials = [
+  { label: "GitHub", href: "https://github.com/ZentraLab" },
+  { label: "Email", href: "mailto:www@xyehr.cn" },
+  { label: "Bluesky", href: "https://bsky.app/profile/xyehr.cn" },
+]
+---
+
+<Layout>
+  <div
+    aria-hidden="true"
+    class="pointer-events-none fixed inset-y-0 right-0 z-0 flex w-1/2 items-center justify-center"
+  >
+    <HexagonPattern
+      hexagons={[
+        [1, 1],
+        [4, 4],
+        [2, 2],
+        [3, 4],
+        [5, 4],
+        [8, 2],
+        [6, 3],
+        [8, 5],
+        [10, 10],
+      ]}
+      className={cn(
+        "mask-[radial-gradient(420px_circle_at_center,white,transparent)]",
+        "inset-0 skew-y-6"
+      )}
+    />
+  </div>
+
+    <div class="relative z-10 flex h-dvh flex-col overflow-hidden px-8 py-10 md:px-10 md:py-12">
+    <header>
+      <a href="/" aria-label="imput" class="inline-block text-foreground">
+        <Logo class="h-8 w-auto md:h-10" />
+      </a>
+    </header>
+    <main class="max-w-xl pt-12 pb-2 md:pt-16 md:pb-4">
+      <div class="flex flex-col gap-5 text-lg leading-relaxed tracking-tight md:text-base">
+        <p class="text-xl">
+          We build web and software that respects people. Everything is open source—you own your data and can self-host it. No locked-in services, no privacy invasions.
+        </p>
+
+        <p class="text-xl">
+          We take our time to write good code and figure things out together as we go. We're practical but not afraid to explore ideas. Everyone here genuinely cares about what they're building and how it impacts people.
+        </p>
+
+        <p class="text-xl">
+          There are 2 of us—one focused on web, one on broader software development. We're small, we work remote, and we focus on what actually matters.
+        </p>
+      </div>
+
+      <nav
+        aria-label="Projects"
+        class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-lg md:text-lg"
+      >
+        {
+          projects.map((project) => (
+            <a
+              href={project.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline decoration-1 underline-offset-4 transition-opacity hover:opacity-60"
+            >
+              {project.label}
+            </a>
+          ))
+        }
+      </nav>
+    </main>
+
+    <footer class="mt-16">
+      <nav
+        aria-label="Social links"
+        class="flex flex-wrap items-center gap-x-6 gap-y-2 text-lg md:text-[0.875rem]"
+      >
+        {
+          socials.map((social) => (
+            <a
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="transition-opacity hover:opacity-60"
+            >
+              {social.label}
+            </a>
+          ))
+        }
+      </nav>
+    </footer>
+  </div>
+</Layout>

@@ -41,7 +41,6 @@ import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
-import { ScrollArea } from '@zntr/ui/scroll-area'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
@@ -907,7 +906,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                       }}
                     >
                       {searchResultEvents.length > 0 ? (
-                        <ScrollArea className="max-h-[320px]">
+                        <div className="min-h-0 max-h-[320px] overflow-y-auto">
                           <div className="space-y-1">
                             {searchResultEvents.map((event) => (
                               <button
@@ -947,7 +946,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                               </button>
                             ))}
                           </div>
-                        </ScrollArea>
+                        </div>
                       ) : (
                         <div className="px-2 py-3 text-center text-sm text-muted-foreground">
                           {t.noMatchingEvents}

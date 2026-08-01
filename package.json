@@ -5,6 +5,10 @@
   "packageManager": "pnpm@11.5.2",
   "scripts": {
     "build:calendar": "pnpm --filter one-calendar build",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "lint:web": "pnpm --filter web lint",
+    "tc:web": "pnpm --filter web type-check",
     "prepare": "husky",
     "lint:calendar": "pnpm --filter one-calendar lint",
     "tc:calendar": "pnpm --filter one-calendar type-check",

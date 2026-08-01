@@ -8,6 +8,7 @@ pnpm workspace + Turborepo. Package manager: `pnpm@11.5.2`.
 apps/
   calendar/        Next.js 16 web app (one-calendar) — main product
   calendar-client/ Tauri + React + Vite desktop client
+  web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
   ui/              @zntr/ui — shadcn/ui components (radix-nova style)
   utils/           @zntr/utils — cn(), tailwind-merge, clsx
@@ -16,13 +17,13 @@ packages/
 
 ## Essential commands (run from root)
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Start all dev servers |
-| `pnpm build` | Full build (i18n generate → mdx → next build) |
-| `pnpm lint` | oxlint + eslint via turbo (both run per-package) |
-| `pnpm type-check` | `tsc --noEmit` across all packages |
-| `pnpm test` | `vitest run` across all packages |
+| Command           | What it does                                     |
+| ----------------- | ------------------------------------------------ |
+| `pnpm dev`        | Start all dev servers                            |
+| `pnpm build`      | Full build (i18n generate → mdx → next build)    |
+| `pnpm lint`       | oxlint + eslint via turbo (both run per-package) |
+| `pnpm type-check` | `tsc --noEmit` across all packages               |
+| `pnpm test`       | `vitest run` across all packages                 |
 
 Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter one-calendar dev`.
 

@@ -18,9 +18,8 @@ import {
   DEFAULT_ACCENT,
 } from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { useCallback, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { ScrollArea } from '@zntr/ui/scroll-area'
+import { useCallback, useEffect, useState } from 'react'
+import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface RemainingPopoverState {
   key: string
@@ -76,22 +75,28 @@ export default function MonthView({
       day: Date,
       allDayEvents: CalendarEvent[],
     ) => {
+      const cell = (e.currentTarget as HTMLElement).parentElement?.parentElement
+      const rect = cell
+        ? cell.getBoundingClientRect()
+        : e.currentTarget.getBoundingClientRect()
       const key = format(day, 'yyyy-MM-dd')
-      if (remainingPopover?.key === key) {
-        setRemainingPopover(null)
-        return
-      }
-      const rect = e.currentTarget.getBoundingClientRect()
       setRemainingPopover({
         key,
         anchorRect: rect,
         remainingEvents: allDayEvents.slice(3),
       })
     },
-    [remainingPopover],
+    [],
   )
 
   const closeRemainingPopover = useCallback(() => setRemainingPopover(null), [])
+
+  useEffect(() => {
+    document.body.style.overflow = remainingPopover ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [remainingPopover])
 
   return (
     <>
@@ -193,84 +198,89 @@ export default function MonthView({
         })}
       </div>
 
-      {remainingPopover &&
-        typeof document !== 'undefined' &&
-        createPortal(
+      <Popover
+        open={!!remainingPopover}
+        onOpenChange={(open) => {
+          if (!open) closeRemainingPopover()
+        }}
+        modal={true}
+      >
+        <PopoverAnchor asChild>
           <div
-            role="dialog"
-            className="fixed z-50 w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             style={{
-              left: Math.min(
-                remainingPopover.anchorRect.left,
-                window.innerWidth - 300,
-              ),
-              top: remainingPopover.anchorRect.bottom + 4,
+              position: 'fixed',
+              left: remainingPopover ? remainingPopover.anchorRect.right : 0,
+              top: remainingPopover
+                ? remainingPopover.anchorRect.top +
+                  remainingPopover.anchorRect.height / 2
+                : 0,
+              width: 0,
+              height: 0,
+              pointerEvents: 'none',
             }}
+          />
+        </PopoverAnchor>
+        {remainingPopover && (
+          <PopoverContent
+            side="right"
+            align="center"
+            sideOffset={8}
+            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">{t.events}</div>
-                <button
-                  type="button"
-                  onClick={closeRemainingPopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              {remainingPopover.remainingEvents.length > 0 ? (
-                <ScrollArea className="max-h-[260px]">
-                  <div className="space-y-1.5 pr-2">
-                    {remainingPopover.remainingEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
-                        style={{
-                          backgroundColor: isDark
-                            ? EVENT_BG_TO_DARK[event.color]
-                            : undefined,
-                        }}
-                        onClick={(e) => {
-                          onEventClick(
-                            event,
-                            e.currentTarget,
-                            e.clientX,
-                            e.clientY,
-                          )
-                          closeRemainingPopover()
-                        }}
-                      >
-                        <div
-                          className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                          style={{
-                            backgroundColor:
-                              EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                          }}
-                        />
-                        <div
-                          className="truncate"
-                          style={{
-                            color:
-                              EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                          }}
-                        >
-                          {event.title}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {t.noEventsFound}
-                </div>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">{t.events}</div>
+              <button
+                type="button"
+                onClick={closeRemainingPopover}
+                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-          </div>,
-          document.body,
+            {remainingPopover.remainingEvents.length > 0 ? (
+              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
+                {remainingPopover.remainingEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
+                    style={{
+                      backgroundColor: isDark
+                        ? EVENT_BG_TO_DARK[event.color]
+                        : undefined,
+                    }}
+                    onClick={(e) => {
+                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      style={{
+                        backgroundColor:
+                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                      }}
+                    />
+                    <div
+                      className="truncate"
+                      style={{
+                        color:
+                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                      }}
+                    >
+                      {event.title}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                {t.noEventsFound}
+              </div>
+            )}
+          </PopoverContent>
         )}
+      </Popover>
     </>
   )
 }

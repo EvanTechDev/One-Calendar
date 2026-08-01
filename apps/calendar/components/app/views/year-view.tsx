@@ -10,11 +10,10 @@ import {
 } from 'date-fns'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/components/app/calendar-types'
-import { createPortal } from 'react-dom'
-import { ScrollArea } from '@zntr/ui/scroll-area'
+import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface YearViewProps {
   date: Date
@@ -144,19 +143,22 @@ export default function YearView({
 
   const handleDayClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, day: Date, dayKey: string) => {
-      const key = `${day.getMonth()}-${dayKey}`
-      if (popover?.key === key) {
-        setPopover(null)
-        return
-      }
       const rect = e.currentTarget.getBoundingClientRect()
       const dayEvents = eventsByDayKey.get(dayKey) ?? []
+      const key = `${day.getMonth()}-${dayKey}`
       setPopover({ key, anchorRect: rect, day, dayEvents })
     },
-    [popover, eventsByDayKey],
+    [eventsByDayKey],
   )
 
   const closePopover = useCallback(() => setPopover(null), [])
+
+  useEffect(() => {
+    document.body.style.overflow = popover ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [popover])
 
   return (
     <div className="p-3 md:p-4" ref={containerRef}>
@@ -208,89 +210,96 @@ export default function YearView({
         ))}
       </div>
 
-      {popover &&
-        typeof document !== 'undefined' &&
-        createPortal(
+      <Popover
+        open={!!popover}
+        onOpenChange={(open) => {
+          if (!open) closePopover()
+        }}
+        modal={true}
+      >
+        <PopoverAnchor asChild>
           <div
-            role="dialog"
-            className="fixed z-50 w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             style={{
-              left: Math.min(popover.anchorRect.left, window.innerWidth - 300),
-              top: popover.anchorRect.bottom + 4,
+              position: 'fixed',
+              left: popover ? popover.anchorRect.right : 0,
+              top: popover
+                ? popover.anchorRect.top + popover.anchorRect.height / 2
+                : 0,
+              width: 0,
+              height: 0,
+              pointerEvents: 'none',
             }}
+          />
+        </PopoverAnchor>
+        {popover && (
+          <PopoverContent
+            side="right"
+            align="center"
+            sideOffset={8}
+            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  {popover.day.toLocaleDateString(
-                    isZhLanguage(config.language.code as any)
-                      ? 'zh-CN'
-                      : 'en-US',
-                    {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    },
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={closePopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">
+                {popover.day.toLocaleDateString(
+                  isZhLanguage(config.language.code as any) ? 'zh-CN' : 'en-US',
+                  {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  },
+                )}
               </div>
-
-              {popover.dayEvents.length > 0 ? (
-                <ScrollArea className="max-h-[260px]">
-                  <div className="space-y-1.5 pr-2">
-                    {popover.dayEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className={cn(
-                          'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
-                          event.color,
-                        )}
-                        onClick={(e) => {
-                          onEventClick(
-                            event,
-                            e.currentTarget,
-                            e.clientX,
-                            e.clientY,
-                          )
-                        }}
-                        style={{
-                          backgroundColor: isDark
-                            ? getDarkBg(event.color)
-                            : undefined,
-                        }}
-                      >
-                        <div
-                          className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                          style={{ backgroundColor: getAccent(event.color) }}
-                        />
-                        <div
-                          style={{ color: getAccent(event.color) }}
-                          className="truncate"
-                        >
-                          {event.title || t.unnamedEvent}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {t.noEventsFound}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={closePopover}
+                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-          </div>,
-          document.body,
+
+            {popover.dayEvents.length > 0 ? (
+              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
+                {popover.dayEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className={cn(
+                      'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                      event.color,
+                    )}
+                    onClick={(e) => {
+                      closePopover()
+                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                    }}
+                    style={{
+                      backgroundColor: isDark
+                        ? getDarkBg(event.color)
+                        : undefined,
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      style={{ backgroundColor: getAccent(event.color) }}
+                    />
+                    <div
+                      style={{ color: getAccent(event.color) }}
+                      className="truncate"
+                    >
+                      {event.title || t.unnamedEvent}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                {t.noEventsFound}
+              </div>
+            )}
+          </PopoverContent>
         )}
+      </Popover>
     </div>
   )
 }

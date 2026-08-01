@@ -310,7 +310,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       await createCountdown({
         id,
         name: newCountdown.name,
-        targetDate: selectedDate.toISOString(),
+        targetDate: toDateString(selectedDate),
         repeat: (newCountdown.repeat || 'none') as
           | 'none'
           | 'weekly'
