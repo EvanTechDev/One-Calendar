@@ -48,7 +48,7 @@ export const PUT = async function PUT(request: NextRequest) {
     .where(eq(settings.userId, user.id))
 
   const merged = {
-    ...existingSettings[0]?.data,
+    ...((existingSettings[0]?.data ?? {}) as SettingsData),
     ...body,
   }
 

@@ -163,7 +163,10 @@ export const POST = async function POST(request: NextRequest) {
         .select()
         .from(settings)
         .where(eq(settings.userId, user.id))
-      const merged = { ...existing?.data, ...body.settings }
+      const merged = {
+        ...((existing?.data ?? {}) as Record<string, unknown>),
+        ...body.settings,
+      }
       await tx
         .insert(settings)
         .values({

@@ -24,13 +24,14 @@ export async function listEvents(
 
   if (query) {
     const pattern = `%${query}%`
-    filters.push(
-      or(
-        ilike(calendarEvents.title, pattern),
-        ilike(calendarEvents.description, pattern),
-        ilike(calendarEvents.location, pattern),
-      ),
+    const searchConditions = or(
+      ilike(calendarEvents.title, pattern),
+      ilike(calendarEvents.description, pattern),
+      ilike(calendarEvents.location, pattern),
     )
+    if (searchConditions) {
+      filters.push(searchConditions)
+    }
   }
 
   const offset = (page - 1) * limit
