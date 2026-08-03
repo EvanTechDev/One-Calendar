@@ -36,7 +36,7 @@ import {
   Globe2,
   Info,
   Keyboard,
-  MapPin,
+  Languages,
   Monitor,
   Palette,
   Share2,
@@ -296,7 +296,7 @@ function GeneralSettings({
         </SettingRow>
 
         <SettingRow
-          icon={<Globe2 />}
+          icon={<Languages />}
           title={t.language}
           description={t.settingsLanguageDesc}
         >
@@ -369,7 +369,7 @@ function GeneralSettings({
         </SettingRow>
 
         <SettingRow
-          icon={<MapPin />}
+          icon={<Globe2 />}
           title={t.timezone}
           description={t.settingsTimezoneDesc}
         >
