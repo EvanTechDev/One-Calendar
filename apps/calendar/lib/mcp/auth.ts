@@ -133,16 +133,15 @@ export async function generateApiKey(
   return key
 }
 
-export async function revokeApiKey(
+export async function deleteApiKey(
   keyId: string,
   userId: string,
 ): Promise<boolean> {
   const db = await getDb()
   const [row] = await db
-    .update(mcpApiKeys)
-    .set({ isActive: false, updatedAt: new Date() })
+    .delete(mcpApiKeys)
     .where(and(eq(mcpApiKeys.id, keyId), eq(mcpApiKeys.userId, userId)))
-    .returning()
+    .returning({ id: mcpApiKeys.id })
 
   return !!row
 }

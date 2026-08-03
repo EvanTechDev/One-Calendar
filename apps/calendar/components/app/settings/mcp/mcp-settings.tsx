@@ -12,11 +12,28 @@ import {
   DialogTrigger,
 } from '@zntr/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@zntr/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Badge } from '@zntr/ui/badge'
 import { Spinner } from '@zntr/ui/spinner'
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@zntr/ui/alert-dialog'
 
 import {
   Key,
@@ -92,10 +109,18 @@ export default function MCPSettings() {
           <TabsTrigger value="oauth">Authorized Apps</TabsTrigger>
           <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview"><MCPOverview /></TabsContent>
-        <TabsContent value="api-keys"><MCPApiKeys /></TabsContent>
-        <TabsContent value="oauth"><MCPOAuthApps /></TabsContent>
-        <TabsContent value="audit-logs"><MCPAuditLogs /></TabsContent>
+        <TabsContent value="overview">
+          <MCPOverview />
+        </TabsContent>
+        <TabsContent value="api-keys">
+          <MCPApiKeys />
+        </TabsContent>
+        <TabsContent value="oauth">
+          <MCPOAuthApps />
+        </TabsContent>
+        <TabsContent value="audit-logs">
+          <MCPAuditLogs />
+        </TabsContent>
       </Tabs>
     </div>
   )
@@ -208,6 +233,8 @@ function MCPApiKeys() {
     scopes: string[]
   } | null>(null)
   const [showFullKey, setShowFullKey] = useState<string | null>(null)
+  const [deletingKey, setDeletingKey] = useState<ApiKey | null>(null)
+  const [isDeletingKey, setIsDeletingKey] = useState(false)
 
   const loadKeys = useCallback(async () => {
     const res = await fetch('/api/mcp/api-keys')
@@ -234,12 +261,16 @@ function MCPApiKeys() {
     loadKeys()
   }
 
-  const revokeKey = async (id: string) => {
+  const deleteKey = async () => {
+    if (!deletingKey) return
+    setIsDeletingKey(true)
     await fetch('/api/mcp/api-keys', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: deletingKey.id }),
     })
+    setDeletingKey(null)
+    setIsDeletingKey(false)
     loadKeys()
   }
 
@@ -390,9 +421,6 @@ function MCPApiKeys() {
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-sm">{key.name}</span>
-                  {!key.isActive && (
-                    <Badge variant="secondary">Revoked</Badge>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Dialog>
@@ -433,15 +461,14 @@ function MCPApiKeys() {
                       </Button>
                     </DialogContent>
                   </Dialog>
-                  {key.isActive && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => revokeKey(key.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Delete ${key.name}`}
+                    onClick={() => setDeletingKey(key)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
@@ -463,6 +490,37 @@ function MCPApiKeys() {
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={!!deletingKey}
+        onOpenChange={(open) => {
+          if (!open) setDeletingKey(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete API key?</AlertDialogTitle>
+            <AlertDialogDescription>
+              “{deletingKey?.name}” will stop working immediately. Any AI agent
+              using this key will no longer be able to access your calendar.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={(e) => {
+                e.preventDefault()
+                void deleteKey()
+              }}
+              disabled={isDeletingKey}
+            >
+              {isDeletingKey ? 'Deleting…' : 'Delete key'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
