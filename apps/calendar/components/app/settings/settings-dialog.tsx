@@ -499,43 +499,36 @@ export default function SettingsDialog({
     id: SettingsSection
     label: string
     icon: React.ReactNode
-    description: string
   }> = [
     {
       id: 'general',
       label: t.settingsGeneral,
       icon: <SlidersHorizontal />,
-      description: t.settingsGeneralDesc,
     },
     {
       id: 'account',
       label: t.account,
       icon: <CircleUserRound />,
-      description: t.manageProfileDescription,
     },
     {
       id: 'sharing',
       label: t.settingsSharing,
       icon: <Share2 />,
-      description: t.shareManagementDescription,
     },
     {
       id: 'mcp',
       label: t.settingsMcp,
       icon: <Bot />,
-      description: t.settingsMcpDesc,
     },
     {
       id: 'data',
       label: t.settingsData,
       icon: <Database />,
-      description: t.importExportDesc,
     },
     {
       id: 'about',
       label: t.settingsAbout,
       icon: <Info />,
-      description: t.settingsAboutDesc,
     },
   ]
 
@@ -592,11 +585,6 @@ export default function SettingsDialog({
                     {activeSection?.label}
                   </h2>
                 </div>
-                {activeSection?.description ? (
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {activeSection.description}
-                  </p>
-                ) : null}
               </div>
               <Button
                 variant="ghost"
