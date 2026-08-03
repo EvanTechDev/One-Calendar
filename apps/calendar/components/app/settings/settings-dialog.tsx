@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@zntr/ui/dialog'
@@ -147,43 +146,6 @@ function SettingsGroup({
       )}
     >
       {children}
-    </div>
-  )
-}
-
-function ShortcutList({
-  items,
-}: {
-  items: Array<{ keys: string; label: string }>
-}) {
-  return (
-    <div className="divide-y divide-border rounded-lg border bg-card">
-      {items.map((item) => (
-        <div
-          key={item.keys}
-          className="flex items-center justify-between gap-3 px-3 py-2"
-        >
-          <span className="text-sm text-muted-foreground">{item.label}</span>
-          <Kbd>{item.keys}</Kbd>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ShortcutGroup({
-  title,
-  items,
-}: {
-  title: string
-  items: Array<{ keys: string; label: string }>
-}) {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h3>
-      <ShortcutList items={items} />
     </div>
   )
 }
@@ -434,34 +396,63 @@ function GeneralSettings({
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t.availableShortcuts}</DialogTitle>
-            <DialogDescription>{t.settingsShortcutsDesc}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <ShortcutGroup
-              title={t.shortcutsActions}
-              items={[
-                { keys: 'N', label: t.newEvent },
-                { keys: '/', label: t.searchEvents },
-              ]}
-            />
-            <ShortcutGroup
-              title={t.shortcutsViews}
-              items={[
-                { keys: '1', label: t.day },
-                { keys: '2', label: t.week },
-                { keys: '3', label: t.month },
-                { keys: '4', label: t.year },
-                { keys: '5', label: t.fourDay },
-              ]}
-            />
-            <ShortcutGroup
-              title={t.shortcutsNavigation}
-              items={[
-                { keys: 'T', label: t.today },
-                { keys: '←', label: t.previousPeriod },
-                { keys: '→', label: t.nextPeriod },
-              ]}
-            />
+          <div className="divide-y divide-border rounded-lg border bg-card">
+            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
+              {t.shortcutsActions}
+            </h3>
+            {[
+              { keys: 'N', label: t.newEvent },
+              { keys: '/', label: t.searchEvents },
+            ].map((item) => (
+              <div
+                key={item.keys}
+                className="flex items-center justify-between gap-3 px-3 py-2"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <Kbd>{item.keys}</Kbd>
+              </div>
+            ))}
+            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
+              {t.shortcutsViews}
+            </h3>
+            {[
+              { keys: '1', label: t.day },
+              { keys: '2', label: t.week },
+              { keys: '3', label: t.month },
+              { keys: '4', label: t.year },
+              { keys: '5', label: t.fourDay },
+            ].map((item) => (
+              <div
+                key={item.keys}
+                className="flex items-center justify-between gap-3 px-3 py-2"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <Kbd>{item.keys}</Kbd>
+              </div>
+            ))}
+            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
+              {t.shortcutsNavigation}
+            </h3>
+            {[
+              { keys: 'T', label: t.today },
+              { keys: '←', label: t.previousPeriod },
+              { keys: '→', label: t.nextPeriod },
+            ].map((item) => (
+              <div
+                key={item.keys}
+                className="flex items-center justify-between gap-3 px-3 py-2"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <Kbd>{item.keys}</Kbd>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
