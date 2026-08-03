@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Dialog, DialogContent } from '@zntr/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@zntr/ui/dialog'
 import { Button } from '@zntr/ui/button'
 import {
   Select,
@@ -30,9 +36,9 @@ import {
   Globe2,
   Info,
   Keyboard,
+  MapPin,
   Monitor,
   Palette,
-  Settings,
   Share2,
   SlidersHorizontal,
   X,
@@ -141,6 +147,43 @@ function SettingsGroup({
       )}
     >
       {children}
+    </div>
+  )
+}
+
+function ShortcutList({
+  items,
+}: {
+  items: Array<{ keys: string; label: string }>
+}) {
+  return (
+    <div className="divide-y divide-border rounded-lg border bg-card">
+      {items.map((item) => (
+        <div
+          key={item.keys}
+          className="flex items-center justify-between gap-3 px-3 py-2"
+        >
+          <span className="text-sm text-muted-foreground">{item.label}</span>
+          <Kbd>{item.keys}</Kbd>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ShortcutGroup({
+  title,
+  items,
+}: {
+  title: string
+  items: Array<{ keys: string; label: string }>
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h3>
+      <ShortcutList items={items} />
     </div>
   )
 }
@@ -326,7 +369,7 @@ function GeneralSettings({
         </SettingRow>
 
         <SettingRow
-          icon={<Globe2 />}
+          icon={<MapPin />}
           title={t.timezone}
           description={t.settingsTimezoneDesc}
         >
@@ -388,49 +431,37 @@ function GeneralSettings({
       </SettingsGroup>
 
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-        <DialogContent>
-          <p className="text-base font-semibold">{t.availableShortcuts}</p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <Kbd>N</Kbd>
-              <span>{t.newEvent}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>/</Kbd>
-              <span>{t.searchEvents}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>T</Kbd>
-              <span>{t.today}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>1</Kbd>
-              <span>{t.day}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>2</Kbd>
-              <span>{t.week}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>3</Kbd>
-              <span>{t.month}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>4</Kbd>
-              <span>{t.year}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>5</Kbd>
-              <span>{t.fourDay}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>←</Kbd>
-              <span>{t.previousPeriod}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <Kbd>→</Kbd>
-              <span>{t.nextPeriod}</span>
-            </div>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t.availableShortcuts}</DialogTitle>
+            <DialogDescription>{t.settingsShortcutsDesc}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ShortcutGroup
+              title={t.shortcutsActions}
+              items={[
+                { keys: 'N', label: t.newEvent },
+                { keys: '/', label: t.searchEvents },
+              ]}
+            />
+            <ShortcutGroup
+              title={t.shortcutsViews}
+              items={[
+                { keys: '1', label: t.day },
+                { keys: '2', label: t.week },
+                { keys: '3', label: t.month },
+                { keys: '4', label: t.year },
+                { keys: '5', label: t.fourDay },
+              ]}
+            />
+            <ShortcutGroup
+              title={t.shortcutsNavigation}
+              items={[
+                { keys: 'T', label: t.today },
+                { keys: '←', label: t.previousPeriod },
+                { keys: '→', label: t.nextPeriod },
+              ]}
+            />
           </div>
         </DialogContent>
       </Dialog>
@@ -518,10 +549,7 @@ export default function SettingsDialog({
       >
         <div className="flex h-[min(86vh,46rem)] flex-col overflow-hidden sm:flex-row">
           <aside className="flex shrink-0 flex-col border-b bg-muted/30 sm:w-56 sm:border-r sm:border-b-0 sm:bg-card/40">
-            <div className="hidden items-center gap-2 border-b px-4 py-3.5 sm:flex">
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground [&_svg]:size-4">
-                <Settings />
-              </span>
+            <div className="hidden items-center border-b px-4 py-3.5 sm:flex">
               <span className="font-heading text-sm font-semibold">
                 {t.settings}
               </span>

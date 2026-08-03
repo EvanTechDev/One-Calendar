@@ -43,10 +43,10 @@ import {
   Plus,
   CheckCircle,
   XCircle,
-  Bot,
   Eye,
   EyeOff,
 } from 'lucide-react'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 
 const ALL_SCOPE_OPTIONS = [
   { value: 'events:read', label: 'events:read' },
@@ -92,15 +92,15 @@ interface AuditLog {
 }
 
 export default function MCPSettings() {
+  const [language] = useLanguage()
+  const t = translations[language]
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-lg font-semibold">
-        <Bot className="h-5 w-5" />
-        MCP (Model Context Protocol)
+    <div className="w-full rounded-lg border p-4 space-y-6">
+      <div>
+        <h2 className="text-base font-semibold">{t.settingsMcp}</h2>
+        <p className="text-sm text-muted-foreground">{t.settingsMcpDesc}</p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Let AI agents access and manage your calendar data securely.
-      </p>
 
       <Tabs defaultValue="overview">
         <TabsList>
