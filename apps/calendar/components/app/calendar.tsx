@@ -89,14 +89,15 @@ const loadMonthView = () => import('@/components/app/views/month-view')
 const loadYearView = () => import('@/components/app/views/year-view')
 const loadAnalyticsView = () =>
   import('@/components/app/analytics/analytics-view')
-const loadSettings = () => import('@/components/app/profile/settings')
+const loadSettingsDialog = () =>
+  import('@/components/app/settings/settings-dialog')
 
 const DayView = dynamic(loadDayView)
 const WeekView = dynamic(loadWeekView)
 const MonthView = dynamic(loadMonthView)
 const YearView = dynamic(loadYearView)
 const AnalyticsView = dynamic(loadAnalyticsView)
-const Settings = dynamic(loadSettings)
+const SettingsDialog = dynamic(loadSettingsDialog)
 
 export interface CalendarEvent {
   id: string
@@ -157,8 +158,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimezone(validTz)
     updateSettings({ timezone: validTz })
   }
-  const [notificationSound, setNotificationSound] =
-    useState<NOTIFICATION_SOUNDS>('telegram')
+  const [notificationSound] = useState<NOTIFICATION_SOUNDS>('telegram')
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
@@ -166,6 +166,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   )
   const [focusUserProfileSection, setFocusUserProfileSection] =
     useState<UserProfileSection | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
@@ -239,21 +240,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimeFormat(format)
     updateSettings({ timeFormat: format })
   }
-  const [toastPosition, setToastPosition] = useState<
-    'bottom-left' | 'bottom-center' | 'bottom-right'
-  >(
-    (settings.toastPosition as
-      | 'bottom-left'
-      | 'bottom-center'
-      | 'bottom-right') ?? 'bottom-right',
-  )
-  const handleToastPositionChange = (
-    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
-  ) => {
-    setToastPosition(position)
-    updateSettings({ toastPosition: position })
-  }
-
   const firstDayOfWeekObj = useMemo(
     () => FirstDayOfWeek.create(firstDayOfWeek),
     [firstDayOfWeek],
@@ -312,15 +298,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         if (settings.timeFormat)
           setTimeFormat(settings.timeFormat as TimeFormatValue)
       },
-      () => {
-        if (settings.toastPosition)
-          setToastPosition(
-            settings.toastPosition as
-              | 'bottom-left'
-              | 'bottom-center'
-              | 'bottom-right',
-          )
-      },
     ]
     settingsSync.forEach((fn) => fn())
   }, [settings])
@@ -332,7 +309,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       void loadMonthView()
       void loadYearView()
       void loadAnalyticsView()
-      void loadSettings()
+      void loadSettingsDialog()
     }
 
     if (typeof window === 'undefined') return
@@ -434,9 +411,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
-    setView('settings')
+    setSettingsOpen(true)
     setFocusUserProfileSection(null)
     setTimeout(() => setFocusUserProfileSection(section), 0)
+  }
+
+  const handleNavigateToView = (target: 'analytics' | 'settings') => {
+    if (target === 'settings') {
+      setSettingsOpen(true)
+      return
+    }
+    setView(target)
   }
 
   const handleTodayClick = () => {
@@ -807,7 +792,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <Button variant="outline" size="sm" onClick={handleTodayClick}>
                 {t.today || '今天'}
               </Button>
-              {view !== 'analytics' && view !== 'settings' && (
+              {view !== 'analytics' && (
                 <>
                   <div className="flex items-center space-x-1">
                     <Button
@@ -1007,7 +992,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 variant="outline"
                 className="rounded-full h-8 w-8"
                 _onNavigateToSettings={handleUserProfileSectionNavigate}
-                onNavigateToView={setView}
+                onNavigateToView={handleNavigateToView}
               />
             </div>
           </header>
@@ -1091,38 +1076,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 isSidebarTransitioning={isSidebarTransitioning}
               />
             )}
-            {view === 'settings' && (
-              <Settings
-                language={languageObj.code}
-                setLanguage={(lang: string) =>
-                  setLanguage(lang as Parameters<typeof setLanguage>[0])
-                }
-                firstDayOfWeek={firstDayOfWeekObj}
-                setFirstDayOfWeek={handleFirstDayOfWeekChange}
-                timezone={timezone}
-                setTimezone={handleTimezoneChange}
-                _notificationSound={notificationSound}
-                _setNotificationSound={setNotificationSound}
-                defaultView={CalendarViewType.create(
-                  defaultView as CalendarViewTypeValue,
-                )}
-                setDefaultView={(view: CalendarViewType) =>
-                  handleDefaultViewChange(view.value as CalendarViewTypeValue)
-                }
-                enableShortcuts={enableShortcuts}
-                setEnableShortcuts={handleEnableShortcutsChange}
-                timeFormat={timeFormatObj}
-                setTimeFormat={(format: TimeFormat) =>
-                  handleTimeFormatChange(format.value as TimeFormatValue)
-                }
-                events={events}
-                onImportEvents={handleImportEvents}
-                focusUserProfileSection={focusUserProfileSection}
-                _toastPosition={toastPosition}
-                _setToastPosition={handleToastPositionChange}
-                onBackToCalendar={() => setView(defaultView)}
-              />
-            )}
           </div>
         </div>
 
@@ -1176,6 +1129,35 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
+        />
+
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          language={languageObj.code}
+          setLanguage={(lang: string) =>
+            setLanguage(lang as Parameters<typeof setLanguage>[0])
+          }
+          firstDayOfWeek={firstDayOfWeekObj}
+          setFirstDayOfWeek={handleFirstDayOfWeekChange}
+          timezone={timezone}
+          setTimezone={handleTimezoneChange}
+          defaultView={CalendarViewType.create(
+            defaultView as CalendarViewTypeValue,
+          )}
+          setDefaultView={(view: CalendarViewType) =>
+            handleDefaultViewChange(view.value as CalendarViewTypeValue)
+          }
+          enableShortcuts={enableShortcuts}
+          setEnableShortcuts={handleEnableShortcutsChange}
+          timeFormat={timeFormatObj}
+          setTimeFormat={(format: TimeFormat) =>
+            handleTimeFormatChange(format.value as TimeFormatValue)
+          }
+          events={events}
+          onImportEvents={handleImportEvents}
+          focusSection={focusUserProfileSection}
+          onFocusSectionHandled={() => setFocusUserProfileSection(null)}
         />
 
         <AlertDialog
