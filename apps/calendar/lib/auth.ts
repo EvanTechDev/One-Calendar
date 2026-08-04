@@ -123,7 +123,11 @@ export const auth = betterAuth({
                 : 'Your One Calendar verification code',
             title:
               type === 'forget-password' ? 'Reset code' : 'Verification code',
-            body: `Use this code to continue: ${otp}`,
+            body:
+              type === 'forget-password'
+                ? 'Use the code below to reset your password.'
+                : 'Use the code below to continue with your One Calendar account.',
+            code: otp,
             secondary: 'This code will expire shortly for your security.',
           }),
         })

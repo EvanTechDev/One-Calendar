@@ -7,7 +7,7 @@ import {
   FirstDayOfWeek,
   ViewConfig,
   TimeFormat,
-} from '@/components/app/calendar-types'
+} from '@/lib/calendar-types'
 
 const baseEvent: CalendarEvent = {
   id: '1',

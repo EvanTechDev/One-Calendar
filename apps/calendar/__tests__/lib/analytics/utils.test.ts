@@ -14,9 +14,9 @@ import {
   formatHourRange,
   calculateDaySpanInHours,
   addDurationByDayCategory,
-} from '@/components/app/analytics/analytics-utils'
+} from '@/lib/analytics/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type { AnalyticsEvent } from '@/components/app/analytics/analytics-types'
+import type { AnalyticsEvent } from '@/lib/analytics/types'
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return {

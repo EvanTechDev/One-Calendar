@@ -1,6 +1,6 @@
 'use client'
 
-import SharedEventView from '@/components/app/profile/shared-event'
+import SharedEventView from '@/components/app/share/shared-event'
 import { useParams } from 'next/navigation'
 
 export default function SharePage() {

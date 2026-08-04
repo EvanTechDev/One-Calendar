@@ -10,7 +10,7 @@ import {
   formatTimeForDisplay,
   formatHourMinute,
 } from '@/components/app/views/engine/EventLayoutEngine'
-import { TimeFormat } from '@/components/app/calendar-types'
+import { TimeFormat } from '@/lib/calendar-types'
 import type { CalendarEvent } from '@/components/app/calendar'
 
 // Use UTC dates to avoid timezone issues in test environment

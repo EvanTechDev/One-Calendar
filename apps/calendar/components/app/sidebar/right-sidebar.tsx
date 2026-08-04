@@ -6,7 +6,7 @@ import { CountdownTool } from './countdown'
 import { useState } from 'react'
 import { cn } from '@zntr/utils'
 
-import type { ViewType } from '@/components/app/calendar-types'
+import type { ViewType } from '@/lib/calendar-types'
 
 interface RightSidebarProps {
   onViewChange?: (view: ViewType) => void

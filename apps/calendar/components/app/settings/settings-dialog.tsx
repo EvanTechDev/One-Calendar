@@ -48,7 +48,7 @@ import UserProfileButton, {
 import ShareManagement from '@/components/app/analytics/share-management'
 import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'
-import MCPSettings from '@/components/app/settings/mcp/mcp-settings'
+import MCPSettings from '@/components/app/settings/mcp-settings'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   isCalendarView,
@@ -57,7 +57,7 @@ import {
   FirstDayOfWeek,
   type FirstDayOfWeekValue,
   TimeFormat,
-} from '@/components/app/calendar-types'
+} from '@/lib/calendar-types'
 
 type SettingsSection =
   | 'general'

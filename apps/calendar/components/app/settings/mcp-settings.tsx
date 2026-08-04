@@ -11,13 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@zntr/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
+  CardAction,
 } from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { Checkbox } from '@zntr/ui/checkbox'
@@ -96,32 +96,19 @@ export default function MCPSettings() {
   const t = translations[language]
 
   return (
-    <div className="w-full rounded-lg border p-4 space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h2 className="text-base font-semibold">{t.settingsMcp}</h2>
         <p className="text-sm text-muted-foreground">{t.settingsMcpDesc}</p>
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
-          <TabsTrigger value="oauth">Authorized Apps</TabsTrigger>
-          <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview">
-          <MCPOverview />
-        </TabsContent>
-        <TabsContent value="api-keys">
-          <MCPApiKeys />
-        </TabsContent>
-        <TabsContent value="oauth">
-          <MCPOAuthApps />
-        </TabsContent>
-        <TabsContent value="audit-logs">
-          <MCPAuditLogs />
-        </TabsContent>
-      </Tabs>
+      <MCPOverview />
+
+      <MCPApiKeys />
+
+      <MCPOAuthApps />
+
+      <MCPAuditLogs />
     </div>
   )
 }
@@ -207,7 +194,7 @@ function MCPOverview() {
         </CardHeader>
         <CardContent>
           <ol className="text-sm space-y-2 list-decimal list-inside">
-            <li>Create an API key in the API Keys tab</li>
+            <li>Create an API key in the API Keys section</li>
             <li>Copy the endpoint URL above</li>
             <li>
               Configure your AI agent (Claude, ChatGPT, etc.) with the endpoint
@@ -298,14 +285,120 @@ function MCPApiKeys() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>API Keys</CardTitle>
+          <CardDescription>
+            Create and manage API keys for AI agents.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>API Keys</CardTitle>
+        <CardDescription>
+          Create and manage API keys for AI agents.
+        </CardDescription>
+        <CardAction>
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            New Key
+          </Button>
+        </CardAction>
+      </CardHeader>
+
+      <CardContent>
+        {keys.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No API keys created yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {keys.map((key) => (
+              <div key={key.id} className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">{key.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setEditingScopes({ id: key.id, scopes: key.scopes })
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Scopes — {key.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-2">
+                          {ALL_SCOPE_OPTIONS.map((opt) => (
+                            <label
+                              key={opt.value}
+                              className="flex items-center gap-2 text-sm p-2 rounded hover:bg-muted cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={
+                                  editingScopes?.scopes.includes(opt.value) ??
+                                  false
+                                }
+                                onCheckedChange={() => toggleScope(opt.value)}
+                              />
+                              {opt.label}
+                            </label>
+                          ))}
+                        </div>
+                        <Button className="w-full" onClick={saveScopes}>
+                          Save Scopes
+                        </Button>
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Delete ${key.name}`}
+                      onClick={() => setDeletingKey(key)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                  <span>{key.keyPrefix}...</span>
+                  {key.lastUsedAt && (
+                    <span>
+                      · Last used:{' '}
+                      {new Date(key.lastUsedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {key.scopes.map((scope) => (
+                    <Badge key={scope} variant="secondary">
+                      {scope}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
       <Dialog
         open={!!createdKey}
         onOpenChange={(o) => !o && setCreatedKey(null)}
@@ -401,96 +494,6 @@ function MCPApiKeys() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium">API Keys</h3>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          New Key
-        </Button>
-      </div>
-
-      {keys.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          No API keys created yet.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {keys.map((key) => (
-            <div key={key.id} className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Key className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{key.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setEditingScopes({ id: key.id, scopes: key.scopes })
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Scopes — {key.name}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-2">
-                        {ALL_SCOPE_OPTIONS.map((opt) => (
-                          <label
-                            key={opt.value}
-                            className="flex items-center gap-2 text-sm p-2 rounded hover:bg-muted cursor-pointer"
-                          >
-                            <Checkbox
-                              checked={
-                                editingScopes?.scopes.includes(opt.value) ??
-                                false
-                              }
-                              onCheckedChange={() => toggleScope(opt.value)}
-                            />
-                            {opt.label}
-                          </label>
-                        ))}
-                      </div>
-                      <Button className="w-full" onClick={saveScopes}>
-                        Save Scopes
-                      </Button>
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Delete ${key.name}`}
-                    onClick={() => setDeletingKey(key)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                <span>{key.keyPrefix}...</span>
-                {key.lastUsedAt && (
-                  <span>
-                    · Last used: {new Date(key.lastUsedAt).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {key.scopes.map((scope) => (
-                  <Badge key={scope} variant="secondary">
-                    {scope}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       <AlertDialog
         open={!!deletingKey}
         onOpenChange={(open) => {
@@ -521,7 +524,7 @@ function MCPApiKeys() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Card>
   )
 }
 
@@ -551,54 +554,70 @@ function MCPOAuthApps() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Authorized Applications</CardTitle>
+          <CardDescription>
+            OAuth applications authorized to access your calendar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-medium">Authorized Applications</h3>
-
-      {apps.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          No OAuth applications authorized yet.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {apps.map((app) => (
-            <div key={app.id} className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{app.clientName}</span>
+    <Card>
+      <CardHeader>
+        <CardTitle>Authorized Applications</CardTitle>
+        <CardDescription>
+          OAuth applications authorized to access your calendar.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {apps.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No OAuth applications authorized yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {apps.map((app) => (
+              <div key={app.id} className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">
+                      {app.clientName}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => revokeApp(app.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => revokeApp(app.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex flex-wrap gap-1">
+                  {app.scopes.map((scope) => (
+                    <Badge key={scope} variant="secondary">
+                      {scope}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Authorized {new Date(app.createdAt).toLocaleDateString()}
+                  {app.expiresAt &&
+                    ` · Expires ${new Date(app.expiresAt).toLocaleDateString()}`}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {app.scopes.map((scope) => (
-                  <Badge key={scope} variant="secondary">
-                    {scope}
-                  </Badge>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Authorized {new Date(app.createdAt).toLocaleDateString()}
-                {app.expiresAt &&
-                  ` · Expires ${new Date(app.expiresAt).toLocaleDateString()}`}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -622,82 +641,96 @@ function MCPAuditLogs() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Audit Logs</CardTitle>
+          <CardDescription>
+            MCP operations performed against your calendar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-medium">Audit Logs</h3>
-
-      {logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          No MCP operations logged yet.
-        </p>
-      ) : (
-        <>
-          <div className="space-y-2">
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className="rounded-lg border p-3 flex items-start gap-3"
-              >
-                {log.success ? (
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">{log.action}</span>
-                    <Badge variant="secondary">{log.authType}</Badge>
-                    {log.resourceType && (
-                      <span className="text-xs text-muted-foreground">
-                        {log.resourceType}
-                        {log.resourceId && `:${log.resourceId.slice(0, 8)}`}
-                      </span>
-                    )}
-                  </div>
-                  {log.errorMessage && (
-                    <p className="text-xs text-red-500 mt-1 truncate">
-                      {log.errorMessage}
-                    </p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Audit Logs</CardTitle>
+        <CardDescription>
+          MCP operations performed against your calendar.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {logs.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No MCP operations logged yet.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="rounded-lg border p-3 flex items-start gap-3"
+                >
+                  {log.success ? (
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{log.action}</span>
+                      <Badge variant="secondary">{log.authType}</Badge>
+                      {log.resourceType && (
+                        <span className="text-xs text-muted-foreground">
+                          {log.resourceType}
+                          {log.resourceId && `:${log.resourceId.slice(0, 8)}`}
+                        </span>
+                      )}
+                    </div>
+                    {log.errorMessage && (
+                      <p className="text-xs text-red-500 mt-1 truncate">
+                        {log.errorMessage}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground self-center">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
+              ))}
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground self-center">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

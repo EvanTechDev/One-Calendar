@@ -17,7 +17,7 @@ import {
   EVENT_BG_TO_DARK,
   DEFAULT_ACCENT,
 } from '@/components/app/views/event-colors'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { useCallback, useEffect, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 

@@ -56,7 +56,7 @@ import {
   type CalendarViewTypeValue,
   type FirstDayOfWeekValue,
   type TimeFormatValue,
-} from '@/components/app/calendar-types'
+} from '@/lib/calendar-types'
 import { toast } from 'sonner'
 import {
   InputGroup,

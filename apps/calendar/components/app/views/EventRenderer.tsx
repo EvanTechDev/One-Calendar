@@ -4,7 +4,7 @@ import type React from 'react'
 import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 import { translations } from '@zntr/i18n/calendar'
 import {

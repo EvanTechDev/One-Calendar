@@ -32,7 +32,7 @@ import {
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
 } from '@/components/app/views/event-colors'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),

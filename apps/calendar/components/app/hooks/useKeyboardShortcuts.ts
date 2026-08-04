@@ -2,10 +2,7 @@
 
 import { useEffect } from 'react'
 import { useLanguage } from '@zntr/i18n/calendar'
-import {
-  type CalendarViewType,
-  type ViewType,
-} from '@/components/app/calendar-types'
+import { type CalendarViewType, type ViewType } from '@/lib/calendar-types'
 
 interface UseKeyboardShortcutsOptions {
   date: Date

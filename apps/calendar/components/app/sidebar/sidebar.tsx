@@ -42,7 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@zntr/ui/dropdown-menu'
 
-import type { ViewType } from '@/components/app/calendar-types'
+import type { ViewType } from '@/lib/calendar-types'
 
 interface SidebarProps {
   onCreateEvent: () => void

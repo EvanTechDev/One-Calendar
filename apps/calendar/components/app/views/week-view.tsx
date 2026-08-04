@@ -15,7 +15,7 @@ import {
 import { cn } from '@zntr/utils'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
