@@ -55,6 +55,8 @@ interface DataContextValue {
   settings: SettingsData
   loading: LoadingState
   error: string | null
+  eventsLoaded: boolean
+  categoriesLoaded: boolean
 
   refresh: () => Promise<void>
   refreshEvents: () => Promise<void>
@@ -118,6 +120,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const loading: LoadingState = settled ? (failed.length > 0 ? 'error' : 'loaded') : 'loading'
   const error =
     failed[0]?.error instanceof Error ? failed[0].error.message : null
+  const eventsLoaded =
+    eventsReq.data !== undefined || eventsReq.error !== undefined
+  const categoriesLoaded =
+    categoriesReq.data !== undefined || categoriesReq.error !== undefined
 
   const eventsRef = useRef(events)
   eventsRef.current = events
@@ -425,6 +431,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         settings,
         loading,
         error,
+        eventsLoaded,
+        categoriesLoaded,
         refresh,
         refreshEvents,
         refreshCategories,
