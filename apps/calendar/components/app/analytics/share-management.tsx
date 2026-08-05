@@ -38,7 +38,6 @@ interface SharedEvent {
 export default function ShareManagement() {
   const [language] = useLanguage()
   const t = translations[language]
-  const [sharedEvents, setSharedEvents] = useState<SharedEvent[]>([])
   const [selectedShare, setSelectedShare] = useState<SharedEvent | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -117,8 +116,8 @@ export default function ShareManagement() {
 
       const parsed = JSON.parse(data.data)
 
-      setSharedEvents((prev) =>
-        prev.map((s) =>
+      mutate((cur) => ({
+        shares: (cur?.shares ?? []).map((s) =>
           s.id === decryptingShare.id
             ? {
                 ...s,
@@ -128,7 +127,7 @@ export default function ShareManagement() {
               }
             : s,
         ),
-      )
+      }))
 
       toast.success(t.decrypted)
       setPasswordDialogOpen(false)
