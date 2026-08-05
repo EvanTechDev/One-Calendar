@@ -12,7 +12,8 @@ import { Copy, ExternalLink, Lock, Trash2 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { fetchJson } from '@/lib/fetch-json'
@@ -49,22 +50,12 @@ export default function ShareManagement() {
   )
   const [isDecrypting, setIsDecrypting] = useState(false)
 
-  useEffect(() => {
-    async function fetchSharedEvents() {
-      try {
-        const data = await fetchJson<{ shares?: SharedEvent[] }>(
-          '/api/share/list',
-        )
-        setSharedEvents(data.shares || [])
-      } catch (error) {
-        console.error('Error fetching shared events:', error)
-        toast.error(t.shareManagementLoadFailed, {
-          description: error instanceof Error ? error.message : '',
-        })
-      }
-    }
-    fetchSharedEvents()
-  }, [language])
+  const { data, mutate } = useSWR<{ shares?: SharedEvent[] }>(
+    '/api/share/list',
+    () => fetchJson<{ shares?: SharedEvent[] }>('/api/share/list'),
+    { staleTime: 300_000 },
+  )
+  const sharedEvents = data?.shares ?? []
 
   const formatDate = (dateString: string) => {
     try {
@@ -85,17 +76,22 @@ export default function ShareManagement() {
 
   const deleteShare = async () => {
     if (!selectedShare) return
+    setIsDeleting(true)
+    const prev = sharedEvents
+    mutate(
+      { shares: prev.filter((s) => s.id !== selectedShare.id) },
+      { revalidate: false },
+    )
     try {
-      setIsDeleting(true)
       const res = await fetch('/api/share', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedShare.id }),
       })
       if (!res.ok) throw new Error('Failed to delete share')
-      setSharedEvents(sharedEvents.filter((s) => s.id !== selectedShare.id))
       toast.success(t.shareDeleted)
     } catch {
+      mutate({ shares: prev }, { revalidate: false })
       toast.error(t.shareDeleteFailed)
     } finally {
       setIsDeleting(false)

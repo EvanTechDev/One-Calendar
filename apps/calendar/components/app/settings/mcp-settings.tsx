@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
+import { fetchJson } from '@/lib/fetch-json'
 import { Button } from '@zntr/ui/button'
 import { Switch } from '@zntr/ui/switch'
 import { Label } from '@zntr/ui/label'
@@ -114,28 +116,29 @@ export default function MCPSettings() {
 }
 
 function MCPOverview() {
-  const [enabled, setEnabled] = useState(true)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/mcp/settings')
-      .then((r) => r.json())
-      .then((data) => {
-        setEnabled(data.settings?.enabled ?? true)
-      })
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, isLoading, mutate } = useSWR<{
+    settings?: { enabled?: boolean }
+  }>(
+    '/api/mcp/settings',
+    () => fetchJson<{ settings?: { enabled?: boolean } }>('/api/mcp/settings'),
+    { staleTime: 300_000 },
+  )
+  const enabled = data?.settings?.enabled ?? true
 
   const toggleMcp = async (value: boolean) => {
-    setEnabled(value)
-    await fetch('/api/mcp/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: value }),
-    })
+    mutate({ settings: { enabled: value } }, { revalidate: false })
+    try {
+      await fetchJson('/api/mcp/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: value }),
+      })
+    } catch {
+      mutate()
+    }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-8">
         <Spinner className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -209,8 +212,6 @@ function MCPOverview() {
 }
 
 function MCPApiKeys() {
-  const [keys, setKeys] = useState<ApiKey[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyScopes, setNewKeyScopes] = useState<string[]>(['events:read'])
@@ -223,47 +224,47 @@ function MCPApiKeys() {
   const [deletingKey, setDeletingKey] = useState<ApiKey | null>(null)
   const [isDeletingKey, setIsDeletingKey] = useState(false)
 
-  const loadKeys = useCallback(async () => {
-    const res = await fetch('/api/mcp/api-keys')
-    const data = await res.json()
-    setKeys(data.keys ?? [])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    loadKeys()
-  }, [loadKeys])
+  const { data, isLoading, mutate } = useSWR<{ keys: ApiKey[] }>(
+    '/api/mcp/api-keys',
+    () => fetchJson<{ keys: ApiKey[] }>('/api/mcp/api-keys'),
+    { staleTime: 300_000 },
+  )
+  const keys = data?.keys ?? []
 
   const createKey = async () => {
     if (!newKeyName.trim()) return
-    const res = await fetch('/api/mcp/api-keys', {
+    const res = await fetchJson<{ key: string }>('/api/mcp/api-keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newKeyName, scopes: newKeyScopes }),
     })
-    const data = await res.json()
-    setCreatedKey(data.key)
+    setCreatedKey(res.key)
     setShowCreate(false)
     setNewKeyName('')
-    loadKeys()
+    mutate()
   }
 
   const deleteKey = async () => {
     if (!deletingKey) return
     setIsDeletingKey(true)
-    await fetch('/api/mcp/api-keys', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: deletingKey.id }),
-    })
+    const prev = data?.keys ?? []
+    mutate({ keys: prev.filter((k) => k.id !== deletingKey.id) }, { revalidate: false })
+    try {
+      await fetchJson('/api/mcp/api-keys', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deletingKey.id }),
+      })
+    } catch {
+      mutate({ keys: prev }, { revalidate: false })
+    }
     setDeletingKey(null)
     setIsDeletingKey(false)
-    loadKeys()
   }
 
   const saveScopes = async () => {
     if (!editingScopes) return
-    await fetch('/api/mcp/api-keys', {
+    await fetchJson('/api/mcp/api-keys', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -272,7 +273,7 @@ function MCPApiKeys() {
       }),
     })
     setEditingScopes(null)
-    loadKeys()
+    mutate()
   }
 
   const toggleScope = (scope: string) => {
@@ -283,7 +284,7 @@ function MCPApiKeys() {
     setEditingScopes({ ...editingScopes, scopes })
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -529,30 +530,28 @@ function MCPApiKeys() {
 }
 
 function MCPOAuthApps() {
-  const [apps, setApps] = useState<AuthorizedApp[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const loadApps = useCallback(async () => {
-    const res = await fetch('/api/mcp/authorized-apps')
-    const data = await res.json()
-    setApps(data.apps ?? [])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    loadApps()
-  }, [loadApps])
+  const { data, isLoading, mutate } = useSWR<{ apps: AuthorizedApp[] }>(
+    '/api/mcp/authorized-apps',
+    () => fetchJson<{ apps: AuthorizedApp[] }>('/api/mcp/authorized-apps'),
+    { staleTime: 300_000 },
+  )
+  const apps = data?.apps ?? []
 
   const revokeApp = async (id: string) => {
-    await fetch('/api/mcp/authorized-apps', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
-    loadApps()
+    const prev = data?.apps ?? []
+    mutate({ apps: prev.filter((a) => a.id !== id) }, { revalidate: false })
+    try {
+      await fetchJson('/api/mcp/authorized-apps', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+    } catch {
+      mutate({ apps: prev }, { revalidate: false })
+    }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -622,24 +621,23 @@ function MCPOAuthApps() {
 }
 
 function MCPAuditLogs() {
-  const [logs, setLogs] = useState<AuditLog[]>([])
-  const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
 
-  const loadLogs = useCallback(async (p: number) => {
-    const res = await fetch(`/api/mcp/audit-logs?page=${p}&limit=20`)
-    const data = await res.json()
-    setLogs(data.logs ?? [])
-    setTotalPages(data.pagination?.totalPages ?? 1)
-    setLoading(false)
-  }, [])
+  const { data, isLoading } = useSWR<{
+    logs: AuditLog[]
+    pagination?: { totalPages: number }
+  }>(
+    `/api/mcp/audit-logs?page=${page}&limit=20`,
+    () =>
+      fetchJson<{ logs: AuditLog[]; pagination?: { totalPages: number } }>(
+        `/api/mcp/audit-logs?page=${page}&limit=20`,
+      ),
+    { staleTime: 300_000, keepPreviousData: true },
+  )
+  const logs = data?.logs ?? []
+  const totalPages = data?.pagination?.totalPages ?? 1
 
-  useEffect(() => {
-    loadLogs(page)
-  }, [page, loadLogs])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>

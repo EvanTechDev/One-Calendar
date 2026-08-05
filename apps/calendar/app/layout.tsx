@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
 import { CalendarProvider } from '@/components/providers/calendar-context'
-import { DataProvider } from '@/components/providers/data-provider'
+import { SwrProvider } from '@/components/providers/swr-provider'
 import type { Metadata } from 'next'
 import type React from 'react'
 import { AVAILABLE_THEMES } from '@/lib/theme'
@@ -61,13 +61,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <DataProvider>
-            <CalendarProvider>
-              <PwaProvider />
-              {children}
-              <Toaster />
-            </CalendarProvider>
-          </DataProvider>
+        <SwrProvider>
+          <CalendarProvider>
+            <PwaProvider />
+            {children}
+            <Toaster />
+          </CalendarProvider>
+        </SwrProvider>
         </ThemeProvider>
       </body>
     </html>

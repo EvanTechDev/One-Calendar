@@ -35,7 +35,6 @@ import {
   useEvents,
   useBookmarks,
 } from '@/components/providers/data-provider'
-import { api } from '@/lib/api-client'
 import { getValidTimezone } from '@/lib/timezone'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
@@ -139,7 +138,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
   const { upsertEvent, deleteEvent } = useEvents()
-  const { createBookmark, deleteBookmarkByEvent } = useBookmarks()
+  const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
   )
@@ -693,7 +692,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const toggleBookmark = async (event: CalendarEvent) => {
-    const { bookmarks } = await api.bookmarks.list()
     const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
     if (isBookmarked) {
       await deleteBookmarkByEvent(event.id)

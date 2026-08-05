@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Viewport } from 'next'
+import { DataProvider } from '@/components/providers/data-provider'
 
 export const viewport: Viewport = {
   themeColor: [
@@ -9,5 +10,7 @@ export const viewport: Viewport = {
 }
 
 export default function AppPageLayout({ children }: { children: ReactNode }) {
-  return children
+  // DataProvider stays scoped to the signed-in calendar app — public pages
+  // (landing, share, privacy, …) mount outside it and make zero data requests.
+  return <DataProvider>{children}</DataProvider>
 }
