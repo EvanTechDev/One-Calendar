@@ -508,10 +508,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const handleNavigateAndPreview = (event: CalendarEvent) => {
-    setDate(new Date(event.startDate))
-    setView(defaultView as ViewType)
-    setPreviewEvent(event)
     const eventId = (event as any).eventId ?? event.id
+    const realEvent = events.find((e) => e.id === eventId) ?? event
+    setDate(new Date(realEvent.startDate))
+    setView(defaultView as ViewType)
+    setPreviewEvent(realEvent)
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-event-id="${eventId}"]`)
       if (el) {

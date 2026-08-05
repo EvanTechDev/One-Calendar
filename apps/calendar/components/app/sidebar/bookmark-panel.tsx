@@ -25,6 +25,7 @@ import {
 } from '@zntr/ui/empty'
 import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
 import { useBookmarks } from '@/components/providers/data-provider'
+import { useCalendar } from '@/components/providers/calendar-context'
 
 interface BookmarkPanelProps {
   open: boolean
@@ -68,23 +69,27 @@ export default function BookmarkPanel({
   const t = translations[language]
   const isZh = isZhLanguage(language)
   const { bookmarks: serverBookmarks, deleteBookmark } = useBookmarks()
+  const { events } = useCalendar()
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     setBookmarks(
-      serverBookmarks.map((bm) => ({
-        id: bm.id,
-        eventId: bm.eventId,
-        title: bm.event?.title ?? '',
-        startDate: bm.event?.startDate ?? '',
-        endDate: bm.event?.endDate ?? '',
-        color: bm.event?.color ?? 'bg-[#E6F6FD]',
-        location: bm.event?.location ?? undefined,
-        bookmarkedAt: bm.createdAt,
-      })),
+      serverBookmarks.map((bm) => {
+        const live = events.find((e) => e.id === bm.eventId)
+        return {
+          id: bm.id,
+          eventId: bm.eventId,
+          title: live?.title ?? bm.event?.title ?? '',
+          startDate: live?.startDate ?? bm.event?.startDate ?? '',
+          endDate: live?.endDate ?? bm.event?.endDate ?? '',
+          color: live?.color ?? bm.event?.color ?? 'bg-[#E6F6FD]',
+          location: live?.location ?? bm.event?.location ?? undefined,
+          bookmarkedAt: bm.createdAt,
+        }
+      }),
     )
-  }, [serverBookmarks])
+  }, [serverBookmarks, events])
 
   const formatEventDate = (dateString: string | Date) => {
     const date = new Date(dateString)
@@ -104,7 +109,7 @@ export default function BookmarkPanel({
 
   const handleEventClick = (event: BookmarkedEvent) => {
     onOpenChange(false)
-    onEventClick(event)
+    onEventClick({ ...event, id: event.eventId })
   }
 
   const filteredBookmarks = bookmarks.filter(
