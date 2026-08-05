@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import useSWR from 'swr'
+import useSWR, { type SWRConfiguration } from 'swr'
 import { fetchJson } from '@/lib/fetch-json'
+import { removeById } from '@/lib/array-mutations'
+import { toast } from 'sonner'
 import { Button } from '@zntr/ui/button'
 import { Switch } from '@zntr/ui/switch'
 import { Label } from '@zntr/ui/label'
@@ -62,6 +64,17 @@ const ALL_SCOPE_OPTIONS = [
   { value: 'profile:read', label: 'profile:read' },
 ]
 
+const MCP_KEYS = {
+  settings: '/api/mcp/settings',
+  apiKeys: '/api/mcp/api-keys',
+  authorizedApps: '/api/mcp/authorized-apps',
+  auditLogs: (page: number) => `/api/mcp/audit-logs?page=${page}&limit=20`,
+} as const
+
+function useMcpQuery<T>(key: string, config?: SWRConfiguration<T>) {
+  return useSWR<T>(key, (k) => fetchJson<T>(k as string), config)
+}
+
 interface ApiKey {
   id: string
   name: string
@@ -116,25 +129,27 @@ export default function MCPSettings() {
 }
 
 function MCPOverview() {
-  const { data, isLoading, mutate } = useSWR<{
+  const { data, isLoading, mutate } = useMcpQuery<{
     settings?: { enabled?: boolean }
-  }>(
-    '/api/mcp/settings',
-    () => fetchJson<{ settings?: { enabled?: boolean } }>('/api/mcp/settings'),
-    { staleTime: 300_000 },
-  )
+  }>(MCP_KEYS.settings)
   const enabled = data?.settings?.enabled ?? true
 
   const toggleMcp = async (value: boolean) => {
+    const prev = data?.settings
     mutate({ settings: { enabled: value } }, { revalidate: false })
     try {
-      await fetchJson('/api/mcp/settings', {
+      await fetchJson(MCP_KEYS.settings, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: value }),
       })
     } catch {
-      mutate()
+      if (prev !== undefined) {
+        mutate({ settings: prev }, { revalidate: false })
+      } else {
+        mutate()
+      }
+      toast.error('Failed to update MCP settings')
     }
   }
 
@@ -224,16 +239,14 @@ function MCPApiKeys() {
   const [deletingKey, setDeletingKey] = useState<ApiKey | null>(null)
   const [isDeletingKey, setIsDeletingKey] = useState(false)
 
-  const { data, isLoading, mutate } = useSWR<{ keys: ApiKey[] }>(
-    '/api/mcp/api-keys',
-    () => fetchJson<{ keys: ApiKey[] }>('/api/mcp/api-keys'),
-    { staleTime: 300_000 },
+  const { data, isLoading, mutate } = useMcpQuery<{ keys: ApiKey[] }>(
+    MCP_KEYS.apiKeys,
   )
   const keys = data?.keys ?? []
 
   const createKey = async () => {
     if (!newKeyName.trim()) return
-    const res = await fetchJson<{ key: string }>('/api/mcp/api-keys', {
+    const res = await fetchJson<{ key: string }>(MCP_KEYS.apiKeys, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newKeyName, scopes: newKeyScopes }),
@@ -248,15 +261,17 @@ function MCPApiKeys() {
     if (!deletingKey) return
     setIsDeletingKey(true)
     const prev = data?.keys ?? []
-    mutate({ keys: prev.filter((k) => k.id !== deletingKey.id) }, { revalidate: false })
+    mutate({ keys: removeById(prev, deletingKey.id) }, { revalidate: false })
     try {
-      await fetchJson('/api/mcp/api-keys', {
+      await fetchJson(MCP_KEYS.apiKeys, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: deletingKey.id }),
       })
+      toast.success('API key deleted')
     } catch {
       mutate({ keys: prev }, { revalidate: false })
+      toast.error('Failed to delete API key')
     }
     setDeletingKey(null)
     setIsDeletingKey(false)
@@ -264,7 +279,7 @@ function MCPApiKeys() {
 
   const saveScopes = async () => {
     if (!editingScopes) return
-    await fetchJson('/api/mcp/api-keys', {
+    await fetchJson(MCP_KEYS.apiKeys, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -530,24 +545,24 @@ function MCPApiKeys() {
 }
 
 function MCPOAuthApps() {
-  const { data, isLoading, mutate } = useSWR<{ apps: AuthorizedApp[] }>(
-    '/api/mcp/authorized-apps',
-    () => fetchJson<{ apps: AuthorizedApp[] }>('/api/mcp/authorized-apps'),
-    { staleTime: 300_000 },
+  const { data, isLoading, mutate } = useMcpQuery<{ apps: AuthorizedApp[] }>(
+    MCP_KEYS.authorizedApps,
   )
   const apps = data?.apps ?? []
 
   const revokeApp = async (id: string) => {
     const prev = data?.apps ?? []
-    mutate({ apps: prev.filter((a) => a.id !== id) }, { revalidate: false })
+    mutate({ apps: removeById(prev, id) }, { revalidate: false })
     try {
-      await fetchJson('/api/mcp/authorized-apps', {
+      await fetchJson(MCP_KEYS.authorizedApps, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
+      toast.success('OAuth app revoked')
     } catch {
       mutate({ apps: prev }, { revalidate: false })
+      toast.error('Failed to revoke OAuth app')
     }
   }
 
@@ -623,17 +638,10 @@ function MCPOAuthApps() {
 function MCPAuditLogs() {
   const [page, setPage] = useState(1)
 
-  const { data, isLoading } = useSWR<{
+  const { data, isLoading } = useMcpQuery<{
     logs: AuditLog[]
     pagination?: { totalPages: number }
-  }>(
-    `/api/mcp/audit-logs?page=${page}&limit=20`,
-    () =>
-      fetchJson<{ logs: AuditLog[]; pagination?: { totalPages: number } }>(
-        `/api/mcp/audit-logs?page=${page}&limit=20`,
-      ),
-    { staleTime: 300_000, keepPreviousData: true },
-  )
+  }>(MCP_KEYS.auditLogs(page), { keepPreviousData: true })
   const logs = data?.logs ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
 

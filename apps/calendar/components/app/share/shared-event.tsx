@@ -27,6 +27,7 @@ import { isZhLanguage, useLanguage } from '@zntr/i18n/calendar'
 
 import { Button } from '@zntr/ui/button'
 import { useCalendar } from '@/components/providers/calendar-context'
+import { api } from '@/lib/api-client'
 import { motion } from 'framer-motion'
 import { Badge } from '@zntr/ui/badge'
 import { Card, CardContent, CardDescription, CardTitle } from '@zntr/ui/card'
@@ -110,7 +111,7 @@ export default function SharedEventView({
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const [isAdding, setIsAdding] = useState(false)
-  const { calendars, events, setEvents } = useCalendar()
+  const { calendars, setEvents } = useCalendar()
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -279,6 +280,19 @@ export default function SharedEventView({
       )
       if (!calendarExists) targetCalendarId = calendars[0]?.id ?? 'default'
 
+      await api.events.create({
+        title: event.title,
+        description: event.description ?? null,
+        location: event.location ?? null,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        isAllDay: event.isAllDay,
+        color: event.color,
+        categoryId: targetCalendarId,
+        participants: event.participants.map((name) => ({ name })),
+        notificationMinutes: event.notification ?? null,
+      })
+
       const newEvent = {
         ...event,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -288,7 +302,7 @@ export default function SharedEventView({
         recurrence: event.recurrence ?? 'none',
       }
 
-      setEvents([...events, newEvent])
+      setEvents((prev) => [...prev, newEvent])
 
       toast({
         title: isZh ? '添加成功' : 'Added Successfully',

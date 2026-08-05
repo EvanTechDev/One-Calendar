@@ -1,5 +1,7 @@
 import { fetchJson } from '@/lib/fetch-json'
 
+export const SHARE_LIST_KEY = '/api/share/list'
+
 export type EventData = {
   id: string
   userId: string
@@ -184,7 +186,7 @@ export const api = {
   },
 
   shares: {
-    list: () => fetchJson<{ shares: ShareData[] }>('/api/share/list'),
+    list: () => fetchJson<{ shares: ShareData[] }>(SHARE_LIST_KEY),
     create: (data: {
       eventId: string
       password?: string

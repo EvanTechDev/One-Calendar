@@ -60,11 +60,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-        <SwrProvider>
-          <PwaProvider />
-          {children}
-          <Toaster />
-        </SwrProvider>
+          <SwrProvider>
+            <PwaProvider />
+            {children}
+            <Toaster />
+          </SwrProvider>
         </ThemeProvider>
       </body>
     </html>

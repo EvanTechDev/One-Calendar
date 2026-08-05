@@ -18,8 +18,9 @@ import {
   type SettingsData,
 } from '@/lib/api-client'
 import { toast } from 'sonner'
+import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 
-type LoadingState = 'idle' | 'loading' | 'loaded' | 'error'
+type LoadingState = 'loading' | 'loaded' | 'error'
 
 // Keys are the API URLs — the global SWR cache dedupes across remounts,
 // so re-entering the app or switching tabs within a session reuses cached data.
@@ -30,22 +31,6 @@ export const DATA_KEYS = {
   bookmarks: '/api/bookmarks',
   settings: '/api/settings',
 } as const
-
-// Events can change from other devices, so keep them fresh within 60s.
-// Settings/categories/countdowns/bookmarks rarely change externally — 5min.
-const STALE_TIME: Record<keyof typeof DATA_KEYS, number> = {
-  events: 60_000,
-  categories: 300_000,
-  countdowns: 300_000,
-  bookmarks: 300_000,
-  settings: 300_000,
-}
-
-const fetchEvents = () => api.events.list()
-const fetchCategories = () => api.categories.list()
-const fetchCountdowns = () => api.countdowns.list()
-const fetchBookmarks = () => api.bookmarks.list()
-const fetchSettings = () => api.settings.get()
 
 interface DataContextValue {
   events: EventData[]
@@ -92,21 +77,15 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const eventsReq = useSWR(DATA_KEYS.events, fetchEvents, {
-    staleTime: STALE_TIME.events,
-  })
-  const categoriesReq = useSWR(DATA_KEYS.categories, fetchCategories, {
-    staleTime: STALE_TIME.categories,
-  })
-  const countdownsReq = useSWR(DATA_KEYS.countdowns, fetchCountdowns, {
-    staleTime: STALE_TIME.countdowns,
-  })
-  const bookmarksReq = useSWR(DATA_KEYS.bookmarks, fetchBookmarks, {
-    staleTime: STALE_TIME.bookmarks,
-  })
-  const settingsReq = useSWR(DATA_KEYS.settings, fetchSettings, {
-    staleTime: STALE_TIME.settings,
-  })
+  const eventsReq = useSWR(DATA_KEYS.events, () => api.events.list())
+  const categoriesReq = useSWR(DATA_KEYS.categories, () =>
+    api.categories.list(),
+  )
+  const countdownsReq = useSWR(DATA_KEYS.countdowns, () =>
+    api.countdowns.list(),
+  )
+  const bookmarksReq = useSWR(DATA_KEYS.bookmarks, () => api.bookmarks.list())
+  const settingsReq = useSWR(DATA_KEYS.settings, () => api.settings.get())
 
   const events = eventsReq.data?.events ?? []
   const categories = categoriesReq.data?.categories ?? []
@@ -114,10 +93,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const bookmarks = bookmarksReq.data?.bookmarks ?? []
   const settings = settingsReq.data?.settings ?? {}
 
-  const requests = [eventsReq, categoriesReq, countdownsReq, bookmarksReq, settingsReq]
+  const requests = [
+    eventsReq,
+    categoriesReq,
+    countdownsReq,
+    bookmarksReq,
+    settingsReq,
+  ]
   const settled = requests.every((r) => r.data !== undefined || r.error)
   const failed = requests.filter((r) => r.error && r.data === undefined)
-  const loading: LoadingState = settled ? (failed.length > 0 ? 'error' : 'loaded') : 'loading'
+  const loading: LoadingState = settled
+    ? failed.length > 0
+      ? 'error'
+      : 'loaded'
+    : 'loading'
   const error =
     failed[0]?.error instanceof Error ? failed[0].error.message : null
   const eventsLoaded =
@@ -127,6 +116,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const eventsRef = useRef(events)
   eventsRef.current = events
+  const categoriesRef = useRef(categories)
+  categoriesRef.current = categories
+  const countdownsRef = useRef(countdowns)
+  countdownsRef.current = countdowns
   const bookmarksRef = useRef(bookmarks)
   bookmarksRef.current = bookmarks
 
@@ -160,7 +153,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refreshBookmarks(),
         refreshSettings(),
       ]).then(() => undefined),
-    [refreshEvents, refreshCategories, refreshCountdowns, refreshBookmarks, refreshSettings],
+    [
+      refreshEvents,
+      refreshCategories,
+      refreshCountdowns,
+      refreshBookmarks,
+      refreshSettings,
+    ],
   )
 
   useEffect(() => {
@@ -225,14 +224,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const res = await api.events.create(data)
         await mutate(
           DATA_KEYS.events,
-          (cur?: { events: EventData[] }) => {
-            if (!cur) return cur
-            const idx = cur.events.findIndex((e) => e.id === res.event.id)
-            const next = [...cur.events]
-            if (idx >= 0) next[idx] = res.event
-            else next.push(res.event)
-            return { events: next }
-          },
+          (cur?: { events: EventData[] }) =>
+            cur ? { events: upsertById(cur.events, res.event) } : cur,
           { revalidate: false },
         )
         return res.event
@@ -248,8 +241,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteEvent = useCallback(async (id: string) => {
     const prev = eventsRef.current
-    const next = prev.filter((e) => e.id !== id)
-    await mutate(DATA_KEYS.events, { events: next }, { revalidate: false })
+    await mutate(
+      DATA_KEYS.events,
+      { events: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.events.delete(id)
     } catch (e) {
@@ -267,14 +263,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const res = await api.categories.create(data)
         await mutate(
           DATA_KEYS.categories,
-          (cur?: { categories: CategoryData[] }) => {
-            if (!cur) return cur
-            const idx = cur.categories.findIndex((c) => c.id === res.category.id)
-            const next = [...cur.categories]
-            if (idx >= 0) next[idx] = res.category
-            else next.push(res.category)
-            return { categories: next }
-          },
+          (cur?: { categories: CategoryData[] }) =>
+            cur
+              ? { categories: upsertById(cur.categories, res.category) }
+              : cur,
           { revalidate: false },
         )
         return res.category
@@ -289,19 +281,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteCategory = useCallback(async (id: string) => {
-    const prev = categories
-    const next = prev.filter((c) => c.id !== id)
-    await mutate(DATA_KEYS.categories, { categories: next }, { revalidate: false })
+    const prev = categoriesRef.current
+    await mutate(
+      DATA_KEYS.categories,
+      { categories: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.categories.delete(id)
     } catch (e) {
-      await mutate(DATA_KEYS.categories, { categories: prev }, { revalidate: false })
+      await mutate(
+        DATA_KEYS.categories,
+        { categories: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete category', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
       throw e
     }
-  }, [categories])
+  }, [])
 
   const createCountdown = useCallback(
     async (data: Parameters<typeof api.countdowns.create>[0]) => {
@@ -309,14 +308,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const res = await api.countdowns.create(data)
         await mutate(
           DATA_KEYS.countdowns,
-          (cur?: { countdowns: CountdownData[] }) => {
-            if (!cur) return cur
-            const idx = cur.countdowns.findIndex((c) => c.id === res.countdown.id)
-            const next = [...cur.countdowns]
-            if (idx >= 0) next[idx] = res.countdown
-            else next.push(res.countdown)
-            return { countdowns: next }
-          },
+          (cur?: { countdowns: CountdownData[] }) =>
+            cur
+              ? { countdowns: upsertById(cur.countdowns, res.countdown) }
+              : cur,
           { revalidate: false },
         )
         return res.countdown
@@ -331,19 +326,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteCountdown = useCallback(async (id: string) => {
-    const prev = countdowns
-    const next = prev.filter((c) => c.id !== id)
-    await mutate(DATA_KEYS.countdowns, { countdowns: next }, { revalidate: false })
+    const prev = countdownsRef.current
+    await mutate(
+      DATA_KEYS.countdowns,
+      { countdowns: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.countdowns.delete(id)
     } catch (e) {
-      await mutate(DATA_KEYS.countdowns, { countdowns: prev }, { revalidate: false })
+      await mutate(
+        DATA_KEYS.countdowns,
+        { countdowns: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete countdown', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
       throw e
     }
-  }, [countdowns])
+  }, [])
 
   const createBookmark = useCallback(
     async (data: Parameters<typeof api.bookmarks.create>[0]) => {
@@ -352,18 +354,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (res.bookmark) {
           const evt = eventsRef.current.find((e) => e.id === data.eventId)
           if (evt) {
+            const item = {
+              id: res.bookmark.id,
+              eventId: res.bookmark.eventId,
+              createdAt: res.bookmark.createdAt,
+              event: evt,
+            }
             await mutate(
               DATA_KEYS.bookmarks,
               (cur?: { bookmarks: BookmarkData[] }) => ({
-                bookmarks: [
-                  {
-                    id: res.bookmark.id,
-                    eventId: res.bookmark.eventId,
-                    createdAt: res.bookmark.createdAt,
-                    event: evt,
-                  },
-                  ...(cur?.bookmarks ?? []),
-                ],
+                bookmarks: upsertBy(
+                  cur?.bookmarks ?? [],
+                  item,
+                  (b) => b.eventId === item.eventId,
+                ),
               }),
               { revalidate: false },
             )
@@ -381,12 +385,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteBookmark = useCallback(async (id: string) => {
     const prev = bookmarksRef.current
-    const next = prev.filter((b) => b.id !== id)
-    await mutate(DATA_KEYS.bookmarks, { bookmarks: next }, { revalidate: false })
+    await mutate(
+      DATA_KEYS.bookmarks,
+      { bookmarks: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.bookmarks.delete(id)
     } catch (e) {
-      await mutate(DATA_KEYS.bookmarks, { bookmarks: prev }, { revalidate: false })
+      await mutate(
+        DATA_KEYS.bookmarks,
+        { bookmarks: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete bookmark', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -396,12 +407,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteBookmarkByEvent = useCallback(async (eventId: string) => {
     const prev = bookmarksRef.current
-    const next = prev.filter((b) => b.eventId !== eventId)
-    await mutate(DATA_KEYS.bookmarks, { bookmarks: next }, { revalidate: false })
+    await mutate(
+      DATA_KEYS.bookmarks,
+      { bookmarks: prev.filter((b) => b.eventId !== eventId) },
+      { revalidate: false },
+    )
     try {
       await api.bookmarks.deleteByEvent(eventId)
     } catch (e) {
-      await mutate(DATA_KEYS.bookmarks, { bookmarks: prev }, { revalidate: false })
+      await mutate(
+        DATA_KEYS.bookmarks,
+        { bookmarks: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete bookmark', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -412,7 +430,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback(async (data: SettingsData) => {
     try {
       const res = await api.settings.update(data)
-      await mutate(DATA_KEYS.settings, { settings: res.settings }, { revalidate: false })
+      await mutate(
+        DATA_KEYS.settings,
+        { settings: res.settings },
+        { revalidate: false },
+      )
     } catch (e) {
       toast.error('Failed to update settings', {
         description: e instanceof Error ? e.message : 'Unknown',

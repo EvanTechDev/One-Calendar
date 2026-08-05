@@ -17,6 +17,8 @@ import useSWR from 'swr'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { fetchJson } from '@/lib/fetch-json'
+import { api, SHARE_LIST_KEY } from '@/lib/api-client'
+import { removeById } from '@/lib/array-mutations'
 import {
   Empty,
   EmptyDescription,
@@ -50,9 +52,8 @@ export default function ShareManagement() {
   const [isDecrypting, setIsDecrypting] = useState(false)
 
   const { data, mutate } = useSWR<{ shares?: SharedEvent[] }>(
-    '/api/share/list',
-    () => fetchJson<{ shares?: SharedEvent[] }>('/api/share/list'),
-    { staleTime: 300_000 },
+    SHARE_LIST_KEY,
+    () => fetchJson<{ shares?: SharedEvent[] }>(SHARE_LIST_KEY),
   )
   const sharedEvents = data?.shares ?? []
 
@@ -78,16 +79,11 @@ export default function ShareManagement() {
     setIsDeleting(true)
     const prev = sharedEvents
     mutate(
-      { shares: prev.filter((s) => s.id !== selectedShare.id) },
+      { shares: removeById(prev, selectedShare.id) },
       { revalidate: false },
     )
     try {
-      const res = await fetch('/api/share', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedShare.id }),
-      })
-      if (!res.ok) throw new Error('Failed to delete share')
+      await api.shares.delete(selectedShare.id)
       toast.success(t.shareDeleted)
     } catch {
       mutate({ shares: prev }, { revalidate: false })

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
-import { DataProvider, useCountdowns } from '@/components/providers/data-provider'
+import {
+  DataProvider,
+  useCountdowns,
+} from '@/components/providers/data-provider'
 import {
   CalendarProvider,
   useCalendar,
@@ -89,7 +92,9 @@ describe('data hydration', () => {
     const { getByTestId } = renderApp()
 
     resolveJson('/api/categories', {
-      categories: [{ id: 'c1', userId: 'u', name: 'Work', color: '#fff', sortOrder: 0 }],
+      categories: [
+        { id: 'c1', userId: 'u', name: 'Work', color: '#fff', sortOrder: 0 },
+      ],
     })
 
     await waitFor(() => {

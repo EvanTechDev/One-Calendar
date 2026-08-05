@@ -1,7 +1,8 @@
 'use client'
 
-import { api } from '@/lib/api-client'
+import { api, SHARE_LIST_KEY } from '@/lib/api-client'
 import React, { useState, useRef, useEffect } from 'react'
+import useSWR from 'swr'
 import {
   Edit2,
   Trash2,
@@ -74,6 +75,7 @@ export default function EventPreview({
   const isZh = isZhLanguage(language)
   const t = translations[language]
   const locale = isZh ? zhCN : enUS
+  const { data: sharesData } = useSWR(SHARE_LIST_KEY, api.shares.list)
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [shareLink, setShareLink] = useState('')
@@ -227,8 +229,7 @@ export default function EventPreview({
     }
 
     try {
-      const sharesRes = await api.shares.list()
-      const existingShare = sharesRes.shares
+      const existingShare = (sharesData?.shares ?? [])
         .filter((share) => share?.eventId === event.id && !!share?.shareLink)
         .sort(
           (a, b) =>
