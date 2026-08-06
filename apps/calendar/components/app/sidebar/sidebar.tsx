@@ -101,7 +101,7 @@ export default function Sidebar({
     moveCategory: moveCategoryInContext,
   } = useCalendar()
 
-  const { createCategory, deleteCategory } = useData()
+  const { createCategory, deleteCategory, deleteEvent } = useData()
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('bg-blue-500')
@@ -256,8 +256,10 @@ export default function Sidebar({
           )
           setEvents(events.filter((event) => event.calendarId !== id))
           await Promise.all(
-            eventsToDelete.map((e) => api.events.delete(e.id).catch(() => {})),
+            eventsToDelete.map((e) => deleteEvent(e.id).catch(() => {})),
           )
+        } else {
+          setEvents(events.filter((event) => event.calendarId !== id))
         }
         await deleteCategory(id)
         removeCategoryFromStore(id)
