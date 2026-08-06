@@ -418,9 +418,7 @@ export default function EventDialog({
       : fullEndDate
 
     const eventData: CalendarEvent = {
-      id:
-        event?.id ||
-        Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      id: event?.id || crypto.randomUUID(),
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: normalizedStartDate,
