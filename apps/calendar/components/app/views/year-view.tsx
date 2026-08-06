@@ -270,7 +270,6 @@ export default function YearView({
                       event.color,
                     )}
                     onClick={(e) => {
-                      closePopover()
                       onEventClick(event, e.currentTarget, e.clientX, e.clientY)
                     }}
                     style={{
