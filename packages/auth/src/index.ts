@@ -1,6 +1,6 @@
-export { createAuth } from './server.js'
-export { createAuthClient } from './client.js'
-export { createDrizzleAdapter } from './adapter.js'
+export { createAuth } from './server'
+export { createAuthClient } from './client'
+export { createDrizzleAdapter } from './adapter'
 export {
   authSchema,
   user,
@@ -8,7 +8,7 @@ export {
   account,
   verification,
   twoFactor,
-} from './schema.js'
+} from './schema'
 export { getSessionCookie } from 'better-auth/cookies'
 export { toNextJsHandler } from 'better-auth/next-js'
 export type {
@@ -25,4 +25,4 @@ export type {
   SessionData,
   SessionUser,
   TwoFactorOptions,
-} from './types.js'
+} from './types'

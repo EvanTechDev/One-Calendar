@@ -1,6 +1,6 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
-import * as schema from './schema.js'
+import * as schema from './schema'
 
 type AuthSchema = typeof schema.authSchema
 

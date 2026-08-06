@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { twoFactor, emailOTP } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
-import { createDrizzleAdapter } from './adapter.js'
+import { createDrizzleAdapter } from './adapter'
 import type {
   CreateAuthOptions,
   EmailOTPOptions,
@@ -9,7 +9,7 @@ import type {
   PluginOptions,
   SentinelOptions,
   TwoFactorOptions,
-} from './types.js'
+} from './types'
 
 function resolveTwoFactorPlugin(options: PluginOptions) {
   const value = options.twoFactor

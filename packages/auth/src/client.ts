@@ -1,4 +1,4 @@
-import type { CreateAuthClientOptions } from './types.js'
+import type { CreateAuthClientOptions } from './types'
 
 export { createAuthClient } from 'better-auth/react'
 export { emailOTPClient, twoFactorClient } from 'better-auth/client/plugins'
