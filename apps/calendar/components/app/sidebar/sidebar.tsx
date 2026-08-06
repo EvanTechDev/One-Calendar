@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { useCalendar } from '@/components/providers/calendar-context'
+import { useData } from '@/components/providers/data-provider'
 import { translations, type Language } from '@zntr/i18n/calendar'
 import { Calendar } from '@zntr/ui/calendar'
 import { Checkbox } from '@zntr/ui/checkbox'
@@ -31,7 +32,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
-import crypto from 'crypto'
 import { cn } from '@zntr/utils'
 import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
@@ -95,11 +95,10 @@ export default function Sidebar({
     calendars,
     events,
     setEvents,
-    addCategory: addCategoryToContext,
-    removeCategory: removeCategoryFromContext,
-    updateCategory: updateCategoryInContext,
     moveCategory: moveCategoryInContext,
   } = useCalendar()
+
+  const { createCategory, deleteCategory } = useData()
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('bg-blue-500')
@@ -159,25 +158,15 @@ export default function Sidebar({
 
   const addCategory = async () => {
     if (newCategoryName.trim()) {
-      const id = crypto.randomUUID()
-      const newCategory: CalendarCategory = {
-        id,
-        name: newCategoryName.trim(),
-        color: newCategoryColor,
-        keywords: [],
-      }
-      addCategoryToContext(newCategory)
+      const name = newCategoryName.trim()
+      const color = newCategoryColor
       setNewCategoryName('')
       setNewCategoryColor('bg-blue-500')
       setShowAddCategory(false)
       setManageCategoriesOpen(false)
-      await api.categories.create({
-        id,
-        name: newCategoryName.trim(),
-        color: newCategoryColor,
-      })
+      await createCategory({ name, color })
       toast(t.categoryAdded || '分类已添加', {
-        description: `${t.categoryAddedDesc || '已成功添加'} "${newCategoryName}" ${t.category || '分类'}`,
+        description: `${t.categoryAddedDesc || '已成功添加'} "${name}" ${t.category || '分类'}`,
       })
     }
   }
@@ -199,17 +188,12 @@ export default function Sidebar({
 
   const saveCategoryEdit = async () => {
     if (!editingCategoryId || !editingCategoryName.trim()) return
-    updateCategoryInContext(editingCategoryId, {
-      name: editingCategoryName.trim(),
-      color: editingCategoryColor,
-    })
-    await api.categories.create({
-      id: editingCategoryId,
-      name: editingCategoryName.trim(),
-      color: editingCategoryColor,
-    })
+    const id = editingCategoryId
+    const name = editingCategoryName.trim()
+    const color = editingCategoryColor
     setEditDialogOpen(false)
     setEditingCategoryId(null)
+    await createCategory({ id, name, color })
     toast(t.categoryUpdated || '分类已更新')
   }
 
@@ -246,19 +230,18 @@ export default function Sidebar({
 
   const confirmDelete = async () => {
     if (categoryToDelete) {
+      const id = categoryToDelete
       if (deleteCategoryEvents) {
-        const eventsToDelete = events.filter(
-          (event) => event.calendarId === categoryToDelete,
-        )
-        setEvents(
-          events.filter((event) => event.calendarId !== categoryToDelete),
-        )
+        const eventsToDelete = events.filter((event) => event.calendarId === id)
+        setEvents(events.filter((event) => event.calendarId !== id))
         await Promise.all(
           eventsToDelete.map((e) => api.events.delete(e.id).catch(() => {})),
         )
       }
-      removeCategoryFromContext(categoryToDelete)
-      await api.categories.delete(categoryToDelete)
+      setDeleteDialogOpen(false)
+      setCategoryToDelete(null)
+      setDeleteCategoryEvents(false)
+      await deleteCategory(id)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
           ? t.categoryDeletedWithEvents

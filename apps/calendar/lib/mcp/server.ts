@@ -6,7 +6,9 @@ import {
   COLOR_HEX_VALUES,
   COLOR_NAME_LIST,
   COLOR_NAMES,
+  COLOR_OPTIONS,
 } from './colors'
+import { CATEGORY_COLOR_VALUES } from './category-tools'
 
 const SCOPE_EVENTS_READ = 'events:read'
 const SCOPE_EVENTS_WRITE = 'events:write'
@@ -262,7 +264,7 @@ function registerCategoryTools(server: McpServer): void {
     'Create a new category',
     {
       name: z.string().describe('Category name'),
-      color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
+      color: z.enum(CATEGORY_COLOR_VALUES).describe('Category color'),
       sort_order: z.number().optional().default(0),
     },
     async (params, extra) => {
