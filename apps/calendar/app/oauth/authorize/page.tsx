@@ -5,8 +5,9 @@ import { useSearchParams } from 'next/navigation'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
+import { Badge } from '@zntr/ui/badge'
 import { Card, CardContent, CardHeader, CardFooter } from '@zntr/ui/card'
-import { CheckCircle, XCircle, ShieldAlert, Check } from 'lucide-react'
+import { CheckCircle, XCircle, ShieldAlert } from 'lucide-react'
 import { authClient } from '@/lib/auth/client'
 
 type Flow = 'device_code' | 'auth_code' | null
@@ -99,6 +100,35 @@ function AuthorizeForm() {
     }
   }
 
+  const permissionGroups = (() => {
+    const groups: Record<string, { read: boolean; write: boolean }> = {}
+    for (const scope of scopes) {
+      const [resource, action] = scope.split(':')
+      if (!resource || !action) continue
+      if (!groups[resource]) groups[resource] = { read: false, write: false }
+      if (action === 'read') groups[resource].read = true
+      if (action === 'write') groups[resource].write = true
+    }
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+    const rwEntries = Object.entries(groups)
+      .filter(([, v]) => v.read && v.write)
+      .map(([k]) => capitalize(k))
+      .sort()
+    const rEntries = Object.entries(groups)
+      .filter(([, v]) => v.read && !v.write)
+      .map(([k]) => capitalize(k))
+      .sort()
+
+    return [
+      ...(rwEntries.length > 0
+        ? [{ resources: rwEntries, badge: 'READ+WRITE' }]
+        : []),
+      ...(rEntries.length > 0 ? [{ resources: rEntries, badge: 'READ' }] : []),
+    ]
+  })()
+
   if (sessionLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -176,18 +206,23 @@ function AuthorizeForm() {
 
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                This app will be able to
+                Permissions
               </p>
-              <ul className="space-y-2">
-                {scopes.map((scope) => (
-                  <li key={scope} className="flex items-center gap-2.5 text-sm">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                      <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+              <div className="divide-y divide-border rounded-lg border border-border">
+                {permissionGroups.map((group, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-3 py-2.5"
+                  >
+                    <span className="text-sm text-foreground">
+                      {group.resources.join(', ')}
                     </span>
-                    <span className="text-foreground">{scope}</span>
-                  </li>
+                    <Badge variant="secondary" className="shrink-0 ml-2">
+                      {group.badge}
+                    </Badge>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </CardContent>
         )}
