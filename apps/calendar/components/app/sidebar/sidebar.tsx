@@ -232,14 +232,21 @@ export default function Sidebar({
     })
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (categoryToDelete) {
       if (deleteCategoryEvents) {
+        const eventsToDelete = events.filter(
+          (event) => event.calendarId === categoryToDelete,
+        )
         setEvents(
           events.filter((event) => event.calendarId !== categoryToDelete),
         )
+        await Promise.all(
+          eventsToDelete.map((e) => api.events.delete(e.id).catch(() => {})),
+        )
       }
       removeCategoryFromContext(categoryToDelete)
+      await api.categories.delete(categoryToDelete)
       toast(deleteText.toastSuccess, {
         description: deleteCategoryEvents
           ? t.categoryDeletedWithEvents
