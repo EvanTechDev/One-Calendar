@@ -6,7 +6,7 @@ import {
   twoFactorClient,
   sentinelClient,
 } from '@zntr/auth/client'
-import { enabledPlugins } from '@/lib/auth'
+import { enabledPlugins } from '@/lib/auth/enabled-plugins'
 
 const baseURL = process.env.NEXT_PUBLIC_APP_URL
 

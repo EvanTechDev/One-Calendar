@@ -96,4 +96,4 @@ const { auth, enabledPlugins } = createAuth({
   isDev: process.env.NODE_ENV !== 'production',
 })
 
-export { auth, enabledPlugins }
+export { auth }
