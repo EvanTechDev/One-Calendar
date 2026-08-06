@@ -160,14 +160,18 @@ export default function Sidebar({
     if (newCategoryName.trim()) {
       const name = newCategoryName.trim()
       const color = newCategoryColor
-      setNewCategoryName('')
-      setNewCategoryColor('bg-blue-500')
-      setShowAddCategory(false)
-      setManageCategoriesOpen(false)
-      await createCategory({ name, color })
-      toast(t.categoryAdded || '分类已添加', {
-        description: `${t.categoryAddedDesc || '已成功添加'} "${name}" ${t.category || '分类'}`,
-      })
+      try {
+        await createCategory({ name, color })
+        setNewCategoryName('')
+        setNewCategoryColor('bg-blue-500')
+        setShowAddCategory(false)
+        setManageCategoriesOpen(false)
+        toast(t.categoryAdded || '分类已添加', {
+          description: `${t.categoryAddedDesc || '已成功添加'} "${name}" ${t.category || '分类'}`,
+        })
+      } catch {
+        toast.error('Failed to create category')
+      }
     }
   }
 
@@ -191,10 +195,14 @@ export default function Sidebar({
     const id = editingCategoryId
     const name = editingCategoryName.trim()
     const color = editingCategoryColor
-    setEditDialogOpen(false)
-    setEditingCategoryId(null)
-    await createCategory({ id, name, color })
-    toast(t.categoryUpdated || '分类已更新')
+    try {
+      await createCategory({ id, name, color })
+      setEditDialogOpen(false)
+      setEditingCategoryId(null)
+      toast(t.categoryUpdated || '分类已更新')
+    } catch {
+      toast.error('Failed to update category')
+    }
   }
 
   const handleMoveCategory = (id: string, direction: 'up' | 'down') => {
@@ -231,26 +239,30 @@ export default function Sidebar({
   const confirmDelete = async () => {
     if (categoryToDelete) {
       const id = categoryToDelete
-      if (deleteCategoryEvents) {
-        const eventsToDelete = events.filter((event) => event.calendarId === id)
-        setEvents(events.filter((event) => event.calendarId !== id))
-        await Promise.all(
-          eventsToDelete.map((e) => api.events.delete(e.id).catch(() => {})),
-        )
+      const shouldDeleteEvents = deleteCategoryEvents
+      try {
+        if (shouldDeleteEvents) {
+          const eventsToDelete = events.filter(
+            (event) => event.calendarId === id,
+          )
+          setEvents(events.filter((event) => event.calendarId !== id))
+          await Promise.all(
+            eventsToDelete.map((e) => api.events.delete(e.id).catch(() => {})),
+          )
+        }
+        await deleteCategory(id)
+        setDeleteDialogOpen(false)
+        setCategoryToDelete(null)
+        setDeleteCategoryEvents(false)
+        toast(deleteText.toastSuccess, {
+          description: shouldDeleteEvents
+            ? t.categoryDeletedWithEvents
+            : deleteText.toastDescription,
+        })
+      } catch {
+        toast.error('Failed to delete category')
       }
-      setDeleteDialogOpen(false)
-      setCategoryToDelete(null)
-      setDeleteCategoryEvents(false)
-      await deleteCategory(id)
-      toast(deleteText.toastSuccess, {
-        description: deleteCategoryEvents
-          ? t.categoryDeletedWithEvents
-          : deleteText.toastDescription,
-      })
     }
-    setDeleteDialogOpen(false)
-    setCategoryToDelete(null)
-    setDeleteCategoryEvents(false)
   }
 
   return (
