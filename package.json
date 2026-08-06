@@ -12,6 +12,8 @@
     "prepare": "husky",
     "lint:calendar": "pnpm --filter one-calendar lint",
     "tc:calendar": "pnpm --filter one-calendar type-check",
+    "lint:auth": "pnpm --filter @zntr/auth lint",
+    "tc:auth": "pnpm --filter @zntr/auth type-check",
     "test:calendar": "pnpm --filter one-calendar test",
     "test:calendar:watch": "pnpm --filter one-calendar test:watch",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",

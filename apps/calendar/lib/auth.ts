@@ -1,33 +1,22 @@
-import { drizzleAdapter } from '@better-auth/drizzle-adapter'
+import { createAuth } from '@zntr/auth/server'
 import { getDb } from '@/lib/drizzle/client'
-import * as schema from '@/lib/drizzle/schema'
-import { betterAuth } from 'better-auth'
-import { emailOTP, twoFactor } from 'better-auth/plugins'
-import { sentinel } from '@better-auth/infra'
 import bcrypt from 'bcryptjs'
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 
-export const auth = betterAuth({
-  database: drizzleAdapter(getDb(), {
-    provider: 'pg',
-    schema,
-  }),
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    password: {
-      hash: async (password: string) => bcrypt.hash(password, 10),
-      verify: async ({ hash, password }: { hash: string; password: string }) =>
-        bcrypt.compare(password, hash),
-    },
-    sendResetPassword: async ({
-      user,
-      url,
-    }: {
-      user: { email?: string }
-      url: string
-    }) => {
+const baseURL = process.env.NEXT_PUBLIC_BASE_URL
+
+const { auth, enabledPlugins } = createAuth({
+  db: getDb(),
+  ...(baseURL ? { baseURL } : {}),
+  trustedOrigins: baseURL ? [baseURL] : [],
+  password: {
+    hash: async (password: string) => bcrypt.hash(password, 10),
+    verify: async ({ hash, password }: { hash: string; password: string }) =>
+      bcrypt.compare(password, hash),
+  },
+  emailCallbacks: {
+    sendResetPassword: async ({ user, url }) => {
       await sendAuthEmail({
         to: user.email ?? '',
         subject: 'Reset your password',
@@ -42,15 +31,7 @@ export const auth = betterAuth({
         }),
       })
     },
-  },
-  emailVerification: {
-    sendVerificationEmail: async ({
-      user,
-      url,
-    }: {
-      user: { email?: string }
-      url: string
-    }) => {
+    sendVerificationEmail: async ({ user, url }) => {
       await sendAuthEmail({
         to: user.email ?? '',
         subject: 'Verify your email',
@@ -63,15 +44,7 @@ export const auth = betterAuth({
         }),
       })
     },
-    sendChangeEmailVerification: async ({
-      user,
-      newEmail,
-      url,
-    }: {
-      user: { email?: string }
-      newEmail: string
-      url: string
-    }) => {
+    sendChangeEmailVerification: async ({ user, newEmail, url }) => {
       await sendAuthEmail({
         to: newEmail,
         subject: 'Confirm your new email',
@@ -85,12 +58,31 @@ export const auth = betterAuth({
         }),
       })
     },
+    sendVerificationOTP: async ({ email, otp, type }) => {
+      await sendAuthEmail({
+        to: email,
+        subject:
+          type === 'forget-password' ? 'Reset code' : 'Verification code',
+        html: await renderAuthEmailTemplate({
+          preview:
+            type === 'forget-password'
+              ? 'Your One Calendar reset code'
+              : 'Your One Calendar verification code',
+          title:
+            type === 'forget-password' ? 'Reset code' : 'Verification code',
+          body:
+            type === 'forget-password'
+              ? 'Use the code below to reset your password.'
+              : 'Use the code below to continue with your One Calendar account.',
+          code: otp,
+          secondary: 'This code will expire shortly for your security.',
+        }),
+      })
+    },
   },
-  plugins: [
-    twoFactor({
-      issuer: 'One Calendar',
-    }),
-    sentinel({
+  plugins: {
+    twoFactor: { issuer: 'One Calendar' },
+    sentinel: {
       apiKey: process.env.BETTER_AUTH_API_KEY,
       security: {
         credentialStuffing: { enabled: true },
@@ -98,41 +90,10 @@ export const auth = betterAuth({
         botBlocking: { action: 'challenge' },
         emailValidation: { enabled: true },
       },
-    }),
-    emailOTP({
-      changeEmail: {
-        enabled: true,
-      },
-      sendVerificationOTP: async ({
-        email,
-        otp,
-        type,
-      }: {
-        email: string
-        otp: string
-        type: string
-      }) => {
-        await sendAuthEmail({
-          to: email,
-          subject:
-            type === 'forget-password' ? 'Reset code' : 'Verification code',
-          html: await renderAuthEmailTemplate({
-            preview:
-              type === 'forget-password'
-                ? 'Your One Calendar reset code'
-                : 'Your One Calendar verification code',
-            title:
-              type === 'forget-password' ? 'Reset code' : 'Verification code',
-            body:
-              type === 'forget-password'
-                ? 'Use the code below to reset your password.'
-                : 'Use the code below to continue with your One Calendar account.',
-            code: otp,
-            secondary: 'This code will expire shortly for your security.',
-          }),
-        })
-      },
-    }),
-  ],
-  trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL as string].filter(Boolean),
+    },
+    emailOTP: { changeEmail: { enabled: true } },
+  },
+  isDev: process.env.NODE_ENV !== 'production',
 })
+
+export { auth, enabledPlugins }

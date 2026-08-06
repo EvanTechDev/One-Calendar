@@ -6,116 +6,19 @@ import {
   integer,
   jsonb,
   index,
-  uniqueIndex,
   unique,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// --- User ---
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').unique().notNull(),
-  emailVerified: boolean('emailVerified').default(false).notNull(),
-  image: text('image'),
-  twoFactorEnabled: boolean('twoFactorEnabled'),
-  createdAt: timestamp('createdAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  updatedAt: timestamp('updatedAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-})
+import {
+  user,
+  session,
+  account,
+  verification,
+  twoFactor,
+} from '@zntr/auth/schema'
 
-// --- Session ---
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expiresAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  token: text('token').unique().notNull(),
-  createdAt: timestamp('createdAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  updatedAt: timestamp('updatedAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  ipAddress: text('ipAddress'),
-  userAgent: text('userAgent'),
-  userId: text('userId')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-})
-
-// --- Account ---
-export const account = pgTable(
-  'account',
-  {
-    id: text('id').primaryKey(),
-    accountId: text('accountId').notNull(),
-    providerId: text('providerId').notNull(),
-    userId: text('userId')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    accessToken: text('accessToken'),
-    refreshToken: text('refreshToken'),
-    idToken: text('idToken'),
-    accessTokenExpiresAt: timestamp('accessTokenExpiresAt', {
-      precision: 3,
-      withTimezone: true,
-    }),
-    refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt', {
-      precision: 3,
-      withTimezone: true,
-    }),
-    scope: text('scope'),
-    password: text('password'),
-    createdAt: timestamp('createdAt', {
-      precision: 3,
-      withTimezone: true,
-    }).notNull(),
-    updatedAt: timestamp('updatedAt', {
-      precision: 3,
-      withTimezone: true,
-    }).notNull(),
-  },
-  (table) => ({
-    accountUnique: uniqueIndex('Account_providerId_accountId_key').on(
-      table.providerId,
-      table.accountId,
-    ),
-  }),
-)
-
-// --- Verification ---
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expiresAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  createdAt: timestamp('createdAt', { precision: 3, withTimezone: true }),
-  updatedAt: timestamp('updatedAt', { precision: 3, withTimezone: true }),
-})
-
-// --- Two Factor ---
-export const twoFactor = pgTable('two_factor', {
-  id: text('id').primaryKey(),
-  secret: text('secret').notNull(),
-  backupCodes: text('backupCodes').notNull(),
-  verified: boolean('verified').default(false).notNull(),
-  userId: text('userId')
-    .unique()
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-})
+export { user, session, account, verification, twoFactor }
 
 // ============================================================
 // APP TABLES

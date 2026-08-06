@@ -1,5 +1,5 @@
 import { headers } from 'next/headers'
-import { getSessionCookie } from 'better-auth/cookies'
+import { getSessionCookie } from '@zntr/auth'
 import { auth } from '@/lib/auth'
 import { getCachedSession, setCachedSession } from '@/lib/cache/session'
 

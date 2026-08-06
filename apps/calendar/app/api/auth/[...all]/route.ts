@@ -1,8 +1,8 @@
+import { toNextJsHandler } from '@zntr/auth'
 import { auth } from '@/lib/auth'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
-import { toNextJsHandler } from 'better-auth/next-js'
 import { eq } from 'drizzle-orm'
 
 const authHandlers = toNextJsHandler(auth)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionCookie } from 'better-auth/cookies'
+import { getSessionCookie } from '@zntr/auth'
 
 export default function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request)
@@ -32,5 +32,12 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/landing', '/app/:path*', '/sign-in', '/sign-up', '/oauth/authorize'],
+  matcher: [
+    '/',
+    '/landing',
+    '/app/:path*',
+    '/sign-in',
+    '/sign-up',
+    '/oauth/authorize',
+  ],
 }

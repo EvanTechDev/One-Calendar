@@ -1,14 +1,22 @@
 'use client'
 
-import { createAuthClient } from 'better-auth/react'
-import { emailOTPClient, twoFactorClient } from 'better-auth/client/plugins'
-import { sentinelClient } from '@better-auth/infra/client'
+import {
+  createAuthClient,
+  emailOTPClient,
+  twoFactorClient,
+  sentinelClient,
+} from '@zntr/auth/client'
+import { enabledPlugins } from '@/lib/auth'
+
+const baseURL = process.env.NEXT_PUBLIC_APP_URL
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  ...(baseURL ? { baseURL } : {}),
   plugins: [
-    emailOTPClient(),
-    twoFactorClient(),
-    sentinelClient({ autoSolveChallenge: true }),
+    ...(enabledPlugins.twoFactor ? [twoFactorClient()] : []),
+    ...(enabledPlugins.sentinel
+      ? [sentinelClient({ autoSolveChallenge: true })]
+      : []),
+    ...(enabledPlugins.emailOTP ? [emailOTPClient()] : []),
   ],
 })
