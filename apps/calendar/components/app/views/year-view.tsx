@@ -215,7 +215,7 @@ export default function YearView({
         onOpenChange={(open) => {
           if (!open) closePopover()
         }}
-        modal={true}
+        modal={false}
       >
         <PopoverAnchor asChild>
           <div
