@@ -28,6 +28,7 @@ import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo } from 'react'
+import crypto from 'crypto'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
@@ -541,9 +542,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
-      id:
-        event.id ||
-        Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      id: event.id || crypto.randomUUID(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
@@ -557,6 +556,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       location: newEvent.location,
       description: newEvent.description,
       notificationMinutes: newEvent.notification,
+      categoryId: newEvent.calendarId || null,
     })
     toast(t.eventCreated)
     setEventDialogOpen(false)
@@ -580,6 +580,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       location: updatedEvent.location,
       description: updatedEvent.description,
       notificationMinutes: updatedEvent.notification,
+      categoryId: updatedEvent.calendarId || null,
     })
     toast(t.eventUpdated)
     setEventDialogOpen(false)

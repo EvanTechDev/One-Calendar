@@ -31,6 +31,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
+import crypto from 'crypto'
 import { cn } from '@zntr/utils'
 import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
@@ -156,10 +157,11 @@ export default function Sidebar({
     }
   }, [selectedDate])
 
-  const addCategory = () => {
+  const addCategory = async () => {
     if (newCategoryName.trim()) {
+      const id = crypto.randomUUID()
       const newCategory: CalendarCategory = {
-        id: Date.now().toString(),
+        id,
         name: newCategoryName.trim(),
         color: newCategoryColor,
         keywords: [],
@@ -169,6 +171,11 @@ export default function Sidebar({
       setNewCategoryColor('bg-blue-500')
       setShowAddCategory(false)
       setManageCategoriesOpen(false)
+      await api.categories.create({
+        id,
+        name: newCategoryName.trim(),
+        color: newCategoryColor,
+      })
       toast(t.categoryAdded || '分类已添加', {
         description: `${t.categoryAddedDesc || '已成功添加'} "${newCategoryName}" ${t.category || '分类'}`,
       })
@@ -190,9 +197,14 @@ export default function Sidebar({
     setEditDialogOpen(true)
   }
 
-  const saveCategoryEdit = () => {
+  const saveCategoryEdit = async () => {
     if (!editingCategoryId || !editingCategoryName.trim()) return
     updateCategoryInContext(editingCategoryId, {
+      name: editingCategoryName.trim(),
+      color: editingCategoryColor,
+    })
+    await api.categories.create({
+      id: editingCategoryId,
       name: editingCategoryName.trim(),
       color: editingCategoryColor,
     })
