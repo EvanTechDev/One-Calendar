@@ -45,6 +45,23 @@ function AuthorizeForm() {
     }
   }, [searchParams])
 
+  const handleDeny = () => {
+    if (flow === 'auth_code') {
+      try {
+        const url = new URL(redirectUri)
+        url.searchParams.set('error', 'access_denied')
+        url.searchParams.set('error_description', 'User denied authorization')
+        const state = searchParams.get('state')
+        if (state) url.searchParams.set('state', state)
+        window.location.href = url.toString()
+      } catch {
+        window.close()
+      }
+    } else {
+      window.close()
+    }
+  }
+
   const handleAuthorize = async () => {
     setStatus('authorizing')
 
@@ -171,7 +188,7 @@ function AuthorizeForm() {
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-sm rounded-lg">
         <CardHeader className="flex flex-col items-center gap-3">
-          <Avatar size="lg" className="size-28">
+          <Avatar size="lg" className="size-32">
             <AvatarImage src={session?.user?.image ?? ''} />
             <AvatarFallback className="text-2xl">
               {(session?.user?.name ?? 'U').charAt(0).toUpperCase()}
@@ -228,11 +245,7 @@ function AuthorizeForm() {
         )}
 
         <CardFooter className="flex gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => window.close()}
-          >
+          <Button variant="outline" className="flex-1" onClick={handleDeny}>
             Deny
           </Button>
           <Button
