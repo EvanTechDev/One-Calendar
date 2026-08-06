@@ -5,9 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
-import { Badge } from '@zntr/ui/badge'
 import { Card, CardContent, CardHeader, CardFooter } from '@zntr/ui/card'
-import { CheckCircle, XCircle, ShieldAlert } from 'lucide-react'
+import { CheckCircle, XCircle, ShieldAlert, Check } from 'lucide-react'
 import { authClient } from '@/lib/auth/client'
 
 type Flow = 'device_code' | 'auth_code' | null
@@ -176,21 +175,24 @@ function AuthorizeForm() {
             </div>
 
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
-                Permissions
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                This app will be able to
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <ul className="space-y-2">
                 {scopes.map((scope) => (
-                  <Badge key={scope} variant="secondary">
-                    {scope}
-                  </Badge>
+                  <li key={scope} className="flex items-center gap-2.5 text-sm">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                      <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                    </span>
+                    <span className="text-foreground">{scope}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           </CardContent>
         )}
 
-        <CardFooter className="flex gap-3 border-t-0 bg-transparent p-0">
+        <CardFooter className="flex gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
           <Button
             variant="outline"
             className="flex-1"
