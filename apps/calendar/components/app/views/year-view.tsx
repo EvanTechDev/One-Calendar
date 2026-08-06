@@ -25,6 +25,7 @@ interface YearViewProps {
     clientY?: number,
   ) => void
   config: ViewConfig
+  previewOpen: boolean
 }
 
 const COLOR_TO_ACCENT: Record<string, string> = {
@@ -69,12 +70,14 @@ export default function YearView({
   events,
   onEventClick,
   config,
+  previewOpen,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
   const today = useMemo(() => new Date(), [])
   const containerRef = useRef<HTMLDivElement>(null)
   const [popover, setPopover] = useState<PopoverState | null>(null)
+  const previewOpenRef = useRef(false)
 
   const isDark =
     typeof document !== 'undefined' &&
@@ -213,9 +216,16 @@ export default function YearView({
       <Popover
         open={!!popover}
         onOpenChange={(open) => {
-          if (!open) closePopover()
+          if (!open) {
+            if (previewOpenRef.current && !previewOpen) {
+              previewOpenRef.current = false
+              return
+            }
+            if (previewOpen) return
+            closePopover()
+          }
         }}
-        modal={false}
+        modal={true}
       >
         <PopoverAnchor asChild>
           <div
@@ -270,6 +280,7 @@ export default function YearView({
                       event.color,
                     )}
                     onClick={(e) => {
+                      previewOpenRef.current = true
                       onEventClick(event, e.currentTarget, e.clientX, e.clientY)
                     }}
                     style={{

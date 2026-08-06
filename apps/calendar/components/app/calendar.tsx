@@ -1062,6 +1062,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
+                previewOpen={previewOpen}
               />
             )}
             {view === 'analytics' && (
