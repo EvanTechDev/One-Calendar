@@ -5,8 +5,6 @@ export const COLOR_OPTIONS = [
   { name: 'red', value: 'bg-[#FFE4E6]', hex: '#EF4444' },
   { name: 'purple', value: 'bg-[#F3EEFE]', hex: '#8B5CF6' },
   { name: 'pink', value: 'bg-[#FCE7F3]', hex: '#EC4899' },
-  { name: 'indigo', value: 'bg-[#EEF2FF]', hex: '#6366F1' },
-  { name: 'orange', value: 'bg-[#FFF0E5]', hex: '#FB923C' },
   { name: 'teal', value: 'bg-[#E6FAF7]', hex: '#14B8A6' },
 ] as const
 
