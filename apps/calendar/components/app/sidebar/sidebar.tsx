@@ -95,6 +95,9 @@ export default function Sidebar({
     calendars,
     events,
     setEvents,
+    addCategory: addCategoryToStore,
+    removeCategory: removeCategoryFromStore,
+    updateCategory: updateCategoryInStore,
     moveCategory: moveCategoryInContext,
   } = useCalendar()
 
@@ -161,7 +164,12 @@ export default function Sidebar({
       const name = newCategoryName.trim()
       const color = newCategoryColor
       try {
-        await createCategory({ name, color })
+        const res = await createCategory({ name, color })
+        addCategoryToStore({
+          id: res.id,
+          name: res.name,
+          color: res.color,
+        })
         setNewCategoryName('')
         setNewCategoryColor('bg-blue-500')
         setShowAddCategory(false)
@@ -197,6 +205,7 @@ export default function Sidebar({
     const color = editingCategoryColor
     try {
       await createCategory({ id, name, color })
+      updateCategoryInStore(id, { name, color })
       setEditDialogOpen(false)
       setEditingCategoryId(null)
       toast(t.categoryUpdated || '分类已更新')
@@ -251,6 +260,7 @@ export default function Sidebar({
           )
         }
         await deleteCategory(id)
+        removeCategoryFromStore(id)
         setDeleteDialogOpen(false)
         setCategoryToDelete(null)
         setDeleteCategoryEvents(false)
