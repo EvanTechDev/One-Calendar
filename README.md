@@ -22,4 +22,4 @@ This project is supported by [Cloudflare Project Alexandria](https://blog.cloudf
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=EvanTechDev/One-Calendar&type=Date)](https://www.star-history.com/#EvanTechDev/One-Calendar&Date)
+[![Star History Chart](https://api.star-history.com/chart?repos=EvanTechDev/One-Calendar&type=date&legend=top-left&sealed_token=Crp2JYUSXiqnSjscXYiQqvrfjlnvXTZMMqvt4MBs8TIPTHmVOLlkb1LaF9xLYY-hr5M9kVpX7lCJDDXFs2BOL8ivS3efKU9SzV2EZlZBfALpd_n01IPCosklvkEI4r3s0UCFlmL-8mSCinZzDYsEqxwEZeAcNp1Gv2h-ahRy_E1zEZ1SM9B-GN67Ffyn)](https://www.star-history.com/?repos=EvanTechDev%2FOne-Calendar&type=date&legend=top-left)
