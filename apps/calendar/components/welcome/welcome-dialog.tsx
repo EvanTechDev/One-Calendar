@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -16,87 +16,103 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import {
-  Globe,
+  Globe2,
   CalendarDays,
-  LayoutGrid,
-  Timer,
-  CheckCircle2,
+  Monitor,
+  Clock,
   Languages,
+  ArrowRight,
+  ArrowLeft,
+  PartyPopper,
 } from 'lucide-react'
+import { getLanguageAutonym, supportedLanguages } from '@zntr/i18n/calendar'
 
 interface OnboardingStep {
   icon: React.ElementType
   title: string
   description: string
+  key: string
   options: { value: string; label: string }[]
 }
 
-const ONBOARDING_STEPS: OnboardingStep[] = [
-  {
-    icon: Languages,
-    title: 'Language',
-    description: 'Choose your preferred language for the interface.',
-    options: [
-      { value: 'en', label: 'English' },
-      { value: 'zh-CN', label: '简体中文' },
-      { value: 'zh-TW', label: '繁體中文' },
-      { value: 'ja', label: '日本語' },
-      { value: 'ko', label: '한국어' },
-      { value: 'es', label: 'Español' },
-      { value: 'fr', label: 'Français' },
-      { value: 'de', label: 'Deutsch' },
-    ],
-  },
-  {
-    icon: Globe,
-    title: 'Timezone',
-    description: 'Select your timezone for accurate event scheduling.',
-    options: [
-      { value: 'UTC', label: 'UTC' },
-      { value: 'America/New_York', label: 'Eastern Time (ET)' },
-      { value: 'America/Chicago', label: 'Central Time (CT)' },
-      { value: 'America/Denver', label: 'Mountain Time (MT)' },
-      { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-      { value: 'Europe/London', label: 'London (GMT)' },
-      { value: 'Europe/Paris', label: 'Central European (CET)' },
-      { value: 'Asia/Tokyo', label: 'Japan (JST)' },
-      { value: 'Asia/Shanghai', label: 'China (CST)' },
-      { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-      { value: 'Asia/Kolkata', label: 'India (IST)' },
-      { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
-    ],
-  },
-  {
-    icon: CalendarDays,
-    title: 'Week Starts On',
-    description: 'Choose which day your week begins on.',
-    options: [
-      { value: 'sunday', label: 'Sunday' },
-      { value: 'monday', label: 'Monday' },
-      { value: 'saturday', label: 'Saturday' },
-    ],
-  },
-  {
-    icon: LayoutGrid,
-    title: 'Default View',
-    description: 'Pick your preferred calendar view.',
-    options: [
-      { value: 'month', label: 'Month' },
-      { value: 'week', label: 'Week' },
-      { value: 'day', label: 'Day' },
-      { value: 'agenda', label: 'Agenda' },
-    ],
-  },
-  {
-    icon: Timer,
-    title: 'Time Format',
-    description: 'Choose how times are displayed.',
-    options: [
-      { value: '12h', label: '12-hour (AM/PM)' },
-      { value: '24h', label: '24-hour' },
-    ],
-  },
+function buildTimezoneOptions(): { value: string; label: string }[] {
+  try {
+    const timezones = Intl.supportedValuesOf('timeZone')
+
+    const getUTCOffset = (timeZone: string) => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        timeZoneName: 'shortOffset',
+      }).formatToParts(new Date())
+
+      const timeZoneName =
+        parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
+
+      if (timeZoneName === 'GMT' || timeZoneName === 'UTC') {
+        return { offsetString: 'UTC+00:00', offsetMinutes: 0 }
+      }
+
+      const match = timeZoneName.match(
+        /(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/,
+      )
+      if (!match) {
+        return { offsetString: 'UTC+00:00', offsetMinutes: 0 }
+      }
+
+      const [, sign, hours, minutes = '00'] = match
+      const parsedHours = Number.parseInt(hours, 10)
+      const parsedMinutes = Number.parseInt(minutes, 10)
+      const totalMinutes = parsedHours * 60 + parsedMinutes
+      const offsetMinutes = sign === '-' ? -totalMinutes : totalMinutes
+
+      return {
+        offsetString: `UTC${sign}${hours.padStart(2, '0')}:${minutes}`,
+        offsetMinutes,
+      }
+    }
+
+    return timezones
+      .map((tz) => {
+        try {
+          const { offsetString, offsetMinutes } = getUTCOffset(tz)
+          return {
+            value: tz,
+            label: `${offsetString} · ${tz}`,
+            offsetMinutes,
+          }
+        } catch {
+          return {
+            value: tz,
+            label: `UTC+00:00 · ${tz}`,
+            offsetMinutes: 0,
+          }
+        }
+      })
+      .sort(
+        (a, b) =>
+          a.offsetMinutes - b.offsetMinutes || a.value.localeCompare(b.value),
+      )
+  } catch {
+    return [
+      { value: 'UTC', label: 'UTC+00:00 · UTC' },
+      { value: 'Asia/Shanghai', label: 'UTC+08:00 · Asia/Shanghai' },
+      { value: 'America/New_York', label: 'UTC-05:00 · America/New_York' },
+    ]
+  }
+}
+
+const VIEW_OPTIONS = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'four-day', label: 'Four Day' },
+  { value: 'month', label: 'Month' },
+  { value: 'year', label: 'Year' },
 ]
+
+const LANGUAGE_OPTIONS = supportedLanguages.map((lang) => ({
+  value: lang,
+  label: getLanguageAutonym(lang),
+}))
 
 interface WelcomeDialogProps {
   open: boolean
@@ -111,11 +127,59 @@ export function WelcomeDialog({
 }: WelcomeDialogProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [isCompleting, setIsCompleting] = useState(false)
-  const [selections, setSelections] = useState<Record<number, string>>({})
+  const [selections, setSelections] = useState<Record<string, string>>({})
 
-  const step = ONBOARDING_STEPS[currentStep]
+  const timezoneOptions = useMemo(() => buildTimezoneOptions(), [])
+
+  const settingSteps: OnboardingStep[] = [
+    {
+      icon: Languages,
+      title: 'Language',
+      description: 'Choose your preferred language for the interface.',
+      key: 'language',
+      options: LANGUAGE_OPTIONS,
+    },
+    {
+      icon: Globe2,
+      title: 'Timezone',
+      description: 'Select your timezone for accurate event scheduling.',
+      key: 'timezone',
+      options: timezoneOptions,
+    },
+    {
+      icon: CalendarDays,
+      title: 'Week Starts On',
+      description: 'Choose which day your week begins on.',
+      key: 'firstDayOfWeek',
+      options: [
+        { value: '0', label: 'Sunday' },
+        { value: '1', label: 'Monday' },
+        { value: '6', label: 'Saturday' },
+      ],
+    },
+    {
+      icon: Monitor,
+      title: 'Default View',
+      description: 'Pick your preferred calendar view.',
+      key: 'defaultView',
+      options: VIEW_OPTIONS,
+    },
+    {
+      icon: Clock,
+      title: 'Time Format',
+      description: 'Choose how times are displayed.',
+      key: 'timeFormat',
+      options: [
+        { value: '24h', label: '24-hour' },
+        { value: '12h', label: '12-hour (AM/PM)' },
+      ],
+    },
+  ]
+
+  const totalSteps = settingSteps.length
+  const step = settingSteps[currentStep]
   const isFirst = currentStep === 0
-  const isLast = currentStep === ONBOARDING_STEPS.length - 1
+  const isLast = currentStep === totalSteps - 1
 
   const handleNext = () => {
     if (isLast) {
@@ -134,7 +198,11 @@ export function WelcomeDialog({
   const handleFinish = async () => {
     setIsCompleting(true)
     try {
-      await fetch('/api/account/onboarding-complete', { method: 'POST' })
+      await fetch('/api/account/onboarding-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: selections }),
+      })
       onComplete()
     } finally {
       setIsCompleting(false)
@@ -147,52 +215,58 @@ export function WelcomeDialog({
     void handleFinish()
   }
 
+  const handleSkip = () => {
+    void handleFinish()
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleDismiss}>
       <DialogContent
-        className="max-w-md p-0"
         showCloseButton={false}
+        className="max-w-[calc(100vw-2rem)] p-0 sm:max-w-2xl"
         onEscapeKeyDown={handleDismiss}
         onPointerDownOutside={handleDismiss}
       >
-        <div className="flex flex-col">
+        <div className="flex min-h-[28rem] flex-col">
           {/* Progress dots */}
           <div className="flex justify-center gap-2 pt-6">
-            {ONBOARDING_STEPS.map((_, i) => (
+            {settingSteps.map((_, i) => (
               <div
                 key={i}
-                className={`h-2 w-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all duration-300 ${
                   i === currentStep
-                    ? 'bg-foreground w-4'
+                    ? 'bg-foreground w-6'
                     : i < currentStep
-                      ? 'bg-foreground/50'
-                      : 'bg-muted-foreground/30'
+                      ? 'bg-foreground/50 w-2'
+                      : 'bg-muted-foreground/30 w-2'
                 }`}
               />
             ))}
           </div>
 
           {/* Content */}
-          <div className="flex flex-col items-center gap-4 px-8 py-6">
+          <div className="flex flex-1 flex-col items-center gap-5 px-8 py-6">
             {/* Icon */}
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-              <step.icon className="h-8 w-8 text-primary" />
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+              <step.icon className="h-9 w-9 text-primary" />
             </div>
 
             {/* Title & Description */}
             <div className="text-center">
-              <DialogTitle className="text-lg">{step.title}</DialogTitle>
-              <DialogDescription className="mt-1 text-sm">
+              <DialogTitle className="text-xl font-semibold">
+                {step.title}
+              </DialogTitle>
+              <DialogDescription className="mt-1.5 text-sm">
                 {step.description}
               </DialogDescription>
             </div>
 
             {/* Select */}
-            <div className="w-full pt-2">
+            <div className="w-full max-w-xs pt-2">
               <Select
-                value={selections[currentStep] || ''}
+                value={selections[step.key] || ''}
                 onValueChange={(value) =>
-                  setSelections((s) => ({ ...s, [currentStep]: value }))
+                  setSelections((s) => ({ ...s, [step.key]: value }))
                 }
               >
                 <SelectTrigger className="w-full">
@@ -210,31 +284,47 @@ export function WelcomeDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/30 px-6 py-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePrev}
-              disabled={isFirst}
-            >
-              Previous
-            </Button>
+          <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-4">
+            <div className="flex gap-2">
+              {!isFirst && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrev}
+                >
+                  <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                  Previous
+                </Button>
+              )}
+              {isFirst && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkip}
+                >
+                  Skip for now
+                </Button>
+              )}
+            </div>
             <Button
               size="sm"
               onClick={handleNext}
-              disabled={isCompleting || !selections[currentStep]}
+              disabled={isCompleting}
             >
               {isLast ? (
                 isCompleting ? (
                   'Completing...'
                 ) : (
                   <>
-                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                    <PartyPopper className="mr-1.5 h-3.5 w-3.5" />
                     Finish
                   </>
                 )
               ) : (
-                'Next'
+                <>
+                  Next
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </>
               )}
             </Button>
           </div>

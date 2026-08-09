@@ -6,12 +6,20 @@ import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
-export async function POST() {
+export async function POST(request: Request) {
   const currentUser = await getAuthedUser()
   if (!currentUser)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const db = getDb()
+
+  let onboardingData: Record<string, unknown> = {}
+  try {
+    const body = await request.json()
+    onboardingData = body.settings || {}
+  } catch {
+    // No body or invalid JSON - just mark as complete
+  }
 
   const existing = await db
     .select({ data: settings.data })
@@ -19,19 +27,18 @@ export async function POST() {
     .where(eq(settings.userId, currentUser.id))
     .limit(1)
 
+  const currentData = ((existing[0]?.data as Record<string, unknown>) || {})
+  const mergedData = { ...currentData, ...onboardingData, onboardingCompleted: true }
+
   if (existing.length > 0) {
-    const currentData = (existing[0].data as Record<string, unknown>) || {}
     await db
       .update(settings)
-      .set({
-        data: { ...currentData, onboardingCompleted: true },
-        updatedAt: new Date(),
-      })
+      .set({ data: mergedData, updatedAt: new Date() })
       .where(eq(settings.userId, currentUser.id))
   } else {
     await db.insert(settings).values({
       userId: currentUser.id,
-      data: { onboardingCompleted: true },
+      data: mergedData,
       updatedAt: new Date(),
     })
   }
@@ -55,5 +62,6 @@ export async function GET() {
   const data = (existing[0]?.data as Record<string, unknown>) || {}
   return NextResponse.json({
     onboardingCompleted: data.onboardingCompleted === true,
+    settings: data,
   })
 }
