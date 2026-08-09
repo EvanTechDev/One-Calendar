@@ -16,7 +16,11 @@ export async function POST(request: Request) {
   let onboardingData: Record<string, unknown> = {}
   try {
     const body = await request.json()
-    onboardingData = body.settings || {}
+    const raw = body.settings || {}
+    onboardingData = { ...raw }
+    if (raw.firstDayOfWeek !== undefined) {
+      onboardingData.firstDayOfWeek = Number(raw.firstDayOfWeek)
+    }
   } catch {
     // No body or invalid JSON - just mark as complete
   }

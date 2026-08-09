@@ -245,14 +245,14 @@ export function WelcomeDialog({
           </div>
 
           {/* Content */}
-          <div className="flex flex-1 flex-col items-center gap-5 px-8 py-6">
+          <div className="flex flex-1 flex-col items-center gap-5 px-8 pt-8 pb-6">
             {/* Icon */}
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
               <step.icon className="h-9 w-9 text-primary" />
             </div>
 
             {/* Title & Description */}
-            <div className="text-center">
+            <div className="mt-4 text-center">
               <DialogTitle className="text-xl font-semibold">
                 {step.title}
               </DialogTitle>
@@ -262,7 +262,7 @@ export function WelcomeDialog({
             </div>
 
             {/* Select */}
-            <div className="w-full max-w-xs pt-2">
+            <div className="w-full max-w-xs pt-4">
               <Select
                 value={selections[step.key] || ''}
                 onValueChange={(value) =>

@@ -48,7 +48,32 @@ export default function Home() {
       <WelcomeDialog
         open={showWelcome}
         onOpenChange={setShowWelcome}
-        onComplete={() => setShowWelcome(false)}
+        onComplete={() => {
+          setShowWelcome(false)
+          void fetch('/api/account/onboarding-complete')
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.settings) {
+                const s = data.settings
+                if (s.language) {
+                  window.dispatchEvent(new CustomEvent('languagechange', { detail: { language: s.language } }))
+                }
+                if (s.timezone) {
+                  window.dispatchEvent(new CustomEvent('timezonechange', { detail: { timezone: s.timezone } }))
+                }
+                if (s.firstDayOfWeek !== undefined) {
+                  window.dispatchEvent(new CustomEvent('firstdaychange', { detail: { firstDay: s.firstDayOfWeek } }))
+                }
+                if (s.defaultView) {
+                  window.dispatchEvent(new CustomEvent('viewchange', { detail: { view: s.defaultView } }))
+                }
+                if (s.timeFormat) {
+                  window.dispatchEvent(new CustomEvent('timeformatchange', { detail: { format: s.timeFormat } }))
+                }
+              }
+            })
+            .catch(() => {})
+        }}
       />
       <Calendar />
     </>
