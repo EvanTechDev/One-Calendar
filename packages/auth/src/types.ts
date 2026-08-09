@@ -9,6 +9,7 @@ export interface SessionUser {
   emailVerified: boolean
   image?: string | null
   twoFactorEnabled?: boolean | null
+  onboardingCompleted: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -92,6 +93,8 @@ export interface CreateAuthOptions {
   secret?: string
   disableCsrfCheck?: boolean
   isDev?: boolean
+  additionalFields?: Record<string, any>
+  afterHooks?: (ctx: any) => Promise<void>
 }
 
 export type EnabledPlugins = {
