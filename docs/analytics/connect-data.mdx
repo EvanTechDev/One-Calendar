@@ -1,0 +1,61 @@
+---
+title: Connect a data source
+description: Supported sources and how to authenticate and configure sync frequency.
+---
+
+Before you can build dashboards or run reports, you need to connect at least one data source. The platform supports databases, data warehouses, and SaaS tools through a unified connection interface.
+
+## Supported sources
+
+<Tabs>
+  <Tab title="Databases">
+    - PostgreSQL
+    - MySQL / MariaDB
+    - Microsoft SQL Server
+    - SQLite (file upload)
+    - Oracle Database
+  </Tab>
+  <Tab title="Data warehouses">
+    - Snowflake
+    - Google BigQuery
+    - Amazon Redshift
+    - Databricks
+    - ClickHouse
+  </Tab>
+  <Tab title="SaaS tools">
+    - Salesforce
+    - HubSpot
+    - Stripe
+    - Google Analytics
+    - Zendesk
+  </Tab>
+</Tabs>
+
+## Connection settings
+
+Navigate to **Analytics → Data sources → Add source** and complete the following fields:
+
+| Field | Description |
+|-------|-------------|
+| **Source name** | A human-readable label used in the UI. |
+| **Source type** | Select from the supported list above. |
+| **Host / URL** | Hostname or endpoint URL for the source. |
+| **Port** | Default ports are pre-filled for common sources. |
+| **Database / Schema** | The specific database or schema to connect to. |
+| **Username / API key** | Authentication credential for the source. |
+| **Password / Secret** | Stored encrypted and never displayed after saving. |
+| **SSL mode** | Require, prefer, or disable SSL. Require SSL for production sources. |
+
+Click **Test connection** to validate credentials before saving. Errors include a specific reason code to help troubleshoot firewall or credential issues.
+
+## Sync frequency
+
+After connecting a source, configure how often data is refreshed:
+
+- **Real-time** — Queries run live against the source on every dashboard load. Best for low-latency sources with indexed queries.
+- **Scheduled sync** — Data is fetched on a fixed interval (15 minutes, 1 hour, 6 hours, or daily) and cached. Best for large datasets or rate-limited APIs.
+- **Manual** — Refresh only when you click **Sync now**. Suitable for one-off data imports.
+
+<Info>
+  Scheduled sync intervals depend on your plan. Free plans support daily sync only.
+</Info>

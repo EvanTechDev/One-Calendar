@@ -1,0 +1,47 @@
+---
+title: Scheduled reports
+description: Deliver reports to inboxes on a recurring schedule.
+---
+
+Scheduled reports run automatically on a defined cadence and deliver results to one or more recipients via email or Slack. Use them to eliminate manual report pulls and keep stakeholders informed without extra effort.
+
+## Create a schedule
+
+1. Open a saved report and click **Schedule delivery**.
+2. Set the frequency: daily, weekly, or monthly.
+3. Choose the day and time (all times are in the workspace timezone).
+4. Click **Next** to configure recipients.
+
+## Choose recipients
+
+<Tabs>
+  <Tab title="Email">
+    Enter one or more email addresses. Recipients do not need to be workspace members—any valid email address works.
+
+    The delivery includes:
+    - A summary header with the report name and run time
+    - An inline preview of the first 10 rows
+    - A link to view or download the full report
+    - An attached CSV (optional—toggle in delivery settings)
+  </Tab>
+  <Tab title="Slack">
+    Connect your workspace's Slack integration (if not already connected), then select a channel or enter a direct message recipient.
+
+    The Slack message includes a summary card with row count and key metrics, plus a link to view the full report in the browser.
+
+    <Info>
+      Slack delivery requires the Slack integration to be connected. See [Messaging connectors](/integrations/connectors/messaging) for setup steps.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Manage subscriptions
+
+Scheduled deliveries are listed under **Analytics → Reports → Schedules**. From there you can:
+
+- **Pause** a schedule without deleting it.
+- **Edit** the frequency, time, or recipient list.
+- **Run now** to trigger an immediate delivery outside the regular cadence.
+- **Delete** to permanently remove the schedule.
+
+Recipients can unsubscribe from scheduled emails using the unsubscribe link in the footer of each delivery. Admins can also remove recipients from the schedule management page.
