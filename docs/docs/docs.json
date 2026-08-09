@@ -44,6 +44,7 @@
     ],
     "display": "header"
   },
+  "$schema": "https://mintlify.com/docs.json",
   "navigation": {
     "global": {
       "anchors": [
@@ -63,8 +64,8 @@
       {
         "group": "GettingStarted",
         "pages": [
-          "docs/index",
-          "docs/quickstart"
+          "index",
+          "quickstart"
         ]
       }
     ]
