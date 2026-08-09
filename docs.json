@@ -1,0 +1,81 @@
+{
+  "theme": "almond",
+  "name": "Product Guide",
+  "colors": {
+    "primary": "#166E3F",
+    "light": "#26BD6C",
+    "dark": "#166E3F"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.ico",
+  "navbar": {
+    "links": [],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://dashboard.mintlify.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/yourcompany",
+      "linkedin": "https://linkedin.com/company/yourcompany"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "assistant",
+      "mcp",
+      "add-mcp"
+    ],
+    "display": "header"
+  },
+  "description": "Step-by-step guides for every product: platform setup, analytics, and integrations in one place.",
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs"
+  },
+  "navigation": {
+    "pages": [
+      {
+        "group": "Platform",
+        "icon": "layers",
+        "pages": [
+          "platform/quickstart",
+          "platform/key-concepts",
+          "platform/configuration/settings",
+          "platform/configuration/user-management",
+          "platform/administration/roles-permissions"
+        ]
+      },
+      {
+        "group": "Analytics",
+        "icon": "chart-bar",
+        "pages": [
+          "analytics/quickstart",
+          "analytics/connect-data",
+          "analytics/dashboards/create-dashboard",
+          "analytics/reports/scheduled-reports"
+        ]
+      },
+      {
+        "group": "Integrations",
+        "icon": "plug",
+        "pages": [
+          "integrations/quickstart",
+          "integrations/authentication",
+          "integrations/connectors/crm",
+          "integrations/webhooks/configure"
+        ]
+      },
+      "index"
+    ]
+  }
+}
