@@ -91,6 +91,7 @@ export function SignUpForm() {
       setIsVerifying(false)
       return
     }
+    void fetch('/api/account/send-welcome-email', { method: 'POST' })
     router.push('/sign-in')
     router.refresh()
   }
