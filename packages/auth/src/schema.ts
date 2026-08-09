@@ -13,9 +13,6 @@ export const user = pgTable('user', {
   emailVerified: boolean('emailVerified').default(false).notNull(),
   image: text('image'),
   twoFactorEnabled: boolean('twoFactorEnabled'),
-  onboardingCompleted: boolean('onboarding_completed')
-    .default(false)
-    .notNull(),
   createdAt: timestamp('createdAt', {
     precision: 3,
     withTimezone: true,

@@ -68,8 +68,6 @@ export function createAuth(options: CreateAuthOptions): {
     secret,
     disableCsrfCheck,
     isDev = false,
-    user,
-    databaseHooks,
     afterHooks,
   } = options
 
@@ -122,16 +120,6 @@ export function createAuth(options: CreateAuthOptions): {
     },
     plugins: resolvedPlugins,
     trustedOrigins,
-  }
-
-  if (user?.additionalFields) {
-    authConfig.user = {
-      additionalFields: user.additionalFields,
-    }
-  }
-
-  if (databaseHooks) {
-    authConfig.databaseHooks = databaseHooks
   }
 
   if (afterHooks) {

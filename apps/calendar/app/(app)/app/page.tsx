@@ -6,7 +6,7 @@ import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import { WelcomeDialog } from '@/components/welcome/welcome-dialog'
 
 export default function Home() {
-  const { data: session, isPending, refetch } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession()
   const [ready, setReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
 
@@ -28,11 +28,14 @@ export default function Home() {
 
   useEffect(() => {
     if (ready && !isPending && session?.user) {
-      const onboardingCompleted = (session.user as Record<string, unknown>)
-        .onboardingCompleted as boolean | undefined
-      if (!onboardingCompleted) {
-        setShowWelcome(true)
-      }
+      void fetch('/api/account/onboarding-complete')
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.onboardingCompleted) {
+            setShowWelcome(true)
+          }
+        })
+        .catch(() => {})
     }
   }, [ready, isPending, session])
 
@@ -45,10 +48,7 @@ export default function Home() {
       <WelcomeDialog
         open={showWelcome}
         onOpenChange={setShowWelcome}
-        onComplete={() => {
-          setShowWelcome(false)
-          void refetch()
-        }}
+        onComplete={() => setShowWelcome(false)}
       />
       <Calendar />
     </>

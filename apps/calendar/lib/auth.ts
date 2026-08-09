@@ -16,25 +16,6 @@ const { auth } = createAuth({
     verify: async ({ hash, password }: { hash: string; password: string }) =>
       bcrypt.compare(password, hash),
   },
-  user: {
-    additionalFields: {
-      onboardingCompleted: {
-        type: 'boolean',
-        required: true,
-        defaultValue: false,
-        input: false,
-      },
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (_user) => {
-          // No-op for now - could be used for future onboarding setup
-        },
-      },
-    },
-  },
   afterHooks: async (ctx) => {
     if (ctx.path === '/email-otp/verify-email' && ctx.context?.returned) {
       const returned = ctx.context.returned as { user?: { email?: string } }
