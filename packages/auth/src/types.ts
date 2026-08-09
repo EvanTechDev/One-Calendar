@@ -92,8 +92,7 @@ export interface CreateAuthOptions {
   secret?: string
   disableCsrfCheck?: boolean
   isDev?: boolean
-  additionalFields?: Record<string, any>
-  afterHooks?: (ctx: any) => Promise<void>
+
 }
 
 export type EnabledPlugins = {

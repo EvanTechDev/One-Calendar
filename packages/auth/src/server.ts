@@ -68,7 +68,6 @@ export function createAuth(options: CreateAuthOptions): {
     secret,
     disableCsrfCheck,
     isDev = false,
-    afterHooks,
   } = options
 
   const adapter = createDrizzleAdapter(db, { provider: 'pg' })
@@ -120,12 +119,6 @@ export function createAuth(options: CreateAuthOptions): {
     },
     plugins: resolvedPlugins,
     trustedOrigins,
-  }
-
-  if (afterHooks) {
-    authConfig.hooks = {
-      after: afterHooks,
-    }
   }
 
   if (baseURL) {

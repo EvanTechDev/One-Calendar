@@ -3,7 +3,6 @@ import { getDb } from '@/lib/drizzle/client'
 import bcrypt from 'bcryptjs'
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
-import { sendWelcomeEmail } from '@/lib/auth/send-welcome-email'
 
 const baseURL = process.env.NEXT_PUBLIC_BASE_URL
 
@@ -16,19 +15,7 @@ const { auth } = createAuth({
     verify: async ({ hash, password }: { hash: string; password: string }) =>
       bcrypt.compare(password, hash),
   },
-  afterHooks: async (ctx) => {
-    if (ctx.path === '/email-otp/verify-email' && ctx.context?.returned) {
-      const returned = ctx.context.returned as { user?: { email?: string } }
-      const email = returned.user?.email
-      if (email) {
-        try {
-          await sendWelcomeEmail(email)
-        } catch {
-          // Don't fail the verification flow if email sending fails
-        }
-      }
-    }
-  },
+
   emailCallbacks: {
     sendResetPassword: async ({ user, url }) => {
       await sendAuthEmail({
