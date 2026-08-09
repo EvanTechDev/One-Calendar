@@ -247,7 +247,7 @@ export function WelcomeDialog({
           {/* Content */}
           <div className="flex flex-1 flex-col items-center gap-5 px-8 pt-8 pb-6">
             {/* Icon */}
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
               <step.icon className="h-9 w-9 text-primary" />
             </div>
 
