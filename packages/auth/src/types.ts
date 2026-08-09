@@ -83,6 +83,36 @@ export interface PasswordHashOptions {
   verify: (input: { hash: string; password: string }) => Promise<boolean>
 }
 
+export interface UserAdditionalFields {
+  [key: string]: {
+    type: string
+    required?: boolean
+    defaultValue?: unknown
+    input?: boolean
+    returned?: boolean
+  }
+}
+
+export interface UserConfig {
+  additionalFields?: UserAdditionalFields
+}
+
+export interface DatabaseHookContext {
+  context?: {
+    session?: {
+      userId?: string
+    }
+  }
+}
+
+export interface DatabaseHooks {
+  user?: {
+    create?: {
+      after?: (user: { id: string; email: string }, ctx?: DatabaseHookContext) => Promise<void>
+    }
+  }
+}
+
 export interface CreateAuthOptions {
   db: any
   baseURL?: string
@@ -93,6 +123,8 @@ export interface CreateAuthOptions {
   secret?: string
   disableCsrfCheck?: boolean
   isDev?: boolean
+  user?: UserConfig
+  databaseHooks?: DatabaseHooks
   additionalFields?: Record<string, any>
   afterHooks?: (ctx: any) => Promise<void>
 }

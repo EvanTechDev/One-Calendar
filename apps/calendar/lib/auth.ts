@@ -16,12 +16,23 @@ const { auth } = createAuth({
     verify: async ({ hash, password }: { hash: string; password: string }) =>
       bcrypt.compare(password, hash),
   },
-  additionalFields: {
-    onboardingCompleted: {
-      type: 'boolean',
-      required: true,
-      defaultValue: false,
-      input: false,
+  user: {
+    additionalFields: {
+      onboardingCompleted: {
+        type: 'boolean',
+        required: true,
+        defaultValue: false,
+        input: false,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (_user) => {
+          // No-op for now - could be used for future onboarding setup
+        },
+      },
     },
   },
   afterHooks: async (ctx) => {
