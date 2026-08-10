@@ -35,7 +35,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { cn } from '@zntr/utils'
 import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
-import Image from 'next/image'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -295,7 +295,7 @@ export default function Sidebar({
     >
       <div className="p-4">
         <div className="mb-4 flex items-center">
-          <Image
+          <img
             src="/icon.svg"
             alt="One Calendar"
             width={24}

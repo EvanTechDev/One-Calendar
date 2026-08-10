@@ -418,8 +418,8 @@ export default function UserProfileButton({
                   width={32}
                   height={32}
                   className="rounded-full object-cover"
-                  loading="lazy"
                   referrerPolicy="no-referrer"
+                  fetchPriority="high"
                 />
               </Button>
             ) : (
@@ -462,8 +462,8 @@ export default function UserProfileButton({
                     width={40}
                     height={40}
                     className="h-10 w-10 rounded-full border object-cover"
-                    loading="lazy"
                     referrerPolicy="no-referrer"
+                    fetchPriority="high"
                   />
                   <div className="min-w-0">
                     <p className="font-medium truncate">
@@ -512,8 +512,8 @@ export default function UserProfileButton({
                             width={52}
                             height={52}
                             className="h-12 w-12 rounded-full border object-cover"
-                            loading="lazy"
                             referrerPolicy="no-referrer"
+                            fetchPriority="high"
                           />
                           <Label
                             htmlFor="profile-avatar-input"
