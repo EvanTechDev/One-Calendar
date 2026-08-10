@@ -300,7 +300,7 @@ export default function Sidebar({
             viewBox="324.5 178.12 367.99 643.88"
             aria-label="One Calendar"
             role="img"
-            className="h-5 w-5 shrink-0 brightness-0 dark:invert"
+            className="mr-2 h-7 w-7 shrink-0 brightness-0 dark:invert"
           >
             <g
               transform="translate(0,1000) scale(0.1,-0.1)"
