@@ -297,7 +297,7 @@ export default function Sidebar({
         <div className="mb-3 flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 1000 1000"
+            viewBox="324.5 178.12 367.99 643.88"
             aria-label="One Calendar"
             role="img"
             className="h-9 w-9 shrink-0 brightness-0 dark:invert"
