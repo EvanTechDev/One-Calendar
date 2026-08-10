@@ -304,7 +304,7 @@ export default function Sidebar({
             preserveAspectRatio="xMidYMid meet"
             aria-label="One Calendar"
             role="img"
-            className="mr-2 shrink-0 brightness-0 dark:invert"
+            className="mr-2 h-6 w-6 shrink-0 brightness-0 dark:invert"
           >
             <g
               transform="translate(0,1000) scale(0.1,-0.1)"
