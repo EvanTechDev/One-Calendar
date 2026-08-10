@@ -293,7 +293,7 @@ export default function Sidebar({
         }
       }}
     >
-      <div className="p-2">
+      <div className="p-4">
         <div className="mb-3 flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
