@@ -296,12 +296,8 @@ export default function Sidebar({
       <div className="p-4">
         <div className="mb-4 flex items-center">
           <svg
-            version="1.0"
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
             viewBox="0 0 1000 1000"
-            preserveAspectRatio="xMidYMid meet"
             aria-label="One Calendar"
             role="img"
             className="mr-2 h-6 w-6 shrink-0 brightness-0 dark:invert"
