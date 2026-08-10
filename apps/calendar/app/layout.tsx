@@ -50,9 +50,6 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn('font-sans', inter.variable, geistHeading.variable)}
     >
-      <head>
-        <link rel="preload" href="/icon.svg" as="image" />
-      </head>
       <body
         className={`${GeistSans.className} ${instrumentSans.variable} antialiased`}
       >
