@@ -29,6 +29,114 @@ type EventInput = {
   notificationMinutes?: number | null
 }
 
+type EnrichedInvite = {
+  id: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+}
+
+async function enrichEventsWithInvites(
+  events: ReturnType<typeof decryptEvent>[],
+): Promise<Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>> {
+  if (events.length === 0) {
+    return events.map((e) => ({ ...e, invites: [] }))
+  }
+
+  const eventIds = events.map((e) => e.id)
+
+  const allInvites = await getDb()
+    .select({
+      id: eventInvites.id,
+      eventId: eventInvites.eventId,
+      email: eventInvites.email,
+      status: eventInvites.status,
+      inviteToken: eventInvites.inviteToken,
+      emailSent: eventInvites.emailSent,
+      addedToCalendar: eventInvites.addedToCalendar,
+    })
+    .from(eventInvites)
+    .where(inArray(eventInvites.eventId, eventIds))
+
+  const inviteEmails = [...new Set(allInvites.map((i) => i.email.toLowerCase()))]
+
+  let userMap: Record<string, { name: string; image: string | null }> = {}
+  if (inviteEmails.length > 0) {
+    const users = await getDb()
+      .select({
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      })
+      .from(user)
+      .where(inArray(user.email, inviteEmails))
+
+    userMap = users.reduce(
+      (acc: Record<string, { name: string; image: string | null }>, u) => {
+        acc[u.email.toLowerCase()] = { name: u.name, image: u.image }
+        return acc
+      },
+      {} as Record<string, { name: string; image: string | null }>,
+    )
+  }
+
+  const invitesByEvent = allInvites.reduce(
+    (acc: Record<string, EnrichedInvite[]>, invite) => {
+      const emailLower = invite.email.toLowerCase()
+      const enriched: EnrichedInvite = {
+        id: invite.id,
+        email: invite.email,
+        status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
+        inviteToken: invite.inviteToken,
+        emailSent: invite.emailSent,
+        addedToCalendar: invite.addedToCalendar,
+        userName: userMap[emailLower]?.name ?? null,
+        userImage: userMap[emailLower]?.image ?? null,
+      }
+      if (!acc[invite.eventId]) acc[invite.eventId] = []
+      acc[invite.eventId].push(enriched)
+      return acc
+    },
+    {} as Record<string, EnrichedInvite[]>,
+  )
+
+  return events.map((e) => ({
+    ...e,
+    invites: invitesByEvent[e.id] ?? [],
+  }))
+}
+
+async function getSharedEvents(
+  currentUser: { email: string },
+): Promise<Array<ReturnType<typeof decryptEvent> & { viewOnly: boolean }>> {
+  const sharedEventIds = await getDb()
+    .select({ eventId: eventInvites.eventId })
+    .from(eventInvites)
+    .where(
+      and(
+        eq(eventInvites.email, currentUser.email.toLowerCase()),
+        eq(eventInvites.addedToCalendar, true),
+      ),
+    )
+
+  if (sharedEventIds.length === 0) return []
+
+  const sharedIds = sharedEventIds.map((r) => r.eventId)
+  const sharedResults = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(inArray(calendarEvents.id, sharedIds))
+
+  return sharedResults.map((e) => ({
+    ...decryptEvent(e),
+    viewOnly: true,
+  }))
+}
+
 export const GET = async function GET(request: NextRequest) {
   const currentUser = await getAuthedUser()
   if (!currentUser)
@@ -41,137 +149,48 @@ export const GET = async function GET(request: NextRequest) {
 
   const filters = [eq(calendarEvents.userId, currentUser.id)]
 
+  let decrypted: ReturnType<typeof decryptEvent>[] = []
+
   if (startDate && endDate) {
     const cached = await getCachedEvents(currentUser.id, startDate, endDate)
     if (cached) {
-      let events = cached.map(decryptEvent)
-      if (categoryIds) {
-        const ids = categoryIds.split(',')
-        events = events.filter(
-          (e) => e.categoryId && ids.includes(e.categoryId),
-        )
-      }
-      return NextResponse.json({ events })
+      decrypted = cached.map(decryptEvent)
+    } else {
+      const range = fullMonthRange(startDate, endDate)
+      filters.push(gte(calendarEvents.startDate, range.start))
+      filters.push(lte(calendarEvents.endDate, range.end))
     }
-
-    const range = fullMonthRange(startDate, endDate)
-    filters.push(gte(calendarEvents.startDate, range.start))
-    filters.push(lte(calendarEvents.endDate, range.end))
   }
 
   if (categoryIds) {
     filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
   }
 
-  const results = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(and(...filters))
-
-  const grouped = groupByMonth(results)
-  for (const [ym, monthEvents] of grouped) {
-    await setCachedEvents(currentUser.id, ym, monthEvents)
-  }
-
-  const decrypted = results.map(decryptEvent)
-
-  const sharedEventIds = await getDb()
-    .select({ eventId: eventInvites.eventId })
-    .from(eventInvites)
-    .where(
-      and(
-        eq(eventInvites.email, currentUser.email.toLowerCase()),
-        eq(eventInvites.addedToCalendar, true),
-      ),
-    )
-
-  let viewOnlyEvents: ReturnType<typeof decryptEvent>[] = []
-  if (sharedEventIds.length > 0) {
-    const sharedIds = sharedEventIds.map((r) => r.eventId)
-    const sharedResults = await getDb()
+  if (decrypted.length === 0) {
+    const results = await getDb()
       .select()
       .from(calendarEvents)
-      .where(inArray(calendarEvents.id, sharedIds))
-    viewOnlyEvents = sharedResults.map((e) => ({
-      ...decryptEvent(e),
-      viewOnly: true,
-    }))
-  }
+      .where(and(...filters))
 
-  const allEvents = [...decrypted, ...viewOnlyEvents]
-
-  type EnrichedInvite = {
-    id: string
-    email: string
-    status: 'pending' | 'accepted' | 'maybe' | 'declined'
-    inviteToken: string
-    emailSent: boolean
-    addedToCalendar: boolean
-    userName: string | null
-    userImage: string | null
-  }
-
-  const eventIds = allEvents.map((e) => e.id)
-  let invitesByEvent: Record<string, EnrichedInvite[]> = {}
-  if (eventIds.length > 0) {
-    const allInvites = await getDb()
-      .select({
-        id: eventInvites.id,
-        eventId: eventInvites.eventId,
-        email: eventInvites.email,
-        status: eventInvites.status,
-        inviteToken: eventInvites.inviteToken,
-        emailSent: eventInvites.emailSent,
-        addedToCalendar: eventInvites.addedToCalendar,
-      })
-      .from(eventInvites)
-      .where(inArray(eventInvites.eventId, eventIds))
-
-    const inviteEmails = [...new Set(allInvites.map((i) => i.email))]
-    let userMap: Record<string, { name: string; image: string | null }> = {}
-    if (inviteEmails.length > 0) {
-      const users = await getDb()
-        .select({
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        })
-        .from(user)
-        .where(inArray(user.email, inviteEmails))
-
-      userMap = (users as Array<{ email: string; name: string; image: string | null }>).reduce(
-        (acc, u) => {
-          acc[u.email] = { name: u.name, image: u.image }
-          return acc
-        },
-        {} as Record<string, { name: string; image: string | null }>,
-      )
+    if (startDate && endDate) {
+      const grouped = groupByMonth(results)
+      for (const [ym, monthEvents] of grouped) {
+        await setCachedEvents(currentUser.id, ym, monthEvents)
+      }
     }
 
-    invitesByEvent = allInvites.reduce(
-      (acc: Record<string, EnrichedInvite[]>, invite) => {
-        const enriched: EnrichedInvite = {
-          id: invite.id,
-          email: invite.email,
-          status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
-          inviteToken: invite.inviteToken,
-          emailSent: invite.emailSent,
-          addedToCalendar: invite.addedToCalendar,
-          userName: userMap[invite.email]?.name ?? null,
-          userImage: userMap[invite.email]?.image ?? null,
-        }
-        if (!acc[invite.eventId]) acc[invite.eventId] = []
-        acc[invite.eventId].push(enriched)
-        return acc
-      },
-      {} as Record<string, EnrichedInvite[]>,
-    )
+    decrypted = results.map(decryptEvent)
   }
 
-  const eventsWithInvites = allEvents.map((e) => ({
-    ...e,
-    invites: invitesByEvent[e.id] ?? [],
-  }))
+  if (categoryIds) {
+    const ids = categoryIds.split(',')
+    decrypted = decrypted.filter((e) => e.categoryId && ids.includes(e.categoryId))
+  }
+
+  const sharedEvents = await getSharedEvents(currentUser)
+  const allBaseEvents = [...decrypted, ...sharedEvents]
+
+  const eventsWithInvites = await enrichEventsWithInvites(allBaseEvents)
 
   if (startDate && endDate) {
     const start = new Date(startDate)
