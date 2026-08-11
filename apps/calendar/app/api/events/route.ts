@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents } from '@/lib/drizzle/schema'
+import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
 import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
@@ -75,15 +75,42 @@ export const GET = async function GET(request: NextRequest) {
 
   const decrypted = results.map(decryptEvent)
 
+  const sharedEventIds = await getDb()
+    .select({ eventId: eventInvites.eventId })
+    .from(eventInvites)
+    .where(
+      and(
+        eq(eventInvites.email, user.email.toLowerCase()),
+        eq(eventInvites.addedToCalendar, true),
+      ),
+    )
+
+  let viewOnlyEvents: ReturnType<typeof decryptEvent>[] = []
+  if (sharedEventIds.length > 0) {
+    const sharedIds = sharedEventIds.map((r) => r.eventId)
+    const sharedResults = await getDb()
+      .select()
+      .from(calendarEvents)
+      .where(inArray(calendarEvents.id, sharedIds))
+    viewOnlyEvents = sharedResults.map((e) => ({
+      ...decryptEvent(e),
+      viewOnly: true,
+    }))
+  }
+
+  const allEvents = [...decrypted, ...viewOnlyEvents]
+
   if (startDate && endDate) {
     const start = new Date(startDate)
     const end = new Date(endDate)
     return NextResponse.json({
-      events: decrypted.filter((e) => e.startDate >= start && e.endDate <= end),
+      events: allEvents.filter(
+        (e) => e.startDate >= start && e.endDate <= end,
+      ),
     })
   }
 
-  return NextResponse.json({ events: decrypted })
+  return NextResponse.json({ events: allEvents })
 }
 
 export const POST = async function POST(request: NextRequest) {
@@ -171,6 +198,10 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
   if (!old)
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+
+  await getDb()
+    .delete(eventInvites)
+    .where(eq(eventInvites.eventId, id))
 
   await getDb()
     .delete(calendarEvents)

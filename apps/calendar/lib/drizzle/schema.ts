@@ -166,21 +166,29 @@ export const bookmarkedEvents = pgTable(
   }),
 )
 
-// --- Shares ---
-export const shares = pgTable(
-  'shares',
+
+
+// --- Event Invites ---
+export const eventInvites = pgTable(
+  'event_invites',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
     eventId: text('event_id')
       .notNull()
       .references(() => calendarEvents.id, { onDelete: 'cascade' }),
-    encryptedPayload: text('encrypted_payload').notNull(),
-    hasPassword: boolean('has_password').default(false).notNull(),
-    burnAfterRead: boolean('burn_after_read').default(false).notNull(),
+    email: text('email').notNull(),
+    status: text('status').notNull().default('pending'),
+    inviteToken: text('invite_token').notNull().unique(),
+    emailSent: boolean('email_sent').default(false).notNull(),
+    addedToCalendar: boolean('added_to_calendar').default(false).notNull(),
+    categoryId: text('category_id'),
     createdAt: timestamp('created_at', {
+      precision: 3,
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', {
       precision: 3,
       withTimezone: true,
     })
@@ -188,8 +196,9 @@ export const shares = pgTable(
       .notNull(),
   },
   (table) => ({
-    userIdIdx: index('idx_shares_user_id').on(table.userId),
-    eventIdIdx: index('idx_shares_event_id').on(table.eventId),
+    eventIdIdx: index('idx_event_invites_event_id').on(table.eventId),
+    emailIdx: index('idx_event_invites_email').on(table.email),
+    tokenIdx: index('idx_event_invites_token').on(table.inviteToken),
   }),
 )
 
@@ -374,7 +383,6 @@ export const userRelations = relations(user, ({ many, one }) => ({
   calendarCategories: many(calendarCategories),
   countdowns: many(countdowns),
   bookmarkedEvents: many(bookmarkedEvents),
-  shares: many(shares),
   mcpApiKeys: many(mcpApiKeys),
   mcpTokens: many(mcpTokens),
   mcpAuditLogs: many(mcpAuditLogs),
@@ -404,7 +412,7 @@ export const calendarEventsRelations = relations(
       references: [calendarCategories.id],
     }),
     bookmarks: many(bookmarkedEvents),
-    shares: many(shares),
+    invites: many(eventInvites),
   }),
 )
 
@@ -441,10 +449,9 @@ export const bookmarkedEventsRelations = relations(
   }),
 )
 
-export const sharesRelations = relations(shares, ({ one }) => ({
-  user: one(user, { fields: [shares.userId], references: [user.id] }),
+export const eventInvitesRelations = relations(eventInvites, ({ one }) => ({
   event: one(calendarEvents, {
-    fields: [shares.eventId],
+    fields: [eventInvites.eventId],
     references: [calendarEvents.id],
   }),
 }))

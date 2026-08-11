@@ -43,7 +43,6 @@ interface WeekViewProps {
   fixedStartDate?: Date
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
@@ -58,7 +57,6 @@ export default function WeekView({
   fixedStartDate,
   onEditEvent: _onEditEvent,
   onDeleteEvent: _onDeleteEvent,
-  onShareEvent: _onShareEvent,
   onBookmarkEvent: _onBookmarkEvent,
 }: WeekViewProps) {
   const layoutEngine = useMemo(
@@ -303,6 +301,7 @@ export default function WeekView({
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
+    if (event.viewOnly) return
     e.preventDefault()
     e.stopPropagation()
 

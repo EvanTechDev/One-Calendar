@@ -1,8 +1,6 @@
 'use client'
 
-import { api, SHARE_LIST_KEY } from '@/lib/api-client'
 import React, { useState, useRef, useEffect } from 'react'
-import useSWR from 'swr'
 import {
   Edit2,
   Trash2,
@@ -14,10 +12,20 @@ import {
   AlignLeft,
   ChevronDown,
   Bookmark,
-  Download,
+  MoreHorizontal,
+  Send,
+  UserMinus,
 } from 'lucide-react'
-import { Share as Share2 } from '@/components/icons/share'
 import { Button } from '@zntr/ui/button'
+import { Badge } from '@zntr/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
+import { ButtonGroup } from '@zntr/ui/button-group'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@zntr/ui/dropdown-menu'
 import { zhCN, enUS } from 'date-fns/locale'
 import { format } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
@@ -27,20 +35,20 @@ import { cn } from '@zntr/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { useBookmarks } from '@/components/providers/data-provider'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@zntr/ui/dialog'
-import { Input } from '@zntr/ui/input'
-import { Label } from '@zntr/ui/label'
-import { Spinner } from '@zntr/ui/spinner'
-import { Checkbox } from '@zntr/ui/checkbox'
 import { toast } from 'sonner'
-import QRCodeStyling from 'qr-code-styling'
 import { authClient } from '@/lib/auth/client'
+
+interface EventInvite {
+  id: string
+  eventId: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+}
 
 interface EventPreviewProps {
   event: CalendarEvent | null
@@ -51,8 +59,6 @@ interface EventPreviewProps {
   _onDuplicate: () => void
   language: Language
   _timezone: string
-  openShareImmediately?: boolean
-  shareOnlyMode?: boolean
   anchorRect?: DOMRect | null
   modal?: boolean
 }
@@ -66,31 +72,19 @@ export default function EventPreview({
   _onDuplicate,
   language,
   _timezone,
-  openShareImmediately,
-  shareOnlyMode = false,
   anchorRect = null,
   modal = true,
 }: EventPreviewProps) {
   const { calendars } = useCalendar()
   const isZh = isZhLanguage(language)
-  const t = translations[language]
+  const _t = translations[language]
   const locale = isZh ? zhCN : enUS
-  const { data: sharesData } = useSWR(SHARE_LIST_KEY, api.shares.list)
   const [participantsOpen, setParticipantsOpen] = useState(false)
-  const [shareDialogOpen, setShareDialogOpen] = useState(false)
-  const [shareLink, setShareLink] = useState('')
-  const [isSharing, setIsSharing] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
-  const [qrCodeDataURL, setQRCodeDataURL] = useState<string>('')
-  const qrCodeObjectURLRef = useRef<string | null>(null)
+  const [invites, setInvites] = useState<EventInvite[]>([])
   const { data: session } = authClient.useSession()
-  const isSignedIn = Boolean(session?.user)
-  const user: any = session?.user
-  const dialogContentRef = useRef<HTMLDivElement>(null)
+  const _isSignedIn = Boolean(session?.user)
   const { bookmarks, createBookmark, deleteBookmark } = useBookmarks()
-  const [passwordEnabled, setPasswordEnabled] = useState(false)
-  const [sharePassword, setSharePassword] = useState('')
-  const [burnAfterRead, setBurnAfterRead] = useState(false)
   const ignoreOutsideUntilRef = useRef(0)
   const colorMapping: Record<string, string> = {
     'bg-[#E6F6FD]': '#3B82F6',
@@ -105,30 +99,10 @@ export default function EventPreview({
   }
 
   useEffect(() => {
-    if (open && openShareImmediately) {
-      if (!isSignedIn) {
-        toast.error(t.shareSignInRequiredTitle, {
-          description: t.shareSignInRequiredDescription,
-        })
-      } else {
-        void openShareDialog()
-      }
-    }
-  }, [open, openShareImmediately, isSignedIn, language])
-
-  useEffect(() => {
     if (open && !modal) {
       ignoreOutsideUntilRef.current = Date.now() + 150
     }
   }, [open, modal])
-
-  useEffect(() => {
-    return () => {
-      if (qrCodeObjectURLRef.current) {
-        URL.revokeObjectURL(qrCodeObjectURLRef.current)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (event) {
@@ -139,7 +113,16 @@ export default function EventPreview({
     }
   }, [event, bookmarks])
 
-  if (!event || (!open && !shareDialogOpen)) return null
+  useEffect(() => {
+    if (event && open) {
+      fetch(`/api/invites?eventId=${event.id}`)
+        .then((res) => res.json())
+        .then((data) => setInvites(data.invites ?? []))
+        .catch(() => setInvites([]))
+    }
+  }, [event, open])
+
+  if (!event || !open) return null
 
   const getCalendarName = () => {
     if (!event) return ''
@@ -164,90 +147,14 @@ export default function EventPreview({
       : `${event.notification} minutes before`
   }
 
-  const getInitials = (name: string) => name.charAt(0).toUpperCase()
+  const _getInitials = (name: string) => name.charAt(0).toUpperCase()
 
-  const hasParticipants =
+  const _hasParticipants =
     event.participants &&
     event.participants.length > 0 &&
     event.participants.some((p) => p.trim() !== '')
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen)
-
-  const generateStyledQRCode = async (link: string) => {
-    const { default: QRCodeStyling } = await import('qr-code-styling')
-    const qrCode = new QRCodeStyling({
-      width: 300,
-      height: 300,
-      type: 'canvas',
-      data: link,
-      image: '/icon.svg',
-      margin: 8,
-      qrOptions: {
-        errorCorrectionLevel: 'H',
-      },
-      dotsOptions: {
-        type: 'extra-rounded',
-      },
-      cornersSquareOptions: {
-        type: 'dot',
-      },
-      cornersDotOptions: {
-        type: 'dot',
-      },
-      imageOptions: {
-        hideBackgroundDots: true,
-        imageSize: 0.4,
-        margin: 10,
-        crossOrigin: 'anonymous',
-      },
-    })
-
-    const qrBlob = await qrCode.getRawData('png')
-    if (!(qrBlob instanceof Blob)) {
-      throw new Error(t.shareQrGenerateFailed)
-    }
-
-    if (qrCodeObjectURLRef.current) {
-      URL.revokeObjectURL(qrCodeObjectURLRef.current)
-    }
-    const qrURL = URL.createObjectURL(qrBlob)
-    qrCodeObjectURLRef.current = qrURL
-    setQRCodeDataURL(qrURL)
-  }
-
-  const openShareDialog = async () => {
-    if (!event) return
-
-    setPasswordEnabled(false)
-    setSharePassword('')
-    setBurnAfterRead(false)
-    setShareLink('')
-    setQRCodeDataURL('')
-    if (qrCodeObjectURLRef.current) {
-      URL.revokeObjectURL(qrCodeObjectURLRef.current)
-      qrCodeObjectURLRef.current = null
-    }
-
-    try {
-      const existingShare = (sharesData?.shares ?? [])
-        .filter((share) => share?.eventId === event.id && !!share?.shareLink)
-        .sort(
-          (a, b) =>
-            new Date(b.shareDate || 0).getTime() -
-            new Date(a.shareDate || 0).getTime(),
-        )[0]
-
-      if (existingShare) {
-        const res = await fetch(`/api/share?id=${existingShare.id}`)
-        if (res.ok) {
-          setShareLink(existingShare.shareLink)
-          await generateStyledQRCode(existingShare.shareLink)
-        }
-      }
-    } catch {}
-
-    setShareDialogOpen(true)
-  }
 
   const toggleBookmark = async () => {
     if (!event) return
@@ -273,141 +180,80 @@ export default function EventPreview({
     }
   }
 
-  const handleShare = async () => {
-    if (!event) return
-    if (!user) {
-      toast.error(t.shareSignInRequiredTitle, {
-        description: t.shareSignedInOnlyDescription,
-      })
-      return
-    }
-
-    if (passwordEnabled) {
-      const pwd = sharePassword.trim()
-      if (pwd.length < 4) {
-        toast.error(t.sharePasswordTooShortTitle, {
-          description: t.sharePasswordTooShortDescription,
-        })
-        return
-      }
-    } else {
-      if (burnAfterRead) setBurnAfterRead(false)
-    }
-
-    try {
-      setIsSharing(true)
-
-      const result = await api.shares.create({
-        eventId: event.id,
-        password: passwordEnabled ? sharePassword : undefined,
-        burnAfterRead: passwordEnabled ? !!burnAfterRead : undefined,
-      })
-
-      if (result.success) {
-        const link = `${window.location.origin}${result.shareLink}`
-        setShareLink(link)
-
-        try {
-          const qrCode = new QRCodeStyling({
-            width: 300,
-            height: 300,
-            type: 'canvas',
-            data: link,
-            image: '/icon.svg',
-            margin: 8,
-            qrOptions: {
-              errorCorrectionLevel: 'H',
-            },
-            dotsOptions: {
-              type: 'extra-rounded',
-            },
-            cornersSquareOptions: {
-              type: 'dot',
-            },
-            cornersDotOptions: {
-              type: 'dot',
-            },
-            imageOptions: {
-              hideBackgroundDots: true,
-              imageSize: 0.4,
-              margin: 10,
-            },
-          })
-          const qrBlob = await qrCode.getRawData('png')
-          if (qrBlob instanceof Blob) {
-            if (qrCodeObjectURLRef.current) {
-              URL.revokeObjectURL(qrCodeObjectURLRef.current)
-            }
-            const qrURL = URL.createObjectURL(qrBlob)
-            qrCodeObjectURLRef.current = qrURL
-            setQRCodeDataURL(qrURL)
-          }
-        } catch {}
-
-        toast.success(t.shareSuccessTitle, {
-          description:
-            passwordEnabled && burnAfterRead
-              ? t.shareSuccessPasswordAndBurn
-              : passwordEnabled
-                ? t.shareSuccessPasswordOnly
-                : t.shareSuccessLinkGenerated,
-        })
-      } else {
-        throw new Error(t.shareFailedGeneric)
-      }
-    } catch (error) {
-      toast.error(t.shareFailedTitle, {
-        description: error instanceof Error ? error.message : t.unknownError,
-      })
-    } finally {
-      setIsSharing(false)
-    }
-  }
-
-  const copyShareLink = () => {
-    if (shareLink) {
-      navigator.clipboard.writeText(shareLink)
-      toast.success(t.shareLinkCopiedTitle, {
-        description: t.shareLinkCopiedDescription,
-      })
-    }
-  }
-
-  const downloadQRCode = () => {
-    if (qrCodeDataURL) {
-      const link = document.createElement('a')
-      link.href = qrCodeDataURL
-      link.download = `${event?.title || 'event'}-qrcode.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success(t.qrCodeDownloaded, {
-        description: t.savedToDevice,
-      })
-    }
-  }
-
-  const handleShareDialogChange = (open: boolean) => {
-    if (!open) {
-      setShareLink('')
-      setQRCodeDataURL('')
-      if (qrCodeObjectURLRef.current) {
-        URL.revokeObjectURL(qrCodeObjectURLRef.current)
-        qrCodeObjectURLRef.current = null
-      }
-      setPasswordEnabled(false)
-      setSharePassword('')
-      setBurnAfterRead(false)
-    }
-    setShareDialogOpen(open)
-  }
-
-  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation()
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onDelete()
   }
+
+  const handleResendInvite = async (inviteId: string) => {
+    if (!event) return
+    try {
+      await fetch('/api/invites/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      })
+      toast.success('Invitation sent')
+    } catch {
+      toast.error('Failed to send invitation')
+    }
+  }
+
+  const handleRemoveParticipant = async (inviteId: string) => {
+    if (!event) return
+    try {
+      await fetch(`/api/invites/manage?id=${inviteId}`, {
+        method: 'DELETE',
+      })
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId))
+      toast.success('Participant removed')
+    } catch {
+      toast.error('Failed to remove participant')
+    }
+  }
+
+  const handleRemoveFromCalendar = async () => {
+    if (!event) return
+    try {
+      const dbInvite = invites.find(
+        (i) => i.email === session?.user?.email?.toLowerCase(),
+      )
+      if (dbInvite) {
+        await fetch(`/api/invite/${dbInvite.inviteToken}`, {
+          method: 'DELETE',
+        })
+      }
+      onDelete()
+    } catch {
+      toast.error('Failed to remove from calendar')
+    }
+  }
+
+  const handleViewOnlyRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
+    if (!event) return
+    const dbInvite = invites.find(
+      (i) => i.email === session?.user?.email?.toLowerCase(),
+    )
+    if (!dbInvite) return
+    try {
+      await fetch(`/api/invite/${dbInvite.inviteToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === dbInvite.id ? { ...i, status: newStatus } : i,
+        ),
+      )
+    } catch {
+      toast.error('Failed to update RSVP')
+    }
+  }
+
+  const userInvite = invites.find(
+    (i) => i.email === session?.user?.email?.toLowerCase(),
+  )
 
   const popoverSide: 'top' | 'right' | 'bottom' | 'left' = anchorRect
     ? (() => {
@@ -470,55 +316,39 @@ export default function EventPreview({
 
   return (
     <>
-      {!shareOnlyMode && (
-        <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
-          <PopoverAnchor asChild>
-            <div style={anchorStyle} />
-          </PopoverAnchor>
-          <PopoverContent
-            side={popoverSide}
-            align="center"
-            sideOffset={12}
-            className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={(e) => {
-              if (!modal) {
-                if (Date.now() < ignoreOutsideUntilRef.current) {
-                  e.preventDefault()
-                  return
-                }
-                onOpenChange(false)
+      <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
+        <PopoverAnchor asChild>
+          <div style={anchorStyle} />
+        </PopoverAnchor>
+        <PopoverContent
+          side={popoverSide}
+          align="center"
+          sideOffset={12}
+          className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            if (!modal) {
+              if (Date.now() < ignoreOutsideUntilRef.current) {
+                e.preventDefault()
+                return
               }
-            }}
-          >
+              onOpenChange(false)
+            }
+          }}
+        >
             <div className="flex justify-between items-center p-5">
               <div className="w-24" />
               <div className="flex space-x-2 ml-auto">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit()}
-                  className="h-8 w-8"
-                >
-                  <Edit2 className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (!isSignedIn) {
-                      toast.error(t.shareSignInRequiredTitle, {
-                        description: t.shareSignInRequiredDescription,
-                      })
-                      return
-                    }
-                    void openShareDialog()
-                  }}
-                  className="h-8 w-8"
-                >
-                  <Share2 className="h-5 w-5" />
-                </Button>
+                {!event.viewOnly && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit()}
+                    className="h-8 w-8"
+                  >
+                    <Edit2 className="h-5 w-5" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -535,7 +365,7 @@ export default function EventPreview({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleDeleteClick}
+                  onClick={event.viewOnly ? handleRemoveFromCalendar : handleDeleteClick}
                   className="h-8 w-8"
                 >
                   <Trash2 className="h-5 w-5" />
@@ -582,7 +412,7 @@ export default function EventPreview({
                 </div>
               )}
 
-              {hasParticipants && (
+              {invites.length > 0 && (
                 <div className="flex items-start">
                   <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                   <div className="flex-1">
@@ -591,10 +421,7 @@ export default function EventPreview({
                       onClick={toggleParticipants}
                     >
                       <p>
-                        {
-                          event.participants.filter((p) => p.trim() !== '')
-                            .length
-                        }{' '}
+                        {invites.length}{' '}
                         {isZh ? '参与者' : 'participants'}
                       </p>
                       <ChevronDown
@@ -606,18 +433,79 @@ export default function EventPreview({
                     </div>
                     {participantsOpen && (
                       <div className="mt-2 space-y-2">
-                        {event.participants
-                          .filter((p) => p.trim() !== '')
-                          .map((participant, index) => (
-                            <div key={index} className="flex items-center">
-                              <div className="bg-gray-200 rounded-full h-8 w-8 flex items-center justify-center mr-2">
-                                <span className="font-medium">
-                                  {getInitials(participant)}
-                                </span>
-                              </div>
-                              <p>{participant}</p>
+                        {invites.map((invite) => (
+                          <div key={invite.id} className="flex items-center justify-between">
+                            <div className="flex items-center min-w-0">
+                              <Avatar size="sm">
+                                {invite.userImage ? (
+                                  <AvatarImage src={invite.userImage} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {invite.email.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="ml-2 truncate text-sm">
+                                {invite.userName || invite.email}
+                              </span>
+                              <span className="ml-1.5 shrink-0">
+                                <Badge
+                                  variant={
+                                    invite.status === 'accepted'
+                                      ? 'default'
+                                      : invite.status === 'declined'
+                                        ? 'destructive'
+                                        : invite.status === 'maybe'
+                                          ? 'secondary'
+                                          : 'outline'
+                                  }
+                                  className={cn(
+                                    invite.status === 'accepted' &&
+                                      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                                    invite.status === 'pending' &&
+                                      'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                                    invite.status === 'declined' &&
+                                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                  )}
+                                >
+                                  {invite.status === 'accepted'
+                                    ? 'Accepted'
+                                    : invite.status === 'declined'
+                                      ? 'Declined'
+                                      : invite.status === 'maybe'
+                                        ? 'Maybe'
+                                        : 'Pending'}
+                                </Badge>
+                              </span>
                             </div>
-                          ))}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {!invite.emailSent ? (
+                                  <DropdownMenuItem onClick={() => handleResendInvite(invite.id)}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Send Invite
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleResendInvite(invite.id)}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Resend Invite
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleRemoveParticipant(invite.id)}
+                                >
+                                  <UserMinus className="mr-2 h-4 w-4" />
+                                  Remove
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -664,193 +552,37 @@ export default function EventPreview({
                   </div>
                 </div>
               )}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
 
-      <Dialog
-        open={shareDialogOpen}
-        onOpenChange={(nextOpen) => {
-          handleShareDialogChange(nextOpen)
-          if (!nextOpen && shareOnlyMode) onOpenChange(false)
-        }}
-      >
-        <DialogContent
-          className="sm:max-w-md"
-          ref={dialogContentRef}
-          onClick={handleDialogClick}
-        >
-          <DialogHeader>
-            <DialogTitle>{t.shareEvent}</DialogTitle>
-          </DialogHeader>
-
-          {!shareLink ? (
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label htmlFor="shared-by">{t.share}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t.shareIdentityDescription}
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="enable-password">
-                    {t.shareEnablePasswordProtection}
-                  </Label>
-                  <Checkbox
-                    id="enable-password"
-                    checked={passwordEnabled}
-                    onCheckedChange={(checked) => {
-                      const v = checked === true
-                      setPasswordEnabled(v)
-                      if (!v) {
-                        setSharePassword('')
-                        setBurnAfterRead(false)
-                      }
-                    }}
-                  />
-                </div>
-
-                {passwordEnabled && (
-                  <div className="space-y-2">
-                    <Label htmlFor="share-password">
-                      {t.sharePasswordLabel}
-                    </Label>
-                    <Input
-                      id="share-password"
-                      type="password"
-                      value={sharePassword}
-                      onChange={(e) => setSharePassword(e.target.value)}
-                      placeholder={t.sharePasswordPlaceholder}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t.sharePasswordHelp}
-                    </p>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <Label htmlFor="burn-after-read">
-                        {t.shareBurnAfterRead}
-                      </Label>
-                      <Checkbox
-                        id="burn-after-read"
-                        checked={burnAfterRead}
-                        onCheckedChange={(checked) =>
-                          setBurnAfterRead(checked === true)
-                        }
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {t.shareBurnAfterReadHelp}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleShareDialogChange(false)
-                  }}
-                >
-                  {t.cancel}
-                </Button>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleShare()
-                  }}
-                  disabled={isSharing}
-                >
-                  {isSharing ? (
-                    <span className="flex items-center">
-                      <Spinner className="mr-2" />
-                      {t.shareSharing}
-                    </span>
-                  ) : (
-                    <>{t.share}</>
-                  )}
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-4 pt-2">
-              <div className="space-y-4">
+              {event.viewOnly && userInvite && (
                 <div className="space-y-2">
-                  <Label htmlFor="share-link">{t.shareLink}</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="share-link"
-                      value={shareLink}
-                      readOnly
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        copyShareLink()
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        copyShareLink()
-                      }}
-                    >
-                      {t.copy}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {t.shareLinkHelp}
+                  <p className="text-sm font-medium">
+                    {isZh ? '您的回复' : 'Your response'}
                   </p>
-                </div>
-
-                {qrCodeDataURL && (
-                  <div className="mt-4 flex flex-col items-center">
-                    <Label className="mb-2">{t.qrCode}</Label>
-                    <div className="border p-3 rounded bg-white mb-2">
-                      <img
-                        src={qrCodeDataURL || '/placeholder.svg'}
-                        alt="QR Code"
-                        className="w-full max-w-[200px] mx-auto"
-                      />
-                    </div>
+                  <ButtonGroup orientation="horizontal">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        downloadQRCode()
-                      }}
+                      variant={userInvite.status === 'accepted' ? 'default' : 'outline'}
+                      onClick={() => handleViewOnlyRsvp('accepted')}
                     >
-                      <Download className="mr-2 h-4 w-4" />
-                      {t.downloadQRCode}
+                      Yes
                     </Button>
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      {t.scanQRCodeToView}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleShareDialogChange(false)
-                  }}
-                >
-                  {t.done}
-                </Button>
-              </DialogFooter>
+                    <Button
+                      variant={userInvite.status === 'maybe' ? 'default' : 'outline'}
+                      onClick={() => handleViewOnlyRsvp('maybe')}
+                    >
+                      Maybe
+                    </Button>
+                    <Button
+                      variant={userInvite.status === 'declined' ? 'default' : 'outline'}
+                      onClick={() => handleViewOnlyRsvp('declined')}
+                    >
+                      No
+                    </Button>
+                  </ButtonGroup>
+                </div>
+              )}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        </PopoverContent>
+      </Popover>
     </>
   )
 }

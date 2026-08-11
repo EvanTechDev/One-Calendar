@@ -38,14 +38,12 @@ import {
   Languages,
   Monitor,
   Palette,
-  Share2,
   SlidersHorizontal,
   X,
 } from 'lucide-react'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
-import ShareManagement from '@/components/app/analytics/share-management'
 import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'
 import MCPSettings from '@/components/app/settings/mcp-settings'
@@ -62,7 +60,6 @@ import {
 type SettingsSection =
   | 'general'
   | 'account'
-  | 'sharing'
   | 'mcp'
   | 'data'
   | 'about'
@@ -502,11 +499,6 @@ export default function SettingsDialog({
       icon: <CircleUserRound />,
     },
     {
-      id: 'sharing',
-      label: t.settingsSharing,
-      icon: <Share2 />,
-    },
-    {
       id: 'mcp',
       label: t.settingsMcp,
       icon: <Bot />,
@@ -597,9 +589,6 @@ export default function SettingsDialog({
                     mode="settings"
                     focusSection={focusSection}
                   />
-                </div>
-                <div hidden={section !== 'sharing'}>
-                  <ShareManagement />
                 </div>
                 <div hidden={section !== 'mcp'}>
                   <MCPSettings />

@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
+import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
@@ -55,7 +55,6 @@ interface EventRendererProps {
   ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDragStart?: (event: CalendarEvent, e: React.MouseEvent) => void
   onEventDragEnd?: () => void
@@ -90,7 +89,6 @@ export function EventRenderer({
   onEventClick,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDragStart,
   onEventDragEnd,
@@ -107,7 +105,6 @@ export function EventRenderer({
 
   const menuLabels = {
     edit: t.edit,
-    share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
   }
@@ -248,17 +245,6 @@ export function EventRenderer({
             e.preventDefault()
             e.stopPropagation()
             queueIgnoreEventClick?.()
-            onShareEvent?.(event)
-          }}
-        >
-          <Share2 className="mr-2 h-4 w-4" />
-          {menuLabels.share}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            queueIgnoreEventClick?.()
             onBookmarkEvent?.(event)
           }}
         >
@@ -295,7 +281,6 @@ interface AllDayEventRendererProps {
   ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDragStart?: (event: CalendarEvent, e: React.MouseEvent) => void
   onEventDragEnd?: () => void
@@ -315,7 +300,6 @@ export function AllDayEventRenderer({
   onEventClick,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDragStart,
   onEventDragEnd,
@@ -331,7 +315,6 @@ export function AllDayEventRenderer({
 
   const menuLabels = {
     edit: t.edit,
-    share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
   }
@@ -412,17 +395,6 @@ export function AllDayEventRenderer({
         >
           <Edit3 className="mr-2 h-4 w-4" />
           {menuLabels.edit}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            queueIgnoreEventClick?.()
-            onShareEvent?.(event)
-          }}
-        >
-          <Share2 className="mr-2 h-4 w-4" />
-          {menuLabels.share}
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={(e) => {

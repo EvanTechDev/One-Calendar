@@ -24,8 +24,9 @@ import { Calendar } from '@zntr/ui/calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@zntr/utils'
+import { DialogFooter } from '@zntr/ui/dialog'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   EVENT_COLOR_OPTIONS,
@@ -88,6 +89,11 @@ export default function EventDialog({
   const [isAllDay, setIsAllDay] = useState(false)
   const [endTimeError, setEndTimeError] = useState(false)
   const [startTimeError, setStartTimeError] = useState(false)
+  const [participantError, setParticipantError] = useState('')
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [_pendingEventId, setPendingEventId] = useState('')
+  const [pendingEmails, setPendingEmails] = useState<string[]>([])
+  const pendingEventIdRef = useRef('')
   const [endDateOpen, setEndDateOpen] = useState(false)
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endTimeOpen, setEndTimeOpen] = useState(false)
@@ -386,10 +392,46 @@ export default function EventDialog({
     return true
   }
 
+  const validateParticipants = (input: string): string[] | null => {
+    const emails = input
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (emails.length === 0) return []
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    for (const email of emails) {
+      if (!emailRegex.test(email)) {
+        setParticipantError(`Invalid email: ${email}`)
+        return null
+      }
+    }
+
+    if (emails.length > 20) {
+      setParticipantError('Maximum 20 participants allowed')
+      return null
+    }
+
+    const unique = [...new Set(emails.map((e) => e.toLowerCase()))]
+    if (unique.length !== emails.length) {
+      setParticipantError('Duplicate emails not allowed')
+      return null
+    }
+
+    setParticipantError('')
+    return emails
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
+      return
+    }
+
+    const participantEmails = validateParticipants(participants)
+    if (participantEmails === null) {
       return
     }
 
@@ -425,10 +467,7 @@ export default function EventDialog({
       endDate: normalizedEndDate,
       recurrence: 'none',
       location,
-      participants: participants
-        .split(',')
-        .map((p) => p.trim())
-        .filter(Boolean),
+      participants: participantEmails,
       notification: notificationMinutes,
       description,
       color,
@@ -438,10 +477,54 @@ export default function EventDialog({
 
     if (event) {
       onEventUpdate(eventData)
+      onOpenChange(false)
     } else {
+      setPendingEventId(eventData.id)
+      pendingEventIdRef.current = eventData.id
+      setPendingEmails(participantEmails)
       onEventAdd(eventData)
+      if (participantEmails.length > 0) {
+        setShowInviteDialog(true)
+      } else {
+        onOpenChange(false)
+      }
     }
+  }
+
+  const handleSendInvites = async () => {
+    const eventId = pendingEventIdRef.current
+    const emails = pendingEmails
+
+    setShowInviteDialog(false)
     onOpenChange(false)
+
+    if (emails.length === 0) return
+
+    try {
+      await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+    } catch {}
+  }
+
+  const handleSkipInvites = async () => {
+    const eventId = pendingEventIdRef.current
+    const emails = pendingEmails
+
+    setShowInviteDialog(false)
+    onOpenChange(false)
+
+    if (emails.length === 0) return
+
+    try {
+      await fetch('/api/invites/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+    } catch {}
   }
 
   const renderTimeSelector = (
@@ -535,6 +618,7 @@ export default function EventDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -767,9 +851,15 @@ export default function EventDialog({
             <Input
               id="participants"
               value={participants}
-              onChange={(e) => setParticipants(e.target.value)}
+              onChange={(e) => {
+                setParticipants(e.target.value)
+                if (participantError) setParticipantError('')
+              }}
               placeholder={t.participantsPlaceholder}
             />
+            {participantError && (
+              <p className="text-xs text-destructive">{participantError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -842,10 +932,28 @@ export default function EventDialog({
             >
               {t.cancel}
             </Button>
-            <Button type="submit">{event ? t.update : t.save}</Button>
+             <Button type="submit">{event ? t.update : t.save}</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Send Invitations?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {pendingEmails.length} participant{pendingEmails.length !== 1 ? 's' : ''} added. Send invitation emails now?
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleSkipInvites}>
+            Not now
+          </Button>
+          <Button onClick={handleSendInvites}>Send</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

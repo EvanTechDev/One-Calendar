@@ -112,6 +112,7 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
+  viewOnly?: boolean
 }
 
 interface CalendarProps {
@@ -120,7 +121,6 @@ interface CalendarProps {
 
 export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
-  const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
   const [date, setDate] = useState(new Date())
@@ -171,7 +171,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [shareOnlyMode, setShareOnlyMode] = useState(false)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
 
@@ -188,6 +187,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     newStartDate: Date,
     newEndDate: Date,
   ) => {
+    if (event.viewOnly) return
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
@@ -486,7 +486,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     clientX?: number,
     clientY?: number,
   ) => {
-    setShareOnlyMode(false)
     setPreviewEvent(event)
     if (view === 'day' && clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
@@ -700,14 +699,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } else {
       await createBookmark({ eventId: event.id })
     }
-  }
-
-  const handleShare = (event: CalendarEvent, shareOnly = false) => {
-    setShareOnlyMode(shareOnly)
-    setPreviewEvent(event)
-    setPreviewAnchorRect(null)
-    setOpenShareImmediately(true)
-    setPreviewOpen(true)
   }
 
   const eventsByCategory = useMemo(() => {
@@ -997,57 +988,48 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             </div>
           </header>
           <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
-            {view === 'day' && (
-              <DayView
-                date={date}
-                events={filteredEvents}
-                onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeRangeSelect}
-                config={viewConfig}
-                onEditEvent={handleEventEdit}
-                onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
-                onBookmarkEvent={toggleBookmark}
-                onEventDrop={handleEventDrop}
-                onBackToCalendar={() => setView(defaultView)}
-              />
-            )}
-            {view === 'week' && (
-              <WeekView
-                date={date}
-                events={filteredEvents}
-                onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeRangeSelect}
-                config={viewConfig}
-                onEditEvent={handleEventEdit}
-                onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
-                onBookmarkEvent={toggleBookmark}
-                onEventDrop={handleEventDrop}
-              />
-            )}
-            {view === 'four-day' && (
-              <WeekView
-                date={date}
-                events={filteredEvents}
-                onEventClick={handleEventClick}
-                onTimeSlotClick={handleTimeRangeSelect}
-                config={viewConfig}
-                daysToShow={4}
-                fixedStartDate={date}
-                onEditEvent={handleEventEdit}
-                onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
-                onBookmarkEvent={toggleBookmark}
-                onEventDrop={handleEventDrop}
-              />
-            )}
+             {view === 'day' && (
+               <DayView
+                 date={date}
+                 events={filteredEvents}
+                 onEventClick={handleEventClick}
+                 onTimeSlotClick={handleTimeRangeSelect}
+                 config={viewConfig}
+                 onEditEvent={handleEventEdit}
+                 onDeleteEvent={(event) => handleEventDelete(event.id)}
+                 onBookmarkEvent={toggleBookmark}
+                 onEventDrop={handleEventDrop}
+                 onBackToCalendar={() => setView(defaultView)}
+               />
+             )}
+             {view === 'week' && (
+               <WeekView
+                 date={date}
+                 events={filteredEvents}
+                 onEventClick={handleEventClick}
+                 onTimeSlotClick={handleTimeRangeSelect}
+                 config={viewConfig}
+                 onEditEvent={handleEventEdit}
+                 onDeleteEvent={(event) => handleEventDelete(event.id)}
+                 onBookmarkEvent={toggleBookmark}
+                 onEventDrop={handleEventDrop}
+               />
+             )}
+             {view === 'four-day' && (
+               <WeekView
+                 date={date}
+                 events={filteredEvents}
+                 onEventClick={handleEventClick}
+                 onTimeSlotClick={handleTimeRangeSelect}
+                 config={viewConfig}
+                 daysToShow={4}
+                 fixedStartDate={date}
+                 onEditEvent={handleEventEdit}
+                 onDeleteEvent={(event) => handleEventDelete(event.id)}
+                 onBookmarkEvent={toggleBookmark}
+                 onEventDrop={handleEventDrop}
+               />
+             )}
             {view === 'month' && (
               <MonthView
                 date={date}
@@ -1095,7 +1077,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onOpenChange={(open) => {
             setPreviewOpen(open)
             if (!open) {
-              setOpenShareImmediately(false)
               setPreviewAnchorRect(null)
             }
           }}
@@ -1114,8 +1095,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           }}
           language={language}
           _timezone={timezone}
-          openShareImmediately={openShareImmediately}
-          shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
           modal={view !== 'year'}
         />

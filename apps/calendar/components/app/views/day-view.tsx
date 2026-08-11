@@ -28,7 +28,6 @@ interface DayViewProps {
   config: ViewConfig
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDrop?: (
     event: CalendarEvent,
@@ -46,7 +45,6 @@ export default function DayView({
   config,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDrop,
   onBackToCalendar: _onBackToCalendar,
@@ -248,6 +246,7 @@ export default function DayView({
   }, [createSelection, date, onTimeSlotClick])
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
+    if (event.viewOnly) return
     e.preventDefault()
     e.stopPropagation()
 
@@ -398,7 +397,6 @@ export default function DayView({
                 onEventClick={onEventClick}
                 onEditEvent={onEditEvent}
                 onDeleteEvent={onDeleteEvent}
-                onShareEvent={onShareEvent}
                 onBookmarkEvent={onBookmarkEvent}
                 onEventDragStart={handleEventDragStart}
                 onEventDragEnd={handleEventDragEnd}
@@ -450,7 +448,6 @@ export default function DayView({
               onEventClick={onEventClick}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
-              onShareEvent={onShareEvent}
               onBookmarkEvent={onBookmarkEvent}
               onEventDragStart={handleEventDragStart}
               onEventDragEnd={handleEventDragEnd}

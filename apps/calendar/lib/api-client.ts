@@ -1,7 +1,5 @@
 import { fetchJson } from '@/lib/fetch-json'
 
-export const SHARE_LIST_KEY = '/api/share/list'
-
 export type EventData = {
   id: string
   userId: string
@@ -45,16 +43,6 @@ export type BookmarkData = {
   eventId: string
   createdAt: string
   event: EventData
-}
-
-export type ShareData = {
-  id: string
-  eventId: string
-  eventTitle: string
-  sharedBy: string
-  shareDate: string
-  shareLink: string
-  isProtected: boolean
 }
 
 export type SettingsData = {
@@ -185,38 +173,4 @@ export const api = {
       }),
   },
 
-  shares: {
-    list: () => fetchJson<{ shares: ShareData[] }>(SHARE_LIST_KEY),
-    create: (data: {
-      eventId: string
-      password?: string
-      burnAfterRead?: boolean
-    }) =>
-      fetchJson<{
-        success: boolean
-        id: string
-        protected: boolean
-        burnAfterRead: boolean
-        shareLink: string
-      }>('/api/share', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    get: (id: string, password?: string) => {
-      const searchParams = new URLSearchParams({ id })
-      if (password) searchParams.set('password', password)
-      return fetchJson<{
-        success: boolean
-        data: string
-        createdAt: string
-        protected: boolean
-        burnAfterRead: boolean
-      }>(`/api/share?${searchParams.toString()}`)
-    },
-    delete: (id: string) =>
-      fetchJson<{ success: boolean }>('/api/share', {
-        method: 'DELETE',
-        body: JSON.stringify({ id }),
-      }),
-  },
 }

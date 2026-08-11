@@ -8,7 +8,6 @@ import {
   calendarCategories,
   countdowns,
   bookmarkedEvents,
-  shares,
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 
@@ -31,7 +30,6 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
     }
 
     await getDb().transaction(async (tx) => {
-      await tx.delete(shares).where(eq(shares.userId, user.id))
       await tx
         .delete(bookmarkedEvents)
         .where(eq(bookmarkedEvents.userId, user.id))
