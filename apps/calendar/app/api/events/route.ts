@@ -130,10 +130,15 @@ export const GET = async function GET(request: NextRequest) {
     const inviteEmails = [...new Set(allInvites.map((i) => i.email))]
     let userMap: Record<string, { name: string; image: string | null }> = {}
     if (inviteEmails.length > 0) {
-      const userRows = await getDb().execute(
-        sql`SELECT email, name, image FROM "user" WHERE email = ANY(${inviteEmails}::text[])`,
-      )
-      userMap = (userRows as unknown as Array<{ email: string; name: string; image: string | null }>).reduce(
+      const userRows = await getDb()
+        .select({
+          email: sql`email`,
+          name: sql`name`,
+          image: sql`image`,
+        })
+        .from(sql`"user"`)
+        .where(sql`email = ANY(${inviteEmails}::text[])`)
+      userMap = (userRows as Array<{ email: string; name: string; image: string | null }>).reduce(
         (acc, u) => {
           acc[u.email] = { name: u.name, image: u.image }
           return acc
