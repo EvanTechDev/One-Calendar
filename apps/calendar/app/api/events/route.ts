@@ -131,7 +131,7 @@ export const GET = async function GET(request: NextRequest) {
     let userMap: Record<string, { name: string; image: string | null }> = {}
     if (inviteEmails.length > 0) {
       const userRows = await getDb().execute(
-        sql`SELECT email, name, image FROM "User" WHERE email IN ${inviteEmails}`,
+        sql`SELECT email, name, image FROM "user" WHERE email = ANY(${inviteEmails}::text[])`,
       )
       userMap = (userRows as unknown as Array<{ email: string; name: string; image: string | null }>).reduce(
         (acc, u) => {
