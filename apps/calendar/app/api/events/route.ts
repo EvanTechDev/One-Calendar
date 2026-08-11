@@ -30,8 +30,8 @@ type EventInput = {
 }
 
 export const GET = async function GET(request: NextRequest) {
-  const user = await getAuthedUser()
-  if (!user)
+  const currentUser = await getAuthedUser()
+  if (!currentUser)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = request.nextUrl
@@ -39,10 +39,10 @@ export const GET = async function GET(request: NextRequest) {
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
 
-  const filters = [eq(calendarEvents.userId, user.id)]
+  const filters = [eq(calendarEvents.userId, currentUser.id)]
 
   if (startDate && endDate) {
-    const cached = await getCachedEvents(user.id, startDate, endDate)
+    const cached = await getCachedEvents(currentUser.id, startDate, endDate)
     if (cached) {
       let events = cached.map(decryptEvent)
       if (categoryIds) {
@@ -70,7 +70,7 @@ export const GET = async function GET(request: NextRequest) {
 
   const grouped = groupByMonth(results)
   for (const [ym, monthEvents] of grouped) {
-    await setCachedEvents(user.id, ym, monthEvents)
+    await setCachedEvents(currentUser.id, ym, monthEvents)
   }
 
   const decrypted = results.map(decryptEvent)
@@ -80,7 +80,7 @@ export const GET = async function GET(request: NextRequest) {
     .from(eventInvites)
     .where(
       and(
-        eq(eventInvites.email, user.email.toLowerCase()),
+        eq(eventInvites.email, currentUser.email.toLowerCase()),
         eq(eventInvites.addedToCalendar, true),
       ),
     )
@@ -130,14 +130,14 @@ export const GET = async function GET(request: NextRequest) {
     const inviteEmails = [...new Set(allInvites.map((i) => i.email))]
     let userMap: Record<string, { name: string; image: string | null }> = {}
     if (inviteEmails.length > 0) {
-      const users = await (getDb() as any)
+      const users = await getDb()
         .select({
           email: user.email,
           name: user.name,
           image: user.image,
         })
         .from(user)
-        .where(inArray(user.email as any, inviteEmails))
+        .where(inArray(user.email, inviteEmails))
 
       userMap = (users as Array<{ email: string; name: string; image: string | null }>).reduce(
         (acc, u) => {
