@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, user } from '@/lib/drizzle/schema'
+import { decryptField } from '@/lib/field-crypto'
 import {
   getInviteByToken,
   updateRsvp,
@@ -44,9 +45,9 @@ export const GET = async function GET(
     },
     event: {
       id: event.id,
-      title: event.title,
-      description: event.description,
-      location: event.location,
+      title: decryptField(event.id, event.title) ?? event.title,
+      description: decryptField(event.id, event.description),
+      location: decryptField(event.id, event.location),
       startDate: event.startDate,
       endDate: event.endDate,
       isAllDay: event.isAllDay,

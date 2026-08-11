@@ -114,12 +114,16 @@ export default function EventPreview({
   }, [event, bookmarks])
 
   useEffect(() => {
-    if (event && open) {
-      fetch(`/api/invites?eventId=${event.id}`)
-        .then((res) => res.json())
-        .then((data) => setInvites(data.invites ?? []))
-        .catch(() => setInvites([]))
+    if (!event || !open) {
+      setInvites([])
+      return
     }
+
+    setInvites([])
+    fetch(`/api/invites?eventId=${event.id}`)
+      .then((res) => res.json())
+      .then((data) => setInvites(data.invites ?? []))
+      .catch(() => setInvites([]))
   }, [event, open])
 
   if (!event || !open) return null

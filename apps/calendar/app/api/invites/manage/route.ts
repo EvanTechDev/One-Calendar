@@ -3,6 +3,7 @@ import { getAuthedUser } from '@/lib/api-helpers'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
+import { decryptField } from '@/lib/field-crypto'
 import {
   deleteInviteByToken,
   resendInviteEmail,
@@ -96,13 +97,13 @@ export const POST = async function POST(request: NextRequest) {
 
   const success = await resendInviteEmail({
     eventId: event.id,
-    eventTitle: event.title,
+    eventTitle: decryptField(event.id, event.title) ?? event.title,
     startDate: startStr,
     endDate: endStr,
     isAllDay: event.isAllDay,
     inviterName: inviter?.name ?? 'Someone',
-    description: event.description ?? undefined,
-    location: event.location ?? undefined,
+    description: decryptField(event.id, event.description) ?? undefined,
+    location: decryptField(event.id, event.location) ?? undefined,
     email: invite.email,
     baseUrl,
   })

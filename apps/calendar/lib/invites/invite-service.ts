@@ -2,8 +2,16 @@ import crypto from 'crypto'
 import { eq, and } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { eventInvites } from '@/lib/drizzle/schema'
-import { sendEmail } from '@/lib/email/send-email'
+import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 import { buildInvitationEmail } from '@/lib/email/invitation-template'
+
+async function sendEmail(payload: {
+  to: string
+  subject: string
+  html: string
+}) {
+  await sendAuthEmail(payload)
+}
 
 export interface ParticipantInput {
   email: string
