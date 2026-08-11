@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
-import { eq, and, gte, lte, inArray, sql } from 'drizzle-orm'
+import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
+import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
@@ -130,15 +130,16 @@ export const GET = async function GET(request: NextRequest) {
     const inviteEmails = [...new Set(allInvites.map((i) => i.email))]
     let userMap: Record<string, { name: string; image: string | null }> = {}
     if (inviteEmails.length > 0) {
-      const userRows = await getDb()
+      const users = await (getDb() as any)
         .select({
-          email: sql`email`,
-          name: sql`name`,
-          image: sql`image`,
+          email: user.email,
+          name: user.name,
+          image: user.image,
         })
-        .from(sql`"user"`)
-        .where(sql`email = ANY(${inviteEmails}::text[])`)
-      userMap = (userRows as Array<{ email: string; name: string; image: string | null }>).reduce(
+        .from(user)
+        .where(inArray(user.email as any, inviteEmails))
+
+      userMap = (users as Array<{ email: string; name: string; image: string | null }>).reduce(
         (acc, u) => {
           acc[u.email] = { name: u.name, image: u.image }
           return acc
