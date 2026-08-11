@@ -1,5 +1,16 @@
 import { fetchJson } from '@/lib/fetch-json'
 
+export type EventInviteData = {
+  id: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+}
+
 export type EventData = {
   id: string
   userId: string
@@ -15,6 +26,8 @@ export type EventData = {
   notificationMinutes: number | null
   createdAt: string
   updatedAt: string
+  viewOnly?: boolean
+  invites?: EventInviteData[]
 }
 
 export type CategoryData = {

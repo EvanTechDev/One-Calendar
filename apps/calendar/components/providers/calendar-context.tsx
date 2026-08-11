@@ -28,6 +28,17 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
+  viewOnly?: boolean
+  invites?: Array<{
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }>
 }
 
 function eventDataToCalendarEvent(e: EventData): CalendarEvent {
@@ -39,11 +50,13 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     isAllDay: e.isAllDay,
     recurrence: 'none',
     location: e.location ?? undefined,
-    participants: e.participants?.map((p: { name: string }) => p.name) ?? [],
+    participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
     notification: e.notificationMinutes ?? 0,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
     calendarId: e.categoryId ?? '',
+    viewOnly: e.viewOnly,
+    invites: e.invites,
   }
 }
 
