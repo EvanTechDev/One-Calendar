@@ -113,6 +113,16 @@ export interface CalendarEvent {
   color: string
   calendarId: string
   viewOnly?: boolean
+  invites?: Array<{
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }>
 }
 
 interface CalendarProps {

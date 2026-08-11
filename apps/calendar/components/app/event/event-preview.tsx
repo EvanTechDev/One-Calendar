@@ -40,7 +40,6 @@ import { authClient } from '@/lib/auth/client'
 
 interface EventInvite {
   id: string
-  eventId: string
   email: string
   status: 'pending' | 'accepted' | 'maybe' | 'declined'
   inviteToken: string
@@ -81,7 +80,7 @@ export default function EventPreview({
   const locale = isZh ? zhCN : enUS
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
-  const [invites, setInvites] = useState<EventInvite[]>([])
+  const [invites, setInvites] = useState<EventInvite[]>(event?.invites ?? [])
   const { data: session } = authClient.useSession()
   const _isSignedIn = Boolean(session?.user)
   const { bookmarks, createBookmark, deleteBookmark } = useBookmarks()
@@ -114,17 +113,10 @@ export default function EventPreview({
   }, [event, bookmarks])
 
   useEffect(() => {
-    if (!event || !open) {
-      setInvites([])
-      return
+    if (event) {
+      setInvites(event.invites ?? [])
     }
-
-    setInvites([])
-    fetch(`/api/invites?eventId=${event.id}`)
-      .then((res) => res.json())
-      .then((data) => setInvites(data.invites ?? []))
-      .catch(() => setInvites([]))
-  }, [event, open])
+  }, [event])
 
   if (!event || !open) return null
 

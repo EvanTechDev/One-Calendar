@@ -76,14 +76,16 @@ export async function sendInviteEmails(params: {
     const inviteLink = `${params.baseUrl}/invite/${token}`
 
     try {
+      const timeStr = params.isAllDay
+        ? `${params.startDate} (All day)`
+        : `${params.startDate} – ${params.endDate}`
+
       await sendEmail({
         to: email,
         subject: `Invitation: ${params.eventTitle}`,
-        html: buildInvitationEmail({
+        html: await buildInvitationEmail({
           title: params.eventTitle,
-          startDate: params.startDate,
-          endDate: params.endDate,
-          isAllDay: params.isAllDay,
+          timeRange: timeStr,
           inviterName: params.inviterName,
           inviteLink,
           description: params.description,
@@ -201,14 +203,16 @@ export async function resendInviteEmail(params: {
   const inviteLink = `${params.baseUrl}/invite/${token}`
 
   try {
+    const timeStr = params.isAllDay
+      ? `${params.startDate} (All day)`
+      : `${params.startDate} – ${params.endDate}`
+
     await sendEmail({
       to: params.email,
       subject: `Invitation: ${params.eventTitle}`,
-      html: buildInvitationEmail({
+      html: await buildInvitationEmail({
         title: params.eventTitle,
-        startDate: params.startDate,
-        endDate: params.endDate,
-        isAllDay: params.isAllDay,
+        timeRange: timeStr,
         inviterName: params.inviterName,
         inviteLink,
         description: params.description,

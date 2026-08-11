@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
-import { eq, and, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray, sql } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
@@ -100,17 +100,84 @@ export const GET = async function GET(request: NextRequest) {
 
   const allEvents = [...decrypted, ...viewOnlyEvents]
 
+  type EnrichedInvite = {
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }
+
+  const eventIds = allEvents.map((e) => e.id)
+  let invitesByEvent: Record<string, EnrichedInvite[]> = {}
+  if (eventIds.length > 0) {
+    const allInvites = await getDb()
+      .select({
+        id: eventInvites.id,
+        eventId: eventInvites.eventId,
+        email: eventInvites.email,
+        status: eventInvites.status,
+        inviteToken: eventInvites.inviteToken,
+        emailSent: eventInvites.emailSent,
+        addedToCalendar: eventInvites.addedToCalendar,
+      })
+      .from(eventInvites)
+      .where(inArray(eventInvites.eventId, eventIds))
+
+    const inviteEmails = [...new Set(allInvites.map((i) => i.email))]
+    let userMap: Record<string, { name: string; image: string | null }> = {}
+    if (inviteEmails.length > 0) {
+      const userRows = await getDb().execute(
+        sql`SELECT email, name, image FROM "User" WHERE email IN ${inviteEmails}`,
+      )
+      userMap = (userRows as unknown as Array<{ email: string; name: string; image: string | null }>).reduce(
+        (acc, u) => {
+          acc[u.email] = { name: u.name, image: u.image }
+          return acc
+        },
+        {} as Record<string, { name: string; image: string | null }>,
+      )
+    }
+
+    invitesByEvent = allInvites.reduce(
+      (acc: Record<string, EnrichedInvite[]>, invite) => {
+        const enriched: EnrichedInvite = {
+          id: invite.id,
+          email: invite.email,
+          status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
+          inviteToken: invite.inviteToken,
+          emailSent: invite.emailSent,
+          addedToCalendar: invite.addedToCalendar,
+          userName: userMap[invite.email]?.name ?? null,
+          userImage: userMap[invite.email]?.image ?? null,
+        }
+        if (!acc[invite.eventId]) acc[invite.eventId] = []
+        acc[invite.eventId].push(enriched)
+        return acc
+      },
+      {} as Record<string, EnrichedInvite[]>,
+    )
+  }
+
+  const eventsWithInvites = allEvents.map((e) => ({
+    ...e,
+    invites: invitesByEvent[e.id] ?? [],
+  }))
+
   if (startDate && endDate) {
     const start = new Date(startDate)
     const end = new Date(endDate)
     return NextResponse.json({
-      events: allEvents.filter(
+      events: eventsWithInvites.filter(
         (e) => e.startDate >= start && e.endDate <= end,
       ),
     })
   }
 
-  return NextResponse.json({ events: allEvents })
+  return NextResponse.json({ events: eventsWithInvites })
 }
 
 export const POST = async function POST(request: NextRequest) {
