@@ -23,7 +23,6 @@ import {
   Languages,
   ArrowRight,
   ArrowLeft,
-  PartyPopper,
 } from 'lucide-react'
 import { getLanguageAutonym, supportedLanguages } from '@zntr/i18n/calendar'
 
@@ -34,6 +33,8 @@ interface OnboardingStep {
   key: string
   options: { value: string; label: string }[]
 }
+
+const WelcomeIcon = () => <span className="text-3xl leading-none">👋</span>
 
 function buildTimezoneOptions(): { value: string; label: string }[] {
   try {
@@ -131,6 +132,15 @@ export function WelcomeDialog({
 
   const timezoneOptions = useMemo(() => buildTimezoneOptions(), [])
 
+  const welcomeStep: OnboardingStep = {
+    icon: WelcomeIcon,
+    title: 'Welcome to One Calendar',
+    description:
+      'We are excited to have you here. Let us set up your preferences so your calendar feels just right.',
+    key: 'welcome',
+    options: [],
+  }
+
   const settingSteps: OnboardingStep[] = [
     {
       icon: Languages,
@@ -176,8 +186,10 @@ export function WelcomeDialog({
     },
   ]
 
-  const totalSteps = settingSteps.length
-  const step = settingSteps[currentStep]
+  const steps = [welcomeStep, ...settingSteps]
+
+  const totalSteps = steps.length
+  const step = steps[currentStep]
   const isFirst = currentStep === 0
   const isLast = currentStep === totalSteps - 1
 
@@ -230,7 +242,7 @@ export function WelcomeDialog({
         <div className="flex min-h-[28rem] flex-col">
           {/* Progress dots */}
           <div className="flex justify-center gap-2 pt-6">
-            {settingSteps.map((_, i) => (
+            {steps.map((_, i) => (
               <div
                 key={i}
                 className={`h-2 rounded-full transition-all duration-300 ${
@@ -263,23 +275,25 @@ export function WelcomeDialog({
 
             {/* Select */}
             <div className="w-full max-w-xs pt-4">
-              <Select
-                value={selections[step.key] || ''}
-                onValueChange={(value) =>
-                  setSelections((s) => ({ ...s, [step.key]: value }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent>
-                  {step.options.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {step.options.length > 0 && (
+                <Select
+                  value={selections[step.key] || ''}
+                  onValueChange={(value) =>
+                    setSelections((s) => ({ ...s, [step.key]: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {step.options.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -287,38 +301,23 @@ export function WelcomeDialog({
           <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-4">
             <div className="flex gap-2">
               {!isFirst && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrev}
-                >
+                <Button variant="outline" size="sm" onClick={handlePrev}>
                   <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
                   Previous
                 </Button>
               )}
-              {isFirst && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                >
+              {currentStep === 1 && (
+                <Button variant="ghost" size="sm" onClick={handleSkip}>
                   Skip for now
                 </Button>
               )}
             </div>
-            <Button
-              size="sm"
-              onClick={handleNext}
-              disabled={isCompleting}
-            >
+            <Button size="sm" onClick={handleNext} disabled={isCompleting}>
               {isLast ? (
                 isCompleting ? (
                   'Completing...'
                 ) : (
-                  <>
-                    <PartyPopper className="mr-1.5 h-3.5 w-3.5" />
-                    Finish
-                  </>
+                  'Finish'
                 )
               ) : (
                 <>
