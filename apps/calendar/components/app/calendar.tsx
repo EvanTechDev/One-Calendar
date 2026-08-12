@@ -183,6 +183,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
     null,
   )
+  const [previewAnchorEl, setPreviewAnchorEl] = useState<HTMLElement | null>(
+    null,
+  )
   const [focusUserProfileSection, setFocusUserProfileSection] =
     useState<UserProfileSection | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -213,6 +216,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (event.viewOnly) return
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
@@ -512,6 +516,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     clientY?: number,
   ) => {
     setPreviewEvent(event)
+    setPreviewAnchorEl(anchorEl ?? null)
     if (view === 'day' && clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
         DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
@@ -544,6 +549,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         el.scrollIntoView({ block: 'center', behavior: 'instant' })
         requestAnimationFrame(() => {
           setPreviewAnchorRect(el.getBoundingClientRect())
+          setPreviewAnchorEl(el as HTMLElement)
           setPreviewOpen(true)
         })
       } else if (calendarRef.current) {
@@ -706,6 +712,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
+      setPreviewAnchorEl(null)
     }
   }
 
@@ -717,6 +724,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
   }
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
@@ -726,6 +734,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setSelectedEvent(null)
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
     setEventDialogOpen(true)
   }
 
@@ -739,11 +748,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const { eventId, emails } = pendingInvites
     setPendingInvites(null)
     try {
-      await fetch('/api/invites', {
+      const response = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId, emails }),
       })
+      if (!response.ok) throw new Error('failed')
+      await refreshEventInvites(eventId)
       toast.success('Invitations sent')
     } catch {
       toast.error('Failed to send invitations')
@@ -755,14 +766,39 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const { eventId, emails } = pendingInvites
     setPendingInvites(null)
     try {
-      await fetch('/api/invites/create', {
+      const response = await fetch('/api/invites/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId, emails }),
       })
+      if (!response.ok) throw new Error('failed')
+      await refreshEventInvites(eventId)
     } catch {
       toast.error('Failed to add participants')
     }
+  }
+
+  const refreshEventInvites = async (eventId: string) => {
+    try {
+      const response = await fetch(
+        `/api/invites?eventId=${encodeURIComponent(eventId)}`,
+      )
+      if (!response.ok) return
+      const data = await response.json()
+      const invites = data?.invites
+      if (!Array.isArray(invites)) return
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, invites } : event,
+        ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+    } catch {}
   }
 
   const handlePreviewInvitesChange = useCallback(
@@ -771,6 +807,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         prevEvents.map((event) =>
           event.id === eventId ? { ...event, invites } : event,
         ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
       )
     },
     [],
@@ -1164,6 +1206,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             setPreviewOpen(open)
             if (!open) {
               setPreviewAnchorRect(null)
+              setPreviewAnchorEl(null)
             }
           }}
           onEdit={handleEventEdit}
@@ -1172,6 +1215,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               handleEventDelete(previewEvent.id)
               setPreviewOpen(false)
               setPreviewAnchorRect(null)
+              setPreviewAnchorEl(null)
             }
           }}
           _onDuplicate={() => {
@@ -1182,6 +1226,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           language={language}
           _timezone={timezone}
           anchorRect={previewAnchorRect}
+          anchorElement={previewAnchorEl}
           scrollContainerRef={calendarRef}
           onInvitesChange={handlePreviewInvitesChange}
         />
