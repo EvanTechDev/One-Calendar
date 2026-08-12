@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { settings, calendarCategories } from '@/lib/drizzle/schema'
+import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { encryptField } from '@/lib/field-crypto'
-import crypto from 'crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
-
-const DEFAULT_CATEGORIES = [
-  { name: 'Personal', color: '#3B82F6', sortOrder: 0 },
-  { name: 'Work', color: '#EF4444', sortOrder: 1 },
-  { name: 'Health', color: '#10B981', sortOrder: 2 },
-]
 
 const DEFAULT_SETTINGS = {}
 
@@ -20,7 +12,7 @@ const DEFAULT_SETTINGS = {}
  * POST /api/init
  *
  * Initialises default data for a newly registered user whose account row
- * exists but who has no settings / categories yet.
+ * exists but who has no settings yet.
  *
  * The endpoint is idempotent – calling it again after the user already has
  * a settings row is a no-op.
@@ -50,28 +42,12 @@ export const POST = async function POST() {
 
   // --- First-time initialisation ---
 
-  // 1. Create default settings
+  // Create default settings
   await db.insert(settings).values({
     userId: user.id,
     data: DEFAULT_SETTINGS,
     updatedAt: new Date(),
   })
-
-  // 2. Create default categories
-  const categoryValues = DEFAULT_CATEGORIES.map((cat) => {
-    const id = crypto.randomUUID()
-    return {
-      id,
-      userId: user.id,
-      name: encryptField(id, cat.name) ?? '',
-      color: cat.color,
-      sortOrder: cat.sortOrder,
-    }
-  })
-
-  if (categoryValues.length > 0) {
-    await db.insert(calendarCategories).values(categoryValues)
-  }
 
   return NextResponse.json({ initialized: true })
 }

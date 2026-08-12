@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { settings, calendarCategories } from '@/lib/drizzle/schema'
+import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { encryptField } from '@/lib/field-crypto'
-import crypto from 'crypto'
 import { getServerSession } from '@/lib/auth/server'
 
 export const runtime = 'nodejs'
-
-const DEFAULT_CATEGORIES = [
-  { name: 'Personal', color: '#3B82F6', sortOrder: 0 },
-  { name: 'Work', color: '#EF4444', sortOrder: 1 },
-  { name: 'Health', color: '#10B981', sortOrder: 2 },
-]
 
 const DEFAULT_SETTINGS = {}
 
@@ -46,21 +38,6 @@ export const GET = async function GET() {
     data: DEFAULT_SETTINGS,
     updatedAt: new Date(),
   })
-
-  const categoryValues = DEFAULT_CATEGORIES.map((cat) => {
-    const id = crypto.randomUUID()
-    return {
-      id,
-      userId: session.user.id,
-      name: encryptField(id, cat.name) ?? '',
-      color: cat.color,
-      sortOrder: cat.sortOrder,
-    }
-  })
-
-  if (categoryValues.length > 0) {
-    await db.insert(calendarCategories).values(categoryValues)
-  }
 
   return NextResponse.json({ authenticated: true, initialized: true })
 }
