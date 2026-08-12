@@ -36,6 +36,7 @@ import { cn } from '@zntr/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { useBookmarks } from '@/components/providers/data-provider'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { RemoveScroll } from 'react-remove-scroll'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 
@@ -114,19 +115,6 @@ export default function EventPreview({
   }, [invites])
 
   const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const container = scrollContainerRef?.current
-    const containerPrevOverflow = container?.style.overflow
-    const bodyPrevOverflow = document.body.style.overflow
-    if (container) container.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      if (container) container.style.overflow = containerPrevOverflow ?? ''
-      document.body.style.overflow = bodyPrevOverflow
-    }
-  }, [open, scrollContainerRef])
 
   useEffect(() => {
     if (!open) return
@@ -443,7 +431,7 @@ export default function EventPreview({
       : anchorNode
 
   return (
-    <>
+    <RemoveScroll enabled={open}>
       <Popover open={open} onOpenChange={onOpenChange} modal={false}>
         {renderedAnchor}
         <PopoverContent
@@ -727,6 +715,6 @@ export default function EventPreview({
           </div>
         </PopoverContent>
       </Popover>
-    </>
+    </RemoveScroll>
   )
 }

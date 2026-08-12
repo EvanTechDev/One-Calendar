@@ -18,8 +18,9 @@ import {
   DEFAULT_ACCENT,
 } from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { RemoveScroll } from 'react-remove-scroll'
 
 interface RemainingPopoverState {
   key: string
@@ -91,19 +92,13 @@ export default function MonthView({
 
   const closeRemainingPopover = useCallback(() => setRemainingPopover(null), [])
 
-  useEffect(() => {
-    if (remainingPopover) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [remainingPopover])
+  const remainingPopoverListRef = useRef<HTMLDivElement>(null)
 
   return (
-    <>
+    <RemoveScroll
+      enabled={!!remainingPopover}
+      shards={[remainingPopoverListRef]}
+    >
       <div className="grid grid-cols-7 gap-1 p-4">
         {(() => {
           const orderedDays = [
@@ -243,7 +238,10 @@ export default function MonthView({
               </button>
             </div>
             {remainingPopover.remainingEvents.length > 0 ? (
-              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
+              <div
+                ref={remainingPopoverListRef}
+                className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5"
+              >
                 {remainingPopover.remainingEvents.map((event) => (
                   <button
                     key={event.id}
@@ -285,6 +283,6 @@ export default function MonthView({
           </PopoverContent>
         )}
       </Popover>
-    </>
+    </RemoveScroll>
   )
 }
