@@ -515,6 +515,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     clientX?: number,
     clientY?: number,
   ) => {
+    if (previewOpen && previewEvent?.id === event.id) {
+      setPreviewOpen(false)
+      setPreviewAnchorRect(null)
+      setPreviewAnchorEl(null)
+      return
+    }
     setPreviewEvent(event)
     setPreviewAnchorEl(anchorEl ?? null)
     if (view === 'day' && clientX !== undefined && clientY !== undefined) {
