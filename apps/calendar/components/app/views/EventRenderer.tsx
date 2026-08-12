@@ -133,6 +133,11 @@ export function EventRenderer({
     : endMinutes
   const duration = displayEnd - displayStart
 
+  const displayStartDate = new Date(layout.start)
+  displayStartDate.setHours(0, displayStart, 0, 0)
+  const displayEndDate = new Date(layout.start)
+  displayEndDate.setHours(0, displayEnd, 0, 0)
+
   const minHeight = 20
   const height = Math.max(duration, minHeight)
 
@@ -249,14 +254,14 @@ export function EventRenderer({
                 {layout.isMultiDay ? (
                   <>
                     {formatDateWithTimezone(
-                      layout.start,
+                      displayStartDate,
                       config.language,
                       config.timeFormat,
                       config.timezone,
                     )}{' '}
                     -{' '}
                     {formatDateWithTimezone(
-                      layout.end,
+                      displayEndDate,
                       config.language,
                       config.timeFormat,
                       config.timezone,
@@ -265,13 +270,13 @@ export function EventRenderer({
                 ) : (
                   <>
                     {layoutEngine.formatHourMinute(
-                      layout.start.getHours(),
-                      layout.start.getMinutes(),
+                      displayStartDate.getHours(),
+                      displayStartDate.getMinutes(),
                     )}{' '}
                     -{' '}
                     {layoutEngine.formatHourMinute(
-                      layout.end.getHours(),
-                      layout.end.getMinutes(),
+                      displayEndDate.getHours(),
+                      displayEndDate.getMinutes(),
                     )}
                   </>
                 )}

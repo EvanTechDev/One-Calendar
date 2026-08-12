@@ -586,6 +586,10 @@ export default function WeekView({
                   const renderStart = Math.min(displayStart, displayEnd)
                   const renderEnd = Math.max(displayStart, displayEnd)
                   const duration = renderEnd - renderStart
+                  const displayStartDate = new Date(start)
+                  displayStartDate.setHours(0, renderStart, 0, 0)
+                  const displayEndDate = new Date(start)
+                  displayEndDate.setHours(0, renderEnd, 0, 0)
 
                   const minHeight = 20
                   const height = Math.max(duration, minHeight)
@@ -699,8 +703,8 @@ export default function WeekView({
                               color: getEventAccentColor(event.color),
                             }}
                           >
-                            {formatDateWithTimezone(start)} -{' '}
-                            {formatDateWithTimezone(end)}
+                            {formatDateWithTimezone(displayStartDate)} -{' '}
+                            {formatDateWithTimezone(displayEndDate)}
                           </div>
                         )}
                       </div>
