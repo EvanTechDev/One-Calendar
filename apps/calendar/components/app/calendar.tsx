@@ -27,7 +27,7 @@ import dynamic from 'next/dynamic'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import crypto from 'crypto'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
@@ -39,7 +39,9 @@ import {
 import { getValidTimezone } from '@/lib/timezone'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
-import EventPreview from '@/components/app/event/event-preview'
+import EventPreview, {
+  type EventInvite,
+} from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
@@ -79,6 +81,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@zntr/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@zntr/ui/dialog'
 
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth/client'
@@ -181,6 +190,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingInvites, setPendingInvites] = useState<{
+    eventId: string
+    emails: string[]
+  } | null>(null)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
 
@@ -198,6 +211,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     newEndDate: Date,
   ) => {
     if (event.viewOnly) return
+    setPreviewOpen(false)
+    setPreviewAnchorRect(null)
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
@@ -564,6 +579,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: newEvent.color,
       location: newEvent.location,
       description: newEvent.description,
+      participants: newEvent.participants?.length
+        ? newEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
       notificationMinutes: newEvent.notification,
       categoryId: newEvent.calendarId || null,
     })
@@ -588,6 +608,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: updatedEvent.color,
       location: updatedEvent.location,
       description: updatedEvent.description,
+      participants: updatedEvent.participants?.length
+        ? updatedEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
       notificationMinutes: updatedEvent.notification,
       categoryId: updatedEvent.calendarId || null,
     })
@@ -699,8 +724,57 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setQuickCreateEndTime(endTime ?? null)
 
     setSelectedEvent(null)
+    setPreviewOpen(false)
+    setPreviewAnchorRect(null)
     setEventDialogOpen(true)
   }
+
+  const handleInvitesAdded = (eventId: string, emails: string[]) => {
+    if (emails.length === 0) return
+    setPendingInvites({ eventId, emails })
+  }
+
+  const handleSendInvites = async () => {
+    if (!pendingInvites) return
+    const { eventId, emails } = pendingInvites
+    setPendingInvites(null)
+    try {
+      await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+      toast.success('Invitations sent')
+    } catch {
+      toast.error('Failed to send invitations')
+    }
+  }
+
+  const handleSkipInvites = async () => {
+    if (!pendingInvites) return
+    const { eventId, emails } = pendingInvites
+    setPendingInvites(null)
+    try {
+      await fetch('/api/invites/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+    } catch {
+      toast.error('Failed to add participants')
+    }
+  }
+
+  const handlePreviewInvitesChange = useCallback(
+    (eventId: string, invites: EventInvite[]) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, invites } : event,
+        ),
+      )
+    },
+    [],
+  )
 
   const toggleBookmark = async (event: CalendarEvent) => {
     const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
@@ -997,49 +1071,52 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               />
             </div>
           </header>
-          <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
-             {view === 'day' && (
-               <DayView
-                 date={date}
-                 events={filteredEvents}
-                 onEventClick={handleEventClick}
-                 onTimeSlotClick={handleTimeRangeSelect}
-                 config={viewConfig}
-                 onEditEvent={handleEventEdit}
-                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                 onBookmarkEvent={toggleBookmark}
-                 onEventDrop={handleEventDrop}
-                 onBackToCalendar={() => setView(defaultView)}
-               />
-             )}
-             {view === 'week' && (
-               <WeekView
-                 date={date}
-                 events={filteredEvents}
-                 onEventClick={handleEventClick}
-                 onTimeSlotClick={handleTimeRangeSelect}
-                 config={viewConfig}
-                 onEditEvent={handleEventEdit}
-                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                 onBookmarkEvent={toggleBookmark}
-                 onEventDrop={handleEventDrop}
-               />
-             )}
-             {view === 'four-day' && (
-               <WeekView
-                 date={date}
-                 events={filteredEvents}
-                 onEventClick={handleEventClick}
-                 onTimeSlotClick={handleTimeRangeSelect}
-                 config={viewConfig}
-                 daysToShow={4}
-                 fixedStartDate={date}
-                 onEditEvent={handleEventEdit}
-                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                 onBookmarkEvent={toggleBookmark}
-                 onEventDrop={handleEventDrop}
-               />
-             )}
+          <div
+            className="relative flex-1 overflow-auto pr-14"
+            ref={calendarRef}
+          >
+            {view === 'day' && (
+              <DayView
+                date={date}
+                events={filteredEvents}
+                onEventClick={handleEventClick}
+                onTimeSlotClick={handleTimeRangeSelect}
+                config={viewConfig}
+                onEditEvent={handleEventEdit}
+                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                onBookmarkEvent={toggleBookmark}
+                onEventDrop={handleEventDrop}
+                onBackToCalendar={() => setView(defaultView)}
+              />
+            )}
+            {view === 'week' && (
+              <WeekView
+                date={date}
+                events={filteredEvents}
+                onEventClick={handleEventClick}
+                onTimeSlotClick={handleTimeRangeSelect}
+                config={viewConfig}
+                onEditEvent={handleEventEdit}
+                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                onBookmarkEvent={toggleBookmark}
+                onEventDrop={handleEventDrop}
+              />
+            )}
+            {view === 'four-day' && (
+              <WeekView
+                date={date}
+                events={filteredEvents}
+                onEventClick={handleEventClick}
+                onTimeSlotClick={handleTimeRangeSelect}
+                config={viewConfig}
+                daysToShow={4}
+                fixedStartDate={date}
+                onEditEvent={handleEventEdit}
+                onDeleteEvent={(event) => handleEventDelete(event.id)}
+                onBookmarkEvent={toggleBookmark}
+                onEventDrop={handleEventDrop}
+              />
+            )}
             {view === 'month' && (
               <MonthView
                 date={date}
@@ -1054,7 +1131,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
-                previewOpen={previewOpen}
               />
             )}
             {view === 'analytics' && (
@@ -1106,7 +1182,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           language={language}
           _timezone={timezone}
           anchorRect={previewAnchorRect}
-          modal={view !== 'year'}
+          scrollContainerRef={calendarRef}
+          onInvitesChange={handlePreviewInvitesChange}
         />
 
         <EventDialog
@@ -1115,11 +1192,38 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onEventAdd={handleEventAdd}
           onEventUpdate={handleEventUpdate}
           onEventDelete={handleEventDelete}
+          onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
         />
+
+        <Dialog
+          open={!!pendingInvites}
+          onOpenChange={(open) => {
+            if (!open) setPendingInvites(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Invitations?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {pendingInvites?.emails.length} participant
+              {pendingInvites && pendingInvites.emails.length !== 1
+                ? 's'
+                : ''}{' '}
+              added. Send invitation emails now?
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleSkipInvites}>
+                Not now
+              </Button>
+              <Button onClick={handleSendInvites}>Send</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <SettingsDialog
           open={settingsOpen}

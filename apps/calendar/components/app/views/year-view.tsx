@@ -10,7 +10,7 @@ import {
 } from 'date-fns'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
@@ -25,7 +25,6 @@ interface YearViewProps {
     clientY?: number,
   ) => void
   config: ViewConfig
-  previewOpen: boolean
 }
 
 const COLOR_TO_ACCENT: Record<string, string> = {
@@ -70,14 +69,12 @@ export default function YearView({
   events,
   onEventClick,
   config,
-  previewOpen,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
   const today = useMemo(() => new Date(), [])
   const containerRef = useRef<HTMLDivElement>(null)
   const [popover, setPopover] = useState<PopoverState | null>(null)
-  const previewOpenRef = useRef(false)
 
   const isDark =
     typeof document !== 'undefined' &&
@@ -156,13 +153,6 @@ export default function YearView({
 
   const closePopover = useCallback(() => setPopover(null), [])
 
-  useEffect(() => {
-    document.body.style.overflow = popover ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [popover])
-
   return (
     <div className="p-3 md:p-4" ref={containerRef}>
       <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
@@ -216,16 +206,9 @@ export default function YearView({
       <Popover
         open={!!popover}
         onOpenChange={(open) => {
-          if (!open) {
-            if (previewOpenRef.current && !previewOpen) {
-              previewOpenRef.current = false
-              return
-            }
-            if (previewOpen) return
-            closePopover()
-          }
+          if (!open) closePopover()
         }}
-        modal={true}
+        modal={false}
       >
         <PopoverAnchor asChild>
           <div
@@ -280,7 +263,6 @@ export default function YearView({
                       event.color,
                     )}
                     onClick={(e) => {
-                      previewOpenRef.current = true
                       onEventClick(event, e.currentTarget, e.clientX, e.clientY)
                     }}
                     style={{

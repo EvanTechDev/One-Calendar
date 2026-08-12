@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Edit2,
   Trash2,
@@ -38,7 +39,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 
-interface EventInvite {
+export interface EventInvite {
   id: string
   email: string
   status: 'pending' | 'accepted' | 'maybe' | 'declined'
@@ -59,7 +60,8 @@ interface EventPreviewProps {
   language: Language
   _timezone: string
   anchorRect?: DOMRect | null
-  modal?: boolean
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
+  onInvitesChange?: (eventId: string, invites: EventInvite[]) => void
 }
 
 export default function EventPreview({
@@ -72,7 +74,8 @@ export default function EventPreview({
   language,
   _timezone,
   anchorRect = null,
-  modal = true,
+  scrollContainerRef,
+  onInvitesChange,
 }: EventPreviewProps) {
   const { calendars } = useCalendar()
   const isZh = isZhLanguage(language)
@@ -98,10 +101,54 @@ export default function EventPreview({
   }
 
   useEffect(() => {
-    if (open && !modal) {
+    if (open) {
       ignoreOutsideUntilRef.current = Date.now() + 150
     }
-  }, [open, modal])
+  }, [open])
+
+  const invitesRef = useRef<EventInvite[]>([])
+  useEffect(() => {
+    invitesRef.current = invites
+  }, [invites])
+
+  const isSameInvites = (a: EventInvite[], b: EventInvite[]) =>
+    a.length === b.length &&
+    a.every((invite, index) => {
+      const other = b[index]
+      return (
+        other &&
+        invite.id === other.id &&
+        invite.status === other.status &&
+        invite.emailSent === other.emailSent &&
+        invite.addedToCalendar === other.addedToCalendar
+      )
+    })
+
+  useEffect(() => {
+    if (!open || !event || event.viewOnly) return
+
+    let cancelled = false
+    const pollInvites = async () => {
+      try {
+        const response = await fetch(
+          `/api/invites?eventId=${encodeURIComponent(event.id)}`,
+        )
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        const next = data?.invites
+        if (!Array.isArray(next) || cancelled) return
+        const changed = !isSameInvites(invitesRef.current, next)
+        setInvites((prev) => (isSameInvites(prev, next) ? prev : next))
+        if (changed) onInvitesChange?.(event.id, next)
+      } catch {}
+    }
+
+    const timerId = window.setInterval(pollInvites, 15000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timerId)
+    }
+  }, [open, event, onInvitesChange])
 
   useEffect(() => {
     if (event) {
@@ -225,7 +272,9 @@ export default function EventPreview({
     }
   }
 
-  const handleViewOnlyRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
+  const handleViewOnlyRsvp = async (
+    newStatus: 'accepted' | 'maybe' | 'declined',
+  ) => {
     if (!event) return
     const dbInvite = invites.find(
       (i) => i.email === session?.user?.email?.toLowerCase(),
@@ -277,7 +326,8 @@ export default function EventPreview({
     : 'bottom'
 
   const anchorStyle: React.CSSProperties = (() => {
-    if (anchorRect) {
+    if (anchorRect && scrollContainerRef?.current) {
+      const containerRect = scrollContainerRef.current.getBoundingClientRect()
       const midX = anchorRect.left + anchorRect.width / 2
       const midY = anchorRect.top + anchorRect.height / 2
       const edgePoint =
@@ -289,9 +339,15 @@ export default function EventPreview({
               ? { left: midX, top: anchorRect.top }
               : { left: midX, top: anchorRect.bottom }
       return {
-        position: 'fixed',
-        left: edgePoint.left,
-        top: edgePoint.top,
+        position: 'absolute',
+        left:
+          edgePoint.left -
+          containerRect.left +
+          scrollContainerRef.current.scrollLeft,
+        top:
+          edgePoint.top -
+          containerRect.top +
+          scrollContainerRef.current.scrollTop,
         width: 0,
         height: 0,
         pointerEvents: 'none',
@@ -310,12 +366,21 @@ export default function EventPreview({
     }
   })()
 
+  const anchorElement = (
+    <PopoverAnchor asChild>
+      <div style={anchorStyle} />
+    </PopoverAnchor>
+  )
+
+  const renderedAnchor =
+    anchorRect && scrollContainerRef?.current
+      ? createPortal(anchorElement, scrollContainerRef.current)
+      : anchorElement
+
   return (
     <>
-      <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
-        <PopoverAnchor asChild>
-          <div style={anchorStyle} />
-        </PopoverAnchor>
+      <Popover open={open} onOpenChange={onOpenChange} modal={false}>
+        {renderedAnchor}
         <PopoverContent
           side={popoverSide}
           align="center"
@@ -323,260 +388,278 @@ export default function EventPreview({
           className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
-            if (!modal) {
-              if (Date.now() < ignoreOutsideUntilRef.current) {
-                e.preventDefault()
-                return
-              }
-              onOpenChange(false)
+            if (Date.now() < ignoreOutsideUntilRef.current) {
+              e.preventDefault()
+              return
             }
+            onOpenChange(false)
           }}
         >
-            <div className="flex justify-between items-center p-5">
-              <div className="w-24" />
-              <div className="flex space-x-2 ml-auto">
-                {!event.viewOnly && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit()}
-                    className="h-8 w-8"
+          <div className="flex justify-between items-center p-5">
+            <div className="w-24" />
+            <div className="flex space-x-2 ml-auto">
+              {!event.viewOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit()}
+                  className="h-8 w-8"
+                >
+                  <Edit2 className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleBookmark}
+                className="h-8 w-8"
+              >
+                <Bookmark
+                  className={cn(
+                    'h-5 w-5',
+                    isBookmarked ? 'fill-blue-500 text-blue-500' : '',
+                  )}
+                />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={
+                  event.viewOnly ? handleRemoveFromCalendar : handleDeleteClick
+                }
+                className="h-8 w-8"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 ml-2"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="px-5 pb-5 flex">
+            <div
+              className="w-2 self-stretch rounded-full mr-4"
+              style={{ backgroundColor: colorMapping[event.color] }}
+            />
+
+            <div className="flex-1">
+              <h2
+                className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                }}
+              >
+                {event.title}
+              </h2>
+              <p className="text-muted-foreground">{formatDateRange()}</p>
+            </div>
+          </div>
+
+          <div className="px-5 pb-5 space-y-4">
+            {event.location && event.location.trim() !== '' && (
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{event.location}</p>
+                </div>
+              </div>
+            )}
+
+            {invites.length > 0 && (
+              <div className="flex items-start">
+                <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={toggleParticipants}
                   >
-                    <Edit2 className="h-5 w-5" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleBookmark}
-                  className="h-8 w-8"
-                >
-                  <Bookmark
-                    className={cn(
-                      'h-5 w-5',
-                      isBookmarked ? 'fill-blue-500 text-blue-500' : '',
-                    )}
-                  />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={event.viewOnly ? handleRemoveFromCalendar : handleDeleteClick}
-                  className="h-8 w-8"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onOpenChange(false)}
-                  className="h-8 w-8 ml-2"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="px-5 pb-5 flex">
-              <div
-                className="w-2 self-stretch rounded-full mr-4"
-                style={{ backgroundColor: colorMapping[event.color] }}
-              />
-
-              <div className="flex-1">
-                <h2
-                  className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                  }}
-                >
-                  {event.title}
-                </h2>
-                <p className="text-muted-foreground">{formatDateRange()}</p>
-              </div>
-            </div>
-
-            <div className="px-5 pb-5 space-y-4">
-              {event.location && event.location.trim() !== '' && (
-                <div className="flex items-start">
-                  <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p>{event.location}</p>
+                    <p>
+                      {invites.length} {isZh ? '参与者' : 'participants'}
+                    </p>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 transition-transform duration-200',
+                        participantsOpen ? 'transform rotate-180' : '',
+                      )}
+                    />
                   </div>
-                </div>
-              )}
-
-              {invites.length > 0 && (
-                <div className="flex items-start">
-                  <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <div
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={toggleParticipants}
-                    >
-                      <p>
-                        {invites.length}{' '}
-                        {isZh ? '参与者' : 'participants'}
-                      </p>
-                      <ChevronDown
-                        className={cn(
-                          'h-4 w-4 transition-transform duration-200',
-                          participantsOpen ? 'transform rotate-180' : '',
-                        )}
-                      />
-                    </div>
-                    {participantsOpen && (
-                      <div className="mt-2 space-y-2">
-                        {invites.map((invite) => (
-                          <div key={invite.id} className="flex items-center justify-between">
-                            <div className="flex items-center min-w-0">
-                              <Avatar size="sm">
-                                {invite.userImage ? (
-                                  <AvatarImage src={invite.userImage} />
-                                ) : null}
-                                <AvatarFallback>
-                                  {invite.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="ml-2 truncate text-sm">
-                                {invite.userName || invite.email}
-                              </span>
-                              <span className="ml-1.5 shrink-0">
-                                <Badge
-                                  variant={
-                                    invite.status === 'accepted'
-                                      ? 'default'
-                                      : invite.status === 'declined'
-                                        ? 'destructive'
-                                        : invite.status === 'maybe'
-                                          ? 'secondary'
-                                          : 'outline'
-                                  }
-                                  className={cn(
-                                    invite.status === 'accepted' &&
-                                      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                                    invite.status === 'pending' &&
-                                      'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                                    invite.status === 'declined' &&
-                                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-                                  )}
-                                >
-                                  {invite.status === 'accepted'
-                                    ? 'Accepted'
+                  {participantsOpen && (
+                    <div className="mt-2 space-y-2">
+                      {invites.map((invite) => (
+                        <div
+                          key={invite.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center min-w-0">
+                            <Avatar size="sm">
+                              {invite.userImage ? (
+                                <AvatarImage src={invite.userImage} />
+                              ) : null}
+                              <AvatarFallback>
+                                {invite.email.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="ml-2 truncate text-sm">
+                              {invite.userName || invite.email}
+                            </span>
+                            <span className="ml-1.5 shrink-0">
+                              <Badge
+                                variant={
+                                  invite.status === 'accepted'
+                                    ? 'default'
                                     : invite.status === 'declined'
-                                      ? 'Declined'
+                                      ? 'destructive'
                                       : invite.status === 'maybe'
-                                        ? 'Maybe'
-                                        : 'Pending'}
-                                </Badge>
-                              </span>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {!invite.emailSent ? (
-                                  <DropdownMenuItem onClick={() => handleResendInvite(invite.id)}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Send Invite
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem onClick={() => handleResendInvite(invite.id)}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Resend Invite
-                                  </DropdownMenuItem>
+                                        ? 'secondary'
+                                        : 'outline'
+                                }
+                                className={cn(
+                                  invite.status === 'accepted' &&
+                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                                  invite.status === 'pending' &&
+                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                                  invite.status === 'declined' &&
+                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                                 )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleRemoveParticipant(invite.id)}
-                                >
-                                  <UserMinus className="mr-2 h-4 w-4" />
-                                  Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              >
+                                {invite.status === 'accepted'
+                                  ? 'Accepted'
+                                  : invite.status === 'declined'
+                                    ? 'Declined'
+                                    : invite.status === 'maybe'
+                                      ? 'Maybe'
+                                      : 'Pending'}
+                              </Badge>
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!invite.emailSent ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleResendInvite(invite.id)}
+                                >
+                                  <Send className="mr-2 h-4 w-4" />
+                                  Send Invite
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => handleResendInvite(invite.id)}
+                                >
+                                  <Send className="mr-2 h-4 w-4" />
+                                  Resend Invite
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() =>
+                                  handleRemoveParticipant(invite.id)
+                                }
+                              >
+                                <UserMinus className="mr-2 h-4 w-4" />
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {getCalendarName() && (
-                <div className="flex items-start">
-                  <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p>{getCalendarName()}</p>
-                  </div>
+            {getCalendarName() && (
+              <div className="flex items-start">
+                <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{getCalendarName()}</p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {event.notification > 0 && (
-                <div className="flex items-start">
-                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p>{formatNotificationTime()}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isZh
-                        ? `${event.notification} 分钟前 按电子邮件`
-                        : `${event.notification} minutes before by email`}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {event.description && event.description.trim() !== '' && (
-                <div className="flex items-start">
-                  <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p
-                      className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 4,
-                        WebkitBoxOrient: 'vertical',
-                      }}
-                    >
-                      {event.description}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {event.viewOnly && userInvite && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">
-                    {isZh ? '您的回复' : 'Your response'}
+            {event.notification > 0 && (
+              <div className="flex items-start">
+                <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{formatNotificationTime()}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isZh
+                      ? `${event.notification} 分钟前 按电子邮件`
+                      : `${event.notification} minutes before by email`}
                   </p>
-                  <ButtonGroup orientation="horizontal">
-                    <Button
-                      variant={userInvite.status === 'accepted' ? 'default' : 'outline'}
-                      onClick={() => handleViewOnlyRsvp('accepted')}
-                    >
-                      Yes
-                    </Button>
-                    <Button
-                      variant={userInvite.status === 'maybe' ? 'default' : 'outline'}
-                      onClick={() => handleViewOnlyRsvp('maybe')}
-                    >
-                      Maybe
-                    </Button>
-                    <Button
-                      variant={userInvite.status === 'declined' ? 'default' : 'outline'}
-                      onClick={() => handleViewOnlyRsvp('declined')}
-                    >
-                      No
-                    </Button>
-                  </ButtonGroup>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {event.description && event.description.trim() !== '' && (
+              <div className="flex items-start">
+                <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p
+                    className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
+                    {event.description}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {event.viewOnly && userInvite && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  {isZh ? '您的回复' : 'Your response'}
+                </p>
+                <ButtonGroup orientation="horizontal">
+                  <Button
+                    variant={
+                      userInvite.status === 'accepted' ? 'default' : 'outline'
+                    }
+                    onClick={() => handleViewOnlyRsvp('accepted')}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    variant={
+                      userInvite.status === 'maybe' ? 'default' : 'outline'
+                    }
+                    onClick={() => handleViewOnlyRsvp('maybe')}
+                  >
+                    Maybe
+                  </Button>
+                  <Button
+                    variant={
+                      userInvite.status === 'declined' ? 'default' : 'outline'
+                    }
+                    onClick={() => handleViewOnlyRsvp('declined')}
+                  >
+                    No
+                  </Button>
+                </ButtonGroup>
+              </div>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
     </>
