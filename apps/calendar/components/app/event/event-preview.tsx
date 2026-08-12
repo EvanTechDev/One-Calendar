@@ -435,6 +435,7 @@ export default function EventPreview({
       <Popover open={open} onOpenChange={onOpenChange} modal={false}>
         {renderedAnchor}
         <PopoverContent
+          key={event.id}
           side={popoverSide}
           align="center"
           sideOffset={12}
@@ -442,6 +443,11 @@ export default function EventPreview({
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
             if (Date.now() < ignoreOutsideUntilRef.current) {
+              e.preventDefault()
+              return
+            }
+            const target = e.target instanceof Element ? e.target : null
+            if (target?.closest('[data-event-id]')) {
               e.preventDefault()
               return
             }
