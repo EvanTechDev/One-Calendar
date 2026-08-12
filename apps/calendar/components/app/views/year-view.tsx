@@ -10,7 +10,7 @@ import {
 } from 'date-fns'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
@@ -152,6 +152,17 @@ export default function YearView({
   )
 
   const closePopover = useCallback(() => setPopover(null), [])
+
+  useEffect(() => {
+    if (popover) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [popover])
 
   return (
     <div className="p-3 md:p-4" ref={containerRef}>

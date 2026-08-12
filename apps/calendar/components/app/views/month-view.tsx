@@ -18,7 +18,7 @@ import {
   DEFAULT_ACCENT,
 } from '@/components/app/views/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 
 interface RemainingPopoverState {
@@ -90,6 +90,17 @@ export default function MonthView({
   )
 
   const closeRemainingPopover = useCallback(() => setRemainingPopover(null), [])
+
+  useEffect(() => {
+    if (remainingPopover) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [remainingPopover])
 
   return (
     <>

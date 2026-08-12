@@ -117,6 +117,19 @@ export default function EventPreview({
 
   useEffect(() => {
     if (!open) return
+    const container = scrollContainerRef?.current
+    const containerPrevOverflow = container?.style.overflow
+    const bodyPrevOverflow = document.body.style.overflow
+    if (container) container.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      if (container) container.style.overflow = containerPrevOverflow ?? ''
+      document.body.style.overflow = bodyPrevOverflow
+    }
+  }, [open, scrollContainerRef])
+
+  useEffect(() => {
+    if (!open) return
 
     const getLiveAnchorRect = (): DOMRect | null => {
       const el =
