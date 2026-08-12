@@ -92,7 +92,10 @@ const { auth } = createAuth({
         emailValidation: { enabled: true },
       },
     },
-    emailOTP: { changeEmail: { enabled: true } },
+    emailOTP: {
+      changeEmail: { enabled: true },
+      overrideDefaultEmailVerification: true,
+    },
   },
   isDev: process.env.NODE_ENV !== 'production',
 })

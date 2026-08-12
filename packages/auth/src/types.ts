@@ -67,6 +67,7 @@ export interface SentinelOptions {
 
 export interface EmailOTPOptions {
   changeEmail?: { enabled: boolean }
+  overrideDefaultEmailVerification?: boolean
   otpLength?: number
   expiresIn?: number
 }
@@ -92,7 +93,6 @@ export interface CreateAuthOptions {
   secret?: string
   disableCsrfCheck?: boolean
   isDev?: boolean
-
 }
 
 export type EnabledPlugins = {

@@ -70,8 +70,7 @@ export function SignUpForm() {
       return
     }
 
-    const sentOk = await sendVerificationOtp(false)
-    if (sentOk) setSent(true)
+    setSent(true)
     setIsLoading(false)
   }
 
