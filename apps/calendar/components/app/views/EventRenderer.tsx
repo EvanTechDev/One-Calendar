@@ -58,6 +58,16 @@ interface EventRendererProps {
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDragStart?: (event: CalendarEvent, e: React.MouseEvent) => void
   onEventDragEnd?: () => void
+  onEventResizeStart?: (
+    event: CalendarEvent,
+    edge: 'start' | 'end',
+    e: React.MouseEvent,
+    day: Date,
+    startMinutes: number,
+    endMinutes: number,
+  ) => void
+  resizeOverride?: { startMinutes: number; endMinutes: number } | null
+  suppressResizeClickRef?: React.MutableRefObject<boolean>
   isDragging?: boolean
   ignoreNextEventClickRef?: React.MutableRefObject<boolean>
   isDraggingRef?: React.MutableRefObject<boolean>
@@ -92,6 +102,9 @@ export function EventRenderer({
   onBookmarkEvent,
   onEventDragStart,
   onEventDragEnd,
+  onEventResizeStart,
+  resizeOverride,
+  suppressResizeClickRef,
   isDragging: _isDragging,
   ignoreNextEventClickRef,
   isDraggingRef,
@@ -111,7 +124,14 @@ export function EventRenderer({
 
   const startMinutes = layout.start.getHours() * 60 + layout.start.getMinutes()
   const endMinutes = layout.end.getHours() * 60 + layout.end.getMinutes()
-  const duration = endMinutes - startMinutes
+  const isResizing = resizeOverride !== undefined && resizeOverride !== null
+  const displayStart = isResizing
+    ? Math.min(resizeOverride.startMinutes, resizeOverride.endMinutes)
+    : startMinutes
+  const displayEnd = isResizing
+    ? Math.max(resizeOverride.startMinutes, resizeOverride.endMinutes)
+    : endMinutes
+  const duration = displayEnd - displayStart
 
   const minHeight = 20
   const height = Math.max(duration, minHeight)
@@ -119,9 +139,12 @@ export function EventRenderer({
   const width = `calc((100% - 8px) / ${layout.totalColumns})`
   const left = `calc(${layout.column} * ${width})`
 
+  const canResize = !event.viewOnly && !layout.isMultiDay && showTime
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
+    if (suppressResizeClickRef?.current) return
     if (!isDraggingRef?.current) {
       onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
@@ -156,7 +179,7 @@ export function EventRenderer({
             _className,
           )}
           style={{
-            top: `${startMinutes}px`,
+            top: `${displayStart}px`,
             height: `${height}px`,
             opacity: isDark ? 1 : 0.9,
             backgroundColor: getEventBackgroundColor(event.color, isDark),
@@ -170,6 +193,36 @@ export function EventRenderer({
           onContextMenu={handleContextMenu}
           onClick={handleClick}
         >
+          {canResize && (
+            <>
+              <div
+                className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-lg"
+                onMouseDown={(e) =>
+                  onEventResizeStart?.(
+                    event,
+                    'start',
+                    e,
+                    layout.start,
+                    startMinutes,
+                    endMinutes,
+                  )
+                }
+              />
+              <div
+                className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-lg"
+                onMouseDown={(e) =>
+                  onEventResizeStart?.(
+                    event,
+                    'end',
+                    e,
+                    layout.start,
+                    startMinutes,
+                    endMinutes,
+                  )
+                }
+              />
+            </>
+          )}
           <div
             className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
             style={{ backgroundColor: getEventAccentColor(event.color) }}

@@ -14,6 +14,7 @@ import {
 } from '@/components/app/views/event-colors'
 import { EventRenderer } from '@/components/app/views/EventRenderer'
 import { useEventFilter } from '@/components/app/hooks/useEventFilter'
+import { useEventResize } from '@/hooks/use-event-resize'
 
 interface DayViewProps {
   date: Date
@@ -75,6 +76,7 @@ export default function DayView({
     minute: number
   } | null>(null)
   const [dragEventDuration, setDragEventDuration] = useState<number>(0)
+  const dragOffsetMinutesRef = useRef(0)
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
@@ -147,12 +149,14 @@ export default function DayView({
 
         const relativeY =
           e.clientY - containerRect.top + scrollContainerRef.current.scrollTop
-        const hour = Math.floor(relativeY / 60)
-        const minute = Math.floor((relativeY % 60) / 15) * 15
+        const positionMinutes = snapToQuarterHour(relativeY)
+        const startMinutes = snapToQuarterHour(
+          positionMinutes - dragOffsetMinutesRef.current,
+        )
 
         setDragPreview({
-          hour: hour,
-          minute: minute,
+          hour: Math.floor(startMinutes / 60),
+          minute: startMinutes % 60,
         })
       }
     }
@@ -257,6 +261,14 @@ export default function DayView({
       const durationMs = end.getTime() - start.getTime()
       const durationMinutes = Math.round(durationMs / (1000 * 60))
 
+      let offsetMinutes = 0
+      if (!event.isAllDay) {
+        const eventStartMinutes = start.getHours() * 60 + start.getMinutes()
+        offsetMinutes =
+          getMinutesFromMousePosition(e.clientY) - eventStartMinutes
+      }
+      dragOffsetMinutesRef.current = offsetMinutes
+
       setDraggingEvent(event)
       setDragStartPosition({ x: e.clientX, y: e.clientY })
       setDragEventDuration(durationMinutes)
@@ -283,6 +295,12 @@ export default function DayView({
       clientY - containerRect.top + scrollContainerRef.current.scrollTop,
     )
   }
+
+  const {
+    resize,
+    beginResize,
+    suppressClickRef: suppressResizeClickRef,
+  } = useEventResize({ onEventDrop, getMinutesFromMousePosition })
 
   const handleGridMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || draggingEvent) return
@@ -451,6 +469,16 @@ export default function DayView({
               onBookmarkEvent={onBookmarkEvent}
               onEventDragStart={handleEventDragStart}
               onEventDragEnd={handleEventDragEnd}
+              onEventResizeStart={beginResize}
+              resizeOverride={
+                resize?.event.id === event.id
+                  ? {
+                      startMinutes: resize.liveStart,
+                      endMinutes: resize.liveEnd,
+                    }
+                  : null
+              }
+              suppressResizeClickRef={suppressResizeClickRef}
               isDragging={isDraggingRef.current}
               ignoreNextEventClickRef={ignoreNextEventClickRef}
               isDraggingRef={isDraggingRef}
