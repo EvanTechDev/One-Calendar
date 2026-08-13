@@ -5,15 +5,9 @@ import { eq, and, asc } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
+import { categorySchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'
-
-type CategoryInput = {
-  id?: string
-  name: string
-  color: string
-  sortOrder?: number
-}
 
 function decryptCategory(cat: typeof calendarCategories.$inferSelect) {
   return {
@@ -41,8 +35,27 @@ export const POST = async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: CategoryInput = await request.json()
+  const parsed = categorySchema.safeParse(
+    await request.json().catch(() => null),
+  )
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: firstZodMessage(parsed.error) },
+      { status: 400 },
+    )
+  }
+  const body = parsed.data
   const id = body.id ?? crypto.randomUUID()
+
+  if (body.id) {
+    const [existing] = await getDb()
+      .select({ userId: calendarCategories.userId })
+      .from(calendarCategories)
+      .where(eq(calendarCategories.id, id))
+    if (existing && existing.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const [cat] = await getDb()
     .insert(calendarCategories)

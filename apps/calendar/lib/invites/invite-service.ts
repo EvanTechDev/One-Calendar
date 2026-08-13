@@ -39,6 +39,7 @@ export async function createInvitesForEvent(
     emailSent: false,
     addedToCalendar: false,
     categoryId: null,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     createdAt: new Date(),
     updatedAt: new Date(),
   }))
@@ -133,7 +134,10 @@ export async function getInviteByToken(token: string) {
     .select()
     .from(eventInvites)
     .where(eq(eventInvites.inviteToken, token))
-  return invite ?? null
+  const now = new Date()
+  return invite && (!invite.expiresAt || invite.expiresAt > now)
+    ? invite
+    : null
 }
 
 export async function updateRsvp(
@@ -162,7 +166,12 @@ export async function removeParticipantFromCalendar(token: string) {
   const db = getDb()
   await db
     .update(eventInvites)
-    .set({ addedToCalendar: false, categoryId: null, updatedAt: new Date() })
+    .set({
+      addedToCalendar: false,
+      categoryId: null,
+      expiresAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(eventInvites.inviteToken, token))
 }
 

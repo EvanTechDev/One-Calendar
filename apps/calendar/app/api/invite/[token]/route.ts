@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, calendarCategories, user } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
@@ -95,6 +95,32 @@ export const PATCH = async function PATCH(
   }
 
   if (categoryId !== undefined) {
+    const [event] = await getDb()
+      .select({ userId: calendarEvents.userId })
+      .from(calendarEvents)
+      .where(eq(calendarEvents.id, invite.eventId))
+
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    const [cat] = await getDb()
+      .select({ id: calendarCategories.id })
+      .from(calendarCategories)
+      .where(
+        and(
+          eq(calendarCategories.id, categoryId),
+          eq(calendarCategories.userId, event.userId),
+        ),
+      )
+
+    if (!cat) {
+      return NextResponse.json(
+        { error: 'Category not found' },
+        { status: 404 },
+      )
+    }
+
     await addParticipantToCalendar(token, categoryId)
   }
 

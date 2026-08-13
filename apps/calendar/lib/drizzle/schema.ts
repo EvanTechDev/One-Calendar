@@ -182,6 +182,10 @@ export const eventInvites = pgTable(
     emailSent: boolean('email_sent').default(false).notNull(),
     addedToCalendar: boolean('added_to_calendar').default(false).notNull(),
     categoryId: text('category_id'),
+    expiresAt: timestamp('expires_at', {
+      precision: 3,
+      withTimezone: true,
+    }),
     createdAt: timestamp('created_at', {
       precision: 3,
       withTimezone: true,

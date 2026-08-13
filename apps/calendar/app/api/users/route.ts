@@ -2,10 +2,15 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { user } from '@/lib/drizzle/schema'
 import { inArray } from 'drizzle-orm'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
 export const GET = async function GET(request: NextRequest) {
+  const currentUser = await getAuthedUser()
+  if (!currentUser)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { searchParams } = request.nextUrl
   const emailsParam = searchParams.get('emails')
   if (!emailsParam) {
