@@ -97,10 +97,6 @@ describe('data hydration', () => {
       ],
     })
 
-    await waitFor(() => {
-      expect(getByTestId('store-calendars').textContent).toBe('1')
-    })
-
     resolveJson('/api/events', {
       events: [
         {
@@ -118,6 +114,10 @@ describe('data hydration', () => {
           updatedAt: '2026-08-01T00:00:00.000Z',
         },
       ],
+    })
+
+    await waitFor(() => {
+      expect(getByTestId('store-calendars').textContent).toBe('1')
     })
 
     await waitFor(() => {

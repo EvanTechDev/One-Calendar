@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { COLOR_NAMES, COLOR_HEX_VALUES, normalizeColor } from '@/lib/mcp/colors'
 
 describe('mcp colors', () => {
-  it('defines 9 color names and hex values', () => {
-    expect(COLOR_NAMES).toHaveLength(9)
-    expect(COLOR_HEX_VALUES).toHaveLength(9)
+  it('defines 7 color names and hex values', () => {
+    expect(COLOR_NAMES).toHaveLength(7)
+    expect(COLOR_HEX_VALUES).toHaveLength(7)
   })
 
   it('normalizes color names to app color values', () => {

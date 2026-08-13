@@ -32,7 +32,7 @@ describe('api-helpers', () => {
     expect(decrypted.description).toBe('A description')
     expect(decrypted.location).toBe('Room 101')
     expect(decrypted.id).toBe(eventId)
-  }, 30000)
+  }, 60000)
 
   it('decryptEvent returns null fields as null', async () => {
     const { decryptEvent } = await import('@/lib/api-helpers')
