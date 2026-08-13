@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
+import { getServerSession } from '@/lib/auth/server'
 import { mcpDeviceCodes, mcpAuthRequests } from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
@@ -16,14 +17,14 @@ export async function POST(request: NextRequest) {
     } else {
       body = await request.json().catch(() => ({}))
     }
-    const userId = body.user_id
-
-    if (!userId) {
+    const session = await getServerSession()
+    if (!session?.user) {
       return NextResponse.json(
-        { error: 'invalid_request', error_description: 'Missing user_id' },
-        { status: 400 },
+        { error: 'access_denied', error_description: 'Authentication required' },
+        { status: 401 },
       )
     }
+    const userId = session.user.id
 
     // Handle Device Code Grant flow
     if (body.user_code || body.code) {
