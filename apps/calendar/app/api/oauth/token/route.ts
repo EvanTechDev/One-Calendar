@@ -301,6 +301,11 @@ async function handleRefreshTokenGrant(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
   }
 
+  await db
+    .update(mcpTokens)
+    .set({ isRevoked: true })
+    .where(eq(mcpTokens.id, record.id))
+
   return issueTokens(
     record.userId,
     record.scopes as string[],
