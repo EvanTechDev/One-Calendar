@@ -100,6 +100,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     }
 
     const clientIp =
+      request.headers.get('cf-connecting-ip') ??
       request.headers.get('x-forwarded-for') ??
       request.headers.get('x-real-ip') ??
       ''
@@ -121,7 +122,8 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         authType: auth.user.authType,
         keyId: auth.user.keyId,
         action: 'mcp_request',
-        success: response.status < 500,
+        success: response.status < 400,
+        errorMessage: response.status >= 400 ? 'HTTP ' + response.status : undefined,
         ipAddress: clientIp,
         userAgent,
       })
