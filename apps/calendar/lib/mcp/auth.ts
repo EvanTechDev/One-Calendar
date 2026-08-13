@@ -314,3 +314,10 @@ export function generateUserCode(): string {
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
+
+export function redirectUriAllowed(
+  registeredUris: string[],
+  candidate: string,
+): boolean {
+  return registeredUris.some((u) => u === candidate)
+}
