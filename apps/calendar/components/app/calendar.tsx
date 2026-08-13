@@ -1224,6 +1224,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               setPreviewAnchorEl(null)
             }
           }}
+          onRemoveFromCalendar={() => {
+            if (previewEvent) {
+              setEvents((prevEvents) =>
+                prevEvents.filter((e) => e.id !== previewEvent.id),
+              )
+              setPreviewOpen(false)
+              setPreviewAnchorRect(null)
+              setPreviewAnchorEl(null)
+            }
+          }}
           _onDuplicate={() => {
             if (previewEvent) {
               handleEventDuplicate(previewEvent)

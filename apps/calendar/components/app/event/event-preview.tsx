@@ -57,6 +57,7 @@ interface EventPreviewProps {
   onOpenChange: (open: boolean) => void
   onEdit: () => void
   onDelete: () => void
+  onRemoveFromCalendar?: () => void
   _onDuplicate: () => void
   language: Language
   _timezone: string
@@ -72,6 +73,7 @@ export default function EventPreview({
   onOpenChange,
   onEdit,
   onDelete,
+  onRemoveFromCalendar,
   _onDuplicate,
   language,
   _timezone,
@@ -317,7 +319,8 @@ export default function EventPreview({
           method: 'DELETE',
         })
       }
-      onDelete()
+      toast.success(isZh ? '已从日历移除' : 'Removed from calendar')
+      onRemoveFromCalendar?.()
     } catch {
       toast.error('Failed to remove from calendar')
     }

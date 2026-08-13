@@ -7,6 +7,7 @@ import {
   getInviteByToken,
   updateRsvp,
   addParticipantToCalendar,
+  removeParticipantFromCalendar,
 } from '@/lib/invites/invite-service'
 
 export const runtime = 'nodejs'
@@ -111,7 +112,7 @@ export const DELETE = async function DELETE(
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
   }
 
-  await updateRsvp(token, 'declined')
+  await removeParticipantFromCalendar(token)
 
   return NextResponse.json({ success: true })
 }
