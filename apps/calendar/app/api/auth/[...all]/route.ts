@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { toNextJsHandler } from '@zntr/auth'
 import { auth } from '@/lib/auth'
+import { invalidateCachedSession } from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
@@ -31,6 +32,14 @@ function authAction(pathname: string) {
   if (pathname.endsWith('/sign-up/email')) return 'auth.register'
   if (pathname.includes('/reset-password')) return 'auth.password_reset'
   return null
+}
+
+function sessionTokenFromCookieHeader(
+  cookieHeader: string | null,
+): string | null {
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(/(?:^|;\s*)better-auth\.session_token=([^;]+)/)
+  return match?.[1] ? decodeURIComponent(match[1]) : null
 }
 
 async function findUserByEmail(email: string) {
@@ -141,6 +150,11 @@ async function handleAuth(request: Request) {
   let subject = await resolveAuthSubject(request, email)
   const response =
     await authHandlers[request.method as keyof typeof authHandlers](request)
+
+  if (action === 'auth.logout' && response.status < 400) {
+    const token = sessionTokenFromCookieHeader(request.headers.get('cookie'))
+    if (token) await invalidateCachedSession(token)
+  }
 
   if (action) {
     const success = response.status < 400

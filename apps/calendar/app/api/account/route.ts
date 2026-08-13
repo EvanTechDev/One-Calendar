@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
+import { invalidateCachedSession } from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import {
   user as userTable,
@@ -17,9 +18,19 @@ import { eq } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
-export const DELETE = withEvlog(async function DELETE(_request: Request) {
+function sessionTokenFromCookieHeader(
+  cookieHeader: string | null,
+): string | null {
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(/(?:^|;\s*)better-auth\.session_token=([^;]+)/)
+  return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+export const DELETE = withEvlog(async function DELETE(request: Request) {
   try {
     const log = useLogger()
+    const cookieHeader = request.headers.get('cookie')
+    const sessionToken = sessionTokenFromCookieHeader(cookieHeader)
     const session = await getServerSession()
     const user = session?.user
     if (!user) {
@@ -48,6 +59,8 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
       await tx.delete(twoFactorTable).where(eq(twoFactorTable.userId, user.id))
       await tx.delete(userTable).where(eq(userTable.id, user.id))
     })
+
+    if (sessionToken) await invalidateCachedSession(sessionToken)
 
     log.audit?.({
       action: 'account.delete',
