@@ -6,7 +6,8 @@ function getCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'
   return [
     "default-src 'self'",
-    "script-src 'self' 'nonce-" + nonce + "'" + (isDev ? " 'unsafe-eval'" : ''),
+    "script-src 'self' 'nonce-" + nonce + "' https://challenges.cloudflare.com" +
+      (isDev ? " 'unsafe-eval'" : ''),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
@@ -15,7 +16,7 @@ function getCsp(nonce: string): string {
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
-    "frame-src 'self' https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
+    "frame-src 'self' https://challenges.cloudflare.com https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
     "form-action 'self'",
   ].join('; ')
 }
