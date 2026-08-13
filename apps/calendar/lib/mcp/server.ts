@@ -89,8 +89,9 @@ function respond(data: unknown) {
 }
 
 function respondError(err: unknown) {
+  console.error('MCP tool error:', err)
   return {
-    content: [{ type: 'text' as const, text: `Error: ${err}` }],
+    content: [{ type: 'text' as const, text: 'Internal server error' }],
     isError: true as const,
   }
 }
