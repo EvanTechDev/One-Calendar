@@ -78,10 +78,11 @@ export const POST = withEvlog(async (request: NextRequest) => {
     }
   } catch (error: any) {
     if (error.status) throw error
+    console.error('turnstile verify failed', error.message)
     throw createError({
       message: 'Server error',
       status: 500,
-      why: error.message,
+      why: 'See server logs',
       fix: 'Check server logs',
     })
   }
