@@ -1,7 +1,10 @@
+import { createHash } from 'crypto'
+
 export const SESSION_PREFIX = 'session:token:'
 
 export function sessionKey(token: string): string {
-  return `${SESSION_PREFIX}${token}`
+  const digest = createHash('sha256').update(token).digest('hex')
+  return `${SESSION_PREFIX}${digest}`
 }
 
 export function eventsMonthKey(userId: string, yearMonth: string): string {
