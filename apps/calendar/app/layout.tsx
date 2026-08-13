@@ -1,7 +1,7 @@
 import './globals.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
-import { connection, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { cn } from '@zntr/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
@@ -45,7 +45,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  await connection()
   const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html

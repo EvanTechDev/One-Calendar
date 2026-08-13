@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (client.tokenEndpointAuthMethod !== 'none') {
-      let secret = body.client_secret
+      let secret: string | undefined = body.client_secret
       const authHeader = request.headers.get('authorization') || ''
       if (authHeader.startsWith('Basic ')) {
         try {

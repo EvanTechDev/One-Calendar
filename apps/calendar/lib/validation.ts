@@ -66,7 +66,7 @@ export const importSchema = z.object({
   countdowns: z.array(countdownSchema).max(200).optional(),
   bookmarks: z.array(z.object({ eventId: z.string() })).max(500).optional(),
   settings: z
-    .record(z.unknown())
+    .record(z.string(), z.unknown())
     .refine((value) => Object.keys(value).length <= 256, {
       message: 'Too many settings keys',
     })

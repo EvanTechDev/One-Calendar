@@ -6,7 +6,6 @@ import {
   COLOR_HEX_VALUES,
   COLOR_NAME_LIST,
   COLOR_NAMES,
-  COLOR_OPTIONS,
 } from './colors'
 import { CATEGORY_COLOR_VALUES } from './category-tools'
 

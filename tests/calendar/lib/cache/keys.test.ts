@@ -19,6 +19,6 @@ describe('sessionKey', () => {
 
   it('keeps the SESSION_PREFIX so old cache namespaces still apply', () => {
     expect(SESSION_PREFIX).toBe('session:token:')
-    expect(sessionKey('token-a')).toStartWith(SESSION_PREFIX)
+    expect(sessionKey('token-a').startsWith(SESSION_PREFIX)).toBe(true)
   })
 })
