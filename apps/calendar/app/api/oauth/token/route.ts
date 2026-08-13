@@ -8,6 +8,7 @@ import {
 import { eq, and, gte } from 'drizzle-orm'
 import {
   generateAccessToken,
+  generateCodeChallenge,
   generateRefreshToken,
   hashToken,
   getUserNameAndEmail,
@@ -244,17 +245,6 @@ async function handleRefreshTokenGrant(body: Record<string, unknown>) {
     record.clientId,
     record.clientName,
   )
-}
-
-function generateCodeChallenge(verifier: string, method: string): string {
-  if (method === 'S256') {
-    const hash = crypto
-      .createHash('sha256')
-      .update(verifier)
-      .digest('base64url')
-    return hash.replace(/=/g, '')
-  }
-  return verifier
 }
 
 async function issueTokens(
