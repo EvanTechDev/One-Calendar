@@ -7,15 +7,30 @@ import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
 import { McpAuthError } from './types'
 
+function allowedOrigins(): string[] {
+  const appOrigin = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
+  const configured = (process.env.MCP_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return [appOrigin, ...configured]
+}
+
 export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
 
     if (request.method === 'GET') {
+      const origin = request.headers.get('origin')
+      const list = allowedOrigins()
+      if (origin && list.length > 0 && !list.includes(origin)) {
+        return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
+      }
+
       const server = createServer()
       const transport = new WebStandardStreamableHTTPServerTransport({
         enableJsonResponse: true,
-        allowedOrigins: ['*'],
+        allowedOrigins: allowedOrigins(),
       })
       await server.connect(transport)
       return transport.handleRequest(
@@ -93,7 +108,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     const server = createServer()
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
-      allowedOrigins: ['*'],
+      allowedOrigins: allowedOrigins(),
     })
 
     await server.connect(transport)
