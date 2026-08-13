@@ -1,8 +1,10 @@
+import { NextResponse } from 'next/server'
 import { toNextJsHandler } from '@zntr/auth'
 import { auth } from '@/lib/auth'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
+import { verifyTurnstile, type TurnstileVerifyResult } from '@/lib/turnstile'
 import { eq } from 'drizzle-orm'
 
 const authHandlers = toNextJsHandler(auth)
@@ -93,6 +95,48 @@ async function handleAuth(request: Request) {
   const pathname = new URL(request.url).pathname
   const action = authAction(pathname)
   const body = await readAuthBody(request)
+
+  if (
+    request.method === 'POST' &&
+    (action === 'auth.login' || action === 'auth.register')
+  ) {
+    const turnstileToken =
+      typeof body?.turnstileToken === 'string' ? body.turnstileToken : ''
+    if (!turnstileToken) {
+      return NextResponse.json({ error: 'CAPTCHA required' }, { status: 400 })
+    }
+
+    let captchaResult: TurnstileVerifyResult
+    try {
+      captchaResult = await verifyTurnstile(
+        turnstileToken,
+        action === 'auth.register' ? 'register' : 'login',
+      )
+    } catch (error) {
+      console.error('CAPTCHA service unavailable', error)
+      return NextResponse.json(
+        { error: 'CAPTCHA service unavailable' },
+        { status: 503 },
+      )
+    }
+
+    if (!captchaResult.success) {
+      const email = typeof body?.email === 'string' ? body.email : undefined
+      const subject = await resolveAuthSubject(request, email)
+      log.audit?.({
+        action: 'captcha.fail',
+        actor: anonymousAuditActor,
+        target: subject.target,
+        outcome: 'failure',
+        reason: 'CAPTCHA verification failed',
+      })
+      return NextResponse.json(
+        { error: 'CAPTCHA verification failed' },
+        { status: 400 },
+      )
+    }
+  }
+
   const email = typeof body?.email === 'string' ? body.email : undefined
   let subject = await resolveAuthSubject(request, email)
   const response =

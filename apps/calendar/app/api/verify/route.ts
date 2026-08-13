@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { withEvlog, useLogger, createError, getAuditActor } from '@/lib/evlog'
+import { verifyTurnstile } from '@/lib/turnstile'
 
 export const POST = withEvlog(async (request: NextRequest) => {
   const log = useLogger()
@@ -32,31 +33,13 @@ export const POST = withEvlog(async (request: NextRequest) => {
       })
     }
 
-    const response = await fetch(
-      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          secret: secretKey,
-          response: token,
-        }).toString(),
-      },
-    )
+    const result = await verifyTurnstile(token, action ?? '')
 
-    if (!response.ok) {
-      throw createError({
-        message: 'Cloudflare error',
-        status: 500,
-        why: 'Cloudflare status ' + response.status,
-        fix: 'Check service',
-      })
-    }
+    log.set({
+      turnstile: { success: result.success, errorCodes: result.errorCodes },
+    })
 
-    const data = await response.json()
-    log.set({ cloudflareResponse: data })
-
-    if (data.success) {
+    if (result.success) {
       log.audit?.({
         action: 'captcha.verify',
         actor: getAuditActor(log),
@@ -78,10 +61,11 @@ export const POST = withEvlog(async (request: NextRequest) => {
     }
   } catch (error: any) {
     if (error.status) throw error
+    console.error('Turnstile verification failed', error)
     throw createError({
       message: 'Server error',
       status: 500,
-      why: error.message,
+      why: 'See server logs',
       fix: 'Check server logs',
     })
   }

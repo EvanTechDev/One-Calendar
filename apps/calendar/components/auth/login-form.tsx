@@ -24,6 +24,7 @@ export function LoginForm() {
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
   )
+  const [turnstileToken, setTurnstileToken] = useState('')
   const router = useRouter()
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -33,7 +34,12 @@ export function LoginForm() {
     setIsLoading(true)
     setError('')
 
-    const res = await authClient.signIn.email({ email, password })
+    type SignInEmailInput = Parameters<typeof authClient.signIn.email>[0]
+    const res = await authClient.signIn.email({
+      email,
+      password,
+      turnstileToken,
+    } as SignInEmailInput & { turnstileToken: string })
     if (res.error) {
       const message = res.error.message || ''
       if (
@@ -170,9 +176,16 @@ export function LoginForm() {
             <Turnstile
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
               options={{ size: 'flexible' }}
-              onSuccess={() => setIsCaptchaCompleted(true)}
-              onExpire={() => setIsCaptchaCompleted(false)}
+              onSuccess={(token) => {
+                setTurnstileToken(token)
+                setIsCaptchaCompleted(true)
+              }}
+              onExpire={() => {
+                setTurnstileToken('')
+                setIsCaptchaCompleted(false)
+              }}
               onError={() => {
+                setTurnstileToken('')
                 setIsCaptchaCompleted(false)
                 setError('CAPTCHA initialization failed. Please try again.')
               }}
