@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
-import { eq, and, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray, desc } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
@@ -12,22 +12,9 @@ import {
   groupByMonth,
 } from '@/lib/cache/events'
 import { fullMonthRange } from '@/lib/cache/keys'
+import { eventSchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'
-
-type EventInput = {
-  id?: string
-  title: string
-  description?: string | null
-  location?: string | null
-  startDate: string
-  endDate: string
-  isAllDay?: boolean
-  color?: string | null
-  categoryId?: string | null
-  participants?: Array<{ name: string; email?: string; userId?: string }> | null
-  notificationMinutes?: number | null
-}
 
 type EnrichedInvite = {
   id: string
@@ -42,6 +29,7 @@ type EnrichedInvite = {
 
 async function enrichEventsWithInvites(
   events: ReturnType<typeof decryptEvent>[],
+  viewerId: string,
 ): Promise<
   Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>
 > {
@@ -50,6 +38,7 @@ async function enrichEventsWithInvites(
   }
 
   const eventIds = events.map((e) => e.id)
+  const eventOwners = new Map(events.map((e) => [e.id, e.userId]))
 
   const allInvites = await getDb()
     .select({
@@ -95,7 +84,10 @@ async function enrichEventsWithInvites(
         id: invite.id,
         email: invite.email,
         status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
-        inviteToken: invite.inviteToken,
+        inviteToken:
+          eventOwners.get(invite.eventId) === viewerId
+            ? invite.inviteToken
+            : '',
         emailSent: invite.emailSent,
         addedToCalendar: invite.addedToCalendar,
         userName: userMap[emailLower]?.name ?? null,
@@ -171,10 +163,16 @@ export const GET = async function GET(request: NextRequest) {
   }
 
   if (decrypted.length === 0) {
-    const results = await getDb()
+    const query = getDb()
       .select()
       .from(calendarEvents)
       .where(and(...filters))
+
+    if (!(startDate && endDate)) {
+      query.orderBy(desc(calendarEvents.startDate)).limit(1000)
+    }
+
+    const results = await query
 
     if (startDate && endDate) {
       const grouped = groupByMonth(results)
@@ -196,7 +194,10 @@ export const GET = async function GET(request: NextRequest) {
   const sharedEvents = await getSharedEvents(currentUser)
   const allBaseEvents = [...decrypted, ...sharedEvents]
 
-  const eventsWithInvites = await enrichEventsWithInvites(allBaseEvents)
+  const eventsWithInvites = await enrichEventsWithInvites(
+    allBaseEvents,
+    currentUser.id,
+  )
 
   if (startDate && endDate) {
     const start = new Date(startDate)
@@ -216,7 +217,14 @@ export const POST = async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: EventInput = await request.json()
+  const parsed = eventSchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: firstZodMessage(parsed.error) },
+      { status: 400 },
+    )
+  }
+  const body = parsed.data
   const id = body.id ?? crypto.randomUUID()
 
   const isUpdate = !!body.id
