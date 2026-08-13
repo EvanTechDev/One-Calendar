@@ -53,6 +53,7 @@ export interface EmailCallbacks {
 export interface TwoFactorOptions {
   issuer?: string
   otpLength?: number
+  trustDeviceMaxAge?: number
 }
 
 export interface SentinelOptions {

@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
 import { Button } from '@zntr/ui/button'
+import { Checkbox } from '@zntr/ui/checkbox'
 import { Input } from '@zntr/ui/input'
 import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
@@ -20,6 +21,7 @@ export function LoginForm() {
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isVerifyingTotp, setIsVerifyingTotp] = useState(false)
+  const [trustDevice, setTrustDevice] = useState(false)
   const [error, setError] = useState('')
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
@@ -73,7 +75,7 @@ export function LoginForm() {
     setError('')
     const res = await authClient.twoFactor.verifyTotp({
       code: totp,
-      trustDevice: true,
+      trustDevice,
     })
     if (res.error) {
       setError(res.error.message || 'Invalid verification code.')
@@ -121,6 +123,13 @@ export function LoginForm() {
               maxLength={6}
             />
           </div>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox
+              checked={trustDevice}
+              onCheckedChange={(value) => setTrustDevice(value === true)}
+            />
+            Trust this device for 7 days
+          </label>
           {error && <div className="text-sm text-red-500">{error}</div>}
           <Button
             className="w-full"

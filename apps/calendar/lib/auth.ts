@@ -82,7 +82,7 @@ const { auth } = createAuth({
     },
   },
   plugins: {
-    twoFactor: { issuer: 'One Calendar' },
+    twoFactor: { issuer: 'One Calendar', trustDeviceMaxAge: 7 }, // days
     sentinel: {
       apiKey: process.env.BETTER_AUTH_API_KEY,
       security: {
