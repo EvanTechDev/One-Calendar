@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents, user } from '@/lib/drizzle/schema'
+import { calendarEvents, calendarCategories, user } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
 import {
   getInviteByToken,
@@ -36,6 +36,16 @@ export const GET = async function GET(
     .from(user)
     .where(eq(user.id, event.userId))
 
+  const inviterCategories = await getDb()
+    .select({
+      id: calendarCategories.id,
+      name: calendarCategories.name,
+      color: calendarCategories.color,
+    })
+    .from(calendarCategories)
+    .where(eq(calendarCategories.userId, event.userId))
+    .orderBy(calendarCategories.sortOrder)
+
   return NextResponse.json({
     invite: {
       id: invite.id,
@@ -55,6 +65,11 @@ export const GET = async function GET(
     inviter: owner
       ? { name: owner.name, email: owner.email }
       : { name: 'Someone' },
+    categories: inviterCategories.map((cat) => ({
+      id: cat.id,
+      name: decryptField(cat.id, cat.name) ?? cat.name,
+      color: cat.color,
+    })),
   })
 }
 

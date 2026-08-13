@@ -42,7 +42,9 @@ type EnrichedInvite = {
 
 async function enrichEventsWithInvites(
   events: ReturnType<typeof decryptEvent>[],
-): Promise<Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>> {
+): Promise<
+  Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>
+> {
   if (events.length === 0) {
     return events.map((e) => ({ ...e, invites: [] }))
   }
@@ -62,7 +64,9 @@ async function enrichEventsWithInvites(
     .from(eventInvites)
     .where(inArray(eventInvites.eventId, eventIds))
 
-  const inviteEmails = [...new Set(allInvites.map((i) => i.email.toLowerCase()))]
+  const inviteEmails = [
+    ...new Set(allInvites.map((i) => i.email.toLowerCase())),
+  ]
 
   let userMap: Record<string, { name: string; image: string | null }> = {}
   if (inviteEmails.length > 0) {
@@ -110,9 +114,9 @@ async function enrichEventsWithInvites(
   }))
 }
 
-async function getSharedEvents(
-  currentUser: { email: string },
-): Promise<Array<ReturnType<typeof decryptEvent> & { viewOnly: boolean }>> {
+async function getSharedEvents(currentUser: {
+  email: string
+}): Promise<Array<ReturnType<typeof decryptEvent> & { viewOnly: boolean }>> {
   const sharedEventIds = await getDb()
     .select({ eventId: eventInvites.eventId })
     .from(eventInvites)
@@ -184,7 +188,9 @@ export const GET = async function GET(request: NextRequest) {
 
   if (categoryIds) {
     const ids = categoryIds.split(',')
-    decrypted = decrypted.filter((e) => e.categoryId && ids.includes(e.categoryId))
+    decrypted = decrypted.filter(
+      (e) => e.categoryId && ids.includes(e.categoryId),
+    )
   }
 
   const sharedEvents = await getSharedEvents(currentUser)
@@ -219,9 +225,13 @@ export const POST = async function POST(request: NextRequest) {
       .select({
         startDate: calendarEvents.startDate,
         endDate: calendarEvents.endDate,
+        userId: calendarEvents.userId,
       })
       .from(calendarEvents)
       .where(eq(calendarEvents.id, id))
+    if (old && old.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     if (old) {
       await invalidateEventCache(
         user.id,
@@ -291,9 +301,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!old)
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
 
-  await getDb()
-    .delete(eventInvites)
-    .where(eq(eventInvites.eventId, id))
+  await getDb().delete(eventInvites).where(eq(eventInvites.eventId, id))
 
   await getDb()
     .delete(calendarEvents)

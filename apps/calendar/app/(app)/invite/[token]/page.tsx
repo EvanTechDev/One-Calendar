@@ -47,6 +47,11 @@ interface InviteData {
     name: string
     email?: string
   }
+  categories: {
+    id: string
+    name: string
+    color: string
+  }[]
 }
 
 interface Category {
@@ -78,6 +83,7 @@ export default function InvitePage() {
         setData(data)
         setStatus(data.invite.status)
         setAddedToCalendar(data.invite.addedToCalendar)
+        setCategories(data.categories ?? [])
         setLoading(false)
 
         const email = data.invite.email?.trim().toLowerCase()
@@ -98,13 +104,6 @@ export default function InvitePage() {
         setLoading(false)
       })
   }, [token])
-
-  useEffect(() => {
-    fetch('/api/categories')
-      .then((res) => res.json())
-      .then((data) => setCategories(data.categories ?? []))
-      .catch(() => {})
-  }, [])
 
   const handleRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
     setStatus(newStatus)

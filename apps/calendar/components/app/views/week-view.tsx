@@ -307,7 +307,11 @@ export default function WeekView({
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
-    if (event.viewOnly) return
+    if (event.viewOnly) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
 

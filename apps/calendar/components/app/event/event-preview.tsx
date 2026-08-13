@@ -599,43 +599,49 @@ export default function EventPreview({
                               </Badge>
                             </span>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 shrink-0"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {!invite.emailSent ? (
-                                <DropdownMenuItem
-                                  onClick={() => handleResendInvite(invite.id)}
+                          {!event.viewOnly && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 shrink-0"
                                 >
-                                  <Send className="mr-2 h-4 w-4" />
-                                  Send Invite
-                                </DropdownMenuItem>
-                              ) : (
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {!invite.emailSent ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleResendInvite(invite.id)
+                                    }
+                                  >
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Send Invite
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleResendInvite(invite.id)
+                                    }
+                                  >
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Resend Invite
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
-                                  onClick={() => handleResendInvite(invite.id)}
+                                  className="text-destructive"
+                                  onClick={() =>
+                                    handleRemoveParticipant(invite.id)
+                                  }
                                 >
-                                  <Send className="mr-2 h-4 w-4" />
-                                  Resend Invite
+                                  <UserMinus className="mr-2 h-4 w-4" />
+                                  Remove
                                 </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() =>
-                                  handleRemoveParticipant(invite.id)
-                                }
-                              >
-                                <UserMinus className="mr-2 h-4 w-4" />
-                                Remove
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       ))}
                     </div>
