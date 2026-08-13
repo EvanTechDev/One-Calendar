@@ -1,6 +1,7 @@
 import './globals.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
+import { connection, headers } from 'next/headers'
 import { cn } from '@zntr/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
@@ -39,11 +40,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  await connection()
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html
       lang="en"
@@ -54,6 +57,7 @@ export default function RootLayout({
         className={`${GeistSans.className} ${instrumentSans.variable} antialiased`}
       >
         <ThemeProvider
+          nonce={nonce}
           themes={[...AVAILABLE_THEMES]}
           attribute="class"
           defaultTheme="system"
