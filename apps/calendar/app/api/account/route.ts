@@ -76,8 +76,9 @@ export const DELETE = withEvlog(async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (e: any) {
+    console.error('account.delete failed', e)
     return NextResponse.json(
-      { error: e?.message || 'Internal error' },
+      { error: 'Internal server error' },
       { status: 500 },
     )
   }

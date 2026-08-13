@@ -9,6 +9,7 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
+import { invalidateEventCache } from '@/lib/cache/events'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { isEventViewableBy } from '@/app/api/bookmarks/route'
 import { importSchema, firstZodMessage } from '@/lib/validation'
@@ -50,7 +51,7 @@ export const POST = async function POST(request: NextRequest) {
           .values({
             id,
             userId: user.id,
-            name: cat.name,
+            name: encryptField(id, cat.name) ?? '',
             color: cat.color,
             sortOrder: cat.sortOrder ?? 0,
           })
@@ -116,10 +117,10 @@ export const POST = async function POST(request: NextRequest) {
           .values({
             id,
             userId: user.id,
-            name: cd.name,
+            name: encryptField(id, cd.name) ?? '',
             targetDate: new Date(cd.targetDate),
             repeat: cd.repeat ?? 'none',
-            description: cd.description ?? null,
+            description: encryptField(id, cd.description),
             color: cd.color ?? null,
             icon: cd.icon ?? null,
           })
@@ -171,6 +172,10 @@ export const POST = async function POST(request: NextRequest) {
         })
     }
   })
+
+  for (const evt of body.events ?? []) {
+    await invalidateEventCache(user.id, evt.startDate, evt.endDate)
+  }
 
   return NextResponse.json({
     success: true,
