@@ -8,10 +8,17 @@ import {
   AlignLeft,
   Calendar,
   Clock,
-  User as UserIcon,
+  XCircle,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
-import { ButtonGroup } from '@zntr/ui/button-group'
+import { Spinner } from '@zntr/ui/spinner'
+import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardFooter,
+} from '@zntr/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -115,16 +122,25 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-destructive">{error || 'Invite not found'}</div>
+      <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+        <div className="text-center space-y-4">
+          <XCircle className="h-16 w-16 text-red-500 mx-auto" />
+          <h1 className="text-2xl font-bold">Invite Not Found</h1>
+          <p className="text-muted-foreground">
+            {error || 'This invite link is invalid or has expired.'}
+          </p>
+          <Button variant="outline" onClick={() => window.close()}>
+            Close
+          </Button>
+        </div>
       </div>
     )
   }
@@ -144,68 +160,90 @@ export default function InvitePage() {
     (status === 'accepted' || status === 'maybe') && !addedToCalendar
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-lg mx-auto">
-        <div className="rounded-xl border bg-card p-6 space-y-6">
-          <div className="space-y-1">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-sm rounded-lg">
+        <CardHeader className="flex flex-col items-center gap-3 text-center">
+          <Avatar size="lg" className="size-20">
+            <AvatarFallback className="text-xl">
+              {(inviter.name ?? '?').charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-lg font-semibold">{event.title}</p>
             <p className="text-sm text-muted-foreground">
-              <UserIcon className="inline h-4 w-4 mr-1" />
               {inviter.name} invited you to this event
             </p>
-            <h1 className="text-2xl font-bold">{event.title}</h1>
           </div>
+        </CardHeader>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <span>{formatDateRange()}</span>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              Event details
+            </p>
+            <div className="divide-y divide-border rounded-lg border border-border">
+              <div className="flex items-center gap-3 px-3 py-2.5">
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm">{formatDateRange()}</span>
+              </div>
+              {event.location && (
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm">{event.location}</span>
+                </div>
+              )}
+              {event.description && (
+                <div className="flex items-start gap-3 px-3 py-2.5">
+                  <AlignLeft className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                  <p className="text-sm whitespace-pre-wrap">
+                    {event.description}
+                  </p>
+                </div>
+              )}
             </div>
-            {event.location && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <span>{event.location}</span>
-              </div>
-            )}
-            {event.description && (
-              <div className="flex items-start gap-3">
-                <AlignLeft className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <p className="whitespace-pre-wrap">{event.description}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Will you attend?</p>
-            <ButtonGroup orientation="horizontal">
-              <Button
-                variant={status === 'accepted' ? 'default' : 'outline'}
-                onClick={() => handleRsvp('accepted')}
-              >
-                Yes
-              </Button>
-              <Button
-                variant={status === 'maybe' ? 'default' : 'outline'}
-                onClick={() => handleRsvp('maybe')}
-              >
-                Maybe
-              </Button>
-              <Button
-                variant={status === 'declined' ? 'default' : 'outline'}
-                onClick={() => handleRsvp('declined')}
-              >
-                No
-              </Button>
-            </ButtonGroup>
           </div>
 
           {canAddToCalendar && isRegisteredUser && (
-            <Button onClick={() => setCategoryDialogOpen(true)}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setCategoryDialogOpen(true)}
+            >
               <Calendar className="mr-2 h-4 w-4" />
               Add to My Calendar
             </Button>
           )}
-        </div>
-      </div>
+        </CardContent>
+
+        <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
+          <p className="w-full text-left text-sm font-medium">
+            Will you attend?
+          </p>
+          <div className="flex w-full gap-3">
+            <Button
+              variant={status === 'accepted' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => handleRsvp('accepted')}
+            >
+              Yes
+            </Button>
+            <Button
+              variant={status === 'maybe' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => handleRsvp('maybe')}
+            >
+              Maybe
+            </Button>
+            <Button
+              variant={status === 'declined' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => handleRsvp('declined')}
+            >
+              No
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>
