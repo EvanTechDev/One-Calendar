@@ -3,6 +3,10 @@ import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
 import { getDb } from '@/lib/drizzle/client'
 import {
+  user as userTable,
+  session as sessionTable,
+  account as accountTable,
+  twoFactor as twoFactorTable,
   calendarEvents,
   settings,
   calendarCategories,
@@ -39,6 +43,10 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
         .where(eq(calendarCategories.userId, user.id))
       await tx.delete(settings).where(eq(settings.userId, user.id))
       await tx.delete(calendarEvents).where(eq(calendarEvents.userId, user.id))
+      await tx.delete(sessionTable).where(eq(sessionTable.userId, user.id))
+      await tx.delete(accountTable).where(eq(accountTable.userId, user.id))
+      await tx.delete(twoFactorTable).where(eq(twoFactorTable.userId, user.id))
+      await tx.delete(userTable).where(eq(userTable.id, user.id))
     })
 
     log.audit?.({

@@ -384,7 +384,7 @@ export default function UserProfileButton({
         throw new Error(data?.error || 'Failed to delete account data')
       }
 
-      await user.delete()
+      await authClient.signOut()
 
       toast(t.accountDeleted)
       router.replace('/')

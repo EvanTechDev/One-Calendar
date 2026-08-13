@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { MapPin, AlignLeft, Calendar, Clock, User as UserIcon } from 'lucide-react'
+import {
+  MapPin,
+  AlignLeft,
+  Calendar,
+  Clock,
+  User as UserIcon,
+} from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { ButtonGroup } from '@zntr/ui/button-group'
 import {
@@ -73,23 +79,24 @@ export default function InvitePage() {
         setStatus(data.invite.status)
         setAddedToCalendar(data.invite.addedToCalendar)
         setLoading(false)
+
+        const email = data.invite.email?.trim().toLowerCase()
+        if (email) {
+          return fetch(`/api/users?emails=${encodeURIComponent(email)}`)
+            .then((res) => res.json())
+            .then((userData: { users: Record<string, { name: string }> }) => {
+              if (userData.users && userData.users[email]) {
+                setIsRegisteredUser(true)
+              }
+            })
+            .catch(() => {})
+        }
+        return undefined
       })
       .catch((err) => {
         setError(err.message)
         setLoading(false)
       })
-
-    const email = data?.invite?.email
-    if (email) {
-      fetch(`/api/users?emails=${email}`)
-        .then((res) => res.json())
-        .then((userData: { users: Record<string, { name: string }> }) => {
-          if (userData.users && userData.users[email]) {
-            setIsRegisteredUser(true)
-          }
-        })
-        .catch(() => {})
-    }
   }, [token])
 
   useEffect(() => {
@@ -231,7 +238,10 @@ export default function InvitePage() {
             </SelectContent>
           </Select>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setCategoryDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleAddToCalendar}>Add</Button>
