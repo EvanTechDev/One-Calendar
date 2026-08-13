@@ -4,12 +4,15 @@ import {
   mcpDeviceCodes,
   mcpTokens,
   mcpAuthRequests,
+  mcpOauthClients,
 } from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import {
   generateAccessToken,
+  generateCodeChallenge,
   generateRefreshToken,
   hashToken,
+  verifyOAuthClientSecret,
   getUserNameAndEmail,
 } from '@/lib/mcp/auth'
 import crypto from 'crypto'
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // --- Authorization Code Grant (PKCE) ---
     if (grantType === 'authorization_code') {
-      return handleAuthorizationCodeGrant(body)
+      return handleAuthorizationCodeGrant(body, request)
     }
 
     // --- Refresh Token Grant ---
@@ -105,15 +108,25 @@ async function handleDeviceCodeGrant(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
   }
 
-  return issueTokens(
+  const result = await issueTokens(
     record.userId,
     record.scopes as string[],
     record.clientId,
     record.clientName,
   )
+
+  await db
+    .update(mcpDeviceCodes)
+    .set({ status: 'used' })
+    .where(eq(mcpDeviceCodes.id, record.id))
+
+  return result
 }
 
-async function handleAuthorizationCodeGrant(body: Record<string, unknown>) {
+async function handleAuthorizationCodeGrant(
+  body: Record<string, unknown>,
+  request: NextRequest,
+) {
   const code = body.code as string | undefined
   const codeVerifier = body.code_verifier as string | undefined
   const redirectUri = body.redirect_uri as string | undefined
@@ -126,7 +139,62 @@ async function handleAuthorizationCodeGrant(body: Record<string, unknown>) {
     )
   }
 
+  if (!clientId) {
+    return NextResponse.json(
+      { error: 'invalid_client', error_description: 'Missing client_id' },
+      { status: 400 },
+    )
+  }
+
   const db = await getDb()
+
+  const [client] = await db
+    .select({
+      clientSecretHash: mcpOauthClients.clientSecretHash,
+    })
+    .from(mcpOauthClients)
+    .where(
+      and(
+        eq(mcpOauthClients.id, clientId),
+        eq(mcpOauthClients.isRevoked, false),
+      ),
+    )
+
+  if (!client) {
+    return NextResponse.json(
+      {
+        error: 'invalid_client',
+        error_description: 'Unknown or revoked client_id',
+      },
+      { status: 400 },
+    )
+  }
+
+  if (client.clientSecretHash) {
+    let secret = body.client_secret as string | undefined
+    const authHeader = request.headers.get('authorization') || ''
+    if (authHeader.startsWith('Basic ')) {
+      try {
+        const decoded = Buffer.from(
+          authHeader.slice(6),
+          'base64',
+        ).toString('utf8')
+        secret = decoded.includes(':') ? decoded.split(':')[1] : undefined
+      } catch {
+        secret = undefined
+      }
+    }
+
+    if (!(await verifyOAuthClientSecret(clientId, secret))) {
+      return NextResponse.json(
+        {
+          error: 'invalid_client',
+          error_description: 'Invalid client secret',
+        },
+        { status: 400 },
+      )
+    }
+  }
 
   const [record] = await db
     .select()
@@ -149,41 +217,43 @@ async function handleAuthorizationCodeGrant(body: Record<string, unknown>) {
     )
   }
 
-  // Verify redirect_uri
-  if (redirectUri && record.redirectUri && redirectUri !== record.redirectUri) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'redirect_uri mismatch' },
-      { status: 400 },
-    )
-  }
-
-  // Verify client_id
-  if (clientId && clientId !== record.clientId) {
+  if (record.clientId !== clientId) {
     return NextResponse.json(
       { error: 'invalid_grant', error_description: 'client_id mismatch' },
       { status: 400 },
     )
   }
 
-  // PKCE verification
-  if (record.codeChallenge && record.codeChallengeMethod) {
-    if (!codeVerifier) {
-      return NextResponse.json(
-        { error: 'invalid_grant', error_description: 'Missing code_verifier' },
-        { status: 400 },
-      )
-    }
-
-    const expectedChallenge = await generateCodeChallenge(
-      codeVerifier,
-      record.codeChallengeMethod,
+  if (!redirectUri || redirectUri !== record.redirectUri) {
+    return NextResponse.json(
+      { error: 'invalid_grant', error_description: 'redirect_uri mismatch' },
+      { status: 400 },
     )
-    if (expectedChallenge !== record.codeChallenge) {
-      return NextResponse.json(
-        { error: 'invalid_grant', error_description: 'code_verifier mismatch' },
-        { status: 400 },
-      )
-    }
+  }
+
+  if (!record.codeChallenge) {
+    return NextResponse.json(
+      { error: 'invalid_grant', error_description: 'PKCE not required' },
+      { status: 400 },
+    )
+  }
+
+  if (!codeVerifier) {
+    return NextResponse.json(
+      { error: 'invalid_grant', error_description: 'Missing code_verifier' },
+      { status: 400 },
+    )
+  }
+
+  const expectedChallenge = generateCodeChallenge(
+    codeVerifier,
+    record.codeChallengeMethod ?? 'S256',
+  )
+  if (expectedChallenge !== record.codeChallenge) {
+    return NextResponse.json(
+      { error: 'invalid_grant', error_description: 'code_verifier mismatch' },
+      { status: 400 },
+    )
   }
 
   // Mark code as used
@@ -238,23 +308,17 @@ async function handleRefreshTokenGrant(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
   }
 
+  await db
+    .update(mcpTokens)
+    .set({ isRevoked: true })
+    .where(eq(mcpTokens.id, record.id))
+
   return issueTokens(
     record.userId,
     record.scopes as string[],
     record.clientId,
     record.clientName,
   )
-}
-
-function generateCodeChallenge(verifier: string, method: string): string {
-  if (method === 'S256') {
-    const hash = crypto
-      .createHash('sha256')
-      .update(verifier)
-      .digest('base64url')
-    return hash.replace(/=/g, '')
-  }
-  return verifier
 }
 
 async function issueTokens(

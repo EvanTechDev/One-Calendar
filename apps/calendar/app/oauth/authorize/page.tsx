@@ -73,7 +73,6 @@ function AuthorizeForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_code: code,
-            user_id: session?.user?.id,
           }),
         })
         if (!res.ok) {
@@ -95,7 +94,6 @@ function AuthorizeForm() {
             code_challenge_method: searchParams.get('code_challenge_method'),
             state: searchParams.get('state'),
             resource: searchParams.get('resource'),
-            user_id: session?.user?.id,
           }),
         })
 

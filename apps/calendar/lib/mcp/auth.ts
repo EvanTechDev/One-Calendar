@@ -306,11 +306,32 @@ export function generateUserCode(): string {
   let code = ''
   for (let i = 0; i < 8; i++) {
     if (i === 4) code += '-'
-    code += chars[Math.floor(Math.random() * chars.length)]
+    code += chars[crypto.randomInt(chars.length)]
   }
   return code
 }
 
+export function generateCodeChallenge(
+  verifier: string,
+  method: string,
+): string {
+  if (method === 'S256') {
+    const hash = crypto
+      .createHash('sha256')
+      .update(verifier)
+      .digest('base64url')
+    return hash.replace(/=/g, '')
+  }
+  return verifier
+}
+
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+export function redirectUriAllowed(
+  registeredUris: string[],
+  candidate: string,
+): boolean {
+  return registeredUris.some((u) => u === candidate)
 }
