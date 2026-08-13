@@ -37,15 +37,25 @@ export const GET = async function GET(
     .from(user)
     .where(eq(user.id, event.userId))
 
-  const inviterCategories = await getDb()
-    .select({
-      id: calendarCategories.id,
-      name: calendarCategories.name,
-      color: calendarCategories.color,
-    })
-    .from(calendarCategories)
-    .where(eq(calendarCategories.userId, event.userId))
-    .orderBy(calendarCategories.sortOrder)
+  const [participant] = invite.email
+    ? await getDb()
+        .select({ id: user.id, name: user.name })
+        .from(user)
+        .where(eq(user.email, invite.email.toLowerCase().trim()))
+        .limit(1)
+    : []
+
+  const participantCategories = participant
+    ? await getDb()
+        .select({
+          id: calendarCategories.id,
+          name: calendarCategories.name,
+          color: calendarCategories.color,
+        })
+        .from(calendarCategories)
+        .where(eq(calendarCategories.userId, participant.id))
+        .orderBy(calendarCategories.sortOrder)
+    : []
 
   return NextResponse.json({
     invite: {
@@ -66,7 +76,8 @@ export const GET = async function GET(
     inviter: owner
       ? { name: owner.name, email: owner.email }
       : { name: 'Someone' },
-    categories: inviterCategories.map((cat) => ({
+    isRegisteredUser: !!participant,
+    categories: participantCategories.map((cat) => ({
       id: cat.id,
       name: decryptField(cat.id, cat.name) ?? cat.name,
       color: cat.color,
@@ -104,13 +115,26 @@ export const PATCH = async function PATCH(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
+    const [participant] = await getDb()
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.email, invite.email.toLowerCase().trim()))
+      .limit(1)
+
+    if (!participant) {
+      return NextResponse.json(
+        { error: 'Participant is not a registered user' },
+        { status: 400 },
+      )
+    }
+
     const [cat] = await getDb()
       .select({ id: calendarCategories.id })
       .from(calendarCategories)
       .where(
         and(
           eq(calendarCategories.id, categoryId),
-          eq(calendarCategories.userId, event.userId),
+          eq(calendarCategories.userId, participant.id),
         ),
       )
 

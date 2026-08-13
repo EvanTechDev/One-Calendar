@@ -47,6 +47,7 @@ interface InviteData {
     name: string
     email?: string
   }
+  isRegisteredUser: boolean
   categories: {
     id: string
     name: string
@@ -84,20 +85,8 @@ export default function InvitePage() {
         setStatus(data.invite.status)
         setAddedToCalendar(data.invite.addedToCalendar)
         setCategories(data.categories ?? [])
+        setIsRegisteredUser(data.isRegisteredUser)
         setLoading(false)
-
-        const email = data.invite.email?.trim().toLowerCase()
-        if (email) {
-          return fetch(`/api/users?emails=${encodeURIComponent(email)}`)
-            .then((res) => res.json())
-            .then((userData: { users: Record<string, { name: string }> }) => {
-              if (userData.users && userData.users[email]) {
-                setIsRegisteredUser(true)
-              }
-            })
-            .catch(() => {})
-        }
-        return undefined
       })
       .catch((err) => {
         setError(err.message)
