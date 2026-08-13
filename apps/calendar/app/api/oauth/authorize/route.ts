@@ -8,7 +8,7 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
-import { redirectUriAllowed } from '@/lib/mcp/auth'
+import { hashToken, redirectUriAllowed } from '@/lib/mcp/auth'
 
 export const runtime = 'nodejs'
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         .from(mcpDeviceCodes)
         .where(
           and(
-            eq(mcpDeviceCodes.userCode, userCode),
+            eq(mcpDeviceCodes.userCode, hashToken(userCode)),
             eq(mcpDeviceCodes.status, 'pending'),
             gte(mcpDeviceCodes.expiresAt, new Date()),
           ),

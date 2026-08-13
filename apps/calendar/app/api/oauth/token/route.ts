@@ -108,12 +108,19 @@ async function handleDeviceCodeGrant(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
   }
 
-  return issueTokens(
+  const result = await issueTokens(
     record.userId,
     record.scopes as string[],
     record.clientId,
     record.clientName,
   )
+
+  await db
+    .update(mcpDeviceCodes)
+    .set({ status: 'used' })
+    .where(eq(mcpDeviceCodes.id, record.id))
+
+  return result
 }
 
 async function handleAuthorizationCodeGrant(

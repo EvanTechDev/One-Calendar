@@ -306,7 +306,7 @@ export function generateUserCode(): string {
   let code = ''
   for (let i = 0; i < 8; i++) {
     if (i === 4) code += '-'
-    code += chars[Math.floor(Math.random() * chars.length)]
+    code += chars[crypto.randomInt(chars.length)]
   }
   return code
 }
