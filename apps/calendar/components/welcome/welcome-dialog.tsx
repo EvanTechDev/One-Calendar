@@ -34,7 +34,35 @@ interface OnboardingStep {
   options: { value: string; label: string }[]
 }
 
-const WelcomeIcon = () => <span className="text-3xl leading-none">👋</span>
+function CalendarMark({ className }: { className?: string }) {
+  return (
+    <svg
+      version="1.0"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1000 1000"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+      className={className}
+    >
+      <g
+        transform="translate(0,1000) scale(0.1,-0.1)"
+        fill="currentColor"
+        stroke="none"
+      >
+        <path d="M4960 8206 c-87 -24 -164 -70 -231 -136 -101 -101 -149 -217 -149 -360 0 -144 48 -259 150 -360 102 -102 218 -150 360 -150 140 0 264 53 365 156 194 198 194 508 0 709 -67 69 -165 125 -253 144 -68 14 -184 13 -242 -3z" />
+        <path d="M3616 6859 c-109 -26 -239 -117 -307 -215 -97 -141 -111 -350 -34 -510 61 -126 166 -217 305 -264 55 -19 82 -21 175 -18 102 3 115 6 185 39 147 70 239 172 281 311 17 57 21 88 18 182 -4 109 -5 115 -46 198 -68 136 -202 245 -343 277 -54 13 -180 12 -234 0z" />
+        <path d="M4963 6855 c-228 -64 -383 -263 -383 -493 0 -149 45 -259 149 -363 105 -105 212 -149 362 -149 188 0 345 90 443 254 70 117 85 297 35 434 -48 130 -170 250 -306 302 -75 29 -225 37 -300 15z" />
+        <path d="M4940 5491 c-91 -29 -142 -61 -211 -130 -103 -103 -149 -214 -149 -361 0 -328 308 -570 629 -495 279 66 450 358 373 636 -46 164 -177 299 -340 349 -83 26 -224 26 -302 1z" />
+        <path d="M4980 4149 c-81 -16 -188 -76 -255 -145 -97 -100 -145 -215 -145 -354 0 -147 46 -258 149 -361 105 -105 212 -149 362 -149 455 0 680 547 358 869 -121 122 -296 174 -469 140z" />
+        <path d="M3601 2784 c-116 -31 -242 -125 -306 -229 -65 -105 -87 -283 -50 -410 61 -215 263 -365 490 -365 134 0 244 43 343 135 118 109 162 211 162 376 0 160 -46 267 -159 371 -103 96 -213 139 -351 137 -41 0 -99 -7 -129 -15z" />
+        <path d="M4959 2785 c-85 -23 -162 -69 -229 -135 -102 -101 -150 -216 -150 -360 0 -147 57 -278 162 -374 205 -187 515 -181 709 13 157 157 193 397 91 600 -56 112 -196 223 -326 257 -63 17 -195 17 -257 -1z" />
+        <path d="M6311 2784 c-76 -20 -146 -60 -212 -122 -113 -104 -159 -211 -159 -371 0 -189 74 -329 228 -431 103 -68 259 -97 385 -71 130 28 271 129 336 245 86 151 86 361 1 512 -38 65 -141 164 -208 198 -109 55 -256 71 -371 40z" />
+      </g>
+    </svg>
+  )
+}
+
+const WelcomeIcon = CalendarMark
 
 function buildTimezoneOptions(): { value: string; label: string }[] {
   try {
@@ -136,7 +164,7 @@ export function WelcomeDialog({
     icon: WelcomeIcon,
     title: 'Welcome to One Calendar',
     description:
-      'We are excited to have you here. Let us set up your preferences so your calendar feels just right.',
+      'A few quick questions to make your calendar feel like yours. Change anything later in Settings.',
     key: 'welcome',
     options: [],
   }
@@ -239,7 +267,7 @@ export function WelcomeDialog({
         onEscapeKeyDown={handleDismiss}
         onPointerDownOutside={handleDismiss}
       >
-        <div className="flex min-h-[28rem] flex-col">
+        <div className="flex min-h-[28rem] flex-col overflow-hidden">
           {/* Progress dots */}
           <div className="flex justify-center gap-2 pt-6">
             {steps.map((_, i) => (
@@ -259,19 +287,46 @@ export function WelcomeDialog({
           {/* Content */}
           <div className="flex flex-1 flex-col items-center gap-5 px-8 pt-8 pb-6">
             {/* Icon */}
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-              <step.icon className="h-9 w-9 text-primary" />
-            </div>
+            {isFirst ? (
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-12 rounded-full bg-primary/5 blur-2xl"
+                />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-inset ring-primary/15">
+                  <WelcomeIcon className="h-9 w-9 text-primary" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                <step.icon className="h-9 w-9 text-primary" />
+              </div>
+            )}
 
             {/* Title & Description */}
             <div className="mt-4 text-center">
               <DialogTitle className="text-xl font-semibold">
                 {step.title}
               </DialogTitle>
-              <DialogDescription className="mt-1.5 text-sm">
+              <DialogDescription className="mx-auto mt-1.5 max-w-sm text-sm">
                 {step.description}
               </DialogDescription>
             </div>
+
+            {/* Coming next */}
+            {isFirst && (
+              <div className="mt-2 flex w-full max-w-md flex-wrap items-center justify-center gap-2 pt-1">
+                {settingSteps.map((s) => (
+                  <span
+                    key={s.key}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <s.icon className="h-3.5 w-3.5" />
+                    {s.title}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Select */}
             <div className="w-full max-w-xs pt-4">
@@ -319,6 +374,11 @@ export function WelcomeDialog({
                 ) : (
                   'Finish'
                 )
+              ) : isFirst ? (
+                <>
+                  Get started
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </>
               ) : (
                 <>
                   Next
