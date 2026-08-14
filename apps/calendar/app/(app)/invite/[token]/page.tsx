@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { MapPin, AlignLeft, Calendar, XCircle } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
-import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
 import { Card, CardContent, CardFooter } from '@zntr/ui/card'
 import {
   Dialog,
@@ -44,6 +44,7 @@ interface InviteData {
   inviter: {
     name: string
     email?: string
+    image?: string | null
   }
   isRegisteredUser: boolean
   categories: {
@@ -156,6 +157,10 @@ export default function InvitePage() {
         <div className="px-5 pt-5 flex justify-center">
           <div className="flex flex-col items-center gap-2 text-center">
             <Avatar size="lg" className="size-16">
+              <AvatarImage
+                src={inviter.image || '/user.png'}
+                alt={inviter.name || 'inviter'}
+              />
               <AvatarFallback className="text-xl">
                 {(inviter.name ?? '?').charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -201,17 +206,6 @@ export default function InvitePage() {
               </div>
             </div>
           )}
-
-          {canAddToCalendar && isRegisteredUser && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setCategoryDialogOpen(true)}
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              Add to My Calendar
-            </Button>
-          )}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
@@ -241,6 +235,17 @@ export default function InvitePage() {
               No
             </Button>
           </div>
+
+          {canAddToCalendar && isRegisteredUser && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setCategoryDialogOpen(true)}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Add to My Calendar
+            </Button>
+          )}
         </CardFooter>
       </Card>
 

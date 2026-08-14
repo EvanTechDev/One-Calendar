@@ -829,6 +829,25 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     [],
   )
 
+  const handlePreviewCategoryChange = useCallback(
+    (eventId: string, calendarId: string | null) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...event, calendarId: calendarId ?? '' }
+            : event,
+        ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, calendarId: calendarId ?? '' } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, calendarId: calendarId ?? '' } : prev,
+      )
+    },
+    [],
+  )
+
   const toggleBookmark = async (event: CalendarEvent) => {
     const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
     if (isBookmarked) {
@@ -1250,6 +1269,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           anchorElement={previewAnchorEl}
           scrollContainerRef={calendarRef}
           onInvitesChange={handlePreviewInvitesChange}
+          onCategoryChange={handlePreviewCategoryChange}
         />
 
         <EventDialog

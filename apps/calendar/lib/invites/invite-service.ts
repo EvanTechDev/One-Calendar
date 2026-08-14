@@ -151,7 +151,7 @@ export async function updateRsvp(
 
 export async function addParticipantToCalendar(
   token: string,
-  categoryId: string,
+  categoryId: string | null,
 ) {
   const db = getDb()
   await db

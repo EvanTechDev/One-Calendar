@@ -122,8 +122,11 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     }
   >
 > {
-  const sharedEventIds = await getDb()
-    .select({ eventId: eventInvites.eventId })
+  const sharedEventRows = await getDb()
+    .select({
+      eventId: eventInvites.eventId,
+      categoryId: eventInvites.categoryId,
+    })
     .from(eventInvites)
     .where(
       and(
@@ -132,9 +135,12 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
       ),
     )
 
-  if (sharedEventIds.length === 0) return []
+  if (sharedEventRows.length === 0) return []
 
-  const sharedIds = sharedEventIds.map((r) => r.eventId)
+  const inviteCategoryByEvent = new Map(
+    sharedEventRows.map((r) => [r.eventId, r.categoryId]),
+  )
+  const sharedIds = sharedEventRows.map((r) => r.eventId)
   const sharedResults = await getDb()
     .select()
     .from(calendarEvents)
@@ -159,6 +165,9 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     const owner = e.userId ? ownerMap.get(e.userId) : null
     return {
       ...decryptEvent(e),
+      categoryId: inviteCategoryByEvent.has(e.id)
+        ? (inviteCategoryByEvent.get(e.id) ?? null)
+        : e.categoryId,
       viewOnly: true,
       organizer: owner
         ? { name: owner.name, email: owner.email, image: owner.image }

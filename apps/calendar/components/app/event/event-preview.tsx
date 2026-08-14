@@ -27,6 +27,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@zntr/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@zntr/ui/select'
 import { zhCN, enUS } from 'date-fns/locale'
 import { format } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
@@ -65,6 +72,7 @@ interface EventPreviewProps {
   anchorElement?: HTMLElement | null
   scrollContainerRef?: React.RefObject<HTMLElement | null>
   onInvitesChange?: (eventId: string, invites: EventInvite[]) => void
+  onCategoryChange?: (eventId: string, calendarId: string | null) => void
 }
 
 export default function EventPreview({
@@ -81,6 +89,7 @@ export default function EventPreview({
   anchorElement,
   scrollContainerRef,
   onInvitesChange,
+  onCategoryChange,
 }: EventPreviewProps) {
   const { calendars } = useCalendar()
   const isZh = isZhLanguage(language)
@@ -350,6 +359,21 @@ export default function EventPreview({
   const userInvite = invites.find(
     (i) => i.email === session?.user?.email?.toLowerCase(),
   )
+
+  const handleViewOnlyCategoryChange = async (calendarId: string) => {
+    if (!event || !userInvite) return
+    const value = calendarId === '__uncategorized__' ? null : calendarId
+    try {
+      await fetch(`/api/invite/${userInvite.inviteToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: value ?? '__uncategorized__' }),
+      })
+      onCategoryChange?.(event.id, value)
+    } catch {
+      toast.error(isZh ? '移动失败' : 'Failed to move event')
+    }
+  }
 
   const effectiveAnchorRect = liveRect ?? anchorRect
 
@@ -678,11 +702,34 @@ export default function EventPreview({
               </div>
             )}
 
-            {getCalendarName() && (
+            {(getCalendarName() || (event.viewOnly && userInvite)) && (
               <div className="flex items-start">
                 <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                 <div className="flex-1">
-                  <p>{getCalendarName()}</p>
+                  {event.viewOnly && userInvite ? (
+                    <Select
+                      value={event.calendarId || '__uncategorized__'}
+                      onValueChange={handleViewOnlyCategoryChange}
+                    >
+                      <SelectTrigger className="h-auto w-full border-0 bg-transparent p-0 text-left shadow-none">
+                        <SelectValue>
+                          {getCalendarName() || _t.uncategorized}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__uncategorized__">
+                          {_t.uncategorized}
+                        </SelectItem>
+                        {calendars.map((calendar) => (
+                          <SelectItem key={calendar.id} value={calendar.id}>
+                            {calendar.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p>{getCalendarName()}</p>
+                  )}
                 </div>
               </div>
             )}

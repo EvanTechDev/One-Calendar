@@ -33,7 +33,7 @@ export const GET = async function GET(
   }
 
   const [owner] = await getDb()
-    .select({ name: user.name, email: user.email })
+    .select({ name: user.name, email: user.email, image: user.image })
     .from(user)
     .where(eq(user.id, event.userId))
 
@@ -75,7 +75,7 @@ export const GET = async function GET(
       color: event.color,
     },
     inviter: owner
-      ? { name: owner.name, email: owner.email }
+      ? { name: owner.name, email: owner.email, image: owner.image }
       : { name: 'Someone' },
     isRegisteredUser: !!participant,
     categories: participantCategories.map((cat) => ({
@@ -127,6 +127,11 @@ export const PATCH = async function PATCH(
         { error: 'Participant is not a registered user' },
         { status: 400 },
       )
+    }
+
+    if (categoryId === '__uncategorized__') {
+      await addParticipantToCalendar(token, null)
+      return NextResponse.json({ success: true })
     }
 
     const [cat] = await getDb()
