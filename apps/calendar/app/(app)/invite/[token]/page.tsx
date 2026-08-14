@@ -153,8 +153,8 @@ export default function InvitePage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-sm rounded-xl overflow-hidden">
-        <div className="px-5 pt-5 flex justify-center">
+      <div className="flex w-full max-w-sm flex-col">
+        <div className="flex justify-center pb-4">
           <div className="flex flex-col items-center gap-2 text-center">
             <Avatar size="lg" className="size-16">
               <AvatarImage
@@ -171,83 +171,85 @@ export default function InvitePage() {
           </div>
         </div>
 
-        <div className="px-5 pb-5 mt-4 flex">
-          <div
-            className="w-2 self-stretch rounded-full mr-4"
-            style={{
-              backgroundColor: getEventAccentColor(event.color ?? undefined),
-            }}
-          />
-          <div className="flex-1">
-            <h2 className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]">
-              {event.title}
-            </h2>
-            <p className="text-muted-foreground">{formatDateRange()}</p>
-          </div>
-        </div>
-
-        <CardContent className="px-5 pb-5 space-y-4">
-          {event.location && (
-            <div className="flex items-start">
-              <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p>{event.location}</p>
-              </div>
+        <Card className="w-full rounded-xl overflow-hidden">
+          <div className="px-5 pb-5 mt-4 flex">
+            <div
+              className="w-2 self-stretch rounded-full mr-4"
+              style={{
+                backgroundColor: getEventAccentColor(event.color ?? undefined),
+              }}
+            />
+            <div className="flex-1">
+              <h2 className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]">
+                {event.title}
+              </h2>
+              <p className="text-muted-foreground">{formatDateRange()}</p>
             </div>
-          )}
-
-          {event.description && (
-            <div className="flex items-start">
-              <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]">
-                  {event.description}
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
-          <p className="w-full text-left text-sm font-medium">
-            Will you attend?
-          </p>
-          <div className="flex w-full gap-3">
-            <Button
-              variant={status === 'accepted' ? 'default' : 'outline'}
-              className="flex-1"
-              onClick={() => handleRsvp('accepted')}
-            >
-              Yes
-            </Button>
-            <Button
-              variant={status === 'maybe' ? 'default' : 'outline'}
-              className="flex-1"
-              onClick={() => handleRsvp('maybe')}
-            >
-              Maybe
-            </Button>
-            <Button
-              variant={status === 'declined' ? 'default' : 'outline'}
-              className="flex-1"
-              onClick={() => handleRsvp('declined')}
-            >
-              No
-            </Button>
           </div>
 
-          {canAddToCalendar && isRegisteredUser && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setCategoryDialogOpen(true)}
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              Add to My Calendar
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
+          <CardContent className="px-5 pb-5 space-y-4">
+            {event.location && (
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{event.location}</p>
+                </div>
+              </div>
+            )}
+
+            {event.description && (
+              <div className="flex items-start">
+                <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]">
+                    {event.description}
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
+            <p className="w-full text-left text-sm font-medium">
+              Will you attend?
+            </p>
+            <div className="flex w-full gap-3">
+              <Button
+                variant={status === 'accepted' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => handleRsvp('accepted')}
+              >
+                Yes
+              </Button>
+              <Button
+                variant={status === 'maybe' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => handleRsvp('maybe')}
+              >
+                Maybe
+              </Button>
+              <Button
+                variant={status === 'declined' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => handleRsvp('declined')}
+              >
+                No
+              </Button>
+            </div>
+
+            {canAddToCalendar && isRegisteredUser && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setCategoryDialogOpen(true)}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Add to My Calendar
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>

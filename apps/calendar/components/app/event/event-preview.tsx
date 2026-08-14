@@ -58,6 +58,16 @@ export interface EventInvite {
   userImage: string | null
 }
 
+function CategoryDot({ color }: { color?: string }) {
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-2.5 shrink-0 rounded-full"
+      style={{ backgroundColor: color || 'var(--muted-foreground)' }}
+    />
+  )
+}
+
 interface EventPreviewProps {
   event: CalendarEvent | null
   open: boolean
@@ -711,18 +721,33 @@ export default function EventPreview({
                       value={event.calendarId || '__uncategorized__'}
                       onValueChange={handleViewOnlyCategoryChange}
                     >
-                      <SelectTrigger className="h-auto w-full border-0 bg-transparent p-0 text-left shadow-none">
+                      <SelectTrigger className="h-7 gap-1.5 rounded-md border-0 bg-transparent p-0 pr-1 text-sm shadow-none cursor-pointer hover:bg-muted/60 focus-visible:ring-1">
                         <SelectValue>
-                          {getCalendarName() || _t.uncategorized}
+                          <span className="inline-flex items-center gap-1.5">
+                            <CategoryDot
+                              color={
+                                calendars.find(
+                                  (cal) => cal.id === event.calendarId,
+                                )?.color
+                              }
+                            />
+                            {getCalendarName() || _t.uncategorized}
+                          </span>
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="start">
                         <SelectItem value="__uncategorized__">
-                          {_t.uncategorized}
+                          <span className="inline-flex items-center gap-2">
+                            <CategoryDot />
+                            {_t.uncategorized}
+                          </span>
                         </SelectItem>
                         {calendars.map((calendar) => (
                           <SelectItem key={calendar.id} value={calendar.id}>
-                            {calendar.name}
+                            <span className="inline-flex items-center gap-2">
+                              <CategoryDot color={calendar.color} />
+                              {calendar.name}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
