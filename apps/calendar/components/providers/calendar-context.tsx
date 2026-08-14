@@ -29,6 +29,11 @@ export interface CalendarEvent {
   color: string
   calendarId: string
   viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
   invites?: Array<{
     id: string
     email: string
@@ -56,6 +61,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     color: e.color ?? '#3B82F6',
     calendarId: e.categoryId ?? '',
     viewOnly: e.viewOnly,
+    organizer: e.organizer,
     invites: e.invites,
   }
 }

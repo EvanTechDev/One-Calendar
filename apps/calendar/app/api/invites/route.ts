@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents, user } from '@/lib/drizzle/schema'
+import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
 import {
   createInvitesForEvent,
   sendInviteEmails,
   getInvitesForEvent,
+  removeParticipantFromCalendar,
 } from '@/lib/invites/invite-service'
 
 export const runtime = 'nodejs'
@@ -68,7 +69,9 @@ export const POST = async function POST(request: NextRequest) {
   }
 
   const existingInvites = await getInvitesForEvent(eventId)
-  const existingEmails = new Set(existingInvites.map((i: { email: string }) => i.email))
+  const existingEmails = new Set(
+    existingInvites.map((i: { email: string }) => i.email),
+  )
   const newEmails = uniqueEmails.filter((e) => !existingEmails.has(e))
 
   if (newEmails.length > 0) {
@@ -158,4 +161,35 @@ export const GET = async function GET(request: NextRequest) {
   }))
 
   return NextResponse.json({ invites: enrichedInvites })
+}
+
+export const DELETE = async function DELETE(request: NextRequest) {
+  const currentUser = await getAuthedUser()
+  if (!currentUser) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = request.nextUrl
+  const eventId = searchParams.get('eventId')
+  if (!eventId) {
+    return NextResponse.json({ error: 'Missing eventId' }, { status: 400 })
+  }
+
+  const [invite] = await getDb()
+    .select()
+    .from(eventInvites)
+    .where(
+      and(
+        eq(eventInvites.eventId, eventId),
+        eq(eventInvites.email, currentUser.email?.toLowerCase() ?? ''),
+      ),
+    )
+
+  if (!invite) {
+    return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
+  }
+
+  await removeParticipantFromCalendar(invite.inviteToken)
+
+  return NextResponse.json({ success: true })
 }

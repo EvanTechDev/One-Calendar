@@ -102,7 +102,7 @@ export async function sendInviteEmails(params: {
             eq(eventInvites.eventId, params.eventId),
             eq(eventInvites.email, email.toLowerCase().trim()),
           ),
-        );
+        )
     } catch {
       failed.push(email)
     }
@@ -135,9 +135,7 @@ export async function getInviteByToken(token: string) {
     .from(eventInvites)
     .where(eq(eventInvites.inviteToken, token))
   const now = new Date()
-  return invite && (!invite.expiresAt || invite.expiresAt > now)
-    ? invite
-    : null
+  return invite && (!invite.expiresAt || invite.expiresAt > now) ? invite : null
 }
 
 export async function updateRsvp(
@@ -169,7 +167,6 @@ export async function removeParticipantFromCalendar(token: string) {
     .set({
       addedToCalendar: false,
       categoryId: null,
-      expiresAt: new Date(),
       updatedAt: new Date(),
     })
     .where(eq(eventInvites.inviteToken, token))
@@ -187,10 +184,7 @@ export async function deleteInviteByToken(token: string) {
 
 export async function getInvitesForEvent(eventId: string) {
   const db = getDb()
-  return db
-    .select()
-    .from(eventInvites)
-    .where(eq(eventInvites.eventId, eventId))
+  return db.select().from(eventInvites).where(eq(eventInvites.eventId, eventId))
 }
 
 export async function resendInviteEmail(params: {

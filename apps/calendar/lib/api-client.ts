@@ -27,6 +27,11 @@ export type EventData = {
   createdAt: string
   updatedAt: string
   viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
   invites?: EventInviteData[]
 }
 
@@ -185,5 +190,4 @@ export const api = {
         body: JSON.stringify({ eventId }),
       }),
   },
-
 }

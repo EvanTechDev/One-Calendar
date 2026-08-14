@@ -3,22 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import {
-  MapPin,
-  AlignLeft,
-  Calendar,
-  Clock,
-  XCircle,
-} from 'lucide-react'
+import { MapPin, AlignLeft, Calendar, XCircle } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardFooter,
-} from '@zntr/ui/card'
+import { Card, CardContent, CardFooter } from '@zntr/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -33,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
+import { getEventAccentColor } from '@/components/app/views/event-colors'
 
 interface InviteData {
   invite: {
@@ -49,6 +39,7 @@ interface InviteData {
     startDate: string
     endDate: string
     isAllDay: boolean
+    color: string | null
   }
   inviter: {
     name: string
@@ -161,47 +152,55 @@ export default function InvitePage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-sm rounded-lg">
-        <CardHeader className="flex flex-col items-center gap-3 text-center">
-          <Avatar size="lg" className="size-20">
-            <AvatarFallback className="text-xl">
-              {(inviter.name ?? '?').charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-lg font-semibold">{event.title}</p>
+      <Card className="w-full max-w-sm rounded-xl overflow-hidden">
+        <div className="px-5 pt-5 flex justify-center">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <Avatar size="lg" className="size-16">
+              <AvatarFallback className="text-xl">
+                {(inviter.name ?? '?').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <p className="text-sm text-muted-foreground">
               {inviter.name} invited you to this event
             </p>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              Event details
-            </p>
-            <div className="divide-y divide-border rounded-lg border border-border">
-              <div className="flex items-center gap-3 px-3 py-2.5">
-                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm">{formatDateRange()}</span>
-              </div>
-              {event.location && (
-                <div className="flex items-center gap-3 px-3 py-2.5">
-                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm">{event.location}</span>
-                </div>
-              )}
-              {event.description && (
-                <div className="flex items-start gap-3 px-3 py-2.5">
-                  <AlignLeft className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
-                  <p className="text-sm whitespace-pre-wrap">
-                    {event.description}
-                  </p>
-                </div>
-              )}
-            </div>
+        <div className="px-5 pb-5 mt-4 flex">
+          <div
+            className="w-2 self-stretch rounded-full mr-4"
+            style={{
+              backgroundColor: getEventAccentColor(event.color ?? undefined),
+            }}
+          />
+          <div className="flex-1">
+            <h2 className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]">
+              {event.title}
+            </h2>
+            <p className="text-muted-foreground">{formatDateRange()}</p>
           </div>
+        </div>
+
+        <CardContent className="px-5 pb-5 space-y-4">
+          {event.location && (
+            <div className="flex items-start">
+              <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <p>{event.location}</p>
+              </div>
+            </div>
+          )}
+
+          {event.description && (
+            <div className="flex items-start">
+              <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]">
+                  {event.description}
+                </p>
+              </div>
+            </div>
+          )}
 
           {canAddToCalendar && isRegisteredUser && (
             <Button

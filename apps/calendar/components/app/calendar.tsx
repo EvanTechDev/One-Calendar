@@ -122,6 +122,11 @@ export interface CalendarEvent {
   color: string
   calendarId: string
   viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
   invites?: Array<{
     id: string
     email: string

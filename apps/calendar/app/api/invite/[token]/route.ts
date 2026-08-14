@@ -72,6 +72,7 @@ export const GET = async function GET(
       startDate: event.startDate,
       endDate: event.endDate,
       isAllDay: event.isAllDay,
+      color: event.color,
     },
     inviter: owner
       ? { name: owner.name, email: owner.email }
@@ -139,10 +140,7 @@ export const PATCH = async function PATCH(
       )
 
     if (!cat) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 },
-      )
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
     }
 
     await addParticipantToCalendar(token, categoryId)

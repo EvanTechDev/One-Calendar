@@ -30,6 +30,7 @@ type EnrichedInvite = {
 async function enrichEventsWithInvites(
   events: ReturnType<typeof decryptEvent>[],
   viewerId: string,
+  viewerEmail?: string,
 ): Promise<
   Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>
 > {
@@ -77,15 +78,18 @@ async function enrichEventsWithInvites(
     )
   }
 
+  const viewerEmailLower = viewerEmail?.toLowerCase()
+
   const invitesByEvent = allInvites.reduce(
     (acc: Record<string, EnrichedInvite[]>, invite) => {
       const emailLower = invite.email.toLowerCase()
+      const isOwnInvite = emailLower === viewerEmailLower
       const enriched: EnrichedInvite = {
         id: invite.id,
         email: invite.email,
         status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
         inviteToken:
-          eventOwners.get(invite.eventId) === viewerId
+          eventOwners.get(invite.eventId) === viewerId || isOwnInvite
             ? invite.inviteToken
             : '',
         emailSent: invite.emailSent,
@@ -106,9 +110,18 @@ async function enrichEventsWithInvites(
   }))
 }
 
-async function getSharedEvents(currentUser: {
-  email: string
-}): Promise<Array<ReturnType<typeof decryptEvent> & { viewOnly: boolean }>> {
+async function getSharedEvents(currentUser: { email: string }): Promise<
+  Array<
+    ReturnType<typeof decryptEvent> & {
+      viewOnly: boolean
+      organizer: {
+        name: string
+        email: string
+        image: string | null
+      } | null
+    }
+  >
+> {
   const sharedEventIds = await getDb()
     .select({ eventId: eventInvites.eventId })
     .from(eventInvites)
@@ -127,10 +140,31 @@ async function getSharedEvents(currentUser: {
     .from(calendarEvents)
     .where(inArray(calendarEvents.id, sharedIds))
 
-  return sharedResults.map((e) => ({
-    ...decryptEvent(e),
-    viewOnly: true,
-  }))
+  const ownerIds = [...new Set(sharedResults.map((e) => e.userId))]
+  const owners = ownerIds.length
+    ? await getDb()
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        })
+        .from(user)
+        .where(inArray(user.id, ownerIds))
+    : []
+
+  const ownerMap = new Map(owners.map((u) => [u.id, u]))
+
+  return sharedResults.map((e) => {
+    const owner = e.userId ? ownerMap.get(e.userId) : null
+    return {
+      ...decryptEvent(e),
+      viewOnly: true,
+      organizer: owner
+        ? { name: owner.name, email: owner.email, image: owner.image }
+        : null,
+    }
+  })
 }
 
 export const GET = async function GET(request: NextRequest) {
@@ -197,6 +231,7 @@ export const GET = async function GET(request: NextRequest) {
   const eventsWithInvites = await enrichEventsWithInvites(
     allBaseEvents,
     currentUser.id,
+    currentUser.email,
   )
 
   if (startDate && endDate) {

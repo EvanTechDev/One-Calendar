@@ -311,14 +311,11 @@ export default function EventPreview({
   const handleRemoveFromCalendar = async () => {
     if (!event) return
     try {
-      const dbInvite = invites.find(
-        (i) => i.email === session?.user?.email?.toLowerCase(),
+      const response = await fetch(
+        `/api/invites?eventId=${encodeURIComponent(event.id)}`,
+        { method: 'DELETE' },
       )
-      if (dbInvite) {
-        await fetch(`/api/invite/${dbInvite.inviteToken}`, {
-          method: 'DELETE',
-        })
-      }
+      if (!response.ok) throw new Error('Failed to remove')
       toast.success(isZh ? '已从日历移除' : 'Removed from calendar')
       onRemoveFromCalendar?.()
     } catch {
@@ -555,6 +552,34 @@ export default function EventPreview({
                   </div>
                   {participantsOpen && (
                     <div className="mt-2 space-y-2">
+                      {event.viewOnly && event.organizer && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center min-w-0">
+                            <Avatar size="sm">
+                              {event.organizer.image ? (
+                                <AvatarImage src={event.organizer.image} />
+                              ) : null}
+                              <AvatarFallback>
+                                {(
+                                  event.organizer.name ||
+                                  event.organizer.email ||
+                                  '?'
+                                )
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="ml-2 truncate text-sm">
+                              {event.organizer.name || event.organizer.email}
+                            </span>
+                            <span className="ml-1.5 shrink-0">
+                              <Badge className="bg-muted text-muted-foreground">
+                                {isZh ? '组织者' : 'Organizer'}
+                              </Badge>
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       {invites.map((invite) => (
                         <div
                           key={invite.id}
