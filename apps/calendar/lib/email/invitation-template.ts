@@ -12,19 +12,24 @@ interface InvitationEmailParams {
 export async function buildInvitationEmail(
   params: InvitationEmailParams,
 ): Promise<string> {
-  const bodyParts = [`${params.inviterName} invited you to this event.`]
-  if (params.location) {
-    bodyParts.push(`Location: ${params.location}`)
-  }
-
   return renderAuthEmailTemplate({
     preview: `Invitation: ${params.title}`,
     title: params.title,
-    body: bodyParts.join('\n\n'),
+    body: `${params.inviterName} invited you to this event. Let them know if you can make it.`,
     actionLabel: 'View Invitation',
     actionUrl: params.inviteLink,
-    secondary: params.description
-      ? `Description: ${params.description}`
-      : undefined,
+    secondary: buildDetails(params),
   })
+}
+
+function buildDetails(params: InvitationEmailParams): string {
+  const details: string[] = []
+  details.push(`When: ${params.timeRange}`)
+  if (params.location) {
+    details.push(`Where: ${params.location}`)
+  }
+  if (params.description) {
+    details.push(`Notes: ${params.description}`)
+  }
+  return details.join('  ·  ')
 }
