@@ -44,6 +44,7 @@ export const calendarEvents = pgTable(
       withTimezone: true,
     }).notNull(),
     isAllDay: boolean('is_all_day').default(false).notNull(),
+    status: text('status').default('confirmed').notNull(),
     color: text('color'),
     categoryId: text('category_id').references(() => calendarCategories.id, {
       onDelete: 'set null',
@@ -69,6 +70,11 @@ export const calendarEvents = pgTable(
       table.userId,
       table.startDate,
     ),
+    categoryIdx: index('idx_events_category_id').on(table.categoryId),
+    allDayIdx: index('idx_events_is_all_day').on(table.isAllDay),
+    statusIdx: index('idx_events_status').on(table.status),
+    createdAtIdx: index('idx_events_created_at').on(table.createdAt),
+    updatedAtIdx: index('idx_events_updated_at').on(table.updatedAt),
   }),
 )
 
@@ -165,8 +171,6 @@ export const bookmarkedEvents = pgTable(
     eventIdIdx: index('idx_bookmarks_event_id').on(table.eventId),
   }),
 )
-
-
 
 // --- Event Invites ---
 export const eventInvites = pgTable(

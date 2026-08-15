@@ -43,6 +43,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
                 scopes: auth.user.scopes,
                 extra: {
                   userId: auth.user.userId,
+                  email: auth.user.email,
                   clientId: auth.user.keyId ?? auth.user.authType,
                   authType: auth.user.authType,
                 },
@@ -94,6 +95,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       scopes: auth.user.scopes,
       extra: {
         userId: auth.user.userId,
+        email: auth.user.email,
         clientId: auth.user.keyId ?? auth.user.authType,
         authType: auth.user.authType,
       },
@@ -123,7 +125,8 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         keyId: auth.user.keyId,
         action: 'mcp_request',
         success: response.status < 400,
-        errorMessage: response.status >= 400 ? 'HTTP ' + response.status : undefined,
+        errorMessage:
+          response.status >= 400 ? 'HTTP ' + response.status : undefined,
         ipAddress: clientIp,
         userAgent,
       })

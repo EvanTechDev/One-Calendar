@@ -2,7 +2,7 @@ import { getDb } from '@/lib/drizzle/client'
 import { countdowns } from '@/lib/drizzle/schema'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
-import { normalizeColor } from './colors'
+import { normalizeCountdownColor } from './colors'
 import crypto from 'crypto'
 
 export async function listCountdowns(
@@ -31,6 +31,7 @@ export async function listCountdowns(
     ...c,
     name: decryptField(c.id, c.name) ?? c.name,
     description: decryptField(c.id, c.description),
+    color: c.color ? normalizeCountdownColor(c.color) : c.color,
   }))
   const total = countResult[0]?.count ?? 0
 
@@ -66,7 +67,7 @@ export async function createCountdown(
       name: encryptField(id, data.name) ?? data.name,
       targetDate: new Date(data.target_date),
       description: data.description ? encryptField(id, data.description) : null,
-      color: normalizeColor(data.color),
+      color: normalizeCountdownColor(data.color),
       icon: data.icon ?? null,
     })
     .returning()
@@ -99,7 +100,7 @@ export async function updateCountdown(
   if (data.description !== undefined)
     values.description = encryptField(countdownId, data.description)
   if (data.color !== undefined && data.color !== null)
-    values.color = normalizeColor(data.color)
+    values.color = normalizeCountdownColor(data.color)
   if (data.icon !== undefined) values.icon = data.icon
 
   const [row] = await db

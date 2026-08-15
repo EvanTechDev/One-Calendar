@@ -39,10 +39,12 @@ export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
     const enabled = await isMcpEnabled(row.userId)
     if (!enabled) return null
 
+    const userInfo = await getUserNameAndEmail(row.userId)
+
     return {
       userId: row.userId,
-      email: '',
-      name: '',
+      email: userInfo.email,
+      name: userInfo.name,
       scopes: row.scopes as string[],
       authType: 'api_key',
       keyId: row.id,
@@ -74,9 +76,11 @@ export async function verifyOAuthToken(
   const enabled = await isMcpEnabled(row.userId)
   if (!enabled) return null
 
+  const userInfo = await getUserNameAndEmail(row.userId)
+
   return {
     userId: row.userId,
-    email: '',
+    email: userInfo.email,
     name: row.clientName,
     scopes: row.scopes as string[],
     authType: 'oauth',

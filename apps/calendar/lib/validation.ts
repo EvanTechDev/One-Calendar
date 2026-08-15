@@ -28,6 +28,7 @@ export const eventSchema = z.object({
   startDate: dateTimeString,
   endDate: dateTimeString,
   isAllDay: z.boolean().optional(),
+  status: z.enum(['confirmed', 'tentative', 'cancelled']).optional(),
   color: z.string().regex(colorRegex).nullish(),
   categoryId: z.string().nullish(),
   participants: z
@@ -64,7 +65,10 @@ export const importSchema = z.object({
   events: z.array(eventSchema).max(500).optional(),
   categories: z.array(categorySchema).max(200).optional(),
   countdowns: z.array(countdownSchema).max(200).optional(),
-  bookmarks: z.array(z.object({ eventId: z.string() })).max(500).optional(),
+  bookmarks: z
+    .array(z.object({ eventId: z.string() }))
+    .max(500)
+    .optional(),
   settings: z
     .record(z.string(), z.unknown())
     .refine((value) => Object.keys(value).length <= 256, {
