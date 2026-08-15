@@ -600,7 +600,7 @@ export default function EventPreview({
                               </span>
                               <span className="ml-1.5 shrink-0">
                                 <Badge className="bg-muted text-muted-foreground">
-                                  {isZh ? '组织者' : 'Organizer'}
+                                  {_t.organizer}
                                 </Badge>
                               </span>
                             </div>
@@ -644,12 +644,12 @@ export default function EventPreview({
                                 )}
                               >
                                 {invite.status === 'accepted'
-                                  ? 'Accepted'
+                                  ? _t.accepted
                                   : invite.status === 'declined'
-                                    ? 'Declined'
+                                    ? _t.declined
                                     : invite.status === 'maybe'
-                                      ? 'Maybe'
-                                      : 'Pending'}
+                                      ? _t.maybe
+                                      : _t.pending}
                               </Badge>
                             </span>
                           </div>
