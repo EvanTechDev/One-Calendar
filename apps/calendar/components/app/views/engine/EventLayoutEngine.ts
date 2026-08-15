@@ -7,7 +7,7 @@ import {
   TimeFormat,
   ViewConfig,
   EventTimeRange,
-} from '@/components/app/calendar-types'
+} from '@/lib/calendar-types'
 
 export interface LayoutEvent {
   event: CalendarEvent

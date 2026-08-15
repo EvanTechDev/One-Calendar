@@ -149,6 +149,11 @@ export function useLanguage(): [Language, (lang: Language) => void] {
       const normalized = normalizeLanguage(customEvent.detail?.language)
       if (normalized) {
         setLanguageState(normalized)
+        try {
+          localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized)
+        } catch {
+          // localStorage not available
+        }
       }
     }
 

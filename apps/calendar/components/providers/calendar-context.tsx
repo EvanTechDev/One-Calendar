@@ -28,6 +28,22 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+  invites?: Array<{
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }>
 }
 
 function eventDataToCalendarEvent(e: EventData): CalendarEvent {
@@ -39,11 +55,14 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     isAllDay: e.isAllDay,
     recurrence: 'none',
     location: e.location ?? undefined,
-    participants: e.participants?.map((p: { name: string }) => p.name) ?? [],
+    participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
     notification: e.notificationMinutes ?? 0,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
     calendarId: e.categoryId ?? '',
+    viewOnly: e.viewOnly,
+    organizer: e.organizer,
+    invites: e.invites,
   }
 }
 
@@ -139,18 +158,30 @@ const useCalendarStore = create<CalendarState>()((set) => ({
 }))
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const { events: serverEvents, categories: serverCategories } = useData()
+  const {
+    events: serverEvents,
+    categories: serverCategories,
+    eventsLoaded,
+    categoriesLoaded,
+  } = useData()
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const hydratedRef = useRef(false)
 
   useEffect(() => {
     if (hydratedRef.current) return
-    if (serverEvents.length === 0 && serverCategories.length === 0) return
+    if (!eventsLoaded || !categoriesLoaded) return
     hydratedRef.current = true
     setCalendars(serverCategories.map(categoryDataToCalendarCategory))
     setEvents(serverEvents.map(eventDataToCalendarEvent))
-  }, [serverEvents, serverCategories, setCalendars, setEvents])
+  }, [
+    serverEvents,
+    serverCategories,
+    eventsLoaded,
+    categoriesLoaded,
+    setCalendars,
+    setEvents,
+  ])
 
   return children
 }

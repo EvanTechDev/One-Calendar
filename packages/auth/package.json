@@ -1,0 +1,32 @@
+{
+  "name": "@zntr/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts",
+    "./schema": "./src/schema.ts",
+    "./adapter": "./src/adapter.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:check": "tsc && tsc --noEmit",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src",
+    "lint:check": "oxlint --config ../../config/oxlint.json src",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.6.20",
+    "@better-auth/infra": "0.3.2",
+    "better-auth": "^1.6.22",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}

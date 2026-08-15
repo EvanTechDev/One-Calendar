@@ -1,22 +1,36 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
+import { invalidateCachedSession } from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import {
+  user as userTable,
+  session as sessionTable,
+  account as accountTable,
+  twoFactor as twoFactorTable,
   calendarEvents,
   settings,
   calendarCategories,
   countdowns,
   bookmarkedEvents,
-  shares,
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
 
-export const DELETE = withEvlog(async function DELETE(_request: Request) {
+function sessionTokenFromCookieHeader(
+  cookieHeader: string | null,
+): string | null {
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(/(?:^|;\s*)better-auth\.session_token=([^;]+)/)
+  return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+export const DELETE = withEvlog(async function DELETE(request: Request) {
   try {
     const log = useLogger()
+    const cookieHeader = request.headers.get('cookie')
+    const sessionToken = sessionTokenFromCookieHeader(cookieHeader)
     const session = await getServerSession()
     const user = session?.user
     if (!user) {
@@ -31,7 +45,6 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
     }
 
     await getDb().transaction(async (tx) => {
-      await tx.delete(shares).where(eq(shares.userId, user.id))
       await tx
         .delete(bookmarkedEvents)
         .where(eq(bookmarkedEvents.userId, user.id))
@@ -41,7 +54,13 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
         .where(eq(calendarCategories.userId, user.id))
       await tx.delete(settings).where(eq(settings.userId, user.id))
       await tx.delete(calendarEvents).where(eq(calendarEvents.userId, user.id))
+      await tx.delete(sessionTable).where(eq(sessionTable.userId, user.id))
+      await tx.delete(accountTable).where(eq(accountTable.userId, user.id))
+      await tx.delete(twoFactorTable).where(eq(twoFactorTable.userId, user.id))
+      await tx.delete(userTable).where(eq(userTable.id, user.id))
     })
+
+    if (sessionToken) await invalidateCachedSession(sessionToken)
 
     log.audit?.({
       action: 'account.delete',
@@ -57,8 +76,9 @@ export const DELETE = withEvlog(async function DELETE(_request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (e: any) {
+    console.error('account.delete failed', e)
     return NextResponse.json(
-      { error: e?.message || 'Internal error' },
+      { error: 'Internal server error' },
       { status: 500 },
     )
   }

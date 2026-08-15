@@ -42,13 +42,40 @@ export const PUT = async function PUT(request: NextRequest) {
 
   const body: SettingsData = await request.json()
 
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid settings' }, { status: 400 })
+  }
+
+  const keys = Object.keys(body)
+  if (keys.length > 200) {
+    return NextResponse.json({ error: 'Too many settings' }, { status: 400 })
+  }
+  for (const key of keys) {
+    if (key.length > 100) {
+      return NextResponse.json(
+        { error: 'Invalid settings key' },
+        { status: 400 },
+      )
+    }
+  }
+
+  let serialized: string
+  try {
+    serialized = JSON.stringify(body)
+  } catch {
+    return NextResponse.json({ error: 'Invalid settings' }, { status: 400 })
+  }
+  if (serialized.length > 32_000) {
+    return NextResponse.json({ error: 'Settings too large' }, { status: 400 })
+  }
+
   const existingSettings = await getDb()
     .select()
     .from(settings)
     .where(eq(settings.userId, user.id))
 
   const merged = {
-    ...existingSettings[0]?.data,
+    ...((existingSettings[0]?.data ?? {}) as SettingsData),
     ...body,
   }
 

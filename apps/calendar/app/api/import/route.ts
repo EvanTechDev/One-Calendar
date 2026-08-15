@@ -9,61 +9,36 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
+import { invalidateEventCache } from '@/lib/cache/events'
 import { getAuthedUser } from '@/lib/api-helpers'
+import { isEventViewableBy } from '@/app/api/bookmarks/route'
+import { importSchema, firstZodMessage } from '@/lib/validation'
 import crypto from 'crypto'
 
 export const runtime = 'nodejs'
-
-type BatchImportBody = {
-  events?: Array<{
-    id?: string
-    title: string
-    description?: string | null
-    location?: string | null
-    startDate: string
-    endDate: string
-    isAllDay?: boolean
-    color?: string | null
-    categoryId?: string | null
-    participants?: Array<{
-      name: string
-      email?: string
-      userId?: string
-    }> | null
-    notificationMinutes?: number | null
-  }>
-  categories?: Array<{
-    id?: string
-    name: string
-    color: string
-    sortOrder?: number
-  }>
-  countdowns?: Array<{
-    id?: string
-    name: string
-    targetDate: string
-    repeat?: string
-    description?: string | null
-    color?: string | null
-    icon?: string | null
-  }>
-  bookmarks?: Array<{
-    eventId: string
-  }>
-  settings?: Record<string, unknown>
-}
 
 export const POST = async function POST(request: NextRequest) {
   const user = await getAuthedUser()
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: BatchImportBody = await request.json()
+  const parsed = importSchema.safeParse(
+    await request.json().catch(() => null),
+  )
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: firstZodMessage(parsed.error) },
+      { status: 400 },
+    )
+  }
+  const body = parsed.data
 
   let eventsImported = 0
   let categoriesImported = 0
   let countdownsImported = 0
   let bookmarksImported = 0
+  let skippedEvents = 0
+  let skippedBookmarks = 0
 
   const db = await getDb()
 
@@ -76,7 +51,7 @@ export const POST = async function POST(request: NextRequest) {
           .values({
             id,
             userId: user.id,
-            name: cat.name,
+            name: encryptField(id, cat.name) ?? '',
             color: cat.color,
             sortOrder: cat.sortOrder ?? 0,
           })
@@ -87,6 +62,16 @@ export const POST = async function POST(request: NextRequest) {
 
     if (body.events && body.events.length > 0) {
       for (const evt of body.events) {
+        if (evt.id) {
+          const [existing] = await tx
+            .select({ userId: calendarEvents.userId })
+            .from(calendarEvents)
+            .where(eq(calendarEvents.id, evt.id))
+          if (existing && existing.userId !== user.id) {
+            skippedEvents++
+            continue
+          }
+        }
         const id = evt.id ?? crypto.randomUUID()
         await tx
           .insert(calendarEvents)
@@ -132,10 +117,10 @@ export const POST = async function POST(request: NextRequest) {
           .values({
             id,
             userId: user.id,
-            name: cd.name,
+            name: encryptField(id, cd.name) ?? '',
             targetDate: new Date(cd.targetDate),
             repeat: cd.repeat ?? 'none',
-            description: cd.description ?? null,
+            description: encryptField(id, cd.description),
             color: cd.color ?? null,
             icon: cd.icon ?? null,
           })
@@ -146,6 +131,10 @@ export const POST = async function POST(request: NextRequest) {
 
     if (body.bookmarks && body.bookmarks.length > 0) {
       for (const bm of body.bookmarks) {
+        if (!(await isEventViewableBy(bm.eventId, user))) {
+          skippedBookmarks++
+          continue
+        }
         await tx
           .insert(bookmarkedEvents)
           .values({
@@ -163,7 +152,10 @@ export const POST = async function POST(request: NextRequest) {
         .select()
         .from(settings)
         .where(eq(settings.userId, user.id))
-      const merged = { ...existing?.data, ...body.settings }
+      const merged = {
+        ...((existing?.data ?? {}) as Record<string, unknown>),
+        ...body.settings,
+      }
       await tx
         .insert(settings)
         .values({
@@ -181,6 +173,10 @@ export const POST = async function POST(request: NextRequest) {
     }
   })
 
+  for (const evt of body.events ?? []) {
+    await invalidateEventCache(user.id, evt.startDate, evt.endDate)
+  }
+
   return NextResponse.json({
     success: true,
     imported: {
@@ -189,5 +185,7 @@ export const POST = async function POST(request: NextRequest) {
       countdowns: countdownsImported,
       bookmarks: bookmarksImported,
     },
+    skippedEvents,
+    skippedBookmarks,
   })
 }

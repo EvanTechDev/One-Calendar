@@ -21,7 +21,7 @@ const getGitCommit = () => {
 }
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/i18n'],
+  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/i18n', '@zntr/auth'],
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -33,6 +33,26 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+          },
+        ],
+      },
+    ]
   },
 }
 

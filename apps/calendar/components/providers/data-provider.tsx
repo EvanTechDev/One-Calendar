@@ -4,11 +4,11 @@ import {
   createContext,
   useContext,
   useEffect,
-  useState,
-  useCallback,
   useRef,
+  useCallback,
   type ReactNode,
 } from 'react'
+import useSWR, { mutate } from 'swr'
 import {
   api,
   type EventData,
@@ -18,8 +18,19 @@ import {
   type SettingsData,
 } from '@/lib/api-client'
 import { toast } from 'sonner'
+import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 
-type LoadingState = 'idle' | 'loading' | 'loaded' | 'error'
+type LoadingState = 'loading' | 'loaded' | 'error'
+
+// Keys are the API URLs — the global SWR cache dedupes across remounts,
+// so re-entering the app or switching tabs within a session reuses cached data.
+export const DATA_KEYS = {
+  events: '/api/events',
+  categories: '/api/categories',
+  countdowns: '/api/countdowns',
+  bookmarks: '/api/bookmarks',
+  settings: '/api/settings',
+} as const
 
 interface DataContextValue {
   events: EventData[]
@@ -29,6 +40,8 @@ interface DataContextValue {
   settings: SettingsData
   loading: LoadingState
   error: string | null
+  eventsLoaded: boolean
+  categoriesLoaded: boolean
 
   refresh: () => Promise<void>
   refreshEvents: () => Promise<void>
@@ -64,78 +77,90 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [events, setEvents] = useState<EventData[]>([])
-  const [categories, setCategories] = useState<CategoryData[]>([])
-  const [countdowns, setCountdowns] = useState<CountdownData[]>([])
-  const [bookmarks, setBookmarks] = useState<BookmarkData[]>([])
-  const [settings, setSettings] = useState<SettingsData>({})
-  const [loading, setLoading] = useState<LoadingState>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const mountedRef = useRef(true)
+  const eventsReq = useSWR(DATA_KEYS.events, () => api.events.list())
+  const categoriesReq = useSWR(DATA_KEYS.categories, () =>
+    api.categories.list(),
+  )
+  const countdownsReq = useSWR(DATA_KEYS.countdowns, () =>
+    api.countdowns.list(),
+  )
+  const bookmarksReq = useSWR(DATA_KEYS.bookmarks, () => api.bookmarks.list())
+  const settingsReq = useSWR(DATA_KEYS.settings, () => api.settings.get())
 
-  const fetchAll = useCallback(async () => {
-    setLoading('loading')
-    setError(null)
-    try {
-      const [
-        eventsRes,
-        categoriesRes,
-        countdownsRes,
-        bookmarksRes,
-        settingsRes,
-      ] = await Promise.all([
-        api.events.list().catch(() => ({ events: [] })),
-        api.categories.list().catch(() => ({ categories: [] })),
-        api.countdowns.list().catch(() => ({ countdowns: [] })),
-        api.bookmarks.list().catch(() => ({ bookmarks: [] })),
-        api.settings.get().catch(() => ({ settings: {} })),
-      ])
-      if (!mountedRef.current) return
-      setEvents(eventsRes.events)
-      setCategories(categoriesRes.categories)
-      setCountdowns(countdownsRes.countdowns)
-      setBookmarks(bookmarksRes.bookmarks)
-      setSettings(settingsRes.settings)
-      setLoading('loaded')
-    } catch (e) {
-      if (!mountedRef.current) return
-      setError(e instanceof Error ? e.message : 'Failed to load data')
-      setLoading('error')
-    }
-  }, [])
+  const events = eventsReq.data?.events ?? []
+  const categories = categoriesReq.data?.categories ?? []
+  const countdowns = countdownsReq.data?.countdowns ?? []
+  const bookmarks = bookmarksReq.data?.bookmarks ?? []
+  const settings = settingsReq.data?.settings ?? {}
 
-  useEffect(() => {
-    mountedRef.current = true
-    void fetchAll()
-    return () => {
-      mountedRef.current = false
-    }
-  }, [fetchAll])
+  const requests = [
+    eventsReq,
+    categoriesReq,
+    countdownsReq,
+    bookmarksReq,
+    settingsReq,
+  ]
+  const settled = requests.every((r) => r.data !== undefined || r.error)
+  const failed = requests.filter((r) => r.error && r.data === undefined)
+  const loading: LoadingState = settled
+    ? failed.length > 0
+      ? 'error'
+      : 'loaded'
+    : 'loading'
+  const error =
+    failed[0]?.error instanceof Error ? failed[0].error.message : null
+  const eventsLoaded =
+    eventsReq.data !== undefined || eventsReq.error !== undefined
+  const categoriesLoaded =
+    categoriesReq.data !== undefined || categoriesReq.error !== undefined
 
-  const refreshEvents = useCallback(async () => {
-    const res = await api.events.list()
-    setEvents(res.events)
-  }, [])
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+  const categoriesRef = useRef(categories)
+  categoriesRef.current = categories
+  const countdownsRef = useRef(countdowns)
+  countdownsRef.current = countdowns
+  const bookmarksRef = useRef(bookmarks)
+  bookmarksRef.current = bookmarks
 
-  const refreshCategories = useCallback(async () => {
-    const res = await api.categories.list()
-    setCategories(res.categories)
-  }, [])
+  const refreshEvents = useCallback(
+    () => mutate(DATA_KEYS.events).then(() => undefined),
+    [],
+  )
+  const refreshCategories = useCallback(
+    () => mutate(DATA_KEYS.categories).then(() => undefined),
+    [],
+  )
+  const refreshCountdowns = useCallback(
+    () => mutate(DATA_KEYS.countdowns).then(() => undefined),
+    [],
+  )
+  const refreshBookmarks = useCallback(
+    () => mutate(DATA_KEYS.bookmarks).then(() => undefined),
+    [],
+  )
+  const refreshSettings = useCallback(
+    () => mutate(DATA_KEYS.settings).then(() => undefined),
+    [],
+  )
 
-  const refreshCountdowns = useCallback(async () => {
-    const res = await api.countdowns.list()
-    setCountdowns(res.countdowns)
-  }, [])
-
-  const refreshBookmarks = useCallback(async () => {
-    const res = await api.bookmarks.list()
-    setBookmarks(res.bookmarks)
-  }, [])
-
-  const refreshSettings = useCallback(async () => {
-    const res = await api.settings.get()
-    setSettings(res.settings)
-  }, [])
+  const refresh = useCallback(
+    () =>
+      Promise.all([
+        refreshEvents(),
+        refreshCategories(),
+        refreshCountdowns(),
+        refreshBookmarks(),
+        refreshSettings(),
+      ]).then(() => undefined),
+    [
+      refreshEvents,
+      refreshCategories,
+      refreshCountdowns,
+      refreshBookmarks,
+      refreshSettings,
+    ],
+  )
 
   useEffect(() => {
     if (loading !== 'loaded') return
@@ -197,15 +222,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.events.create>[0]) => {
       try {
         const res = await api.events.create(data)
-        setEvents((prev) => {
-          const idx = prev.findIndex((e) => e.id === res.event.id)
-          if (idx >= 0) {
-            const next = [...prev]
-            next[idx] = res.event
-            return next
-          }
-          return [...prev, res.event]
-        })
+        await mutate(
+          DATA_KEYS.events,
+          (cur?: { events: EventData[] }) =>
+            cur ? { events: upsertById(cur.events, res.event) } : cur,
+          { revalidate: false },
+        )
         return res.event
       } catch (e) {
         toast.error('Failed to save event', {
@@ -218,10 +240,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteEvent = useCallback(async (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id))
+    const prev = eventsRef.current
+    await mutate(
+      DATA_KEYS.events,
+      { events: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.events.delete(id)
     } catch (e) {
+      await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
       toast.error('Failed to delete event', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -233,15 +261,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.categories.create>[0]) => {
       try {
         const res = await api.categories.create(data)
-        setCategories((prev) => {
-          const idx = prev.findIndex((c) => c.id === res.category.id)
-          if (idx >= 0) {
-            const next = [...prev]
-            next[idx] = res.category
-            return next
-          }
-          return [...prev, res.category]
-        })
+        await mutate(
+          DATA_KEYS.categories,
+          (cur?: { categories: CategoryData[] }) =>
+            cur
+              ? { categories: upsertById(cur.categories, res.category) }
+              : cur,
+          { revalidate: false },
+        )
         return res.category
       } catch (e) {
         toast.error('Failed to create category', {
@@ -254,10 +281,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteCategory = useCallback(async (id: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id))
+    const prev = categoriesRef.current
+    await mutate(
+      DATA_KEYS.categories,
+      { categories: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.categories.delete(id)
     } catch (e) {
+      await mutate(
+        DATA_KEYS.categories,
+        { categories: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete category', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -269,15 +306,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.countdowns.create>[0]) => {
       try {
         const res = await api.countdowns.create(data)
-        setCountdowns((prev) => {
-          const idx = prev.findIndex((c) => c.id === res.countdown.id)
-          if (idx >= 0) {
-            const next = [...prev]
-            next[idx] = res.countdown
-            return next
-          }
-          return [...prev, res.countdown]
-        })
+        await mutate(
+          DATA_KEYS.countdowns,
+          (cur?: { countdowns: CountdownData[] }) =>
+            cur
+              ? { countdowns: upsertById(cur.countdowns, res.countdown) }
+              : cur,
+          { revalidate: false },
+        )
         return res.countdown
       } catch (e) {
         toast.error('Failed to create countdown', {
@@ -290,19 +326,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteCountdown = useCallback(async (id: string) => {
-    setCountdowns((prev) => prev.filter((c) => c.id !== id))
+    const prev = countdownsRef.current
+    await mutate(
+      DATA_KEYS.countdowns,
+      { countdowns: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.countdowns.delete(id)
     } catch (e) {
+      await mutate(
+        DATA_KEYS.countdowns,
+        { countdowns: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete countdown', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
       throw e
     }
   }, [])
-
-  const eventsRef = useRef(events)
-  eventsRef.current = events
 
   const createBookmark = useCallback(
     async (data: Parameters<typeof api.bookmarks.create>[0]) => {
@@ -311,15 +354,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (res.bookmark) {
           const evt = eventsRef.current.find((e) => e.id === data.eventId)
           if (evt) {
-            setBookmarks((prev) => [
-              {
-                id: res.bookmark.id,
-                eventId: res.bookmark.eventId,
-                createdAt: res.bookmark.createdAt,
-                event: evt,
-              },
-              ...prev,
-            ])
+            const item = {
+              id: res.bookmark.id,
+              eventId: res.bookmark.eventId,
+              createdAt: res.bookmark.createdAt,
+              event: evt,
+            }
+            await mutate(
+              DATA_KEYS.bookmarks,
+              (cur?: { bookmarks: BookmarkData[] }) => ({
+                bookmarks: upsertBy(
+                  cur?.bookmarks ?? [],
+                  item,
+                  (b) => b.eventId === item.eventId,
+                ),
+              }),
+              { revalidate: false },
+            )
           }
         }
       } catch (e) {
@@ -333,10 +384,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteBookmark = useCallback(async (id: string) => {
-    setBookmarks((prev) => prev.filter((b) => b.id !== id))
+    const prev = bookmarksRef.current
+    await mutate(
+      DATA_KEYS.bookmarks,
+      { bookmarks: removeById(prev, id) },
+      { revalidate: false },
+    )
     try {
       await api.bookmarks.delete(id)
     } catch (e) {
+      await mutate(
+        DATA_KEYS.bookmarks,
+        { bookmarks: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete bookmark', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -345,10 +406,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deleteBookmarkByEvent = useCallback(async (eventId: string) => {
-    setBookmarks((prev) => prev.filter((b) => b.eventId !== eventId))
+    const prev = bookmarksRef.current
+    await mutate(
+      DATA_KEYS.bookmarks,
+      { bookmarks: prev.filter((b) => b.eventId !== eventId) },
+      { revalidate: false },
+    )
     try {
       await api.bookmarks.deleteByEvent(eventId)
     } catch (e) {
+      await mutate(
+        DATA_KEYS.bookmarks,
+        { bookmarks: prev },
+        { revalidate: false },
+      )
       toast.error('Failed to delete bookmark', {
         description: e instanceof Error ? e.message : 'Unknown',
       })
@@ -359,7 +430,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback(async (data: SettingsData) => {
     try {
       const res = await api.settings.update(data)
-      setSettings(res.settings)
+      await mutate(
+        DATA_KEYS.settings,
+        { settings: res.settings },
+        { revalidate: false },
+      )
     } catch (e) {
       toast.error('Failed to update settings', {
         description: e instanceof Error ? e.message : 'Unknown',
@@ -378,7 +453,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         settings,
         loading,
         error,
-        refresh: fetchAll,
+        eventsLoaded,
+        categoriesLoaded,
+        refresh,
         refreshEvents,
         refreshCategories,
         refreshCountdowns,

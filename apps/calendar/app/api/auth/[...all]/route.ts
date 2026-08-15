@@ -1,8 +1,11 @@
+import { NextResponse } from 'next/server'
+import { toNextJsHandler } from '@zntr/auth'
 import { auth } from '@/lib/auth'
+import { invalidateCachedSession } from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
-import { toNextJsHandler } from 'better-auth/next-js'
+import { verifyTurnstile, type TurnstileVerifyResult } from '@/lib/turnstile'
 import { eq } from 'drizzle-orm'
 
 const authHandlers = toNextJsHandler(auth)
@@ -29,6 +32,14 @@ function authAction(pathname: string) {
   if (pathname.endsWith('/sign-up/email')) return 'auth.register'
   if (pathname.includes('/reset-password')) return 'auth.password_reset'
   return null
+}
+
+function sessionTokenFromCookieHeader(
+  cookieHeader: string | null,
+): string | null {
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(/(?:^|;\s*)better-auth\.session_token=([^;]+)/)
+  return match?.[1] ? decodeURIComponent(match[1]) : null
 }
 
 async function findUserByEmail(email: string) {
@@ -93,10 +104,57 @@ async function handleAuth(request: Request) {
   const pathname = new URL(request.url).pathname
   const action = authAction(pathname)
   const body = await readAuthBody(request)
+
+  if (
+    request.method === 'POST' &&
+    (action === 'auth.login' || action === 'auth.register')
+  ) {
+    const turnstileToken =
+      typeof body?.turnstileToken === 'string' ? body.turnstileToken : ''
+    if (!turnstileToken) {
+      return NextResponse.json({ error: 'CAPTCHA required' }, { status: 400 })
+    }
+
+    let captchaResult: TurnstileVerifyResult
+    try {
+      captchaResult = await verifyTurnstile(
+        turnstileToken,
+        action === 'auth.register' ? 'register' : 'login',
+      )
+    } catch (error) {
+      console.error('CAPTCHA service unavailable', error)
+      return NextResponse.json(
+        { error: 'CAPTCHA service unavailable' },
+        { status: 503 },
+      )
+    }
+
+    if (!captchaResult.success) {
+      const email = typeof body?.email === 'string' ? body.email : undefined
+      const subject = await resolveAuthSubject(request, email)
+      log.audit?.({
+        action: 'captcha.fail',
+        actor: anonymousAuditActor,
+        target: subject.target,
+        outcome: 'failure',
+        reason: 'CAPTCHA verification failed',
+      })
+      return NextResponse.json(
+        { error: 'CAPTCHA verification failed' },
+        { status: 400 },
+      )
+    }
+  }
+
   const email = typeof body?.email === 'string' ? body.email : undefined
   let subject = await resolveAuthSubject(request, email)
   const response =
     await authHandlers[request.method as keyof typeof authHandlers](request)
+
+  if (action === 'auth.logout' && response.status < 400) {
+    const token = sessionTokenFromCookieHeader(request.headers.get('cookie'))
+    if (token) await invalidateCachedSession(token)
+  }
 
   if (action) {
     const success = response.status < 400

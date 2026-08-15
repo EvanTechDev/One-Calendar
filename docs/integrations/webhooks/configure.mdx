@@ -1,0 +1,54 @@
+---
+title: Configure webhooks
+description: Register an endpoint and select the events to receive.
+---
+
+Webhooks deliver HTTP POST requests to a URL you control whenever a selected event occurs in your workspace. This guide walks through setting up a new webhook endpoint end to end.
+
+## Steps
+
+<Steps>
+  <Step title="Create your endpoint URL">
+    Your endpoint must be a publicly accessible HTTPS URL that returns a `2xx` status code within 10 seconds of receiving a request. If your server takes longer to process, acknowledge the webhook immediately and handle processing asynchronously.
+
+    Most webhook receiver frameworks (for example, ngrok for local testing, or cloud functions for production) provide HTTPS URLs automatically.
+  </Step>
+  <Step title="Register the endpoint">
+    1. Go to **Integrations → Webhooks → Add endpoint**.
+    2. Enter your HTTPS URL.
+    3. Add an optional description to remind yourself what this endpoint is for.
+    4. Click **Create**.
+  </Step>
+  <Step title="Select events">
+    After creating the endpoint, open it and click **Add events**. Choose the event types you want this endpoint to receive. You can subscribe to all events or select individual types.
+
+    See [event types](/integrations/webhooks/event-types) for the full list and payload schemas.
+  </Step>
+  <Step title="Verify the signature header">
+    Every webhook request includes an `X-Signature-256` header containing an HMAC-SHA256 signature of the request body, signed with your endpoint's secret key.
+
+    Verify this header in your receiver before processing the payload:
+
+    ```python
+    import hmac
+    import hashlib
+
+    def verify_signature(payload_body, secret, signature_header):
+        expected = hmac.new(
+            secret.encode(),
+            payload_body,
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(f"sha256={expected}", signature_header)
+    ```
+
+    Your endpoint secret is shown once at creation time—save it securely.
+  </Step>
+  <Step title="Test with a sample payload">
+    From the endpoint detail page, click **Send test event**. Select an event type and click **Send**. The platform delivers a sample payload to your endpoint and shows the response status and body in the test log.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not expose your endpoint secret in client-side code or public repositories. Rotate it immediately if it is compromised—go to **Integrations → Webhooks → [Endpoint] → Rotate secret**.
+</Warning>

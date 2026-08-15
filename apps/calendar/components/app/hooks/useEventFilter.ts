@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 import type { LayoutEvent } from '@/components/app/views/engine/EventLayoutEngine'
 import { isSameDay, isWithinInterval } from 'date-fns'

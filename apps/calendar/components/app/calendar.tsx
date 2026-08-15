@@ -27,7 +27,8 @@ import dynamic from 'next/dynamic'
 import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import crypto from 'crypto'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
@@ -35,14 +36,17 @@ import {
   useEvents,
   useBookmarks,
 } from '@/components/providers/data-provider'
-import { api } from '@/lib/api-client'
 import { getValidTimezone } from '@/lib/timezone'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
-import EventPreview from '@/components/app/event/event-preview'
+import EventPreview, {
+  type EventInvite,
+} from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
+import { useTheme } from 'next-themes'
 import { Button } from '@zntr/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {
@@ -56,7 +60,7 @@ import {
   type CalendarViewTypeValue,
   type FirstDayOfWeekValue,
   type TimeFormatValue,
-} from '@/components/app/calendar-types'
+} from '@/lib/calendar-types'
 import { toast } from 'sonner'
 import {
   InputGroup,
@@ -79,6 +83,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@zntr/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@zntr/ui/dialog'
 
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth/client'
@@ -89,14 +100,15 @@ const loadMonthView = () => import('@/components/app/views/month-view')
 const loadYearView = () => import('@/components/app/views/year-view')
 const loadAnalyticsView = () =>
   import('@/components/app/analytics/analytics-view')
-const loadSettings = () => import('@/components/app/profile/settings')
+const loadSettingsDialog = () =>
+  import('@/components/app/settings/settings-dialog')
 
 const DayView = dynamic(loadDayView)
 const WeekView = dynamic(loadWeekView)
 const MonthView = dynamic(loadMonthView)
 const YearView = dynamic(loadYearView)
 const AnalyticsView = dynamic(loadAnalyticsView)
-const Settings = dynamic(loadSettings)
+const SettingsDialog = dynamic(loadSettingsDialog)
 
 export interface CalendarEvent {
   id: string
@@ -111,6 +123,22 @@ export interface CalendarEvent {
   description?: string
   color: string
   calendarId: string
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+  invites?: Array<{
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }>
 }
 
 interface CalendarProps {
@@ -119,7 +147,6 @@ interface CalendarProps {
 
 export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
-  const [openShareImmediately, setOpenShareImmediately] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
   const [date, setDate] = useState(new Date())
@@ -137,8 +164,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
+  const { setTheme } = useTheme()
   const { upsertEvent, deleteEvent } = useEvents()
-  const { deleteBookmarkByEvent } = useBookmarks()
+  const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
   )
@@ -157,20 +185,29 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimezone(validTz)
     updateSettings({ timezone: validTz })
   }
-  const [notificationSound, setNotificationSound] =
-    useState<NOTIFICATION_SOUNDS>('telegram')
+  const [notificationSound] = useState<NOTIFICATION_SOUNDS>('telegram')
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
     null,
   )
+  const [previewAnchorEl, setPreviewAnchorEl] = useState<HTMLElement | null>(
+    null,
+  )
   const [focusUserProfileSection, setFocusUserProfileSection] =
     useState<UserProfileSection | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [shareOnlyMode, setShareOnlyMode] = useState(false)
+  const [pendingRemoveInvite, setPendingRemoveInvite] =
+    useState<CalendarEvent | null>(null)
+  const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
+  const [pendingInvites, setPendingInvites] = useState<{
+    eventId: string
+    emails: string[]
+  } | null>(null)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
 
@@ -187,6 +224,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     newStartDate: Date,
     newEndDate: Date,
   ) => {
+    if (event.viewOnly) return
+    setPreviewOpen(false)
+    setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
@@ -239,21 +280,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimeFormat(format)
     updateSettings({ timeFormat: format })
   }
-  const [toastPosition, setToastPosition] = useState<
-    'bottom-left' | 'bottom-center' | 'bottom-right'
-  >(
-    (settings.toastPosition as
-      | 'bottom-left'
-      | 'bottom-center'
-      | 'bottom-right') ?? 'bottom-right',
-  )
-  const handleToastPositionChange = (
-    position: 'bottom-left' | 'bottom-center' | 'bottom-right',
-  ) => {
-    setToastPosition(position)
-    updateSettings({ toastPosition: position })
-  }
-
   const firstDayOfWeekObj = useMemo(
     () => FirstDayOfWeek.create(firstDayOfWeek),
     [firstDayOfWeek],
@@ -313,17 +339,59 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           setTimeFormat(settings.timeFormat as TimeFormatValue)
       },
       () => {
-        if (settings.toastPosition)
-          setToastPosition(
-            settings.toastPosition as
-              | 'bottom-left'
-              | 'bottom-center'
-              | 'bottom-right',
-          )
+        if (settings.language)
+          setLanguage(settings.language as Parameters<typeof setLanguage>[0])
+      },
+      () => {
+        if (
+          settings.theme &&
+          THEME_OPTIONS.includes(settings.theme as ThemeOption)
+        ) {
+          setTheme(settings.theme as ThemeOption)
+        }
       },
     ]
     settingsSync.forEach((fn) => fn())
   }, [settings])
+
+  useEffect(() => {
+    const handleTimezoneEvent = (event: Event) => {
+      const { timezone } = (event as CustomEvent<{ timezone?: string }>).detail
+      if (timezone) handleTimezoneChange(timezone)
+    }
+    const handleFirstDayEvent = (event: Event) => {
+      const { firstDay } = (event as CustomEvent<{ firstDay?: number }>).detail
+      if (firstDay !== undefined) {
+        setFirstDayOfWeek(firstDay as FirstDayOfWeekValue)
+        updateSettings({ firstDayOfWeek: firstDay }).catch(() => {})
+      }
+    }
+    const handleViewEvent = (event: Event) => {
+      const { view } = (event as CustomEvent<{ view?: string }>).detail
+      if (view && isCalendarView(view)) {
+        setDefaultView(view as CalendarViewTypeValue)
+        setView(view as ViewType)
+        updateSettings({ defaultView: view }).catch(() => {})
+      }
+    }
+    const handleTimeFormatEvent = (event: Event) => {
+      const { format } = (event as CustomEvent<{ format?: string }>).detail
+      if (format === '24h' || format === '12h') {
+        setTimeFormat(format)
+        updateSettings({ timeFormat: format }).catch(() => {})
+      }
+    }
+    window.addEventListener('timezonechange', handleTimezoneEvent)
+    window.addEventListener('firstdaychange', handleFirstDayEvent)
+    window.addEventListener('viewchange', handleViewEvent)
+    window.addEventListener('timeformatchange', handleTimeFormatEvent)
+    return () => {
+      window.removeEventListener('timezonechange', handleTimezoneEvent)
+      window.removeEventListener('firstdaychange', handleFirstDayEvent)
+      window.removeEventListener('viewchange', handleViewEvent)
+      window.removeEventListener('timeformatchange', handleTimeFormatEvent)
+    }
+  }, [])
 
   useEffect(() => {
     const prefetch = () => {
@@ -332,7 +400,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       void loadMonthView()
       void loadYearView()
       void loadAnalyticsView()
-      void loadSettings()
+      void loadSettingsDialog()
     }
 
     if (typeof window === 'undefined') return
@@ -434,9 +502,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
-    setView('settings')
+    setSettingsOpen(true)
     setFocusUserProfileSection(null)
     setTimeout(() => setFocusUserProfileSection(section), 0)
+  }
+
+  const handleNavigateToView = (target: 'analytics' | 'settings') => {
+    if (target === 'settings') {
+      setSettingsOpen(true)
+      return
+    }
+    setView(target)
   }
 
   const handleTodayClick = () => {
@@ -501,8 +577,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     clientX?: number,
     clientY?: number,
   ) => {
-    setShareOnlyMode(false)
+    if (previewOpen && previewEvent?.id === event.id) {
+      setPreviewOpen(false)
+      setPreviewAnchorRect(null)
+      setPreviewAnchorEl(null)
+      return
+    }
     setPreviewEvent(event)
+    setPreviewAnchorEl(anchorEl ?? null)
     if (view === 'day' && clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
         DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
@@ -524,16 +606,18 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const handleNavigateAndPreview = (event: CalendarEvent) => {
-    setDate(new Date(event.startDate))
-    setView(defaultView as ViewType)
-    setPreviewEvent(event)
     const eventId = (event as any).eventId ?? event.id
+    const realEvent = events.find((e) => e.id === eventId) ?? event
+    setDate(new Date(realEvent.startDate))
+    setView(defaultView as ViewType)
+    setPreviewEvent(realEvent)
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-event-id="${eventId}"]`)
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'instant' })
         requestAnimationFrame(() => {
           setPreviewAnchorRect(el.getBoundingClientRect())
+          setPreviewAnchorEl(el as HTMLElement)
           setPreviewOpen(true)
         })
       } else if (calendarRef.current) {
@@ -556,9 +640,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
-      id:
-        event.id ||
-        Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      id: event.id || crypto.randomUUID(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
@@ -571,7 +653,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: newEvent.color,
       location: newEvent.location,
       description: newEvent.description,
+      participants: newEvent.participants?.length
+        ? newEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
       notificationMinutes: newEvent.notification,
+      categoryId: newEvent.calendarId || null,
     })
     toast(t.eventCreated)
     setEventDialogOpen(false)
@@ -594,7 +682,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: updatedEvent.color,
       location: updatedEvent.location,
       description: updatedEvent.description,
+      participants: updatedEvent.participants?.length
+        ? updatedEvent.participants.map((p: any) =>
+            typeof p === 'string' ? { name: p } : p,
+          )
+        : null,
       notificationMinutes: updatedEvent.notification,
+      categoryId: updatedEvent.calendarId || null,
     })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
@@ -670,6 +764,69 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } catch {}
   }
 
+  const reAddInviteToCalendar = async (
+    targetEvent: CalendarEvent,
+    inviteToken?: string,
+  ) => {
+    if (inviteToken) {
+      await fetch(`/api/invite/${inviteToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: targetEvent.calendarId ?? '__uncategorized__',
+        }),
+      }).catch(() => {})
+    }
+    setEvents((prevEvents) => {
+      if (prevEvents.some((event) => event.id === targetEvent.id))
+        return prevEvents
+      return [...prevEvents, targetEvent].sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      )
+    })
+  }
+
+  const confirmRemoveInvite = async () => {
+    if (!pendingRemoveInvite) return
+
+    const targetEvent = pendingRemoveInvite
+    const ownInvite = targetEvent.invites?.find(
+      (i) => i.email === session?.user?.email?.toLowerCase(),
+    )
+    const inviteToken = ownInvite?.inviteToken
+
+    setEvents((prevEvents) =>
+      prevEvents.filter((event) => event.id !== targetEvent.id),
+    )
+    setRemoveInviteConfirmOpen(false)
+    setPendingRemoveInvite(null)
+
+    let undone = false
+    toast(t.eventDeleted, {
+      description: targetEvent.title,
+      action: {
+        label: t.undo,
+        onClick: () => {
+          undone = true
+          void reAddInviteToCalendar(targetEvent, inviteToken)
+          toast(t.deletionUndone)
+        },
+      },
+    })
+
+    try {
+      await fetch(
+        `/api/invites?eventId=${encodeURIComponent(targetEvent.id)}`,
+        { method: 'DELETE' },
+      )
+    } catch {}
+
+    if (undone && inviteToken) {
+      await reAddInviteToCalendar(targetEvent, inviteToken)
+    }
+  }
+
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
     const newEvents = importedEvents.map((event) => ({
       ...event,
@@ -686,6 +843,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
+      setPreviewAnchorEl(null)
     }
   }
 
@@ -697,6 +855,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEvents((prevEvents) => [...prevEvents, duplicatedEvent])
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
   }
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
@@ -704,26 +863,118 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setQuickCreateEndTime(endTime ?? null)
 
     setSelectedEvent(null)
+    setPreviewOpen(false)
+    setPreviewAnchorRect(null)
+    setPreviewAnchorEl(null)
     setEventDialogOpen(true)
   }
 
-  const toggleBookmark = async (event: CalendarEvent) => {
-    const { bookmarks } = await api.bookmarks.list()
-    const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
-    if (isBookmarked) {
-      const bm = bookmarks.find((b) => b.eventId === event.id)
-      if (bm) await api.bookmarks.delete(bm.id)
-    } else {
-      await api.bookmarks.create({ eventId: event.id })
+  const handleInvitesAdded = (eventId: string, emails: string[]) => {
+    if (emails.length === 0) return
+    setPendingInvites({ eventId, emails })
+  }
+
+  const handleSendInvites = async () => {
+    if (!pendingInvites) return
+    const { eventId, emails } = pendingInvites
+    setPendingInvites(null)
+    try {
+      const response = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+      if (!response.ok) throw new Error('failed')
+      await refreshEventInvites(eventId)
+      toast.success('Invitations sent')
+    } catch {
+      toast.error('Failed to send invitations')
     }
   }
 
-  const handleShare = (event: CalendarEvent, shareOnly = false) => {
-    setShareOnlyMode(shareOnly)
-    setPreviewEvent(event)
-    setPreviewAnchorRect(null)
-    setOpenShareImmediately(true)
-    setPreviewOpen(true)
+  const handleSkipInvites = async () => {
+    if (!pendingInvites) return
+    const { eventId, emails } = pendingInvites
+    setPendingInvites(null)
+    try {
+      const response = await fetch('/api/invites/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, emails }),
+      })
+      if (!response.ok) throw new Error('failed')
+      await refreshEventInvites(eventId)
+    } catch {
+      toast.error('Failed to add participants')
+    }
+  }
+
+  const refreshEventInvites = async (eventId: string) => {
+    try {
+      const response = await fetch(
+        `/api/invites?eventId=${encodeURIComponent(eventId)}`,
+      )
+      if (!response.ok) return
+      const data = await response.json()
+      const invites = data?.invites
+      if (!Array.isArray(invites)) return
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, invites } : event,
+        ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+    } catch {}
+  }
+
+  const handlePreviewInvitesChange = useCallback(
+    (eventId: string, invites: EventInvite[]) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, invites } : event,
+        ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, invites } : prev,
+      )
+    },
+    [],
+  )
+
+  const handlePreviewCategoryChange = useCallback(
+    (eventId: string, calendarId: string | null) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...event, calendarId: calendarId ?? '' }
+            : event,
+        ),
+      )
+      setPreviewEvent((prev) =>
+        prev?.id === eventId ? { ...prev, calendarId: calendarId ?? '' } : prev,
+      )
+      setSelectedEvent((prev) =>
+        prev?.id === eventId ? { ...prev, calendarId: calendarId ?? '' } : prev,
+      )
+    },
+    [],
+  )
+
+  const toggleBookmark = async (event: CalendarEvent) => {
+    const isBookmarked = bookmarks.some((b) => b.eventId === event.id)
+    if (isBookmarked) {
+      await deleteBookmarkByEvent(event.id)
+    } else {
+      await createBookmark({ eventId: event.id })
+    }
   }
 
   const eventsByCategory = useMemo(() => {
@@ -808,7 +1059,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <Button variant="outline" size="sm" onClick={handleTodayClick}>
                 {t.today || '今天'}
               </Button>
-              {view !== 'analytics' && view !== 'settings' && (
+              {view !== 'analytics' && (
                 <>
                   <div className="flex items-center space-x-1">
                     <Button
@@ -1008,11 +1259,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 variant="outline"
                 className="rounded-full h-8 w-8"
                 _onNavigateToSettings={handleUserProfileSectionNavigate}
-                onNavigateToView={setView}
+                onNavigateToView={handleNavigateToView}
               />
             </div>
           </header>
-          <div className="flex-1 overflow-auto pr-14" ref={calendarRef}>
+          <div
+            className="relative flex-1 overflow-auto pr-14"
+            ref={calendarRef}
+          >
             {view === 'day' && (
               <DayView
                 date={date}
@@ -1022,9 +1276,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
                 onBackToCalendar={() => setView(defaultView)}
@@ -1039,9 +1290,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
               />
@@ -1057,9 +1305,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 fixedStartDate={date}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
-                onShareEvent={(event) => {
-                  handleShare(event, true)
-                }}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
               />
@@ -1092,38 +1337,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 isSidebarTransitioning={isSidebarTransitioning}
               />
             )}
-            {view === 'settings' && (
-              <Settings
-                language={languageObj.code}
-                setLanguage={(lang: string) =>
-                  setLanguage(lang as Parameters<typeof setLanguage>[0])
-                }
-                firstDayOfWeek={firstDayOfWeekObj}
-                setFirstDayOfWeek={handleFirstDayOfWeekChange}
-                timezone={timezone}
-                setTimezone={handleTimezoneChange}
-                _notificationSound={notificationSound}
-                _setNotificationSound={setNotificationSound}
-                defaultView={CalendarViewType.create(
-                  defaultView as CalendarViewTypeValue,
-                )}
-                setDefaultView={(view: CalendarViewType) =>
-                  handleDefaultViewChange(view.value as CalendarViewTypeValue)
-                }
-                enableShortcuts={enableShortcuts}
-                setEnableShortcuts={handleEnableShortcutsChange}
-                timeFormat={timeFormatObj}
-                setTimeFormat={(format: TimeFormat) =>
-                  handleTimeFormatChange(format.value as TimeFormatValue)
-                }
-                events={events}
-                onImportEvents={handleImportEvents}
-                focusUserProfileSection={focusUserProfileSection}
-                _toastPosition={toastPosition}
-                _setToastPosition={handleToastPositionChange}
-                onBackToCalendar={() => setView(defaultView)}
-              />
-            )}
           </div>
         </div>
 
@@ -1142,16 +1355,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onOpenChange={(open) => {
             setPreviewOpen(open)
             if (!open) {
-              setOpenShareImmediately(false)
               setPreviewAnchorRect(null)
+              setPreviewAnchorEl(null)
             }
           }}
           onEdit={handleEventEdit}
           onDelete={() => {
             if (previewEvent) {
-              handleEventDelete(previewEvent.id)
+              if (previewEvent.viewOnly) {
+                setPendingRemoveInvite(previewEvent)
+                setRemoveInviteConfirmOpen(true)
+              } else {
+                handleEventDelete(previewEvent.id)
+              }
               setPreviewOpen(false)
               setPreviewAnchorRect(null)
+              setPreviewAnchorEl(null)
             }
           }}
           _onDuplicate={() => {
@@ -1161,10 +1380,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           }}
           language={language}
           _timezone={timezone}
-          openShareImmediately={openShareImmediately}
-          shareOnlyMode={shareOnlyMode}
           anchorRect={previewAnchorRect}
-          modal={view !== 'year'}
+          anchorElement={previewAnchorEl}
+          scrollContainerRef={calendarRef}
+          onInvitesChange={handlePreviewInvitesChange}
+          onCategoryChange={handlePreviewCategoryChange}
         />
 
         <EventDialog
@@ -1173,10 +1393,67 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onEventAdd={handleEventAdd}
           onEventUpdate={handleEventUpdate}
           onEventDelete={handleEventDelete}
+          onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
+        />
+
+        <Dialog
+          open={!!pendingInvites}
+          onOpenChange={(open) => {
+            if (!open) setPendingInvites(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Invitations?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {pendingInvites?.emails.length} participant
+              {pendingInvites && pendingInvites.emails.length !== 1
+                ? 's'
+                : ''}{' '}
+              added. Send invitation emails now?
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleSkipInvites}>
+                Not now
+              </Button>
+              <Button onClick={handleSendInvites}>Send</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          language={languageObj.code}
+          setLanguage={(lang: string) => {
+            setLanguage(lang as Parameters<typeof setLanguage>[0])
+            updateSettings({ language: lang }).catch(() => {})
+          }}
+          firstDayOfWeek={firstDayOfWeekObj}
+          setFirstDayOfWeek={handleFirstDayOfWeekChange}
+          timezone={timezone}
+          setTimezone={handleTimezoneChange}
+          defaultView={CalendarViewType.create(
+            defaultView as CalendarViewTypeValue,
+          )}
+          setDefaultView={(view: CalendarViewType) =>
+            handleDefaultViewChange(view.value as CalendarViewTypeValue)
+          }
+          enableShortcuts={enableShortcuts}
+          setEnableShortcuts={handleEnableShortcutsChange}
+          timeFormat={timeFormatObj}
+          setTimeFormat={(format: TimeFormat) =>
+            handleTimeFormatChange(format.value as TimeFormatValue)
+          }
+          events={events}
+          onImportEvents={handleImportEvents}
+          focusSection={focusUserProfileSection}
+          onFocusSectionHandled={() => setFocusUserProfileSection(null)}
         />
 
         <AlertDialog
@@ -1197,6 +1474,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground"
                 onClick={confirmEventDelete}
+              >
+                {t.delete}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={removeInviteConfirmOpen}
+          onOpenChange={setRemoveInviteConfirmOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.deleteEventConfirmTitle}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t.deleteEventConfirmDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingRemoveInvite(null)}>
+                {t.cancel}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground"
+                onClick={confirmRemoveInvite}
               >
                 {t.delete}
               </AlertDialogAction>

@@ -32,7 +32,7 @@ import {
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
 } from '@/components/app/views/event-colors'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -50,6 +50,7 @@ interface EventDialogProps {
   onEventAdd: (event: CalendarEvent) => void
   onEventUpdate: (event: CalendarEvent) => void
   onEventDelete: (eventId: string) => void
+  onInvitesAdded: (eventId: string, emails: string[]) => void
   initialDate: Date
   initialEndDate?: Date | null
   event: CalendarEvent | null
@@ -69,6 +70,7 @@ export default function EventDialog({
   onEventAdd,
   onEventUpdate,
   onEventDelete,
+  onInvitesAdded,
   initialDate,
   initialEndDate,
   event,
@@ -88,6 +90,7 @@ export default function EventDialog({
   const [isAllDay, setIsAllDay] = useState(false)
   const [endTimeError, setEndTimeError] = useState(false)
   const [startTimeError, setStartTimeError] = useState(false)
+  const [participantError, setParticipantError] = useState('')
   const [endDateOpen, setEndDateOpen] = useState(false)
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endTimeOpen, setEndTimeOpen] = useState(false)
@@ -236,7 +239,22 @@ export default function EventDialog({
         setEndTime(extractTimeFromDate(endDateObj))
 
         setLocation(event.location || '')
-        setParticipants(event.participants.join(', '))
+
+        const existingParticipantEmails: string[] = []
+        const seenEmails = new Set<string>()
+        const addParticipantEmail = (email: string) => {
+          const trimmed = email.trim()
+          const key = trimmed.toLowerCase()
+          if (trimmed && !seenEmails.has(key)) {
+            seenEmails.add(key)
+            existingParticipantEmails.push(trimmed)
+          }
+        }
+        ;(event.participants ?? []).forEach(addParticipantEmail)
+        ;(event.invites ?? []).forEach((invite) =>
+          addParticipantEmail(invite.email),
+        )
+        setParticipants(existingParticipantEmails.join(', '))
         if (event.notification !== undefined) {
           if (
             event.notification > 0 &&
@@ -386,10 +404,46 @@ export default function EventDialog({
     return true
   }
 
+  const validateParticipants = (input: string): string[] | null => {
+    const emails = input
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (emails.length === 0) return []
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    for (const email of emails) {
+      if (!emailRegex.test(email)) {
+        setParticipantError(`Invalid email: ${email}`)
+        return null
+      }
+    }
+
+    if (emails.length > 20) {
+      setParticipantError('Maximum 20 participants allowed')
+      return null
+    }
+
+    const unique = [...new Set(emails.map((e) => e.toLowerCase()))]
+    if (unique.length !== emails.length) {
+      setParticipantError('Duplicate emails not allowed')
+      return null
+    }
+
+    setParticipantError('')
+    return emails
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
+      return
+    }
+
+    const participantEmails = validateParticipants(participants)
+    if (participantEmails === null) {
       return
     }
 
@@ -418,19 +472,14 @@ export default function EventDialog({
       : fullEndDate
 
     const eventData: CalendarEvent = {
-      id:
-        event?.id ||
-        Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      id: event?.id || crypto.randomUUID(),
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
       recurrence: 'none',
       location,
-      participants: participants
-        .split(',')
-        .map((p) => p.trim())
-        .filter(Boolean),
+      participants: participantEmails,
       notification: notificationMinutes,
       description,
       color,
@@ -439,11 +488,21 @@ export default function EventDialog({
     }
 
     if (event) {
+      const alreadyInvited = new Set(
+        [
+          ...(event.participants ?? []),
+          ...(event.invites ?? []).map((i) => i.email),
+        ].map((email) => email.trim().toLowerCase()),
+      )
+      const newEmails = participantEmails.filter(
+        (email) => !alreadyInvited.has(email.toLowerCase()),
+      )
       onEventUpdate(eventData)
+      onInvitesAdded(event.id, newEmails)
     } else {
       onEventAdd(eventData)
+      onInvitesAdded(eventData.id, participantEmails)
     }
-    onOpenChange(false)
   }
 
   const renderTimeSelector = (
@@ -537,317 +596,328 @@ export default function EventDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
-          </div>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pb-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">{t.title}</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="all-day"
-              checked={isAllDay}
-              onCheckedChange={(checked) => {
-                const isChecked = checked as boolean
-                setIsAllDay(isChecked)
-
-                if (isChecked) {
-                  setStartTime({
-                    hours: '00',
-                    minutes: '00',
-                    rawInput: '00:00',
-                    isCustomInput: false,
-                  })
-
-                  setEndTime({
-                    hours: '23',
-                    minutes: '59',
-                    rawInput: '23:59',
-                    isCustomInput: false,
-                  })
-                }
-              }}
-            />
-            <Label htmlFor="all-day">{t.allDay}</Label>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t.startTime}</Label>
-              <div className="flex flex-col space-y-2">
-                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(startDate, 'yyyy-MM-dd')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          handleStartDateChange(date)
-                          setStartDateOpen(false)
-                        }
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                {!isAllDay &&
-                  renderTimeSelector(
-                    startTime,
-                    handleStartTimeChange,
-                    handleStartTimeInput,
-                    startTimeOpen,
-                    setStartTimeOpen,
-                    startTimeError,
-                  )}
-              </div>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex justify-between items-center">
+              <DialogTitle>{event ? t.update : t.createEvent}</DialogTitle>
             </div>
-
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 pb-6">
             <div className="space-y-2">
-              <Label>{t.endTime}</Label>
-              <div className="flex flex-col space-y-2">
-                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(endDate, 'yyyy-MM-dd')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setEndDate(date)
-                          setEndDateOpen(false)
-
-                          const fullStartDate = getFullStartDate()
-                          const possibleEndDate = combineDateTime(date, endTime)
-
-                          if (possibleEndDate < fullStartDate) {
-                            setEndTimeError(true)
-                          } else {
-                            setEndTimeError(false)
-                          }
-                        }
-                      }}
-                      disabled={(date) => date < startDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                {!isAllDay &&
-                  renderTimeSelector(
-                    endTime,
-                    (hours, minutes) => {
-                      setEndTime({
-                        hours,
-                        minutes,
-                        rawInput: `${hours}:${minutes}`,
-                        isCustomInput: false,
-                      })
-
-                      const fullStartDate = getFullStartDate()
-                      const possibleEndDate = set(new Date(endDate), {
-                        hours: parseInt(hours, 10),
-                        minutes: parseInt(minutes, 10),
-                        seconds: 0,
-                      })
-
-                      setEndTimeError(possibleEndDate < fullStartDate)
-                    },
-                    handleEndTimeInput,
-                    endTimeOpen,
-                    setEndTimeOpen,
-                    endTimeError,
-                  )}
-              </div>
-              {endTimeError && !isAllDay && (
-                <p className="text-xs text-red-500">{t.endTimeError}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="calendar">{t.calendar}</Label>
-            <Select
-              value={calendarSelectValue}
-              onValueChange={(value) => {
-                setSelectedCalendar(value)
-                if (value !== '__uncategorized__') {
-                  setColor(getEventColorByCalendarId(value))
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t.selectCalendar} />
-              </SelectTrigger>
-              <SelectContent>
-                {calendars.length > 0 && (
-                  <SelectItem value="__uncategorized__">
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
-                      {t.uncategorized}
-                    </div>
-                  </SelectItem>
-                )}
-                {calendars.map((calendar) => (
-                  <SelectItem key={calendar.id} value={calendar.id}>
-                    <div className="flex items-center">
-                      <div
-                        className={cn(
-                          'w-4 h-4 rounded-full mr-2',
-                          calendar.color,
-                        )}
-                      />
-                      {calendar.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="color">{t.color}</Label>
-            <Select value={color} onValueChange={setColor}>
-              <SelectTrigger>
-                <SelectValue placeholder={t.selectColor} />
-              </SelectTrigger>
-              <SelectContent>
-                {EVENT_COLOR_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center">
-                      <div
-                        className={cn('w-4 h-4 rounded-full mr-2')}
-                        style={{
-                          backgroundColor: EVENT_BG_TO_ACCENT[option.value],
-                        }}
-                      />
-                      {t[option.labelKey]}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="location">{t.location}</Label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="participants">{t.participants}</Label>
-            <Input
-              id="participants"
-              value={participants}
-              onChange={(e) => setParticipants(e.target.value)}
-              placeholder={t.participantsPlaceholder}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notification">{t.notification}</Label>
-            <Select value={notification} onValueChange={setNotification}>
-              <SelectTrigger>
-                <SelectValue placeholder={t.selectNotification} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">{t.atEventTime}</SelectItem>
-                <SelectItem value="5">
-                  {t.minutesBefore.replace('{minutes}', '5')}
-                </SelectItem>
-                <SelectItem value="15">
-                  {t.minutesBefore.replace('{minutes}', '15')}
-                </SelectItem>
-                <SelectItem value="30">
-                  {t.minutesBefore.replace('{minutes}', '30')}
-                </SelectItem>
-                <SelectItem value="60">
-                  {t.hourBefore.replace('{hours}', '1')}
-                </SelectItem>
-                <SelectItem value="custom">{t.customTime}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {notification === 'custom' && (
-            <div className="space-y-2">
-              <Label htmlFor="custom-notification-time">
-                {t.customTimeMinutes}
-              </Label>
+              <Label htmlFor="title">{t.title}</Label>
               <Input
-                id="custom-notification-time"
-                type="number"
-                min="1"
-                value={customNotificationTime}
-                onChange={(e) => setCustomNotificationTime(e.target.value)}
-                required
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="description">{t.description}</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="all-day"
+                checked={isAllDay}
+                onCheckedChange={(checked) => {
+                  const isChecked = checked as boolean
+                  setIsAllDay(isChecked)
 
-          <div className="flex justify-end gap-2">
-            {event && (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => {
-                  onEventDelete(event.id)
-                  onOpenChange(false)
+                  if (isChecked) {
+                    setStartTime({
+                      hours: '00',
+                      minutes: '00',
+                      rawInput: '00:00',
+                      isCustomInput: false,
+                    })
+
+                    setEndTime({
+                      hours: '23',
+                      minutes: '59',
+                      rawInput: '23:59',
+                      isCustomInput: false,
+                    })
+                  }
+                }}
+              />
+              <Label htmlFor="all-day">{t.allDay}</Label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t.startTime}</Label>
+                <div className="flex flex-col space-y-2">
+                  <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(startDate, 'yyyy-MM-dd')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            handleStartDateChange(date)
+                            setStartDateOpen(false)
+                          }
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {!isAllDay &&
+                    renderTimeSelector(
+                      startTime,
+                      handleStartTimeChange,
+                      handleStartTimeInput,
+                      startTimeOpen,
+                      setStartTimeOpen,
+                      startTimeError,
+                    )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t.endTime}</Label>
+                <div className="flex flex-col space-y-2">
+                  <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(endDate, 'yyyy-MM-dd')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setEndDate(date)
+                            setEndDateOpen(false)
+
+                            const fullStartDate = getFullStartDate()
+                            const possibleEndDate = combineDateTime(
+                              date,
+                              endTime,
+                            )
+
+                            if (possibleEndDate < fullStartDate) {
+                              setEndTimeError(true)
+                            } else {
+                              setEndTimeError(false)
+                            }
+                          }
+                        }}
+                        disabled={(date) => date < startDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {!isAllDay &&
+                    renderTimeSelector(
+                      endTime,
+                      (hours, minutes) => {
+                        setEndTime({
+                          hours,
+                          minutes,
+                          rawInput: `${hours}:${minutes}`,
+                          isCustomInput: false,
+                        })
+
+                        const fullStartDate = getFullStartDate()
+                        const possibleEndDate = set(new Date(endDate), {
+                          hours: parseInt(hours, 10),
+                          minutes: parseInt(minutes, 10),
+                          seconds: 0,
+                        })
+
+                        setEndTimeError(possibleEndDate < fullStartDate)
+                      },
+                      handleEndTimeInput,
+                      endTimeOpen,
+                      setEndTimeOpen,
+                      endTimeError,
+                    )}
+                </div>
+                {endTimeError && !isAllDay && (
+                  <p className="text-xs text-red-500">{t.endTimeError}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="calendar">{t.calendar}</Label>
+              <Select
+                value={calendarSelectValue}
+                onValueChange={(value) => {
+                  setSelectedCalendar(value)
+                  if (value !== '__uncategorized__') {
+                    setColor(getEventColorByCalendarId(value))
+                  }
                 }}
               >
-                {t.delete}
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder={t.selectCalendar} />
+                </SelectTrigger>
+                <SelectContent>
+                  {calendars.length > 0 && (
+                    <SelectItem value="__uncategorized__">
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
+                        {t.uncategorized}
+                      </div>
+                    </SelectItem>
+                  )}
+                  {calendars.map((calendar) => (
+                    <SelectItem key={calendar.id} value={calendar.id}>
+                      <div className="flex items-center">
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded-full mr-2',
+                            calendar.color,
+                          )}
+                        />
+                        {calendar.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="color">{t.color}</Label>
+              <Select value={color} onValueChange={setColor}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t.selectColor} />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_COLOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center">
+                        <div
+                          className={cn('w-4 h-4 rounded-full mr-2')}
+                          style={{
+                            backgroundColor: EVENT_BG_TO_ACCENT[option.value],
+                          }}
+                        />
+                        {t[option.labelKey]}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">{t.location}</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="participants">{t.participants}</Label>
+              <Input
+                id="participants"
+                value={participants}
+                onChange={(e) => {
+                  setParticipants(e.target.value)
+                  if (participantError) setParticipantError('')
+                }}
+                placeholder={t.participantsPlaceholder}
+              />
+              {participantError && (
+                <p className="text-xs text-destructive">{participantError}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notification">{t.notification}</Label>
+              <Select value={notification} onValueChange={setNotification}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t.selectNotification} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">{t.atEventTime}</SelectItem>
+                  <SelectItem value="5">
+                    {t.minutesBefore.replace('{minutes}', '5')}
+                  </SelectItem>
+                  <SelectItem value="15">
+                    {t.minutesBefore.replace('{minutes}', '15')}
+                  </SelectItem>
+                  <SelectItem value="30">
+                    {t.minutesBefore.replace('{minutes}', '30')}
+                  </SelectItem>
+                  <SelectItem value="60">
+                    {t.hourBefore.replace('{hours}', '1')}
+                  </SelectItem>
+                  <SelectItem value="custom">{t.customTime}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {notification === 'custom' && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-notification-time">
+                  {t.customTimeMinutes}
+                </Label>
+                <Input
+                  id="custom-notification-time"
+                  type="number"
+                  min="1"
+                  value={customNotificationTime}
+                  onChange={(e) => setCustomNotificationTime(e.target.value)}
+                  required
+                />
+              </div>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t.cancel}
-            </Button>
-            <Button type="submit">{event ? t.update : t.save}</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">{t.description}</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              {event && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    onEventDelete(event.id)
+                    onOpenChange(false)
+                  }}
+                >
+                  {t.delete}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                {t.cancel}
+              </Button>
+              <Button type="submit">{event ? t.update : t.save}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

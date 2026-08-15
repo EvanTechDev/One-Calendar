@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest-setup.ts'],
-    include: ['**/*.test.{ts,tsx}'],
+    include: ['../../tests/calendar/**/*.test.{ts,tsx}'],
   },
   resolve: {
     alias: {
@@ -14,6 +14,11 @@ export default defineConfig({
       '@zntr/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@zntr/utils': path.resolve(__dirname, '../../packages/utils/src'),
       '@zntr/i18n': path.resolve(__dirname, '../../packages/i18n/src'),
+    },
+  },
+  server: {
+    fs: {
+      allow: ['../..'],
     },
   },
 })

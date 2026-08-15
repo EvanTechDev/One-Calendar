@@ -56,18 +56,32 @@ export async function getCachedSession(token: string): Promise<Session> {
 }
 
 export async function setCachedSession(
-  session: NonNullable<Session>,
+  session_: NonNullable<Session>,
 ): Promise<void> {
-  const ttl = computeTtl(session.session.expiresAt)
+  const { session, ...rest } = session_
+  const sanitized = {
+    ...rest,
+    session: { ...session, token: '' },
+  }
+  const ttl = computeTtl(session.expiresAt)
   if (ttl <= 0) return
 
   await withRedis<void>(
     async (redis) => {
       await redis.setex(
-        sessionKey(session.session.token),
+        sessionKey(session_.session.token),
         ttl,
-        JSON.stringify(session),
+        JSON.stringify(sanitized),
       )
+    },
+    async () => {},
+  )
+}
+
+export async function invalidateCachedSession(token: string): Promise<void> {
+  await withRedis<void>(
+    async (redis) => {
+      await redis.del(sessionKey(token))
     },
     async () => {},
   )

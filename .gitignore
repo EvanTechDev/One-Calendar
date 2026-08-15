@@ -52,3 +52,5 @@ next-env.d.ts
 # session status (not committed)
 STATUS.md
 status.md
+# top-level tests resolve bare imports via app node_modules
+!tests/node_modules

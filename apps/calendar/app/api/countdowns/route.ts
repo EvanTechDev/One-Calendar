@@ -5,18 +5,9 @@ import { eq, and } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
+import { countdownSchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'
-
-type CountdownInput = {
-  id?: string
-  name: string
-  targetDate: string
-  repeat?: 'none' | 'weekly' | 'monthly' | 'yearly'
-  description?: string | null
-  color?: string | null
-  icon?: string | null
-}
 
 function decryptCountdown(cd: typeof countdowns.$inferSelect) {
   return {
@@ -44,8 +35,27 @@ export const POST = async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: CountdownInput = await request.json()
+  const parsed = countdownSchema.safeParse(
+    await request.json().catch(() => null),
+  )
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: firstZodMessage(parsed.error) },
+      { status: 400 },
+    )
+  }
+  const body = parsed.data
   const id = body.id ?? crypto.randomUUID()
+
+  if (body.id) {
+    const [existing] = await getDb()
+      .select({ userId: countdowns.userId })
+      .from(countdowns)
+      .where(eq(countdowns.id, id))
+    if (existing && existing.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const [cd] = await getDb()
     .insert(countdowns)

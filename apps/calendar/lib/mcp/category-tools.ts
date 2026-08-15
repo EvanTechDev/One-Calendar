@@ -4,12 +4,35 @@ import { eq, and } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 
+export const CATEGORY_COLORS = [
+  { name: 'blue', value: 'bg-blue-500' },
+  { name: 'green', value: 'bg-green-500' },
+  { name: 'yellow', value: 'bg-yellow-500' },
+  { name: 'red', value: 'bg-red-500' },
+  { name: 'purple', value: 'bg-purple-500' },
+  { name: 'pink', value: 'bg-pink-500' },
+  { name: 'teal', value: 'bg-teal-500' },
+] as const
+
+export const CATEGORY_COLOR_VALUES = CATEGORY_COLORS.map((c) => c.value)
+
+function normalizeCategoryColor(color: string): string {
+  if (!color) return 'bg-blue-500'
+  const trimmed = color.trim()
+  const byName = CATEGORY_COLORS.find((c) => c.name === trimmed)
+  if (byName) return byName.value
+  const byValue = CATEGORY_COLORS.find((c) => c.value === trimmed)
+  if (byValue) return byValue.value
+  return 'bg-blue-500'
+}
+
 export async function listCategories(userId: string) {
   const db = await getDb()
   const rows = await db
     .select()
     .from(calendarCategories)
     .where(eq(calendarCategories.userId, userId))
+    .orderBy(calendarCategories.sortOrder)
 
   return rows.map((cat) => ({
     ...cat,
@@ -30,7 +53,7 @@ export async function createCategory(
       id,
       userId,
       name: encryptField(id, data.name) ?? data.name,
-      color: data.color,
+      color: normalizeCategoryColor(data.color),
       sortOrder: data.sort_order ?? 0,
     })
     .returning()
@@ -51,7 +74,8 @@ export async function updateCategory(
   const values: Record<string, unknown> = {}
   if (data.name !== undefined)
     values.name = encryptField(categoryId, data.name) ?? data.name
-  if (data.color !== undefined) values.color = data.color
+  if (data.color !== undefined && data.color !== null)
+    values.color = normalizeCategoryColor(data.color)
   if (data.sort_order !== undefined) values.sortOrder = data.sort_order
 
   const [row] = await db

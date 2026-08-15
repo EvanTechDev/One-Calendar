@@ -1,10 +1,10 @@
 'use client'
 
 import type React from 'react'
-import { Edit3, Share2, Bookmark, Trash2 } from 'lucide-react'
+import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
 import { translations } from '@zntr/i18n/calendar'
 import {
@@ -55,10 +55,19 @@ interface EventRendererProps {
   ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDragStart?: (event: CalendarEvent, e: React.MouseEvent) => void
   onEventDragEnd?: () => void
+  onEventResizeStart?: (
+    event: CalendarEvent,
+    edge: 'start' | 'end',
+    e: React.MouseEvent,
+    day: Date,
+    startMinutes: number,
+    endMinutes: number,
+  ) => void
+  resizeOverride?: { startMinutes: number; endMinutes: number } | null
+  suppressResizeClickRef?: React.MutableRefObject<boolean>
   isDragging?: boolean
   ignoreNextEventClickRef?: React.MutableRefObject<boolean>
   isDraggingRef?: React.MutableRefObject<boolean>
@@ -90,10 +99,12 @@ export function EventRenderer({
   onEventClick,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDragStart,
   onEventDragEnd,
+  onEventResizeStart,
+  resizeOverride,
+  suppressResizeClickRef,
   isDragging: _isDragging,
   ignoreNextEventClickRef,
   isDraggingRef,
@@ -107,14 +118,25 @@ export function EventRenderer({
 
   const menuLabels = {
     edit: t.edit,
-    share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
   }
 
   const startMinutes = layout.start.getHours() * 60 + layout.start.getMinutes()
   const endMinutes = layout.end.getHours() * 60 + layout.end.getMinutes()
-  const duration = endMinutes - startMinutes
+  const isResizing = resizeOverride !== undefined && resizeOverride !== null
+  const displayStart = isResizing
+    ? Math.min(resizeOverride.startMinutes, resizeOverride.endMinutes)
+    : startMinutes
+  const displayEnd = isResizing
+    ? Math.max(resizeOverride.startMinutes, resizeOverride.endMinutes)
+    : endMinutes
+  const duration = displayEnd - displayStart
+
+  const displayStartDate = new Date(layout.start)
+  displayStartDate.setHours(0, displayStart, 0, 0)
+  const displayEndDate = new Date(layout.start)
+  displayEndDate.setHours(0, displayEnd, 0, 0)
 
   const minHeight = 20
   const height = Math.max(duration, minHeight)
@@ -122,9 +144,12 @@ export function EventRenderer({
   const width = `calc((100% - 8px) / ${layout.totalColumns})`
   const left = `calc(${layout.column} * ${width})`
 
+  const canResize = !event.viewOnly && !layout.isMultiDay && showTime
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (ignoreNextEventClickRef?.current) return
+    if (suppressResizeClickRef?.current) return
     if (!isDraggingRef?.current) {
       onEventClick(event, e.currentTarget as HTMLElement, e.clientX, e.clientY)
     }
@@ -159,7 +184,7 @@ export function EventRenderer({
             _className,
           )}
           style={{
-            top: `${startMinutes}px`,
+            top: `${displayStart}px`,
             height: `${height}px`,
             opacity: isDark ? 1 : 0.9,
             backgroundColor: getEventBackgroundColor(event.color, isDark),
@@ -173,6 +198,36 @@ export function EventRenderer({
           onContextMenu={handleContextMenu}
           onClick={handleClick}
         >
+          {canResize && (
+            <>
+              <div
+                className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-lg"
+                onMouseDown={(e) =>
+                  onEventResizeStart?.(
+                    event,
+                    'start',
+                    e,
+                    layout.start,
+                    startMinutes,
+                    endMinutes,
+                  )
+                }
+              />
+              <div
+                className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-lg"
+                onMouseDown={(e) =>
+                  onEventResizeStart?.(
+                    event,
+                    'end',
+                    e,
+                    layout.start,
+                    startMinutes,
+                    endMinutes,
+                  )
+                }
+              />
+            </>
+          )}
           <div
             className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
             style={{ backgroundColor: getEventAccentColor(event.color) }}
@@ -199,14 +254,14 @@ export function EventRenderer({
                 {layout.isMultiDay ? (
                   <>
                     {formatDateWithTimezone(
-                      layout.start,
+                      displayStartDate,
                       config.language,
                       config.timeFormat,
                       config.timezone,
                     )}{' '}
                     -{' '}
                     {formatDateWithTimezone(
-                      layout.end,
+                      displayEndDate,
                       config.language,
                       config.timeFormat,
                       config.timezone,
@@ -215,13 +270,13 @@ export function EventRenderer({
                 ) : (
                   <>
                     {layoutEngine.formatHourMinute(
-                      layout.start.getHours(),
-                      layout.start.getMinutes(),
+                      displayStartDate.getHours(),
+                      displayStartDate.getMinutes(),
                     )}{' '}
                     -{' '}
                     {layoutEngine.formatHourMinute(
-                      layout.end.getHours(),
-                      layout.end.getMinutes(),
+                      displayEndDate.getHours(),
+                      displayEndDate.getMinutes(),
                     )}
                   </>
                 )}
@@ -242,17 +297,6 @@ export function EventRenderer({
         >
           <Edit3 className="mr-2 h-4 w-4" />
           {menuLabels.edit}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            queueIgnoreEventClick?.()
-            onShareEvent?.(event)
-          }}
-        >
-          <Share2 className="mr-2 h-4 w-4" />
-          {menuLabels.share}
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={(e) => {
@@ -295,7 +339,6 @@ interface AllDayEventRendererProps {
   ) => void
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDragStart?: (event: CalendarEvent, e: React.MouseEvent) => void
   onEventDragEnd?: () => void
@@ -315,7 +358,6 @@ export function AllDayEventRenderer({
   onEventClick,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDragStart,
   onEventDragEnd,
@@ -331,7 +373,6 @@ export function AllDayEventRenderer({
 
   const menuLabels = {
     edit: t.edit,
-    share: t.share,
     bookmark: t.bookmark,
     delete: t.delete,
   }
@@ -412,17 +453,6 @@ export function AllDayEventRenderer({
         >
           <Edit3 className="mr-2 h-4 w-4" />
           {menuLabels.edit}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            queueIgnoreEventClick?.()
-            onShareEvent?.(event)
-          }}
-        >
-          <Share2 className="mr-2 h-4 w-4" />
-          {menuLabels.share}
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={(e) => {

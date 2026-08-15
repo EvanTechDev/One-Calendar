@@ -2,12 +2,15 @@ import * as React from 'react'
 import {
   Body,
   Button,
+  Column,
   Container,
   Head,
-  Hr,
+  Heading,
   Html,
   Img,
+  Link,
   Preview,
+  Row,
   Section,
   Text,
   render,
@@ -20,9 +23,13 @@ interface AuthEmailTemplateProps {
   actionLabel?: string
   actionUrl?: string
   secondary?: string
+  code?: string
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+
+const fontFamily =
+  'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif'
 
 function AuthEmailTemplate({
   preview,
@@ -31,6 +38,7 @@ function AuthEmailTemplate({
   actionLabel,
   actionUrl,
   secondary,
+  code,
 }: AuthEmailTemplateProps) {
   return (
     <Html lang="en">
@@ -40,103 +48,131 @@ function AuthEmailTemplate({
       {/* Background */}
       <Body
         style={{
-          backgroundColor: '#fafafa',
-          fontFamily:
-            '"Geist", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+          backgroundColor: '#f3f4f6',
+          fontFamily,
           margin: 0,
           padding: '40px 0',
+          width: '100%',
         }}
       >
         <Container
           style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e5e5',
-            borderRadius: '8px',
             margin: '0 auto',
-            maxWidth: '480px',
-            padding: '0',
-            overflow: 'hidden',
+            maxWidth: '640px',
+            width: '100%',
           }}
         >
           {/* Header */}
-          <Section
-            style={{
-              borderBottom: '1px solid #e5e5e5',
-              padding: '24px 32px',
-            }}
-          >
-            <table cellPadding={0} cellSpacing={0}>
-              <tr>
-                <td style={{ verticalAlign: 'middle' }}>
-                  <Img
-                    src={`${baseUrl}/icon.svg`}
-                    alt="One Calendar"
-                    width={20}
-                    height={20}
-                    style={{ display: 'block' }}
-                  />
-                </td>
-                <td
+          <Section style={{ padding: '16px 24px' }}>
+            <Row>
+              <Column style={{ verticalAlign: 'middle' }}>
+                <Img
+                  src={`${baseUrl}/icon.svg`}
+                  alt="One Calendar"
+                  width={23}
+                  height={23}
+                  style={{ display: 'block' }}
+                />
+              </Column>
+              <Column align="right" style={{ verticalAlign: 'middle' }}>
+                <Text
                   style={{
-                    paddingLeft: '8px',
-                    verticalAlign: 'middle',
+                    color: '#7b7d81',
+                    fontSize: '13px',
+                    fontWeight: 420,
+                    letterSpacing: '-0.039px',
+                    lineHeight: '1.5',
+                    margin: 0,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: '#000000',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      letterSpacing: '-0.01em',
-                      margin: 0,
-                    }}
-                  >
-                    One Calendar
-                  </Text>
-                </td>
-              </tr>
-            </table>
+                  One Calendar
+                </Text>
+              </Column>
+            </Row>
           </Section>
 
-          {/* Body */}
-          <Section style={{ padding: '32px 32px 0' }}>
-            <Text
+          {/* Main card */}
+          <Section
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              padding: '64px 40px',
+              textAlign: 'center',
+            }}
+          >
+            <Img
+              src={`${baseUrl}/icon.svg`}
+              alt="One Calendar"
+              width={48}
+              height={48}
+              style={{ display: 'block', margin: '0 auto 20px' }}
+            />
+
+            <Heading
+              as="h1"
               style={{
-                color: '#000000',
-                fontSize: '20px',
+                color: '#14171e',
+                fontSize: '28px',
                 fontWeight: 600,
-                letterSpacing: '-0.025em',
-                lineHeight: '28px',
-                margin: '0 0 16px',
+                letterSpacing: '-0.084px',
+                lineHeight: '1.3',
+                margin: '0 0 24px',
               }}
             >
               {title}
-            </Text>
+            </Heading>
 
             <Text
               style={{
-                color: '#666666',
-                fontSize: '14px',
-                lineHeight: '24px',
-                margin: '0 0 24px',
+                color: '#43454b',
+                fontSize: '16px',
+                fontWeight: 420,
+                letterSpacing: '-0.048px',
+                lineHeight: '1.5',
+                margin: '0 auto 32px',
+                maxWidth: '380px',
               }}
             >
               {body}
             </Text>
 
+            {code ? (
+              <Section style={{ margin: '0 0 32px', textAlign: 'center' }}>
+                <Text
+                  style={{
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: '8px',
+                    color: '#14171e',
+                    display: 'inline-block',
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    fontSize: '24px',
+                    fontWeight: 600,
+                    letterSpacing: '0.2em',
+                    lineHeight: '1.5',
+                    margin: 0,
+                    padding: '14px 24px',
+                  }}
+                >
+                  {code}
+                </Text>
+              </Section>
+            ) : null}
+
             {actionLabel && actionUrl ? (
-              <Section style={{ margin: '0 0 24px' }}>
+              <Section style={{ margin: '0 0 32px', textAlign: 'center' }}>
                 <Button
                   href={actionUrl}
                   style={{
-                    backgroundColor: '#000000',
-                    borderRadius: '6px',
+                    backgroundColor: '#14171e',
+                    borderRadius: '8px',
                     color: '#ffffff',
                     display: 'inline-block',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     fontWeight: 500,
-                    letterSpacing: '-0.01em',
-                    padding: '10px 18px',
+                    letterSpacing: '-0.048px',
+                    lineHeight: '24px',
+                    padding: '14px 28px',
                     textDecoration: 'none',
                   }}
                 >
@@ -148,10 +184,13 @@ function AuthEmailTemplate({
             {secondary ? (
               <Text
                 style={{
-                  color: '#888888',
+                  color: '#7b7d81',
                   fontSize: '13px',
-                  lineHeight: '22px',
-                  margin: '0 0 24px',
+                  fontWeight: 420,
+                  letterSpacing: '-0.039px',
+                  lineHeight: '1.5',
+                  margin: '0 auto',
+                  maxWidth: '400px',
                 }}
               >
                 {secondary}
@@ -160,47 +199,65 @@ function AuthEmailTemplate({
           </Section>
 
           {/* Footer */}
-          <Section style={{ padding: '0 32px 32px' }}>
-            <Hr style={{ borderColor: '#e5e5e5', margin: '0 0 24px' }} />
+          <Section style={{ padding: '40px 24px', textAlign: 'center' }}>
+            <Text
+              style={{
+                color: '#7b7d81',
+                fontSize: '13px',
+                fontWeight: 420,
+                letterSpacing: '-0.039px',
+                lineHeight: '1.5',
+                margin: '0 auto 24px',
+                maxWidth: '280px',
+              }}
+            >
+              A privacy-first calendar that keeps your data yours.
+            </Text>
 
-            <table width="100%" cellPadding={0} cellSpacing={0}>
-              <tr>
-                <td>
-                  <Text
-                    style={{
-                      color: '#999999',
-                      fontSize: '12px',
-                      margin: 0,
-                    }}
-                  >
-                    © {new Date().getFullYear()} One Calendar
-                  </Text>
-                </td>
-                <td align="right">
-                  <Text
-                    style={{
-                      color: '#999999',
-                      fontSize: '12px',
-                      margin: 0,
-                    }}
-                  >
-                    <a
-                      href={`${baseUrl}/privacy`}
-                      style={{ color: '#999999', textDecoration: 'underline' }}
-                    >
-                      Privacy
-                    </a>
-                    <span style={{ color: '#d4d4d4', margin: '0 6px' }}>·</span>
-                    <a
-                      href={`${baseUrl}/terms`}
-                      style={{ color: '#999999', textDecoration: 'underline' }}
-                    >
-                      Terms
-                    </a>
-                  </Text>
-                </td>
-              </tr>
-            </table>
+            <Text
+              style={{
+                color: '#7b7d81',
+                fontSize: '11px',
+                fontWeight: 420,
+                letterSpacing: '-0.033px',
+                lineHeight: '1.5',
+                margin: '0 0 12px',
+              }}
+            >
+              <Link
+                href={`${baseUrl}/privacy`}
+                style={{ color: '#7b7d81', textDecoration: 'underline' }}
+              >
+                Privacy
+              </Link>
+              <span style={{ color: '#d4d4d8', margin: '0 8px' }}>·</span>
+              <Link
+                href={`${baseUrl}/terms`}
+                style={{ color: '#7b7d81', textDecoration: 'underline' }}
+              >
+                Terms
+              </Link>
+              <span style={{ color: '#d4d4d8', margin: '0 8px' }}>·</span>
+              <Link
+                href="https://github.com/EvanTechDev/One-Calendar"
+                style={{ color: '#7b7d81', textDecoration: 'underline' }}
+              >
+                GitHub
+              </Link>
+            </Text>
+
+            <Text
+              style={{
+                color: '#7b7d81',
+                fontSize: '11px',
+                fontWeight: 420,
+                letterSpacing: '-0.033px',
+                lineHeight: '1.5',
+                margin: 0,
+              }}
+            >
+              © {new Date().getFullYear()} One Calendar
+            </Text>
           </Section>
         </Container>
       </Body>

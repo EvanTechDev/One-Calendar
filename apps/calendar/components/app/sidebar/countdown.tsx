@@ -328,7 +328,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       )
       toast(t.countdownUpdated, { description: countdown.name })
     } else {
-      setCountdowns((prev) => [...prev, countdown])
       toast(t.countdownAdded, { description: countdown.name })
     }
 
@@ -374,7 +373,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           variant="outline"
           size="sm"
           onClick={startAddCountdown}
-          className="w-full mb-4 bg-[#0066ff] text-white hover:bg-[#0052CC] border-[#0066ff]"
+          className="w-full mb-4"
         >
           <Plus className="mr-2 h-4 w-4" />
           {t.countdownAdd}

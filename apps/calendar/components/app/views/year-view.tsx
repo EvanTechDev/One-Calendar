@@ -10,10 +10,11 @@ import {
 } from 'date-fns'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { RemoveScroll } from 'react-remove-scroll'
 
 interface YearViewProps {
   date: Date
@@ -153,153 +154,159 @@ export default function YearView({
 
   const closePopover = useCallback(() => setPopover(null), [])
 
-  useEffect(() => {
-    document.body.style.overflow = popover ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [popover])
+  const popoverListRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="p-3 md:p-4" ref={containerRef}>
-      <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
-        {months.map((month) => (
-          <section key={month.label} className="space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">
-              {month.label}
-            </h2>
-            <div className="grid grid-cols-7 gap-y-1 text-center">
-              {weekdayLabels.map((weekday) => (
-                <div
-                  key={`${month.label}-${weekday}`}
-                  className="text-xs text-muted-foreground"
-                >
-                  {weekday}
-                </div>
-              ))}
-
-              {month.days.map((day) => {
-                const dayKey = format(day, 'yyyy-MM-dd')
-                const isToday = isSameDay(day, today)
-                const isCurrentMonth = isSameMonth(
-                  day,
-                  new Date(currentYear, month.monthIndex, 1),
-                )
-                const dayEvents = eventsByDayKey.get(dayKey)
-
-                return (
-                  <button
-                    key={`${month.label}-${dayKey}`}
-                    type="button"
-                    className={cn(
-                      'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
-                      !isCurrentMonth && 'text-muted-foreground',
-                      dayEvents && dayEvents.length > 0 && 'font-semibold',
-                      isToday &&
-                        isCurrentMonth &&
-                        'bg-[#0052CC] text-white hover:bg-[#0047B3]',
-                    )}
-                    onClick={(e) => handleDayClick(e, day, dayKey)}
+    <RemoveScroll enabled={!!popover} shards={[popoverListRef]}>
+      <div className="p-3 md:p-4" ref={containerRef}>
+        <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
+          {months.map((month) => (
+            <section key={month.label} className="space-y-1">
+              <h2 className="text-lg font-semibold tracking-tight">
+                {month.label}
+              </h2>
+              <div className="grid grid-cols-7 gap-y-1 text-center">
+                {weekdayLabels.map((weekday) => (
+                  <div
+                    key={`${month.label}-${weekday}`}
+                    className="text-xs text-muted-foreground"
                   >
-                    {format(day, 'd')}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <Popover
-        open={!!popover}
-        onOpenChange={(open) => {
-          if (!open) closePopover()
-        }}
-        modal={true}
-      >
-        <PopoverAnchor asChild>
-          <div
-            style={{
-              position: 'fixed',
-              left: popover ? popover.anchorRect.right : 0,
-              top: popover
-                ? popover.anchorRect.top + popover.anchorRect.height / 2
-                : 0,
-              width: 0,
-              height: 0,
-              pointerEvents: 'none',
-            }}
-          />
-        </PopoverAnchor>
-        {popover && (
-          <PopoverContent
-            side="right"
-            align="center"
-            sideOffset={8}
-            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
-          >
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">
-                {popover.day.toLocaleDateString(
-                  isZhLanguage(config.language.code as any) ? 'zh-CN' : 'en-US',
-                  {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  },
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={closePopover}
-                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            {popover.dayEvents.length > 0 ? (
-              <div className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5">
-                {popover.dayEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    className={cn(
-                      'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
-                      event.color,
-                    )}
-                    onClick={(e) => {
-                      closePopover()
-                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
-                    }}
-                    style={{
-                      backgroundColor: isDark
-                        ? getDarkBg(event.color)
-                        : undefined,
-                    }}
-                  >
-                    <div
-                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
-                      style={{ backgroundColor: getAccent(event.color) }}
-                    />
-                    <div
-                      style={{ color: getAccent(event.color) }}
-                      className="truncate"
-                    >
-                      {event.title || t.unnamedEvent}
-                    </div>
-                  </button>
+                    {weekday}
+                  </div>
                 ))}
+
+                {month.days.map((day) => {
+                  const dayKey = format(day, 'yyyy-MM-dd')
+                  const isToday = isSameDay(day, today)
+                  const isCurrentMonth = isSameMonth(
+                    day,
+                    new Date(currentYear, month.monthIndex, 1),
+                  )
+                  const dayEvents = eventsByDayKey.get(dayKey)
+
+                  return (
+                    <button
+                      key={`${month.label}-${dayKey}`}
+                      type="button"
+                      className={cn(
+                        'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
+                        !isCurrentMonth && 'text-muted-foreground',
+                        dayEvents && dayEvents.length > 0 && 'font-semibold',
+                        isToday &&
+                          isCurrentMonth &&
+                          'bg-[#0052CC] text-white hover:bg-[#0047B3]',
+                      )}
+                      onClick={(e) => handleDayClick(e, day, dayKey)}
+                    >
+                      {format(day, 'd')}
+                    </button>
+                  )
+                })}
               </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">
-                {t.noEventsFound}
+            </section>
+          ))}
+        </div>
+
+        <Popover
+          open={!!popover}
+          onOpenChange={(open) => {
+            if (!open) closePopover()
+          }}
+          modal={false}
+        >
+          <PopoverAnchor asChild>
+            <div
+              style={{
+                position: 'fixed',
+                left: popover ? popover.anchorRect.right : 0,
+                top: popover
+                  ? popover.anchorRect.top + popover.anchorRect.height / 2
+                  : 0,
+                width: 0,
+                height: 0,
+                pointerEvents: 'none',
+              }}
+            />
+          </PopoverAnchor>
+          {popover && (
+            <PopoverContent
+              side="right"
+              align="center"
+              sideOffset={8}
+              className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">
+                  {popover.day.toLocaleDateString(
+                    isZhLanguage(config.language.code as any)
+                      ? 'zh-CN'
+                      : 'en-US',
+                    {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    },
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={closePopover}
+                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
               </div>
-            )}
-          </PopoverContent>
-        )}
-      </Popover>
-    </div>
+
+              {popover.dayEvents.length > 0 ? (
+                <div
+                  ref={popoverListRef}
+                  className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5"
+                >
+                  {popover.dayEvents.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      className={cn(
+                        'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                        event.color,
+                      )}
+                      onClick={(e) => {
+                        onEventClick(
+                          event,
+                          e.currentTarget,
+                          e.clientX,
+                          e.clientY,
+                        )
+                      }}
+                      style={{
+                        backgroundColor: isDark
+                          ? getDarkBg(event.color)
+                          : undefined,
+                      }}
+                    >
+                      <div
+                        className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                        style={{ backgroundColor: getAccent(event.color) }}
+                      />
+                      <div
+                        style={{ color: getAccent(event.color) }}
+                        className="truncate"
+                      >
+                        {event.title || t.unnamedEvent}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  {t.noEventsFound}
+                </div>
+              )}
+            </PopoverContent>
+          )}
+        </Popover>
+      </div>
+    </RemoveScroll>
   )
 }

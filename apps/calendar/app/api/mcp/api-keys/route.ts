@@ -3,7 +3,7 @@ import { getAuthedUser } from '@/lib/api-helpers'
 import {
   generateApiKey,
   listApiKeys,
-  revokeApiKey,
+  deleteApiKey,
   updateApiKeyScopes,
 } from '@/lib/mcp/auth'
 
@@ -69,8 +69,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Key ID is required' }, { status: 400 })
   }
 
-  const revoked = await revokeApiKey(id, user.id)
-  if (!revoked) {
+  const deleted = await deleteApiKey(id, user.id)
+  if (!deleted) {
     return NextResponse.json({ error: 'Key not found' }, { status: 404 })
   }
 

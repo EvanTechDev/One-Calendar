@@ -1,6 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import { z } from 'zod'
+import {
+  COLOR_HEX_LIST,
+  COLOR_HEX_VALUES,
+  COLOR_NAME_LIST,
+  COLOR_NAMES,
+} from './colors'
+import { CATEGORY_COLOR_VALUES } from './category-tools'
+import { InvalidEventQueryError, ParticipantError } from './errors'
 
 const SCOPE_EVENTS_READ = 'events:read'
 const SCOPE_EVENTS_WRITE = 'events:write'
@@ -12,17 +20,25 @@ const SCOPE_SETTINGS_READ = 'settings:read'
 const SCOPE_SETTINGS_WRITE = 'settings:write'
 const SCOPE_PROFILE_READ = 'profile:read'
 
-const ALLOWED_HEX_COLORS = [
-  '#3B82F6',
-  '#10B981',
-  '#F59E0B',
-  '#EF4444',
-  '#8B5CF6',
-  '#EC4899',
-  '#6366F1',
-  '#FB923C',
-  '#14B8A6',
+const EVENT_STATUS_OPTIONS = ['confirmed', 'tentative', 'cancelled'] as const
+const TIME_PRESET_OPTIONS = [
+  'today',
+  'this_week',
+  'next_week',
+  'upcoming',
+  'past',
 ] as const
+const EVENT_SORT_FIELDS = [
+  'start_date',
+  'end_date',
+  'created_at',
+  'updated_at',
+] as const
+const EVENT_SEARCH_FIELDS = ['title', 'description', 'location'] as const
+
+const COLOR_DESCRIPTION = `Color by name (${COLOR_NAME_LIST}) or hex code (${COLOR_HEX_LIST})`
+
+const COLOR_SCHEMA = z.union([z.enum(COLOR_NAMES), z.enum(COLOR_HEX_VALUES)])
 
 const LANGUAGE_OPTIONS = [
   'bn',
@@ -78,6 +94,12 @@ function getUserId(authInfo?: AuthInfo): string {
   return id
 }
 
+function getUserEmail(authInfo?: AuthInfo): string {
+  const email = authInfo?.extra?.email as string | undefined
+  if (!email) throw new Error('Missing user email')
+  return email
+}
+
 function requireScope(authInfo: AuthInfo | undefined, scope: string): void {
   if (!authInfo?.scopes?.includes(scope)) {
     throw new Error(`Missing required scope: ${scope}`)
@@ -89,8 +111,25 @@ function respond(data: unknown) {
 }
 
 function respondError(err: unknown) {
+  console.error('MCP tool error:', err)
   return {
-    content: [{ type: 'text' as const, text: `Error: ${err}` }],
+    content: [{ type: 'text' as const, text: 'Internal server error' }],
+    isError: true as const,
+  }
+}
+
+function respondCliError(err: unknown): {
+  content: { type: 'text'; text: string }[]
+  isError: true
+} {
+  const message =
+    err instanceof InvalidEventQueryError || err instanceof ParticipantError
+      ? err.message
+      : 'Invalid request'
+  return {
+    content: [
+      { type: 'text' as const, text: JSON.stringify({ error: message }) },
+    ],
     isError: true as const,
   }
 }
@@ -106,6 +145,7 @@ export function createServer(): McpServer {
   )
 
   registerEventTools(server)
+  registerEventParticipantTools(server)
   registerCategoryTools(server)
   registerCountdownTools(server)
   registerSettingsTools(server)
@@ -117,17 +157,91 @@ export function createServer(): McpServer {
 function registerEventTools(server: McpServer): void {
   server.tool(
     'list_events',
-    'List calendar events, filter by date range or keyword',
+    `List calendar events with structured filtering, full-text search, sorting,
+field selection and pagination. Filter conditions are AND-ed; values within a
+single array are OR-ed. Ranges match events that overlap the interval.`,
     {
       start_date: z.string().optional().describe('Start date (ISO 8601)'),
       end_date: z.string().optional().describe('End date (ISO 8601)'),
       query: z.string().optional().describe('Search keyword'),
-      page: z.number().optional().default(1).describe('Page number'),
-      limit: z
-        .number()
+      page: z.number().optional().describe('Page number'),
+      limit: z.number().optional().describe('Items per page (max 100)'),
+      filter: z
+        .object({
+          time: z
+            .object({
+              start: z
+                .string()
+                .optional()
+                .describe('ISO 8601, inclusive lower bound'),
+              end: z
+                .string()
+                .optional()
+                .describe('ISO 8601, exclusive upper bound'),
+              preset: z
+                .enum(TIME_PRESET_OPTIONS)
+                .optional()
+                .describe(
+                  'Relative time preset; cannot be combined with start/end (weeks start on Monday)',
+                ),
+              timezone: z
+                .string()
+                .optional()
+                .describe(
+                  'IANA timezone for interpreting presets (defaults to user settings timezone)',
+                ),
+            })
+            .optional(),
+          category_ids: z.array(z.string()).optional(),
+          colors: z
+            .array(z.string())
+            .optional()
+            .describe('Color names, hex codes, or stored color values'),
+          status: z.array(z.enum(EVENT_STATUS_OPTIONS)).optional(),
+          is_all_day: z.boolean().optional(),
+          participants: z
+            .object({
+              emails: z.array(z.string().email()).optional(),
+              mode: z
+                .enum(['any', 'all'])
+                .optional()
+                .describe('"all" requires the event to include every email'),
+              exists: z
+                .boolean()
+                .optional()
+                .describe('true: has participants, false: has none'),
+            })
+            .optional(),
+        })
+        .optional(),
+      search: z
+        .object({
+          text: z.string().describe('Search text'),
+          fields: z
+            .array(z.enum(EVENT_SEARCH_FIELDS))
+            .optional()
+            .describe(
+              'Fields to search (default: title, description, location)',
+            ),
+        })
+        .optional(),
+      sort: z
+        .object({
+          field: z.enum(EVENT_SORT_FIELDS),
+          direction: z.enum(['asc', 'desc']).optional(),
+        })
         .optional()
-        .default(50)
-        .describe('Items per page (max 50)'),
+        .describe('Default: start_date asc with id as stable tiebreaker'),
+      fields: z
+        .array(z.string())
+        .optional()
+        .describe('Whitelist of fields to return; id is always included'),
+      pagination: z
+        .object({
+          page: z.number().optional(),
+          limit: z.number().optional(),
+        })
+        .optional(),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
@@ -135,16 +249,21 @@ function registerEventTools(server: McpServer): void {
       try {
         const { listEvents } = await import('./event-tools')
         return respond(
-          await listEvents(
-            userId,
-            params.start_date,
-            params.end_date,
-            params.query,
-            params.page ?? 1,
-            Math.min(params.limit ?? 50, 50),
-          ),
+          await listEvents(userId, {
+            start_date: params.start_date,
+            end_date: params.end_date,
+            query: params.query,
+            page: params.page,
+            limit: params.limit,
+            filter: params.filter,
+            search: params.search,
+            sort: params.sort,
+            fields: params.fields,
+            pagination: params.pagination,
+          }),
         )
       } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
         return respondError(err)
       }
     },
@@ -178,7 +297,12 @@ function registerEventTools(server: McpServer): void {
       start_date: z.string().describe('Start time (ISO 8601)'),
       end_date: z.string().describe('End time (ISO 8601)'),
       is_all_day: z.boolean().optional().default(false),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      status: z
+        .enum(EVENT_STATUS_OPTIONS)
+        .optional()
+        .default('confirmed')
+        .describe('Event status (default: confirmed)'),
+      color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -205,7 +329,8 @@ function registerEventTools(server: McpServer): void {
       start_date: z.string().optional(),
       end_date: z.string().optional(),
       is_all_day: z.boolean().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      status: z.enum(EVENT_STATUS_OPTIONS).optional(),
+      color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
     },
@@ -242,6 +367,175 @@ function registerEventTools(server: McpServer): void {
   )
 }
 
+function registerEventParticipantTools(server: McpServer): void {
+  server.tool(
+    'add_event_participants',
+    'Invite participants to an event. Sends invitation emails by default.',
+    {
+      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      emails: z
+        .array(z.string().email())
+        .min(1)
+        .max(20)
+        .describe('Participant emails'),
+      send_email: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Send invitation emails (default true)'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { addEventParticipants } = await import('./participant-tools')
+        return respond(
+          await addEventParticipants(
+            userId,
+            params.event_id,
+            params.emails,
+            params.send_email ?? true,
+          ),
+        )
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'resend_event_invite',
+    'Resend the invitation email to an existing participant',
+    {
+      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      email: z.string().email().describe('Participant email'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { resendEventInvite } = await import('./participant-tools')
+        return respond(
+          await resendEventInvite(userId, params.event_id, params.email),
+        )
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'remove_event_participant',
+    'Remove a participant (invite) from an event',
+    {
+      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      email: z.string().email().describe('Participant email to remove'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { removeEventParticipant } = await import('./participant-tools')
+        return respond(
+          await removeEventParticipant(userId, params.event_id, params.email),
+        )
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'list_event_participants',
+    'List all participants (invites) of an event',
+    {
+      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { listEventParticipants } = await import('./participant-tools')
+        return respond(await listEventParticipants(userId, params.event_id))
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'update_event_rsvp',
+    'Set your RSVP status for an event you were invited to (uses your own invite link)',
+    {
+      invite_token: z.string().describe('Your invite token'),
+      status: z
+        .enum(['pending', 'accepted', 'maybe', 'declined'])
+        .describe('New RSVP status'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
+      const userEmail = getUserEmail(extra.authInfo)
+      try {
+        const { updateInviteRsvp } = await import('./participant-tools')
+        return respond(
+          await updateInviteRsvp(userEmail, params.invite_token, params.status),
+        )
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'remove_event_from_my_calendar',
+    'Remove an invited event from your own calendar (does not affect the inviter)',
+    {
+      invite_token: z.string().describe('Your invite token'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
+      const userEmail = getUserEmail(extra.authInfo)
+      try {
+        const { removeEventFromMyCalendar } =
+          await import('./participant-tools')
+        return respond(
+          await removeEventFromMyCalendar(userEmail, params.invite_token),
+        )
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'list_my_event_invites',
+    'List all events you have been invited to, with your RSVP status and invite links',
+    {
+      status: z
+        .enum(['pending', 'accepted', 'maybe', 'declined'])
+        .optional()
+        .describe('Filter by RSVP status'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      const userEmail = getUserEmail(extra.authInfo)
+      try {
+        const { listMyEventInvites } = await import('./participant-tools')
+        return respond(await listMyEventInvites(userEmail, params.status))
+      } catch (err) {
+        if (err instanceof ParticipantError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+}
+
 function registerCategoryTools(server: McpServer): void {
   server.tool(
     'list_categories',
@@ -264,7 +558,7 @@ function registerCategoryTools(server: McpServer): void {
     'Create a new category',
     {
       name: z.string().describe('Category name'),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      color: z.enum(CATEGORY_COLOR_VALUES).describe('Category color'),
       sort_order: z.number().optional().default(0),
     },
     async (params, extra) => {
@@ -285,7 +579,7 @@ function registerCategoryTools(server: McpServer): void {
     {
       category_id: z.string(),
       name: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       sort_order: z.number().optional(),
     },
     async (params, extra) => {
@@ -358,7 +652,7 @@ function registerCountdownTools(server: McpServer): void {
       name: z.string().describe('Countdown name'),
       target_date: z.string().describe('Target date (ISO 8601)'),
       description: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).describe('Color'),
+      color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
       icon: z.string().optional(),
     },
     async (params, extra) => {
@@ -381,7 +675,7 @@ function registerCountdownTools(server: McpServer): void {
       name: z.string().optional(),
       target_date: z.string().optional(),
       description: z.string().optional(),
-      color: z.enum(ALLOWED_HEX_COLORS).optional(),
+      color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       icon: z.string().optional(),
     },
     async (params, extra) => {

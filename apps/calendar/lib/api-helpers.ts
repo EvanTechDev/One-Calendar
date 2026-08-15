@@ -14,9 +14,9 @@ export function decryptEvent(event: typeof calendarEvents.$inferSelect) {
     title: decryptField(event.id, event.title) ?? event.title,
     description: decryptField(event.id, event.description),
     location: decryptField(event.id, event.location),
-    participants: decryptJsonField(
+    participants: decryptJsonField<string[]>(
       event.id,
       event.participants as string | null | undefined,
-    ),
+    ) ?? [],
   }
 }

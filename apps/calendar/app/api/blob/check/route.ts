@@ -32,9 +32,10 @@ export async function GET(request: Request) {
       tables: tables.map((row) => row.table_name),
     })
   } catch (error) {
+    console.error('blob.check failed', error)
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       },
       { status: 500 },
     )

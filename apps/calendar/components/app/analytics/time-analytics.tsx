@@ -18,7 +18,7 @@ import {
   normalizeChartColor,
   resolveDateRange,
   type AnalyticsRangePreset,
-} from './analytics-utils'
+} from '@/lib/analytics/utils'
 import {
   Select,
   SelectContent,

@@ -1,0 +1,48 @@
+---
+title: Authentication methods
+description: API key, OAuth 2.0, and service account options for connecting integrations.
+---
+
+Different integrations use different authentication methods. Choosing the right method—and managing credentials properly—affects both security and reliability.
+
+## API keys
+
+API keys are long-lived tokens issued by the external service. They are the simplest authentication method and work well for server-to-server connections where OAuth is not available.
+
+**When to use:** Services that issue personal access tokens or API keys (most developer tools, data APIs).
+
+**How to rotate:**
+
+1. Generate a new key in the external service.
+2. Go to **Integrations → [Integration name] → Credentials**.
+3. Paste the new key and click **Save**.
+4. Verify the connection still works, then revoke the old key in the external service.
+
+<Warning>
+  Rotating a key while the old one is still in use causes a brief period of failed syncs. Minimize this by saving the new key first and revoking the old key only after verifying the connection.
+</Warning>
+
+## OAuth 2.0
+
+OAuth 2.0 lets users authorize the platform to act on their behalf without sharing a password. The platform handles the token refresh cycle automatically.
+
+**When to use:** SaaS tools that support OAuth (CRMs, productivity tools, communication platforms).
+
+**How it works:**
+
+1. Click **Authorize** on the connector setup page.
+2. You're redirected to the service's authorization screen.
+3. Sign in and approve the requested permissions.
+4. The platform stores the access token and refresh token securely.
+
+OAuth tokens expire regularly. The platform refreshes them automatically before expiry. If the refresh fails (for example, because permissions were revoked), the integration shows a **Reconnect** prompt.
+
+## Service accounts
+
+Service accounts are non-personal identities created in the external system specifically for machine-to-machine access. Common with Google Cloud, AWS, and enterprise SaaS platforms.
+
+**When to use:** Situations where access must not be tied to an individual user (avoids disruption if an employee leaves), or where the service does not support OAuth.
+
+**Setup:** Upload the credentials file (usually a JSON key or certificate) in the connector setup dialog. The platform stores it encrypted and uses it to authenticate all requests.
+
+**Rotation:** Generate a new service account key in the external service, upload it to the connector, verify the connection, then deactivate the old key.

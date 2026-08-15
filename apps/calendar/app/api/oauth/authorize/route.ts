@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { mcpDeviceCodes, mcpAuthRequests } from '@/lib/drizzle/schema'
+import { getServerSession } from '@/lib/auth/server'
+import {
+  mcpDeviceCodes,
+  mcpAuthRequests,
+  mcpOauthClients,
+} from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
+import { hashToken, redirectUriAllowed } from '@/lib/mcp/auth'
 
 export const runtime = 'nodejs'
 
@@ -16,14 +22,14 @@ export async function POST(request: NextRequest) {
     } else {
       body = await request.json().catch(() => ({}))
     }
-    const userId = body.user_id
-
-    if (!userId) {
+    const session = await getServerSession()
+    if (!session?.user) {
       return NextResponse.json(
-        { error: 'invalid_request', error_description: 'Missing user_id' },
-        { status: 400 },
+        { error: 'access_denied', error_description: 'Authentication required' },
+        { status: 401 },
       )
     }
+    const userId = session.user.id
 
     // Handle Device Code Grant flow
     if (body.user_code || body.code) {
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
         .from(mcpDeviceCodes)
         .where(
           and(
-            eq(mcpDeviceCodes.userCode, userCode),
+            eq(mcpDeviceCodes.userCode, hashToken(userCode)),
             eq(mcpDeviceCodes.status, 'pending'),
             gte(mcpDeviceCodes.expiresAt, new Date()),
           ),
@@ -79,36 +85,48 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      try {
-        const uri = new URL(redirectUri)
-        if (
-          uri.protocol !== 'https:' &&
-          !(
-            uri.hostname === 'localhost' ||
-            uri.hostname === '127.0.0.1'
-          )
-        ) {
-          return NextResponse.json(
-            {
-              error: 'invalid_request',
-              error_description:
-                'redirect_uri must use HTTPS (except localhost)',
-            },
-            { status: 400 },
-          )
-        }
-      } catch {
+      const db = await getDb()
+
+      const [client] = await db
+        .select({
+          id: mcpOauthClients.id,
+          isRevoked: mcpOauthClients.isRevoked,
+          redirectUris: mcpOauthClients.redirectUris,
+        })
+        .from(mcpOauthClients)
+        .where(and(eq(mcpOauthClients.id, clientId)))
+
+      if (!client || client.isRevoked) {
+        return NextResponse.json(
+          {
+            error: 'invalid_client',
+            error_description: 'Unknown or revoked client_id',
+          },
+          { status: 400 },
+        )
+      }
+
+      if (!redirectUriAllowed(client.redirectUris as string[], redirectUri)) {
         return NextResponse.json(
           {
             error: 'invalid_request',
-            error_description: 'Invalid redirect_uri',
+            error_description: 'redirect_uri not registered for this client',
+          },
+          { status: 400 },
+        )
+      }
+
+      if (!codeChallenge || codeChallengeMethod !== 'S256') {
+        return NextResponse.json(
+          {
+            error: 'invalid_request',
+            error_description: 'code_challenge with method S256 is required',
           },
           { status: 400 },
         )
       }
 
       const authorizationCode = crypto.randomUUID()
-      const db = await getDb()
 
       await db.insert(mcpAuthRequests).values({
         id: crypto.randomUUID(),
@@ -116,8 +134,8 @@ export async function POST(request: NextRequest) {
         clientId,
         redirectUri,
         scopes: scope.split(' ').filter(Boolean),
-        codeChallenge: codeChallenge ?? null,
-        codeChallengeMethod: codeChallengeMethod ?? null,
+        codeChallenge,
+        codeChallengeMethod,
         state: state ?? null,
         resource: resource ?? null,
         authorizationCode,

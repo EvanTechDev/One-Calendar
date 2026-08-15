@@ -30,6 +30,7 @@ export function SignUpForm() {
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
   )
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const sendVerificationOtp = async (withResendLoading: boolean) => {
     if (withResendLoading) setIsResending(true)
@@ -55,12 +56,14 @@ export function SignUpForm() {
     setIsLoading(true)
     setError('')
 
+    type SignUpEmailInput = Parameters<typeof authClient.signUp.email>[0]
     const signUpRes = await authClient.signUp.email({
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
       password: formData.password,
       callbackURL: '/app',
-    })
+      turnstileToken,
+    } as SignUpEmailInput & { turnstileToken: string })
 
     if (signUpRes.error) {
       setError(
@@ -70,8 +73,7 @@ export function SignUpForm() {
       return
     }
 
-    const sentOk = await sendVerificationOtp(false)
-    if (sentOk) setSent(true)
+    setSent(true)
     setIsLoading(false)
   }
 
@@ -91,6 +93,7 @@ export function SignUpForm() {
       setIsVerifying(false)
       return
     }
+    void fetch('/api/account/send-welcome-email', { method: 'POST' })
     router.push('/sign-in')
     router.refresh()
   }
@@ -228,9 +231,16 @@ export function SignUpForm() {
             <Turnstile
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
               options={{ size: 'flexible' }}
-              onSuccess={() => setIsCaptchaCompleted(true)}
-              onExpire={() => setIsCaptchaCompleted(false)}
+              onSuccess={(token) => {
+                setTurnstileToken(token)
+                setIsCaptchaCompleted(true)
+              }}
+              onExpire={() => {
+                setTurnstileToken('')
+                setIsCaptchaCompleted(false)
+              }}
               onError={() => {
+                setTurnstileToken('')
                 setIsCaptchaCompleted(false)
                 setError('CAPTCHA initialization failed. Please try again.')
               }}

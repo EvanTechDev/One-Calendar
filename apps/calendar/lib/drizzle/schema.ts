@@ -6,116 +6,19 @@ import {
   integer,
   jsonb,
   index,
-  uniqueIndex,
   unique,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// --- User ---
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').unique().notNull(),
-  emailVerified: boolean('emailVerified').default(false).notNull(),
-  image: text('image'),
-  twoFactorEnabled: boolean('twoFactorEnabled'),
-  createdAt: timestamp('createdAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  updatedAt: timestamp('updatedAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-})
+import {
+  user,
+  session,
+  account,
+  verification,
+  twoFactor,
+} from '@zntr/auth/schema'
 
-// --- Session ---
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expiresAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  token: text('token').unique().notNull(),
-  createdAt: timestamp('createdAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  updatedAt: timestamp('updatedAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  ipAddress: text('ipAddress'),
-  userAgent: text('userAgent'),
-  userId: text('userId')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-})
-
-// --- Account ---
-export const account = pgTable(
-  'account',
-  {
-    id: text('id').primaryKey(),
-    accountId: text('accountId').notNull(),
-    providerId: text('providerId').notNull(),
-    userId: text('userId')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    accessToken: text('accessToken'),
-    refreshToken: text('refreshToken'),
-    idToken: text('idToken'),
-    accessTokenExpiresAt: timestamp('accessTokenExpiresAt', {
-      precision: 3,
-      withTimezone: true,
-    }),
-    refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt', {
-      precision: 3,
-      withTimezone: true,
-    }),
-    scope: text('scope'),
-    password: text('password'),
-    createdAt: timestamp('createdAt', {
-      precision: 3,
-      withTimezone: true,
-    }).notNull(),
-    updatedAt: timestamp('updatedAt', {
-      precision: 3,
-      withTimezone: true,
-    }).notNull(),
-  },
-  (table) => ({
-    accountUnique: uniqueIndex('Account_providerId_accountId_key').on(
-      table.providerId,
-      table.accountId,
-    ),
-  }),
-)
-
-// --- Verification ---
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expiresAt', {
-    precision: 3,
-    withTimezone: true,
-  }).notNull(),
-  createdAt: timestamp('createdAt', { precision: 3, withTimezone: true }),
-  updatedAt: timestamp('updatedAt', { precision: 3, withTimezone: true }),
-})
-
-// --- Two Factor ---
-export const twoFactor = pgTable('two_factor', {
-  id: text('id').primaryKey(),
-  secret: text('secret').notNull(),
-  backupCodes: text('backupCodes').notNull(),
-  verified: boolean('verified').default(false).notNull(),
-  userId: text('userId')
-    .unique()
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-})
+export { user, session, account, verification, twoFactor }
 
 // ============================================================
 // APP TABLES
@@ -141,6 +44,7 @@ export const calendarEvents = pgTable(
       withTimezone: true,
     }).notNull(),
     isAllDay: boolean('is_all_day').default(false).notNull(),
+    status: text('status').default('confirmed').notNull(),
     color: text('color'),
     categoryId: text('category_id').references(() => calendarCategories.id, {
       onDelete: 'set null',
@@ -166,6 +70,11 @@ export const calendarEvents = pgTable(
       table.userId,
       table.startDate,
     ),
+    categoryIdx: index('idx_events_category_id').on(table.categoryId),
+    allDayIdx: index('idx_events_is_all_day').on(table.isAllDay),
+    statusIdx: index('idx_events_status').on(table.status),
+    createdAtIdx: index('idx_events_created_at').on(table.createdAt),
+    updatedAtIdx: index('idx_events_updated_at').on(table.updatedAt),
   }),
 )
 
@@ -263,21 +172,31 @@ export const bookmarkedEvents = pgTable(
   }),
 )
 
-// --- Shares ---
-export const shares = pgTable(
-  'shares',
+// --- Event Invites ---
+export const eventInvites = pgTable(
+  'event_invites',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
     eventId: text('event_id')
       .notNull()
       .references(() => calendarEvents.id, { onDelete: 'cascade' }),
-    encryptedPayload: text('encrypted_payload').notNull(),
-    hasPassword: boolean('has_password').default(false).notNull(),
-    burnAfterRead: boolean('burn_after_read').default(false).notNull(),
+    email: text('email').notNull(),
+    status: text('status').notNull().default('pending'),
+    inviteToken: text('invite_token').notNull().unique(),
+    emailSent: boolean('email_sent').default(false).notNull(),
+    addedToCalendar: boolean('added_to_calendar').default(false).notNull(),
+    categoryId: text('category_id'),
+    expiresAt: timestamp('expires_at', {
+      precision: 3,
+      withTimezone: true,
+    }),
     createdAt: timestamp('created_at', {
+      precision: 3,
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', {
       precision: 3,
       withTimezone: true,
     })
@@ -285,8 +204,9 @@ export const shares = pgTable(
       .notNull(),
   },
   (table) => ({
-    userIdIdx: index('idx_shares_user_id').on(table.userId),
-    eventIdIdx: index('idx_shares_event_id').on(table.eventId),
+    eventIdIdx: index('idx_event_invites_event_id').on(table.eventId),
+    emailIdx: index('idx_event_invites_email').on(table.email),
+    tokenIdx: index('idx_event_invites_token').on(table.inviteToken),
   }),
 )
 
@@ -471,7 +391,6 @@ export const userRelations = relations(user, ({ many, one }) => ({
   calendarCategories: many(calendarCategories),
   countdowns: many(countdowns),
   bookmarkedEvents: many(bookmarkedEvents),
-  shares: many(shares),
   mcpApiKeys: many(mcpApiKeys),
   mcpTokens: many(mcpTokens),
   mcpAuditLogs: many(mcpAuditLogs),
@@ -501,7 +420,7 @@ export const calendarEventsRelations = relations(
       references: [calendarCategories.id],
     }),
     bookmarks: many(bookmarkedEvents),
-    shares: many(shares),
+    invites: many(eventInvites),
   }),
 )
 
@@ -538,10 +457,9 @@ export const bookmarkedEventsRelations = relations(
   }),
 )
 
-export const sharesRelations = relations(shares, ({ one }) => ({
-  user: one(user, { fields: [shares.userId], references: [user.id] }),
+export const eventInvitesRelations = relations(eventInvites, ({ one }) => ({
   event: one(calendarEvents, {
-    fields: [shares.eventId],
+    fields: [eventInvites.eventId],
     references: [calendarEvents.id],
   }),
 }))

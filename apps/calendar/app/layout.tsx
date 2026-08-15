@@ -1,12 +1,12 @@
 import './globals.css'
 import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
+import { headers } from 'next/headers'
 import { cn } from '@zntr/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
-import { CalendarProvider } from '@/components/providers/calendar-context'
-import { DataProvider } from '@/components/providers/data-provider'
+import { SwrProvider } from '@/components/providers/swr-provider'
 import type { Metadata } from 'next'
 import type React from 'react'
 import { AVAILABLE_THEMES } from '@/lib/theme'
@@ -40,11 +40,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html
       lang="en"
@@ -55,19 +56,18 @@ export default function RootLayout({
         className={`${GeistSans.className} ${instrumentSans.variable} antialiased`}
       >
         <ThemeProvider
+          nonce={nonce}
           themes={[...AVAILABLE_THEMES]}
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <DataProvider>
-            <CalendarProvider>
-              <PwaProvider />
-              {children}
-              <Toaster />
-            </CalendarProvider>
-          </DataProvider>
+          <SwrProvider>
+            <PwaProvider />
+            {children}
+            <Toaster />
+          </SwrProvider>
         </ThemeProvider>
       </body>
     </html>

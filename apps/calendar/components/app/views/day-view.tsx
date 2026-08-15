@@ -7,13 +7,14 @@ import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
 import { translations } from '@zntr/i18n/calendar'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
 import { EventRenderer } from '@/components/app/views/EventRenderer'
 import { useEventFilter } from '@/components/app/hooks/useEventFilter'
+import { useEventResize } from '@/hooks/use-event-resize'
 
 interface DayViewProps {
   date: Date
@@ -28,7 +29,6 @@ interface DayViewProps {
   config: ViewConfig
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
   onEventDrop?: (
     event: CalendarEvent,
@@ -46,7 +46,6 @@ export default function DayView({
   config,
   onEditEvent,
   onDeleteEvent,
-  onShareEvent,
   onBookmarkEvent,
   onEventDrop,
   onBackToCalendar: _onBackToCalendar,
@@ -77,6 +76,7 @@ export default function DayView({
     minute: number
   } | null>(null)
   const [dragEventDuration, setDragEventDuration] = useState<number>(0)
+  const dragOffsetMinutesRef = useRef(0)
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
@@ -149,12 +149,14 @@ export default function DayView({
 
         const relativeY =
           e.clientY - containerRect.top + scrollContainerRef.current.scrollTop
-        const hour = Math.floor(relativeY / 60)
-        const minute = Math.floor((relativeY % 60) / 15) * 15
+        const positionMinutes = snapToQuarterHour(relativeY)
+        const startMinutes = snapToQuarterHour(
+          positionMinutes - dragOffsetMinutesRef.current,
+        )
 
         setDragPreview({
-          hour: hour,
-          minute: minute,
+          hour: Math.floor(startMinutes / 60),
+          minute: startMinutes % 60,
         })
       }
     }
@@ -248,6 +250,11 @@ export default function DayView({
   }, [createSelection, date, onTimeSlotClick])
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
+    if (event.viewOnly) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
 
@@ -257,6 +264,14 @@ export default function DayView({
 
       const durationMs = end.getTime() - start.getTime()
       const durationMinutes = Math.round(durationMs / (1000 * 60))
+
+      let offsetMinutes = 0
+      if (!event.isAllDay) {
+        const eventStartMinutes = start.getHours() * 60 + start.getMinutes()
+        offsetMinutes =
+          getMinutesFromMousePosition(e.clientY) - eventStartMinutes
+      }
+      dragOffsetMinutesRef.current = offsetMinutes
 
       setDraggingEvent(event)
       setDragStartPosition({ x: e.clientX, y: e.clientY })
@@ -284,6 +299,12 @@ export default function DayView({
       clientY - containerRect.top + scrollContainerRef.current.scrollTop,
     )
   }
+
+  const {
+    resize,
+    beginResize,
+    suppressClickRef: suppressResizeClickRef,
+  } = useEventResize({ onEventDrop, getMinutesFromMousePosition })
 
   const handleGridMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || draggingEvent) return
@@ -398,7 +419,6 @@ export default function DayView({
                 onEventClick={onEventClick}
                 onEditEvent={onEditEvent}
                 onDeleteEvent={onDeleteEvent}
-                onShareEvent={onShareEvent}
                 onBookmarkEvent={onBookmarkEvent}
                 onEventDragStart={handleEventDragStart}
                 onEventDragEnd={handleEventDragEnd}
@@ -450,10 +470,19 @@ export default function DayView({
               onEventClick={onEventClick}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
-              onShareEvent={onShareEvent}
               onBookmarkEvent={onBookmarkEvent}
               onEventDragStart={handleEventDragStart}
               onEventDragEnd={handleEventDragEnd}
+              onEventResizeStart={beginResize}
+              resizeOverride={
+                resize?.event.id === event.id
+                  ? {
+                      startMinutes: resize.liveStart,
+                      endMinutes: resize.liveEnd,
+                    }
+                  : null
+              }
+              suppressResizeClickRef={suppressResizeClickRef}
               isDragging={isDraggingRef.current}
               ignoreNextEventClickRef={ignoreNextEventClickRef}
               isDraggingRef={isDraggingRef}

@@ -1,31 +1,24 @@
 'use client'
+import { useEffect, useState } from 'react'
+import { authClient } from '@/lib/auth/client'
 import Calendar from '@/components/app/calendar'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
-import { useEffect, useMemo, useState } from 'react'
+import { WelcomeDialog } from '@/components/welcome/welcome-dialog'
 
 export default function Home() {
-  const [sessionChecked, setSessionChecked] = useState(false)
-  const [isSignedIn, setIsSignedIn] = useState(false)
-  const [dbReady, setDbReady] = useState(false)
+  const { data: session, isPending } = authClient.useSession()
+  const [ready, setReady] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
     let active = true
     const run = async () => {
       try {
-        const response = await fetch('/api/auth/get-session', {
-          cache: 'no-store',
-        })
-        const data = response.ok ? await response.json() : null
-        if (!active) return
-        const signedIn =
-          data !== null && typeof data === 'object' && 'session' in data
-        setIsSignedIn(signedIn)
+        await fetch('/api/app-bootstrap', { cache: 'no-store' })
       } catch {
-        if (!active) return
-        setIsSignedIn(false)
-      } finally {
-        if (active) setSessionChecked(true)
+        // still let the user through
       }
+      if (active) setReady(true)
     }
     void run()
     return () => {
@@ -34,37 +27,55 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (!sessionChecked) return
-    if (!isSignedIn) {
-      setDbReady(true)
-      return
+    if (ready && !isPending && session?.user) {
+      void fetch('/api/account/onboarding-complete')
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.onboardingCompleted) {
+            setShowWelcome(true)
+          }
+        })
+        .catch(() => {})
     }
-    let active = true
-    const initAndReady = async () => {
-      try {
-        // Ensure the user has default data (settings, categories, etc.).
-        // The endpoint is idempotent – it's a no-op when data already exists.
-        await fetch('/api/init', { method: 'POST', cache: 'no-store' })
-      } catch {
-        // Initialization failed, but we still let the user through so the
-        // app can load with empty state rather than showing a spinner forever.
-      }
-      if (active) setDbReady(true)
-    }
-    void initAndReady()
-    return () => {
-      active = false
-    }
-  }, [sessionChecked, isSignedIn])
+  }, [ready, isPending, session])
 
-  const shouldShowAuthWait = useMemo(() => {
-    if (!sessionChecked) return true
-    if (!isSignedIn) return false
-    return !dbReady
-  }, [sessionChecked, isSignedIn, dbReady])
-
-  if (shouldShowAuthWait) {
+  if (!ready || isPending) {
     return <AuthWaitingLoading />
   }
-  return <Calendar />
+
+  return (
+    <>
+      <WelcomeDialog
+        open={showWelcome}
+        onOpenChange={setShowWelcome}
+        onComplete={() => {
+          setShowWelcome(false)
+          void fetch('/api/account/onboarding-complete')
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.settings) {
+                const s = data.settings
+                if (s.language) {
+                  window.dispatchEvent(new CustomEvent('languagechange', { detail: { language: s.language } }))
+                }
+                if (s.timezone) {
+                  window.dispatchEvent(new CustomEvent('timezonechange', { detail: { timezone: s.timezone } }))
+                }
+                if (s.firstDayOfWeek !== undefined) {
+                  window.dispatchEvent(new CustomEvent('firstdaychange', { detail: { firstDay: s.firstDayOfWeek } }))
+                }
+                if (s.defaultView) {
+                  window.dispatchEvent(new CustomEvent('viewchange', { detail: { view: s.defaultView } }))
+                }
+                if (s.timeFormat) {
+                  window.dispatchEvent(new CustomEvent('timeformatchange', { detail: { format: s.timeFormat } }))
+                }
+              }
+            })
+            .catch(() => {})
+        }}
+      />
+      <Calendar />
+    </>
+  )
 }

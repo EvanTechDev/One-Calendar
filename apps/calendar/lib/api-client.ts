@@ -1,5 +1,16 @@
 import { fetchJson } from '@/lib/fetch-json'
 
+export type EventInviteData = {
+  id: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+}
+
 export type EventData = {
   id: string
   userId: string
@@ -15,6 +26,13 @@ export type EventData = {
   notificationMinutes: number | null
   createdAt: string
   updatedAt: string
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+  invites?: EventInviteData[]
 }
 
 export type CategoryData = {
@@ -43,16 +61,6 @@ export type BookmarkData = {
   eventId: string
   createdAt: string
   event: EventData
-}
-
-export type ShareData = {
-  id: string
-  eventId: string
-  eventTitle: string
-  sharedBy: string
-  shareDate: string
-  shareLink: string
-  isProtected: boolean
 }
 
 export type SettingsData = {
@@ -180,41 +188,6 @@ export const api = {
       fetchJson<{ success: boolean }>('/api/bookmarks', {
         method: 'DELETE',
         body: JSON.stringify({ eventId }),
-      }),
-  },
-
-  shares: {
-    list: () => fetchJson<{ shares: ShareData[] }>('/api/share/list'),
-    create: (data: {
-      eventId: string
-      password?: string
-      burnAfterRead?: boolean
-    }) =>
-      fetchJson<{
-        success: boolean
-        id: string
-        protected: boolean
-        burnAfterRead: boolean
-        shareLink: string
-      }>('/api/share', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    get: (id: string, password?: string) => {
-      const searchParams = new URLSearchParams({ id })
-      if (password) searchParams.set('password', password)
-      return fetchJson<{
-        success: boolean
-        data: string
-        createdAt: string
-        protected: boolean
-        burnAfterRead: boolean
-      }>(`/api/share?${searchParams.toString()}`)
-    },
-    delete: (id: string) =>
-      fetchJson<{ success: boolean }>('/api/share', {
-        method: 'DELETE',
-        body: JSON.stringify({ id }),
       }),
   },
 }

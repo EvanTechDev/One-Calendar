@@ -7,6 +7,7 @@ import {
 } from 'evlog'
 import { createAuthMiddleware } from 'evlog/better-auth'
 import { createEvlog } from 'evlog/next'
+import { redactLog } from './redact'
 
 let _evlog: ReturnType<typeof createEvlog> | null = null
 let _identifyPromise: Promise<ReturnType<typeof createAuthMiddleware>> | null =
@@ -46,15 +47,13 @@ function getIdentify() {
 }
 
 const mainDrain = async (ctx: unknown) => {
-  // eslint-disable-next-line no-console
-  console.log(JSON.stringify(ctx))
+  console.log(JSON.stringify(redactLog(ctx)))
 }
 
 const auditDrain = auditOnly(
   signed(
     async (ctx: unknown) => {
-      // eslint-disable-next-line no-console
-      console.log(JSON.stringify(ctx))
+      console.log(JSON.stringify(redactLog(ctx)))
     },
     {
       strategy: 'hash-chain',

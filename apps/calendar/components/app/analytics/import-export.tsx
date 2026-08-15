@@ -198,7 +198,6 @@ export default function ImportExport({
       toast.error(t.exportError, {
         description: t.exportError,
       })
-      // eslint-disable-next-line no-console
       console.error('Export error:', error)
     } finally {
       setIsLoading(false)
@@ -367,7 +366,6 @@ ${rawContent.substring(0, 500)}...`)
       toast.error(t.importError.replace('{error}', errorMessage), {
         description: errorMessage,
       })
-      // eslint-disable-next-line no-console
       console.error('Import error:', error)
 
       if (debugMode) {
@@ -640,7 +638,6 @@ END:VEVENT
                 currentEvent.startDate = parseICSDate(value, hasTimeZone)
                 currentEvent.isAllDay = isAllDay
               } catch (e) {
-                // eslint-disable-next-line no-console
                 console.error('Error parsing DTSTART:', value, e)
               }
               break
@@ -649,7 +646,6 @@ END:VEVENT
                 const hasTimeZone = params.some((p) => p.startsWith('TZID='))
                 currentEvent.endDate = parseICSDate(value, hasTimeZone)
               } catch (e) {
-                // eslint-disable-next-line no-console
                 console.error('Error parsing DTEND:', value, e)
               }
               break

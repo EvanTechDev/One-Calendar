@@ -15,13 +15,14 @@ import {
 import { cn } from '@zntr/utils'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
-import type { ViewConfig } from '@/components/app/calendar-types'
+import type { ViewConfig } from '@/lib/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
+import { useEventResize } from '@/hooks/use-event-resize'
 
 interface WeekViewProps {
   date: Date
@@ -43,7 +44,6 @@ interface WeekViewProps {
   fixedStartDate?: Date
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
-  onShareEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
 }
 
@@ -58,7 +58,6 @@ export default function WeekView({
   fixedStartDate,
   onEditEvent: _onEditEvent,
   onDeleteEvent: _onDeleteEvent,
-  onShareEvent: _onShareEvent,
   onBookmarkEvent: _onBookmarkEvent,
 }: WeekViewProps) {
   const layoutEngine = useMemo(
@@ -98,6 +97,7 @@ export default function WeekView({
     minute: number
   } | null>(null)
   const [dragEventDuration, setDragEventDuration] = useState<number>(0)
+  const dragOffsetMinutesRef = useRef(0)
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
@@ -182,8 +182,12 @@ export default function WeekView({
 
         const relativeY =
           e.clientY - containerRect.top + scrollContainerRef.current.scrollTop
-        const hour = Math.floor(relativeY / 60)
-        const minute = Math.floor((relativeY % 60) / 15) * 15
+        const positionMinutes = snapToQuarterHour(relativeY)
+        const startMinutes = snapToQuarterHour(
+          positionMinutes - dragOffsetMinutesRef.current,
+        )
+        const hour = Math.floor(startMinutes / 60)
+        const minute = startMinutes % 60
 
         if (closestDayIndex < weekDays.length) {
           setDragPreview({
@@ -303,6 +307,11 @@ export default function WeekView({
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
+    if (event.viewOnly) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
 
@@ -312,6 +321,14 @@ export default function WeekView({
 
       const durationMs = end.getTime() - start.getTime()
       const durationMinutes = Math.round(durationMs / (1000 * 60))
+
+      let offsetMinutes = 0
+      if (!event.isAllDay) {
+        const eventStartMinutes = start.getHours() * 60 + start.getMinutes()
+        offsetMinutes =
+          getMinutesFromMousePosition(e.clientY) - eventStartMinutes
+      }
+      dragOffsetMinutesRef.current = offsetMinutes
 
       setDraggingEvent(event)
       setDragStartPosition({ x: e.clientX, y: e.clientY })
@@ -339,6 +356,12 @@ export default function WeekView({
       clientY - containerRect.top + scrollContainerRef.current.scrollTop,
     )
   }
+
+  const {
+    resize,
+    beginResize,
+    suppressClickRef: suppressResizeClickRef,
+  } = useEventResize({ onEventDrop, getMinutesFromMousePosition })
 
   const handleGridMouseDown = (
     dayIndex: number,
@@ -559,13 +582,31 @@ export default function WeekView({
                   const startMinutes =
                     start.getHours() * 60 + start.getMinutes()
                   const endMinutes = end.getHours() * 60 + end.getMinutes()
-                  const duration = endMinutes - startMinutes
+                  const isResizing = resize?.event.id === event.id
+                  const displayStart = isResizing
+                    ? resize.liveStart
+                    : startMinutes
+                  const displayEnd = isResizing ? resize.liveEnd : endMinutes
+                  const renderStart = Math.min(displayStart, displayEnd)
+                  const renderEnd = Math.max(displayStart, displayEnd)
+                  const duration = renderEnd - renderStart
+                  const displayStartDate = new Date(start)
+                  displayStartDate.setHours(0, renderStart, 0, 0)
+                  const displayEndDate = new Date(start)
+                  displayEndDate.setHours(0, renderEnd, 0, 0)
 
                   const minHeight = 20
                   const height = Math.max(duration, minHeight)
 
                   const width = `calc((100% - 4px) / ${totalColumns})`
                   const left = `calc(${column} * ${width})`
+
+                  const isMultiDayEvent = !isSameDay(
+                    new Date(event.startDate),
+                    new Date(event.endDate),
+                  )
+                  const canResize =
+                    !event.viewOnly && !isMultiDayEvent && !isResizing
 
                   return (
                     <div
@@ -576,7 +617,7 @@ export default function WeekView({
                         event.color,
                       )}
                       style={{
-                        top: `${startMinutes}px`,
+                        top: `${renderStart}px`,
                         height: `${height}px`,
                         opacity: isDark ? 1 : 0.92,
                         backgroundColor: getEventBackgroundColor(
@@ -592,6 +633,8 @@ export default function WeekView({
                       onMouseLeave={handleEventDragEnd}
                       onClick={(e) => {
                         e.stopPropagation()
+                        if (ignoreNextEventClickRef.current) return
+                        if (suppressResizeClickRef.current) return
                         if (!isDraggingRef.current) {
                           onEventClick(
                             event,
@@ -602,6 +645,36 @@ export default function WeekView({
                         }
                       }}
                     >
+                      {canResize && (
+                        <>
+                          <div
+                            className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-lg"
+                            onMouseDown={(e) =>
+                              beginResize(
+                                event,
+                                'start',
+                                e,
+                                start,
+                                startMinutes,
+                                endMinutes,
+                              )
+                            }
+                          />
+                          <div
+                            className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-lg"
+                            onMouseDown={(e) =>
+                              beginResize(
+                                event,
+                                'end',
+                                e,
+                                start,
+                                startMinutes,
+                                endMinutes,
+                              )
+                            }
+                          />
+                        </>
+                      )}
                       <div
                         className={cn(
                           'absolute left-0 top-0 w-1 h-full rounded-l-md',
@@ -634,8 +707,8 @@ export default function WeekView({
                               color: getEventAccentColor(event.color),
                             }}
                           >
-                            {formatDateWithTimezone(start)} -{' '}
-                            {formatDateWithTimezone(end)}
+                            {formatDateWithTimezone(displayStartDate)} -{' '}
+                            {formatDateWithTimezone(displayEndDate)}
                           </div>
                         )}
                       </div>

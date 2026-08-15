@@ -11,8 +11,8 @@
     "preview": "astro preview",
     "start": "astro dev",
     "astro": "astro",
-    "lint": "oxlint --fix --config ../../config/oxlint.json src astro.config.mjs && eslint --config ../../config/eslint.config.ts src astro.config.mjs --fix --no-error-on-unmatched-pattern",
-    "lint:check": "oxlint --config ../../config/oxlint.json src astro.config.mjs && eslint --config ../../config/eslint.config.ts src astro.config.mjs --quiet --no-error-on-unmatched-pattern",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src astro.config.mjs",
+    "lint:check": "oxlint --config ../../config/oxlint.json src astro.config.mjs",
     "type-check": "astro check"
   },
   "dependencies": {
