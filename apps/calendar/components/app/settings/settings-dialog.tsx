@@ -20,6 +20,8 @@ import { Kbd } from '@zntr/ui/kbd'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import { cn } from '@zntr/utils'
 import { useTheme } from 'next-themes'
+import type { ThemeOption } from '@/lib/theme'
+import { useSettings } from '@/components/providers/data-provider'
 import {
   getLanguageAutonym,
   supportedLanguages,
@@ -57,12 +59,7 @@ import {
   TimeFormat,
 } from '@/lib/calendar-types'
 
-type SettingsSection =
-  | 'general'
-  | 'account'
-  | 'mcp'
-  | 'data'
-  | 'about'
+type SettingsSection = 'general' | 'account' | 'mcp' | 'data' | 'about'
 
 interface GeneralSettingsProps {
   language: string
@@ -162,6 +159,7 @@ function GeneralSettings({
   setTimeFormat,
 }: GeneralSettingsProps) {
   const { theme, setTheme } = useTheme()
+  const { updateSettings } = useSettings()
   const langCode = language as keyof typeof translations
   const t = translations[langCode]
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -227,9 +225,6 @@ function GeneralSettings({
 
   const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang)
-    window.dispatchEvent(
-      new CustomEvent('languagechange', { detail: { language: newLang } }),
-    )
   }
 
   const selectClass = 'w-40 sm:w-48'
@@ -242,7 +237,13 @@ function GeneralSettings({
           title={t.theme}
           description={t.settingsThemeDesc}
         >
-          <Select value={theme || 'system'} onValueChange={setTheme}>
+          <Select
+            value={theme || 'system'}
+            onValueChange={(value: ThemeOption) => {
+              setTheme(value)
+              updateSettings({ theme: value }).catch(() => {})
+            }}
+          >
             <SelectTrigger id="theme" className={selectClass}>
               <SelectValue />
             </SelectTrigger>

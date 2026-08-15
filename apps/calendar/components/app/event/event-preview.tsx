@@ -74,7 +74,6 @@ interface EventPreviewProps {
   onOpenChange: (open: boolean) => void
   onEdit: () => void
   onDelete: () => void
-  onRemoveFromCalendar?: () => void
   _onDuplicate: () => void
   language: Language
   _timezone: string
@@ -91,7 +90,6 @@ export default function EventPreview({
   onOpenChange,
   onEdit,
   onDelete,
-  onRemoveFromCalendar,
   _onDuplicate,
   language,
   _timezone,
@@ -327,21 +325,6 @@ export default function EventPreview({
     }
   }
 
-  const handleRemoveFromCalendar = async () => {
-    if (!event) return
-    try {
-      const response = await fetch(
-        `/api/invites?eventId=${encodeURIComponent(event.id)}`,
-        { method: 'DELETE' },
-      )
-      if (!response.ok) throw new Error('Failed to remove')
-      toast.success(isZh ? '已从日历移除' : 'Removed from calendar')
-      onRemoveFromCalendar?.()
-    } catch {
-      toast.error('Failed to remove from calendar')
-    }
-  }
-
   const handleViewOnlyRsvp = async (
     newStatus: 'accepted' | 'maybe' | 'declined',
   ) => {
@@ -369,6 +352,16 @@ export default function EventPreview({
   const userInvite = invites.find(
     (i) => i.email === session?.user?.email?.toLowerCase(),
   )
+
+  const organizerInfo = event.viewOnly
+    ? (event.organizer ?? null)
+    : session?.user
+      ? {
+          name: session.user.name || '',
+          email: session.user.email || '',
+          image: session.user.image ?? null,
+        }
+      : null
 
   const handleViewOnlyCategoryChange = async (calendarId: string) => {
     if (!event || !userInvite) return
@@ -517,9 +510,7 @@ export default function EventPreview({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={
-                  event.viewOnly ? handleRemoveFromCalendar : handleDeleteClick
-                }
+                onClick={handleDeleteClick}
                 className="h-8 w-8"
               >
                 <Trash2 className="h-5 w-5" />
@@ -586,34 +577,35 @@ export default function EventPreview({
                   </div>
                   {participantsOpen && (
                     <div className="mt-2 space-y-2">
-                      {event.viewOnly && event.organizer && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center min-w-0">
-                            <Avatar size="sm">
-                              {event.organizer.image ? (
-                                <AvatarImage src={event.organizer.image} />
-                              ) : null}
-                              <AvatarFallback>
-                                {(
-                                  event.organizer.name ||
-                                  event.organizer.email ||
-                                  '?'
-                                )
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="ml-2 truncate text-sm">
-                              {event.organizer.name || event.organizer.email}
-                            </span>
-                            <span className="ml-1.5 shrink-0">
-                              <Badge className="bg-muted text-muted-foreground">
-                                {isZh ? '组织者' : 'Organizer'}
-                              </Badge>
-                            </span>
+                      {organizerInfo &&
+                        (organizerInfo.name || organizerInfo.email) && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center min-w-0">
+                              <Avatar size="sm">
+                                {organizerInfo.image ? (
+                                  <AvatarImage src={organizerInfo.image} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {(
+                                    organizerInfo.name ||
+                                    organizerInfo.email ||
+                                    '?'
+                                  )
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="ml-2 truncate text-sm">
+                                {organizerInfo.name || organizerInfo.email}
+                              </span>
+                              <span className="ml-1.5 shrink-0">
+                                <Badge className="bg-muted text-muted-foreground">
+                                  {isZh ? '组织者' : 'Organizer'}
+                                </Badge>
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                       {invites.map((invite) => (
                         <div
                           key={invite.id}

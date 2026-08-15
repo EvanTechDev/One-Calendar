@@ -45,6 +45,8 @@ import EventPreview, {
 import EventDialog from '@/components/app/event/event-dialog'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
+import { useTheme } from 'next-themes'
 import { Button } from '@zntr/ui/button'
 import { APP_CONFIG } from '@/lib/config'
 import {
@@ -162,6 +164,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
+  const { setTheme } = useTheme()
   const { upsertEvent, deleteEvent } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
@@ -198,6 +201,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingRemoveInvite, setPendingRemoveInvite] =
+    useState<CalendarEvent | null>(null)
+  const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
   const [pendingInvites, setPendingInvites] = useState<{
     eventId: string
     emails: string[]
@@ -332,9 +338,60 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         if (settings.timeFormat)
           setTimeFormat(settings.timeFormat as TimeFormatValue)
       },
+      () => {
+        if (settings.language)
+          setLanguage(settings.language as Parameters<typeof setLanguage>[0])
+      },
+      () => {
+        if (
+          settings.theme &&
+          THEME_OPTIONS.includes(settings.theme as ThemeOption)
+        ) {
+          setTheme(settings.theme as ThemeOption)
+        }
+      },
     ]
     settingsSync.forEach((fn) => fn())
   }, [settings])
+
+  useEffect(() => {
+    const handleTimezoneEvent = (event: Event) => {
+      const { timezone } = (event as CustomEvent<{ timezone?: string }>).detail
+      if (timezone) handleTimezoneChange(timezone)
+    }
+    const handleFirstDayEvent = (event: Event) => {
+      const { firstDay } = (event as CustomEvent<{ firstDay?: number }>).detail
+      if (firstDay !== undefined) {
+        setFirstDayOfWeek(firstDay as FirstDayOfWeekValue)
+        updateSettings({ firstDayOfWeek: firstDay }).catch(() => {})
+      }
+    }
+    const handleViewEvent = (event: Event) => {
+      const { view } = (event as CustomEvent<{ view?: string }>).detail
+      if (view && isCalendarView(view)) {
+        setDefaultView(view as CalendarViewTypeValue)
+        setView(view as ViewType)
+        updateSettings({ defaultView: view }).catch(() => {})
+      }
+    }
+    const handleTimeFormatEvent = (event: Event) => {
+      const { format } = (event as CustomEvent<{ format?: string }>).detail
+      if (format === '24h' || format === '12h') {
+        setTimeFormat(format)
+        updateSettings({ timeFormat: format }).catch(() => {})
+      }
+    }
+    window.addEventListener('timezonechange', handleTimezoneEvent)
+    window.addEventListener('firstdaychange', handleFirstDayEvent)
+    window.addEventListener('viewchange', handleViewEvent)
+    window.addEventListener('timeformatchange', handleTimeFormatEvent)
+    return () => {
+      window.removeEventListener('timezonechange', handleTimezoneEvent)
+      window.removeEventListener('firstdaychange', handleFirstDayEvent)
+      window.removeEventListener('viewchange', handleViewEvent)
+      window.removeEventListener('timeformatchange', handleTimeFormatEvent)
+    }
+  }, [])
 
   useEffect(() => {
     const prefetch = () => {
@@ -705,6 +762,69 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     try {
       await deleteEvent(deletedEvent.id)
     } catch {}
+  }
+
+  const reAddInviteToCalendar = async (
+    targetEvent: CalendarEvent,
+    inviteToken?: string,
+  ) => {
+    if (inviteToken) {
+      await fetch(`/api/invite/${inviteToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: targetEvent.calendarId ?? '__uncategorized__',
+        }),
+      }).catch(() => {})
+    }
+    setEvents((prevEvents) => {
+      if (prevEvents.some((event) => event.id === targetEvent.id))
+        return prevEvents
+      return [...prevEvents, targetEvent].sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      )
+    })
+  }
+
+  const confirmRemoveInvite = async () => {
+    if (!pendingRemoveInvite) return
+
+    const targetEvent = pendingRemoveInvite
+    const ownInvite = targetEvent.invites?.find(
+      (i) => i.email === session?.user?.email?.toLowerCase(),
+    )
+    const inviteToken = ownInvite?.inviteToken
+
+    setEvents((prevEvents) =>
+      prevEvents.filter((event) => event.id !== targetEvent.id),
+    )
+    setRemoveInviteConfirmOpen(false)
+    setPendingRemoveInvite(null)
+
+    let undone = false
+    toast(t.eventDeleted, {
+      description: targetEvent.title,
+      action: {
+        label: t.undo,
+        onClick: () => {
+          undone = true
+          void reAddInviteToCalendar(targetEvent, inviteToken)
+          toast(t.deletionUndone)
+        },
+      },
+    })
+
+    try {
+      await fetch(
+        `/api/invites?eventId=${encodeURIComponent(targetEvent.id)}`,
+        { method: 'DELETE' },
+      )
+    } catch {}
+
+    if (undone && inviteToken) {
+      await reAddInviteToCalendar(targetEvent, inviteToken)
+    }
   }
 
   const handleImportEvents = (importedEvents: CalendarEvent[]) => {
@@ -1242,17 +1362,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onEdit={handleEventEdit}
           onDelete={() => {
             if (previewEvent) {
-              handleEventDelete(previewEvent.id)
-              setPreviewOpen(false)
-              setPreviewAnchorRect(null)
-              setPreviewAnchorEl(null)
-            }
-          }}
-          onRemoveFromCalendar={() => {
-            if (previewEvent) {
-              setEvents((prevEvents) =>
-                prevEvents.filter((e) => e.id !== previewEvent.id),
-              )
+              if (previewEvent.viewOnly) {
+                setPendingRemoveInvite(previewEvent)
+                setRemoveInviteConfirmOpen(true)
+              } else {
+                handleEventDelete(previewEvent.id)
+              }
               setPreviewOpen(false)
               setPreviewAnchorRect(null)
               setPreviewAnchorEl(null)
@@ -1315,9 +1430,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           language={languageObj.code}
-          setLanguage={(lang: string) =>
+          setLanguage={(lang: string) => {
             setLanguage(lang as Parameters<typeof setLanguage>[0])
-          }
+            updateSettings({ language: lang }).catch(() => {})
+          }}
           firstDayOfWeek={firstDayOfWeekObj}
           setFirstDayOfWeek={handleFirstDayOfWeekChange}
           timezone={timezone}
@@ -1358,6 +1474,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground"
                 onClick={confirmEventDelete}
+              >
+                {t.delete}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={removeInviteConfirmOpen}
+          onOpenChange={setRemoveInviteConfirmOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.deleteEventConfirmTitle}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t.deleteEventConfirmDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingRemoveInvite(null)}>
+                {t.cancel}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground"
+                onClick={confirmRemoveInvite}
               >
                 {t.delete}
               </AlertDialogAction>
