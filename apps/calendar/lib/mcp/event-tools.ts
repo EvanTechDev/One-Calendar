@@ -50,6 +50,16 @@ export const EVENT_FIELD_WHITELIST = [
   'updatedAt',
 ] as const
 
+const EVENT_FIELD_ALIASES: Record<string, string> = {
+  start_date: 'startDate',
+  end_date: 'endDate',
+  is_all_day: 'isAllDay',
+  category_id: 'categoryId',
+  notification_minutes: 'notificationMinutes',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+}
+
 export interface ListEventsParams {
   // Compatible legacy parameters.
   start_date?: string
@@ -345,9 +355,12 @@ export function validatePagination(
 
 export function validateEventFields(fields?: string[]): void {
   if (!fields || fields.length === 0) return
-  const allowed = new Set(EVENT_FIELD_WHITELIST)
+  const allowed = new Set<string>([
+    ...EVENT_FIELD_WHITELIST,
+    ...Object.keys(EVENT_FIELD_ALIASES),
+  ])
   for (const field of fields) {
-    if (!allowed.has(field as (typeof EVENT_FIELD_WHITELIST)[number])) {
+    if (!allowed.has(field)) {
       throw new InvalidEventQueryError(
         `Unknown field: ${field}. Allowed fields: ${EVENT_FIELD_WHITELIST.join(', ')}`,
       )
@@ -361,13 +374,34 @@ export function projectEventFields(
 ): Record<string, unknown> {
   validateEventFields(fields)
   if (!fields || fields.length === 0) return event
-  const wanted = new Set<string>(fields)
+  const requested = fields.map((f) => EVENT_FIELD_ALIASES[f] ?? f)
+  const wanted = new Set<string>(requested)
   wanted.add('id')
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(event)) {
     if (wanted.has(key)) result[key] = value
   }
   return result
+}
+
+export function mergeParticipantEmails(
+  stored: unknown,
+  inviteEmails: Iterable<string>,
+): string[] {
+  const seen = new Set<string>()
+  const merged: string[] = []
+  for (const email of extractParticipantEmails(stored)) {
+    if (seen.has(email)) continue
+    seen.add(email)
+    merged.push(email)
+  }
+  for (const email of inviteEmails) {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized || seen.has(normalized)) continue
+    seen.add(normalized)
+    merged.push(normalized)
+  }
+  return merged
 }
 
 export function extractParticipantEmails(participants: unknown): string[] {
@@ -522,6 +556,19 @@ export async function listEvents(
 
   let events = rows.map(decryptEvent)
 
+  // Merge invite emails into participants so returned events show the full
+  // participant set, not just the ones stored on the event row.
+  const emailSets = await buildParticipantEmailSets(events.map((e) => e.id))
+  for (const event of events) {
+    const inviteEmails = emailSets.get(event.id)
+    if (inviteEmails && inviteEmails.size > 0) {
+      event.participants = mergeParticipantEmails(
+        event.participants,
+        inviteEmails,
+      )
+    }
+  }
+
   // Full-text search runs after decryption because title/description/location
   // are stored encrypted.
   if (searchText) {
@@ -539,13 +586,9 @@ export async function listEvents(
   }
 
   if (participantFilter || participantEmails) {
-    const emailSets = await buildParticipantEmailSets(events.map((e) => e.id))
     const normalizedTarget = participantEmails
     events = events.filter((event) => {
-      const emails = emailSets.get(event.id) ?? new Set<string>()
-      for (const email of extractParticipantEmails(event.participants)) {
-        emails.add(email)
-      }
+      const emails = new Set(extractParticipantEmails(event.participants))
       if (normalizedTarget && normalizedTarget.length > 0) {
         const mode = participantFilter?.mode ?? 'any'
         const matches = matchesParticipantFilter(emails, {

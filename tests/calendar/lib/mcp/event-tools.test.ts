@@ -8,6 +8,7 @@ import {
   validateEventFields,
   projectEventFields,
   extractParticipantEmails,
+  mergeParticipantEmails,
   matchesParticipantFilter,
   InvalidEventQueryError,
 } from '@/lib/mcp/event-tools'
@@ -179,6 +180,24 @@ describe('fields projection', () => {
       title: 'Standup',
     })
   })
+
+  it('accepts snake_case aliases and maps them to response keys', () => {
+    expect(projectEventFields(event, ['title', 'start_date'])).toEqual({
+      id: 'evt-1',
+      title: 'Standup',
+      startDate: '2026-08-15T09:00:00Z',
+    })
+  })
+
+  it('accepts a mix of camelCase and snake_case aliases', () => {
+    expect(
+      projectEventFields(event, ['startDate', 'category_id', 'created_at']),
+    ).toEqual({
+      id: 'evt-1',
+      startDate: '2026-08-15T09:00:00Z',
+      categoryId: 'cat-1',
+    })
+  })
 })
 
 describe('participant matching', () => {
@@ -190,6 +209,27 @@ describe('participant matching', () => {
         { name: 'No Email' },
       ]),
     ).toEqual(['alice@example.com', 'bob@example.com'])
+  })
+
+  it('merges invite emails with stored participants, preserving order', () => {
+    expect(
+      mergeParticipantEmails(
+        ['alice@example.com', 'Bob@Example.com'],
+        ['bob@example.com', 'CAROL@X.com'],
+      ),
+    ).toEqual(['alice@example.com', 'bob@example.com', 'carol@x.com'])
+  })
+
+  it('merges no invite emails returns stored participants as-is', () => {
+    expect(mergeParticipantEmails(['alice@example.com'], [])).toEqual([
+      'alice@example.com',
+    ])
+  })
+
+  it('merges with null stored participants', () => {
+    expect(mergeParticipantEmails(null, ['alice@example.com'])).toEqual([
+      'alice@example.com',
+    ])
   })
 
   it('matches any mode', () => {
