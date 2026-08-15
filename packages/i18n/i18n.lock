@@ -480,6 +480,22 @@ checksums:
     friday: 320c91ba40b99148d9eabd578b89ddc6
     saturday: 77b65adf8ae2b69eaed51b6104ded65e
     settings: 8df6777277469c1fd88cc18dde2f1cc3
+    settingsGeneral: e3f4cfb8373d2b888a0c38e743de0e19
+    settingsGeneralDesc: 95135c02c6e5d173f19d87ae5e535199
+    settingsThemeDesc: 816a7b32b4a5ecd8719018f04da58708
+    settingsLanguageDesc: a2dcaca5e91db5ba5a798ec9e27284ba
+    settingsFirstDayDesc: 0c77772c0f1da920405817aea702f486
+    settingsDefaultViewDesc: 58ccafd235172cac343b4c135597d226
+    settingsTimezoneDesc: 08b8c5a3ed51ad47834f6ca9e00ff37a
+    settingsTimeFormatDesc: 6821c5286b286624d771f7f37e861338
+    settingsShortcutsDesc: 39481b2c08027507e5fdbaa814a0c197
+    settingsSharing: b0799797a387dab52f2eb553884f27c7
+    settingsMcp: 62c2c8e6703c9e5224e98294a53e1884
+    settingsMcpDesc: 5bb3aff34dcda27234fc66cc1fb7a197
+    settingsData: b7b46ab6ce9606032c8f81f6f6afbb9b
+    settingsDataDesc: 86324e9845928892b8ac079dd00229f8
+    settingsAbout: 944521eeeed2511833d2299931273c71
+    settingsAboutDesc: 6617e3ce4bf34671a9d90aac57a2c0a7
     language: 277fd1a41cc237a437cd1d5e4a80463b
     firstDayOfWeek: c91aeed5bd4aa2435974cc8d5c66688b
     timezone: 370780b854bdbef55320f977a4fb9ddb
@@ -554,6 +570,9 @@ checksums:
     shortCuts: ef00d7494b69def6841620bd6554d040
     enableShortcuts: 7b19d9c6cfbdcd1a22fb1e2fe2eb3948
     availableShortcuts: ae795dd609d7cdf0feade5c731c2bb81
+    shortcutsActions: c46571856723b03262fd33f511116298
+    shortcutsViews: fcd6944cc5203e0c6f7e81d98fbb67d5
+    shortcutsNavigation: 0373afd8238db1c49f4be4fa6cdf5cd3
     defaultView: b74a969aee782d8b89d09253a7ee66c6
     newEvent: 8a24c2c837f9a059cb58860a7898b2d0
     dayView: d6aacaeb1e944ef4651bb11bb702956f
