@@ -24,6 +24,10 @@ export type EventData = {
   categoryId: string | null
   participants: Array<{ name: string; email?: string; userId?: string }> | null
   notificationMinutes: number | null
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
   createdAt: string
   updatedAt: string
   viewOnly?: boolean
@@ -110,15 +114,18 @@ export const api = {
         userId?: string
       }> | null
       notificationMinutes?: number | null
+      rrule?: string | null
+      exdate?: string[] | null
+      apply_to?: 'single' | 'following' | 'all'
     }) =>
       fetchJson<{ event: EventData }>('/api/events', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    delete: (id: string) =>
+    delete: (id: string, applyTo?: 'single' | 'following' | 'all') =>
       fetchJson<{ success: boolean }>('/api/events', {
         method: 'DELETE',
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, apply_to: applyTo }),
       }),
   },
 

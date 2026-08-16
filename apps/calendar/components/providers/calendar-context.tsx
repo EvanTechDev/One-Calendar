@@ -21,7 +21,10 @@ export interface CalendarEvent {
   startDate: Date
   endDate: Date
   isAllDay: boolean
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
   location?: string
   participants: string[]
   notification: number
@@ -53,7 +56,10 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     startDate: new Date(e.startDate),
     endDate: new Date(e.endDate),
     isAllDay: e.isAllDay,
-    recurrence: 'none',
+    rrule: e.rrule ?? null,
+    exdate: e.exdate ?? null,
+    seriesId: e.seriesId ?? null,
+    recurrenceId: e.recurrenceId ?? null,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
     notification: e.notificationMinutes ?? 0,

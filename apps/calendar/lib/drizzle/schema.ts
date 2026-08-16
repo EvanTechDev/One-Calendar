@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   unique,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -49,8 +50,21 @@ export const calendarEvents = pgTable(
     categoryId: text('category_id').references(() => calendarCategories.id, {
       onDelete: 'set null',
     }),
-    participants: jsonb('participants'),
+    participants: jsonb('participants').$type<
+      | string
+      | (
+          | string
+          | { name: string; email?: string | null; userId?: string | null }
+        )[]
+    >(),
     notificationMinutes: integer('notification_minutes'),
+    rrule: text('rrule'),
+    exdate: jsonb('exdate').$type<string[]>(),
+    seriesId: text('series_id').references(
+      (): AnyPgColumn => calendarEvents.id,
+      { onDelete: 'cascade' },
+    ),
+    recurrenceId: text('recurrence_id'),
     createdAt: timestamp('created_at', {
       precision: 3,
       withTimezone: true,
@@ -73,6 +87,7 @@ export const calendarEvents = pgTable(
     categoryIdx: index('idx_events_category_id').on(table.categoryId),
     allDayIdx: index('idx_events_is_all_day').on(table.isAllDay),
     statusIdx: index('idx_events_status').on(table.status),
+    seriesIdx: index('idx_events_series_id').on(table.seriesId),
     createdAtIdx: index('idx_events_created_at').on(table.createdAt),
     updatedAtIdx: index('idx_events_updated_at').on(table.updatedAt),
   }),

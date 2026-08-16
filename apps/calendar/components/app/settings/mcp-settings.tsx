@@ -62,6 +62,8 @@ const ALL_SCOPE_OPTIONS = [
   { value: 'settings:read', label: 'settings:read' },
   { value: 'settings:write', label: 'settings:write' },
   { value: 'profile:read', label: 'profile:read' },
+  { value: 'bookmarks:read', label: 'bookmarks:read - 查看已收藏日程' },
+  { value: 'bookmarks:write', label: 'bookmarks:write - 收藏/取消收藏日程' },
 ]
 
 const MCP_KEYS = {

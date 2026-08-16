@@ -4,12 +4,30 @@ import {
   calendarCategories,
   eventInvites,
 } from '@/lib/drizzle/schema'
-import { eq, and, lt, gt, inArray, type SQL } from 'drizzle-orm'
+import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
 import { normalizeColor } from './colors'
 import { InvalidEventQueryError } from './errors'
 import { getSettings } from './settings-tools'
+import {
+  expandRows,
+  firstStampOfSeries,
+  mergeOverride,
+  planInstanceChange,
+  resolveInstance,
+  type ApplyTo,
+  type EventRow,
+  type InstanceChangePlan,
+} from '@/lib/event-service'
+import {
+  isInstanceId,
+  isSeriesEvent,
+  parseInstanceId,
+  parseRfcStamp,
+  withUntil,
+} from '@/lib/recurrence/engine'
+import { RRule } from 'rrule'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
@@ -48,6 +66,10 @@ export const EVENT_FIELD_WHITELIST = [
   'status',
   'createdAt',
   'updatedAt',
+  'rrule',
+  'exdate',
+  'seriesId',
+  'recurrenceId',
 ] as const
 
 const EVENT_FIELD_ALIASES: Record<string, string> = {
@@ -58,6 +80,8 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
   notification_minutes: 'notificationMinutes',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
+  series_id: 'seriesId',
+  recurrence_id: 'recurrenceId',
 }
 
 export interface ListEventsParams {
@@ -441,6 +465,229 @@ export function matchesParticipantFilter(
 }
 
 // ---------------------------------------------------------------------------
+// Recurring events helpers
+// ---------------------------------------------------------------------------
+
+function isValidRrule(rule: string | null): boolean {
+  if (rule === null) return true
+  try {
+    return typeof RRule.fromString(rule).options.freq === 'number'
+  } catch {
+    return false
+  }
+}
+
+function isValidStamp(stamp: string): boolean {
+  try {
+    parseRfcStamp(stamp)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function validateRecurringArguments(
+  rrule: string | null,
+  exdate: string[] | null | undefined,
+): void {
+  if (rrule !== null && !isValidRrule(rrule)) {
+    throw new InvalidEventQueryError(
+      'Invalid rrule: must be a valid RFC 5545 RRULE (e.g. FREQ=WEEKLY;INTERVAL=1)',
+    )
+  }
+  if (exdate !== null && exdate !== undefined) {
+    if (rrule === null) {
+      throw new InvalidEventQueryError('exdate requires rrule')
+    }
+    for (const stamp of exdate) {
+      if (!isValidStamp(stamp)) {
+        throw new InvalidEventQueryError(`Invalid exdate: ${stamp}`)
+      }
+    }
+  }
+}
+
+function mcpFieldsToEventRow(data: {
+  title?: string
+  description?: string | null
+  location?: string | null
+  start_date?: string
+  end_date?: string
+  is_all_day?: boolean
+  status?: EventStatus | null
+  color?: string | null
+  category_id?: string | null
+  notification_minutes?: number | null
+}): Partial<EventRow> {
+  const fields: Partial<EventRow> = {}
+  if (data.title !== undefined) fields.title = data.title
+  if (data.description !== undefined) fields.description = data.description
+  if (data.location !== undefined) fields.location = data.location
+  if (data.start_date !== undefined)
+    fields.startDate = new Date(data.start_date)
+  if (data.end_date !== undefined) fields.endDate = new Date(data.end_date)
+  if (data.is_all_day !== undefined) fields.isAllDay = data.is_all_day
+  if (data.status !== undefined && data.status !== null)
+    fields.status = data.status
+  if (data.color !== undefined && data.color !== null)
+    fields.color = normalizeColor(data.color)
+  if (data.category_id !== undefined) fields.categoryId = data.category_id
+  if (data.notification_minutes !== undefined)
+    fields.notificationMinutes = data.notification_minutes
+  return fields
+}
+
+function encryptMergedFields(
+  rowId: string,
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const encrypted: Record<string, unknown> = {}
+  if (fields.title !== undefined)
+    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
+  if (fields.description !== undefined)
+    encrypted.description = encryptField(rowId, fields.description as string)
+  if (fields.location !== undefined)
+    encrypted.location = encryptField(rowId, fields.location as string)
+  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
+  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
+  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
+  if (fields.status !== undefined) encrypted.status = fields.status
+  if (fields.color !== undefined) encrypted.color = fields.color
+  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
+  if (fields.notificationMinutes !== undefined)
+    encrypted.notificationMinutes = fields.notificationMinutes
+  return encrypted
+}
+
+type Db = Awaited<ReturnType<typeof getDb>>
+
+async function deleteCalendarEventRow(
+  db: Db,
+  userId: string,
+  eventId: string,
+): Promise<void> {
+  await db.delete(eventInvites).where(eq(eventInvites.eventId, eventId))
+  await db
+    .delete(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
+    )
+}
+
+async function fetchSeriesOverrides(
+  db: Db,
+  seriesId: string,
+): Promise<ReturnType<typeof decryptEvent>[]> {
+  const rows = await db
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.seriesId, seriesId))
+  return rows.map(decryptEvent)
+}
+
+async function applySplitPlan(
+  userId: string,
+  master: EventRow,
+  plan: InstanceChangePlan,
+): Promise<ReturnType<typeof decryptEvent> | null> {
+  const db = await getDb()
+  const split = plan.split!
+  const newId = split.newSeries.id
+  const [newMaster] = await db
+    .insert(calendarEvents)
+    .values({
+      id: newId,
+      userId,
+      rrule: split.newSeries.rrule,
+      exdate: split.newSeries.exdate,
+      ...encryptMergedFields(newId, split.newSeries.fields),
+    } as typeof calendarEvents.$inferInsert)
+    .returning()
+
+  if (plan.deleteOverrideId) {
+    await deleteCalendarEventRow(db, userId, plan.deleteOverrideId)
+  }
+
+  if (split.moveOverrideIds.length > 0) {
+    await db
+      .update(calendarEvents)
+      .set({ seriesId: newId })
+      .where(
+        and(
+          inArray(calendarEvents.id, split.moveOverrideIds),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  await db
+    .update(calendarEvents)
+    .set({
+      rrule: withUntil(master.rrule!, split.masterUntil),
+      exdate: split.masterExdate,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(calendarEvents.id, master.id), eq(calendarEvents.userId, userId)),
+    )
+
+  return decryptEvent(newMaster)
+}
+
+async function applySinglePlan(
+  db: Db,
+  userId: string,
+  master: EventRow,
+  plan: InstanceChangePlan,
+): Promise<ReturnType<typeof decryptEvent> | null> {
+  const upsert = plan.overrideUpsert!
+  if (plan.exdateToAdd) {
+    await db
+      .update(calendarEvents)
+      .set({
+        exdate: [...(master.exdate ?? []), plan.exdateToAdd],
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, master.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  const encrypted = encryptMergedFields(upsert.id, upsert.fields)
+  let stored
+  if (upsert.isNew) {
+    ;[stored] = await db
+      .insert(calendarEvents)
+      .values({
+        id: upsert.id,
+        userId,
+        seriesId: upsert.seriesId,
+        recurrenceId: upsert.recurrenceId,
+        createdAt: upsert.fields.createdAt as Date,
+        updatedAt: upsert.fields.updatedAt as Date,
+        ...encrypted,
+      } as typeof calendarEvents.$inferInsert)
+      .returning()
+  } else {
+    ;[stored] = await db
+      .update(calendarEvents)
+      .set({ ...encrypted, updatedAt: new Date() })
+      .where(
+        and(
+          eq(calendarEvents.id, upsert.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+      .returning()
+  }
+
+  return stored ? decryptEvent(stored) : null
+}
+
+// ---------------------------------------------------------------------------
 // listEvents
 // ---------------------------------------------------------------------------
 
@@ -554,13 +801,41 @@ export async function listEvents(
     .from(calendarEvents)
     .where(and(...sqlFilters))
 
+  const recurringRows = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.userId, userId),
+        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
+      ),
+    )
+
   let events = rows.map(decryptEvent)
+  const recurring = recurringRows.map(decryptEvent)
+  const recurringIds = new Set(recurring.map((e) => e.id))
+  const plainRows = events.filter((e) => !recurringIds.has(e.id))
+
+  if (timeRange.start || timeRange.end) {
+    events = expandRows([...plainRows, ...recurring], {
+      windowStart: timeRange.start,
+      windowEnd: timeRange.end,
+    }).map((e) =>
+      e.recurrenceId !== null
+        ? ({ ...e, id: e.instanceId } as ReturnType<typeof decryptEvent>)
+        : (e as ReturnType<typeof decryptEvent>),
+    )
+  } else {
+    events = plainRows
+  }
 
   // Merge invite emails into participants so returned events show the full
   // participant set, not just the ones stored on the event row.
-  const emailSets = await buildParticipantEmailSets(events.map((e) => e.id))
+  const emailSets = await buildParticipantEmailSets([
+    ...new Set(events.map((e) => (e.seriesId ?? e.id) as string)),
+  ])
   for (const event of events) {
-    const inviteEmails = emailSets.get(event.id)
+    const inviteEmails = emailSets.get((event.seriesId ?? event.id) as string)
     if (inviteEmails && inviteEmails.size > 0) {
       event.participants = mergeParticipantEmails(
         event.participants,
@@ -679,6 +954,32 @@ async function buildParticipantEmailSets(
 
 export async function getEvent(userId: string, eventId: string) {
   const db = await getDb()
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return null
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      master.id,
+    )) as unknown as EventRow[]
+    const resolved = resolveInstance(
+      decryptEvent(master) as unknown as EventRow,
+      parsedId.recurrenceId,
+      overrides,
+    )
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
+
   const [row] = await db
     .select()
     .from(calendarEvents)
@@ -687,7 +988,7 @@ export async function getEvent(userId: string, eventId: string) {
     )
 
   if (!row) return null
-  return decryptEvent(row)
+  return { ...decryptEvent(row), instanceId: row.id }
 }
 
 export async function createEvent(
@@ -703,8 +1004,16 @@ export async function createEvent(
     color: string
     category_id?: string | null
     notification_minutes?: number | null
+    rrule?: string | null
+    exdate?: string[] | null
   },
 ) {
+  const rawRrule =
+    typeof data.rrule === 'string' && data.rrule.trim().length > 0
+      ? data.rrule
+      : null
+  validateRecurringArguments(rawRrule, data.exdate)
+
   const id = crypto.randomUUID()
   const db = await getDb()
 
@@ -723,6 +1032,8 @@ export async function createEvent(
       color: normalizeColor(data.color),
       categoryId: data.category_id ?? null,
       notificationMinutes: data.notification_minutes ?? null,
+      rrule: rawRrule,
+      exdate: data.exdate ?? null,
     })
     .returning()
 
@@ -743,11 +1054,168 @@ export async function updateEvent(
     color?: string | null
     category_id?: string | null
     notification_minutes?: number | null
+    rrule?: string | null
+    exdate?: string[] | null
+    apply_to?: ApplyTo
   },
 ) {
   const db = await getDb()
-  const existing = await getEvent(userId, eventId)
+  const rawRrule =
+    typeof data.rrule === 'string' && data.rrule.trim().length > 0
+      ? data.rrule
+      : null
+  validateRecurringArguments(rawRrule, data.exdate)
+  const fields = mcpFieldsToEventRow(data)
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return null
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      masterRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const applyTo = data.apply_to ?? 'single'
+
+    if (applyTo === 'all') {
+      const set = {
+        ...encryptMergedFields(masterRow.id, fields),
+        ...(data.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(data.exdate !== undefined ? { exdate: data.exdate } : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await db
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, masterRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+        .returning()
+      return decryptEvent(updated)
+    }
+
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo,
+      fields,
+      now: new Date(),
+    })
+
+    if (plan.split) {
+      return applySplitPlan(userId, masterRow, plan)
+    }
+
+    const stored = await applySinglePlan(db, userId, masterRow, plan)
+    if (!stored) return null
+    const resolved = resolveInstance(masterRow, parsedId.recurrenceId, [
+      stored,
+      ...overrides,
+    ] as unknown as EventRow[])
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
+
+  const [existing] = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
+    )
   if (!existing) return null
+
+  if (existing.seriesId !== null) {
+    const overrideRow = decryptEvent(existing) as unknown as EventRow
+    const merged = mergeOverride<EventRow>(overrideRow, fields)
+    const [updated] = await db
+      .update(calendarEvents)
+      .set({
+        ...encryptMergedFields(
+          overrideRow.id,
+          merged as unknown as Record<string, unknown>,
+        ),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, overrideRow.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+      .returning()
+    return decryptEvent(updated)
+  }
+
+  if (isSeriesEvent({ rrule: existing.rrule })) {
+    const seriesRow = decryptEvent(existing) as unknown as EventRow
+    const applyTo = data.apply_to ?? 'all'
+
+    if (applyTo === 'all') {
+      const set = {
+        ...encryptMergedFields(seriesRow.id, fields),
+        ...(data.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(data.exdate !== undefined ? { exdate: data.exdate } : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await db
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+        .returning()
+      return decryptEvent(updated)
+    }
+
+    const recurrenceId = firstStampOfSeries(seriesRow)
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      seriesRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo,
+      fields,
+      now: new Date(),
+    })
+
+    if (plan.split) {
+      return applySplitPlan(userId, seriesRow, plan)
+    }
+
+    const stored = await applySinglePlan(db, userId, seriesRow, plan)
+    if (!stored) return null
+    const resolved = resolveInstance(seriesRow, recurrenceId, [
+      stored,
+      ...overrides,
+    ] as unknown as EventRow[])
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
 
   const values: Record<string, unknown> = {}
   if (data.title !== undefined)
@@ -767,6 +1235,8 @@ export async function updateEvent(
   if (data.category_id !== undefined) values.categoryId = data.category_id
   if (data.notification_minutes !== undefined)
     values.notificationMinutes = data.notification_minutes
+  if (data.rrule !== undefined) values.rrule = rawRrule
+  if (data.exdate !== undefined) values.exdate = data.exdate
   values.updatedAt = new Date()
 
   const [event] = await db
@@ -783,11 +1253,138 @@ export async function updateEvent(
 export async function deleteEvent(
   userId: string,
   eventId: string,
+  applyTo?: ApplyTo,
 ): Promise<void> {
   const db = await getDb()
-  await db
-    .delete(calendarEvents)
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      masterRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const effectiveApplyTo = applyTo ?? 'single'
+
+    if (effectiveApplyTo === 'all') {
+      await deleteCalendarEventRow(db, userId, masterRow.id)
+      return
+    }
+
+    if (effectiveApplyTo === 'single') {
+      if (override) {
+        await deleteCalendarEventRow(db, userId, override.id)
+      } else if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
+        await db
+          .update(calendarEvents)
+          .set({
+            exdate: [
+              ...new Set([...(masterRow.exdate ?? []), parsedId.recurrenceId]),
+            ],
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, userId),
+            ),
+          )
+      }
+      return
+    }
+
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo: 'following',
+      fields: {},
+      now: new Date(),
+    })
+    const newMaster = await applySplitPlan(userId, masterRow, plan)
+    if (newMaster) {
+      await deleteCalendarEventRow(db, userId, newMaster.id)
+    }
+    return
+  }
+
+  const [existing] = await db
+    .select()
+    .from(calendarEvents)
     .where(
       and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
     )
+  if (!existing) return
+
+  if (existing.seriesId !== null) {
+    await deleteCalendarEventRow(db, userId, existing.id)
+    return
+  }
+
+  if (isSeriesEvent({ rrule: existing.rrule })) {
+    const effectiveApplyTo = applyTo ?? 'all'
+    if (effectiveApplyTo === 'all') {
+      await deleteCalendarEventRow(db, userId, existing.id)
+      return
+    }
+    const seriesRow = decryptEvent(existing) as unknown as EventRow
+    const recurrenceId = firstStampOfSeries(seriesRow)
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      seriesRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo: effectiveApplyTo,
+      fields: {},
+      now: new Date(),
+    })
+
+    if (plan.split) {
+      const newMaster = await applySplitPlan(userId, seriesRow, plan)
+      if (newMaster) {
+        await deleteCalendarEventRow(db, userId, newMaster.id)
+      }
+      return
+    }
+
+    if (plan.deleteOverrideId) {
+      await deleteCalendarEventRow(db, userId, override!.id)
+      return
+    }
+
+    await db
+      .update(calendarEvents)
+      .set({
+        exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, seriesRow.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    return
+  }
+
+  await deleteCalendarEventRow(db, userId, existing.id)
 }

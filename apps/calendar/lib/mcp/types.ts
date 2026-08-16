@@ -17,6 +17,8 @@ export type McpScope =
   | 'settings:read'
   | 'settings:write'
   | 'profile:read'
+  | 'bookmarks:read'
+  | 'bookmarks:write'
 
 export const ALL_SCOPES: McpScope[] = [
   'events:read',
@@ -28,6 +30,8 @@ export const ALL_SCOPES: McpScope[] = [
   'settings:read',
   'settings:write',
   'profile:read',
+  'bookmarks:read',
+  'bookmarks:write',
 ]
 
 export class McpAuthError extends Error {

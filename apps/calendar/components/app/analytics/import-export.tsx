@@ -480,7 +480,7 @@ ${rawContent.substring(0, 500)}...`)
       startDate: start,
       endDate: end,
       isAllDay: Boolean(input.isAllDay),
-      recurrence: input.recurrence || 'none',
+      rrule: input.rrule ?? null,
       location: input.location,
       participants: Array.isArray(input.participants) ? input.participants : [],
       notification:
@@ -520,6 +520,8 @@ DTSTAMP:${formatDate(new Date())}
 DTSTART:${formatDate(startDate)}
 DTEND:${formatDate(endDate)}
 SUMMARY:${event.title}
+${event.rrule ? `RRULE:${event.rrule}\n` : ''}
+${event.exdate?.length ? `EXDATE:${event.exdate.join(',')}\n` : ''}
 ${event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : ''}
 ${event.location ? `LOCATION:${event.location}` : ''}
 END:VEVENT
@@ -585,7 +587,7 @@ END:VEVENT
             Date.now().toString() + Math.random().toString(36).substring(2, 9),
           title: t.unnamedEvent || 'Unnamed Event',
           isAllDay: false,
-          recurrence: 'none',
+          rrule: null,
           participants: [],
           notification: 0,
           color: 'bg-[#E6F6FD]',
@@ -650,14 +652,15 @@ END:VEVENT
               }
               break
             case 'RRULE':
-              if (value.includes('FREQ=DAILY')) {
-                currentEvent.recurrence = 'daily'
-              } else if (value.includes('FREQ=WEEKLY')) {
-                currentEvent.recurrence = 'weekly'
-              } else if (value.includes('FREQ=MONTHLY')) {
-                currentEvent.recurrence = 'monthly'
-              } else if (value.includes('FREQ=YEARLY')) {
-                currentEvent.recurrence = 'yearly'
+              currentEvent.rrule = value
+              break
+            case 'EXDATE':
+              {
+                const stamps = value.split(',').map((s) => s.trim())
+                currentEvent.exdate = [
+                  ...(currentEvent.exdate ?? []),
+                  ...stamps,
+                ]
               }
               break
           }
@@ -817,7 +820,7 @@ END:VEVENT
           startDate,
           endDate,
           isAllDay: false,
-          recurrence: 'none',
+          rrule: null,
           location:
             locationIndex >= 0 && locationIndex < values.length
               ? values[locationIndex]

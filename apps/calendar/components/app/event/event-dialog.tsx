@@ -32,6 +32,13 @@ import {
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
 } from '@/components/app/views/event-colors'
+import {
+  rruleFromParts,
+  rruleToParts,
+  toRfcStamp,
+  parseRfcStamp,
+  type RruleParts,
+} from '@/lib/recurrence'
 import type { ViewConfig } from '@/lib/calendar-types'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
@@ -48,8 +55,14 @@ interface EventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEventAdd: (event: CalendarEvent) => void
-  onEventUpdate: (event: CalendarEvent) => void
-  onEventDelete: (eventId: string) => void
+  onEventUpdate: (
+    event: CalendarEvent,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => void
+  onEventDelete: (
+    eventId: string,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => void
   onInvitesAdded: (eventId: string, emails: string[]) => void
   initialDate: Date
   initialEndDate?: Date | null
@@ -95,6 +108,25 @@ export default function EventDialog({
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endTimeOpen, setEndTimeOpen] = useState(false)
   const [startTimeOpen, setStartTimeOpen] = useState(false)
+
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false)
+  const [applyTo, setApplyTo] = useState<'single' | 'following' | 'all'>('all')
+  const [recFreq, setRecFreq] = useState<
+    'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  >('WEEKLY')
+  const [recInterval, setRecInterval] = useState(1)
+  const [recEndMode, setRecEndMode] = useState<'never' | 'count' | 'until'>(
+    'never',
+  )
+  const [recCount, setRecCount] = useState(10)
+  const [recUntil, setRecUntil] = useState<Date>(() => addDays(new Date(), 365))
+  const [recWeeklyDays, setRecWeeklyDays] = useState<string[]>([])
+  const [recMonthlyMode, setRecMonthlyMode] = useState<'day' | 'weekday'>('day')
+  const [recMonthlyDay, setRecMonthlyDay] = useState(1)
+  const [recMonthlyWeek, setRecMonthlyWeek] = useState(1)
+  const [recMonthlyWeekday, setRecMonthlyWeekday] = useState('MO')
+  const [recYearlyMonth, setRecYearlyMonth] = useState(1)
+  const [recYearlyDay, setRecYearlyDay] = useState(1)
 
   const [startDate, setStartDate] = useState(initialDate)
   const [endDate, setEndDate] = useState(initialDate)
@@ -274,6 +306,46 @@ export default function EventDialog({
         setDescription(event.description || '')
         setColor(event.color)
         setSelectedCalendar(event.calendarId || '')
+
+        const recurring =
+          !!event.rrule || !!event.seriesId || !!event.recurrenceId
+        setRecurrenceEnabled(!!event.rrule)
+        setApplyTo(
+          recurring
+            ? event.seriesId || event.recurrenceId
+              ? 'single'
+              : 'all'
+            : 'all',
+        )
+        if (event.rrule) {
+          const parts = rruleToParts(event.rrule)
+          setRecFreq(parts.freq)
+          setRecInterval(parts.interval || 1)
+          setRecWeeklyDays(parts.byweekday ?? [])
+          setRecMonthlyMode(
+            parts.byweekday && parts.bysetpos !== null ? 'weekday' : 'day',
+          )
+          setRecMonthlyWeek(parts.bysetpos ?? 1)
+          setRecMonthlyWeekday(parts.byweekday?.[0] ?? 'MO')
+          const start = new Date(event.startDate)
+          setRecMonthlyDay(parts.bymonthday?.[0] ?? start.getDate())
+          setRecYearlyDay(parts.bymonthday?.[0] ?? start.getDate())
+          setRecYearlyMonth(parts.bymonth?.[0] ?? start.getMonth() + 1)
+          if (parts.until) {
+            setRecEndMode('until')
+            setRecUntil(parseRfcStamp(parts.until).date)
+          } else if (parts.count !== null) {
+            setRecEndMode('count')
+            setRecCount(parts.count)
+          } else {
+            setRecEndMode('never')
+          }
+        } else {
+          const start = new Date(event.startDate)
+          setRecMonthlyDay(start.getDate())
+          setRecYearlyDay(start.getDate())
+          setRecYearlyMonth(start.getMonth() + 1)
+        }
       } else {
         resetForm()
         if (initialDate) {
@@ -329,6 +401,20 @@ export default function EventDialog({
     setSelectedCalendar('')
     setStartTimeError(false)
     setEndTimeError(false)
+    setRecurrenceEnabled(false)
+    setApplyTo('all')
+    setRecFreq('WEEKLY')
+    setRecInterval(1)
+    setRecEndMode('never')
+    setRecCount(10)
+    setRecUntil(addDays(new Date(), 365))
+    setRecWeeklyDays([])
+    setRecMonthlyMode('day')
+    setRecMonthlyDay(1)
+    setRecMonthlyWeek(1)
+    setRecMonthlyWeekday('MO')
+    setRecYearlyMonth(1)
+    setRecYearlyDay(1)
   }
 
   const handleStartDateChange = (newDate: Date | undefined) => {
@@ -435,6 +521,63 @@ export default function EventDialog({
     return emails
   }
 
+  const isRecurringEvent =
+    !!event?.rrule || !!event?.seriesId || !!event?.recurrenceId
+
+  const WEEKDAY_ORDER = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+  const weekdayOfDate = (d: Date) =>
+    WEEKDAY_ORDER[d.getDay() === 0 ? 6 : d.getDay() - 1]
+
+  const buildRruleParts = (): RruleParts | null => {
+    const base: RruleParts = {
+      freq: recFreq,
+      interval: recInterval,
+      byweekday: null,
+      bymonthday: null,
+      bysetpos: null,
+      bymonth: null,
+      until: null,
+      count: null,
+    }
+    if (recFreq === 'WEEKLY') {
+      const days =
+        recWeeklyDays.length > 0
+          ? [...recWeeklyDays]
+          : [weekdayOfDate(startDate)]
+      base.byweekday = days.sort(
+        (a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b),
+      )
+    } else if (recFreq === 'MONTHLY') {
+      if (recMonthlyMode === 'day') {
+        base.bymonthday = [recMonthlyDay]
+      } else {
+        base.byweekday = [recMonthlyWeekday]
+        base.bysetpos = recMonthlyWeek
+      }
+    } else if (recFreq === 'YEARLY') {
+      base.bymonth = [recYearlyMonth]
+      base.bymonthday = [recYearlyDay]
+    }
+    if (recEndMode === 'count') {
+      base.count = recCount
+    } else if (recEndMode === 'until') {
+      base.until = toRfcStamp(recUntil, isAllDay)
+    }
+    return base
+  }
+
+  const rulePreview = (() => {
+    if (!recurrenceEnabled || (isRecurringEvent && applyTo !== 'all'))
+      return null
+    const parts = buildRruleParts()
+    if (!parts) return null
+    try {
+      return rruleFromParts(parts)
+    } catch {
+      return null
+    }
+  })()
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -471,13 +614,32 @@ export default function EventDialog({
         })
       : fullEndDate
 
+    const recurring = isRecurringEvent
+    let rule: string | null = null
+    if (recurrenceEnabled && (recurring ? applyTo === 'all' : true)) {
+      const parts = buildRruleParts()
+      if (parts) {
+        try {
+          rule = rruleFromParts(parts)
+        } catch {
+          rule = null
+        }
+      }
+    }
+
     const eventData: CalendarEvent = {
       id: event?.id || crypto.randomUUID(),
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
-      recurrence: 'none',
+      rrule: recurring
+        ? applyTo === 'all'
+          ? (rule ?? event.rrule ?? null)
+          : (event.rrule ?? null)
+        : rule,
+      seriesId: event?.seriesId ?? null,
+      recurrenceId: event?.recurrenceId ?? null,
       location,
       participants: participantEmails,
       notification: notificationMinutes,
@@ -497,7 +659,7 @@ export default function EventDialog({
       const newEmails = participantEmails.filter(
         (email) => !alreadyInvited.has(email.toLowerCase()),
       )
-      onEventUpdate(eventData)
+      onEventUpdate(eventData, recurring ? applyTo : undefined)
       onInvitesAdded(event.id, newEmails)
     } else {
       onEventAdd(eventData)
@@ -754,6 +916,330 @@ export default function EventDialog({
               </div>
             </div>
 
+            {isRecurringEvent && (
+              <div className="space-y-2">
+                <Label>{isZh ? '重复范围' : 'Repeat scope'}</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ['single', isZh ? '仅此事件' : 'This event'],
+                      ['following', isZh ? '此及以后' : 'Following'],
+                      ['all', isZh ? '所有重复' : 'All events'],
+                    ] as const
+                  ).map(([mode, label]) => (
+                    <Button
+                      key={mode}
+                      type="button"
+                      size="sm"
+                      variant={applyTo === mode ? 'default' : 'outline'}
+                      onClick={() => setApplyTo(mode)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!event && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="repeat"
+                  checked={recurrenceEnabled}
+                  onCheckedChange={(checked) => {
+                    const enabled = checked as boolean
+                    setRecurrenceEnabled(enabled)
+                    if (enabled) {
+                      setRecWeeklyDays([weekdayOfDate(startDate)])
+                    }
+                  }}
+                />
+                <Label htmlFor="repeat">{isZh ? '重复' : 'Repeat'}</Label>
+              </div>
+            )}
+
+            {recurrenceEnabled && (event === null || applyTo === 'all') && (
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={recFreq}
+                    onValueChange={(value) =>
+                      setRecFreq(
+                        value as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY',
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">
+                        {isZh ? '每天' : 'Daily'}
+                      </SelectItem>
+                      <SelectItem value="WEEKLY">
+                        {isZh ? '每周' : 'Weekly'}
+                      </SelectItem>
+                      <SelectItem value="MONTHLY">
+                        {isZh ? '每月' : 'Monthly'}
+                      </SelectItem>
+                      <SelectItem value="YEARLY">
+                        {isZh ? '每年' : 'Yearly'}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={recInterval}
+                      onChange={(e) =>
+                        setRecInterval(
+                          Math.max(1, parseInt(e.target.value, 10) || 1),
+                        )
+                      }
+                      className="w-16"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {isZh ? '每周期' : 'every interval'}
+                    </span>
+                  </div>
+                </div>
+
+                {recFreq === 'WEEKLY' && (
+                  <div className="flex flex-wrap gap-1">
+                    {WEEKDAY_ORDER.map((d) => {
+                      const selected = recWeeklyDays.includes(d)
+                      return (
+                        <Button
+                          key={d}
+                          type="button"
+                          size="sm"
+                          className="h-7 px-2"
+                          variant={selected ? 'default' : 'outline'}
+                          onClick={() =>
+                            setRecWeeklyDays((prev) =>
+                              selected
+                                ? prev.filter((x) => x !== d)
+                                : [...prev, d],
+                            )
+                          }
+                        >
+                          {isZh
+                            ? ['一', '二', '三', '四', '五', '六', '日'][
+                                WEEKDAY_ORDER.indexOf(d)
+                              ]
+                            : d}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {recFreq === 'MONTHLY' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                          recMonthlyMode === 'day' ? 'default' : 'outline'
+                        }
+                        onClick={() => setRecMonthlyMode('day')}
+                      >
+                        {isZh ? '按日期' : 'By day'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                          recMonthlyMode === 'weekday' ? 'default' : 'outline'
+                        }
+                        onClick={() => setRecMonthlyMode('weekday')}
+                      >
+                        {isZh ? '按星期' : 'By weekday'}
+                      </Button>
+                    </div>
+                    {recMonthlyMode === 'day' ? (
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={recMonthlyDay}
+                        onChange={(e) =>
+                          setRecMonthlyDay(
+                            Math.min(
+                              31,
+                              Math.max(1, parseInt(e.target.value, 10) || 1),
+                            ),
+                          )
+                        }
+                        className="w-20"
+                      />
+                    ) : (
+                      <div className="flex gap-2">
+                        <Select
+                          value={String(recMonthlyWeek)}
+                          onValueChange={(v) =>
+                            setRecMonthlyWeek(parseInt(v, 10))
+                          }
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, -1].map((w) => (
+                              <SelectItem key={w} value={String(w)}>
+                                {w === -1
+                                  ? isZh
+                                    ? '最后一个'
+                                    : 'Last'
+                                  : isZh
+                                    ? `第${w}个`
+                                    : `Week ${w}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={recMonthlyWeekday}
+                          onValueChange={setRecMonthlyWeekday}
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WEEKDAY_ORDER.map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {isZh
+                                  ? ['一', '二', '三', '四', '五', '六', '日'][
+                                      WEEKDAY_ORDER.indexOf(d)
+                                    ]
+                                  : d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {recFreq === 'YEARLY' && (
+                  <div className="flex gap-2">
+                    <Select
+                      value={String(recYearlyMonth)}
+                      onValueChange={(v) => setRecYearlyMonth(parseInt(v, 10))}
+                    >
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                          (m) => (
+                            <SelectItem key={m} value={String(m)}>
+                              {isZh ? `${m}月` : `Month ${m}`}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={recYearlyDay}
+                      onChange={(e) =>
+                        setRecYearlyDay(
+                          Math.min(
+                            31,
+                            Math.max(1, parseInt(e.target.value, 10) || 1),
+                          ),
+                        )
+                      }
+                      className="w-20"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>{isZh ? '结束' : 'Ends'}</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={recEndMode === 'never' ? 'default' : 'outline'}
+                      onClick={() => setRecEndMode('never')}
+                    >
+                      {isZh ? '永不结束' : 'Never'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={recEndMode === 'count' ? 'default' : 'outline'}
+                      onClick={() => setRecEndMode('count')}
+                    >
+                      {isZh ? '按次数' : 'Count'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={recEndMode === 'until' ? 'default' : 'outline'}
+                      onClick={() => setRecEndMode('until')}
+                    >
+                      {isZh ? '按日期' : 'By date'}
+                    </Button>
+                  </div>
+                  {recEndMode === 'count' && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={recCount}
+                        onChange={(e) =>
+                          setRecCount(
+                            Math.max(1, parseInt(e.target.value, 10) || 1),
+                          )
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {isZh ? '次' : 'occurrences'}
+                      </span>
+                    </div>
+                  )}
+                  {recEndMode === 'until' && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(recUntil, 'yyyy-MM-dd')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={recUntil}
+                          onSelect={(date) => {
+                            if (date) setRecUntil(date)
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                {rulePreview && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    {rulePreview}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="calendar">{t.calendar}</Label>
               <Select
@@ -899,7 +1385,10 @@ export default function EventDialog({
                   type="button"
                   variant="destructive"
                   onClick={() => {
-                    onEventDelete(event.id)
+                    onEventDelete(
+                      event.id,
+                      isRecurringEvent ? applyTo : undefined,
+                    )
                     onOpenChange(false)
                   }}
                 >

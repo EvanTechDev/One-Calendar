@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
-import { eq, and, gte, lte, inArray, desc } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte, or, desc, isNotNull } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
@@ -13,8 +13,35 @@ import {
 } from '@/lib/cache/events'
 import { fullMonthRange } from '@/lib/cache/keys'
 import { eventSchema, firstZodMessage } from '@/lib/validation'
+import { RRule } from 'rrule'
+import {
+  expandRows,
+  mergeOverride,
+  firstStampOfSeries,
+  planInstanceChange,
+  resolveInstance,
+  type ApplyTo,
+  type EventRow,
+  type InstanceChangePlan,
+} from '@/lib/event-service'
+import {
+  isInstanceId,
+  isSeriesEvent,
+  parseInstanceId,
+  parseRfcStamp,
+  withUntil,
+} from '@/lib/recurrence/engine'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
+
+const recurringFieldsSchema = z.object({
+  rrule: z.string().max(500).optional(),
+  exdate: z.array(z.string()).max(500).optional(),
+  apply_to: z.enum(['all', 'single', 'following']).optional(),
+})
+
+const APPLY_TO_VALUES = new Set(['all', 'single', 'following'])
 
 type EnrichedInvite = {
   id: string
@@ -27,19 +54,182 @@ type EnrichedInvite = {
   userImage: string | null
 }
 
+function isValidRrule(rule: string | undefined): boolean {
+  if (rule === null || rule === undefined) return true
+  try {
+    return typeof RRule.fromString(rule).options.freq === 'number'
+  } catch {
+    return false
+  }
+}
+
+function isValidStamp(stamp: string): boolean {
+  try {
+    parseRfcStamp(stamp)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function encryptMergedFields(
+  rowId: string,
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const encrypted: Record<string, unknown> = {}
+  if (fields.title !== undefined)
+    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
+  if (fields.description !== undefined)
+    encrypted.description = encryptField(rowId, fields.description as string)
+  if (fields.location !== undefined)
+    encrypted.location = encryptField(rowId, fields.location as string)
+  if (fields.participants !== undefined)
+    encrypted.participants = encryptJsonField(rowId, fields.participants)
+  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
+  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
+  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
+  if (fields.status !== undefined) encrypted.status = fields.status
+  if (fields.color !== undefined) encrypted.color = fields.color
+  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
+  if (fields.notificationMinutes !== undefined)
+    encrypted.notificationMinutes = fields.notificationMinutes
+  return encrypted
+}
+
+async function invalidateMasterCache(
+  userId: string,
+  seriesId: string,
+): Promise<void> {
+  const [master] = await getDb()
+    .select({
+      startDate: calendarEvents.startDate,
+      endDate: calendarEvents.endDate,
+    })
+    .from(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, seriesId), eq(calendarEvents.userId, userId)),
+    )
+  if (master) {
+    await invalidateEventCache(
+      userId,
+      master.startDate.toISOString(),
+      master.endDate.toISOString(),
+    )
+  }
+}
+
+async function fetchOverrides(seriesId: string): Promise<EventRow[]> {
+  const rows = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.seriesId, seriesId))
+  return rows as unknown as EventRow[]
+}
+
+async function deleteRow(userId: string, row: EventRow): Promise<void> {
+  await getDb().delete(eventInvites).where(eq(eventInvites.eventId, row.id))
+  await getDb()
+    .delete(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
+    )
+  await invalidateEventCache(
+    userId,
+    row.startDate.toISOString(),
+    row.endDate.toISOString(),
+  )
+}
+
+async function applySplitPlan(
+  userId: string,
+  plan: InstanceChangePlan,
+  master: EventRow,
+): Promise<ReturnType<typeof decryptEvent> | null> {
+  const split = plan.split!
+  const newId = split.newSeries.id
+  const fields = encryptMergedFields(newId, split.newSeries.fields)
+  const [newMaster] = await getDb()
+    .insert(calendarEvents)
+    .values({
+      id: newId,
+      userId,
+      rrule: split.newSeries.rrule,
+      exdate: split.newSeries.exdate,
+      ...fields,
+    } as typeof calendarEvents.$inferInsert)
+    .returning()
+
+  if (plan.deleteOverrideId) {
+    await getDb()
+      .delete(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, plan.deleteOverrideId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  if (split.moveOverrideIds.length > 0) {
+    await getDb()
+      .update(calendarEvents)
+      .set({ seriesId: newId })
+      .where(
+        and(
+          inArray(calendarEvents.id, split.moveOverrideIds),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  await getDb()
+    .update(calendarEvents)
+    .set({
+      rrule: withUntil(master.rrule!, split.masterUntil),
+      exdate: split.masterExdate,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(calendarEvents.id, master.id), eq(calendarEvents.userId, userId)),
+    )
+
+  await Promise.all([
+    invalidateEventCache(
+      userId,
+      master.startDate.toISOString(),
+      master.endDate.toISOString(),
+    ),
+    invalidateEventCache(
+      userId,
+      split.newSeries.startDate.toISOString(),
+      split.newSeries.endDate.toISOString(),
+    ),
+  ])
+
+  return decryptEvent(newMaster)
+}
+
 async function enrichEventsWithInvites(
-  events: ReturnType<typeof decryptEvent>[],
+  events: Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>,
   viewerId: string,
   viewerEmail?: string,
 ): Promise<
-  Array<ReturnType<typeof decryptEvent> & { invites: EnrichedInvite[] }>
+  Array<
+    ReturnType<typeof decryptEvent> & {
+      invites: EnrichedInvite[]
+      instanceId?: string
+    }
+  >
 > {
   if (events.length === 0) {
     return events.map((e) => ({ ...e, invites: [] }))
   }
 
-  const eventIds = events.map((e) => e.id)
-  const eventOwners = new Map(events.map((e) => [e.id, e.userId]))
+  const inviteIds = events.map((e) => e.seriesId ?? e.id)
+  const idKeys = [...new Set(inviteIds)]
+  const eventOwners = new Map(
+    events.map((e) => [(e.seriesId ?? e.id) as string, e.userId]),
+  )
 
   const allInvites = await getDb()
     .select({
@@ -52,7 +242,7 @@ async function enrichEventsWithInvites(
       addedToCalendar: eventInvites.addedToCalendar,
     })
     .from(eventInvites)
-    .where(inArray(eventInvites.eventId, eventIds))
+    .where(inArray(eventInvites.eventId, idKeys))
 
   const inviteEmails = [
     ...new Set(allInvites.map((i) => i.email.toLowerCase())),
@@ -104,10 +294,13 @@ async function enrichEventsWithInvites(
     {} as Record<string, EnrichedInvite[]>,
   )
 
-  return events.map((e) => ({
-    ...e,
-    invites: invitesByEvent[e.id] ?? [],
-  }))
+  return events.map((e) => {
+    const key = (e.seriesId ?? e.id) as string
+    return {
+      ...e,
+      invites: invitesByEvent[key] ?? [],
+    }
+  })
 }
 
 async function getSharedEvents(currentUser: { email: string }): Promise<
@@ -182,9 +375,75 @@ export const GET = async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = request.nextUrl
+  const id = searchParams.get('id')
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
+
+  if (id) {
+    const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+    if (parsedId) {
+      const [master] = await getDb()
+        .select()
+        .from(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.id, parsedId.seriesId),
+            eq(calendarEvents.userId, currentUser.id),
+          ),
+        )
+      if (
+        !master ||
+        !isSeriesEvent({
+          rrule: master.rrule,
+        })
+      ) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      }
+      const overrides = (await fetchOverrides(master.id)).map((o) =>
+        decryptEvent(o as typeof calendarEvents.$inferSelect),
+      )
+      const resolved = resolveInstance(
+        decryptEvent(master),
+        parsedId.recurrenceId,
+        overrides,
+      )
+      if (!resolved) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      }
+      const [withInvites] = await enrichEventsWithInvites(
+        [
+          {
+            ...resolved,
+            id,
+            instanceId: id,
+          },
+        ],
+        currentUser.id,
+        currentUser.email,
+      )
+      return NextResponse.json({ event: withInvites })
+    }
+
+    const [row] = await getDb()
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, id),
+          eq(calendarEvents.userId, currentUser.id),
+        ),
+      )
+    if (!row) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+    const [withInvites] = await enrichEventsWithInvites(
+      [{ ...decryptEvent(row), instanceId: row.id }],
+      currentUser.id,
+      currentUser.email,
+    )
+    return NextResponse.json({ event: withInvites })
+  }
 
   const filters = [eq(calendarEvents.userId, currentUser.id)]
 
@@ -227,21 +486,57 @@ export const GET = async function GET(request: NextRequest) {
     decrypted = results.map(decryptEvent)
   }
 
-  if (categoryIds) {
-    const ids = categoryIds.split(',')
-    decrypted = decrypted.filter(
-      (e) => e.categoryId && ids.includes(e.categoryId),
+  const recurringRows = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.userId, currentUser.id),
+        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
+      ),
     )
-  }
 
-  const sharedEvents = await getSharedEvents(currentUser)
-  const allBaseEvents = [...decrypted, ...sharedEvents]
+  const windowStart =
+    startDate && endDate ? fullMonthRange(startDate, endDate).start : undefined
+  const windowEnd =
+    startDate && endDate ? fullMonthRange(startDate, endDate).end : undefined
+
+  const baseRows = [...decrypted, ...recurringRows.map(decryptEvent)]
+  const seriesIds = new Set(
+    baseRows.filter((e) => isSeriesEvent({ rrule: e.rrule })).map((e) => e.id),
+  )
+  const rowsForExpand = baseRows.map((e) =>
+    e.seriesId !== null && !seriesIds.has(e.seriesId)
+      ? { ...e, seriesId: null }
+      : e,
+  )
+
+  const expanded = expandRows(rowsForExpand as EventRow[], {
+    windowStart,
+    windowEnd,
+  }).map((e) => (e.recurrenceId !== null ? { ...e, id: e.instanceId } : e))
+
+  const allBaseEvents = [
+    ...expanded,
+    ...(await getSharedEvents(currentUser)),
+  ] as Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>
 
   const eventsWithInvites = await enrichEventsWithInvites(
     allBaseEvents,
     currentUser.id,
     currentUser.email,
   )
+
+  if (categoryIds) {
+    const ids = categoryIds.split(',')
+    eventsWithInvites.splice(
+      0,
+      eventsWithInvites.length,
+      ...eventsWithInvites.filter(
+        (e) => e.categoryId && ids.includes(e.categoryId),
+      ),
+    )
+  }
 
   if (startDate && endDate) {
     const start = new Date(startDate)
@@ -261,36 +556,393 @@ export const POST = async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const parsed = eventSchema.safeParse(await request.json().catch(() => null))
-  if (!parsed.success) {
+  const bodyResult = await request.json().catch(() => null)
+  const parsedBody = z
+    .object({})
+    .passthrough()
+    .and(recurringFieldsSchema)
+    .and(eventSchema)
+    .safeParse(bodyResult)
+  if (!parsedBody.success) {
     return NextResponse.json(
-      { error: firstZodMessage(parsed.error) },
+      { error: firstZodMessage(parsedBody.error) },
       { status: 400 },
     )
   }
-  const body = parsed.data
-  const id = body.id ?? crypto.randomUUID()
+  const body = parsedBody.data as typeof parsedBody.data & {
+    rrule?: string
+    exdate?: string[]
+    apply_to?: ApplyTo
+    id?: string
+  }
 
-  const isUpdate = !!body.id
-  if (isUpdate) {
-    const [old] = await getDb()
-      .select({
-        startDate: calendarEvents.startDate,
-        endDate: calendarEvents.endDate,
-        userId: calendarEvents.userId,
-      })
-      .from(calendarEvents)
-      .where(eq(calendarEvents.id, id))
-    if (old && old.userId !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-    if (old) {
-      await invalidateEventCache(
-        user.id,
-        old.startDate.toISOString(),
-        old.endDate.toISOString(),
+  const rawRrule =
+    typeof body.rrule === 'string' && body.rrule.trim().length > 0
+      ? body.rrule
+      : null
+  if (rawRrule !== null && !isValidRrule(rawRrule)) {
+    return NextResponse.json({ error: 'Invalid rrule' }, { status: 400 })
+  }
+  if (body.exdate !== null && body.exdate !== undefined) {
+    if (rawRrule === null) {
+      return NextResponse.json(
+        { error: 'exdate requires rrule' },
+        { status: 400 },
       )
     }
+    for (const stamp of body.exdate) {
+      if (!isValidStamp(stamp)) {
+        return NextResponse.json({ error: 'Invalid exdate' }, { status: 400 })
+      }
+    }
+  }
+
+  const id = body.id ?? crypto.randomUUID()
+  const isUpdate = !!body.id
+  const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+
+  const submittedFields: Partial<EventRow> = {
+    title: body.title,
+    description: body.description ?? null,
+    location: body.location ?? null,
+    startDate: new Date(body.startDate),
+    endDate: new Date(body.endDate),
+    isAllDay: body.isAllDay ?? false,
+    status: body.status ?? 'confirmed',
+    color: body.color ?? null,
+    categoryId: body.categoryId ?? null,
+    participants: body.participants as unknown as string[] | undefined,
+    notificationMinutes: body.notificationMinutes ?? null,
+  }
+
+  if (parsedId) {
+    const [master] = await getDb()
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, user.id),
+        ),
+      )
+    if (
+      !master ||
+      !isSeriesEvent({
+        rrule: master.rrule,
+      })
+    ) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = (await fetchOverrides(masterRow.id)).map((o) =>
+      decryptEvent(o as typeof calendarEvents.$inferSelect),
+    )
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const applyTo = body.apply_to ?? 'single'
+
+    if (applyTo === 'all') {
+      const set = {
+        ...encryptMergedFields(masterRow.id, submittedFields),
+        ...(body.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await getDb()
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, masterRow.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+        .returning()
+      await invalidateEventCache(
+        user.id,
+        masterRow.startDate.toISOString(),
+        masterRow.endDate.toISOString(),
+      )
+      const [withInvites] = await enrichEventsWithInvites(
+        [decryptEvent(updated)],
+        user.id,
+        user.email,
+      )
+      return NextResponse.json({ event: withInvites })
+    }
+
+    const now = new Date()
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo,
+      fields: submittedFields,
+      now,
+    })
+
+    if (plan.split) {
+      const newMaster = await applySplitPlan(user.id, plan, masterRow)
+      if (!newMaster)
+        return NextResponse.json(
+          { error: 'Failed to split series' },
+          { status: 500 },
+        )
+      return NextResponse.json({ event: newMaster })
+    }
+
+    if (plan.exdateToAdd) {
+      await getDb()
+        .update(calendarEvents)
+        .set({
+          exdate: [...(masterRow.exdate ?? []), plan.exdateToAdd],
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, masterRow.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+    }
+
+    const upsert = plan.overrideUpsert!
+    const encryptedOverride = encryptMergedFields(upsert.id, upsert.fields)
+    let stored
+    if (upsert.isNew) {
+      ;[stored] = await getDb()
+        .insert(calendarEvents)
+        .values({
+          id: upsert.id,
+          userId: user.id,
+          seriesId: upsert.seriesId,
+          recurrenceId: upsert.recurrenceId,
+          createdAt: upsert.fields.createdAt as Date,
+          updatedAt: upsert.fields.updatedAt as Date,
+          ...encryptedOverride,
+        } as typeof calendarEvents.$inferInsert)
+        .returning()
+    } else {
+      ;[stored] = await getDb()
+        .update(calendarEvents)
+        .set({ ...encryptedOverride, updatedAt: new Date() })
+        .where(
+          and(
+            eq(calendarEvents.id, upsert.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+        .returning()
+    }
+
+    await invalidateEventCache(
+      user.id,
+      masterRow.startDate.toISOString(),
+      masterRow.endDate.toISOString(),
+    )
+
+    const storedDecrypted = stored
+      ? (decryptEvent(stored) as unknown as EventRow)
+      : null
+    const resolved = resolveInstance(
+      masterRow,
+      parsedId.recurrenceId,
+      storedDecrypted ? [storedDecrypted, ...overrides] : overrides,
+    )
+    const [withInvites] = await enrichEventsWithInvites(
+      [
+        resolved
+          ? { ...resolved, id, instanceId: id }
+          : { ...masterRow, id, instanceId: id },
+      ],
+      user.id,
+      user.email,
+    )
+    return NextResponse.json({ event: withInvites })
+  }
+
+  const [old] = await getDb()
+    .select({
+      id: calendarEvents.id,
+      startDate: calendarEvents.startDate,
+      endDate: calendarEvents.endDate,
+      userId: calendarEvents.userId,
+    })
+    .from(calendarEvents)
+    .where(eq(calendarEvents.id, id))
+
+  if (old && old.userId !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if (old) {
+    await invalidateEventCache(
+      user.id,
+      old.startDate.toISOString(),
+      old.endDate.toISOString(),
+    )
+  }
+
+  const [fullOld] = isUpdate
+    ? await getDb()
+        .select()
+        .from(calendarEvents)
+        .where(eq(calendarEvents.id, id))
+    : [undefined]
+
+  if (isUpdate && fullOld && fullOld.seriesId !== null) {
+    const overrideRow = decryptEvent(fullOld) as unknown as EventRow
+    const merged = mergeOverride<EventRow>(overrideRow, submittedFields)
+    const [updated] = await getDb()
+      .update(calendarEvents)
+      .set({
+        ...encryptMergedFields(
+          overrideRow.id,
+          merged as unknown as Record<string, unknown>,
+        ),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, overrideRow.id),
+          eq(calendarEvents.userId, user.id),
+        ),
+      )
+      .returning()
+    if (overrideRow.seriesId !== null) {
+      await invalidateMasterCache(user.id, overrideRow.seriesId)
+    }
+    const [withInvites] = await enrichEventsWithInvites(
+      [decryptEvent(updated)],
+      user.id,
+      user.email,
+    )
+    return NextResponse.json({ event: withInvites })
+  }
+
+  if (isUpdate && fullOld && isSeriesEvent({ rrule: fullOld.rrule })) {
+    const seriesRow = decryptEvent(fullOld) as unknown as EventRow
+    const applyTo = body.apply_to ?? 'all'
+
+    if (applyTo === 'all') {
+      const set = {
+        ...encryptMergedFields(seriesRow.id, submittedFields),
+        ...(body.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await getDb()
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+        .returning()
+      const [withInvites] = await enrichEventsWithInvites(
+        [decryptEvent(updated)],
+        user.id,
+        user.email,
+      )
+      return NextResponse.json({ event: withInvites })
+    }
+
+    const recurrenceId = firstStampOfSeries(seriesRow)
+    const overrides = (await fetchOverrides(seriesRow.id)).map((o) =>
+      decryptEvent(o as typeof calendarEvents.$inferSelect),
+    )
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo,
+      fields: submittedFields,
+      now: new Date(),
+    })
+
+    if (plan.split) {
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow)
+      if (!newMaster)
+        return NextResponse.json(
+          { error: 'Failed to split series' },
+          { status: 500 },
+        )
+      return NextResponse.json({ event: newMaster })
+    }
+
+    if (plan.exdateToAdd) {
+      await getDb()
+        .update(calendarEvents)
+        .set({
+          exdate: [...(seriesRow.exdate ?? []), plan.exdateToAdd],
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+    }
+
+    const upsert = plan.overrideUpsert!
+    const encryptedOverride = encryptMergedFields(upsert.id, upsert.fields)
+    let stored
+    if (upsert.isNew) {
+      ;[stored] = await getDb()
+        .insert(calendarEvents)
+        .values({
+          id: upsert.id,
+          userId: user.id,
+          seriesId: upsert.seriesId,
+          recurrenceId: upsert.recurrenceId,
+          createdAt: upsert.fields.createdAt as Date,
+          updatedAt: upsert.fields.updatedAt as Date,
+          ...encryptedOverride,
+        } as typeof calendarEvents.$inferInsert)
+        .returning()
+    } else {
+      ;[stored] = await getDb()
+        .update(calendarEvents)
+        .set({ ...encryptedOverride, updatedAt: new Date() })
+        .where(
+          and(
+            eq(calendarEvents.id, upsert.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+        .returning()
+    }
+
+    await invalidateEventCache(
+      user.id,
+      seriesRow.startDate.toISOString(),
+      seriesRow.endDate.toISOString(),
+    )
+
+    const storedDecrypted = stored
+      ? (decryptEvent(stored) as unknown as EventRow)
+      : null
+    const resolved = resolveInstance(
+      seriesRow,
+      recurrenceId,
+      storedDecrypted ? [storedDecrypted, ...overrides] : overrides,
+    )
+    const [withInvites] = await enrichEventsWithInvites(
+      [
+        resolved
+          ? { ...resolved, id, instanceId: id }
+          : { ...seriesRow, id, instanceId: id },
+      ],
+      user.id,
+      user.email,
+    )
+    return NextResponse.json({ event: withInvites })
   }
 
   const [event] = await getDb()
@@ -309,6 +961,8 @@ export const POST = async function POST(request: NextRequest) {
       categoryId: body.categoryId ?? null,
       participants: encryptJsonField(id, body.participants),
       notificationMinutes: body.notificationMinutes ?? null,
+      rrule: rawRrule,
+      exdate: body.exdate ?? null,
     })
     .onConflictDoUpdate({
       target: calendarEvents.id,
@@ -324,6 +978,8 @@ export const POST = async function POST(request: NextRequest) {
         categoryId: body.categoryId ?? null,
         participants: encryptJsonField(id, body.participants),
         notificationMinutes: body.notificationMinutes ?? null,
+        rrule: rawRrule,
+        exdate: body.exdate ?? null,
         updatedAt: new Date(),
       },
     })
@@ -340,32 +996,181 @@ export const DELETE = async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { id } = body as { id: string }
+  const { id } = body as { id?: string }
+  const apply_to = body.apply_to as ApplyTo | null | undefined
   if (!id)
     return NextResponse.json({ error: 'Missing event id' }, { status: 400 })
+  if (
+    apply_to !== null &&
+    apply_to !== undefined &&
+    !APPLY_TO_VALUES.has(apply_to)
+  ) {
+    return NextResponse.json({ error: 'Invalid apply_to' }, { status: 400 })
+  }
+
+  const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+
+  if (parsedId) {
+    const [master] = await getDb()
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, user.id),
+        ),
+      )
+    if (
+      !master ||
+      !isSeriesEvent({
+        rrule: master.rrule,
+      })
+    ) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = await fetchOverrides(masterRow.id)
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const applyTo = apply_to ?? 'single'
+
+    if (applyTo === 'all') {
+      await deleteRow(user.id, masterRow)
+      return NextResponse.json({ success: true })
+    }
+
+    if (applyTo === 'single') {
+      if (override) {
+        await deleteRow(user.id, override)
+        await invalidateEventCache(
+          user.id,
+          masterRow.startDate.toISOString(),
+          masterRow.endDate.toISOString(),
+        )
+      } else {
+        await getDb()
+          .update(calendarEvents)
+          .set({
+            exdate: [
+              ...new Set([...(masterRow.exdate ?? []), parsedId.recurrenceId]),
+            ],
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+        await invalidateEventCache(
+          user.id,
+          masterRow.startDate.toISOString(),
+          masterRow.endDate.toISOString(),
+        )
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo: 'following',
+      fields: {},
+      now: new Date(),
+    })
+    const newMaster = await applySplitPlan(user.id, plan, masterRow)
+    if (newMaster) {
+      await getDb()
+        .delete(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.id, newMaster.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+    }
+    return NextResponse.json({ success: true })
+  }
 
   const [old] = await getDb()
-    .select({
-      startDate: calendarEvents.startDate,
-      endDate: calendarEvents.endDate,
-    })
+    .select()
     .from(calendarEvents)
     .where(and(eq(calendarEvents.id, id), eq(calendarEvents.userId, user.id)))
 
   if (!old)
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
 
-  await getDb().delete(eventInvites).where(eq(eventInvites.eventId, id))
+  if (old.seriesId !== null) {
+    await deleteRow(user.id, old as unknown as EventRow)
+    await invalidateMasterCache(user.id, old.seriesId)
+    return NextResponse.json({ success: true })
+  }
 
-  await getDb()
-    .delete(calendarEvents)
-    .where(and(eq(calendarEvents.id, id), eq(calendarEvents.userId, user.id)))
+  if (isSeriesEvent({ rrule: old.rrule })) {
+    const seriesRow = decryptEvent(old) as unknown as EventRow
+    const applyTo = apply_to ?? 'all'
 
-  await invalidateEventCache(
-    user.id,
-    old.startDate.toISOString(),
-    old.endDate.toISOString(),
-  )
+    if (applyTo === 'all') {
+      await deleteRow(user.id, seriesRow)
+      return NextResponse.json({ success: true })
+    }
 
+    const recurrenceId = firstStampOfSeries(seriesRow)
+    const overrides = await fetchOverrides(seriesRow.id)
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo,
+      fields: {},
+      now: new Date(),
+    })
+
+    if (plan.split) {
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow)
+      if (newMaster) {
+        await getDb()
+          .delete(calendarEvents)
+          .where(
+            and(
+              eq(calendarEvents.id, newMaster.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    if (plan.deleteOverrideId) {
+      await deleteRow(user.id, override!)
+      return NextResponse.json({ success: true })
+    }
+
+    await getDb()
+      .update(calendarEvents)
+      .set({
+        exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, seriesRow.id),
+          eq(calendarEvents.userId, user.id),
+        ),
+      )
+    await invalidateEventCache(
+      user.id,
+      seriesRow.startDate.toISOString(),
+      seriesRow.endDate.toISOString(),
+    )
+    return NextResponse.json({ success: true })
+  }
+
+  await deleteRow(user.id, old as unknown as EventRow)
   return NextResponse.json({ success: true })
 }

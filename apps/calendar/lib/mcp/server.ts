@@ -19,6 +19,8 @@ const SCOPE_COUNTDOWNS_WRITE = 'countdowns:write'
 const SCOPE_SETTINGS_READ = 'settings:read'
 const SCOPE_SETTINGS_WRITE = 'settings:write'
 const SCOPE_PROFILE_READ = 'profile:read'
+const SCOPE_BOOKMARKS_READ = 'bookmarks:read'
+const SCOPE_BOOKMARKS_WRITE = 'bookmarks:write'
 
 const EVENT_STATUS_OPTIONS = ['confirmed', 'tentative', 'cancelled'] as const
 const TIME_PRESET_OPTIONS = [
@@ -150,6 +152,7 @@ export function createServer(): McpServer {
   registerCountdownTools(server)
   registerSettingsTools(server)
   registerProfileTool(server)
+  registerBookmarkTools(server)
 
   return server
 }
@@ -271,8 +274,14 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'get_event',
-    'Get detailed information about a single event',
-    { event_id: z.string().describe('Event ID') },
+    'Get detailed information about a single event (plain event, series, or recurring instance)',
+    {
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
+    },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
       const userId = getUserId(extra.authInfo)
@@ -289,7 +298,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'create_event',
-    'Create a new calendar event',
+    'Create a new calendar event (optionally a recurring series)',
     {
       title: z.string().describe('Event title'),
       description: z.string().optional().describe('Event description'),
@@ -305,6 +314,16 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      rrule: z
+        .string()
+        .optional()
+        .describe(
+          'RFC 5545 RRULE (e.g. FREQ=WEEKLY;INTERVAL=1) to make this a recurring series',
+        ),
+      exdate: z
+        .array(z.string())
+        .optional()
+        .describe('RFC 5545 DATE-TIME stamps of occurrences to exclude'),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -320,9 +339,13 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'update_event',
-    'Update an existing event',
+    'Update an existing event (plain event, recurring series, or occurrence)',
     {
-      event_id: z.string().describe('Event ID'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
       title: z.string().optional(),
       description: z.string().optional(),
       location: z.string().optional(),
@@ -333,6 +356,20 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      rrule: z
+        .string()
+        .optional()
+        .describe('RFC 5545 RRULE; applies when editing the whole series'),
+      exdate: z
+        .array(z.string())
+        .optional()
+        .describe('RFC 5545 DATE-TIME stamps of occurrences to exclude'),
+      apply_to: z
+        .enum(['all', 'single', 'following'])
+        .optional()
+        .describe(
+          'all: whole series (default for a series ID), single: one occurrence (default for an instance ID), following: this and all future occurrences',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -351,14 +388,26 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'delete_event',
-    'Delete an event',
-    { event_id: z.string().describe('Event ID') },
+    'Delete an event (plain event, recurring series, or occurrence)',
+    {
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
+      apply_to: z
+        .enum(['all', 'single', 'following'])
+        .optional()
+        .describe(
+          'all: whole series (default for a series ID), single: one occurrence (default for an instance ID), following: this and all future occurrences',
+        ),
+    },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
       const userId = getUserId(extra.authInfo)
       try {
         const { deleteEvent } = await import('./event-tools')
-        await deleteEvent(userId, params.event_id)
+        await deleteEvent(userId, params.event_id, params.apply_to)
         return respondMessage('Event deleted')
       } catch (err) {
         return respondError(err)
@@ -767,6 +816,71 @@ function registerProfileTool(server: McpServer): void {
       try {
         const { getProfile } = await import('./profile-tools')
         return respond(await getProfile(userId))
+      } catch (err) {
+        return respondError(err)
+      }
+    },
+  )
+}
+
+function registerBookmarkTools(server: McpServer): void {
+  server.tool(
+    'bookmark_event',
+    'Bookmark an event so it can be found quickly later',
+    { event_id: z.string().describe('Event ID') },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { bookmarkEvent } = await import('./bookmark-tools')
+        return respond(
+          await bookmarkEvent(userId, { eventId: params.event_id }),
+        )
+      } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'list_bookmarked_events',
+    'List events you have bookmarked, newest first',
+    {
+      event_id: z.string().optional().describe('Filter by event ID'),
+      page: z.number().optional().describe('Page number'),
+      limit: z.number().optional().describe('Items per page (max 100)'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { listBookmarkedEvents } = await import('./bookmark-tools')
+        return respond(
+          await listBookmarkedEvents(userId, {
+            eventId: params.event_id,
+            page: params.page,
+            limit: params.limit,
+          }),
+        )
+      } catch (err) {
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'remove_bookmark',
+    'Remove a bookmark from an event',
+    { event_id: z.string().describe('Event ID') },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { removeBookmark } = await import('./bookmark-tools')
+        return respond(
+          await removeBookmark(userId, { eventId: params.event_id }),
+        )
       } catch (err) {
         return respondError(err)
       }

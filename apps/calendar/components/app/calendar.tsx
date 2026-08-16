@@ -44,7 +44,7 @@ import EventPreview, {
 } from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import Sidebar from '@/components/app/sidebar/sidebar'
-import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
 import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
 import { useTheme } from 'next-themes'
 import { Button } from '@zntr/ui/button'
@@ -116,7 +116,10 @@ export interface CalendarEvent {
   startDate: Date
   endDate: Date
   isAllDay: boolean
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
   location?: string
   participants: string[]
   notification: number
@@ -163,9 +166,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
+  const isZh = isZhLanguage(language as any)
   const { settings, updateSettings } = useSettings()
   const { setTheme } = useTheme()
-  const { upsertEvent, deleteEvent } = useEvents()
+  const { upsertEvent, deleteEvent, refreshEvents } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
@@ -200,6 +204,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
+  const [pendingDeleteApplyTo, setPendingDeleteApplyTo] = useState<
+    'single' | 'following' | 'all' | undefined
+  >(undefined)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
@@ -660,6 +667,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         : null,
       notificationMinutes: newEvent.notification,
       categoryId: newEvent.calendarId || null,
+      rrule: newEvent.rrule ?? null,
     })
     toast(t.eventCreated)
     setEventDialogOpen(false)
@@ -667,7 +675,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setQuickCreateStartTime(null)
   }
 
-  const handleEventUpdate = (updatedEvent: CalendarEvent) => {
+  const handleEventUpdate = (
+    updatedEvent: CalendarEvent,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => {
     setEvents((prevEvents) =>
       prevEvents.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event,
@@ -689,6 +700,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         : null,
       notificationMinutes: updatedEvent.notification,
       categoryId: updatedEvent.calendarId || null,
+      rrule: applyTo === 'all' ? (updatedEvent.rrule ?? null) : undefined,
+      apply_to: applyTo,
     })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
@@ -696,10 +709,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setQuickCreateStartTime(null)
   }
 
-  const handleEventDelete = (eventId: string) => {
+  const handleEventDelete = (
+    eventId: string,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => {
     const targetEvent = events.find((event) => event.id === eventId)
     if (!targetEvent) return
     setPendingDeleteEvent(targetEvent)
+    setPendingDeleteApplyTo(applyTo)
     setDeleteConfirmOpen(true)
   }
 
@@ -719,6 +736,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         label: t.undo,
         onClick: () => {
           cancelled = true
+          if (
+            deletedEvent.rrule ||
+            deletedEvent.seriesId ||
+            deletedEvent.recurrenceId
+          ) {
+            void refreshEvents()
+            toast(t.deletionUndone)
+            return
+          }
           setEvents((prevEvents) => {
             if (prevEvents.some((event) => event.id === deletedEvent.id))
               return prevEvents
@@ -760,7 +786,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } catch {}
     if (cancelled) return
     try {
-      await deleteEvent(deletedEvent.id)
+      await deleteEvent(deletedEvent.id, pendingDeleteApplyTo)
     } catch {}
   }
 
@@ -1391,8 +1417,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           open={eventDialogOpen}
           onOpenChange={setEventDialogOpen}
           onEventAdd={handleEventAdd}
-          onEventUpdate={handleEventUpdate}
-          onEventDelete={handleEventDelete}
+          onEventUpdate={(event, applyTo) => handleEventUpdate(event, applyTo)}
+          onEventDelete={(eventId, applyTo) =>
+            handleEventDelete(eventId, applyTo)
+          }
           onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
@@ -1465,6 +1493,21 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <AlertDialogTitle>{t.deleteEventConfirmTitle}</AlertDialogTitle>
               <AlertDialogDescription>
                 {t.deleteEventConfirmDescription}
+                {pendingDeleteEvent &&
+                  (pendingDeleteEvent.rrule ||
+                    pendingDeleteEvent.seriesId ||
+                    pendingDeleteEvent.recurrenceId) &&
+                  (pendingDeleteApplyTo === 'single'
+                    ? isZh
+                      ? ' 将仅删除此次重复事件。'
+                      : ' This deletes only this occurrence.'
+                    : pendingDeleteApplyTo === 'following'
+                      ? isZh
+                        ? ' 将删除此事件及之后的所有重复事件。'
+                        : ' This deletes this occurrence and all following ones.'
+                      : isZh
+                        ? ' 将删除整个重复系列。'
+                        : ' This deletes the entire recurring series.')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

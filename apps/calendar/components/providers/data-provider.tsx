@@ -53,7 +53,10 @@ interface DataContextValue {
   upsertEvent: (
     data: Parameters<typeof api.events.create>[0],
   ) => Promise<EventData>
-  deleteEvent: (id: string) => Promise<void>
+  deleteEvent: (
+    id: string,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => Promise<void>
 
   createCategory: (
     data: Parameters<typeof api.categories.create>[0],
@@ -239,23 +242,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const deleteEvent = useCallback(async (id: string) => {
-    const prev = eventsRef.current
-    await mutate(
-      DATA_KEYS.events,
-      { events: removeById(prev, id) },
-      { revalidate: false },
-    )
-    try {
-      await api.events.delete(id)
-    } catch (e) {
-      await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
-      toast.error('Failed to delete event', {
-        description: e instanceof Error ? e.message : 'Unknown',
-      })
-      throw e
-    }
-  }, [])
+  const deleteEvent = useCallback(
+    async (id: string, applyTo?: 'single' | 'following' | 'all') => {
+      const prev = eventsRef.current
+      await mutate(
+        DATA_KEYS.events,
+        { events: removeById(prev, id) },
+        { revalidate: false },
+      )
+      try {
+        await api.events.delete(id, applyTo)
+      } catch (e) {
+        await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
+        toast.error('Failed to delete event', {
+          description: e instanceof Error ? e.message : 'Unknown',
+        })
+        throw e
+      }
+    },
+    [],
+  )
 
   const createCategory = useCallback(
     async (data: Parameters<typeof api.categories.create>[0]) => {

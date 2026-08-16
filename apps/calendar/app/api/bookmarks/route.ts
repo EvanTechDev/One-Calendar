@@ -1,54 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import {
-  bookmarkedEvents,
-  calendarEvents,
-  eventInvites,
-} from '@/lib/drizzle/schema'
+import { bookmarkedEvents, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
+import { isEventViewableBy } from '@/lib/bookmarks'
 import { bookmarkSchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'
-
-export async function isEventViewableBy(
-  eventId: string,
-  user: { id: string; email: string },
-): Promise<boolean> {
-  const [owned] = await getDb()
-    .select({ id: calendarEvents.id })
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.id, eventId),
-        eq(calendarEvents.userId, user.id),
-      ),
-    )
-    .limit(1)
-  if (owned) return true
-
-  const [invite] = await getDb()
-    .select({
-      id: eventInvites.id,
-      email: eventInvites.email,
-      addedToCalendar: eventInvites.addedToCalendar,
-      expiresAt: eventInvites.expiresAt,
-    })
-    .from(eventInvites)
-    .where(
-      and(
-        eq(eventInvites.eventId, eventId),
-        eq(eventInvites.email, user.email.toLowerCase()),
-      ),
-    )
-    .limit(1)
-
-  return (
-    !!invite?.addedToCalendar &&
-    (!invite.expiresAt || invite.expiresAt > new Date())
-  )
-}
 
 export const GET = async function GET() {
   const user = await getAuthedUser()
