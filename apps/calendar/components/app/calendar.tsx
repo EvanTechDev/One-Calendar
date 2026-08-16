@@ -44,7 +44,7 @@ import EventPreview, {
 } from '@/components/app/event/event-preview'
 import EventDialog from '@/components/app/event/event-dialog'
 import Sidebar from '@/components/app/sidebar/sidebar'
-import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
 import { useTheme } from 'next-themes'
 import { Button } from '@zntr/ui/button'
@@ -166,7 +166,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const isZh = isZhLanguage(language as any)
   const { settings, updateSettings } = useSettings()
   const { setTheme } = useTheme()
   const { upsertEvent, deleteEvent, refreshEvents } = useEvents()
@@ -1500,9 +1499,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   (pendingDeleteEvent.rrule ||
                     pendingDeleteEvent.seriesId ||
                     pendingDeleteEvent.recurrenceId) &&
-                  (isZh
-                    ? ' 此事件属于重复日程，请选择删除范围。'
-                    : ' This event is part of a recurring series. Choose the delete scope.')}
+                  ` ${t.deleteEventConfirmRecurring}`}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1518,13 +1515,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     className="bg-destructive text-destructive-foreground"
                     onClick={() => confirmEventDelete('single')}
                   >
-                    {isZh ? '只删除当前日程' : 'Delete this event only'}
+                    {t.repeatDeleteThisOccurrence}
                   </AlertDialogAction>
                   <AlertDialogAction
                     className="bg-destructive text-destructive-foreground"
                     onClick={() => confirmEventDelete('all')}
                   >
-                    {isZh ? '删除所有此重复日程' : 'Delete all occurrences'}
+                    {t.repeatDeleteAllOccurrences}
                   </AlertDialogAction>
                 </>
               ) : (

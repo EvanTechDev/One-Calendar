@@ -1005,7 +1005,10 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  const body = await request.json().catch(() => null)
+  if (body === null || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   const { id } = body as { id?: string }
   const apply_to = body.apply_to as ApplyTo | null | undefined
   if (!id)
@@ -1052,6 +1055,20 @@ export const DELETE = async function DELETE(request: NextRequest) {
     if (applyTo === 'single') {
       if (override) {
         await deleteRow(user.id, override)
+        await getDb()
+          .update(calendarEvents)
+          .set({
+            exdate: [
+              ...new Set([...(masterRow.exdate ?? []), parsedId.recurrenceId]),
+            ],
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
         await invalidateEventCache(
           user.id,
           masterRow.startDate.toISOString(),

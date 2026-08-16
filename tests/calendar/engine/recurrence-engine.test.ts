@@ -765,6 +765,15 @@ describe('describeRecurrence', () => {
     )
   })
 
+  it('describes a negative bymonthday as the last day', () => {
+    expect(describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=-1', true)).toBe(
+      '每月 · 最后一天',
+    )
+    expect(describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=-1', false)).toBe(
+      'Monthly · last day',
+    )
+  })
+
   it('describes yearly with until (en)', () => {
     expect(
       describeRecurrence(

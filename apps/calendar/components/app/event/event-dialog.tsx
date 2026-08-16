@@ -536,12 +536,6 @@ export default function EventDialog({
       ? (events.find((e) => e.id === event.seriesId)?.rrule ?? null)
       : null)
 
-  const seriesRuleDisplay = seriesRule
-    ? describeRecurrence(seriesRule, isZh)
-    : isZh
-      ? '此事件属于重复日程'
-      : 'This event is part of a recurring series'
-
   const WEEKDAY_ORDER = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
   const weekdayOfDate = (d: Date) =>
     WEEKDAY_ORDER[d.getDay() === 0 ? 6 : d.getDay() - 1]
@@ -1025,13 +1019,13 @@ export default function EventDialog({
 
             {isRecurringEvent && (
               <div className="space-y-2">
-                <Label>{isZh ? '重复范围' : 'Repeat scope'}</Label>
+                <Label>{t.repeatScope}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {(
                     [
-                      ['single', isZh ? '仅此事件' : 'This event'],
-                      ['following', isZh ? '此及以后' : 'Following'],
-                      ['all', isZh ? '所有重复' : 'All events'],
+                      ['single', t.repeatScopeSingle],
+                      ['following', t.repeatScopeFollowing],
+                      ['all', t.repeatScopeAll],
                     ] as const
                   ).map(([mode, label]) => (
                     <Button
@@ -1061,7 +1055,7 @@ export default function EventDialog({
                     }
                   }}
                 />
-                <Label htmlFor="repeat">{isZh ? '重复' : 'Repeat'}</Label>
+                <Label htmlFor="repeat">{t.repeatLabel}</Label>
               </div>
             )}
 
@@ -1081,16 +1075,16 @@ export default function EventDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="DAILY">
-                        {isZh ? '每天' : 'Daily'}
+                        {t.repeatFrequencyDaily}
                       </SelectItem>
                       <SelectItem value="WEEKLY">
-                        {isZh ? '每周' : 'Weekly'}
+                        {t.repeatFrequencyWeekly}
                       </SelectItem>
                       <SelectItem value="MONTHLY">
-                        {isZh ? '每月' : 'Monthly'}
+                        {t.repeatFrequencyMonthly}
                       </SelectItem>
                       <SelectItem value="YEARLY">
-                        {isZh ? '每年' : 'Yearly'}
+                        {t.repeatFrequencyYearly}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1107,7 +1101,7 @@ export default function EventDialog({
                       className="w-16"
                     />
                     <span className="text-sm text-muted-foreground">
-                      {isZh ? '每周期' : 'every interval'}
+                      {t.repeatEveryIntervalHint}
                     </span>
                   </div>
                 </div>
@@ -1153,7 +1147,7 @@ export default function EventDialog({
                         }
                         onClick={() => setRecMonthlyMode('day')}
                       >
-                        {isZh ? '按日期' : 'By day'}
+                        {t.repeatMonthlyModeDay}
                       </Button>
                       <Button
                         type="button"
@@ -1163,7 +1157,7 @@ export default function EventDialog({
                         }
                         onClick={() => setRecMonthlyMode('weekday')}
                       >
-                        {isZh ? '按星期' : 'By weekday'}
+                        {t.repeatMonthlyModeWeekday}
                       </Button>
                     </div>
                     {recMonthlyMode === 'day' ? (
@@ -1197,12 +1191,11 @@ export default function EventDialog({
                             {[1, 2, 3, 4, -1].map((w) => (
                               <SelectItem key={w} value={String(w)}>
                                 {w === -1
-                                  ? isZh
-                                    ? '最后一个'
-                                    : 'Last'
-                                  : isZh
-                                    ? `第${w}个`
-                                    : `Week ${w}`}
+                                  ? t.recurrenceLastWeek
+                                  : t.recurrenceNthWeek.replace(
+                                      '{n}',
+                                      String(w),
+                                    )}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1244,7 +1237,10 @@ export default function EventDialog({
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(
                           (m) => (
                             <SelectItem key={m} value={String(m)}>
-                              {isZh ? `${m}月` : `Month ${m}`}
+                              {t.recurrenceYearlyMonth.replace(
+                                '{n}',
+                                String(m),
+                              )}
                             </SelectItem>
                           ),
                         )}
@@ -1269,7 +1265,7 @@ export default function EventDialog({
                 )}
 
                 <div className="space-y-2">
-                  <Label>{isZh ? '结束' : 'Ends'}</Label>
+                  <Label>{t.repeatEnds}</Label>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
@@ -1277,7 +1273,7 @@ export default function EventDialog({
                       variant={recEndMode === 'never' ? 'default' : 'outline'}
                       onClick={() => setRecEndMode('never')}
                     >
-                      {isZh ? '永不结束' : 'Never'}
+                      {t.repeatEndNever}
                     </Button>
                     <Button
                       type="button"
@@ -1285,7 +1281,7 @@ export default function EventDialog({
                       variant={recEndMode === 'count' ? 'default' : 'outline'}
                       onClick={() => setRecEndMode('count')}
                     >
-                      {isZh ? '按次数' : 'Count'}
+                      {t.repeatEndCount}
                     </Button>
                     <Button
                       type="button"
@@ -1293,7 +1289,7 @@ export default function EventDialog({
                       variant={recEndMode === 'until' ? 'default' : 'outline'}
                       onClick={() => setRecEndMode('until')}
                     >
-                      {isZh ? '按日期' : 'By date'}
+                      {t.repeatEndUntil}
                     </Button>
                   </div>
                   {recEndMode === 'count' && (
@@ -1310,7 +1306,7 @@ export default function EventDialog({
                         className="w-20"
                       />
                       <span className="text-sm text-muted-foreground">
-                        {isZh ? '次' : 'occurrences'}
+                        {t.repeatOccurrencesSuffix}
                       </span>
                     </div>
                   )}
@@ -1349,14 +1345,12 @@ export default function EventDialog({
 
             {seriesRule && isRecurringEvent && event && applyTo !== 'all' && (
               <div className="space-y-2 rounded-md border p-3">
-                <Label>{isZh ? '重复规则' : 'Repeat rule'}</Label>
+                <Label>{t.repeatRule}</Label>
                 <p className="text-sm text-muted-foreground">
                   {describeRecurrence(seriesRule, isZh)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isZh
-                    ? '切换到「所有重复」可编辑重复规则。'
-                    : 'Switch to "All events" to edit the repeat rule.'}
+                  {t.repeatRuleEditHint}
                 </p>
               </div>
             )}

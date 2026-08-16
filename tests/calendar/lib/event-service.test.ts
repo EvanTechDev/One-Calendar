@@ -131,6 +131,51 @@ describe('expandRows', () => {
     ])
   })
 
+  it('emits the base instance again when an override is present without exdate (why DELETE must also exdate)', () => {
+    const master = makeDailySeries({
+      startDate: day(2024, 1, 1),
+      endDate: day(2024, 1, 1, 1),
+    })
+    const override = makeEvent({
+      id: 'ovr',
+      seriesId: master.id,
+      recurrenceId: '20240102T000000Z',
+      title: 'Edited instance',
+      startDate: day(2024, 1, 2, 15),
+      endDate: day(2024, 1, 2, 16),
+    })
+    const results = expandRows([master, override], {
+      windowStart: day(2024, 1, 1),
+      windowEnd: day(2024, 1, 3),
+    })
+    expect(results.some((e) => e.recurrenceId === '20240102T000000Z')).toBe(
+      true,
+    )
+  })
+
+  it('exdate suppresses an occurrence even when an override row still exists (post-delete state)', () => {
+    const master = makeDailySeries({
+      startDate: day(2024, 1, 1),
+      endDate: day(2024, 1, 1, 1),
+      exdate: ['20240102T000000Z'],
+    })
+    const override = makeEvent({
+      id: 'ovr',
+      seriesId: master.id,
+      recurrenceId: '20240102T000000Z',
+      title: 'Edited instance',
+      startDate: day(2024, 1, 2, 15),
+      endDate: day(2024, 1, 2, 16),
+    })
+    const results = expandRows([master, override], {
+      windowStart: day(2024, 1, 1),
+      windowEnd: day(2024, 1, 3),
+    })
+    expect(results.some((e) => e.recurrenceId === '20240102T000000Z')).toBe(
+      false,
+    )
+  })
+
   it('passes through a stranded override whose master is missing (route nulls seriesId first)', () => {
     const master = makeDailySeries({
       startDate: day(2023, 12, 25),

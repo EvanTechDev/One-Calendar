@@ -1,5 +1,6 @@
 import { RRule, RRuleSet } from 'rrule'
 import type { Frequency, Options, Weekday } from 'rrule'
+import { translations } from '@zntr/i18n/calendar'
 
 export const MAX_EXPANSION = 1000
 
@@ -450,6 +451,7 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
   } catch {
     return rule
   }
+  const t = translations[isZh ? 'zh-CN' : 'en']
   const {
     freq,
     interval,
@@ -461,25 +463,15 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
     count,
   } = parts
   const i = Math.max(1, interval)
+  const everyDays = t.recurrenceEveryDays.replace('{n}', String(i))
+  const everyWeeks = t.recurrenceEveryWeeks.replace('{n}', String(i))
+  const everyMonths = t.recurrenceEveryMonths.replace('{n}', String(i))
+  const everyYears = t.recurrenceEveryYears.replace('{n}', String(i))
   let label: string
   if (freq === 'DAILY') {
-    label =
-      i > 1
-        ? isZh
-          ? `每 ${i} 天`
-          : `Every ${i} days`
-        : isZh
-          ? '每天'
-          : 'Daily'
+    label = i > 1 ? everyDays : t.repeatFrequencyDaily
   } else if (freq === 'WEEKLY') {
-    label =
-      i > 1
-        ? isZh
-          ? `每 ${i} 周`
-          : `Every ${i} weeks`
-        : isZh
-          ? '每周'
-          : 'Weekly'
+    label = i > 1 ? everyWeeks : t.repeatFrequencyWeekly
     if (byweekday !== null && byweekday.length > 0) {
       const days = byweekday
         .slice()
@@ -491,39 +483,27 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
       label += ` · ${days}`
     }
   } else if (freq === 'MONTHLY') {
-    label =
-      i > 1
-        ? isZh
-          ? `每 ${i} 个月`
-          : `Every ${i} months`
-        : isZh
-          ? '每月'
-          : 'Monthly'
+    label = i > 1 ? everyMonths : t.repeatFrequencyMonthly
     if (bysetpos !== null && byweekday !== null && byweekday.length > 0) {
       const ord =
         bysetpos === -1
-          ? isZh
-            ? '最后一个'
-            : 'last'
-          : isZh
-            ? `第${bysetpos}个`
-            : ordinal(bysetpos)
+          ? t.recurrenceLastWeek
+          : t.recurrenceNthWeek.replace('{n}', String(bysetpos))
       const day = isZh
         ? ZH_WEEKDAY_SHORT[DAY_INDEX[byweekday[0].toUpperCase()]]
         : EN_WEEKDAYS[DAY_INDEX[byweekday[0].toUpperCase()]]
       label += isZh ? ` · ${ord}周${day}` : ` · ${ord} ${day}`
     } else if (bymonthday !== null && bymonthday.length > 0) {
-      label += isZh ? ` · ${bymonthday[0]} 日` : ` · ${ordinal(bymonthday[0])}`
+      const d = bymonthday[0]
+      label +=
+        d < 0
+          ? ` · ${t.recurrenceLastDay}`
+          : isZh
+            ? ` · ${d} 日`
+            : ` · ${ordinal(d)}`
     }
   } else {
-    label =
-      i > 1
-        ? isZh
-          ? `每 ${i} 年`
-          : `Every ${i} years`
-        : isZh
-          ? '每年'
-          : 'Yearly'
+    label = i > 1 ? everyYears : t.repeatFrequencyYearly
     if (bymonth !== null && bymonth.length > 0) {
       const month = bymonth[0]
       const day = bymonthday?.[0] ?? 1
@@ -533,9 +513,9 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
     }
   }
   if (until !== null) {
-    label += isZh ? ` · 至 ${until}` : ` · until ${until}`
+    label += ` · ${t.recurrenceUntilSuffix.replace('{until}', until)}`
   } else if (count !== null) {
-    label += isZh ? ` · 共 ${count} 次` : ` · ${count} times`
+    label += ` · ${t.recurrenceCountSuffix.replace('{n}', String(count))}`
   }
   return label
 }
