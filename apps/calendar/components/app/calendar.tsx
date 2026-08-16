@@ -720,10 +720,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setDeleteConfirmOpen(true)
   }
 
-  const confirmEventDelete = async () => {
+  const confirmEventDelete = async (
+    applyToOverride?: 'single' | 'following' | 'all',
+  ) => {
     if (!pendingDeleteEvent) return
 
     const deletedEvent = pendingDeleteEvent
+    const applyTo = applyToOverride ?? pendingDeleteApplyTo
     let cancelled = false
 
     setEvents((prevEvents) =>
@@ -786,7 +789,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } catch {}
     if (cancelled) return
     try {
-      await deleteEvent(deletedEvent.id, pendingDeleteApplyTo)
+      await deleteEvent(deletedEvent.id, applyTo)
     } catch {}
   }
 
@@ -1497,29 +1500,41 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   (pendingDeleteEvent.rrule ||
                     pendingDeleteEvent.seriesId ||
                     pendingDeleteEvent.recurrenceId) &&
-                  (pendingDeleteApplyTo === 'single'
-                    ? isZh
-                      ? ' 将仅删除此次重复事件。'
-                      : ' This deletes only this occurrence.'
-                    : pendingDeleteApplyTo === 'following'
-                      ? isZh
-                        ? ' 将删除此事件及之后的所有重复事件。'
-                        : ' This deletes this occurrence and all following ones.'
-                      : isZh
-                        ? ' 将删除整个重复系列。'
-                        : ' This deletes the entire recurring series.')}
+                  (isZh
+                    ? ' 此事件属于重复日程，请选择删除范围。'
+                    : ' This event is part of a recurring series. Choose the delete scope.')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setPendingDeleteEvent(null)}>
                 {t.cancel}
               </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground"
-                onClick={confirmEventDelete}
-              >
-                {t.delete}
-              </AlertDialogAction>
+              {pendingDeleteEvent &&
+              (pendingDeleteEvent.rrule ||
+                pendingDeleteEvent.seriesId ||
+                pendingDeleteEvent.recurrenceId) ? (
+                <>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={() => confirmEventDelete('single')}
+                  >
+                    {isZh ? '只删除当前日程' : 'Delete this event only'}
+                  </AlertDialogAction>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={() => confirmEventDelete('all')}
+                  >
+                    {isZh ? '删除所有此重复日程' : 'Delete all occurrences'}
+                  </AlertDialogAction>
+                </>
+              ) : (
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground"
+                  onClick={() => confirmEventDelete()}
+                >
+                  {t.delete}
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

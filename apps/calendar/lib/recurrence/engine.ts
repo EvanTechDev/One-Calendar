@@ -404,3 +404,138 @@ function toUntilStamp(date: Date): string {
     date.getUTCMilliseconds() === 0
   return toRfcStamp(date, atMidnight)
 }
+
+const ZH_WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+const ZH_WEEKDAY_SHORT = ['一', '二', '三', '四', '五', '六', '日']
+const EN_WEEKDAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+]
+const EN_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+function ordinal(n: number): string {
+  const suffix =
+    n % 10 === 1 && n % 100 !== 11
+      ? 'st'
+      : n % 10 === 2 && n % 100 !== 12
+        ? 'nd'
+        : n % 10 === 3 && n % 100 !== 13
+          ? 'rd'
+          : 'th'
+  return `${n}${suffix}`
+}
+
+export function describeRecurrence(rule: string, isZh: boolean): string {
+  let parts: RruleParts
+  try {
+    parts = rruleToParts(rule)
+  } catch {
+    return rule
+  }
+  const {
+    freq,
+    interval,
+    byweekday,
+    bymonthday,
+    bysetpos,
+    bymonth,
+    until,
+    count,
+  } = parts
+  const i = Math.max(1, interval)
+  let label: string
+  if (freq === 'DAILY') {
+    label =
+      i > 1
+        ? isZh
+          ? `每 ${i} 天`
+          : `Every ${i} days`
+        : isZh
+          ? '每天'
+          : 'Daily'
+  } else if (freq === 'WEEKLY') {
+    label =
+      i > 1
+        ? isZh
+          ? `每 ${i} 周`
+          : `Every ${i} weeks`
+        : isZh
+          ? '每周'
+          : 'Weekly'
+    if (byweekday !== null && byweekday.length > 0) {
+      const days = byweekday
+        .slice()
+        .sort((a, b) => DAY_INDEX[a] - DAY_INDEX[b])
+        .map((d) =>
+          isZh ? ZH_WEEKDAYS[DAY_INDEX[d]] : EN_WEEKDAYS[DAY_INDEX[d]],
+        )
+        .join(isZh ? '、' : ', ')
+      label += ` · ${days}`
+    }
+  } else if (freq === 'MONTHLY') {
+    label =
+      i > 1
+        ? isZh
+          ? `每 ${i} 个月`
+          : `Every ${i} months`
+        : isZh
+          ? '每月'
+          : 'Monthly'
+    if (bysetpos !== null && byweekday !== null && byweekday.length > 0) {
+      const ord =
+        bysetpos === -1
+          ? isZh
+            ? '最后一个'
+            : 'last'
+          : isZh
+            ? `第${bysetpos}个`
+            : ordinal(bysetpos)
+      const day = isZh
+        ? ZH_WEEKDAY_SHORT[DAY_INDEX[byweekday[0].toUpperCase()]]
+        : EN_WEEKDAYS[DAY_INDEX[byweekday[0].toUpperCase()]]
+      label += isZh ? ` · ${ord}周${day}` : ` · ${ord} ${day}`
+    } else if (bymonthday !== null && bymonthday.length > 0) {
+      label += isZh ? ` · ${bymonthday[0]} 日` : ` · ${ordinal(bymonthday[0])}`
+    }
+  } else {
+    label =
+      i > 1
+        ? isZh
+          ? `每 ${i} 年`
+          : `Every ${i} years`
+        : isZh
+          ? '每年'
+          : 'Yearly'
+    if (bymonth !== null && bymonth.length > 0) {
+      const month = bymonth[0]
+      const day = bymonthday?.[0] ?? 1
+      label += isZh
+        ? ` · ${month} 月 ${day} 日`
+        : ` · ${EN_MONTHS[month - 1]} ${day}`
+    }
+  }
+  if (until !== null) {
+    label += isZh ? ` · 至 ${until}` : ` · until ${until}`
+  } else if (count !== null) {
+    label += isZh ? ` · 共 ${count} 次` : ` · ${count} times`
+  }
+  return label
+}

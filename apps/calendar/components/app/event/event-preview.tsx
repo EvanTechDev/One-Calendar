@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   Send,
   UserMinus,
+  Repeat,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Badge } from '@zntr/ui/badge'
@@ -46,6 +47,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
+import { describeRecurrence } from '@/lib/recurrence/engine'
 
 export interface EventInvite {
   id: string
@@ -99,7 +101,7 @@ export default function EventPreview({
   onInvitesChange,
   onCategoryChange,
 }: EventPreviewProps) {
-  const { calendars } = useCalendar()
+  const { calendars, events } = useCalendar()
   const isZh = isZhLanguage(language)
   const _t = translations[language]
   const locale = isZh ? zhCN : enUS
@@ -259,6 +261,15 @@ export default function EventPreview({
       ? `${event.notification} 分钟前`
       : `${event.notification} minutes before`
   }
+
+  const seriesMaster = event.seriesId
+    ? events.find((e) => e.id === event.seriesId)
+    : undefined
+  const recurrenceSummary = event.rrule
+    ? describeRecurrence(event.rrule, isZh)
+    : seriesMaster?.rrule
+      ? describeRecurrence(seriesMaster.rrule, isZh)
+      : null
 
   const _getInitials = (name: string) => name.charAt(0).toUpperCase()
 
@@ -747,6 +758,15 @@ export default function EventPreview({
                   ) : (
                     <p>{getCalendarName()}</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {recurrenceSummary && (
+              <div className="flex items-start">
+                <Repeat className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{recurrenceSummary}</p>
                 </div>
               </div>
             )}

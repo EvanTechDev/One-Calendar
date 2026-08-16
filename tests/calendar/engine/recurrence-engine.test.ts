@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   MAX_EXPANSION,
   buildInstanceId,
+  describeRecurrence,
   expandSeries,
   isInstanceId,
   isSeriesEvent,
@@ -742,5 +743,38 @@ describe('rruleToParts', () => {
     for (const parts of matrix) {
       expect(rruleToParts(rruleFromParts(parts))).toEqual(parts)
     }
+  })
+})
+
+describe('describeRecurrence', () => {
+  it('describes a plain weekly rule (zh)', () => {
+    expect(describeRecurrence('FREQ=WEEKLY;BYDAY=MO,TU', true)).toBe(
+      '每周 · 周一、周二',
+    )
+  })
+
+  it('describes interval + count (en)', () => {
+    expect(
+      describeRecurrence('FREQ=WEEKLY;INTERVAL=2;BYDAY=SU,TH;COUNT=8', false),
+    ).toBe('Every 2 weeks · Thursday, Sunday · 8 times')
+  })
+
+  it('describes monthly by setpos (zh)', () => {
+    expect(describeRecurrence('FREQ=MONTHLY;BYDAY=SA;BYSETPOS=-1', true)).toBe(
+      '每月 · 最后一个周六',
+    )
+  })
+
+  it('describes yearly with until (en)', () => {
+    expect(
+      describeRecurrence(
+        'FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=15;UNTIL=20271231',
+        false,
+      ),
+    ).toBe('Yearly · Jan 15 · until 20271231')
+  })
+
+  it('falls back to the raw rule when it cannot be parsed', () => {
+    expect(describeRecurrence('not-a-rule', true)).toBe('not-a-rule')
   })
 })

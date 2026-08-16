@@ -33,6 +33,7 @@ import {
   EVENT_BG_TO_ACCENT,
 } from '@/components/app/views/event-colors'
 import {
+  describeRecurrence,
   rruleFromParts,
   rruleToParts,
   toRfcStamp,
@@ -90,7 +91,7 @@ export default function EventDialog({
   config,
 }: EventDialogProps) {
   if (!config) return null
-  const { calendars } = useCalendar()
+  const { calendars, events } = useCalendar()
   const [participants, setParticipants] = useState('')
   const [customNotificationTime, setCustomNotificationTime] = useState('10')
   const [selectedCalendar, setSelectedCalendar] = useState('')
@@ -309,7 +310,12 @@ export default function EventDialog({
 
         const recurring =
           !!event.rrule || !!event.seriesId || !!event.recurrenceId
-        setRecurrenceEnabled(!!event.rrule)
+        const seriesRule =
+          event.rrule ??
+          (event.seriesId
+            ? (events.find((e) => e.id === event.seriesId)?.rrule ?? null)
+            : null)
+        setRecurrenceEnabled(!!seriesRule)
         setApplyTo(
           recurring
             ? event.seriesId || event.recurrenceId
@@ -317,8 +323,8 @@ export default function EventDialog({
               : 'all'
             : 'all',
         )
-        if (event.rrule) {
-          const parts = rruleToParts(event.rrule)
+        if (seriesRule) {
+          const parts = rruleToParts(seriesRule)
           setRecFreq(parts.freq)
           setRecInterval(parts.interval || 1)
           setRecWeeklyDays(parts.byweekday ?? [])
@@ -523,6 +529,18 @@ export default function EventDialog({
 
   const isRecurringEvent =
     !!event?.rrule || !!event?.seriesId || !!event?.recurrenceId
+
+  const seriesRule =
+    event?.rrule ??
+    (event?.seriesId
+      ? (events.find((e) => e.id === event.seriesId)?.rrule ?? null)
+      : null)
+
+  const seriesRuleDisplay = seriesRule
+    ? describeRecurrence(seriesRule, isZh)
+    : isZh
+      ? '此事件属于重复日程'
+      : 'This event is part of a recurring series'
 
   const WEEKDAY_ORDER = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
   const weekdayOfDate = (d: Date) =>
@@ -916,6 +934,95 @@ export default function EventDialog({
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="calendar">{t.calendar}</Label>
+              <Select
+                value={calendarSelectValue}
+                onValueChange={(value) => {
+                  setSelectedCalendar(value)
+                  if (value !== '__uncategorized__') {
+                    setColor(getEventColorByCalendarId(value))
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t.selectCalendar} />
+                </SelectTrigger>
+                <SelectContent>
+                  {calendars.length > 0 && (
+                    <SelectItem value="__uncategorized__">
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
+                        {t.uncategorized}
+                      </div>
+                    </SelectItem>
+                  )}
+                  {calendars.map((calendar) => (
+                    <SelectItem key={calendar.id} value={calendar.id}>
+                      <div className="flex items-center">
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded-full mr-2',
+                            calendar.color,
+                          )}
+                        />
+                        {calendar.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="color">{t.color}</Label>
+              <Select value={color} onValueChange={setColor}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t.selectColor} />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_COLOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center">
+                        <div
+                          className={cn('w-4 h-4 rounded-full mr-2')}
+                          style={{
+                            backgroundColor: EVENT_BG_TO_ACCENT[option.value],
+                          }}
+                        />
+                        {t[option.labelKey]}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">{t.location}</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="participants">{t.participants}</Label>
+              <Input
+                id="participants"
+                value={participants}
+                onChange={(e) => {
+                  setParticipants(e.target.value)
+                  if (participantError) setParticipantError('')
+                }}
+                placeholder={t.participantsPlaceholder}
+              />
+              {participantError && (
+                <p className="text-xs text-destructive">{participantError}</p>
+              )}
+            </div>
+
             {isRecurringEvent && (
               <div className="space-y-2">
                 <Label>{isZh ? '重复范围' : 'Repeat scope'}</Label>
@@ -1240,94 +1347,19 @@ export default function EventDialog({
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="calendar">{t.calendar}</Label>
-              <Select
-                value={calendarSelectValue}
-                onValueChange={(value) => {
-                  setSelectedCalendar(value)
-                  if (value !== '__uncategorized__') {
-                    setColor(getEventColorByCalendarId(value))
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectCalendar} />
-                </SelectTrigger>
-                <SelectContent>
-                  {calendars.length > 0 && (
-                    <SelectItem value="__uncategorized__">
-                      <div className="flex items-center">
-                        <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
-                        {t.uncategorized}
-                      </div>
-                    </SelectItem>
-                  )}
-                  {calendars.map((calendar) => (
-                    <SelectItem key={calendar.id} value={calendar.id}>
-                      <div className="flex items-center">
-                        <div
-                          className={cn(
-                            'w-4 h-4 rounded-full mr-2',
-                            calendar.color,
-                          )}
-                        />
-                        {calendar.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="color">{t.color}</Label>
-              <Select value={color} onValueChange={setColor}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectColor} />
-                </SelectTrigger>
-                <SelectContent>
-                  {EVENT_COLOR_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center">
-                        <div
-                          className={cn('w-4 h-4 rounded-full mr-2')}
-                          style={{
-                            backgroundColor: EVENT_BG_TO_ACCENT[option.value],
-                          }}
-                        />
-                        {t[option.labelKey]}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">{t.location}</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="participants">{t.participants}</Label>
-              <Input
-                id="participants"
-                value={participants}
-                onChange={(e) => {
-                  setParticipants(e.target.value)
-                  if (participantError) setParticipantError('')
-                }}
-                placeholder={t.participantsPlaceholder}
-              />
-              {participantError && (
-                <p className="text-xs text-destructive">{participantError}</p>
-              )}
-            </div>
+            {seriesRule && isRecurringEvent && event && applyTo !== 'all' && (
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>{isZh ? '重复规则' : 'Repeat rule'}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {describeRecurrence(seriesRule, isZh)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isZh
+                    ? '切换到「所有重复」可编辑重复规则。'
+                    : 'Switch to "All events" to edit the repeat rule.'}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notification">{t.notification}</Label>
