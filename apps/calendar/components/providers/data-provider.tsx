@@ -231,6 +231,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             cur ? { events: upsertById(cur.events, res.event) } : cur,
           { revalidate: false },
         )
+        if (
+          data.rrule ||
+          data.apply_to === 'following' ||
+          data.apply_to === 'all'
+        ) {
+          await mutate(DATA_KEYS.events).catch(() => undefined)
+        }
         return res.event
       } catch (e) {
         toast.error('Failed to save event', {
@@ -252,6 +259,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       )
       try {
         await api.events.delete(id, applyTo)
+        await mutate(DATA_KEYS.events).catch(() => undefined)
       } catch (e) {
         await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
         toast.error('Failed to delete event', {

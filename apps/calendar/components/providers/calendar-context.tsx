@@ -173,13 +173,21 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const hydratedRef = useRef(false)
+  const lastEventsRef = useRef<EventData[] | null>(null)
 
   useEffect(() => {
-    if (hydratedRef.current) return
     if (!eventsLoaded || !categoriesLoaded) return
-    hydratedRef.current = true
-    setCalendars(serverCategories.map(categoryDataToCalendarCategory))
-    setEvents(serverEvents.map(eventDataToCalendarEvent))
+    if (!hydratedRef.current) {
+      hydratedRef.current = true
+      lastEventsRef.current = serverEvents
+      setCalendars(serverCategories.map(categoryDataToCalendarCategory))
+      setEvents(serverEvents.map(eventDataToCalendarEvent))
+      return
+    }
+    if (lastEventsRef.current !== serverEvents) {
+      lastEventsRef.current = serverEvents
+      setEvents(serverEvents.map(eventDataToCalendarEvent))
+    }
   }, [
     serverEvents,
     serverCategories,

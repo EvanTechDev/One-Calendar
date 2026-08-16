@@ -32,8 +32,11 @@ import {
   withUntil,
 } from '@/lib/recurrence/engine'
 import { z } from 'zod'
+import { dedupeById } from '@/lib/array-mutations'
 
 export const runtime = 'nodejs'
+
+const DEFAULT_EXPANSION_WINDOW_MS = 2 * 365 * 24 * 60 * 60 * 1000
 
 const recurringFieldsSchema = z.object({
   rrule: z.string().max(500).optional(),
@@ -497,11 +500,18 @@ export const GET = async function GET(request: NextRequest) {
     )
 
   const windowStart =
-    startDate && endDate ? fullMonthRange(startDate, endDate).start : undefined
+    startDate && endDate
+      ? fullMonthRange(startDate, endDate).start
+      : new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
   const windowEnd =
-    startDate && endDate ? fullMonthRange(startDate, endDate).end : undefined
+    startDate && endDate
+      ? fullMonthRange(startDate, endDate).end
+      : new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
 
-  const baseRows = [...decrypted, ...recurringRows.map(decryptEvent)]
+  const baseRows = dedupeById([
+    ...decrypted,
+    ...recurringRows.map(decryptEvent),
+  ])
   const seriesIds = new Set(
     baseRows.filter((e) => isSeriesEvent({ rrule: e.rrule })).map((e) => e.id),
   )
