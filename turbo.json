@@ -1,6 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "generate:i18n": {
+      "cache": false
+    },
+    "mdx": {
+      "cache": false
+    },
     "build": {
       "dependsOn": ["^build", "generate:i18n", "mdx"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]

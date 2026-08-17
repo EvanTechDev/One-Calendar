@@ -462,6 +462,11 @@ checksums:
     allDay: ac141e84c966e9a5aa2634a1903c525d
     location: 036cbdfe32bbe9ad67b5d06ef6a02a16
     participants: bc8c96aca7b35978142c09c98ef12869
+    organizer: cff6864d56049b2de93285c6fb7648ca
+    accepted: ea2ed23f35f8b090b5a994ac64ec588a
+    declined: d9330b2f64bfd767cfcfedd9afe86c77
+    maybe: c4490fe0441eb99915132a1da91d102a
+    pending: 030a6f3395d5d4efddd3cc67d6009039
     participantsPlaceholder: d45b818e7e25428c839e6bc451b00005
     description: e17686a22ffad04cc7bb70524ed4478b
     color: 9d53d1d120e8b8954bcae9a322573748
