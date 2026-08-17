@@ -15,7 +15,6 @@ import { fullMonthRange } from '@/lib/cache/keys'
 import { eventSchema, firstZodMessage } from '@/lib/validation'
 import { RRule } from 'rrule'
 import {
-  expandRows,
   mergeOverride,
   firstStampOfSeries,
   planInstanceChange,
@@ -25,19 +24,21 @@ import {
   type InstanceChangePlan,
 } from '@/lib/event-service'
 import {
+  DEFAULT_EXPANSION_WINDOW_MS,
   adaptRuleToStart,
+  defaultExpansionWindow,
+  expandSeriesView,
   isInstanceId,
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
   withUntil,
+  type SeriesViewInput,
 } from '@/lib/recurrence/engine'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
 export const runtime = 'nodejs'
-
-const DEFAULT_EXPANSION_WINDOW_MS = 2 * 365 * 24 * 60 * 60 * 1000
 
 const recurringFieldsSchema = z.object({
   rrule: z.string().max(500).optional(),
@@ -399,25 +400,55 @@ async function loadMergedView(
       ),
     )
   const all = dedupeById([...baseRows, ...recurringRows.map(decryptEvent)])
-  const seriesIds = new Set(
-    all.filter((e) => isSeriesEvent({ rrule: e.rrule })).map((e) => e.id),
-  )
-  const rowsForExpand = all.map((e) =>
-    e.seriesId !== null && !seriesIds.has(e.seriesId)
-      ? { ...e, seriesId: null }
-      : e,
-  )
-  const expanded = expandRows(rowsForExpand as EventRow[], {
-    windowStart:
-      window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
-    windowEnd:
-      window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
-  }).map((e) => (e.recurrenceId !== null ? { ...e, id: e.instanceId } : e))
+  const windowStart =
+    window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
+  const windowEnd =
+    window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
+  const expanded = expandSeriesView(
+    all.filter((e) => e.seriesId === null) as SeriesViewInput[],
+    all.filter((e) => e.seriesId !== null) as SeriesViewInput[],
+    windowStart,
+    windowEnd,
+  ) as MergedViewEvent[]
   const withShared = [
     ...expanded,
     ...(await getSharedEvents(user)),
   ] as MergedViewEvent[]
   return enrichEventsWithInvites(withShared, user.id, user.email)
+}
+
+async function loadSeriesView(
+  user: { id: string; email: string },
+  seriesIds: string[],
+): Promise<MergedViewEvent[]> {
+  const ids = [...new Set(seriesIds)]
+  if (ids.length === 0) return []
+  const rows = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        or(
+          inArray(calendarEvents.id, ids),
+          inArray(calendarEvents.seriesId, ids),
+        ),
+        eq(calendarEvents.userId, user.id),
+      ),
+    )
+  const masters = rows
+    .filter((r) => r.seriesId === null)
+    .map(decryptEvent) as unknown as SeriesViewInput[]
+  const overrides = rows
+    .filter((r) => r.seriesId !== null)
+    .map(decryptEvent) as unknown as SeriesViewInput[]
+  const window = defaultExpansionWindow()
+  const expanded = expandSeriesView(
+    masters,
+    overrides,
+    window.windowStart,
+    window.windowEnd,
+  ) as MergedViewEvent[]
+  return enrichEventsWithInvites(expanded, user.id, user.email)
 }
 
 export const GET = async function GET(request: NextRequest) {
@@ -701,8 +732,8 @@ export const POST = async function POST(request: NextRequest) {
         user.id,
         user.email,
       )
-      const events = await loadMergedView(user, [updatedRow])
-      return NextResponse.json({ event: withInvites, events })
+      const seriesEvents = await loadSeriesView(user, [updatedRow.id])
+      return NextResponse.json({ event: withInvites, seriesEvents })
     }
 
     const now = new Date()
@@ -723,8 +754,11 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ event: newMaster, events })
+      const seriesEvents = await loadSeriesView(user, [
+        newMaster.id,
+        masterRow.id,
+      ])
+      return NextResponse.json({ event: newMaster, seriesEvents })
     }
 
     if (plan.exdateToAdd) {
@@ -890,8 +924,8 @@ export const POST = async function POST(request: NextRequest) {
         user.id,
         user.email,
       )
-      const events = await loadMergedView(user, [updatedRow])
-      return NextResponse.json({ event: withInvites, events })
+      const seriesEvents = await loadSeriesView(user, [updatedRow.id])
+      return NextResponse.json({ event: withInvites, seriesEvents })
     }
 
     const recurrenceId = firstStampOfSeries(seriesRow)
@@ -917,8 +951,11 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ event: newMaster, events })
+      const seriesEvents = await loadSeriesView(user, [
+        newMaster.id,
+        seriesRow.id,
+      ])
+      return NextResponse.json({ event: newMaster, seriesEvents })
     }
 
     if (plan.exdateToAdd) {
@@ -1049,8 +1086,8 @@ export const POST = async function POST(request: NextRequest) {
 
   const createdRow = decryptEvent(event)
   if (upsertRrule !== null) {
-    const events = await loadMergedView(user, [createdRow])
-    return NextResponse.json({ event: createdRow, events })
+    const seriesEvents = await loadSeriesView(user, [createdRow.id])
+    return NextResponse.json({ event: createdRow, seriesEvents })
   }
   return NextResponse.json({ event: createdRow })
 }
@@ -1104,8 +1141,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, masterRow)
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ success: true, events })
+      return NextResponse.json({ success: true })
     }
 
     if (applyTo === 'single') {
@@ -1174,8 +1210,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
           ),
         )
     }
-    const events = await loadMergedView(user, [])
-    return NextResponse.json({ success: true, events })
+    const seriesEvents = await loadSeriesView(user, [masterRow.id])
+    return NextResponse.json({ success: true, seriesEvents })
   }
 
   const [old] = await getDb()
@@ -1198,8 +1234,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, seriesRow)
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ success: true, events })
+      return NextResponse.json({ success: true })
     }
 
     const recurrenceId = firstStampOfSeries(seriesRow)
@@ -1228,14 +1263,14 @@ export const DELETE = async function DELETE(request: NextRequest) {
             ),
           )
       }
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ success: true, events })
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      return NextResponse.json({ success: true, seriesEvents })
     }
 
     if (plan.deleteOverrideId) {
       await deleteRow(user.id, override!)
-      const events = await loadMergedView(user, [])
-      return NextResponse.json({ success: true, events })
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      return NextResponse.json({ success: true, seriesEvents })
     }
 
     await getDb()
@@ -1255,8 +1290,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
       seriesRow.startDate.toISOString(),
       seriesRow.endDate.toISOString(),
     )
-    const events = await loadMergedView(user, [])
-    return NextResponse.json({ success: true, events })
+    const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+    return NextResponse.json({ success: true, seriesEvents })
   }
 
   await deleteRow(user.id, old as unknown as EventRow)

@@ -118,15 +118,21 @@ export const api = {
       exdate?: string[] | null
       apply_to?: 'single' | 'following' | 'all'
     }) =>
-      fetchJson<{ event: EventData; events?: EventData[] }>('/api/events', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchJson<{ event: EventData; seriesEvents?: EventData[] }>(
+        '/api/events',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+      ),
     delete: (id: string, applyTo?: 'single' | 'following' | 'all') =>
-      fetchJson<{ success: boolean; events?: EventData[] }>('/api/events', {
-        method: 'DELETE',
-        body: JSON.stringify({ id, apply_to: applyTo }),
-      }),
+      fetchJson<{ success: boolean; seriesEvents?: EventData[] }>(
+        '/api/events',
+        {
+          method: 'DELETE',
+          body: JSON.stringify({ id, apply_to: applyTo }),
+        },
+      ),
   },
 
   settings: {

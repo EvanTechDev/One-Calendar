@@ -4,6 +4,16 @@ import { translations } from '@zntr/i18n/calendar'
 
 export const MAX_EXPANSION = 1000
 
+export const DEFAULT_EXPANSION_WINDOW_MS = 2 * 365 * 24 * 60 * 60 * 1000
+
+export const defaultExpansionWindow = () => {
+  const now = Date.now()
+  return {
+    windowStart: new Date(now - DEFAULT_EXPANSION_WINDOW_MS),
+    windowEnd: new Date(now + DEFAULT_EXPANSION_WINDOW_MS),
+  }
+}
+
 export interface RecurrenceEvent {
   id: string
   startDate: Date | string
@@ -283,6 +293,87 @@ function toRruleLine(rule: RRule): string {
     .filter((line) => line.length > 0 && !line.startsWith('DTSTART:'))
     .map((line) => line.replace(/^RRULE:/, ''))
     .join('\n')
+}
+
+export interface SeriesViewInput extends RecurrenceEvent {
+  seriesId: string | null
+  recurrenceId?: string | null
+  [key: string]: unknown
+}
+
+/**
+ * Expands a set of master + override rows into the same instance shape the
+ * server returns from GET /api/events. Pure and dependency-free so it can run
+ * on the client to render a series' occurrences instantly after a mutation.
+ *
+ * - Masters with an rrule are expanded; each instance is merged with its
+ *   override (matched by recurrenceId) and its `id` is set to the instance id.
+ * - Non-recurring rows pass through with `id` kept and `recurrenceId: null`.
+ * - Rows whose master is absent are emitted as plain pass-through rows.
+ */
+export function expandSeriesView<T extends SeriesViewInput>(
+  rows: T[],
+  overrides: T[] = [],
+  windowStart: Date,
+  windowEnd: Date,
+  max = MAX_EXPANSION,
+): T[] {
+  const overridesBySeries: Record<string, T[]> = {}
+  for (const row of overrides) {
+    if (row.seriesId === null || row.seriesId === undefined) continue
+    const list = overridesBySeries[row.seriesId] ?? []
+    list.push(row)
+    overridesBySeries[row.seriesId] = list
+  }
+
+  const masters = rows.filter((row) => row.seriesId === null)
+  const masterIds = new Set(masters.map((row) => row.id))
+  const orphans = rows.filter((row) => row.seriesId !== null)
+
+  const result: T[] = []
+  for (const master of masters) {
+    if (master.rrule !== null && master.rrule.trim().length > 0) {
+      const instances = expandSeries(master, windowStart, windowEnd, max)
+      const seriesOverrides = overridesBySeries[master.id] ?? []
+      for (const instance of instances) {
+        const override =
+          seriesOverrides.find(
+            (o) => o.recurrenceId === instance.recurrenceId,
+          ) ?? null
+        const base = {
+          ...master,
+          startDate: instance.startDate,
+          endDate: instance.endDate,
+          seriesId: master.id,
+          recurrenceId: instance.recurrenceId,
+        } as T
+        const merged = override ? mergeOverride(base, override) : base
+        result.push({
+          ...merged,
+          id: instance.id,
+          instanceId: instance.id,
+        } as T)
+      }
+    } else {
+      result.push({
+        ...master,
+        id: master.id,
+        instanceId: master.id,
+        recurrenceId: null,
+      } as T)
+    }
+  }
+
+  for (const orphan of orphans) {
+    if (masterIds.has(orphan.seriesId!)) continue
+    result.push({
+      ...orphan,
+      seriesId: null,
+      id: orphan.id,
+      instanceId: orphan.id,
+    } as T)
+  }
+  return result
 }
 
 export function withUntil(rruleString: string, untilStamp: string): string {

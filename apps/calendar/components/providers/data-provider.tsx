@@ -19,6 +19,11 @@ import {
 } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
+import {
+  defaultExpansionWindow,
+  expandSeriesView,
+  type SeriesViewInput,
+} from '@/lib/recurrence/engine'
 
 type LoadingState = 'loading' | 'loaded' | 'error'
 
@@ -224,29 +229,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const upsertEvent = useCallback(
     async (data: Parameters<typeof api.events.create>[0]) => {
       try {
-        const res = await api.events.create(data)
-        if (res.events) {
+        const optimistic =
+          data.rrule && data.id
+            ? optimisticSeries(data, eventsRef.current)
+            : null
+        if (optimistic) {
           await mutate(
             DATA_KEYS.events,
-            { events: res.events },
-            {
-              revalidate: false,
-            },
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(cur?.events ?? [], optimistic),
+            }),
+            { revalidate: false },
+          )
+        }
+        const res = await api.events.create(data)
+        const seriesEvents = res.seriesEvents
+        if (seriesEvents && seriesEvents.length > 0) {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(cur?.events ?? [], seriesEvents),
+            }),
+            { revalidate: false },
           )
         } else {
           await mutate(
             DATA_KEYS.events,
-            (cur?: { events: EventData[] }) =>
-              cur ? { events: upsertById(cur.events, res.event) } : cur,
+            (cur?: { events: EventData[] }) => ({
+              events: upsertById(cur?.events ?? [], res.event),
+            }),
             { revalidate: false },
           )
-          if (
-            data.rrule ||
-            data.apply_to === 'following' ||
-            data.apply_to === 'all'
-          ) {
-            await mutate(DATA_KEYS.events).catch(() => undefined)
-          }
         }
         return res.event
       } catch (e) {
@@ -262,20 +275,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteEvent = useCallback(
     async (id: string, applyTo?: 'single' | 'following' | 'all') => {
       const prev = eventsRef.current
+      const target = prev.find((e) => e.id === id)
+      const seriesId = target?.seriesId
+      const recurrenceId = target?.recurrenceId
+      let optimistic: EventData[] = removeById(prev, id)
+      if (seriesId) {
+        if (applyTo === 'all') {
+          optimistic = prev.filter((e) => e.seriesId !== seriesId)
+        } else if (applyTo === 'following' && recurrenceId) {
+          optimistic = prev.filter(
+            (e) =>
+              e.seriesId !== seriesId || (e.recurrenceId ?? '') < recurrenceId,
+          )
+        }
+      }
       await mutate(
         DATA_KEYS.events,
-        { events: removeById(prev, id) },
+        { events: optimistic },
         { revalidate: false },
       )
       try {
         const res = await api.events.delete(id, applyTo)
-        await mutate(
-          DATA_KEYS.events,
-          res.events ? { events: res.events } : undefined,
-          { revalidate: false },
-        )
-        if (!res.events) {
-          await mutate(DATA_KEYS.events).catch(() => undefined)
+        const seriesEvents = res.seriesEvents
+        if (seriesEvents && seriesEvents.length > 0) {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(cur?.events ?? [], seriesEvents),
+            }),
+            { revalidate: false },
+          )
         }
       } catch (e) {
         await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
@@ -519,7 +548,6 @@ export function useEvents() {
   const { events, loading, upsertEvent, deleteEvent, refreshEvents } = useData()
   return { events, loading, upsertEvent, deleteEvent, refreshEvents }
 }
-
 export function useCategories() {
   const {
     categories,
@@ -576,4 +604,54 @@ export function useBookmarks() {
 export function useSettings() {
   const { settings, loading, updateSettings, refreshSettings } = useData()
   return { settings, loading, updateSettings, refreshSettings }
+}
+
+function replaceSeriesInstances(
+  events: EventData[],
+  incoming: EventData[],
+): EventData[] {
+  if (incoming.length === 0) return events
+  const seriesIds = new Set<string>()
+  const ids = new Set<string>()
+  for (const e of incoming) {
+    if (e.seriesId) seriesIds.add(e.seriesId)
+    else ids.add(e.id)
+  }
+  const kept = events.filter(
+    (e) => !(e.seriesId && seriesIds.has(e.seriesId)) && !ids.has(e.id),
+  )
+  return [...kept, ...incoming]
+}
+
+function optimisticSeries(
+  data: Parameters<typeof api.events.create>[0],
+  current: EventData[],
+): EventData[] {
+  const master: SeriesViewInput = {
+    id: data.id as string,
+    seriesId: null,
+    recurrenceId: null,
+    title: data.title,
+    description: data.description ?? null,
+    location: data.location ?? null,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    isAllDay: data.isAllDay ?? false,
+    color: data.color ?? null,
+    categoryId: data.categoryId ?? null,
+    notificationMinutes: data.notificationMinutes ?? null,
+    rrule: data.rrule as string,
+    exdate: data.exdate ?? null,
+    participants: data.participants ?? null,
+  }
+  const overrides = current.filter(
+    (e) => e.seriesId === data.id && e.recurrenceId,
+  ) as unknown as SeriesViewInput[]
+  const window = defaultExpansionWindow()
+  return expandSeriesView(
+    [master],
+    overrides,
+    window.windowStart,
+    window.windowEnd,
+  ) as unknown as EventData[]
 }
