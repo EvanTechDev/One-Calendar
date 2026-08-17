@@ -132,12 +132,22 @@ async function fetchOverrides(seriesId: string): Promise<EventRow[]> {
 }
 
 async function deleteRow(userId: string, row: EventRow): Promise<void> {
-  await getDb().delete(eventInvites).where(eq(eventInvites.eventId, row.id))
-  await getDb()
-    .delete(calendarEvents)
-    .where(
-      and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
-    )
+  const rowIds = row.seriesId
+    ? [row.id]
+    : [row.id, ...(await fetchOverrides(row.id)).map((r) => r.id)]
+  if (rowIds.length > 0) {
+    await getDb()
+      .delete(eventInvites)
+      .where(inArray(eventInvites.eventId, rowIds))
+    await getDb()
+      .delete(calendarEvents)
+      .where(
+        and(
+          inArray(calendarEvents.id, rowIds),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
   await invalidateEventCache(
     userId,
     row.startDate.toISOString(),
@@ -1141,7 +1151,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, masterRow)
-      return NextResponse.json({ success: true })
+      const seriesEvents = await loadSeriesView(user, [masterRow.id])
+      return NextResponse.json({ success: true, seriesEvents })
     }
 
     if (applyTo === 'single') {
@@ -1234,7 +1245,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, seriesRow)
-      return NextResponse.json({ success: true })
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      return NextResponse.json({ success: true, seriesEvents })
     }
 
     const recurrenceId = firstStampOfSeries(seriesRow)

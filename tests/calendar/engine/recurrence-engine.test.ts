@@ -882,3 +882,86 @@ describe('adaptRuleToStart', () => {
     ).toBe('garbage')
   })
 })
+
+describe('local-day anchoring', () => {
+  const local = (y: number, m: number, d: number, h = 0, min = 0) =>
+    new Date(y, m - 1, d, h, min)
+
+  function localWeekday(series: RecurrenceEvent): number[] {
+    return expandSeries(
+      series,
+      new Date('2026-01-01T00:00:00Z'),
+      new Date('2026-08-31T00:00:00Z'),
+    ).map((i) => i.startDate.getDay())
+  }
+
+  it('keeps a timed weekly TU at 07:00 on Tuesdays (crossing the UTC date boundary)', () => {
+    const series = {
+      id: 's1',
+      startDate: local(2026, 7, 21, 7),
+      endDate: local(2026, 7, 21, 8),
+      isAllDay: false,
+      rrule: 'FREQ=WEEKLY;BYDAY=TU',
+      exdate: null,
+    }
+    const weekdays = localWeekday(series)
+    expect(weekdays.slice(0, 4)).toEqual([2, 2, 2, 2])
+  })
+
+  it('emits exactly the selected weekdays for a multi-day rule', () => {
+    const series = {
+      id: 's2',
+      startDate: local(2026, 7, 21, 7),
+      endDate: local(2026, 7, 21, 8),
+      isAllDay: false,
+      rrule: 'FREQ=WEEKLY;BYDAY=TU,TH,FR',
+      exdate: null,
+    }
+    const weekdays = localWeekday(series).slice(0, 6)
+    expect(weekdays).toEqual([2, 4, 5, 2, 4, 5])
+  })
+
+  it('anchors at the series start then follows the selected weekdays', () => {
+    const series = {
+      id: 's3',
+      startDate: local(2026, 7, 20, 9), // Monday, rule says TU
+      endDate: local(2026, 7, 20, 10),
+      isAllDay: false,
+      rrule: 'FREQ=WEEKLY;BYDAY=TU',
+      exdate: null,
+    }
+    const weekdays = localWeekday(series)
+    expect(weekdays[0]).toBe(1)
+    expect(weekdays.slice(1, 4)).toEqual([2, 2, 2])
+  })
+
+  it('keeps all-day occurrences on the selected local calendar day', () => {
+    const series = {
+      id: 's4',
+      startDate: local(2026, 7, 21, 9),
+      endDate: local(2026, 7, 21, 10),
+      isAllDay: false,
+      rrule: 'FREQ=WEEKLY;BYDAY=TU',
+      exdate: null,
+    }
+    const weekdays = localWeekday(series)
+    expect(weekdays.slice(0, 4)).toEqual([2, 2, 2, 2])
+  })
+
+  it('anchors monthly BYMONTHDAY on the local day of month', () => {
+    const series = {
+      id: 's5',
+      startDate: local(2026, 7, 21, 7),
+      endDate: local(2026, 7, 21, 8),
+      isAllDay: false,
+      rrule: 'FREQ=MONTHLY;BYMONTHDAY=21',
+      exdate: null,
+    }
+    const days = expandSeries(
+      series,
+      new Date('2026-01-01T00:00:00Z'),
+      new Date('2027-01-01T00:00:00Z'),
+    ).map((i) => i.startDate.getDate())
+    expect(days.slice(0, 3)).toEqual([21, 21, 21])
+  })
+})

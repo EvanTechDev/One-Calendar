@@ -1,4 +1,4 @@
-import { RRule, RRuleSet } from 'rrule'
+import { RRule } from 'rrule'
 import type { Frequency, Options, Weekday } from 'rrule'
 import { translations } from '@zntr/i18n/calendar'
 
@@ -93,11 +93,10 @@ export function mergeOverride<T extends object>(
 }
 
 export function toRfcStamp(date: Date, isAllDay: boolean): string {
-  const base = `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}`
   if (isAllDay) {
-    return base
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
   }
-  return `${base}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`
 }
 
 function invalidStamp(stamp: string): never {
@@ -190,29 +189,12 @@ export function isSeriesEvent(event: { rrule: string | null }): boolean {
   return typeof event.rrule === 'string' && event.rrule.trim().length > 0
 }
 
+function utcMidnight(date: Date): Date {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+}
+
 function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value)
-}
-
-function utcMidnight(date: Date): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  )
-}
-
-function parseRfcStamps(stamps: string[] | null): Date[] {
-  if (!stamps) {
-    return []
-  }
-  const dates: Date[] = []
-  for (const stamp of stamps) {
-    try {
-      dates.push(parseRfcStamp(stamp).date)
-    } catch {
-      // malformed exdates are skipped
-    }
-  }
-  return dates
 }
 
 export function expandSeries(
@@ -233,40 +215,45 @@ export function expandSeries(
   const isAllDay = series.isAllDay
   const start = toDate(series.startDate)
   const duration = toDate(series.endDate).getTime() - start.getTime()
-  const dtstart = isAllDay ? utcMidnight(start) : start
+  const localYear = start.getFullYear()
+  const localMonth = start.getMonth()
+  const localDate = start.getDate()
+  const clockHour = isAllDay ? 0 : start.getHours()
+  const clockMinute = isAllDay ? 0 : start.getMinutes()
+  const clockSecond = isAllDay ? 0 : start.getSeconds()
+  const ruleDtstart = new Date(Date.UTC(localYear, localMonth, localDate))
+  const toLocalDay = (date: Date): Date =>
+    new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      clockHour,
+      clockMinute,
+      clockSecond,
+    )
 
   let occurrences: Date[] = []
   try {
     const parsed = RRule.fromString(rruleString.trim())
-    const rule = new RRule({ ...parsed.origOptions, dtstart })
-    const exdates = parseRfcStamps(series.exdate)
-    if (exdates.length > 0) {
-      const set = new RRuleSet()
-      set.rrule(rule)
-      for (const exdate of exdates) {
-        set.exdate(exdate)
-      }
-      occurrences = set.between(windowStart, windowEnd, true)
-    } else {
-      occurrences = rule.between(windowStart, windowEnd, true)
-    }
+    const rule = new RRule({ ...parsed.origOptions, dtstart: ruleDtstart })
+    occurrences = rule.between(windowStart, windowEnd, true)
   } catch {
     occurrences = []
   }
 
   const included = new Set(occurrences.map((date) => date.getTime()))
-  const dtstartTime = dtstart.getTime()
+  const anchorTime = ruleDtstart.getTime()
   if (
-    dtstartTime >= windowFrom &&
-    dtstartTime <= windowTo &&
-    !included.has(dtstartTime)
+    anchorTime >= windowFrom &&
+    anchorTime <= windowTo &&
+    !included.has(anchorTime)
   ) {
-    occurrences.unshift(dtstart)
+    occurrences.unshift(ruleDtstart)
   }
 
   const exdateStamps = new Set(series.exdate ?? [])
   occurrences = occurrences.filter(
-    (date) => !exdateStamps.has(toRfcStamp(date, isAllDay)),
+    (date) => !exdateStamps.has(toRfcStamp(toLocalDay(date), isAllDay)),
   )
 
   if (max > 0 && occurrences.length > max) {
@@ -274,13 +261,14 @@ export function expandSeries(
   }
 
   return occurrences.map((date) => {
-    const recurrenceId = toRfcStamp(date, isAllDay)
+    const startDate = toLocalDay(date)
+    const recurrenceId = toRfcStamp(startDate, isAllDay)
     return {
       id: buildInstanceId(series.id, recurrenceId),
       seriesId: series.id,
       recurrenceId,
-      startDate: date,
-      endDate: new Date(date.getTime() + duration),
+      startDate,
+      endDate: new Date(startDate.getTime() + duration),
       isAllDay,
     }
   })
@@ -407,23 +395,21 @@ export function isValidRrule(rule: string): boolean {
 }
 
 function weekdayNameOf(date: Date): string {
-  return DAY_NAMES[((date.getUTCDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6]
+  return DAY_NAMES[((date.getDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6]
 }
 
 function seriesOfDay1(date: Date): number {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1),
-  ).getUTCDay()
+  return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
 }
 
 function monthHasWeekdayAt(date: Date, weekdayName: string): number {
-  const year = date.getUTCFullYear()
-  const month = date.getUTCMonth()
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
   const index = DAY_INDEX[weekdayName]
   let count = 0
   for (let day = 1; day <= daysInMonth; day++) {
-    if (new Date(Date.UTC(year, month, day)).getUTCDay() === index) {
+    if (new Date(year, month, day).getDay() === index) {
       count++
     }
   }
@@ -446,23 +432,23 @@ function matchesParts(parts: RruleParts, date: Date): boolean {
       const weekdayId = DAY_INDEX[parts.byweekday[0]]
       const firstDayIndex = (seriesOfDay1(date) + 6) % 7
       const firstOccurrence = 1 + ((weekdayId - firstDayIndex + 7) % 7)
-      const day = date.getUTCDate()
+      const day = date.getDate()
       if (day < firstOccurrence) return false
       const nth = Math.floor((day - firstOccurrence) / 7) + 1
       const fromLast = total - nth + 1
       return parts.bysetpos === nth || -parts.bysetpos === fromLast
     }
     if (parts.bymonthday && parts.bymonthday.length > 0) {
-      return parts.bymonthday.includes(date.getUTCDate())
+      return parts.bymonthday.includes(date.getDate())
     }
     return true
   }
   if (parts.freq === 'YEARLY') {
     if (parts.bymonth && parts.bymonth.length > 0) {
-      if (!parts.bymonth.includes(date.getUTCMonth() + 1)) return false
+      if (!parts.bymonth.includes(date.getMonth() + 1)) return false
     }
     if (parts.bymonthday && parts.bymonthday.length > 0) {
-      if (!parts.bymonthday.includes(date.getUTCDate())) return false
+      if (!parts.bymonthday.includes(date.getDate())) return false
     }
     return true
   }
@@ -490,9 +476,9 @@ export function adaptRuleToStart(
   } catch {
     return rule
   }
-  const anchor = isAllDay ? utcMidnight(newStartDate) : newStartDate
+  const anchor = newStartDate
   if (!matchesParts(parts, anchor)) {
-    const day = anchor.getUTCDate()
+    const day = anchor.getDate()
     if (parts.freq === 'WEEKLY') {
       parts = { ...parts, byweekday: [weekdayNameOf(anchor)] }
     } else if (parts.freq === 'MONTHLY') {
@@ -505,7 +491,7 @@ export function adaptRuleToStart(
     } else if (parts.freq === 'YEARLY') {
       parts = {
         ...parts,
-        bymonth: [anchor.getUTCMonth() + 1],
+        bymonth: [anchor.getMonth() + 1],
         bymonthday: [day],
       }
     }

@@ -230,7 +230,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.events.create>[0]) => {
       try {
         const optimistic =
-          data.rrule && data.id
+          data.rrule &&
+          data.id &&
+          (data.apply_to === undefined || data.apply_to === 'all')
             ? optimisticSeries(data, eventsRef.current)
             : null
         if (optimistic) {
@@ -627,8 +629,10 @@ function optimisticSeries(
   data: Parameters<typeof api.events.create>[0],
   current: EventData[],
 ): EventData[] {
+  const target = current.find((e) => e.id === data.id)
+  const key = target?.seriesId ?? (data.id as string)
   const master: SeriesViewInput = {
-    id: data.id as string,
+    id: key,
     seriesId: null,
     recurrenceId: null,
     title: data.title,
@@ -644,13 +648,10 @@ function optimisticSeries(
     exdate: data.exdate ?? null,
     participants: data.participants ?? null,
   }
-  const overrides = current.filter(
-    (e) => e.seriesId === data.id && e.recurrenceId,
-  ) as unknown as SeriesViewInput[]
   const window = defaultExpansionWindow()
   return expandSeriesView(
     [master],
-    overrides,
+    [],
     window.windowStart,
     window.windowEnd,
   ) as unknown as EventData[]
