@@ -225,18 +225,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.events.create>[0]) => {
       try {
         const res = await api.events.create(data)
-        await mutate(
-          DATA_KEYS.events,
-          (cur?: { events: EventData[] }) =>
-            cur ? { events: upsertById(cur.events, res.event) } : cur,
-          { revalidate: false },
-        )
-        if (
-          data.rrule ||
-          data.apply_to === 'following' ||
-          data.apply_to === 'all'
-        ) {
-          await mutate(DATA_KEYS.events).catch(() => undefined)
+        if (res.events) {
+          await mutate(
+            DATA_KEYS.events,
+            { events: res.events },
+            {
+              revalidate: false,
+            },
+          )
+        } else {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) =>
+              cur ? { events: upsertById(cur.events, res.event) } : cur,
+            { revalidate: false },
+          )
+          if (
+            data.rrule ||
+            data.apply_to === 'following' ||
+            data.apply_to === 'all'
+          ) {
+            await mutate(DATA_KEYS.events).catch(() => undefined)
+          }
         }
         return res.event
       } catch (e) {
@@ -258,8 +268,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { revalidate: false },
       )
       try {
-        await api.events.delete(id, applyTo)
-        await mutate(DATA_KEYS.events).catch(() => undefined)
+        const res = await api.events.delete(id, applyTo)
+        await mutate(
+          DATA_KEYS.events,
+          res.events ? { events: res.events } : undefined,
+          { revalidate: false },
+        )
+        if (!res.events) {
+          await mutate(DATA_KEYS.events).catch(() => undefined)
+        }
       } catch (e) {
         await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
         toast.error('Failed to delete event', {

@@ -25,6 +25,7 @@ import {
   type InstanceChangePlan,
 } from '@/lib/event-service'
 import {
+  adaptRuleToStart,
   isInstanceId,
   isSeriesEvent,
   parseInstanceId,
@@ -372,6 +373,53 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
   })
 }
 
+type MergedViewEvent = ReturnType<typeof decryptEvent> & {
+  instanceId?: string
+  invites?: EnrichedInvite[]
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+}
+
+async function loadMergedView(
+  user: { id: string; email: string },
+  baseRows: ReturnType<typeof decryptEvent>[],
+  window?: { windowStart?: Date; windowEnd?: Date },
+): Promise<MergedViewEvent[]> {
+  const recurringRows = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.userId, user.id),
+        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
+      ),
+    )
+  const all = dedupeById([...baseRows, ...recurringRows.map(decryptEvent)])
+  const seriesIds = new Set(
+    all.filter((e) => isSeriesEvent({ rrule: e.rrule })).map((e) => e.id),
+  )
+  const rowsForExpand = all.map((e) =>
+    e.seriesId !== null && !seriesIds.has(e.seriesId)
+      ? { ...e, seriesId: null }
+      : e,
+  )
+  const expanded = expandRows(rowsForExpand as EventRow[], {
+    windowStart:
+      window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
+    windowEnd:
+      window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
+  }).map((e) => (e.recurrenceId !== null ? { ...e, id: e.instanceId } : e))
+  const withShared = [
+    ...expanded,
+    ...(await getSharedEvents(user)),
+  ] as MergedViewEvent[]
+  return enrichEventsWithInvites(withShared, user.id, user.email)
+}
+
 export const GET = async function GET(request: NextRequest) {
   const currentUser = await getAuthedUser()
   if (!currentUser)
@@ -489,16 +537,6 @@ export const GET = async function GET(request: NextRequest) {
     decrypted = results.map(decryptEvent)
   }
 
-  const recurringRows = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.userId, currentUser.id),
-        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
-      ),
-    )
-
   const windowStart =
     startDate && endDate
       ? fullMonthRange(startDate, endDate).start
@@ -508,34 +546,10 @@ export const GET = async function GET(request: NextRequest) {
       ? fullMonthRange(startDate, endDate).end
       : new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
 
-  const baseRows = dedupeById([
-    ...decrypted,
-    ...recurringRows.map(decryptEvent),
-  ])
-  const seriesIds = new Set(
-    baseRows.filter((e) => isSeriesEvent({ rrule: e.rrule })).map((e) => e.id),
-  )
-  const rowsForExpand = baseRows.map((e) =>
-    e.seriesId !== null && !seriesIds.has(e.seriesId)
-      ? { ...e, seriesId: null }
-      : e,
-  )
-
-  const expanded = expandRows(rowsForExpand as EventRow[], {
+  const eventsWithInvites = await loadMergedView(currentUser, decrypted, {
     windowStart,
     windowEnd,
-  }).map((e) => (e.recurrenceId !== null ? { ...e, id: e.instanceId } : e))
-
-  const allBaseEvents = [
-    ...expanded,
-    ...(await getSharedEvents(currentUser)),
-  ] as Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>
-
-  const eventsWithInvites = await enrichEventsWithInvites(
-    allBaseEvents,
-    currentUser.id,
-    currentUser.email,
-  )
+  })
 
   if (categoryIds) {
     const ids = categoryIds.split(',')
@@ -652,9 +666,17 @@ export const POST = async function POST(request: NextRequest) {
     const applyTo = body.apply_to ?? 'single'
 
     if (applyTo === 'all') {
+      const prevStartDate = masterRow.startDate
+      const nextStartDate = submittedFields.startDate as Date
+      const allDay = submittedFields.isAllDay ?? masterRow.isAllDay
+      let rrule =
+        body.rrule !== undefined ? (rawRrule ?? null) : masterRow.rrule
+      if (rrule !== null) {
+        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+      }
       const set = {
         ...encryptMergedFields(masterRow.id, submittedFields),
-        ...(body.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(rrule !== null ? { rrule } : {}),
         ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
         updatedAt: new Date(),
       }
@@ -673,12 +695,14 @@ export const POST = async function POST(request: NextRequest) {
         masterRow.startDate.toISOString(),
         masterRow.endDate.toISOString(),
       )
+      const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
-        [decryptEvent(updated)],
+        [updatedRow],
         user.id,
         user.email,
       )
-      return NextResponse.json({ event: withInvites })
+      const events = await loadMergedView(user, [updatedRow])
+      return NextResponse.json({ event: withInvites, events })
     }
 
     const now = new Date()
@@ -699,7 +723,8 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      return NextResponse.json({ event: newMaster })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ event: newMaster, events })
     }
 
     if (plan.exdateToAdd) {
@@ -835,9 +860,17 @@ export const POST = async function POST(request: NextRequest) {
     const applyTo = body.apply_to ?? 'all'
 
     if (applyTo === 'all') {
+      const prevStartDate = seriesRow.startDate
+      const nextStartDate = submittedFields.startDate as Date
+      const allDay = submittedFields.isAllDay ?? seriesRow.isAllDay
+      let rrule =
+        body.rrule !== undefined ? (rawRrule ?? null) : seriesRow.rrule
+      if (rrule !== null) {
+        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+      }
       const set = {
         ...encryptMergedFields(seriesRow.id, submittedFields),
-        ...(body.rrule !== undefined ? { rrule: rawRrule } : {}),
+        ...(rrule !== null ? { rrule } : {}),
         ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
         updatedAt: new Date(),
       }
@@ -851,12 +884,14 @@ export const POST = async function POST(request: NextRequest) {
           ),
         )
         .returning()
+      const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
-        [decryptEvent(updated)],
+        [updatedRow],
         user.id,
         user.email,
       )
-      return NextResponse.json({ event: withInvites })
+      const events = await loadMergedView(user, [updatedRow])
+      return NextResponse.json({ event: withInvites, events })
     }
 
     const recurrenceId = firstStampOfSeries(seriesRow)
@@ -882,7 +917,8 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      return NextResponse.json({ event: newMaster })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ event: newMaster, events })
     }
 
     if (plan.exdateToAdd) {
@@ -955,6 +991,20 @@ export const POST = async function POST(request: NextRequest) {
     return NextResponse.json({ event: withInvites })
   }
 
+  let upsertRrule = rawRrule
+  if (upsertRrule !== null && isUpdate && fullOld && fullOld.rrule === null) {
+    const prevStart = new Date(fullOld.startDate)
+    const nextStart = new Date(body.startDate)
+    if (prevStart.getTime() !== nextStart.getTime()) {
+      upsertRrule = adaptRuleToStart(
+        upsertRrule,
+        prevStart,
+        nextStart,
+        body.isAllDay ?? false,
+      )
+    }
+  }
+
   const [event] = await getDb()
     .insert(calendarEvents)
     .values({
@@ -971,7 +1021,7 @@ export const POST = async function POST(request: NextRequest) {
       categoryId: body.categoryId ?? null,
       participants: encryptJsonField(id, body.participants),
       notificationMinutes: body.notificationMinutes ?? null,
-      rrule: rawRrule,
+      rrule: upsertRrule,
       exdate: body.exdate ?? null,
     })
     .onConflictDoUpdate({
@@ -988,7 +1038,7 @@ export const POST = async function POST(request: NextRequest) {
         categoryId: body.categoryId ?? null,
         participants: encryptJsonField(id, body.participants),
         notificationMinutes: body.notificationMinutes ?? null,
-        rrule: rawRrule,
+        rrule: upsertRrule,
         exdate: body.exdate ?? null,
         updatedAt: new Date(),
       },
@@ -997,7 +1047,12 @@ export const POST = async function POST(request: NextRequest) {
 
   await invalidateEventCache(user.id, body.startDate, body.endDate)
 
-  return NextResponse.json({ event: decryptEvent(event) })
+  const createdRow = decryptEvent(event)
+  if (upsertRrule !== null) {
+    const events = await loadMergedView(user, [createdRow])
+    return NextResponse.json({ event: createdRow, events })
+  }
+  return NextResponse.json({ event: createdRow })
 }
 
 export const DELETE = async function DELETE(request: NextRequest) {
@@ -1118,7 +1173,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
           ),
         )
     }
-    return NextResponse.json({ success: true })
+    const events = await loadMergedView(user, [])
+    return NextResponse.json({ success: true, events })
   }
 
   const [old] = await getDb()
@@ -1170,12 +1226,14 @@ export const DELETE = async function DELETE(request: NextRequest) {
             ),
           )
       }
-      return NextResponse.json({ success: true })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ success: true, events })
     }
 
     if (plan.deleteOverrideId) {
       await deleteRow(user.id, override!)
-      return NextResponse.json({ success: true })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ success: true, events })
     }
 
     await getDb()
@@ -1195,7 +1253,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
       seriesRow.startDate.toISOString(),
       seriesRow.endDate.toISOString(),
     )
-    return NextResponse.json({ success: true })
+    const events = await loadMergedView(user, [])
+    return NextResponse.json({ success: true, events })
   }
 
   await deleteRow(user.id, old as unknown as EventRow)

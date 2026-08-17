@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
   MAX_EXPANSION,
+  adaptRuleToStart,
   buildInstanceId,
   describeRecurrence,
   expandSeries,
   isInstanceId,
   isSeriesEvent,
+  isValidRrule,
   parseInstanceId,
   parseRfcStamp,
   reanchor,
@@ -785,5 +787,98 @@ describe('describeRecurrence', () => {
 
   it('falls back to the raw rule when it cannot be parsed', () => {
     expect(describeRecurrence('not-a-rule', true)).toBe('not-a-rule')
+  })
+})
+
+describe('isValidRrule', () => {
+  it('accepts well-formed rules', () => {
+    expect(isValidRrule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TU')).toBe(true)
+  })
+
+  it('rejects empty and malformed input', () => {
+    expect(isValidRrule('')).toBe(false)
+    expect(isValidRrule('  ')).toBe(false)
+    expect(isValidRrule('not-a-rule')).toBe(false)
+    expect(isValidRrule('FREQ=;INTERVAL=2')).toBe(false)
+  })
+})
+
+describe('adaptRuleToStart', () => {
+  it('re-anchors a daily rule where the new start is not a member', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=WEEKLY;BYDAY=MO',
+      day(2024, 1, 1),
+      day(2024, 1, 2),
+      true,
+    )
+    expect(adapted).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=TU')
+  })
+
+  it('keeps the rule untouched when the new start already matches', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=WEEKLY;BYDAY=MO',
+      day(2024, 1, 1),
+      day(2024, 1, 8),
+      true,
+    )
+    expect(adapted).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO')
+  })
+
+  it('re-anchors a monthly-by-day rule onto the day of month', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=MONTHLY;BYMONTHDAY=15',
+      day(2024, 1, 15),
+      day(2024, 1, 3),
+      true,
+    )
+    expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=3')
+  })
+
+  it('converts a setpos rule to day-of-month when the new date breaks the pattern', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=MONTHLY;BYDAY=SA;BYSETPOS=2',
+      day(2024, 1, 13),
+      day(2024, 2, 14),
+      true,
+    )
+    expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=14')
+  })
+
+  it('keeps a setpos rule when the new date still fits the pattern', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=MONTHLY;BYDAY=SA;BYSETPOS=2',
+      day(2024, 1, 13),
+      day(2024, 2, 10),
+      true,
+    )
+    expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYDAY=SA;BYSETPOS=2')
+  })
+
+  it('re-anchors a yearly rule onto the new month and day', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=15',
+      day(2024, 1, 15),
+      day(2024, 7, 2),
+      true,
+    )
+    expect(adapted).toBe('FREQ=YEARLY;INTERVAL=1;BYMONTHDAY=2;BYMONTH=7')
+  })
+
+  it('shifts UNTIL by the same delta when the new start passes the end', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=WEEKLY;BYDAY=MO;UNTIL=20240212',
+      day(2024, 1, 1),
+      day(2024, 2, 25),
+      true,
+    )
+    expect(adapted).toBe(
+      'FREQ=WEEKLY;INTERVAL=1;UNTIL=20240407T000000Z;BYDAY=SU',
+    )
+  })
+
+  it('returns the original rule on parse failure', () => {
+    expect(
+      adaptRuleToStart('garbage', day(2024, 1, 1), day(2024, 1, 2), true),
+    ).toBe('garbage')
   })
 })

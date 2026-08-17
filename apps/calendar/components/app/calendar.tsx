@@ -207,6 +207,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     'single' | 'following' | 'all' | undefined
   >(undefined)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingRangeMove, setPendingRangeMove] = useState<{
+    event: CalendarEvent
+    startDate: Date
+    endDate: Date
+  } | null>(null)
+  const [rangeMoveOpen, setRangeMoveOpen] = useState(false)
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
   const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
@@ -234,6 +240,24 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
+    if (event.rrule || event.seriesId || event.recurrenceId) {
+      setPendingRangeMove({
+        event,
+        startDate: newStartDate,
+        endDate: newEndDate,
+      })
+      setRangeMoveOpen(true)
+      return
+    }
+    commitRangeMove(event, newStartDate, newEndDate)
+  }
+
+  const commitRangeMove = (
+    event: CalendarEvent,
+    newStartDate: Date,
+    newEndDate: Date,
+    scope?: 'single' | 'following' | 'all',
+  ) => {
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
@@ -255,7 +279,20 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       notificationMinutes: updatedEvent.notification || null,
       color: updatedEvent.color || null,
       categoryId: updatedEvent.calendarId || null,
+      apply_to: scope,
     }).catch(() => {})
+  }
+
+  const confirmRangeMove = (scope: 'single' | 'following' | 'all') => {
+    if (!pendingRangeMove) return
+    commitRangeMove(
+      pendingRangeMove.event,
+      pendingRangeMove.startDate,
+      pendingRangeMove.endDate,
+      scope,
+    )
+    setRangeMoveOpen(false)
+    setPendingRangeMove(null)
   }
 
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
@@ -699,7 +736,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         : null,
       notificationMinutes: updatedEvent.notification,
       categoryId: updatedEvent.calendarId || null,
-      rrule: applyTo === 'all' ? (updatedEvent.rrule ?? null) : undefined,
+      rrule: updatedEvent.rrule
+        ? updatedEvent.rrule
+        : applyTo === 'all'
+          ? null
+          : undefined,
       apply_to: applyTo,
     })
     toast(t.eventUpdated)
@@ -1485,6 +1526,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           focusSection={focusUserProfileSection}
           onFocusSectionHandled={() => setFocusUserProfileSection(null)}
         />
+
+        <AlertDialog open={rangeMoveOpen} onOpenChange={setRangeMoveOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.repeatScope}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t.moveEventScopeDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingRangeMove(null)}>
+                {t.cancel}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={() => confirmRangeMove('single')}>
+                {t.repeatScopeSingle}
+              </AlertDialogAction>
+              <AlertDialogAction onClick={() => confirmRangeMove('following')}>
+                {t.repeatScopeFollowing}
+              </AlertDialogAction>
+              <AlertDialogAction onClick={() => confirmRangeMove('all')}>
+                {t.repeatScopeAll}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog
           open={deleteConfirmOpen}

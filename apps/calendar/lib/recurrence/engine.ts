@@ -303,6 +303,147 @@ export function reanchor(
   return toRruleLine(new RRule(parts))
 }
 
+export function isValidRrule(rule: string): boolean {
+  if (typeof rule !== 'string' || rule.trim().length === 0) {
+    return false
+  }
+  try {
+    const options = RRule.fromString(rule).origOptions
+    return options.freq !== null && options.freq !== undefined
+  } catch {
+    return false
+  }
+}
+
+function weekdayNameOf(date: Date): string {
+  return DAY_NAMES[((date.getUTCDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6]
+}
+
+function seriesOfDay1(date: Date): number {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1),
+  ).getUTCDay()
+}
+
+function monthHasWeekdayAt(date: Date, weekdayName: string): number {
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth()
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const index = DAY_INDEX[weekdayName]
+  let count = 0
+  for (let day = 1; day <= daysInMonth; day++) {
+    if (new Date(Date.UTC(year, month, day)).getUTCDay() === index) {
+      count++
+    }
+  }
+  return count
+}
+
+function matchesParts(parts: RruleParts, date: Date): boolean {
+  if (parts.freq === 'WEEKLY') {
+    if (!parts.byweekday || parts.byweekday.length === 0) return true
+    return parts.byweekday.includes(weekdayNameOf(date))
+  }
+  if (parts.freq === 'MONTHLY') {
+    if (
+      parts.byweekday &&
+      parts.byweekday.length > 0 &&
+      parts.bysetpos !== null
+    ) {
+      if (weekdayNameOf(date) !== parts.byweekday[0]) return false
+      const total = monthHasWeekdayAt(date, parts.byweekday[0])
+      const weekdayId = DAY_INDEX[parts.byweekday[0]]
+      const firstDayIndex = (seriesOfDay1(date) + 6) % 7
+      const firstOccurrence = 1 + ((weekdayId - firstDayIndex + 7) % 7)
+      const day = date.getUTCDate()
+      if (day < firstOccurrence) return false
+      const nth = Math.floor((day - firstOccurrence) / 7) + 1
+      const fromLast = total - nth + 1
+      return parts.bysetpos === nth || -parts.bysetpos === fromLast
+    }
+    if (parts.bymonthday && parts.bymonthday.length > 0) {
+      return parts.bymonthday.includes(date.getUTCDate())
+    }
+    return true
+  }
+  if (parts.freq === 'YEARLY') {
+    if (parts.bymonth && parts.bymonth.length > 0) {
+      if (!parts.bymonth.includes(date.getUTCMonth() + 1)) return false
+    }
+    if (parts.bymonthday && parts.bymonthday.length > 0) {
+      if (!parts.bymonthday.includes(date.getUTCDate())) return false
+    }
+    return true
+  }
+  return true
+}
+
+/**
+ * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
+ *
+ * Fixes the "root event disappears after a save" case: when a series master's
+ * start date is moved to a day that no longer satisfies the rule (e.g. a
+ * Monday rule moved to Tuesday, or an until date moved past), the rule is
+ * rewritten to match the new anchor and, when needed, the series end is
+ * shifted by the same delta as the start.
+ */
+export function adaptRuleToStart(
+  rule: string,
+  previousStartDate: Date,
+  newStartDate: Date,
+  isAllDay: boolean,
+): string {
+  let parts: RruleParts
+  try {
+    parts = rruleToParts(rule)
+  } catch {
+    return rule
+  }
+  const anchor = isAllDay ? utcMidnight(newStartDate) : newStartDate
+  if (!matchesParts(parts, anchor)) {
+    const day = anchor.getUTCDate()
+    if (parts.freq === 'WEEKLY') {
+      parts = { ...parts, byweekday: [weekdayNameOf(anchor)] }
+    } else if (parts.freq === 'MONTHLY') {
+      parts = {
+        ...parts,
+        byweekday: null,
+        bysetpos: null,
+        bymonthday: [day],
+      }
+    } else if (parts.freq === 'YEARLY') {
+      parts = {
+        ...parts,
+        bymonth: [anchor.getUTCMonth() + 1],
+        bymonthday: [day],
+      }
+    }
+  }
+  if (parts.until !== null) {
+    let untilDate: Date
+    try {
+      untilDate = parseRfcStamp(parts.until).date
+    } catch {
+      untilDate = new Date(NaN)
+    }
+    if (
+      !Number.isNaN(untilDate.getTime()) &&
+      untilDate.getTime() < anchor.getTime()
+    ) {
+      const delta = anchor.getTime() - previousStartDate.getTime()
+      parts = {
+        ...parts,
+        until: toRfcStamp(new Date(untilDate.getTime() + delta), isAllDay),
+      }
+    }
+  }
+  try {
+    return rruleFromParts(parts)
+  } catch {
+    return rule
+  }
+}
+
 export function rruleFromParts(parts: RruleParts): string {
   if (!Number.isInteger(parts.interval) || parts.interval < 1) {
     throw new Error('interval must be a positive integer')
