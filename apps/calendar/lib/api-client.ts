@@ -87,12 +87,14 @@ export const api = {
       startDate?: string
       endDate?: string
       categoryIds?: string
+      timezone?: string
     }) => {
       const searchParams = new URLSearchParams()
       if (params?.startDate) searchParams.set('startDate', params.startDate)
       if (params?.endDate) searchParams.set('endDate', params.endDate)
       if (params?.categoryIds)
         searchParams.set('categoryIds', params.categoryIds)
+      if (params?.timezone) searchParams.set('tz', params.timezone)
       const qs = searchParams.toString()
       return fetchJson<{ events: EventData[] }>(
         `/api/events${qs ? `?${qs}` : ''}`,
@@ -117,6 +119,7 @@ export const api = {
       rrule?: string | null
       exdate?: string[] | null
       apply_to?: 'single' | 'following' | 'all'
+      timezone?: string
     }) =>
       fetchJson<{ event: EventData; seriesEvents?: EventData[] }>(
         '/api/events',
@@ -125,12 +128,16 @@ export const api = {
           body: JSON.stringify(data),
         },
       ),
-    delete: (id: string, applyTo?: 'single' | 'following' | 'all') =>
+    delete: (
+      id: string,
+      applyTo?: 'single' | 'following' | 'all',
+      timezone?: string,
+    ) =>
       fetchJson<{ success: boolean; seriesEvents?: EventData[] }>(
         '/api/events',
         {
           method: 'DELETE',
-          body: JSON.stringify({ id, apply_to: applyTo }),
+          body: JSON.stringify({ id, apply_to: applyTo, timezone }),
         },
       ),
   },

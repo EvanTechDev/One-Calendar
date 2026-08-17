@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
+import {
+  calendarEvents,
+  eventInvites,
+  settings,
+  user,
+} from '@/lib/drizzle/schema'
 import { and, eq, gte, inArray, lte, or, desc, isNotNull } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
@@ -25,6 +30,7 @@ import {
 } from '@/lib/event-service'
 import {
   DEFAULT_EXPANSION_WINDOW_MS,
+  MAX_EXPANSION,
   adaptRuleToStart,
   defaultExpansionWindow,
   expandSeriesView,
@@ -399,6 +405,7 @@ async function loadMergedView(
   user: { id: string; email: string },
   baseRows: ReturnType<typeof decryptEvent>[],
   window?: { windowStart?: Date; windowEnd?: Date },
+  timeZone?: string,
 ): Promise<MergedViewEvent[]> {
   const recurringRows = await getDb()
     .select()
@@ -419,6 +426,8 @@ async function loadMergedView(
     all.filter((e) => e.seriesId !== null) as SeriesViewInput[],
     windowStart,
     windowEnd,
+    MAX_EXPANSION,
+    timeZone,
   ) as MergedViewEvent[]
   const withShared = [
     ...expanded,
@@ -430,6 +439,7 @@ async function loadMergedView(
 async function loadSeriesView(
   user: { id: string; email: string },
   seriesIds: string[],
+  timeZone?: string,
 ): Promise<MergedViewEvent[]> {
   const ids = [...new Set(seriesIds)]
   if (ids.length === 0) return []
@@ -457,8 +467,40 @@ async function loadSeriesView(
     overrides,
     window.windowStart,
     window.windowEnd,
+    MAX_EXPANSION,
+    timeZone,
   ) as MergedViewEvent[]
   return enrichEventsWithInvites(expanded, user.id, user.email)
+}
+
+async function resolveUserTz(
+  userId: string,
+  explicit?: string | null,
+): Promise<string> {
+  const candidate = explicit?.trim()
+  if (candidate && isTzValid(candidate)) return candidate
+  try {
+    const [row] = await getDb()
+      .select()
+      .from(settings)
+      .where(eq(settings.userId, userId))
+    const data = (row?.data ?? {}) as { timezone?: unknown }
+    if (typeof data.timezone === 'string' && isTzValid(data.timezone)) {
+      return data.timezone
+    }
+  } catch {
+    // fall through to UTC
+  }
+  return 'UTC'
+}
+
+function isTzValid(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export const GET = async function GET(request: NextRequest) {
@@ -471,6 +513,7 @@ export const GET = async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
+  const timeZone = await resolveUserTz(currentUser.id, searchParams.get('tz'))
 
   if (id) {
     const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
@@ -499,6 +542,7 @@ export const GET = async function GET(request: NextRequest) {
         decryptEvent(master),
         parsedId.recurrenceId,
         overrides,
+        timeZone,
       )
       if (!resolved) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -587,10 +631,15 @@ export const GET = async function GET(request: NextRequest) {
       ? fullMonthRange(startDate, endDate).end
       : new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
 
-  const eventsWithInvites = await loadMergedView(currentUser, decrypted, {
-    windowStart,
-    windowEnd,
-  })
+  const eventsWithInvites = await loadMergedView(
+    currentUser,
+    decrypted,
+    {
+      windowStart,
+      windowEnd,
+    },
+    timeZone,
+  )
 
   if (categoryIds) {
     const ids = categoryIds.split(',')
@@ -639,7 +688,10 @@ export const POST = async function POST(request: NextRequest) {
     exdate?: string[]
     apply_to?: ApplyTo
     id?: string
+    timezone?: string
   }
+
+  const timeZone = await resolveUserTz(user.id, body.timezone)
 
   const rawRrule =
     typeof body.rrule === 'string' && body.rrule.trim().length > 0
@@ -713,7 +765,13 @@ export const POST = async function POST(request: NextRequest) {
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : masterRow.rrule
       if (rrule !== null) {
-        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          nextStartDate,
+          allDay,
+          timeZone,
+        )
       }
       const set = {
         ...encryptMergedFields(masterRow.id, submittedFields),
@@ -742,7 +800,7 @@ export const POST = async function POST(request: NextRequest) {
         user.id,
         user.email,
       )
-      const seriesEvents = await loadSeriesView(user, [updatedRow.id])
+      const seriesEvents = await loadSeriesView(user, [updatedRow.id], timeZone)
       return NextResponse.json({ event: withInvites, seriesEvents })
     }
 
@@ -764,10 +822,11 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      const seriesEvents = await loadSeriesView(user, [
-        newMaster.id,
-        masterRow.id,
-      ])
+      const seriesEvents = await loadSeriesView(
+        user,
+        [newMaster.id, masterRow.id],
+        timeZone,
+      )
       return NextResponse.json({ event: newMaster, seriesEvents })
     }
 
@@ -910,7 +969,13 @@ export const POST = async function POST(request: NextRequest) {
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : seriesRow.rrule
       if (rrule !== null) {
-        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          nextStartDate,
+          allDay,
+          timeZone,
+        )
       }
       const set = {
         ...encryptMergedFields(seriesRow.id, submittedFields),
@@ -934,11 +999,11 @@ export const POST = async function POST(request: NextRequest) {
         user.id,
         user.email,
       )
-      const seriesEvents = await loadSeriesView(user, [updatedRow.id])
+      const seriesEvents = await loadSeriesView(user, [updatedRow.id], timeZone)
       return NextResponse.json({ event: withInvites, seriesEvents })
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow)
+    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
     const overrides = (await fetchOverrides(seriesRow.id)).map((o) =>
       decryptEvent(o as typeof calendarEvents.$inferSelect),
     )
@@ -961,10 +1026,11 @@ export const POST = async function POST(request: NextRequest) {
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      const seriesEvents = await loadSeriesView(user, [
-        newMaster.id,
-        seriesRow.id,
-      ])
+      const seriesEvents = await loadSeriesView(
+        user,
+        [newMaster.id, seriesRow.id],
+        timeZone,
+      )
       return NextResponse.json({ event: newMaster, seriesEvents })
     }
 
@@ -1048,6 +1114,7 @@ export const POST = async function POST(request: NextRequest) {
         prevStart,
         nextStart,
         body.isAllDay ?? false,
+        timeZone,
       )
     }
   }
@@ -1096,7 +1163,7 @@ export const POST = async function POST(request: NextRequest) {
 
   const createdRow = decryptEvent(event)
   if (upsertRrule !== null) {
-    const seriesEvents = await loadSeriesView(user, [createdRow.id])
+    const seriesEvents = await loadSeriesView(user, [createdRow.id], timeZone)
     return NextResponse.json({ event: createdRow, seriesEvents })
   }
   return NextResponse.json({ event: createdRow })
@@ -1112,6 +1179,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
   const { id } = body as { id?: string }
+  const timezone = (body as { timezone?: string }).timezone
+  const timeZone = await resolveUserTz(user.id, timezone)
   const apply_to = body.apply_to as ApplyTo | null | undefined
   if (!id)
     return NextResponse.json({ error: 'Missing event id' }, { status: 400 })
@@ -1151,7 +1220,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, masterRow)
-      const seriesEvents = await loadSeriesView(user, [masterRow.id])
+      const seriesEvents = await loadSeriesView(user, [masterRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })
     }
 
@@ -1221,7 +1290,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
           ),
         )
     }
-    const seriesEvents = await loadSeriesView(user, [masterRow.id])
+    const seriesEvents = await loadSeriesView(user, [masterRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
   }
 
@@ -1245,11 +1314,11 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, seriesRow)
-      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow)
+    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
     const overrides = await fetchOverrides(seriesRow.id)
     const override =
       overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
@@ -1275,13 +1344,13 @@ export const DELETE = async function DELETE(request: NextRequest) {
             ),
           )
       }
-      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })
     }
 
     if (plan.deleteOverrideId) {
       await deleteRow(user.id, override!)
-      const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+      const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })
     }
 
@@ -1302,7 +1371,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
       seriesRow.startDate.toISOString(),
       seriesRow.endDate.toISOString(),
     )
-    const seriesEvents = await loadSeriesView(user, [seriesRow.id])
+    const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
   }
 

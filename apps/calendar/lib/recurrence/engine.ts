@@ -76,6 +76,108 @@ function pad(value: number): string {
   return value < 10 ? `0${value}` : String(value)
 }
 
+interface DateParts {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+}
+
+const tzFormatterCache = new Map<string, Intl.DateTimeFormat>()
+
+function getTzFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = tzFormatterCache.get(timeZone)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+    tzFormatterCache.set(timeZone, formatter)
+  }
+  return formatter
+}
+
+export function partsInTz(date: Date, timeZone: string): DateParts {
+  const parts = getTzFormatter(timeZone).formatToParts(date)
+  const value = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value ?? '0')
+  return {
+    year: value('year'),
+    month: value('month'),
+    day: value('day'),
+    hour: value('hour'),
+    minute: value('minute'),
+    second: value('second'),
+  }
+}
+
+export function partsInLocal(date: Date): DateParts {
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+  }
+}
+
+function partsOfUtcDay(date: Date): DateParts {
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+    hour: 0,
+    minute: 0,
+    second: 0,
+  }
+}
+
+function tzOffsetMs(timeZone: string, utcMs: number): number {
+  const p = partsInTz(new Date(utcMs), timeZone)
+  return (
+    Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - utcMs
+  )
+}
+
+export function wallClockToInstant(
+  parts: DateParts,
+  clock: { hour: number; minute: number; second: number },
+  timeZone?: string,
+): Date {
+  if (timeZone) {
+    const naive = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      clock.hour,
+      clock.minute,
+      clock.second,
+    )
+    return new Date(naive - tzOffsetMs(timeZone, naive))
+  }
+  return new Date(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    clock.hour,
+    clock.minute,
+    clock.second,
+  )
+}
+
+function dayStamp(parts: DateParts): string {
+  return `${parts.year}${pad(parts.month)}${pad(parts.day)}`
+}
+
 export function mergeOverride<T extends object>(
   master: T,
   override: Partial<Record<keyof T, unknown>> | null | undefined,
@@ -202,6 +304,7 @@ export function expandSeries(
   windowStart: Date,
   windowEnd: Date,
   max = MAX_EXPANSION,
+  timeZone?: string,
 ): RecurrenceInstance[] {
   const rruleString = series.rrule
   if (rruleString === null || rruleString.trim().length === 0) {
@@ -215,22 +318,21 @@ export function expandSeries(
   const isAllDay = series.isAllDay
   const start = toDate(series.startDate)
   const duration = toDate(series.endDate).getTime() - start.getTime()
-  const localYear = start.getFullYear()
-  const localMonth = start.getMonth()
-  const localDate = start.getDate()
-  const clockHour = isAllDay ? 0 : start.getHours()
-  const clockMinute = isAllDay ? 0 : start.getMinutes()
-  const clockSecond = isAllDay ? 0 : start.getSeconds()
-  const ruleDtstart = new Date(Date.UTC(localYear, localMonth, localDate))
-  const toLocalDay = (date: Date): Date =>
-    new Date(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate(),
-      clockHour,
-      clockMinute,
-      clockSecond,
-    )
+  const anchorParts = timeZone
+    ? partsInTz(start, timeZone)
+    : partsInLocal(start)
+  const clock = {
+    hour: isAllDay ? 0 : anchorParts.hour,
+    minute: isAllDay ? 0 : anchorParts.minute,
+    second: isAllDay ? 0 : anchorParts.second,
+  }
+  const ruleDtstart = new Date(
+    Date.UTC(anchorParts.year, anchorParts.month - 1, anchorParts.day),
+  )
+  const toDayParts = (date: Date): DateParts =>
+    timeZone ? partsInTz(date, timeZone) : partsOfUtcDay(date)
+  const toOccurrence = (date: Date): Date =>
+    wallClockToInstant(toDayParts(date), clock, timeZone)
 
   let occurrences: Date[] = []
   try {
@@ -253,7 +355,12 @@ export function expandSeries(
 
   const exdateStamps = new Set(series.exdate ?? [])
   occurrences = occurrences.filter(
-    (date) => !exdateStamps.has(toRfcStamp(toLocalDay(date), isAllDay)),
+    (date) =>
+      !exdateStamps.has(
+        isAllDay
+          ? dayStamp(toDayParts(date))
+          : toRfcStamp(toOccurrence(date), false),
+      ),
   )
 
   if (max > 0 && occurrences.length > max) {
@@ -261,8 +368,11 @@ export function expandSeries(
   }
 
   return occurrences.map((date) => {
-    const startDate = toLocalDay(date)
-    const recurrenceId = toRfcStamp(startDate, isAllDay)
+    const dayParts = toDayParts(date)
+    const startDate = toOccurrence(date)
+    const recurrenceId = isAllDay
+      ? dayStamp(dayParts)
+      : toRfcStamp(startDate, false)
     return {
       id: buildInstanceId(series.id, recurrenceId),
       seriesId: series.id,
@@ -305,6 +415,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
   windowStart: Date,
   windowEnd: Date,
   max = MAX_EXPANSION,
+  timeZone?: string,
 ): T[] {
   const overridesBySeries: Record<string, T[]> = {}
   for (const row of overrides) {
@@ -321,7 +432,13 @@ export function expandSeriesView<T extends SeriesViewInput>(
   const result: T[] = []
   for (const master of masters) {
     if (master.rrule !== null && master.rrule.trim().length > 0) {
-      const instances = expandSeries(master, windowStart, windowEnd, max)
+      const instances = expandSeries(
+        master,
+        windowStart,
+        windowEnd,
+        max,
+        timeZone,
+      )
       const seriesOverrides = overridesBySeries[master.id] ?? []
       for (const instance of instances) {
         const override =
@@ -394,32 +511,59 @@ export function isValidRrule(rule: string): boolean {
   }
 }
 
-function weekdayNameOf(date: Date): string {
-  return DAY_NAMES[((date.getDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6]
+function dayOfWeek(parts: DateParts): number {
+  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay()
 }
 
-function seriesOfDay1(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+function partsOfDate(date: Date, timeZone?: string): DateParts {
+  return timeZone ? partsInTz(date, timeZone) : partsInLocal(date)
 }
 
-function monthHasWeekdayAt(date: Date, weekdayName: string): number {
-  const year = date.getFullYear()
-  const month = date.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+function weekdayNameOf(date: Date, timeZone?: string): string {
+  return DAY_NAMES[
+    ((dayOfWeek(partsOfDate(date, timeZone)) + 6) % 7) as
+      | 0
+      | 1
+      | 2
+      | 3
+      | 4
+      | 5
+      | 6
+  ]
+}
+
+function firstDayIndex(parts: DateParts): number {
+  return new Date(Date.UTC(parts.year, parts.month - 1, 1)).getUTCDay()
+}
+
+function monthHasWeekdayAt(
+  date: Date,
+  weekdayName: string,
+  timeZone?: string,
+): number {
+  const parts = partsOfDate(date, timeZone)
+  const daysInMonth = new Date(parts.year, parts.month, 0).getDate()
   const index = DAY_INDEX[weekdayName]
   let count = 0
   for (let day = 1; day <= daysInMonth; day++) {
-    if (new Date(year, month, day).getDay() === index) {
+    if (
+      new Date(Date.UTC(parts.year, parts.month - 1, day)).getUTCDay() === index
+    ) {
       count++
     }
   }
   return count
 }
 
-function matchesParts(parts: RruleParts, date: Date): boolean {
+function matchesParts(
+  parts: RruleParts,
+  date: Date,
+  timeZone?: string,
+): boolean {
+  const partsOf = partsOfDate(date, timeZone)
   if (parts.freq === 'WEEKLY') {
     if (!parts.byweekday || parts.byweekday.length === 0) return true
-    return parts.byweekday.includes(weekdayNameOf(date))
+    return parts.byweekday.includes(weekdayNameOf(date, timeZone))
   }
   if (parts.freq === 'MONTHLY') {
     if (
@@ -427,28 +571,28 @@ function matchesParts(parts: RruleParts, date: Date): boolean {
       parts.byweekday.length > 0 &&
       parts.bysetpos !== null
     ) {
-      if (weekdayNameOf(date) !== parts.byweekday[0]) return false
-      const total = monthHasWeekdayAt(date, parts.byweekday[0])
+      if (weekdayNameOf(date, timeZone) !== parts.byweekday[0]) return false
+      const total = monthHasWeekdayAt(date, parts.byweekday[0], timeZone)
       const weekdayId = DAY_INDEX[parts.byweekday[0]]
-      const firstDayIndex = (seriesOfDay1(date) + 6) % 7
-      const firstOccurrence = 1 + ((weekdayId - firstDayIndex + 7) % 7)
-      const day = date.getDate()
+      const firstDayIdx = (firstDayIndex(partsOf) + 6) % 7
+      const firstOccurrence = 1 + ((weekdayId - firstDayIdx + 7) % 7)
+      const day = partsOf.day
       if (day < firstOccurrence) return false
       const nth = Math.floor((day - firstOccurrence) / 7) + 1
       const fromLast = total - nth + 1
       return parts.bysetpos === nth || -parts.bysetpos === fromLast
     }
     if (parts.bymonthday && parts.bymonthday.length > 0) {
-      return parts.bymonthday.includes(date.getDate())
+      return parts.bymonthday.includes(partsOf.day)
     }
     return true
   }
   if (parts.freq === 'YEARLY') {
     if (parts.bymonth && parts.bymonth.length > 0) {
-      if (!parts.bymonth.includes(date.getMonth() + 1)) return false
+      if (!parts.bymonth.includes(partsOf.month)) return false
     }
     if (parts.bymonthday && parts.bymonthday.length > 0) {
-      if (!parts.bymonthday.includes(date.getDate())) return false
+      if (!parts.bymonthday.includes(partsOf.day)) return false
     }
     return true
   }
@@ -469,6 +613,7 @@ export function adaptRuleToStart(
   previousStartDate: Date,
   newStartDate: Date,
   isAllDay: boolean,
+  timeZone?: string,
 ): string {
   let parts: RruleParts
   try {
@@ -477,10 +622,11 @@ export function adaptRuleToStart(
     return rule
   }
   const anchor = newStartDate
-  if (!matchesParts(parts, anchor)) {
-    const day = anchor.getDate()
+  if (!matchesParts(parts, anchor, timeZone)) {
+    const anchorParts = partsOfDate(anchor, timeZone)
+    const day = anchorParts.day
     if (parts.freq === 'WEEKLY') {
-      parts = { ...parts, byweekday: [weekdayNameOf(anchor)] }
+      parts = { ...parts, byweekday: [weekdayNameOf(anchor, timeZone)] }
     } else if (parts.freq === 'MONTHLY') {
       parts = {
         ...parts,
@@ -491,7 +637,7 @@ export function adaptRuleToStart(
     } else if (parts.freq === 'YEARLY') {
       parts = {
         ...parts,
-        bymonth: [anchor.getMonth() + 1],
+        bymonth: [anchorParts.month],
         bymonthday: [day],
       }
     }

@@ -280,6 +280,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: updatedEvent.color || null,
       categoryId: updatedEvent.calendarId || null,
       apply_to: scope,
+      timezone,
     }).catch(() => {})
   }
 
@@ -704,6 +705,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       notificationMinutes: newEvent.notification,
       categoryId: newEvent.calendarId || null,
       rrule: newEvent.rrule ?? null,
+      timezone,
     })
     toast(t.eventCreated)
     setEventDialogOpen(false)
@@ -742,6 +744,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           ? null
           : undefined,
       apply_to: applyTo,
+      timezone,
     })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
@@ -812,6 +815,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             notificationMinutes: deletedEvent.notification || null,
             color: deletedEvent.color || null,
             categoryId: deletedEvent.calendarId || null,
+            timezone,
           }).catch(() => {})
           toast(t.deletionUndone)
         },
@@ -829,7 +833,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } catch {}
     if (cancelled) return
     try {
-      await deleteEvent(deletedEvent.id, applyTo)
+      await deleteEvent(deletedEvent.id, applyTo, timezone)
     } catch {}
   }
 

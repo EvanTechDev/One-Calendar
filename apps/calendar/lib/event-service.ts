@@ -4,8 +4,11 @@ import {
   isSeriesEvent,
   mergeOverride,
   parseRfcStamp,
+  partsInLocal,
+  partsInTz,
   reanchor,
   toRfcStamp,
+  wallClockToInstant,
 } from '@/lib/recurrence/engine'
 
 export { mergeOverride } from '@/lib/recurrence/engine'
@@ -65,18 +68,20 @@ function pickMutable(
   return picked as Record<(typeof MUTABLE_FIELDS)[number], unknown>
 }
 
-export function firstStampOfSeries(master: EventRow): string {
+export function firstStampOfSeries(
+  master: EventRow,
+  timeZone?: string,
+): string {
   const start = new Date(master.startDate)
-  const dtstart = master.isAllDay
-    ? new Date(
-        Date.UTC(
-          start.getUTCFullYear(),
-          start.getUTCMonth(),
-          start.getUTCDate(),
-        ),
-      )
-    : start
-  return toRfcStamp(dtstart, master.isAllDay)
+  if (master.isAllDay) {
+    const parts = timeZone ? partsInTz(start, timeZone) : partsInLocal(start)
+    return `${parts.year}${pad2(parts.month)}${pad2(parts.day)}`
+  }
+  return toRfcStamp(start, false)
+}
+
+function pad2(value: number): string {
+  return value < 10 ? `0${value}` : String(value)
 }
 
 export function expandRows(
@@ -85,10 +90,12 @@ export function expandRows(
     windowStart?: Date
     windowEnd?: Date
     overrides?: Record<string, EventRow[]>
+    timezone?: string
   } = {},
 ): ExpandedEventRow[] {
   const windowStart = opts.windowStart ?? new Date(-8640000000000000)
   const windowEnd = opts.windowEnd ?? new Date(8640000000000000)
+  const timezone = opts.timezone
   const explicit = opts.overrides ?? {}
   const overridesBySeries: Record<string, EventRow[]> = {}
   for (const row of rows) {
@@ -106,7 +113,13 @@ export function expandRows(
   for (const row of rows) {
     if (row.seriesId !== null) continue
     if (isSeriesEvent(row)) {
-      const instances = expandSeries(row, windowStart, windowEnd)
+      const instances = expandSeries(
+        row,
+        windowStart,
+        windowEnd,
+        1000,
+        timezone,
+      )
       const seriesOverrides = overridesBySeries[row.id] ?? []
       for (const instance of instances) {
         const override =
@@ -138,6 +151,7 @@ export function resolveInstance(
   master: EventRow,
   recurrenceId: string,
   overrides: EventRow[] = [],
+  timeZone?: string,
 ): EventRow | null {
   if (!isSeriesEvent(master)) return null
   const override = overrides.find((o) => o.recurrenceId === recurrenceId)
@@ -147,6 +161,23 @@ export function resolveInstance(
     date = parseRfcStamp(recurrenceId).date
   } catch {
     return null
+  }
+  if (master.isAllDay && timeZone) {
+    const match = recurrenceId.match(/^(\d{4})(\d{2})(\d{2})$/)
+    if (match) {
+      date = wallClockToInstant(
+        {
+          year: Number(match[1]),
+          month: Number(match[2]),
+          day: Number(match[3]),
+          hour: 0,
+          minute: 0,
+          second: 0,
+        },
+        { hour: 0, minute: 0, second: 0 },
+        timeZone,
+      )
+    }
   }
   const duration = master.endDate.getTime() - master.startDate.getTime()
   const base = {

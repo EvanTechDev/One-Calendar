@@ -61,6 +61,7 @@ interface DataContextValue {
   deleteEvent: (
     id: string,
     applyTo?: 'single' | 'following' | 'all',
+    timezone?: string,
   ) => Promise<void>
 
   createCategory: (
@@ -85,7 +86,11 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const eventsReq = useSWR(DATA_KEYS.events, () => api.events.list())
+  const eventsReq = useSWR(DATA_KEYS.events, () =>
+    api.events.list({
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  )
   const categoriesReq = useSWR(DATA_KEYS.categories, () =>
     api.categories.list(),
   )
@@ -275,7 +280,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteEvent = useCallback(
-    async (id: string, applyTo?: 'single' | 'following' | 'all') => {
+    async (
+      id: string,
+      applyTo?: 'single' | 'following' | 'all',
+      timezone?: string,
+    ) => {
       const prev = eventsRef.current
       const target = prev.find((e) => e.id === id)
       const seriesId = target?.seriesId
@@ -297,7 +306,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { revalidate: false },
       )
       try {
-        const res = await api.events.delete(id, applyTo)
+        const res = await api.events.delete(id, applyTo, timezone)
         const seriesEvents = res.seriesEvents
         if (seriesEvents && seriesEvents.length > 0) {
           await mutate(
