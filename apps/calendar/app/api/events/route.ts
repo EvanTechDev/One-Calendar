@@ -1104,7 +1104,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, masterRow)
-      return NextResponse.json({ success: true })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ success: true, events })
     }
 
     if (applyTo === 'single') {
@@ -1197,7 +1198,8 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'all') {
       await deleteRow(user.id, seriesRow)
-      return NextResponse.json({ success: true })
+      const events = await loadMergedView(user, [])
+      return NextResponse.json({ success: true, events })
     }
 
     const recurrenceId = firstStampOfSeries(seriesRow)
