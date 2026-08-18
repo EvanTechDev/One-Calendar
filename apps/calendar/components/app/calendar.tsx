@@ -279,26 +279,30 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       updatedEvent.seriesId &&
       updatedEvent.recurrenceId
     ) {
-      const window = defaultExpansionWindow()
-      const nextMaster = {
-        ...updatedEvent,
-        id: crypto.randomUUID(),
-        seriesId: null,
-        recurrenceId: null,
-        rrule: updatedEvent.rrule ?? null,
+      try {
+        const window = defaultExpansionWindow()
+        const nextMaster = {
+          ...updatedEvent,
+          id: crypto.randomUUID(),
+          seriesId: null,
+          recurrenceId: null,
+          rrule: updatedEvent.rrule ?? null,
+        }
+        setEvents((prevEvents) => {
+          const target = prevEvents.find((item) => item.id === updatedEvent.id)
+          if (!target) return prevEvents
+          const split = optimisticFollowingSplit(
+            prevEvents,
+            target,
+            nextMaster,
+            window.windowStart,
+            window.windowEnd,
+          )
+          return split ?? prevEvents
+        })
+      } catch {
+        updateEvent(updatedEvent)
       }
-      setEvents((prevEvents) => {
-        const target = prevEvents.find((item) => item.id === updatedEvent.id)
-        if (!target) return prevEvents
-        const split = optimisticFollowingSplit(
-          prevEvents,
-          target,
-          nextMaster,
-          window.windowStart,
-          window.windowEnd,
-        )
-        return split ?? prevEvents
-      })
     } else {
       updateEvent(updatedEvent)
     }
@@ -761,24 +765,30 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         updatedEvent.seriesId &&
         updatedEvent.recurrenceId
       ) {
-        const window = defaultExpansionWindow()
-        const nextMaster = {
-          ...updatedEvent,
-          id: crypto.randomUUID(),
-          seriesId: null,
-          recurrenceId: null,
-          rrule: updatedEvent.rrule ?? null,
-        }
-        const target = prevEvents.find((event) => event.id === updatedEvent.id)
-        if (target) {
-          const split = optimisticFollowingSplit(
-            prevEvents,
-            target,
-            nextMaster,
-            window.windowStart,
-            window.windowEnd,
+        try {
+          const window = defaultExpansionWindow()
+          const nextMaster = {
+            ...updatedEvent,
+            id: crypto.randomUUID(),
+            seriesId: null,
+            recurrenceId: null,
+            rrule: updatedEvent.rrule ?? null,
+          }
+          const target = prevEvents.find(
+            (event) => event.id === updatedEvent.id,
           )
-          if (split) return split
+          if (target) {
+            const split = optimisticFollowingSplit(
+              prevEvents,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+            )
+            if (split) return split
+          }
+        } catch {
+          // fall through to the plain map update below
         }
       }
       return prevEvents.map((event) =>

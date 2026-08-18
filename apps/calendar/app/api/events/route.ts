@@ -38,6 +38,7 @@ import {
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
+  shiftToAnchorClock,
   withUntil,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
@@ -762,13 +763,28 @@ export const POST = async function POST(request: NextRequest) {
       const prevStartDate = masterRow.startDate
       const nextStartDate = submittedFields.startDate as Date
       const allDay = submittedFields.isAllDay ?? masterRow.isAllDay
+      const anchorStart = shiftToAnchorClock(
+        prevStartDate,
+        nextStartDate,
+        timeZone,
+      )
+      submittedFields.startDate = anchorStart
+      if (
+        submittedFields.endDate !== null &&
+        submittedFields.endDate !== undefined
+      ) {
+        const delta = nextStartDate.getTime() - anchorStart.getTime()
+        submittedFields.endDate = new Date(
+          (submittedFields.endDate as Date).getTime() - delta,
+        )
+      }
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : masterRow.rrule
       if (rrule !== null) {
         rrule = adaptRuleToStart(
           rrule,
           prevStartDate,
-          nextStartDate,
+          anchorStart,
           allDay,
           timeZone,
         )

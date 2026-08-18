@@ -22,6 +22,7 @@ import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   defaultExpansionWindow,
   expandSeriesView,
+  shiftToAnchorClock,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
 
@@ -640,6 +641,16 @@ function optimisticSeries(
 ): EventData[] {
   const target = current.find((e) => e.id === data.id)
   const key = target?.seriesId ?? (data.id as string)
+  const currentMaster = current.find((e) => e.id === key && e.seriesId === null)
+  const inputStart = new Date(data.startDate)
+  const inputEnd = new Date(data.endDate)
+  const anchorStart = currentMaster
+    ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
+    : inputStart
+  const startDate = anchorStart.toISOString()
+  const endDate = new Date(
+    anchorStart.getTime() + (inputEnd.getTime() - inputStart.getTime()),
+  ).toISOString()
   const master: SeriesViewInput = {
     id: key,
     seriesId: null,
@@ -647,8 +658,8 @@ function optimisticSeries(
     title: data.title,
     description: data.description ?? null,
     location: data.location ?? null,
-    startDate: data.startDate,
-    endDate: data.endDate,
+    startDate,
+    endDate,
     isAllDay: data.isAllDay ?? false,
     color: data.color ?? null,
     categoryId: data.categoryId ?? null,

@@ -666,6 +666,42 @@ function matchesParts(
 }
 
 /**
+ * Returns `anchorDate`'s date components combined with `clockSource`'s
+ * time-of-day. Used to apply a time-only change to a series without moving
+ * its anchor day (an "all events" edit from a mid-series occurrence must
+ * keep every occurrence on its existing date).
+ */
+export function shiftToAnchorClock(
+  anchorDate: Date,
+  clockSource: Date,
+  timeZone?: string,
+): Date {
+  const source = timeZone
+    ? partsInTz(clockSource, timeZone)
+    : partsInLocal(clockSource)
+  const anchor = timeZone
+    ? partsInTz(anchorDate, timeZone)
+    : partsInLocal(anchorDate)
+  const clock = {
+    hour: source.hour,
+    minute: source.minute,
+    second: source.second,
+  }
+  return wallClockToInstant(
+    {
+      year: anchor.year,
+      month: anchor.month,
+      day: anchor.day,
+      hour: clock.hour,
+      minute: clock.minute,
+      second: clock.second,
+    },
+    clock,
+    timeZone,
+  )
+}
+
+/**
  * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
  *
  * Fixes the "root event disappears after a save" case: when a series master's
