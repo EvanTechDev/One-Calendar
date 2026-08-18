@@ -251,44 +251,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }),
             { revalidate: false },
           )
-        } else {
-          const current = eventsRef.current.find((e) => e.id === data.id)
-          const fallback: EventData = {
-            ...(current ?? {
-              id: data.id as string,
-              seriesId: null,
-              recurrenceId: null,
-              exdate: data.exdate ?? null,
-              description: null,
-              location: null,
-              color: null,
-              categoryId: null,
-              notificationMinutes: null,
-              participants: null,
-              userId: '',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-            id: data.id as string,
-            title: data.title,
-            description: data.description ?? null,
-            location: data.location ?? null,
-            startDate: new Date(data.startDate).toISOString(),
-            endDate: new Date(data.endDate).toISOString(),
-            isAllDay: data.isAllDay ?? false,
-            color: data.color ?? null,
-            categoryId: data.categoryId ?? null,
-            notificationMinutes: data.notificationMinutes ?? null,
-            participants: data.participants ?? null,
-            rrule: data.rrule ?? null,
-          }
-          await mutate(
-            DATA_KEYS.events,
-            (cur?: { events: EventData[] }) => ({
-              events: upsertById(cur?.events ?? [], fallback),
-            }),
-            { revalidate: false },
-          )
         }
         const res = await api.events.create(data)
         const seriesEvents = res.seriesEvents
