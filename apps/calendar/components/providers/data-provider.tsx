@@ -20,8 +20,12 @@ import {
 import { toast } from 'sonner'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
+  adaptRuleToStart,
   defaultExpansionWindow,
   expandSeriesView,
+  isInstanceId,
+  parseInstanceId,
+  parseRfcStamp,
   shiftExdates,
   shiftToAnchorClock,
   type SeriesViewInput,
@@ -238,9 +242,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (data: Parameters<typeof api.events.create>[0]) => {
       try {
         const optimistic =
-          data.rrule &&
-          data.id &&
-          (data.apply_to === undefined || data.apply_to === 'all')
+          data.id && (data.apply_to === undefined || data.apply_to === 'all')
             ? optimisticSeries(data, eventsRef.current)
             : null
         if (optimistic) {
@@ -639,42 +641,50 @@ function replaceSeriesInstances(
   return [...kept, ...incoming]
 }
 
-function optimisticSeries(
+export function optimisticSeries(
   data: Parameters<typeof api.events.create>[0],
   current: EventData[],
 ): EventData[] | null {
   const target = current.find((e) => e.id === data.id)
-  const key = target?.seriesId ?? (data.id as string)
+  const parsedId =
+    data.id && isInstanceId(data.id) ? parseInstanceId(data.id) : null
+  const key = target?.seriesId ?? parsedId?.seriesId ?? (data.id as string)
   const currentMaster = current.find((e) => e.id === key && e.seriesId === null)
-  if (!currentMaster) return null
+  const rule = data.rrule ?? currentMaster?.rrule ?? target?.rrule ?? null
+  if (!rule) return null
   const inputStart = new Date(data.startDate)
   const inputEnd = new Date(data.endDate)
-  const anchorStart = shiftToAnchorClock(
-    new Date(currentMaster.startDate),
-    inputStart,
-  )
+  const anchorStart = currentMaster
+    ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
+    : inputStart
+  const prevStart = parsedId ? parseRfcStamp(parsedId.recurrenceId).date : null
   const startDate = anchorStart.toISOString()
   const endDate = new Date(
     anchorStart.getTime() + (inputEnd.getTime() - inputStart.getTime()),
   ).toISOString()
   const master: SeriesViewInput = {
-    ...(currentMaster as unknown as SeriesViewInput),
+    ...(currentMaster as unknown as SeriesViewInput | undefined),
     id: key,
     seriesId: null,
     recurrenceId: null,
-    title: data.title ?? currentMaster.title ?? '',
-    description: data.description ?? currentMaster.description ?? null,
-    location: data.location ?? currentMaster.location ?? null,
+    title: data.title ?? currentMaster?.title ?? '',
+    description: data.description ?? currentMaster?.description ?? null,
+    location: data.location ?? currentMaster?.location ?? null,
     startDate,
     endDate,
-    isAllDay: data.isAllDay ?? currentMaster.isAllDay ?? false,
-    color: data.color ?? currentMaster.color ?? null,
-    categoryId: data.categoryId ?? currentMaster.categoryId ?? null,
+    isAllDay: data.isAllDay ?? currentMaster?.isAllDay ?? false,
+    color: data.color ?? currentMaster?.color ?? null,
+    categoryId: data.categoryId ?? currentMaster?.categoryId ?? null,
     notificationMinutes:
-      data.notificationMinutes ?? currentMaster.notificationMinutes ?? null,
-    participants: data.participants ?? currentMaster.participants ?? null,
-    rrule: data.rrule as string,
-    exdate: shiftExdates(currentMaster.exdate, inputStart),
+      data.notificationMinutes ?? currentMaster?.notificationMinutes ?? null,
+    participants: data.participants ?? currentMaster?.participants ?? null,
+    rrule:
+      prevStart !== null
+        ? adaptRuleToStart(rule, prevStart, inputStart, data.isAllDay ?? false)
+        : rule,
+    exdate: currentMaster
+      ? shiftExdates(currentMaster.exdate, inputStart)
+      : (data.exdate ?? null),
   }
   const overrides = current.filter(
     (e) => e.seriesId === key && e.id !== data.id,
