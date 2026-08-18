@@ -274,6 +274,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       startDate: newStartDate,
       endDate: newEndDate,
     }
+    let splitId: string | null = null
     if (
       scope === 'following' &&
       updatedEvent.seriesId &&
@@ -288,6 +289,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           recurrenceId: null,
           rrule: updatedEvent.rrule ?? null,
         }
+        splitId = nextMaster.id
         setEvents((prevEvents) => {
           const target = prevEvents.find((item) => item.id === updatedEvent.id)
           if (!target) return prevEvents
@@ -322,6 +324,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       color: updatedEvent.color || null,
       categoryId: updatedEvent.calendarId || null,
       apply_to: scope,
+      split_id: splitId ?? undefined,
       timezone,
     }).catch(() => {})
   }
@@ -759,6 +762,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     updatedEvent: CalendarEvent,
     applyTo?: 'single' | 'following' | 'all',
   ) => {
+    let splitId: string | null = null
     setEvents((prevEvents) => {
       if (
         applyTo === 'following' &&
@@ -774,6 +778,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             recurrenceId: null,
             rrule: updatedEvent.rrule ?? null,
           }
+          splitId = nextMaster.id
           const target = prevEvents.find(
             (event) => event.id === updatedEvent.id,
           )
@@ -813,6 +818,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       categoryId: updatedEvent.calendarId || null,
       rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
       apply_to: applyTo,
+      split_id: splitId ?? undefined,
       timezone,
     })
     toast(t.eventUpdated)

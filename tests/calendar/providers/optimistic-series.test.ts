@@ -220,6 +220,57 @@ describe('optimisticSeries', () => {
     expect(wednesdays.length).toBeGreaterThanOrEqual(2)
   })
 
+  it('keeps earlier cached instances when editing a mid-series instance', () => {
+    const cache = [
+      baseEvent({
+        id: 'master-1_20260810T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260810T090000Z',
+        rrule: weeklyRule,
+        startDate: '2026-08-10T09:00:00.000Z',
+        endDate: '2026-08-10T09:30:00.000Z',
+      }),
+      baseEvent({
+        id: 'master-1_20260817T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260817T090000Z',
+        rrule: weeklyRule,
+        startDate: '2026-08-17T09:00:00.000Z',
+        endDate: '2026-08-17T09:30:00.000Z',
+      }),
+      baseEvent({
+        id: 'master-1_20260824T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260824T090000Z',
+        rrule: weeklyRule,
+        startDate: '2026-08-24T09:00:00.000Z',
+        endDate: '2026-08-24T09:30:00.000Z',
+      }),
+    ]
+
+    const out = optimisticSeries(
+      {
+        id: 'master-1_20260817T090000Z',
+        title: 'Standup',
+        startDate: '2026-08-17T11:00:00.000Z',
+        endDate: '2026-08-17T11:30:00.000Z',
+        isAllDay: false,
+        apply_to: 'all',
+      },
+      cache,
+    )
+
+    expect(out).not.toBeNull()
+    const earliest = out!.find((e) => e.recurrenceId === '20260810T090000Z')
+    expect(earliest).toBeDefined()
+    expect(new Date(earliest!.startDate).toISOString()).toBe(
+      '2026-08-10T11:00:00.000Z',
+    )
+    expect(out!.every((e) => new Date(e.startDate).getDay() === 1)).toBe(true)
+    expect(out!.every((e) => e.seriesId === 'master-1')).toBe(true)
+    expect(out!.length).toBeGreaterThanOrEqual(3)
+  })
+
   it('returns null for a plain edit without a recurrence rule', () => {
     const cache = [
       baseEvent({

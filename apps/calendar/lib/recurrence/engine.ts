@@ -723,6 +723,18 @@ export function shiftExdates(
 }
 
 /**
+ * Re-stamps a recurrence stamp by a full millisecond delta. Used when a
+ * series is split at an instance ("this and following"): the moved overrides
+ * and the new series' exdates must shift by the same delta as the new anchor,
+ * otherwise their stamps no longer match the regenerated occurrences and
+ * single-instance edits would resurface as orphan duplicates.
+ */
+export function shiftStamp(stamp: string, deltaMs: number): string {
+  const parsed = parseRfcStamp(stamp)
+  return toRfcStamp(new Date(parsed.date.getTime() + deltaMs), parsed.isAllDay)
+}
+
+/**
  * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
  *
  * Fixes the "root event disappears after a save" case: when a series master's

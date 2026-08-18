@@ -690,10 +690,32 @@ export function optimisticSeries(
     (e) => e.seriesId === key && e.id !== data.id,
   )
   const window = defaultExpansionWindow()
-  return expandSeriesView(
+  const expanded = expandSeriesView(
     [master],
     overrides as unknown as SeriesViewInput[],
     window.windowStart,
     window.windowEnd,
   ) as unknown as EventData[]
+  if (prevStart === null) return expanded
+  const anchorStamp = parsedId!.recurrenceId
+  const keptEarly = current
+    .filter(
+      (e) =>
+        e.seriesId === key &&
+        e.recurrenceId !== null &&
+        e.recurrenceId !== undefined &&
+        e.recurrenceId < anchorStamp,
+    )
+    .map((e) => {
+      const originalStart = new Date(e.startDate)
+      const start = shiftToAnchorClock(originalStart, inputStart)
+      if (start.getTime() === originalStart.getTime()) return e
+      const duration = new Date(e.endDate).getTime() - originalStart.getTime()
+      return {
+        ...e,
+        startDate: start.toISOString(),
+        endDate: new Date(start.getTime() + duration).toISOString(),
+      }
+    })
+  return [...keptEarly, ...expanded]
 }

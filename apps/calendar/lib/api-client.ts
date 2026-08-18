@@ -119,6 +119,7 @@ export const api = {
       rrule?: string | null
       exdate?: string[] | null
       apply_to?: 'single' | 'following' | 'all'
+      split_id?: string
       timezone?: string
     }) =>
       fetchJson<{ event: EventData; seriesEvents?: EventData[] }>(

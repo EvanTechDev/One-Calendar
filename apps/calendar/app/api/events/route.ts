@@ -39,6 +39,7 @@ import {
   parseInstanceId,
   parseRfcStamp,
   shiftExdates,
+  shiftStamp,
   shiftToAnchorClock,
   withUntil,
   type SeriesViewInput,
@@ -137,6 +138,72 @@ async function fetchOverrides(seriesId: string): Promise<EventRow[]> {
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
   return rows as unknown as EventRow[]
+}
+
+/**
+ * Re-stamps a series' single-instance overrides after an "all events" clock
+ * shift. Occurrences are identified by their recurrence stamp, so without the
+ * remap the stored overrides no longer match the shifted occurrences and the
+ * single-edited instances resurface as orphan duplicates alongside a
+ * freshly generated occurrence (e.g. a single-edited Wednesday spawning a
+ * second, identical event after the whole series time is changed).
+ */
+async function remapOverridesClock(
+  userId: string,
+  masterId: string,
+  clockSource: Date,
+  timeZone?: string,
+): Promise<void> {
+  const overrides = await fetchOverrides(masterId)
+  for (const o of overrides) {
+    if (!o.recurrenceId) continue
+    await getDb()
+      .update(calendarEvents)
+      .set({
+        recurrenceId: shiftExdates([o.recurrenceId], clockSource, timeZone)![0],
+        startDate: shiftToAnchorClock(o.startDate, clockSource, timeZone),
+        endDate: shiftToAnchorClock(o.endDate, clockSource, timeZone),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(calendarEvents.id, o.id), eq(calendarEvents.userId, userId)),
+      )
+  }
+}
+
+/**
+ * Shifts overrides (single-instance edits) by a full millisecond delta —
+ * recurrence stamps and stored times — so they keep matching the series'
+ * regenerated occurrences after the anchor moved. Used for the old series
+ * in an "all events" master edit and for overrides moved onto a split
+ * ("this and following") series.
+ */
+async function shiftOverridesByDelta(
+  userId: string,
+  ids: string[],
+  deltaMs: number,
+): Promise<void> {
+  if (ids.length === 0) return
+  const rows = await getDb()
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
+    )
+  for (const row of rows) {
+    if (!row.recurrenceId) continue
+    await getDb()
+      .update(calendarEvents)
+      .set({
+        recurrenceId: shiftStamp(row.recurrenceId, deltaMs),
+        startDate: new Date(row.startDate.getTime() + deltaMs),
+        endDate: new Date(row.endDate.getTime() + deltaMs),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
+      )
+  }
 }
 
 async function deleteRow(userId: string, row: EventRow): Promise<void> {
@@ -820,6 +887,7 @@ export const POST = async function POST(request: NextRequest) {
         masterRow.startDate.toISOString(),
         masterRow.endDate.toISOString(),
       )
+      await remapOverridesClock(user.id, masterRow.id, nextStartDate, timeZone)
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -842,12 +910,25 @@ export const POST = async function POST(request: NextRequest) {
     })
 
     if (plan.split) {
+      const newSeries = plan.split.newSeries
+      if (
+        typeof body.split_id === 'string' &&
+        /^[0-9a-f-]{36}$/i.test(body.split_id)
+      ) {
+        newSeries.id = body.split_id
+      }
       const newMaster = await applySplitPlan(user.id, plan, masterRow)
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
+      await shiftOverridesByDelta(
+        user.id,
+        plan.split.moveOverrideIds,
+        new Date(newSeries.startDate).getTime() -
+          parseRfcStamp(parsedId.recurrenceId).date.getTime(),
+      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, masterRow.id],
@@ -1019,6 +1100,20 @@ export const POST = async function POST(request: NextRequest) {
           ),
         )
         .returning()
+      await invalidateEventCache(
+        user.id,
+        seriesRow.startDate.toISOString(),
+        seriesRow.endDate.toISOString(),
+      )
+      const anchorDeltaMs = nextStartDate.getTime() - prevStartDate.getTime()
+      if (anchorDeltaMs !== 0) {
+        const overrides = await fetchOverrides(seriesRow.id)
+        await shiftOverridesByDelta(
+          user.id,
+          overrides.map((o) => o.id),
+          anchorDeltaMs,
+        )
+      }
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1046,12 +1141,25 @@ export const POST = async function POST(request: NextRequest) {
     })
 
     if (plan.split) {
+      const newSeries = plan.split.newSeries
+      if (
+        typeof body.split_id === 'string' &&
+        /^[0-9a-f-]{36}$/i.test(body.split_id)
+      ) {
+        newSeries.id = body.split_id
+      }
       const newMaster = await applySplitPlan(user.id, plan, seriesRow)
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
+      await shiftOverridesByDelta(
+        user.id,
+        plan.split.moveOverrideIds,
+        new Date(newSeries.startDate).getTime() -
+          parseRfcStamp(firstStampOfSeries(seriesRow, timeZone)).date.getTime(),
+      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, seriesRow.id],

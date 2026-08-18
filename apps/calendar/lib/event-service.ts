@@ -7,6 +7,7 @@ import {
   partsInLocal,
   partsInTz,
   reanchor,
+  shiftStamp,
   toRfcStamp,
   wallClockToInstant,
 } from '@/lib/recurrence/engine'
@@ -303,6 +304,12 @@ export function planInstanceChange(
   const moveOverrideIds = (target.overrides ?? [])
     .filter((o) => o.recurrenceId !== null && o.recurrenceId > recurrenceId)
     .map((o) => o.id)
+  const deltaMs =
+    new Date(startDate as Date).getTime() -
+    parseRfcStamp(recurrenceId).date.getTime()
+  const shiftedSplitExdate = splitExdate.map((stamp) =>
+    shiftStamp(stamp, deltaMs),
+  )
 
   return {
     applyTo,
@@ -317,7 +324,7 @@ export function planInstanceChange(
         rrule: reanchor(rule, startDate as Date, isAllDay),
         startDate: startDate as Date,
         endDate: endDate as Date,
-        exdate: splitExdate.length > 0 ? splitExdate : null,
+        exdate: shiftedSplitExdate.length > 0 ? shiftedSplitExdate : null,
         fields: {
           ...pickMutable(mergeOverride(master, target.fields ?? {})),
           startDate: startDate as Date,
