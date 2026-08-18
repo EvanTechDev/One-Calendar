@@ -693,11 +693,20 @@ export function optimisticSeries(
   // regenerated occurrence instead of resurfacing as an orphan duplicate.
   // Master edits shift by an unknown delta, so they skip overrides entirely
   // and let the server response reconcile them.
+  const anchorStamp = parsedId?.recurrenceId ?? null
   const overrides =
-    prevStart === null
+    prevStart === null || anchorStamp === null
       ? []
       : current
-          .filter((e) => e.seriesId === key && e.isOverride && e.id !== data.id)
+          .filter(
+            (e) =>
+              e.seriesId === key &&
+              e.isOverride &&
+              e.recurrenceId !== null &&
+              e.recurrenceId !== undefined &&
+              e.recurrenceId >= anchorStamp &&
+              e.id !== data.id,
+          )
           .map((e) => ({
             ...e,
             recurrenceId: shiftExdates([e.recurrenceId!], inputStart)![0],
@@ -709,8 +718,7 @@ export function optimisticSeries(
     window.windowStart,
     window.windowEnd,
   ) as unknown as EventData[]
-  if (prevStart === null) return expanded
-  const anchorStamp = parsedId!.recurrenceId
+  if (prevStart === null || anchorStamp === null) return expanded
   const keptEarly = current
     .filter(
       (e) =>

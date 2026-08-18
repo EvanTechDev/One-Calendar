@@ -220,7 +220,7 @@ describe('optimisticSeries', () => {
     expect(wednesdays.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('keeps earlier cached instances when editing a mid-series instance', () => {
+  it('keeps earlier instances visible after a mid-series edit without duplicating them', () => {
     const cache = [
       baseEvent({
         id: 'master-1_20260810T090000Z',
@@ -269,6 +269,10 @@ describe('optimisticSeries', () => {
     expect(out!.every((e) => new Date(e.startDate).getDay() === 1)).toBe(true)
     expect(out!.every((e) => e.seriesId === 'master-1')).toBe(true)
     expect(out!.length).toBeGreaterThanOrEqual(3)
+    const stamps = out!.map((e) => e.recurrenceId)
+    expect(new Set(stamps).size).toBe(stamps.length)
+    const starts = out!.map((e) => e.startDate)
+    expect(new Set(starts).size).toBe(starts.length)
   })
 
   it('re-stamps a single-edited instance but keeps its time on an all-events edit', () => {
@@ -306,13 +310,13 @@ describe('optimisticSeries', () => {
     )
 
     expect(out).not.toBeNull()
-    const wed = out!.find(
+    const wed = out!.filter(
       (e) =>
         new Date(e.startDate).getTime() ===
         new Date('2026-08-12T14:00:00.000Z').getTime(),
     )
-    expect(wed).toBeDefined()
-    expect(wed!.id).toBe('master-1_20260812T100000Z')
+    expect(wed.length).toBe(1)
+    expect(wed[0]!.id).toBe('master-1_20260812T100000Z')
     expect(
       out!.some(
         (e) =>
@@ -327,6 +331,8 @@ describe('optimisticSeries', () => {
           new Date('2026-08-10T09:00:00.000Z').getTime(),
       ),
     ).toBe(false)
+    const stamps = out!.map((e) => e.recurrenceId)
+    expect(new Set(stamps).size).toBe(stamps.length)
   })
 
   it('does not move a single-edited instance before the drag anchor', () => {
@@ -364,12 +370,13 @@ describe('optimisticSeries', () => {
     )
 
     expect(out).not.toBeNull()
-    const single = out!.find(
+    const singles = out!.filter(
       (e) =>
         new Date(e.startDate).getTime() ===
         new Date('2026-08-10T14:00:00.000Z').getTime(),
     )
-    expect(single).toBeDefined()
+    expect(singles.length).toBe(1)
+    const single = singles[0]
     expect(single!.isOverride).toBe(true)
     expect(single!.recurrenceId).toBe('20260810T090000Z')
     const wed = out!.find((e) => e.recurrenceId === '20260812T100000Z')
@@ -377,6 +384,8 @@ describe('optimisticSeries', () => {
     expect(new Date(wed!.startDate).toISOString()).toBe(
       '2026-08-12T10:00:00.000Z',
     )
+    const stamps = out!.map((e) => e.recurrenceId)
+    expect(new Set(stamps).size).toBe(stamps.length)
   })
 
   it('returns null for a plain edit without a recurrence rule', () => {
