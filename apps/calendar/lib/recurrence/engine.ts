@@ -459,6 +459,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           ...merged,
           id: instance.id,
           instanceId: instance.id,
+          ...(override ? { isOverride: true } : {}),
         } as T)
       }
       for (const override of seriesOverrides) {
@@ -477,6 +478,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           seriesId: master.id,
           id: instanceId,
           instanceId,
+          isOverride: true,
         } as T)
       }
     } else {

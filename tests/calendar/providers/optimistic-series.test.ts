@@ -271,6 +271,114 @@ describe('optimisticSeries', () => {
     expect(out!.length).toBeGreaterThanOrEqual(3)
   })
 
+  it('re-stamps a single-edited instance but keeps its time on an all-events edit', () => {
+    const daily = 'RRULE:FREQ=DAILY'
+    const cache = [
+      baseEvent({
+        id: 'master-1_20260810T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260810T090000Z',
+        rrule: daily,
+        startDate: '2026-08-10T09:00:00.000Z',
+        endDate: '2026-08-10T09:30:00.000Z',
+      }),
+      baseEvent({
+        id: 'master-1_20260812T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260812T090000Z',
+        rrule: daily,
+        isOverride: true,
+        startDate: '2026-08-12T14:00:00.000Z',
+        endDate: '2026-08-12T14:30:00.000Z',
+      }),
+    ]
+
+    const out = optimisticSeries(
+      {
+        id: 'master-1_20260810T090000Z',
+        title: 'Standup',
+        startDate: '2026-08-10T10:00:00.000Z',
+        endDate: '2026-08-10T10:30:00.000Z',
+        isAllDay: false,
+        apply_to: 'all',
+      },
+      cache,
+    )
+
+    expect(out).not.toBeNull()
+    const wed = out!.find(
+      (e) =>
+        new Date(e.startDate).getTime() ===
+        new Date('2026-08-12T14:00:00.000Z').getTime(),
+    )
+    expect(wed).toBeDefined()
+    expect(wed!.id).toBe('master-1_20260812T100000Z')
+    expect(
+      out!.some(
+        (e) =>
+          new Date(e.startDate).getTime() ===
+          new Date('2026-08-12T09:00:00.000Z').getTime(),
+      ),
+    ).toBe(false)
+    expect(
+      out!.some(
+        (e) =>
+          new Date(e.startDate).getTime() ===
+          new Date('2026-08-10T09:00:00.000Z').getTime(),
+      ),
+    ).toBe(false)
+  })
+
+  it('does not move a single-edited instance before the drag anchor', () => {
+    const daily = 'RRULE:FREQ=DAILY'
+    const cache = [
+      baseEvent({
+        id: 'master-1_20260810T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260810T090000Z',
+        rrule: daily,
+        isOverride: true,
+        startDate: '2026-08-10T14:00:00.000Z',
+        endDate: '2026-08-10T14:30:00.000Z',
+      }),
+      baseEvent({
+        id: 'master-1_20260812T090000Z',
+        seriesId: 'master-1',
+        recurrenceId: '20260812T090000Z',
+        rrule: daily,
+        startDate: '2026-08-12T09:00:00.000Z',
+        endDate: '2026-08-12T09:30:00.000Z',
+      }),
+    ]
+
+    const out = optimisticSeries(
+      {
+        id: 'master-1_20260812T090000Z',
+        title: 'Standup',
+        startDate: '2026-08-12T10:00:00.000Z',
+        endDate: '2026-08-12T10:30:00.000Z',
+        isAllDay: false,
+        apply_to: 'all',
+      },
+      cache,
+    )
+
+    expect(out).not.toBeNull()
+    const single = out!.find(
+      (e) =>
+        new Date(e.startDate).getTime() ===
+        new Date('2026-08-10T14:00:00.000Z').getTime(),
+    )
+    expect(single).toBeDefined()
+    expect(single!.isOverride).toBe(true)
+    expect(single!.recurrenceId).toBe('20260810T090000Z')
+    const wed = out!.find((e) => e.recurrenceId === '20260812T100000Z')
+    expect(wed).toBeDefined()
+    expect(new Date(wed!.startDate).toISOString()).toBe(
+      '2026-08-12T10:00:00.000Z',
+    )
+  })
+
   it('returns null for a plain edit without a recurrence rule', () => {
     const cache = [
       baseEvent({

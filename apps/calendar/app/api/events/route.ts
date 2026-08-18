@@ -142,11 +142,12 @@ async function fetchOverrides(seriesId: string): Promise<EventRow[]> {
 
 /**
  * Re-stamps a series' single-instance overrides after an "all events" clock
- * shift. Occurrences are identified by their recurrence stamp, so without the
- * remap the stored overrides no longer match the shifted occurrences and the
- * single-edited instances resurface as orphan duplicates alongside a
- * freshly generated occurrence (e.g. a single-edited Wednesday spawning a
- * second, identical event after the whole series time is changed).
+ * shift, WITHOUT moving their stored times. Occurrences are identified by
+ * their recurrence stamp, so the stamp must follow the series into the new
+ * clock space for the override to keep matching — but a single-edited
+ * instance (e.g. a Wednesday moved to 14:00 on its own) keeps its own time.
+ * Without the remap the override would no longer match any occurrence and
+ * would resurface as an orphan duplicate.
  */
 async function remapOverridesClock(
   userId: string,
@@ -161,8 +162,6 @@ async function remapOverridesClock(
       .update(calendarEvents)
       .set({
         recurrenceId: shiftExdates([o.recurrenceId], clockSource, timeZone)![0],
-        startDate: shiftToAnchorClock(o.startDate, clockSource, timeZone),
-        endDate: shiftToAnchorClock(o.endDate, clockSource, timeZone),
         updatedAt: new Date(),
       })
       .where(
@@ -172,11 +171,11 @@ async function remapOverridesClock(
 }
 
 /**
- * Shifts overrides (single-instance edits) by a full millisecond delta —
- * recurrence stamps and stored times — so they keep matching the series'
- * regenerated occurrences after the anchor moved. Used for the old series
- * in an "all events" master edit and for overrides moved onto a split
- * ("this and following") series.
+ * Re-stamps overrides by a full millisecond delta — recurrence stamps only,
+ * their stored times are left untouched. A single-edited instance keeps the
+ * time it was edited to; only its identity follows the series (the old series
+ * in an "all events" master edit, or the new series in a "this and
+ * following" split) so it keeps matching the regenerated occurrences.
  */
 async function shiftOverridesByDelta(
   userId: string,
@@ -196,8 +195,6 @@ async function shiftOverridesByDelta(
       .update(calendarEvents)
       .set({
         recurrenceId: shiftStamp(row.recurrenceId, deltaMs),
-        startDate: new Date(row.startDate.getTime() + deltaMs),
-        endDate: new Date(row.endDate.getTime() + deltaMs),
         updatedAt: new Date(),
       })
       .where(

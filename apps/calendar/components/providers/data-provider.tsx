@@ -686,9 +686,22 @@ export function optimisticSeries(
       ? shiftExdates(currentMaster.exdate, inputStart)
       : (data.exdate ?? null),
   }
-  const overrides = current.filter(
-    (e) => e.seriesId === key && e.id !== data.id,
-  )
+  // Only single-instance overrides (isOverride rows) carry custom times that
+  // must survive a series-wide time change. Their recurrence stamp follows
+  // the series into the new clock space (like the server's remapOverridesClock)
+  // but their stored time stays untouched, so the override keeps matching its
+  // regenerated occurrence instead of resurfacing as an orphan duplicate.
+  // Master edits shift by an unknown delta, so they skip overrides entirely
+  // and let the server response reconcile them.
+  const overrides =
+    prevStart === null
+      ? []
+      : current
+          .filter((e) => e.seriesId === key && e.isOverride && e.id !== data.id)
+          .map((e) => ({
+            ...e,
+            recurrenceId: shiftExdates([e.recurrenceId!], inputStart)![0],
+          }))
   const window = defaultExpansionWindow()
   const expanded = expandSeriesView(
     [master],
@@ -707,6 +720,7 @@ export function optimisticSeries(
         e.recurrenceId < anchorStamp,
     )
     .map((e) => {
+      if (e.isOverride) return e
       const originalStart = new Date(e.startDate)
       const start = shiftToAnchorClock(originalStart, inputStart)
       if (start.getTime() === originalStart.getTime()) return e

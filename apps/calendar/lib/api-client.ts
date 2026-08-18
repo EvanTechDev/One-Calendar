@@ -28,6 +28,7 @@ export type EventData = {
   exdate?: string[] | null
   seriesId?: string | null
   recurrenceId?: string | null
+  isOverride?: boolean
   createdAt: string
   updatedAt: string
   viewOnly?: boolean
