@@ -83,6 +83,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@zntr/ui/alert-dialog'
+import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
+import { Label } from '@zntr/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -213,6 +215,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     endDate: Date
   } | null>(null)
   const [rangeMoveOpen, setRangeMoveOpen] = useState(false)
+  const [rangeMoveScope, setRangeMoveScope] = useState<
+    'single' | 'following' | 'all'
+  >('single')
+  const [deleteScope, setDeleteScope] = useState<'single' | 'all'>('single')
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
   const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
@@ -246,6 +252,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         startDate: newStartDate,
         endDate: newEndDate,
       })
+      setRangeMoveScope('single')
       setRangeMoveOpen(true)
       return
     }
@@ -738,11 +745,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         : null,
       notificationMinutes: updatedEvent.notification,
       categoryId: updatedEvent.calendarId || null,
-      rrule: updatedEvent.rrule
-        ? updatedEvent.rrule
-        : applyTo === 'all'
-          ? null
-          : undefined,
+      rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
       apply_to: applyTo,
       timezone,
     })
@@ -760,6 +763,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (!targetEvent) return
     setPendingDeleteEvent(targetEvent)
     setPendingDeleteApplyTo(applyTo)
+    setDeleteScope(applyTo === 'all' ? 'all' : 'single')
     setDeleteConfirmOpen(true)
   }
 
@@ -772,9 +776,25 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const applyTo = applyToOverride ?? pendingDeleteApplyTo
     let cancelled = false
 
-    setEvents((prevEvents) =>
-      prevEvents.filter((event) => event.id !== deletedEvent.id),
-    )
+    setEvents((prevEvents) => {
+      if (applyTo === 'all' && deletedEvent.seriesId) {
+        return prevEvents.filter(
+          (event) => event.seriesId !== deletedEvent.seriesId,
+        )
+      }
+      if (
+        applyTo === 'following' &&
+        deletedEvent.seriesId &&
+        deletedEvent.recurrenceId
+      ) {
+        return prevEvents.filter(
+          (event) =>
+            event.seriesId !== deletedEvent.seriesId ||
+            (event.recurrenceId ?? '') < deletedEvent.recurrenceId!,
+        )
+      }
+      return prevEvents.filter((event) => event.id !== deletedEvent.id)
+    })
 
     toast(t.eventDeleted, {
       description: deletedEvent.title,
@@ -1539,18 +1559,40 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 {t.moveEventScopeDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <RadioGroup
+              value={rangeMoveScope}
+              onValueChange={(value) =>
+                setRangeMoveScope(value as 'single' | 'following' | 'all')
+              }
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="range-move-scope-single" />
+                <Label htmlFor="range-move-scope-single">
+                  {t.repeatScopeSingle}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem
+                  value="following"
+                  id="range-move-scope-following"
+                />
+                <Label htmlFor="range-move-scope-following">
+                  {t.repeatScopeFollowing}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="range-move-scope-all" />
+                <Label htmlFor="range-move-scope-all">{t.repeatScopeAll}</Label>
+              </div>
+            </RadioGroup>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setPendingRangeMove(null)}>
                 {t.cancel}
               </AlertDialogCancel>
-              <AlertDialogAction onClick={() => confirmRangeMove('single')}>
-                {t.repeatScopeSingle}
-              </AlertDialogAction>
-              <AlertDialogAction onClick={() => confirmRangeMove('following')}>
-                {t.repeatScopeFollowing}
-              </AlertDialogAction>
-              <AlertDialogAction onClick={() => confirmRangeMove('all')}>
-                {t.repeatScopeAll}
+              <AlertDialogAction
+                onClick={() => confirmRangeMove(rangeMoveScope)}
+              >
+                {t.confirm}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -1572,6 +1614,30 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   ` ${t.deleteEventConfirmRecurring}`}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {pendingDeleteEvent &&
+            (pendingDeleteEvent.rrule ||
+              pendingDeleteEvent.seriesId ||
+              pendingDeleteEvent.recurrenceId) ? (
+              <RadioGroup
+                value={deleteScope}
+                onValueChange={(value) =>
+                  setDeleteScope(value as 'single' | 'all')
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="single" id="delete-scope-single" />
+                  <Label htmlFor="delete-scope-single">
+                    {t.repeatDeleteThisOccurrence}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="delete-scope-all" />
+                  <Label htmlFor="delete-scope-all">
+                    {t.repeatDeleteAllOccurrences}
+                  </Label>
+                </div>
+              </RadioGroup>
+            ) : null}
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setPendingDeleteEvent(null)}>
                 {t.cancel}
@@ -1580,20 +1646,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               (pendingDeleteEvent.rrule ||
                 pendingDeleteEvent.seriesId ||
                 pendingDeleteEvent.recurrenceId) ? (
-                <>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground"
-                    onClick={() => confirmEventDelete('single')}
-                  >
-                    {t.repeatDeleteThisOccurrence}
-                  </AlertDialogAction>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground"
-                    onClick={() => confirmEventDelete('all')}
-                  >
-                    {t.repeatDeleteAllOccurrences}
-                  </AlertDialogAction>
-                </>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground"
+                  onClick={() => confirmEventDelete(deleteScope)}
+                >
+                  {t.delete}
+                </AlertDialogAction>
               ) : (
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground"

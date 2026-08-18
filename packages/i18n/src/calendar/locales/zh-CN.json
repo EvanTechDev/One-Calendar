@@ -475,5 +475,6 @@
   "enable2faFailed": "启用2FA失败",
   "disable2faFailed": "禁用2FA失败",
   "twoFactorSetupVerified": "2FA设置已验证。",
-  "invalidOtpCode": "无效的{code}"
+  "invalidOtpCode": "无效的{code}",
+  "updateEventScopeDescription": "这是一个重复日程，您要更新哪些实例？"
 }

@@ -499,6 +499,7 @@
   "repeatScopeSingle": "This event only",
   "repeatScopeFollowing": "This and following",
   "repeatScopeAll": "All events",
+  "updateEventScopeDescription": "This is a repeating event. Which occurrences do you want to update?",
   "recurrenceEveryDays": "Every {n} days",
   "recurrenceEveryWeeks": "Every {n} weeks",
   "recurrenceEveryMonths": "Every {n} months",

@@ -14,6 +14,17 @@ import {
   DialogTitle,
 } from '@zntr/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@zntr/ui/alert-dialog'
+import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
@@ -112,6 +123,14 @@ export default function EventDialog({
 
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false)
   const [applyTo, setApplyTo] = useState<'single' | 'following' | 'all'>('all')
+  const [saveScopeOpen, setSaveScopeOpen] = useState(false)
+  const [saveScope, setSaveScope] = useState<'single' | 'following' | 'all'>(
+    'single',
+  )
+  const [pendingScopeSubmit, setPendingScopeSubmit] = useState<{
+    eventData: CalendarEvent
+    emails: string[]
+  } | null>(null)
   const [recFreq, setRecFreq] = useState<
     'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
   >('WEEKLY')
@@ -661,6 +680,13 @@ export default function EventDialog({
         selectedCalendar === '__uncategorized__' ? '' : selectedCalendar,
     }
 
+    if (event && recurring) {
+      setSaveScope(applyTo === 'all' ? 'all' : 'single')
+      setPendingScopeSubmit({ eventData, emails: participantEmails })
+      setSaveScopeOpen(true)
+      return
+    }
+
     if (event) {
       const alreadyInvited = new Set(
         [
@@ -677,6 +703,24 @@ export default function EventDialog({
       onEventAdd(eventData)
       onInvitesAdded(eventData.id, participantEmails)
     }
+  }
+
+  const confirmScopeSave = () => {
+    if (!pendingScopeSubmit || !event) return
+    const alreadyInvited = new Set(
+      [
+        ...(event.participants ?? []),
+        ...(event.invites ?? []).map((i) => i.email),
+      ].map((email) => email.trim().toLowerCase()),
+    )
+    const newEmails = pendingScopeSubmit.emails.filter(
+      (email) => !alreadyInvited.has(email.toLowerCase()),
+    )
+    onEventUpdate(pendingScopeSubmit.eventData, saveScope)
+    onInvitesAdded(event.id, newEmails)
+    setSaveScopeOpen(false)
+    setPendingScopeSubmit(null)
+    onOpenChange(false)
   }
 
   const renderTimeSelector = (
@@ -1016,31 +1060,6 @@ export default function EventDialog({
                 <p className="text-xs text-destructive">{participantError}</p>
               )}
             </div>
-
-            {isRecurringEvent && (
-              <div className="space-y-2">
-                <Label>{t.repeatScope}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      ['single', t.repeatScopeSingle],
-                      ['following', t.repeatScopeFollowing],
-                      ['all', t.repeatScopeAll],
-                    ] as const
-                  ).map(([mode, label]) => (
-                    <Button
-                      key={mode}
-                      type="button"
-                      size="sm"
-                      variant={applyTo === mode ? 'default' : 'outline'}
-                      onClick={() => setApplyTo(mode)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {(!event || !isRecurringEvent) && (
               <div className="flex items-center space-x-2">
@@ -1433,6 +1452,46 @@ export default function EventDialog({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveScopeOpen} onOpenChange={setSaveScopeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.repeatScope}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t.updateEventScopeDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <RadioGroup
+            value={saveScope}
+            onValueChange={(value) =>
+              setSaveScope(value as 'single' | 'following' | 'all')
+            }
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="single" id="save-scope-single" />
+              <Label htmlFor="save-scope-single">{t.repeatScopeSingle}</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="following" id="save-scope-following" />
+              <Label htmlFor="save-scope-following">
+                {t.repeatScopeFollowing}
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="all" id="save-scope-all" />
+              <Label htmlFor="save-scope-all">{t.repeatScopeAll}</Label>
+            </div>
+          </RadioGroup>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingScopeSubmit(null)}>
+              {t.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmScopeSave}>
+              {t.update}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
