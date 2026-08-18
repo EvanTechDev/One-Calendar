@@ -1,16 +1,23 @@
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
+import { parseInstanceId } from '@/lib/recurrence/engine'
+
+function resolveIds(eventId: string): string[] {
+  const parsed = parseInstanceId(eventId)
+  return parsed ? [eventId, parsed.seriesId] : [eventId]
+}
 
 export async function isEventViewableBy(
   eventId: string,
   user: { id: string; email: string },
 ): Promise<boolean> {
+  const ids = resolveIds(eventId)
   const [owned] = await getDb()
     .select({ id: calendarEvents.id })
     .from(calendarEvents)
     .where(
-      and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, user.id)),
+      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, user.id)),
     )
     .limit(1)
   if (owned) return true
@@ -25,7 +32,7 @@ export async function isEventViewableBy(
     .from(eventInvites)
     .where(
       and(
-        eq(eventInvites.eventId, eventId),
+        inArray(eventInvites.eventId, ids),
         eq(eventInvites.email, user.email.toLowerCase()),
       ),
     )

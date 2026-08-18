@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { bookmarkedEvents, calendarEvents } from '@/lib/drizzle/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 import { isEventViewableBy } from '@/lib/bookmarks'
+import { parseInstanceId } from '@/lib/recurrence/engine'
 import { bookmarkSchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'
@@ -14,23 +15,40 @@ export const GET = async function GET() {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const results = await getDb()
-    .select({
-      bookmark: bookmarkedEvents,
-      event: calendarEvents,
-    })
+  const rows = await getDb()
+    .select()
     .from(bookmarkedEvents)
-    .innerJoin(calendarEvents, eq(bookmarkedEvents.eventId, calendarEvents.id))
     .where(eq(bookmarkedEvents.userId, user.id))
     .orderBy(desc(bookmarkedEvents.createdAt))
 
+  const eventIds = [
+    ...new Set(
+      rows.flatMap((r) => {
+        const parsed = parseInstanceId(r.eventId)
+        return parsed ? [r.eventId, parsed.seriesId] : [r.eventId]
+      }),
+    ),
+  ]
+  const eventRows =
+    eventIds.length > 0
+      ? await getDb()
+          .select()
+          .from(calendarEvents)
+          .where(inArray(calendarEvents.id, eventIds))
+      : []
+  const eventById = new Map(eventRows.map((e) => [e.id, e]))
+
   const bookmarks = await Promise.all(
-    results.map(async ({ bookmark, event }) => {
+    rows.map(async ({ id, eventId, createdAt }) => {
+      const event =
+        eventById.get(eventId) ??
+        eventById.get(parseInstanceId(eventId)?.seriesId ?? '')
+      if (!event) return null
       const visible = await isEventViewableBy(event.id, user)
       return {
-        id: bookmark.id,
-        eventId: bookmark.eventId,
-        createdAt: bookmark.createdAt,
+        id,
+        eventId,
+        createdAt,
         event: visible
           ? decryptEvent(event)
           : {
@@ -44,7 +62,7 @@ export const GET = async function GET() {
     }),
   )
 
-  return NextResponse.json({ bookmarks })
+  return NextResponse.json({ bookmarks: bookmarks.filter(Boolean) })
 }
 
 export const POST = async function POST(request: NextRequest) {

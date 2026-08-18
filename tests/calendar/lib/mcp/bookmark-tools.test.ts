@@ -75,6 +75,10 @@ const state = vi.hoisted(() => {
     const c = cond as Cond | null
     if (!c || typeof c !== 'object') return false
     if (c.op === 'and') return (c.conds ?? []).every((sub) => matches(sub, row))
+    if (c.op === 'in') {
+      const vals = Array.isArray(c.right) ? c.right : []
+      return vals.includes(colValue(row, c.left))
+    }
     if (c.op === 'eq') return colValue(row, c.left) === colValue(row, c.right)
     return false
   }
@@ -249,12 +253,17 @@ const state = vi.hoisted(() => {
 vi.mock('drizzle-orm', () => {
   const eq = (left: unknown, right: unknown) => ({ op: 'eq', left, right })
   const and = (...conds: unknown[]) => ({ op: 'and', conds })
+  const inArray = (left: unknown, right: unknown[]) => ({
+    op: 'in',
+    left,
+    right,
+  })
   const desc = (col: unknown) => ({ op: 'desc', col })
   const sql = (strings: TemplateStringsArray) => ({
     op: 'count',
     sql: strings.join(''),
   })
-  return { eq, and, desc, sql }
+  return { eq, and, inArray, desc, sql }
 })
 
 vi.mock('@/lib/drizzle/schema', () => {
@@ -332,6 +341,24 @@ describe('bookmarkEvent', () => {
     expect(bm.id).toBeTruthy()
     expect(bm.createdAt).toBeInstanceOf(Date)
     expect(state.store.bookmarked_events).toHaveLength(1)
+  })
+
+  it('creates a bookmark for a recurring instance id (resolves to its master)', async () => {
+    seedUser('u1', 'owner@example.com')
+    seedEvent({
+      id: 'evt-1',
+      userId: 'u1',
+      rrule: 'RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
+    })
+
+    const bm = await bookmarkEvent('u1', {
+      eventId: 'evt-1_20260817T090000Z',
+    })
+
+    expect(bm).toMatchObject({
+      userId: 'u1',
+      eventId: 'evt-1_20260817T090000Z',
+    })
   })
 
   it('creates a bookmark for a valid invited event', async () => {

@@ -862,6 +862,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       return prevEvents.filter((event) => event.id !== deletedEvent.id)
     })
 
+    void deleteEvent(deletedEvent.id, applyTo, timezone, {
+      deferNetwork: true,
+    }).catch(() => {})
+
+    const deleteTimer = window.setTimeout(() => {
+      if (cancelled) return
+      void (async () => {
+        try {
+          await deleteBookmarkByEvent(deletedEvent.id)
+        } catch {}
+        try {
+          await deleteEvent(deletedEvent.id, applyTo, timezone)
+        } catch {}
+      })()
+    }, 6000)
+
     toast.success(t.eventDeleted, {
       description: deletedEvent.title,
       duration: 6000,
@@ -869,6 +885,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         label: t.undo,
         onClick: () => {
           cancelled = true
+          window.clearTimeout(deleteTimer)
           if (
             deletedEvent.rrule ||
             deletedEvent.seriesId ||
@@ -914,14 +931,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(false)
     setDeleteConfirmOpen(false)
     setPendingDeleteEvent(null)
-
-    try {
-      await deleteBookmarkByEvent(deletedEvent.id)
-    } catch {}
-    if (cancelled) return
-    try {
-      await deleteEvent(deletedEvent.id, applyTo, timezone)
-    } catch {}
   }
 
   const reAddInviteToCalendar = async (
