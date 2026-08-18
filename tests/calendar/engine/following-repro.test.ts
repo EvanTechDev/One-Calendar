@@ -5,6 +5,7 @@ import {
   expandSeriesView,
   optimisticFollowingSplit,
   parseRfcStamp,
+  shiftExdates,
   shiftToAnchorClock,
 } from '@/lib/recurrence/engine'
 import {
@@ -213,5 +214,80 @@ describe('regression: this-and-following save', () => {
       expect(e.id).toBeTruthy()
       expect(e.recurrenceId).toBeTruthy()
     }
+  })
+
+  it("re-stamps exdates to the new clock so single-deleted instances stay deleted after an 'all' edit", () => {
+    const editedInstanceStart = utcDate('2026-08-31T11:00:00Z')
+    const remapped = shiftExdates(
+      ['20260810T090000Z', '20260817T090000Z'],
+      editedInstanceStart,
+    )
+    expect(remapped).toEqual(['20260810T110000Z', '20260817T110000Z'])
+
+    const anchor = shiftToAnchorClock(
+      utcDate('2026-08-10T09:00:00Z'),
+      editedInstanceStart,
+    )
+    const master: StoreEvent = {
+      ...baseMaster,
+      startDate: anchor,
+      endDate: new Date(anchor.getTime() + 60 * 60 * 1000),
+      exdate: remapped,
+    }
+    const expanded = expandSeriesView(
+      [master],
+      [],
+      new Date(Date.UTC(2026, 7, 1)),
+      new Date(Date.UTC(2026, 8, 1)),
+    ) as StoreEvent[]
+    const stamps = expanded.map((e) => e.recurrenceId)
+    expect(stamps).not.toContain('20260810T110000Z')
+    expect(stamps).not.toContain('20260817T110000Z')
+    expect(stamps).toContain('20260824T110000Z')
+  })
+
+  it("keeps single-edit overrides (moved instances) in the optimistic 'all' regeneration", () => {
+    const editedInstanceStart = utcDate('2026-08-31T11:00:00Z')
+    const anchor = shiftToAnchorClock(
+      utcDate('2026-08-10T09:00:00Z'),
+      editedInstanceStart,
+    )
+    const master: StoreEvent = {
+      ...baseMaster,
+      startDate: anchor,
+      endDate: new Date(anchor.getTime() + 60 * 60 * 1000),
+    }
+    const moved = new Date(Date.UTC(2026, 7, 25, 10, 0, 0))
+    const override: StoreEvent = {
+      id: 'override-1',
+      title: 'Weekly sync (moved)',
+      startDate: moved,
+      endDate: new Date(moved.getTime() + 60 * 60 * 1000),
+      isAllDay: false,
+      rrule: null,
+      exdate: null,
+      seriesId: masterId,
+      recurrenceId: '20260824T110000Z',
+      color: '#3B82F6',
+      calendarId: 'cal-1',
+    }
+    const expanded = expandSeriesView(
+      [master],
+      [override],
+      new Date(Date.UTC(2026, 7, 1)),
+      new Date(Date.UTC(2026, 8, 1)),
+    ) as StoreEvent[]
+    const movedInstance = expanded.find(
+      (e) => e.recurrenceId === '20260824T110000Z',
+    )
+    expect(movedInstance?.title).toBe('Weekly sync (moved)')
+    expect(movedInstance?.startDate.toISOString()).toBe(
+      '2026-08-25T10:00:00.000Z',
+    )
+    expect(
+      expanded.some(
+        (e) => e.startDate.getTime() === Date.parse('2026-08-24T11:00:00Z'),
+      ),
+    ).toBe(false)
   })
 })

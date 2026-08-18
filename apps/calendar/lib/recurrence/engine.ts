@@ -702,6 +702,27 @@ export function shiftToAnchorClock(
 }
 
 /**
+ * Re-stamps a series' exdates with the new clock time. Occurrences are
+ * identified by their recurrence stamp, so after a time-of-day change on
+ * the whole series the stored exdate stamps no longer match the shifted
+ * occurrences and the deleted instances would silently resurrect.
+ */
+export function shiftExdates(
+  exdates: string[] | null | undefined,
+  clockSource: Date,
+  timeZone?: string,
+): string[] | null {
+  if (!exdates || exdates.length === 0) return null
+  return exdates.map((stamp) => {
+    const parsed = parseRfcStamp(stamp)
+    return toRfcStamp(
+      shiftToAnchorClock(parsed.date, clockSource, timeZone),
+      parsed.isAllDay,
+    )
+  })
+}
+
+/**
  * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
  *
  * Fixes the "root event disappears after a save" case: when a series master's

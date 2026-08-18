@@ -38,6 +38,7 @@ import {
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
+  shiftExdates,
   shiftToAnchorClock,
   withUntil,
   type SeriesViewInput,
@@ -789,10 +790,19 @@ export const POST = async function POST(request: NextRequest) {
           timeZone,
         )
       }
+      const remappedExdate = shiftExdates(
+        masterRow.exdate,
+        nextStartDate,
+        timeZone,
+      )
       const set = {
         ...encryptMergedFields(masterRow.id, submittedFields),
         ...(rrule !== null ? { rrule } : {}),
-        ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
+        ...(body.exdate !== undefined
+          ? { exdate: body.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
         updatedAt: new Date(),
       }
       const [updated] = await getDb()

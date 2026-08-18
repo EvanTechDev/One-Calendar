@@ -22,6 +22,7 @@ import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   defaultExpansionWindow,
   expandSeriesView,
+  shiftExdates,
   shiftToAnchorClock,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
@@ -638,40 +639,47 @@ function replaceSeriesInstances(
 function optimisticSeries(
   data: Parameters<typeof api.events.create>[0],
   current: EventData[],
-): EventData[] {
+): EventData[] | null {
   const target = current.find((e) => e.id === data.id)
   const key = target?.seriesId ?? (data.id as string)
   const currentMaster = current.find((e) => e.id === key && e.seriesId === null)
+  if (!currentMaster) return null
   const inputStart = new Date(data.startDate)
   const inputEnd = new Date(data.endDate)
-  const anchorStart = currentMaster
-    ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
-    : inputStart
+  const anchorStart = shiftToAnchorClock(
+    new Date(currentMaster.startDate),
+    inputStart,
+  )
   const startDate = anchorStart.toISOString()
   const endDate = new Date(
     anchorStart.getTime() + (inputEnd.getTime() - inputStart.getTime()),
   ).toISOString()
   const master: SeriesViewInput = {
+    ...(currentMaster as unknown as SeriesViewInput),
     id: key,
     seriesId: null,
     recurrenceId: null,
-    title: data.title,
-    description: data.description ?? null,
-    location: data.location ?? null,
+    title: data.title ?? currentMaster.title ?? '',
+    description: data.description ?? currentMaster.description ?? null,
+    location: data.location ?? currentMaster.location ?? null,
     startDate,
     endDate,
-    isAllDay: data.isAllDay ?? false,
-    color: data.color ?? null,
-    categoryId: data.categoryId ?? null,
-    notificationMinutes: data.notificationMinutes ?? null,
+    isAllDay: data.isAllDay ?? currentMaster.isAllDay ?? false,
+    color: data.color ?? currentMaster.color ?? null,
+    categoryId: data.categoryId ?? currentMaster.categoryId ?? null,
+    notificationMinutes:
+      data.notificationMinutes ?? currentMaster.notificationMinutes ?? null,
+    participants: data.participants ?? currentMaster.participants ?? null,
     rrule: data.rrule as string,
-    exdate: data.exdate ?? null,
-    participants: data.participants ?? null,
+    exdate: shiftExdates(currentMaster.exdate, inputStart),
   }
+  const overrides = current.filter(
+    (e) => e.seriesId === key && e.id !== data.id,
+  )
   const window = defaultExpansionWindow()
   return expandSeriesView(
     [master],
-    [],
+    overrides as unknown as SeriesViewInput[],
     window.windowStart,
     window.windowEnd,
   ) as unknown as EventData[]
