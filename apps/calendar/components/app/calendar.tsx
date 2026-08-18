@@ -104,6 +104,10 @@ const loadAnalyticsView = () =>
   import('@/components/app/analytics/analytics-view')
 const loadSettingsDialog = () =>
   import('@/components/app/settings/settings-dialog')
+import {
+  defaultExpansionWindow,
+  optimisticFollowingSplit,
+} from '@/lib/recurrence/engine'
 
 const DayView = dynamic(loadDayView)
 const WeekView = dynamic(loadWeekView)
@@ -270,7 +274,34 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       startDate: newStartDate,
       endDate: newEndDate,
     }
-    updateEvent(updatedEvent)
+    if (
+      scope === 'following' &&
+      updatedEvent.seriesId &&
+      updatedEvent.recurrenceId
+    ) {
+      const window = defaultExpansionWindow()
+      const nextMaster = {
+        ...updatedEvent,
+        id: crypto.randomUUID(),
+        seriesId: null,
+        recurrenceId: null,
+        rrule: updatedEvent.rrule ?? null,
+      }
+      setEvents((prevEvents) => {
+        const target = prevEvents.find((item) => item.id === updatedEvent.id)
+        if (!target) return prevEvents
+        const split = optimisticFollowingSplit(
+          prevEvents,
+          target,
+          nextMaster,
+          window.windowStart,
+          window.windowEnd,
+        )
+        return split ?? prevEvents
+      })
+    } else {
+      updateEvent(updatedEvent)
+    }
     upsertEvent({
       id: updatedEvent.id,
       title: updatedEvent.title,
@@ -724,11 +755,36 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     updatedEvent: CalendarEvent,
     applyTo?: 'single' | 'following' | 'all',
   ) => {
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
+    setEvents((prevEvents) => {
+      if (
+        applyTo === 'following' &&
+        updatedEvent.seriesId &&
+        updatedEvent.recurrenceId
+      ) {
+        const window = defaultExpansionWindow()
+        const nextMaster = {
+          ...updatedEvent,
+          id: crypto.randomUUID(),
+          seriesId: null,
+          recurrenceId: null,
+          rrule: updatedEvent.rrule ?? null,
+        }
+        const target = prevEvents.find((event) => event.id === updatedEvent.id)
+        if (target) {
+          const split = optimisticFollowingSplit(
+            prevEvents,
+            target,
+            nextMaster,
+            window.windowStart,
+            window.windowEnd,
+          )
+          if (split) return split
+        }
+      }
+      return prevEvents.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event,
-      ),
-    )
+      )
+    })
     upsertEvent({
       id: updatedEvent.id,
       title: updatedEvent.title,
@@ -796,8 +852,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       return prevEvents.filter((event) => event.id !== deletedEvent.id)
     })
 
-    toast(t.eventDeleted, {
+    toast.success(t.eventDeleted, {
       description: deletedEvent.title,
+      duration: 6000,
       action: {
         label: t.undo,
         onClick: () => {

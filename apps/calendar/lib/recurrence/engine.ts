@@ -440,11 +440,13 @@ export function expandSeriesView<T extends SeriesViewInput>(
         timeZone,
       )
       const seriesOverrides = overridesBySeries[master.id] ?? []
+      const matchedRecurrenceIds = new Set<string>()
       for (const instance of instances) {
         const override =
           seriesOverrides.find(
             (o) => o.recurrenceId === instance.recurrenceId,
           ) ?? null
+        matchedRecurrenceIds.add(instance.recurrenceId)
         const base = {
           ...master,
           startDate: instance.startDate,
@@ -457,6 +459,24 @@ export function expandSeriesView<T extends SeriesViewInput>(
           ...merged,
           id: instance.id,
           instanceId: instance.id,
+        } as T)
+      }
+      for (const override of seriesOverrides) {
+        const overrideRecurrenceId = override.recurrenceId
+        if (
+          typeof overrideRecurrenceId !== 'string' ||
+          matchedRecurrenceIds.has(overrideRecurrenceId)
+        ) {
+          continue
+        }
+        const instanceId = buildInstanceId(master.id, overrideRecurrenceId)
+        result.push({
+          ...master,
+          ...override,
+          rrule: master.rrule,
+          seriesId: master.id,
+          id: instanceId,
+          instanceId,
         } as T)
       }
     } else {
@@ -479,6 +499,52 @@ export function expandSeriesView<T extends SeriesViewInput>(
     } as T)
   }
   return result
+}
+
+/**
+ * Optimistically applies a "this and following" series edit on the client:
+ * instances before the target stay untouched, the edited event becomes the
+ * new series master, and the rule regenerates every instance from the
+ * target onward so the recurrence renders instantly. Mirrors what the
+ * server produces in applySplitPlan + loadSeriesView (individual override
+ * rows are not visible in the client cache, so they flash with the new
+ * fields until the server response lands).
+ */
+export function optimisticFollowingSplit<T>(
+  current: T[],
+  target: T,
+  nextMaster: T,
+  windowStart: Date,
+  windowEnd: Date,
+  max = MAX_EXPANSION,
+  timeZone?: string,
+): T[] | null {
+  const targetRow = target as unknown as SeriesViewInput
+  const master = nextMaster as unknown as SeriesViewInput
+  const targetSeriesId = targetRow.seriesId
+  const recurrenceId = targetRow.recurrenceId
+  if (
+    !targetSeriesId ||
+    !recurrenceId ||
+    !isSeriesEvent(master) ||
+    typeof master.id !== 'string'
+  ) {
+    return null
+  }
+  const kept = current.filter(
+    (e) =>
+      (e as SeriesViewInput).seriesId !== targetSeriesId ||
+      ((e as SeriesViewInput).recurrenceId ?? '') < recurrenceId,
+  )
+  const expanded = expandSeriesView(
+    [master],
+    [],
+    windowStart,
+    windowEnd,
+    max,
+    timeZone,
+  ) as unknown as T[]
+  return [...kept, ...expanded]
 }
 
 export function withUntil(rruleString: string, untilStamp: string): string {
