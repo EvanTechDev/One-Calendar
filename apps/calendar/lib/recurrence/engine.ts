@@ -535,12 +535,51 @@ export function optimisticFollowingSplit<T>(
   ) {
     return null
   }
-  const kept = current.filter(
-    (e) =>
-      (e as SeriesViewInput).seriesId !== targetSeriesId ||
-      ((e as SeriesViewInput).recurrenceId ?? '') < recurrenceId,
-  )
+  // Stamp the surviving tail of the old series with the truncated rule and
+  // the split-boundary exdate (mirroring the server's withUntil/masterExdate).
+  // Until the response lands, these rows are the source of truth for any
+  // follow-up optimistic edit — leaving the original unbounded rule on them
+  // lets a second edit re-expand the old series across the new series' days.
+  let truncatedRule: string | null = null
+  if (targetRow.rrule) {
+    try {
+      truncatedRule = withUntil(targetRow.rrule, recurrenceId)
+    } catch {
+      truncatedRule = null
+    }
+  }
+  const kept = current
+    .filter(
+      (e) =>
+        (e as SeriesViewInput).seriesId !== targetSeriesId ||
+        ((e as SeriesViewInput).recurrenceId ?? '') < recurrenceId,
+    )
+    .map((e) => {
+      const row = e as SeriesViewInput
+      if (row.seriesId !== targetSeriesId || truncatedRule === null) return e
+      const exdate = (row.exdate ?? []).filter((s) => s <= recurrenceId)
+      if (!exdate.includes(recurrenceId)) exdate.push(recurrenceId)
+      return { ...e, rrule: truncatedRule, exdate }
+    })
   const clockSource = new Date(master.startDate)
+  // The new series inherits only the exdates after the split point, shifted
+  // into its own clock space (mirroring the server's shiftedSplitExdate) —
+  // carrying the old series' full exdate list would leave stale stamps that
+  // no longer match the regenerated occurrences.
+  let masterWithExdates: SeriesViewInput = master
+  try {
+    const splitDeltaMs =
+      clockSource.getTime() - parseRfcStamp(recurrenceId).date.getTime()
+    const movedExdates = (targetRow.exdate ?? [])
+      .filter((stamp) => stamp > recurrenceId)
+      .map((stamp) => shiftStamp(stamp, splitDeltaMs))
+    masterWithExdates = {
+      ...master,
+      exdate: movedExdates.length > 0 ? movedExdates : null,
+    }
+  } catch {
+    // Non-RFC stamp format — leave the master row exactly as passed.
+  }
   const overrides = current
     .filter(
       (e) =>
@@ -557,7 +596,7 @@ export function optimisticFollowingSplit<T>(
       )![0],
     })) as unknown as SeriesViewInput[]
   const expanded = expandSeriesView(
-    [master],
+    [masterWithExdates],
     overrides,
     windowStart,
     windowEnd,

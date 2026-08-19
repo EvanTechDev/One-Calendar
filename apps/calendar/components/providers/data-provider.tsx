@@ -767,9 +767,13 @@ export function optimisticSeries(
       prevStart !== null
         ? adaptRuleToStart(rule, prevStart, inputStart, data.isAllDay ?? false)
         : rule,
+    // The expanded-view cache holds no raw master row, so fall back to the
+    // clicked instance's inherited exdate: it carries the series' exclusions
+    // (including a split's boundary exdate) and without it an inclusive UNTIL
+    // would re-expand the series one occurrence past its real end.
     exdate: currentMaster
       ? shiftExdates(currentMaster.exdate, inputStart)
-      : (data.exdate ?? null),
+      : (shiftExdates(target?.exdate, inputStart) ?? data.exdate ?? null),
   }
   // Only single-instance overrides (isOverride rows) carry custom times that
   // must survive a series-wide time change. Their recurrence stamp follows
