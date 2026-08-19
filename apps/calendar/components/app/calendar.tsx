@@ -293,8 +293,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         setEvents((prevEvents) => {
           const target = prevEvents.find((item) => item.id === updatedEvent.id)
           if (!target) return prevEvents
+          const cleaned = prevEvents.filter(
+            (e) => e.seriesId !== updatedEvent.seriesId,
+          )
           const split = optimisticFollowingSplit(
-            prevEvents,
+            cleaned,
             target,
             nextMaster,
             window.windowStart,
@@ -783,8 +786,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             (event) => event.id === updatedEvent.id,
           )
           if (target) {
+            const cleaned = prevEvents.filter(
+              (e) => e.seriesId !== updatedEvent.seriesId,
+            )
             const split = optimisticFollowingSplit(
-              prevEvents,
+              cleaned,
               target,
               nextMaster,
               window.windowStart,
