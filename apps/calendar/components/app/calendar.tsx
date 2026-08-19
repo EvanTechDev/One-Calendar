@@ -28,7 +28,6 @@ import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import crypto from 'crypto'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
@@ -37,6 +36,7 @@ import {
   useBookmarks,
 } from '@/components/providers/data-provider'
 import { getValidTimezone } from '@/lib/timezone'
+import { uuid } from '@/lib/uuid'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview, {
@@ -275,16 +275,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       endDate: newEndDate,
     }
     // Same discipline as handleEventUpdate: decide the split ids before
-    // touching the store, and keep the zustand updater pure.
+    // touching the store, keep the zustand updater pure, and never let a
+    // synchronous planning failure kill the save.
     let splitId: string | null = null
     let oldSeriesId: string | null = null
     let optimisticEvents: CalendarEvent[] | null = null
     if (scope === 'following') {
-      splitId = crypto.randomUUID()
-      oldSeriesId =
-        updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
-      if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
-        try {
+      try {
+        splitId = uuid()
+        oldSeriesId =
+          updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+        if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
           const window = defaultExpansionWindow()
           const nextMaster = {
             ...updatedEvent,
@@ -305,9 +306,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               timezone,
             )
           }
-        } catch {
-          optimisticEvents = null
         }
+      } catch {
+        splitId = null
+        optimisticEvents = null
       }
     }
     if (optimisticEvents) {
@@ -739,7 +741,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
-      id: event.id || crypto.randomUUID(),
+      id: event.id || uuid(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
@@ -777,15 +779,18 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     // exactly once up front — when the event is a raw series master (no
     // seriesId/recurrenceId) the server still splits at the series root,
     // so those ids must be sent or the old series would linger as ghosts.
+    // The whole plan is wrapped so a synchronous failure can never kill
+    // the save — without splitId the server assigns the new series id and
+    // its response reconciles the view.
     let splitId: string | null = null
     let oldSeriesId: string | null = null
     let optimisticEvents: CalendarEvent[] | null = null
     if (applyTo === 'following') {
-      splitId = crypto.randomUUID()
-      oldSeriesId =
-        updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
-      if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
-        try {
+      try {
+        splitId = uuid()
+        oldSeriesId =
+          updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+        if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
           const window = defaultExpansionWindow()
           const nextMaster = {
             ...updatedEvent,
@@ -806,9 +811,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               timezone,
             )
           }
-        } catch {
-          optimisticEvents = null
         }
+      } catch {
+        splitId = null
+        optimisticEvents = null
       }
     }
     if (optimisticEvents) {

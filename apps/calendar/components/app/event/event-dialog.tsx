@@ -37,6 +37,7 @@ import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { useState, useEffect } from 'react'
 import { cn } from '@zntr/utils'
+import { uuid } from '@/lib/uuid'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   EVENT_COLOR_OPTIONS,
@@ -659,7 +660,7 @@ export default function EventDialog({
     }
 
     const eventData: CalendarEvent = {
-      id: event?.id || crypto.randomUUID(),
+      id: event?.id || uuid(),
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: normalizedStartDate,
