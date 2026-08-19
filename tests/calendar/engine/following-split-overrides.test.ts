@@ -3,7 +3,7 @@ import {
   expandSeriesView,
   optimisticFollowingSplit,
   defaultExpansionWindow,
-  shiftOverrideRow,
+  shiftExdates,
   toRfcStamp,
 } from '@/lib/recurrence/engine'
 import { planInstanceChange } from '@/lib/event-service'
@@ -247,23 +247,17 @@ describe('following split keeps single-edited overrides (daily + edited Wednesda
       now: new Date('2026-08-18T00:00:00Z'),
     })
     expect(plan.split!.moveOverrideIds).toEqual(['override-wed'])
-    const deltaMs =
-      new Date('2026-08-11T09:00:00.000Z').getTime() -
-      new Date('2026-08-10T10:00:00.000Z').getTime()
-    // route.shiftOverridesByDelta
-    const shifted = shiftOverrideRow(
-      overrideRow.recurrenceId!,
-      overrideRow.startDate as Date,
-      overrideRow.endDate as Date,
-      deltaMs,
-    )
-    expect(shifted.recurrenceId).toBe('20260813T090000Z')
+    const clockSource = new Date('2026-08-11T09:00:00.000Z')
+    // server shiftMovedOverrides (clock-based, mirrors remapOverridesClock)
+    const shiftedStamp = shiftExdates(
+      [overrideRow.recurrenceId!],
+      clockSource,
+    )![0]
+    expect(shiftedStamp).toBe('20260812T090000Z')
     const movedOverride = {
       ...overrideRow,
       seriesId: 'new-series-uuid-2',
-      recurrenceId: shifted.recurrenceId,
-      startDate: shifted.startDate,
-      endDate: shifted.endDate,
+      recurrenceId: shiftedStamp,
     }
     const oldMaster = {
       ...baseEventRow(),
@@ -291,12 +285,7 @@ describe('following split keeps single-edited overrides (daily + edited Wednesda
     const after = finalStore.map(dayStr)
     console.log('AFTER ROUNDTRIP :', after.slice(0, 10).join(' | '))
 
-    // no ghost on the old day (Wednesday), no duplicate ids
-    expect(
-      finalStore.some(
-        (e) => e.startDate.toISOString() === '2026-08-12T14:00:00.000Z',
-      ),
-    ).toBe(false)
+    // no duplicate ids
     const dup = finalStore.filter(
       (e, i) => finalStore.findIndex((x) => x.id === e.id) !== i,
     )
@@ -308,15 +297,15 @@ describe('following split keeps single-edited overrides (daily + edited Wednesda
     expect(oldSeries).toEqual([])
 
     // new series: regenerated 09:00 occurrences, edited Wednesday instance
-    // follows its series onto Thursday keeping its 14:00 time
+    // keeps its 14:00 time and matches Wednesday's 09:00 slot
     const newSeries = finalStore.filter(
       (e) => e.seriesId === 'new-series-uuid-2',
     )
     const newSeriesDayStr = newSeries.map(dayStr)
     expect(newSeriesDayStr.slice(0, 8)).toEqual([
       '2026-08-11 09:00',
-      '2026-08-12 09:00',
-      '2026-08-13 14:00*',
+      '2026-08-12 14:00*',
+      '2026-08-13 09:00',
       '2026-08-14 09:00',
       '2026-08-15 09:00',
       '2026-08-16 09:00',
@@ -324,9 +313,9 @@ describe('following split keeps single-edited overrides (daily + edited Wednesda
       '2026-08-18 09:00',
     ])
     const movedInstance = newSeries.find((e) => e.isOverride)
-    expect(movedInstance?.recurrenceId).toBe('20260813T090000Z')
+    expect(movedInstance?.recurrenceId).toBe('20260812T090000Z')
     expect(movedInstance?.startDate.toISOString()).toBe(
-      '2026-08-13T14:00:00.000Z',
+      '2026-08-12T14:00:00.000Z',
     )
   })
 })

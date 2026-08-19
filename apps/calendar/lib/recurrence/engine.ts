@@ -507,10 +507,11 @@ export function expandSeriesView<T extends SeriesViewInput>(
  * Optimistically applies a "this and following" series edit on the client:
  * instances before the target stay untouched, the edited event becomes the
  * new series master, and the rule regenerates every instance from the
- * target onward so the recurrence renders instantly. Mirrors what the
- * server produces in applySplitPlan + loadSeriesView (individual override
- * rows are not visible in the client cache, so they flash with the new
- * fields until the server response lands).
+ * target onward so the recurrence renders instantly. Single-edited
+ * overrides from the old series are remapped to the new series' clock
+ * space (matching remapOverridesClock / optimisticSeries behaviour) so
+ * they render on the correct occurrence instead of flashing as orphan
+ * duplicates until the server response lands.
  */
 export function optimisticFollowingSplit<T>(
   current: T[],
@@ -538,9 +539,24 @@ export function optimisticFollowingSplit<T>(
       (e as SeriesViewInput).seriesId !== targetSeriesId ||
       ((e as SeriesViewInput).recurrenceId ?? '') < recurrenceId,
   )
+  const clockSource = new Date(master.startDate)
+  const overrides = current
+    .filter(
+      (e) =>
+        (e as SeriesViewInput).seriesId === targetSeriesId &&
+        (e as SeriesViewInput).isOverride &&
+        ((e as SeriesViewInput).recurrenceId ?? '') >= recurrenceId,
+    )
+    .map((e) => ({
+      ...e,
+      recurrenceId: shiftExdates(
+        [(e as SeriesViewInput).recurrenceId!],
+        clockSource,
+      )![0],
+    })) as unknown as SeriesViewInput[]
   const expanded = expandSeriesView(
     [master],
-    [],
+    overrides,
     windowStart,
     windowEnd,
     max,
@@ -734,42 +750,6 @@ export function shiftExdates(
 export function shiftStamp(stamp: string, deltaMs: number): string {
   const parsed = parseRfcStamp(stamp)
   return toRfcStamp(new Date(parsed.date.getTime() + deltaMs), parsed.isAllDay)
-}
-
-/**
- * Moves a single-edited override row along with its series ("this and
- * following" split or "all events" time shift): the recurrence stamp shifts
- * by the same delta as the new anchor so the override keeps matching the
- * regenerated occurrence, and the stored start/end times are moved onto the
- * shifted stamp's calendar day while keeping the edited clock time. Without
- * the day move the row would keep rendering on its old day next to the
- * regenerated occurrence as an orphan duplicate.
- */
-export function shiftOverrideRow(
-  recurrenceId: string,
-  startDate: Date,
-  endDate: Date,
-  deltaMs: number,
-): { recurrenceId: string; startDate: Date; endDate: Date } {
-  const shiftedStamp = shiftStamp(recurrenceId, deltaMs)
-  const anchor = parseRfcStamp(shiftedStamp).date
-  const toAnchorDay = (d: Date) =>
-    new Date(
-      Date.UTC(
-        anchor.getUTCFullYear(),
-        anchor.getUTCMonth(),
-        anchor.getUTCDate(),
-        d.getUTCHours(),
-        d.getUTCMinutes(),
-        d.getUTCSeconds(),
-        d.getUTCMilliseconds(),
-      ),
-    )
-  return {
-    recurrenceId: shiftedStamp,
-    startDate: toAnchorDay(startDate),
-    endDate: toAnchorDay(endDate),
-  }
 }
 
 /**

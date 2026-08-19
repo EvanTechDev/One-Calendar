@@ -25,7 +25,7 @@ import {
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
-  shiftOverrideRow,
+  shiftExdates,
   withUntil,
 } from '@/lib/recurrence/engine'
 import { RRule } from 'rrule'
@@ -590,7 +590,8 @@ async function shiftMovedOverrides(
   db: Db,
   userId: string,
   ids: string[],
-  deltaMs: number,
+  clockSource: Date,
+  timeZone?: string,
 ): Promise<void> {
   if (ids.length === 0) return
   const rows = await db
@@ -601,18 +602,11 @@ async function shiftMovedOverrides(
     )
   for (const row of rows) {
     if (!row.recurrenceId) continue
-    const shifted = shiftOverrideRow(
-      row.recurrenceId,
-      row.startDate,
-      row.endDate,
-      deltaMs,
-    )
+    const newStamp = shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
     await db
       .update(calendarEvents)
       .set({
-        recurrenceId: shifted.recurrenceId,
-        startDate: shifted.startDate,
-        endDate: shifted.endDate,
+        recurrenceId: newStamp,
         updatedAt: new Date(),
       })
       .where(
@@ -1161,8 +1155,7 @@ export async function updateEvent(
         db,
         userId,
         plan.split.moveOverrideIds,
-        plan.split.newSeries.startDate.getTime() -
-          parseRfcStamp(parsedId.recurrenceId).date.getTime(),
+        plan.split.newSeries.startDate,
       )
       return newMaster
     }
@@ -1255,8 +1248,7 @@ export async function updateEvent(
         db,
         userId,
         plan.split.moveOverrideIds,
-        plan.split.newSeries.startDate.getTime() -
-          parseRfcStamp(recurrenceId).date.getTime(),
+        plan.split.newSeries.startDate,
       )
       return newMaster
     }

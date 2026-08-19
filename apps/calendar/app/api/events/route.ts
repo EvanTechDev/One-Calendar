@@ -39,7 +39,6 @@ import {
   parseInstanceId,
   parseRfcStamp,
   shiftExdates,
-  shiftOverrideRow,
   shiftToAnchorClock,
   withUntil,
   type SeriesViewInput,
@@ -171,18 +170,18 @@ async function remapOverridesClock(
 }
 
 /**
- * Moves overrides along with their series by a millisecond delta: the
- * recurrence stamp shifts so the override keeps matching the regenerated
- * occurrence, and the stored start/end times move onto the shifted stamp's
- * calendar day while keeping the edited clock time. A single-edited instance
- * keeps the time it was edited to; only its identity follows the series (the
- * old series in an "all events" master edit, or the new series in a "this
- * and following" split).
+ * Moves overrides along with their series by remapping each recurrence stamp
+ * to match the new series' generated occurrence slots (clock-based, matching
+ * remapOverridesClock). Only the stamp is updated; stored start/end times are
+ * untouched so a single-edited instance keeps the time it was edited to.
+ * Without the clock remap, overrides would land on slots the new series never
+ * generates and resurface as orphan duplicates.
  */
 async function shiftOverridesByDelta(
   userId: string,
   ids: string[],
-  deltaMs: number,
+  clockSource: Date,
+  timeZone?: string,
 ): Promise<void> {
   if (ids.length === 0) return
   const rows = await getDb()
@@ -193,18 +192,11 @@ async function shiftOverridesByDelta(
     )
   for (const row of rows) {
     if (!row.recurrenceId) continue
-    const shifted = shiftOverrideRow(
-      row.recurrenceId,
-      row.startDate,
-      row.endDate,
-      deltaMs,
-    )
+    const newStamp = shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
     await getDb()
       .update(calendarEvents)
       .set({
-        recurrenceId: shifted.recurrenceId,
-        startDate: shifted.startDate,
-        endDate: shifted.endDate,
+        recurrenceId: newStamp,
         updatedAt: new Date(),
       })
       .where(
@@ -933,8 +925,8 @@ export const POST = async function POST(request: NextRequest) {
       await shiftOverridesByDelta(
         user.id,
         plan.split.moveOverrideIds,
-        new Date(newSeries.startDate).getTime() -
-          parseRfcStamp(parsedId.recurrenceId).date.getTime(),
+        new Date(newSeries.startDate),
+        timeZone,
       )
       const seriesEvents = await loadSeriesView(
         user,
@@ -1112,13 +1104,13 @@ export const POST = async function POST(request: NextRequest) {
         seriesRow.startDate.toISOString(),
         seriesRow.endDate.toISOString(),
       )
-      const anchorDeltaMs = nextStartDate.getTime() - prevStartDate.getTime()
-      if (anchorDeltaMs !== 0) {
+      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
         const overrides = await fetchOverrides(seriesRow.id)
         await shiftOverridesByDelta(
           user.id,
           overrides.map((o) => o.id),
-          anchorDeltaMs,
+          nextStartDate,
+          timeZone,
         )
       }
       const updatedRow = decryptEvent(updated) as unknown as EventRow
@@ -1164,8 +1156,8 @@ export const POST = async function POST(request: NextRequest) {
       await shiftOverridesByDelta(
         user.id,
         plan.split.moveOverrideIds,
-        new Date(newSeries.startDate).getTime() -
-          parseRfcStamp(firstStampOfSeries(seriesRow, timeZone)).date.getTime(),
+        new Date(newSeries.startDate),
+        timeZone,
       )
       const seriesEvents = await loadSeriesView(
         user,
