@@ -24,6 +24,7 @@ import {
   defaultExpansionWindow,
   expandSeriesView,
   isInstanceId,
+  optimisticFollowingSplit,
   parseInstanceId,
   parseRfcStamp,
   shiftExdates,
@@ -245,10 +246,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
       oldSeriesIds?: Set<string>,
     ) => {
       try {
-        const optimistic =
-          data.id && (data.apply_to === undefined || data.apply_to === 'all')
-            ? optimisticSeries(data, eventsRef.current)
-            : null
+        let optimistic: EventData[] | null = null
+        if (
+          data.id &&
+          (data.apply_to === undefined || data.apply_to === 'all')
+        ) {
+          optimistic = optimisticSeries(data, eventsRef.current)
+        } else if (data.apply_to === 'following' && data.split_id && data.id) {
+          const target = eventsRef.current.find((e) => e.id === data.id)
+          if (target?.seriesId && target.recurrenceId) {
+            const window = defaultExpansionWindow()
+            const nextMaster: EventData = {
+              ...target,
+              id: data.split_id,
+              seriesId: null,
+              recurrenceId: null,
+              title: data.title ?? target.title,
+              startDate: data.startDate,
+              endDate: data.endDate,
+              isAllDay: data.isAllDay ?? target.isAllDay,
+              color: data.color ?? target.color,
+              categoryId: data.categoryId ?? target.categoryId,
+              description: data.description ?? target.description,
+              location: data.location ?? target.location,
+              notificationMinutes:
+                data.notificationMinutes ?? target.notificationMinutes,
+              participants: data.participants ?? target.participants,
+              rrule: data.rrule ?? target.rrule ?? null,
+            }
+            optimistic = optimisticFollowingSplit(
+              eventsRef.current,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+              undefined,
+              data.timezone,
+            )
+          }
+        }
         if (optimistic) {
           await mutate(
             DATA_KEYS.events,
