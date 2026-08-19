@@ -39,7 +39,7 @@ import {
   parseInstanceId,
   parseRfcStamp,
   shiftExdates,
-  shiftStamp,
+  shiftOverrideRow,
   shiftToAnchorClock,
   withUntil,
   type SeriesViewInput,
@@ -171,11 +171,13 @@ async function remapOverridesClock(
 }
 
 /**
- * Re-stamps overrides by a full millisecond delta — recurrence stamps only,
- * their stored times are left untouched. A single-edited instance keeps the
- * time it was edited to; only its identity follows the series (the old series
- * in an "all events" master edit, or the new series in a "this and
- * following" split) so it keeps matching the regenerated occurrences.
+ * Moves overrides along with their series by a millisecond delta: the
+ * recurrence stamp shifts so the override keeps matching the regenerated
+ * occurrence, and the stored start/end times move onto the shifted stamp's
+ * calendar day while keeping the edited clock time. A single-edited instance
+ * keeps the time it was edited to; only its identity follows the series (the
+ * old series in an "all events" master edit, or the new series in a "this
+ * and following" split).
  */
 async function shiftOverridesByDelta(
   userId: string,
@@ -191,10 +193,18 @@ async function shiftOverridesByDelta(
     )
   for (const row of rows) {
     if (!row.recurrenceId) continue
+    const shifted = shiftOverrideRow(
+      row.recurrenceId,
+      row.startDate,
+      row.endDate,
+      deltaMs,
+    )
     await getDb()
       .update(calendarEvents)
       .set({
-        recurrenceId: shiftStamp(row.recurrenceId, deltaMs),
+        recurrenceId: shifted.recurrenceId,
+        startDate: shifted.startDate,
+        endDate: shifted.endDate,
         updatedAt: new Date(),
       })
       .where(

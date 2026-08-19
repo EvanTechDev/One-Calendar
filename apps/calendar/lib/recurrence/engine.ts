@@ -737,6 +737,42 @@ export function shiftStamp(stamp: string, deltaMs: number): string {
 }
 
 /**
+ * Moves a single-edited override row along with its series ("this and
+ * following" split or "all events" time shift): the recurrence stamp shifts
+ * by the same delta as the new anchor so the override keeps matching the
+ * regenerated occurrence, and the stored start/end times are moved onto the
+ * shifted stamp's calendar day while keeping the edited clock time. Without
+ * the day move the row would keep rendering on its old day next to the
+ * regenerated occurrence as an orphan duplicate.
+ */
+export function shiftOverrideRow(
+  recurrenceId: string,
+  startDate: Date,
+  endDate: Date,
+  deltaMs: number,
+): { recurrenceId: string; startDate: Date; endDate: Date } {
+  const shiftedStamp = shiftStamp(recurrenceId, deltaMs)
+  const anchor = parseRfcStamp(shiftedStamp).date
+  const toAnchorDay = (d: Date) =>
+    new Date(
+      Date.UTC(
+        anchor.getUTCFullYear(),
+        anchor.getUTCMonth(),
+        anchor.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds(),
+        d.getUTCMilliseconds(),
+      ),
+    )
+  return {
+    recurrenceId: shiftedStamp,
+    startDate: toAnchorDay(startDate),
+    endDate: toAnchorDay(endDate),
+  }
+}
+
+/**
  * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
  *
  * Fixes the "root event disappears after a save" case: when a series master's

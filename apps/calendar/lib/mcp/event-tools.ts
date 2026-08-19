@@ -25,6 +25,7 @@ import {
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
+  shiftOverrideRow,
   withUntil,
 } from '@/lib/recurrence/engine'
 import { RRule } from 'rrule'
@@ -585,6 +586,41 @@ async function fetchSeriesOverrides(
   return rows.map(decryptEvent)
 }
 
+async function shiftMovedOverrides(
+  db: Db,
+  userId: string,
+  ids: string[],
+  deltaMs: number,
+): Promise<void> {
+  if (ids.length === 0) return
+  const rows = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
+    )
+  for (const row of rows) {
+    if (!row.recurrenceId) continue
+    const shifted = shiftOverrideRow(
+      row.recurrenceId,
+      row.startDate,
+      row.endDate,
+      deltaMs,
+    )
+    await db
+      .update(calendarEvents)
+      .set({
+        recurrenceId: shifted.recurrenceId,
+        startDate: shifted.startDate,
+        endDate: shifted.endDate,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
+      )
+  }
+}
+
 async function applySplitPlan(
   userId: string,
   master: EventRow,
@@ -1119,7 +1155,16 @@ export async function updateEvent(
     })
 
     if (plan.split) {
-      return applySplitPlan(userId, masterRow, plan)
+      const newMaster = await applySplitPlan(userId, masterRow, plan)
+      if (!newMaster) return null
+      await shiftMovedOverrides(
+        db,
+        userId,
+        plan.split.moveOverrideIds,
+        plan.split.newSeries.startDate.getTime() -
+          parseRfcStamp(parsedId.recurrenceId).date.getTime(),
+      )
+      return newMaster
     }
 
     const stored = await applySinglePlan(db, userId, masterRow, plan)
@@ -1204,7 +1249,16 @@ export async function updateEvent(
     })
 
     if (plan.split) {
-      return applySplitPlan(userId, seriesRow, plan)
+      const newMaster = await applySplitPlan(userId, seriesRow, plan)
+      if (!newMaster) return null
+      await shiftMovedOverrides(
+        db,
+        userId,
+        plan.split.moveOverrideIds,
+        plan.split.newSeries.startDate.getTime() -
+          parseRfcStamp(recurrenceId).date.getTime(),
+      )
+      return newMaster
     }
 
     const stored = await applySinglePlan(db, userId, seriesRow, plan)
