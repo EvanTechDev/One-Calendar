@@ -274,44 +274,44 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       startDate: newStartDate,
       endDate: newEndDate,
     }
+    // Same discipline as handleEventUpdate: decide the split ids before
+    // touching the store, and keep the zustand updater pure.
     let splitId: string | null = null
     let oldSeriesId: string | null = null
-    if (
-      scope === 'following' &&
-      updatedEvent.seriesId &&
-      updatedEvent.recurrenceId
-    ) {
-      try {
-        const window = defaultExpansionWindow()
-        const nextMaster = {
-          ...updatedEvent,
-          id: crypto.randomUUID(),
-          seriesId: null,
-          recurrenceId: null,
-          rrule: updatedEvent.rrule ?? null,
+    let optimisticEvents: CalendarEvent[] | null = null
+    if (scope === 'following') {
+      splitId = crypto.randomUUID()
+      oldSeriesId =
+        updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+      if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
+        try {
+          const window = defaultExpansionWindow()
+          const nextMaster = {
+            ...updatedEvent,
+            id: splitId,
+            seriesId: null,
+            recurrenceId: null,
+            rrule: updatedEvent.rrule ?? null,
+          }
+          const target = events.find((item) => item.id === updatedEvent.id)
+          if (target) {
+            optimisticEvents = optimisticFollowingSplit(
+              events,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+              undefined,
+              timezone,
+            )
+          }
+        } catch {
+          optimisticEvents = null
         }
-        splitId = nextMaster.id
-        oldSeriesId = updatedEvent.seriesId
-        setEvents((prevEvents) => {
-          const target = prevEvents.find((item) => item.id === updatedEvent.id)
-          if (!target) return prevEvents
-          const cleaned = prevEvents.filter(
-            (e) => e.seriesId !== updatedEvent.seriesId,
-          )
-          const split = optimisticFollowingSplit(
-            cleaned,
-            target,
-            nextMaster,
-            window.windowStart,
-            window.windowEnd,
-            undefined,
-            timezone,
-          )
-          return split ?? prevEvents
-        })
-      } catch {
-        updateEvent(updatedEvent)
       }
+    }
+    if (optimisticEvents) {
+      setEvents(optimisticEvents)
     } else {
       updateEvent(updatedEvent)
     }
@@ -772,34 +772,32 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     updatedEvent: CalendarEvent,
     applyTo?: 'single' | 'following' | 'all',
   ) => {
+    // Plan a "this and following" split OUTSIDE the zustand updater: the
+    // updater must stay pure, and splitId/oldSeriesId have to be decided
+    // exactly once up front — when the event is a raw series master (no
+    // seriesId/recurrenceId) the server still splits at the series root,
+    // so those ids must be sent or the old series would linger as ghosts.
     let splitId: string | null = null
     let oldSeriesId: string | null = null
-    setEvents((prevEvents) => {
-      if (
-        applyTo === 'following' &&
-        updatedEvent.seriesId &&
-        updatedEvent.recurrenceId
-      ) {
+    let optimisticEvents: CalendarEvent[] | null = null
+    if (applyTo === 'following') {
+      splitId = crypto.randomUUID()
+      oldSeriesId =
+        updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+      if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
         try {
           const window = defaultExpansionWindow()
           const nextMaster = {
             ...updatedEvent,
-            id: crypto.randomUUID(),
+            id: splitId,
             seriesId: null,
             recurrenceId: null,
             rrule: updatedEvent.rrule ?? null,
           }
-          splitId = nextMaster.id
-          oldSeriesId = updatedEvent.seriesId
-          const target = prevEvents.find(
-            (event) => event.id === updatedEvent.id,
-          )
+          const target = events.find((event) => event.id === updatedEvent.id)
           if (target) {
-            const cleaned = prevEvents.filter(
-              (e) => e.seriesId !== updatedEvent.seriesId,
-            )
-            const split = optimisticFollowingSplit(
-              cleaned,
+            optimisticEvents = optimisticFollowingSplit(
+              events,
               target,
               nextMaster,
               window.windowStart,
@@ -807,16 +805,21 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               undefined,
               timezone,
             )
-            if (split) return split
           }
         } catch {
-          // fall through to the plain map update below
+          optimisticEvents = null
         }
       }
-      return prevEvents.map((event) =>
-        event.id === updatedEvent.id ? updatedEvent : event,
+    }
+    if (optimisticEvents) {
+      setEvents(optimisticEvents)
+    } else {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === updatedEvent.id ? updatedEvent : event,
+        ),
       )
-    })
+    }
     upsertEvent(
       {
         id: updatedEvent.id,

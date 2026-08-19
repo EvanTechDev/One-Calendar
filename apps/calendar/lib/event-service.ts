@@ -7,6 +7,7 @@ import {
   partsInLocal,
   partsInTz,
   reanchor,
+  remainingSeriesCount,
   shiftStamp,
   toRfcStamp,
   wallClockToInstant,
@@ -229,6 +230,9 @@ export interface InstanceChangeTarget {
   applyTo: ApplyTo
   fields?: Partial<EventRow>
   now?: Date
+  /** User's IANA timezone — keeps split-boundary day math aligned with the
+   * expansion engine's. Falls back to server-local day parts. */
+  timeZone?: string
 }
 
 export function planInstanceChange(
@@ -321,7 +325,20 @@ export function planInstanceChange(
       masterExdate,
       newSeries: {
         id: crypto.randomUUID(),
-        rrule: reanchor(rule, startDate as Date, isAllDay),
+        // Preserve the original series' bounds: UNTIL carries over inside
+        // reanchor, and a COUNT-bound rule is re-based to its remaining
+        // length so a split never turns a finite series into an infinite one.
+        rrule: reanchor(
+          rule,
+          startDate as Date,
+          isAllDay,
+          remainingSeriesCount(
+            rule,
+            master.startDate,
+            patternStart,
+            target.timeZone,
+          ),
+        ),
         startDate: startDate as Date,
         endDate: endDate as Date,
         exdate: shiftedSplitExdate.length > 0 ? shiftedSplitExdate : null,

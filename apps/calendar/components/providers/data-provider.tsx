@@ -246,6 +246,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
       oldSeriesIds?: Set<string>,
     ) => {
       try {
+        // A "this and following" split orphans the old series: the server
+        // truncates it, and when nothing survives before the split point
+        // (root-instance split, or every earlier instance was exdated) the
+        // response's seriesEvents contains no row for it at all. Purging
+        // therefore cannot rely on inference from the payload — derive the
+        // old series id from the cache so a caller forgetting oldSeriesIds
+        // can never leave ghost instances behind.
+        const purgeSeriesIds = new Set<string>(oldSeriesIds ?? [])
+        if (data.apply_to === 'following' && data.id) {
+          const cached = eventsRef.current.find((e) => e.id === data.id)
+          if (cached?.seriesId) {
+            purgeSeriesIds.add(cached.seriesId)
+          } else {
+            const parsed = isInstanceId(data.id)
+              ? parseInstanceId(data.id)
+              : null
+            if (parsed) purgeSeriesIds.add(parsed.seriesId)
+            else if (cached?.rrule) purgeSeriesIds.add(cached.id)
+          }
+        }
+        const purge = purgeSeriesIds.size > 0 ? purgeSeriesIds : undefined
+
         let optimistic: EventData[] | null = null
         if (
           data.id &&
@@ -292,13 +314,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
               events: replaceSeriesInstances(
                 cur?.events ?? [],
                 optimistic,
-                oldSeriesIds,
+                purge,
               ),
             }),
             { revalidate: false },
           )
         }
         const res = await api.events.create(data)
+        for (const id of res.removedSeriesIds ?? []) purgeSeriesIds.add(id)
         const seriesEvents = res.seriesEvents
         if (seriesEvents && seriesEvents.length > 0) {
           await mutate(
@@ -307,11 +330,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
               events: replaceSeriesInstances(
                 cur?.events ?? [],
                 seriesEvents,
-                oldSeriesIds,
+                purgeSeriesIds.size > 0 ? purgeSeriesIds : undefined,
               ),
             }),
             { revalidate: false },
           )
+        } else if (res.event?.rrule) {
+          // A series master row must never enter the expanded-view cache —
+          // it would render as a standalone duplicate of the series' first
+          // instance. Without seriesEvents there is nothing safe to apply
+          // locally, so fall back to server truth.
+          await mutate(DATA_KEYS.events)
         } else {
           await mutate(
             DATA_KEYS.events,
@@ -684,12 +713,16 @@ function replaceSeriesInstances(
     if (e.seriesId) seriesIds.add(e.seriesId)
     else ids.add(e.id)
   }
-  const kept = events.filter(
-    (e) =>
-      !(e.seriesId && seriesIds.has(e.seriesId)) &&
-      !(oldSeriesIds?.size && e.seriesId && oldSeriesIds.has(e.seriesId)) &&
-      !ids.has(e.id),
-  )
+  const kept = events.filter((e) => {
+    if (e.seriesId && seriesIds.has(e.seriesId)) return false
+    // Purge by series membership for instances — and by the row's own id
+    // for raw master rows, whose "series id" is their id (seriesId null).
+    if (oldSeriesIds?.size) {
+      if (e.seriesId && oldSeriesIds.has(e.seriesId)) return false
+      if (!e.seriesId && oldSeriesIds.has(e.id)) return false
+    }
+    return !ids.has(e.id)
+  })
   return [...kept, ...incoming]
 }
 

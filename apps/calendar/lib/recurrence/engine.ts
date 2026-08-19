@@ -509,9 +509,10 @@ export function expandSeriesView<T extends SeriesViewInput>(
  * new series master, and the rule regenerates every instance from the
  * target onward so the recurrence renders instantly. Single-edited
  * overrides from the old series are remapped to the new series' clock
- * space (matching remapOverridesClock / optimisticSeries behaviour) so
- * they render on the correct occurrence instead of flashing as orphan
- * duplicates until the server response lands.
+ * space (matching remapOverridesClock / optimisticSeries behaviour) AND
+ * re-parented onto the new master — expandSeriesView groups overrides by
+ * seriesId, so keeping the old seriesId here would silently drop them
+ * until the server response lands.
  */
 export function optimisticFollowingSplit<T>(
   current: T[],
@@ -549,6 +550,7 @@ export function optimisticFollowingSplit<T>(
     )
     .map((e) => ({
       ...e,
+      seriesId: master.id,
       recurrenceId: shiftExdates(
         [(e as SeriesViewInput).recurrenceId!],
         clockSource,
@@ -576,11 +578,58 @@ export function reanchor(
   rule: string,
   newStartDate: Date,
   newStartIsAllDay: boolean,
+  remainingCount?: number | null,
 ): string {
   const parsed = RRule.fromString(rule)
   const dtstart = newStartIsAllDay ? utcMidnight(newStartDate) : newStartDate
-  const parts = { ...parsed.origOptions, dtstart, until: null, count: null }
+  // UNTIL is an absolute bound: the re-anchored series must honour the same
+  // end instead of silently becoming infinite. COUNT is re-based by the
+  // caller to the occurrences still remaining after the split point.
+  const parts = {
+    ...parsed.origOptions,
+    dtstart,
+    until: parsed.origOptions.until ?? null,
+    count: remainingCount ?? null,
+  }
   return toRruleLine(new RRule(parts))
+}
+
+/**
+ * How many occurrences a COUNT-bound series still has to produce from the
+ * split instant onward — the original COUNT minus the occurrences generated
+ * strictly before it. Returns null when the rule has no COUNT (or cannot be
+ * parsed), letting callers fall back to an unbounded rule. The day-based
+ * counting mirrors expandSeries so the remaining length matches what the
+ * old series actually rendered.
+ */
+export function remainingSeriesCount(
+  rruleString: string,
+  seriesStart: Date,
+  splitInstant: Date,
+  timeZone?: string,
+): number | null {
+  try {
+    const parsed = RRule.fromString(rruleString.trim())
+    const count = parsed.origOptions.count
+    if (typeof count !== 'number') return null
+    const anchorParts = timeZone
+      ? partsInTz(seriesStart, timeZone)
+      : partsInLocal(seriesStart)
+    const ruleDtstart = new Date(
+      Date.UTC(anchorParts.year, anchorParts.month - 1, anchorParts.day),
+    )
+    const rule = new RRule({ ...parsed.origOptions, dtstart: ruleDtstart })
+    const splitParts = timeZone
+      ? partsInTz(splitInstant, timeZone)
+      : partsInLocal(splitInstant)
+    const splitDay = new Date(
+      Date.UTC(splitParts.year, splitParts.month - 1, splitParts.day),
+    )
+    const beforeSplit = rule.between(new Date(0), splitDay, false).length
+    return Math.max(count - beforeSplit, 1)
+  } catch {
+    return null
+  }
 }
 
 export function isValidRrule(rule: string): boolean {

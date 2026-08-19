@@ -530,14 +530,14 @@ describe('reanchor', () => {
     ).toBe('FREQ=WEEKLY;BYDAY=MO,WE')
   })
 
-  it('drops UNTIL and keeps the pattern', () => {
+  it('keeps UNTIL so a split never turns a bounded series infinite', () => {
     expect(
       reanchor(
         'FREQ=MONTHLY;BYMONTHDAY=15;UNTIL=20260101T000000Z',
         day(2024, 2, 1),
         true,
       ),
-    ).toBe('FREQ=MONTHLY;BYMONTHDAY=15')
+    ).toBe('FREQ=MONTHLY;BYMONTHDAY=15;UNTIL=20260101T000000Z')
   })
 
   it('keeps INTERVAL, BYMONTH and other parts', () => {

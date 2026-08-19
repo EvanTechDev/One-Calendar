@@ -123,13 +123,20 @@ export const api = {
       split_id?: string
       timezone?: string
     }) =>
-      fetchJson<{ event: EventData; seriesEvents?: EventData[] }>(
-        '/api/events',
-        {
-          method: 'POST',
-          body: JSON.stringify(data),
-        },
-      ),
+      fetchJson<{
+        event: EventData
+        seriesEvents?: EventData[]
+        /**
+         * Series whose rendered instances must be purged from the local
+         * cache. Sent after a "this and following" split: the truncated old
+         * series can expand to zero in-window instances, leaving no trace of
+         * itself in seriesEvents for the client to infer the purge from.
+         */
+        removedSeriesIds?: string[]
+      }>('/api/events', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     delete: (
       id: string,
       applyTo?: 'single' | 'following' | 'all',

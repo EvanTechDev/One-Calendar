@@ -906,6 +906,7 @@ export const POST = async function POST(request: NextRequest) {
       applyTo,
       fields: submittedFields,
       now,
+      timeZone,
     })
 
     if (plan.split) {
@@ -933,7 +934,15 @@ export const POST = async function POST(request: NextRequest) {
         [newMaster.id, masterRow.id],
         timeZone,
       )
-      return NextResponse.json({ event: newMaster, seriesEvents })
+      // The truncated old series may expand to zero instances inside the
+      // window (e.g. a root-instance split), in which case seriesEvents
+      // carries no trace of it — tell the client which series to purge so
+      // the old instances cannot linger as ghosts.
+      return NextResponse.json({
+        event: newMaster,
+        seriesEvents,
+        removedSeriesIds: [masterRow.id],
+      })
     }
 
     if (plan.exdateToAdd) {
@@ -1137,6 +1146,7 @@ export const POST = async function POST(request: NextRequest) {
       applyTo,
       fields: submittedFields,
       now: new Date(),
+      timeZone,
     })
 
     if (plan.split) {
@@ -1164,7 +1174,13 @@ export const POST = async function POST(request: NextRequest) {
         [newMaster.id, seriesRow.id],
         timeZone,
       )
-      return NextResponse.json({ event: newMaster, seriesEvents })
+      // See the instance-branch split above: the truncated old series can
+      // vanish from seriesEvents, so name it explicitly for client purging.
+      return NextResponse.json({
+        event: newMaster,
+        seriesEvents,
+        removedSeriesIds: [seriesRow.id],
+      })
     }
 
     if (plan.exdateToAdd) {
