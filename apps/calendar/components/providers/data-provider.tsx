@@ -63,6 +63,7 @@ interface DataContextValue {
 
   upsertEvent: (
     data: Parameters<typeof api.events.create>[0],
+    oldSeriesIds?: Set<string>,
   ) => Promise<EventData>
   deleteEvent: (
     id: string,
