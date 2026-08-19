@@ -239,7 +239,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [loading, settings, refreshSettings])
 
   const upsertEvent = useCallback(
-    async (data: Parameters<typeof api.events.create>[0]) => {
+    async (
+      data: Parameters<typeof api.events.create>[0],
+      oldSeriesIds?: Set<string>,
+    ) => {
       try {
         const optimistic =
           data.id && (data.apply_to === undefined || data.apply_to === 'all')
@@ -249,7 +252,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await mutate(
             DATA_KEYS.events,
             (cur?: { events: EventData[] }) => ({
-              events: replaceSeriesInstances(cur?.events ?? [], optimistic),
+              events: replaceSeriesInstances(
+                cur?.events ?? [],
+                optimistic,
+                oldSeriesIds,
+              ),
             }),
             { revalidate: false },
           )
@@ -260,7 +267,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await mutate(
             DATA_KEYS.events,
             (cur?: { events: EventData[] }) => ({
-              events: replaceSeriesInstances(cur?.events ?? [], seriesEvents),
+              events: replaceSeriesInstances(
+                cur?.events ?? [],
+                seriesEvents,
+                oldSeriesIds,
+              ),
             }),
             { revalidate: false },
           )
@@ -627,8 +638,9 @@ export function useSettings() {
 function replaceSeriesInstances(
   events: EventData[],
   incoming: EventData[],
+  oldSeriesIds?: Set<string>,
 ): EventData[] {
-  if (incoming.length === 0) return events
+  if (incoming.length === 0 && !oldSeriesIds?.size) return events
   const seriesIds = new Set<string>()
   const ids = new Set<string>()
   for (const e of incoming) {
@@ -636,7 +648,10 @@ function replaceSeriesInstances(
     else ids.add(e.id)
   }
   const kept = events.filter(
-    (e) => !(e.seriesId && seriesIds.has(e.seriesId)) && !ids.has(e.id),
+    (e) =>
+      !(e.seriesId && seriesIds.has(e.seriesId)) &&
+      !(oldSeriesIds?.size && e.seriesId && oldSeriesIds.has(e.seriesId)) &&
+      !ids.has(e.id),
   )
   return [...kept, ...incoming]
 }

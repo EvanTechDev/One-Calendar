@@ -275,6 +275,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       endDate: newEndDate,
     }
     let splitId: string | null = null
+    let oldSeriesId: string | null = null
     if (
       scope === 'following' &&
       updatedEvent.seriesId &&
@@ -290,6 +291,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           rrule: updatedEvent.rrule ?? null,
         }
         splitId = nextMaster.id
+        oldSeriesId = updatedEvent.seriesId
         setEvents((prevEvents) => {
           const target = prevEvents.find((item) => item.id === updatedEvent.id)
           if (!target) return prevEvents
@@ -302,6 +304,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             nextMaster,
             window.windowStart,
             window.windowEnd,
+            undefined,
+            timezone,
           )
           return split ?? prevEvents
         })
@@ -311,25 +315,28 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     } else {
       updateEvent(updatedEvent)
     }
-    upsertEvent({
-      id: updatedEvent.id,
-      title: updatedEvent.title,
-      startDate: updatedEvent.startDate.toISOString(),
-      endDate: updatedEvent.endDate.toISOString(),
-      isAllDay: updatedEvent.isAllDay,
-      location: updatedEvent.location || null,
-      participants: updatedEvent.participants?.length
-        ? updatedEvent.participants.map((p: any) =>
-            typeof p === 'string' ? { name: p } : p,
-          )
-        : null,
-      notificationMinutes: updatedEvent.notification || null,
-      color: updatedEvent.color || null,
-      categoryId: updatedEvent.calendarId || null,
-      apply_to: scope,
-      split_id: splitId ?? undefined,
-      timezone,
-    }).catch(() => {})
+    upsertEvent(
+      {
+        id: updatedEvent.id,
+        title: updatedEvent.title,
+        startDate: updatedEvent.startDate.toISOString(),
+        endDate: updatedEvent.endDate.toISOString(),
+        isAllDay: updatedEvent.isAllDay,
+        location: updatedEvent.location || null,
+        participants: updatedEvent.participants?.length
+          ? updatedEvent.participants.map((p: any) =>
+              typeof p === 'string' ? { name: p } : p,
+            )
+          : null,
+        notificationMinutes: updatedEvent.notification || null,
+        color: updatedEvent.color || null,
+        categoryId: updatedEvent.calendarId || null,
+        apply_to: scope,
+        split_id: splitId ?? undefined,
+        timezone,
+      },
+      oldSeriesId ? new Set([oldSeriesId]) : undefined,
+    ).catch(() => {})
   }
 
   const confirmRangeMove = (scope: 'single' | 'following' | 'all') => {
@@ -766,6 +773,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     applyTo?: 'single' | 'following' | 'all',
   ) => {
     let splitId: string | null = null
+    let oldSeriesId: string | null = null
     setEvents((prevEvents) => {
       if (
         applyTo === 'following' &&
@@ -782,6 +790,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             rrule: updatedEvent.rrule ?? null,
           }
           splitId = nextMaster.id
+          oldSeriesId = updatedEvent.seriesId
           const target = prevEvents.find(
             (event) => event.id === updatedEvent.id,
           )
@@ -795,6 +804,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               nextMaster,
               window.windowStart,
               window.windowEnd,
+              undefined,
+              timezone,
             )
             if (split) return split
           }
@@ -806,27 +817,30 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         event.id === updatedEvent.id ? updatedEvent : event,
       )
     })
-    upsertEvent({
-      id: updatedEvent.id,
-      title: updatedEvent.title,
-      startDate: updatedEvent.startDate.toISOString(),
-      endDate: updatedEvent.endDate.toISOString(),
-      isAllDay: updatedEvent.isAllDay,
-      color: updatedEvent.color,
-      location: updatedEvent.location,
-      description: updatedEvent.description,
-      participants: updatedEvent.participants?.length
-        ? updatedEvent.participants.map((p: any) =>
-            typeof p === 'string' ? { name: p } : p,
-          )
-        : null,
-      notificationMinutes: updatedEvent.notification,
-      categoryId: updatedEvent.calendarId || null,
-      rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
-      apply_to: applyTo,
-      split_id: splitId ?? undefined,
-      timezone,
-    })
+    upsertEvent(
+      {
+        id: updatedEvent.id,
+        title: updatedEvent.title,
+        startDate: updatedEvent.startDate.toISOString(),
+        endDate: updatedEvent.endDate.toISOString(),
+        isAllDay: updatedEvent.isAllDay,
+        color: updatedEvent.color,
+        location: updatedEvent.location,
+        description: updatedEvent.description,
+        participants: updatedEvent.participants?.length
+          ? updatedEvent.participants.map((p: any) =>
+              typeof p === 'string' ? { name: p } : p,
+            )
+          : null,
+        notificationMinutes: updatedEvent.notification,
+        categoryId: updatedEvent.calendarId || null,
+        rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
+        apply_to: applyTo,
+        split_id: splitId ?? undefined,
+        timezone,
+      },
+      oldSeriesId ? new Set([oldSeriesId]) : undefined,
+    )
     toast(t.eventUpdated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
