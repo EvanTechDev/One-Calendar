@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   unique,
+  uniqueIndex,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
@@ -90,6 +91,13 @@ export const calendarEvents = pgTable(
     seriesIdx: index('idx_events_series_id').on(table.seriesId),
     createdAtIdx: index('idx_events_created_at').on(table.createdAt),
     updatedAtIdx: index('idx_events_updated_at').on(table.updatedAt),
+    // One override row per (series, occurrence stamp). NULLs are pairwise
+    // distinct in Postgres, so master/plain rows (both columns NULL) never
+    // conflict.
+    seriesRecurrenceUq: uniqueIndex('uq_events_series_recurrence').on(
+      table.seriesId,
+      table.recurrenceId,
+    ),
   }),
 )
 
