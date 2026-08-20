@@ -696,6 +696,8 @@ async function applySinglePlan(
   const encrypted = encryptMergedFields(upsert.id, upsert.fields)
   let stored
   if (upsert.isNew) {
+    // Upsert on the (seriesId, recurrenceId) unique index: a double-submit
+    // resolves to one row (last writer wins) instead of erroring.
     ;[stored] = await db
       .insert(calendarEvents)
       .values({
@@ -707,6 +709,10 @@ async function applySinglePlan(
         updatedAt: upsert.fields.updatedAt as Date,
         ...encrypted,
       } as typeof calendarEvents.$inferInsert)
+      .onConflictDoUpdate({
+        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
+        set: { ...encrypted, updatedAt: new Date() },
+      })
       .returning()
   } else {
     ;[stored] = await db

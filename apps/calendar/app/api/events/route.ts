@@ -988,6 +988,9 @@ export const POST = async function POST(request: NextRequest) {
 
       let row
       if (upsert.isNew) {
+        // Upsert on the (seriesId, recurrenceId) unique index: two
+        // concurrent single-edits of the same occurrence resolve to one row
+        // (last writer wins) instead of a 500.
         ;[row] = await tx
           .insert(calendarEvents)
           .values({
@@ -999,6 +1002,10 @@ export const POST = async function POST(request: NextRequest) {
             updatedAt: upsert.fields.updatedAt as Date,
             ...encryptedOverride,
           } as typeof calendarEvents.$inferInsert)
+          .onConflictDoUpdate({
+            target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
+            set: { ...encryptedOverride, updatedAt: new Date() },
+          })
           .returning()
       } else {
         ;[row] = await tx
