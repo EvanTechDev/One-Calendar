@@ -476,5 +476,19 @@
   "disable2faFailed": "禁用2FA失败",
   "twoFactorSetupVerified": "2FA设置已验证。",
   "invalidOtpCode": "无效的{code}",
-  "updateEventScopeDescription": "这是一个重复日程，您要更新哪些实例？"
+  "updateEventScopeDescription": "这是一个重复日程，您要更新哪些实例？",
+  "recurrenceCountSuffix": "共 {n} 次",
+  "recurrenceEveryDays": "每 {n} 天",
+  "recurrenceEveryMonths": "每 {n} 个月",
+  "recurrenceEveryWeeks": "每 {n} 周",
+  "recurrenceEveryYears": "每 {n} 年",
+  "recurrenceLastDay": "最后一天",
+  "recurrenceLastWeek": "最后一个",
+  "recurrenceNthWeek": "第 {n} 个",
+  "recurrenceUntilSuffix": "直到 {until}",
+  "recurrenceYearlyMonth": "{n} 月",
+  "repeatFrequencyDaily": "每天",
+  "repeatFrequencyMonthly": "每月",
+  "repeatFrequencyWeekly": "每周",
+  "repeatFrequencyYearly": "每年"
 }
