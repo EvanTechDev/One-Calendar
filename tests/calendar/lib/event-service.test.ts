@@ -429,6 +429,39 @@ describe('planInstanceChange', () => {
     expect(split.newSeries.exdate).toEqual(['20240107T100000Z'])
   })
 
+  it('clock-remaps inherited exdates so they keep their day and adopt the new time', () => {
+    // Weekly Wednesday series; split at a Wednesday occurrence with the new
+    // start on Thursday 14:00. The new series keeps generating WEDNESDAYS
+    // (reanchor preserves BYDAY, only the clock moves), so inherited exdates
+    // must keep their original day and take the 14:00 clock — the same
+    // strategy used for moved overrides. A full-delta shift would land them
+    // on Thursdays the series never generates and resurrect the deletions.
+    const weekly = makeDailySeries({
+      startDate: day(2024, 1, 3, 10), // Wednesday
+      endDate: day(2024, 1, 3, 11),
+      rrule: 'FREQ=WEEKLY;BYDAY=WE',
+      exdate: ['20240103T100000Z', '20240124T100000Z'],
+    })
+    const plan = planInstanceChange({
+      master: weekly,
+      override: null,
+      overrides: [],
+      recurrenceId: '20240110T100000Z',
+      applyTo: 'following',
+      fields: {
+        startDate: day(2024, 1, 11, 14), // Thursday 14:00
+        endDate: day(2024, 1, 11, 15),
+      },
+      now: day(2024, 1, 1),
+      timeZone: 'UTC',
+    })
+    const split = plan.split!
+    // Future exdate keeps its Wednesday (Jan 24) and adopts the 14:00 clock.
+    expect(split.newSeries.exdate).toEqual(['20240124T140000Z'])
+    // The master-side partition is untouched by the remap.
+    expect(split.masterExdate).toEqual(['20240103T100000Z', '20240110T100000Z'])
+  })
+
   it('reanchors the new series rrule to the split point', () => {
     const weekly = makeDailySeries({
       startDate: day(2024, 1, 1, 10),

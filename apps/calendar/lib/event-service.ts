@@ -8,7 +8,7 @@ import {
   partsInTz,
   reanchor,
   remainingSeriesCount,
-  shiftStamp,
+  shiftExdates,
   toRfcStamp,
   wallClockToInstant,
 } from '@/lib/recurrence/engine'
@@ -308,12 +308,13 @@ export function planInstanceChange(
   const moveOverrideIds = (target.overrides ?? [])
     .filter((o) => o.recurrenceId !== null && o.recurrenceId > recurrenceId)
     .map((o) => o.id)
-  const deltaMs =
-    new Date(startDate as Date).getTime() -
-    parseRfcStamp(recurrenceId).date.getTime()
-  const shiftedSplitExdate = splitExdate.map((stamp) =>
-    shiftStamp(stamp, deltaMs),
-  )
+  // Inherited exdates and moved overrides are both clock-remapped to the new
+  // series' anchor clock: the split series keeps the original rule's day
+  // pattern (reanchor only adopts the new time-of-day), so stamps must keep
+  // their original day and take the new clock to match the generated slots.
+  const shiftedSplitExdate = splitExdate.length
+    ? (shiftExdates(splitExdate, startDate as Date, target.timeZone) ?? [])
+    : []
 
   return {
     applyTo,
