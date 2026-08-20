@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import {
   expandSeries,
+  firstVisibleStampOfSeries,
   isSeriesEvent,
   mergeOverride,
   parseRfcStamp,
@@ -71,6 +72,15 @@ function pickMutable(
   return picked as Record<(typeof MUTABLE_FIELDS)[number], unknown>
 }
 
+/**
+ * The stamp of the series' first occurrence, IGNORING exdates.
+ *
+ * Prefer `resolveMasterEditStamp` for edit/delete targeting: this function
+ * happily returns a stamp the series no longer renders (because the user
+ * deleted that occurrence), and writing to a non-existent slot leaves an
+ * orphan override plus a dead exdate. Kept because the raw master-start stamp
+ * is still the right answer when constructing a series, not editing one.
+ */
 export function firstStampOfSeries(
   master: EventRow,
   timeZone?: string,
@@ -85,6 +95,26 @@ export function firstStampOfSeries(
 
 function pad2(value: number): string {
   return value < 10 ? `0${value}` : String(value)
+}
+
+/**
+ * Which occurrence a master-id edit or delete should act on: the series' first
+ * VISIBLE occurrence, i.e. the first generated slot that no exdate removes.
+ *
+ * Using the raw master start (see `firstStampOfSeries`) targets an occurrence
+ * the user already deleted, so the write lands on a slot the engine never
+ * renders — the resulting override becomes an orphan and the exdate is dead
+ * weight. Falls back to the raw stamp when nothing is visible (a fully
+ * exhausted or fully excluded series), so callers always get a usable stamp.
+ */
+export function resolveMasterEditStamp(
+  master: EventRow,
+  timeZone?: string,
+): string {
+  return (
+    firstVisibleStampOfSeries(master, timeZone) ??
+    firstStampOfSeries(master, timeZone)
+  )
 }
 
 export function expandRows(
@@ -312,19 +342,22 @@ export function planInstanceChange(
   // "This and following" must NOT violate the parent pattern: dragging
   // Wednesday's instance to Tuesday 15:00 in a Mon/Wed/Fri/Sun series moves
   // the tail to 15:00 on its OWN pattern days — it does not add Tuesdays.
-  // So the new series' anchor snaps back to the dragged occurrence's day and
-  // keeps only the new time of day. An all-day move has no clock to adopt,
-  // so it is left as requested.
+  // The new series' anchor therefore snaps back to the dragged occurrence's
+  // day and keeps only the new time of day.
+  //
+  // All-day series get the SAME treatment: they have no clock to adopt, so a
+  // cross-day drag carries no information the tail can use, and the anchor
+  // stays exactly on the pattern day. (Previously the requested day was used
+  // verbatim, which is how an all-day Mon/Wed/Fri/Sun series ended up
+  // anchored on a Tuesday it never generates.)
   const startDate = isAllDay
-    ? requestedStart
+    ? patternStart
     : snapToPatternDay(patternStart, requestedStart as Date, target.timeZone)
-  const endDate = isAllDay
-    ? requestedEnd
-    : new Date(
-        (startDate as Date).getTime() +
-          ((requestedEnd as Date).getTime() -
-            (requestedStart as Date).getTime()),
-      )
+  // Duration is taken from the request either way, so a resize still applies.
+  const endDate = new Date(
+    (startDate as Date).getTime() +
+      ((requestedEnd as Date).getTime() - (requestedStart as Date).getTime()),
+  )
   const rule = master.rrule ?? ''
   const existingExdate = master.exdate ?? []
   const splitExdate = existingExdate.filter((stamp) => stamp > recurrenceId)

@@ -28,6 +28,7 @@ import {
   parseRfcStamp,
   rruleFromParts,
   rruleToParts,
+  toRfcStamp,
   translateRuleByDays,
   translateStampsByDays,
   wallClockDayDelta,
@@ -37,7 +38,14 @@ import {
 import { planInstanceChange, type EventRow } from '@/lib/event-service'
 
 const TZ = 'UTC'
-const ITERATIONS = 60
+/**
+ * Zones the fuzz runs in. Non-UTC matters because every day boundary (split
+ * stamps, whole-pattern day shifts, all-day stamps) is computed on wall-clock
+ * dates: a zone whose offset is negative, fractional, or DST-shifting moves
+ * those boundaries relative to UTC.
+ */
+const ZONES = ['UTC', 'America/New_York', 'Asia/Kolkata', 'Pacific/Auckland']
+const ITERATIONS = 80
 
 /** xorshift32 — tiny, deterministic, good enough to shuffle test inputs. */
 function makeRng(seed: number) {
@@ -78,7 +86,7 @@ function day(y: number, m: number, d: number, h = 9, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))
 }
 
-function makeMaster(rrule: string, start: Date): EventRow {
+function makeMaster(rrule: string, start: Date, isAllDay = false): EventRow {
   return {
     id: 'm1',
     userId: 'u1',
@@ -86,8 +94,10 @@ function makeMaster(rrule: string, start: Date): EventRow {
     description: null,
     location: null,
     startDate: start,
-    endDate: new Date(start.getTime() + 60 * 60 * 1000),
-    isAllDay: false,
+    endDate: new Date(
+      start.getTime() + (isAllDay ? 24 * 3600 * 1000 : 60 * 60 * 1000),
+    ),
+    isAllDay,
     status: 'confirmed',
     color: null,
     categoryId: null,
@@ -105,8 +115,8 @@ function makeMaster(rrule: string, start: Date): EventRow {
 const WINDOW_START = day(2026, 1, 1, 0)
 const WINDOW_END = day(2026, 12, 31, 0)
 
-function expand(master: EventRow) {
-  return expandSeries(master, WINDOW_START, WINDOW_END, 400, TZ)
+function expand(master: EventRow, timeZone = TZ) {
+  return expandSeries(master, WINDOW_START, WINDOW_END, 400, timeZone)
 }
 
 describe('recurrence invariants (deterministic fuzz)', () => {
@@ -134,12 +144,17 @@ describe('recurrence invariants (deterministic fuzz)', () => {
       const rng = makeRng(0xc0ffee)
       for (let iter = 0; iter < ITERATIONS; iter++) {
         const rule = RULES[Math.floor(rng() * RULES.length)]
-        let master = makeMaster(rule, day(2026, 8, 3))
+        // All-day series and non-UTC zones were the blind spot that let two
+        // real bugs through: every day boundary (split anchors, stamp shifts)
+        // is wall-clock, so both dimensions must be fuzzed.
+        const zone = ZONES[Math.floor(rng() * ZONES.length)]
+        const allDay = rng() < 0.35
+        let master = makeMaster(rule, day(2026, 8, 3), allDay)
         let overrides: EventRow[] = []
         const exdates = new Set<string>()
 
         for (let step = 0; step < 12; step++) {
-          const instances = expand(master)
+          const instances = expand(master, zone)
           if (instances.length === 0) break
           const target = instances[Math.floor(rng() * instances.length)]
           const roll = rng()
@@ -186,30 +201,54 @@ describe('recurrence invariants (deterministic fuzz)', () => {
                 endDate: new Date(target.endDate.getTime() + 7200_000),
               },
               now: day(2026, 1, 1),
-              timeZone: TZ,
+              timeZone: zone,
             })
             const split = plan.split
             if (!split) break
 
-            // I5: the new series' anchor day must be a member of the ORIGINAL
-            // pattern — a following split never invents a new weekday.
-            const originalDays = new Set(
-              expand(makeMaster(master.rrule!, master.startDate)).map((i) =>
-                i.recurrenceId.slice(0, 8),
-              ),
+            // I5: the new series' anchor must fall on a day the ORIGINAL
+            // pattern generates — a following split never invents a weekday.
+            //
+            // Compare on the user's WALL-CLOCK day (what the user sees and what
+            // the pattern is defined in), not on stamp days: a timed stamp is a
+            // UTC datetime, so moving the clock can change its UTC day while
+            // the local day is unchanged (Auckland +13: local Sep 26 00:00 is
+            // stamp 20260925T120000Z, and 02:00 is still Sep 26 locally).
+            const zoneDay = (d: Date) =>
+              new Intl.DateTimeFormat('en-CA', {
+                timeZone: zone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              })
+                .format(d)
+                .replace(/-/g, '')
+            const utcDay = (d: Date) =>
+              `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`
+            // All-day occurrences carry the calendar date in their stamp and
+            // are anchored at the stamp's UTC midnight, so compare stamp↔UTC.
+            // Timed occurrences are instants whose day is zone-relative.
+            const originalInstances = expand(
+              makeMaster(master.rrule!, master.startDate, master.isAllDay),
+              zone,
             )
-            const anchorDay = split.newSeries.startDate
-              .toISOString()
-              .slice(0, 10)
-              .replace(/-/g, '')
+            const originalDays = new Set(
+              master.isAllDay
+                ? originalInstances.map((i) => i.recurrenceId)
+                : originalInstances.map((i) => zoneDay(i.startDate)),
+            )
+            const anchorDay = master.isAllDay
+              ? utcDay(split.newSeries.startDate)
+              : zoneDay(split.newSeries.startDate)
             expect(
               originalDays.has(anchorDay),
-              `following split left the pattern: ${master.rrule} anchor ${anchorDay}`,
+              `following split left the pattern (${zone}, allDay=${master.isAllDay}): ${master.rrule} anchor ${anchorDay} not in {${[...originalDays].slice(0, 6).join(',')}}`,
             ).toBe(true)
 
             master = makeMaster(
               split.newSeries.rrule,
               split.newSeries.startDate,
+              master.isAllDay,
             )
             master = { ...master, id: `s-${iter}-${step}` }
             master.exdate = split.newSeries.exdate
@@ -226,7 +265,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
             WINDOW_START,
             WINDOW_END,
             400,
-            TZ,
+            zone,
           ) as unknown as Array<{
             id: string
             seriesId: string | null
@@ -235,9 +274,10 @@ describe('recurrence invariants (deterministic fuzz)', () => {
 
           // I2: no duplicate instance ids and no duplicate stamps per series.
           const ids = view.map((e) => e.id)
-          expect(new Set(ids).size, `duplicate instance id (${rule})`).toBe(
-            ids.length,
-          )
+          expect(
+            new Set(ids).size,
+            `duplicate instance id (${rule}, ${zone}, allDay=${allDay})`,
+          ).toBe(ids.length)
           const perSeries = new Map<string, Set<string>>()
           for (const e of view) {
             const key = e.seriesId ?? '∅'
@@ -245,7 +285,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
             if (e.recurrenceId !== null) {
               expect(
                 seen.has(e.recurrenceId),
-                `duplicate stamp ${e.recurrenceId} (${rule})`,
+                `duplicate stamp ${e.recurrenceId} (${rule}, ${zone})`,
               ).toBe(false)
               seen.add(e.recurrenceId)
             }
@@ -260,7 +300,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
             if (overrideStamps.has(stamp)) continue
             expect(
               view.some((e) => e.recurrenceId === stamp),
-              `resurrected exdated stamp ${stamp} (${rule})`,
+              `resurrected exdated stamp ${stamp} (${rule}, ${zone})`,
             ).toBe(false)
           }
 
@@ -269,7 +309,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
             if (e.seriesId === null) continue
             expect(
               e.seriesId,
-              `orphan instance parented to ${e.seriesId} (${rule})`,
+              `orphan instance parented to ${e.seriesId} (${rule}, ${zone})`,
             ).toBe(master.id)
           }
         }

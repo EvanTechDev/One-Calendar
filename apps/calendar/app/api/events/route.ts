@@ -21,7 +21,7 @@ import { eventSchema, firstZodMessage } from '@/lib/validation'
 import { RRule } from 'rrule'
 import {
   mergeOverride,
-  firstStampOfSeries,
+  resolveMasterEditStamp,
   planInstanceChange,
   resolveInstance,
   type ApplyTo,
@@ -1321,7 +1321,7 @@ export const POST = async function POST(request: NextRequest) {
       return NextResponse.json({ event: withInvites, seriesEvents })
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = (await fetchOverrides(seriesRow.id)).map((o) =>
       decryptEvent(o as typeof calendarEvents.$inferSelect),
     )
@@ -1664,7 +1664,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, seriesEvents })
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = await fetchOverrides(seriesRow.id)
     const override =
       overrides.find((o) => o.recurrenceId === recurrenceId) ?? null

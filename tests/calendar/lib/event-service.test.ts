@@ -4,6 +4,7 @@ import {
   firstStampOfSeries,
   planInstanceChange,
   resolveInstance,
+  resolveMasterEditStamp,
   type EventRow,
 } from '@/lib/event-service'
 import { parseRfcStamp } from '@/lib/recurrence/engine'
@@ -62,6 +63,38 @@ describe('firstStampOfSeries', () => {
       isAllDay: true,
     })
     expect(firstStampOfSeries(master)).toBe('20240305')
+  })
+})
+
+describe('resolveMasterEditStamp', () => {
+  it('returns the raw first stamp when nothing is excluded', () => {
+    const master = makeDailySeries({
+      startDate: day(2026, 8, 3, 9),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+    })
+    expect(resolveMasterEditStamp(master, 'UTC')).toBe('20260803T090000Z')
+  })
+
+  it('skips an excluded first occurrence so master-id edits hit a real slot', () => {
+    // Regression: firstStampOfSeries is exdate-blind, so a master-id edit or
+    // delete after the first occurrence was removed targeted a slot the engine
+    // never renders — leaving an orphan override plus a dead exdate.
+    const master = makeDailySeries({
+      startDate: day(2026, 8, 3, 9),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+      exdate: ['20260803T090000Z'],
+    })
+    expect(firstStampOfSeries(master, 'UTC')).toBe('20260803T090000Z')
+    expect(resolveMasterEditStamp(master, 'UTC')).toBe('20260805T090000Z')
+  })
+
+  it('falls back to the raw stamp when every occurrence is excluded', () => {
+    const master = makeDailySeries({
+      startDate: day(2026, 8, 3, 9),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO;COUNT=1',
+      exdate: ['20260803T090000Z'],
+    })
+    expect(resolveMasterEditStamp(master, 'UTC')).toBe('20260803T090000Z')
   })
 })
 
@@ -393,6 +426,37 @@ describe('planInstanceChange', () => {
       day(2024, 1, 5, 10).getTime(),
     )
     expect(split.newSeries.rrule.startsWith('FREQ=DAILY')).toBe(true)
+  })
+
+  it('keeps an ALL-DAY following split on the parent pattern when dragged to another weekday', () => {
+    // Regression: the all-day branch used the requested day verbatim, so an
+    // all-day Mon/Wed/Fri/Sun series dragged from Wednesday to Tuesday ended
+    // up anchored on a Tuesday the rule never generates — the exact bug the
+    // timed path already guarded against.
+    const weekly = makeDailySeries({
+      isAllDay: true,
+      startDate: day(2026, 8, 3),
+      endDate: day(2026, 8, 4),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+    })
+    const plan = planInstanceChange({
+      master: weekly,
+      override: null,
+      overrides: [],
+      recurrenceId: '20260805', // Wednesday (all-day stamp)
+      applyTo: 'following',
+      fields: {
+        startDate: day(2026, 8, 4), // dragged onto Tuesday
+        endDate: day(2026, 8, 5),
+      },
+      now: day(2026, 8, 1),
+      timeZone: 'UTC',
+    })
+    const split = plan.split!
+    // Anchor stays on the pattern day (Wednesday), not the drop target.
+    expect(split.newSeries.startDate.getTime()).toBe(day(2026, 8, 5).getTime())
+    expect(split.newSeries.rrule).toContain('BYDAY=MO,WE,FR,SU')
+    expect(split.newSeries.rrule).not.toMatch(/BYDAY=[^;]*TU/)
   })
 
   it('keeps a following split on the parent pattern when dragged to another weekday', () => {

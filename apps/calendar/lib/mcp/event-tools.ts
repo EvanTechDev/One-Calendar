@@ -13,7 +13,7 @@ import { getSettings } from './settings-tools'
 import { invalidateEventCache } from '@/lib/cache/events'
 import {
   expandRows,
-  firstStampOfSeries,
+  resolveMasterEditStamp,
   mergeOverride,
   planInstanceChange,
   resolveInstance,
@@ -1478,7 +1478,7 @@ async function updateEventImpl(
       return decryptEvent(updated)
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
       seriesRow.id,
@@ -1663,7 +1663,7 @@ async function deleteEventImpl(
       return
     }
     const seriesRow = decryptEvent(existing) as unknown as EventRow
-    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
       seriesRow.id,
