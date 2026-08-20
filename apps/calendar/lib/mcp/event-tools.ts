@@ -22,6 +22,7 @@ import {
 } from '@/lib/event-service'
 import {
   adaptRuleToStart,
+  firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
   parseInstanceId,
@@ -1130,6 +1131,17 @@ export async function updateEvent(
     const override =
       overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
     const applyTo = data.apply_to ?? 'single'
+
+    // Product rule (mirrors the REST route): "all events" is only allowed
+    // from the series' first visible occurrence.
+    if (applyTo === 'all') {
+      const firstStamp = firstVisibleStampOfSeries(masterRow)
+      if (firstStamp === null || parsedId.recurrenceId !== firstStamp) {
+        throw new Error(
+          "apply_to 'all' is only allowed on the series' first occurrence",
+        )
+      }
+    }
 
     if (applyTo === 'all') {
       // Mirror the REST route's instance-'all' sequence: clamp the new start

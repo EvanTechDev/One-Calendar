@@ -171,14 +171,16 @@ describe('events route series mutations (characterization)', () => {
     seedMaster({ exdate: ['20260817T090000Z'] })
     seedOverride('o1', '20260810T090000Z')
 
+    // Target the FIRST occurrence — since plan 004, mid-series instances
+    // reject apply_to 'all' with a 400.
     const res = await POST(
       putRequest({
         ...baseUpdateFields,
-        id: 'm1_20260810T090000Z',
+        id: 'm1_20260803T090000Z',
         apply_to: 'all',
-        // +2h clock move: the Aug 10 instance dragged from 09:00 to 11:00.
-        startDate: '2026-08-10T11:00:00Z',
-        endDate: '2026-08-10T11:30:00Z',
+        // +2h clock move: the first instance dragged from 09:00 to 11:00.
+        startDate: '2026-08-03T11:00:00Z',
+        endDate: '2026-08-03T11:30:00Z',
       }),
     )
 
@@ -212,6 +214,63 @@ describe('events route series mutations (characterization)', () => {
     // …and so are the stored exdates (fixed by plan 002): both stamp sets
     // follow the series into the new clock space in one operation.
     expect(fake.row('m1')!.exdate).toEqual(['20260817T110000Z'])
+  })
+
+  it('rejects PUT all (instance id) on a NON-first occurrence with 400', async () => {
+    seedMaster()
+
+    const res = await POST(
+      putRequest({
+        ...baseUpdateFields,
+        // Aug 10 is the SECOND Monday of the series.
+        id: 'm1_20260810T090000Z',
+        apply_to: 'all',
+        startDate: '2026-08-10T11:00:00Z',
+        endDate: '2026-08-10T11:30:00Z',
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    // No mutation ran.
+    expect(fake.writes).toHaveLength(0)
+  })
+
+  it('allows PUT all (instance id) on the first occurrence', async () => {
+    seedMaster()
+
+    const res = await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260803T090000Z',
+        apply_to: 'all',
+        startDate: '2026-08-03T11:00:00Z',
+        endDate: '2026-08-03T11:30:00Z',
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(fake.writes.some((w) => w.op === 'update' && w.id === 'm1')).toBe(
+      true,
+    )
+  })
+
+  it('allows PUT all (master id) regardless of occurrence', async () => {
+    seedMaster()
+
+    const res = await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1',
+        apply_to: 'all',
+        startDate: '2026-08-03T11:00:00Z',
+        endDate: '2026-08-03T11:30:00Z',
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(fake.writes.some((w) => w.op === 'update' && w.id === 'm1')).toBe(
+      true,
+    )
   })
 
   it('characterizes PUT following (instance id): split write sequence', async () => {

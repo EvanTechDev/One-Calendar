@@ -126,6 +126,7 @@ export interface CalendarEvent {
   exdate?: string[] | null
   seriesId?: string | null
   recurrenceId?: string | null
+  isFirstInstance?: boolean
   location?: string
   participants: string[]
   notification: number
@@ -222,6 +223,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [rangeMoveScope, setRangeMoveScope] = useState<
     'single' | 'following' | 'all'
   >('single')
+  // "All events" is only offered on the series' first occurrence (or a raw
+  // master row, which IS the series root). Mirrors the save-scope gating in
+  // event-dialog.tsx.
+  const rangeMoveCanAll =
+    !!pendingRangeMove &&
+    ((!!pendingRangeMove.event.rrule &&
+      !pendingRangeMove.event.seriesId &&
+      !pendingRangeMove.event.recurrenceId) ||
+      pendingRangeMove.event.isFirstInstance === true)
   const [deleteScope, setDeleteScope] = useState<'single' | 'all'>('single')
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
@@ -341,8 +351,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     ).catch(() => {})
   }
 
-  const confirmRangeMove = (scope: 'single' | 'following' | 'all') => {
+  const confirmRangeMove = (requested: 'single' | 'following' | 'all') => {
     if (!pendingRangeMove) return
+    // Belt guard: never commit a scope that isn't offered.
+    const scope = requested === 'all' && !rangeMoveCanAll ? 'single' : requested
     commitRangeMove(
       pendingRangeMove.event,
       pendingRangeMove.startDate,
@@ -1682,19 +1694,25 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   {t.repeatScopeSingle}
                 </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem
-                  value="following"
-                  id="range-move-scope-following"
-                />
-                <Label htmlFor="range-move-scope-following">
-                  {t.repeatScopeFollowing}
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="all" id="range-move-scope-all" />
-                <Label htmlFor="range-move-scope-all">{t.repeatScopeAll}</Label>
-              </div>
+              {!rangeMoveCanAll && (
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="following"
+                    id="range-move-scope-following"
+                  />
+                  <Label htmlFor="range-move-scope-following">
+                    {t.repeatScopeFollowing}
+                  </Label>
+                </div>
+              )}
+              {rangeMoveCanAll && (
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="range-move-scope-all" />
+                  <Label htmlFor="range-move-scope-all">
+                    {t.repeatScopeAll}
+                  </Label>
+                </div>
+              )}
             </RadioGroup>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setPendingRangeMove(null)}>

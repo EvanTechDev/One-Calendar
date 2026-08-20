@@ -132,6 +132,14 @@ export default function EventDialog({
     eventData: CalendarEvent
     emails: string[]
   } | null>(null)
+  // "All events" is only offered on the series' first occurrence. A raw
+  // master row (imported/duplicated events pushed into the store directly)
+  // IS the series root, so "all" stays allowed there; an expanded instance
+  // needs the isFirstInstance marker from the server/engine expansion.
+  const isRawMasterTarget =
+    !!event?.rrule && !event?.seriesId && !event?.recurrenceId
+  const canAllScope =
+    !!event && (isRawMasterTarget || event.isFirstInstance === true)
   const [recFreq, setRecFreq] = useState<
     'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
   >('WEEKLY')
@@ -682,7 +690,7 @@ export default function EventDialog({
     }
 
     if (event && recurring) {
-      setSaveScope(applyTo === 'all' ? 'all' : 'single')
+      setSaveScope(applyTo === 'all' && canAllScope ? 'all' : 'single')
       setPendingScopeSubmit({ eventData, emails: participantEmails })
       setSaveScopeOpen(true)
       return
@@ -717,7 +725,9 @@ export default function EventDialog({
     const newEmails = pendingScopeSubmit.emails.filter(
       (email) => !alreadyInvited.has(email.toLowerCase()),
     )
-    onEventUpdate(pendingScopeSubmit.eventData, saveScope)
+    // Belt guard: never submit a scope that isn't offered.
+    const scope = saveScope === 'all' && !canAllScope ? 'single' : saveScope
+    onEventUpdate(pendingScopeSubmit.eventData, scope)
     onInvitesAdded(event.id, newEmails)
     setSaveScopeOpen(false)
     setPendingScopeSubmit(null)
@@ -1472,16 +1482,20 @@ export default function EventDialog({
               <RadioGroupItem value="single" id="save-scope-single" />
               <Label htmlFor="save-scope-single">{t.repeatScopeSingle}</Label>
             </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="following" id="save-scope-following" />
-              <Label htmlFor="save-scope-following">
-                {t.repeatScopeFollowing}
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="all" id="save-scope-all" />
-              <Label htmlFor="save-scope-all">{t.repeatScopeAll}</Label>
-            </div>
+            {!canAllScope && (
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="following" id="save-scope-following" />
+                <Label htmlFor="save-scope-following">
+                  {t.repeatScopeFollowing}
+                </Label>
+              </div>
+            )}
+            {canAllScope && (
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="save-scope-all" />
+                <Label htmlFor="save-scope-all">{t.repeatScopeAll}</Label>
+              </div>
+            )}
           </RadioGroup>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingScopeSubmit(null)}>

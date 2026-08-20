@@ -29,6 +29,7 @@ export type EventData = {
   seriesId?: string | null
   recurrenceId?: string | null
   isOverride?: boolean
+  isFirstInstance?: boolean
   createdAt: string
   updatedAt: string
   viewOnly?: boolean

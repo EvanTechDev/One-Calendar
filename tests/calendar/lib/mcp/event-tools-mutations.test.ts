@@ -114,11 +114,13 @@ describe('MCP event tool mutations (characterization)', () => {
     seedMaster({ exdate: ['20260817T090000Z'] })
     seedOverride('o1', '20260810T090000Z')
 
-    await updateEvent('u1', 'm1_20260810T090000Z', {
+    // Target the FIRST occurrence — since plan 004, mid-series instances
+    // reject apply_to 'all'.
+    await updateEvent('u1', 'm1_20260803T090000Z', {
       apply_to: 'all',
-      // +2h clock move of the Aug 10 instance.
-      start_date: '2026-08-10T11:00:00Z',
-      end_date: '2026-08-10T11:30:00Z',
+      // +2h clock move of the first instance.
+      start_date: '2026-08-03T11:00:00Z',
+      end_date: '2026-08-03T11:30:00Z',
     })
 
     // Fixed by plan 002 (mirrors the REST route's instance-'all' sequence):

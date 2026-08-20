@@ -384,6 +384,30 @@ export function expandSeries(
   })
 }
 
+/**
+ * Stamp of the first VISIBLE occurrence of a series: the first generated
+ * instance not removed by an exdate. Window-independent — expands from the
+ * series' own start (bounded to 5 years / 12 instances), so it works for
+ * series older than the expansion window. Returns null when nothing is
+ * generated in the bound.
+ */
+export function firstVisibleStampOfSeries(
+  series: RecurrenceEvent,
+  timeZone?: string,
+): string | null {
+  if (!series.rrule || series.rrule.trim().length === 0) return null
+  const start = toDate(series.startDate)
+  // expandSeries generates occurrences at UTC-midnight rule slots (dtstart
+  // is midnight of the anchor day), so the window must open before that
+  // midnight in any timezone — two days of slack is enough, and the rule
+  // never generates before its own dtstart.
+  const windowStart = new Date(start.getTime() - 2 * 24 * 3600 * 1000)
+  const windowEnd = new Date(start.getTime())
+  windowEnd.setFullYear(windowEnd.getFullYear() + 5)
+  const instances = expandSeries(series, windowStart, windowEnd, 12, timeZone)
+  return instances[0]?.recurrenceId ?? null
+}
+
 function toRruleLine(rule: RRule): string {
   return rule
     .toString()
@@ -441,6 +465,9 @@ export function expandSeriesView<T extends SeriesViewInput>(
       )
       const seriesOverrides = overridesBySeries[master.id] ?? []
       const matchedRecurrenceIds = new Set<string>()
+      // "All events" edits are only offered on the series' first visible
+      // occurrence; the marker tells the client which instance that is.
+      const firstStamp = firstVisibleStampOfSeries(master, timeZone)
       for (const instance of instances) {
         const override =
           seriesOverrides.find(
@@ -460,6 +487,9 @@ export function expandSeriesView<T extends SeriesViewInput>(
           id: instance.id,
           instanceId: instance.id,
           ...(override ? { isOverride: true } : {}),
+          ...(instance.recurrenceId === firstStamp
+            ? { isFirstInstance: true }
+            : {}),
         } as T)
       }
       for (const override of seriesOverrides) {

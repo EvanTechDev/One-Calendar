@@ -34,6 +34,7 @@ import {
   adaptRuleToStart,
   defaultExpansionWindow,
   expandSeriesView,
+  firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
   parseInstanceId,
@@ -845,6 +846,23 @@ export const POST = async function POST(request: NextRequest) {
     const override =
       overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
     const applyTo = body.apply_to ?? 'single'
+
+    // Product rule: "all events" is only well-defined from the series' first
+    // visible occurrence — a mid-series 'all' silently drops day moves and
+    // edits only the current split segment. Master-id edits (the series
+    // root) remain allowed below.
+    if (applyTo === 'all') {
+      const firstStamp = firstVisibleStampOfSeries(masterRow, timeZone)
+      if (firstStamp === null || parsedId.recurrenceId !== firstStamp) {
+        return NextResponse.json(
+          {
+            error:
+              "apply_to 'all' is only allowed on the series' first occurrence",
+          },
+          { status: 400 },
+        )
+      }
+    }
 
     if (applyTo === 'all') {
       const prevStartDate = masterRow.startDate

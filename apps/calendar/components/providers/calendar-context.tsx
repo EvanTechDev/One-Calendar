@@ -25,6 +25,7 @@ export interface CalendarEvent {
   exdate?: string[] | null
   seriesId?: string | null
   recurrenceId?: string | null
+  isFirstInstance?: boolean
   location?: string
   participants: string[]
   notification: number
@@ -60,6 +61,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     exdate: e.exdate ?? null,
     seriesId: e.seriesId ?? null,
     recurrenceId: e.recurrenceId ?? null,
+    isFirstInstance: e.isFirstInstance === true,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
     notification: e.notificationMinutes ?? 0,
