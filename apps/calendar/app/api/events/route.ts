@@ -131,8 +131,15 @@ async function invalidateMasterCache(
   }
 }
 
-async function fetchOverrides(seriesId: string): Promise<EventRow[]> {
-  const rows = await getDb()
+type Dbx =
+  | ReturnType<typeof getDb>
+  | Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0]
+
+async function fetchOverrides(
+  seriesId: string,
+  dbx: Dbx = getDb(),
+): Promise<EventRow[]> {
+  const rows = await dbx
     .select()
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
@@ -205,15 +212,17 @@ async function shiftOverridesByDelta(
   }
 }
 
-async function deleteRow(userId: string, row: EventRow): Promise<void> {
+async function deleteRow(
+  userId: string,
+  row: EventRow,
+  dbx: Dbx = getDb(),
+): Promise<void> {
   const rowIds = row.seriesId
     ? [row.id]
-    : [row.id, ...(await fetchOverrides(row.id)).map((r) => r.id)]
+    : [row.id, ...(await fetchOverrides(row.id, dbx)).map((r) => r.id)]
   if (rowIds.length > 0) {
-    await getDb()
-      .delete(eventInvites)
-      .where(inArray(eventInvites.eventId, rowIds))
-    await getDb()
+    await dbx.delete(eventInvites).where(inArray(eventInvites.eventId, rowIds))
+    await dbx
       .delete(calendarEvents)
       .where(
         and(
@@ -237,50 +246,61 @@ async function applySplitPlan(
   const split = plan.split!
   const newId = split.newSeries.id
   const fields = encryptMergedFields(newId, split.newSeries.fields)
-  const [newMaster] = await getDb()
-    .insert(calendarEvents)
-    .values({
-      id: newId,
-      userId,
-      rrule: split.newSeries.rrule,
-      exdate: split.newSeries.exdate,
-      ...fields,
-    } as typeof calendarEvents.$inferInsert)
-    .returning()
+  // The four split writes are atomic: a mid-sequence failure would otherwise
+  // leave the old series untruncated next to the new one (duplicated
+  // occurrences) or overrides reparented to a master that never truncated.
+  // Cache invalidation stays OUTSIDE the transaction (after commit).
+  const newMaster = await getDb().transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(calendarEvents)
+      .values({
+        id: newId,
+        userId,
+        rrule: split.newSeries.rrule,
+        exdate: split.newSeries.exdate,
+        ...fields,
+      } as typeof calendarEvents.$inferInsert)
+      .returning()
 
-  if (plan.deleteOverrideId) {
-    await getDb()
-      .delete(calendarEvents)
-      .where(
-        and(
-          eq(calendarEvents.id, plan.deleteOverrideId),
-          eq(calendarEvents.userId, userId),
-        ),
-      )
-  }
+    if (plan.deleteOverrideId) {
+      await tx
+        .delete(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.id, plan.deleteOverrideId),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    }
 
-  if (split.moveOverrideIds.length > 0) {
-    await getDb()
+    if (split.moveOverrideIds.length > 0) {
+      await tx
+        .update(calendarEvents)
+        .set({ seriesId: newId })
+        .where(
+          and(
+            inArray(calendarEvents.id, split.moveOverrideIds),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    }
+
+    await tx
       .update(calendarEvents)
-      .set({ seriesId: newId })
+      .set({
+        rrule: withUntil(master.rrule!, split.masterUntil),
+        exdate: split.masterExdate,
+        updatedAt: new Date(),
+      })
       .where(
         and(
-          inArray(calendarEvents.id, split.moveOverrideIds),
+          eq(calendarEvents.id, master.id),
           eq(calendarEvents.userId, userId),
         ),
       )
-  }
 
-  await getDb()
-    .update(calendarEvents)
-    .set({
-      rrule: withUntil(master.rrule!, split.masterUntil),
-      exdate: split.masterExdate,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(eq(calendarEvents.id, master.id), eq(calendarEvents.userId, userId)),
-    )
+    return inserted
+  })
 
   await Promise.all([
     invalidateEventCache(
@@ -945,49 +965,55 @@ export const POST = async function POST(request: NextRequest) {
       })
     }
 
-    if (plan.exdateToAdd) {
-      await getDb()
-        .update(calendarEvents)
-        .set({
-          exdate: [...(masterRow.exdate ?? []), plan.exdateToAdd],
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(calendarEvents.id, masterRow.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
-    }
-
+    // Exdate write + override upsert are one atomic unit: an exdate without
+    // its override silently deletes the instance; an override without the
+    // exdate duplicates it.
     const upsert = plan.overrideUpsert!
     const encryptedOverride = encryptMergedFields(upsert.id, upsert.fields)
-    let stored
-    if (upsert.isNew) {
-      ;[stored] = await getDb()
-        .insert(calendarEvents)
-        .values({
-          id: upsert.id,
-          userId: user.id,
-          seriesId: upsert.seriesId,
-          recurrenceId: upsert.recurrenceId,
-          createdAt: upsert.fields.createdAt as Date,
-          updatedAt: upsert.fields.updatedAt as Date,
-          ...encryptedOverride,
-        } as typeof calendarEvents.$inferInsert)
-        .returning()
-    } else {
-      ;[stored] = await getDb()
-        .update(calendarEvents)
-        .set({ ...encryptedOverride, updatedAt: new Date() })
-        .where(
-          and(
-            eq(calendarEvents.id, upsert.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
-        .returning()
-    }
+    const stored = await getDb().transaction(async (tx) => {
+      if (plan.exdateToAdd) {
+        await tx
+          .update(calendarEvents)
+          .set({
+            exdate: [...(masterRow.exdate ?? []), plan.exdateToAdd],
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+      }
+
+      let row
+      if (upsert.isNew) {
+        ;[row] = await tx
+          .insert(calendarEvents)
+          .values({
+            id: upsert.id,
+            userId: user.id,
+            seriesId: upsert.seriesId,
+            recurrenceId: upsert.recurrenceId,
+            createdAt: upsert.fields.createdAt as Date,
+            updatedAt: upsert.fields.updatedAt as Date,
+            ...encryptedOverride,
+          } as typeof calendarEvents.$inferInsert)
+          .returning()
+      } else {
+        ;[row] = await tx
+          .update(calendarEvents)
+          .set({ ...encryptedOverride, updatedAt: new Date() })
+          .where(
+            and(
+              eq(calendarEvents.id, upsert.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+          .returning()
+      }
+      return row
+    })
 
     await invalidateEventCache(
       user.id,
@@ -1387,21 +1413,28 @@ export const DELETE = async function DELETE(request: NextRequest) {
 
     if (applyTo === 'single') {
       if (override) {
-        await deleteRow(user.id, override)
-        await getDb()
-          .update(calendarEvents)
-          .set({
-            exdate: [
-              ...new Set([...(masterRow.exdate ?? []), parsedId.recurrenceId]),
-            ],
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(calendarEvents.id, masterRow.id),
-              eq(calendarEvents.userId, user.id),
-            ),
-          )
+        // Override delete + master exdate are one atomic unit: dropping the
+        // override without the exdate resurrects the base occurrence.
+        await getDb().transaction(async (tx) => {
+          await deleteRow(user.id, override, tx)
+          await tx
+            .update(calendarEvents)
+            .set({
+              exdate: [
+                ...new Set([
+                  ...(masterRow.exdate ?? []),
+                  parsedId.recurrenceId,
+                ]),
+              ],
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(calendarEvents.id, masterRow.id),
+                eq(calendarEvents.userId, user.id),
+              ),
+            )
+        })
         await invalidateEventCache(
           user.id,
           masterRow.startDate.toISOString(),
@@ -1512,22 +1545,24 @@ export const DELETE = async function DELETE(request: NextRequest) {
     // Mirror the instance-id 'single' branch: delete the override row (its
     // invites are removed inside deleteRow), then exdate the occurrence. If
     // the override survived, the engine would re-render the deleted first
-    // instance as a ghost.
-    if (override) {
-      await deleteRow(user.id, override)
-    }
-    await getDb()
-      .update(calendarEvents)
-      .set({
-        exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(calendarEvents.id, seriesRow.id),
-          eq(calendarEvents.userId, user.id),
-        ),
-      )
+    // instance as a ghost. Both writes are one atomic unit.
+    await getDb().transaction(async (tx) => {
+      if (override) {
+        await deleteRow(user.id, override, tx)
+      }
+      await tx
+        .update(calendarEvents)
+        .set({
+          exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, user.id),
+          ),
+        )
+    })
     await invalidateEventCache(
       user.id,
       seriesRow.startDate.toISOString(),

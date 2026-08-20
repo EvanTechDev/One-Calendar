@@ -249,6 +249,14 @@ describe('events route series mutations (characterization)', () => {
     expect(deleteTarget).toBeGreaterThan(insertNew)
     expect(reparent).toBeGreaterThanOrEqual(0)
     expect(truncate).toBeGreaterThanOrEqual(0)
+    // All four split writes happen inside one transaction (plan 003).
+    const txBegin = fake.ops.indexOf('tx:begin')
+    const txCommit = fake.ops.indexOf('tx:commit')
+    expect(txBegin).toBeGreaterThanOrEqual(0)
+    expect(txBegin).toBeLessThan(insertNew)
+    expect(txCommit).toBeGreaterThan(
+      fake.ops.lastIndexOf('update:calendar_events:id=m1'),
+    )
     // Write order: insert new master → delete target override → reparent
     // moved overrides → truncate old master.
     const reparentOp = fake.ops.indexOf('update:calendar_events:id=o2')

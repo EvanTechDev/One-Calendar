@@ -562,7 +562,11 @@ function encryptMergedFields(
   return encrypted
 }
 
-type Db = Awaited<ReturnType<typeof getDb>>
+type BaseDb = Awaited<ReturnType<typeof getDb>>
+type TxDb = Parameters<Parameters<BaseDb['transaction']>[0]>[0]
+/** Either the singleton connection or a transaction executor — helpers that
+ * take this can participate in a caller's transaction unchanged. */
+type Db = BaseDb | TxDb
 
 async function deleteCalendarEventRow(
   db: Db,
@@ -621,8 +625,9 @@ async function applySplitPlan(
   userId: string,
   master: EventRow,
   plan: InstanceChangePlan,
+  dbx?: Db,
 ): Promise<ReturnType<typeof decryptEvent> | null> {
-  const db = await getDb()
+  const db = dbx ?? (await getDb())
   const split = plan.split!
   const newId = split.newSeries.id
   const [newMaster] = await db
@@ -1187,18 +1192,24 @@ export async function updateEvent(
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(userId, masterRow, plan)
-      if (!newMaster) return null
-      await shiftMovedOverrides(
-        db,
-        userId,
-        plan.split.moveOverrideIds,
-        plan.split.newSeries.startDate,
-      )
+      // Split writes + override re-stamps are one atomic unit (plan 003).
+      const newMaster = await db.transaction(async (tx) => {
+        const created = await applySplitPlan(userId, masterRow, plan, tx)
+        if (!created) return null
+        await shiftMovedOverrides(
+          tx,
+          userId,
+          plan.split!.moveOverrideIds,
+          plan.split!.newSeries.startDate,
+        )
+        return created
+      })
       return newMaster
     }
 
-    const stored = await applySinglePlan(db, userId, masterRow, plan)
+    const stored = await db.transaction(async (tx) =>
+      applySinglePlan(tx, userId, masterRow, plan),
+    )
     if (!stored) return null
     const resolved = resolveInstance(masterRow, parsedId.recurrenceId, [
       stored,
@@ -1306,18 +1317,24 @@ export async function updateEvent(
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(userId, seriesRow, plan)
-      if (!newMaster) return null
-      await shiftMovedOverrides(
-        db,
-        userId,
-        plan.split.moveOverrideIds,
-        plan.split.newSeries.startDate,
-      )
+      // Split writes + override re-stamps are one atomic unit (plan 003).
+      const newMaster = await db.transaction(async (tx) => {
+        const created = await applySplitPlan(userId, seriesRow, plan, tx)
+        if (!created) return null
+        await shiftMovedOverrides(
+          tx,
+          userId,
+          plan.split!.moveOverrideIds,
+          plan.split!.newSeries.startDate,
+        )
+        return created
+      })
       return newMaster
     }
 
-    const stored = await applySinglePlan(db, userId, seriesRow, plan)
+    const stored = await db.transaction(async (tx) =>
+      applySinglePlan(tx, userId, seriesRow, plan),
+    )
     if (!stored) return null
     const resolved = resolveInstance(seriesRow, recurrenceId, [
       stored,
@@ -1397,25 +1414,31 @@ export async function deleteEvent(
       // Both writes, mirroring the REST route: drop the override row AND
       // exdate the base occurrence — deleting only the override would let
       // the unedited base occurrence resurrect at the next expansion.
-      if (override) {
-        await deleteCalendarEventRow(db, userId, override.id)
-      }
-      if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
-        await db
-          .update(calendarEvents)
-          .set({
-            exdate: [
-              ...new Set([...(masterRow.exdate ?? []), parsedId.recurrenceId]),
-            ],
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(calendarEvents.id, masterRow.id),
-              eq(calendarEvents.userId, userId),
-            ),
-          )
-      }
+      // Atomic (plan 003).
+      await db.transaction(async (tx) => {
+        if (override) {
+          await deleteCalendarEventRow(tx, userId, override.id)
+        }
+        if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
+          await tx
+            .update(calendarEvents)
+            .set({
+              exdate: [
+                ...new Set([
+                  ...(masterRow.exdate ?? []),
+                  parsedId.recurrenceId,
+                ]),
+              ],
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(calendarEvents.id, masterRow.id),
+                eq(calendarEvents.userId, userId),
+              ),
+            )
+        }
+      })
       return
     }
 
@@ -1428,10 +1451,12 @@ export async function deleteEvent(
       fields: {},
       now: new Date(),
     })
-    const newMaster = await applySplitPlan(userId, masterRow, plan)
-    if (newMaster) {
-      await deleteCalendarEventRow(db, userId, newMaster.id)
-    }
+    await db.transaction(async (tx) => {
+      const newMaster = await applySplitPlan(userId, masterRow, plan, tx)
+      if (newMaster) {
+        await deleteCalendarEventRow(tx, userId, newMaster.id)
+      }
+    })
     return
   }
 
@@ -1473,31 +1498,35 @@ export async function deleteEvent(
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(userId, seriesRow, plan)
-      if (newMaster) {
-        await deleteCalendarEventRow(db, userId, newMaster.id)
-      }
+      await db.transaction(async (tx) => {
+        const newMaster = await applySplitPlan(userId, seriesRow, plan, tx)
+        if (newMaster) {
+          await deleteCalendarEventRow(tx, userId, newMaster.id)
+        }
+      })
       return
     }
 
     // Mirror the REST route's master-id 'single' delete: remove the override
     // row AND exdate the occurrence, or the engine re-renders the deleted
-    // first instance as a ghost.
-    if (override) {
-      await deleteCalendarEventRow(db, userId, override.id)
-    }
-    await db
-      .update(calendarEvents)
-      .set({
-        exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(calendarEvents.id, seriesRow.id),
-          eq(calendarEvents.userId, userId),
-        ),
-      )
+    // first instance as a ghost. Atomic (plan 003).
+    await db.transaction(async (tx) => {
+      if (override) {
+        await deleteCalendarEventRow(tx, userId, override.id)
+      }
+      await tx
+        .update(calendarEvents)
+        .set({
+          exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    })
     return
   }
 

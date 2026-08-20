@@ -322,8 +322,29 @@ export function makeFakeDb(): FakeDb {
     },
   }
 
+  /**
+   * Records tx boundaries in the op log and passes the SAME fake object to
+   * the callback so ops inside keep logging in order. Does not simulate
+   * rollback (ops stay applied); on callback throw it logs 'tx:rollback'
+   * and rethrows.
+   */
+  async function transaction<T>(
+    cb: (tx: Record<string, unknown>) => Promise<T>,
+  ): Promise<T> {
+    ops.push('tx:begin')
+    try {
+      const result = await cb(dbWithTx)
+      ops.push('tx:commit')
+      return result
+    } catch (err) {
+      ops.push('tx:rollback')
+      throw err
+    }
+  }
+  const dbWithTx: Record<string, unknown> = { ...db, transaction }
+
   return {
-    db,
+    db: dbWithTx,
     ops,
     writes,
     seed(row, table = DEFAULT_TABLE) {
