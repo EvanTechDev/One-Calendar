@@ -21,11 +21,13 @@ import {
   type InstanceChangePlan,
 } from '@/lib/event-service'
 import {
+  adaptRuleToStart,
   isInstanceId,
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
   shiftExdates,
+  shiftToAnchorClock,
   withUntil,
 } from '@/lib/recurrence/engine'
 import { RRule } from 'rrule'
@@ -1119,10 +1121,37 @@ export async function updateEvent(
     const applyTo = data.apply_to ?? 'single'
 
     if (applyTo === 'all') {
+      // Mirror the REST route's instance-'all' sequence: clamp the new start
+      // to the master's anchor day (only the clock moves), adapt the rule,
+      // clock-remap stored exdates, then re-stamp overrides — otherwise an
+      // MCP "all events" time change orphans every single-instance override
+      // and resurrects exdated occurrences. No timeZone is threaded through
+      // MCP (deferred finding); helpers fall back to server-local day parts.
+      const prevStartDate = masterRow.startDate
+      const nextStartDate =
+        (fields.startDate as Date | undefined) ?? prevStartDate
+      const allDay = fields.isAllDay ?? masterRow.isAllDay
+      const anchorStart = shiftToAnchorClock(prevStartDate, nextStartDate)
+      if (fields.startDate !== undefined) {
+        fields.startDate = anchorStart
+        if (fields.endDate !== undefined && fields.endDate !== null) {
+          const delta = nextStartDate.getTime() - anchorStart.getTime()
+          fields.endDate = new Date((fields.endDate as Date).getTime() - delta)
+        }
+      }
+      let rrule = data.rrule !== undefined ? rawRrule : masterRow.rrule
+      if (rrule !== null) {
+        rrule = adaptRuleToStart(rrule, prevStartDate, anchorStart, allDay)
+      }
+      const remappedExdate = shiftExdates(masterRow.exdate, nextStartDate)
       const set = {
         ...encryptMergedFields(masterRow.id, fields),
-        ...(data.rrule !== undefined ? { rrule: rawRrule } : {}),
-        ...(data.exdate !== undefined ? { exdate: data.exdate } : {}),
+        ...(rrule !== null ? { rrule } : {}),
+        ...(data.exdate !== undefined
+          ? { exdate: data.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
         updatedAt: new Date(),
       }
       const [updated] = await db
@@ -1135,6 +1164,15 @@ export async function updateEvent(
           ),
         )
         .returning()
+      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+        const seriesOverrides = await fetchSeriesOverrides(db, masterRow.id)
+        await shiftMovedOverrides(
+          db,
+          userId,
+          seriesOverrides.map((o) => o.id),
+          nextStartDate,
+        )
+      }
       return decryptEvent(updated)
     }
 
@@ -1205,10 +1243,27 @@ export async function updateEvent(
     const applyTo = data.apply_to ?? 'all'
 
     if (applyTo === 'all') {
+      // Same remap sequence as the instance-'all' branch above: adapt the
+      // rule to the new start, clock-remap exdates, re-stamp overrides.
+      // Master-id edits move the anchor itself, so no anchor-day clamp
+      // (mirrors the REST route's master-'all' branch).
+      const prevStartDate = seriesRow.startDate
+      const nextStartDate =
+        (fields.startDate as Date | undefined) ?? prevStartDate
+      const allDay = fields.isAllDay ?? seriesRow.isAllDay
+      let rrule = data.rrule !== undefined ? rawRrule : seriesRow.rrule
+      if (rrule !== null) {
+        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+      }
+      const remappedExdate = shiftExdates(seriesRow.exdate, nextStartDate)
       const set = {
         ...encryptMergedFields(seriesRow.id, fields),
-        ...(data.rrule !== undefined ? { rrule: rawRrule } : {}),
-        ...(data.exdate !== undefined ? { exdate: data.exdate } : {}),
+        ...(rrule !== null ? { rrule } : {}),
+        ...(data.exdate !== undefined
+          ? { exdate: data.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
         updatedAt: new Date(),
       }
       const [updated] = await db
@@ -1221,6 +1276,15 @@ export async function updateEvent(
           ),
         )
         .returning()
+      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+        const seriesOverrides = await fetchSeriesOverrides(db, seriesRow.id)
+        await shiftMovedOverrides(
+          db,
+          userId,
+          seriesOverrides.map((o) => o.id),
+          nextStartDate,
+        )
+      }
       return decryptEvent(updated)
     }
 

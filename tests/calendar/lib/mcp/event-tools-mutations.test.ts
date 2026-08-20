@@ -110,7 +110,7 @@ describe('MCP event tool mutations (characterization)', () => {
     expect(fake.row('m1')!.exdate).toEqual(['20260810T090000Z'])
   })
 
-  it('characterizes MCP updateEvent all: writes fields without any stamp remap (current behavior)', async () => {
+  it('characterizes MCP updateEvent all: clamps anchor, remaps exdates and override stamps', async () => {
     seedMaster({ exdate: ['20260817T090000Z'] })
     seedOverride('o1', '20260810T090000Z')
 
@@ -121,11 +121,15 @@ describe('MCP event tool mutations (characterization)', () => {
       end_date: '2026-08-10T11:30:00Z',
     })
 
-    // BUG (pinned): fields are written verbatim — no shiftToAnchorClock
-    // clamp (the master jumps to the instance's day), no exdate remap, no
-    // override re-stamp. Plan 002 flips all three assertions.
-    expect(fake.row('m1')!.startDate).toEqual(day(2026, 8, 10, 11))
-    expect(fake.row('m1')!.exdate).toEqual(['20260817T090000Z'])
-    expect(fake.row('o1')!.recurrenceId).toBe('20260810T090000Z')
+    // Fixed by plan 002 (mirrors the REST route's instance-'all' sequence):
+    // the master keeps its anchor day and adopts the new clock, stored
+    // exdates follow the clock, and override stamps are re-mapped so the
+    // edited instance keeps matching its occurrence.
+    // NOTE: MCP passes no timeZone, so the clamp/remaps use server-local day
+    // parts — tests run with UTC-equivalent expectations because the stamps
+    // and dates here are all UTC-midnight-aligned days at fixed clocks.
+    expect(fake.row('m1')!.startDate).toEqual(day(2026, 8, 3, 11))
+    expect(fake.row('m1')!.exdate).toEqual(['20260817T110000Z'])
+    expect(fake.row('o1')!.recurrenceId).toBe('20260810T110000Z')
   })
 })
