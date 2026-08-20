@@ -97,7 +97,7 @@ beforeEach(() => {
 })
 
 describe('MCP event tool mutations (characterization)', () => {
-  it('characterizes MCP deleteEvent single with override: deletes override, does NOT add exdate (current behavior)', async () => {
+  it('characterizes MCP deleteEvent single with override: deletes override AND adds exdate', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')
 
@@ -105,12 +105,9 @@ describe('MCP event tool mutations (characterization)', () => {
 
     expect(fake.ops).toContain('delete:calendar_events:id=o1')
     expect(fake.row('o1')).toBeUndefined()
-    // BUG (pinned): the master's exdate is never updated, so the unedited
-    // base occurrence resurrects. Plan 002 flips this assertion.
-    expect(fake.row('m1')!.exdate).toBeNull()
-    expect(fake.writes.some((w) => w.op === 'update' && w.id === 'm1')).toBe(
-      false,
-    )
+    // Fixed by plan 002: both writes happen (mirroring the REST route), so
+    // the unedited base occurrence cannot resurrect.
+    expect(fake.row('m1')!.exdate).toEqual(['20260810T090000Z'])
   })
 
   it('characterizes MCP updateEvent all: writes fields without any stamp remap (current behavior)', async () => {

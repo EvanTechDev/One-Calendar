@@ -1330,9 +1330,13 @@ export async function deleteEvent(
     }
 
     if (effectiveApplyTo === 'single') {
+      // Both writes, mirroring the REST route: drop the override row AND
+      // exdate the base occurrence — deleting only the override would let
+      // the unedited base occurrence resurrect at the next expansion.
       if (override) {
         await deleteCalendarEventRow(db, userId, override.id)
-      } else if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
+      }
+      if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
         await db
           .update(calendarEvents)
           .set({
