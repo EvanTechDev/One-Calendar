@@ -1227,8 +1227,49 @@ function canTranslateParts(parts: RruleParts, days: number): boolean {
   if (
     parts.bymonthday?.some((d) => {
       const shifted = d + days
-      return shifted === 0 || shifted > 31 || shifted < -31
+      if (shifted === 0 || shifted > 31 || shifted < -31) return true
+      // How many months of the year contain this day-of-month: 1-28 exist in
+      // all 12, the 29th in 12 (11 in a common year), the 30th in 11, the 31st
+      // in 7. Shifting between days with different counts adds or removes
+      // occurrences — BYMONTHDAY=31 → 30 gains four a year. Only shifts that
+      // keep the count identical are occurrence-preserving.
+      const monthsContaining = (n: number) =>
+        n <= 28 ? 12 : n === 29 ? 12 : n === 30 ? 11 : 7
+      return monthsContaining(d) !== monthsContaining(shifted)
     })
+  ) {
+    return false
+  }
+  // The same reasoning for YEARLY BYMONTH+BYMONTHDAY: Feb 29 shifted to Mar 1
+  // turns a leap-year-only occurrence into a yearly one.
+  if (
+    parts.freq === 'YEARLY' &&
+    parts.bymonth &&
+    parts.bymonth.length > 0 &&
+    parts.bymonthday &&
+    parts.bymonthday.length > 0
+  ) {
+    for (const month of parts.bymonth) {
+      for (const monthDay of parts.bymonthday) {
+        // Shortest month in the selection bounds what is expressible.
+        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][
+          month - 1
+        ]
+        if (monthDay + days > daysInMonth || monthDay + days < 1) return false
+        if (monthDay > 28 || monthDay + days > 28) return false
+      }
+    }
+  }
+
+  // A BYMONTH filter on a DAILY/WEEKLY rule keeps only the days that fall
+  // inside those months. Shifting the pattern moves days across the month
+  // boundary, so occurrences drop out of (or into) the filtered window and the
+  // spacing at each boundary changes. Only a rule whose own period matches the
+  // filter (YEARLY/MONTHLY, handled above) can absorb this.
+  if (
+    (parts.freq === 'DAILY' || parts.freq === 'WEEKLY') &&
+    parts.bymonth &&
+    parts.bymonth.length > 0
   ) {
     return false
   }

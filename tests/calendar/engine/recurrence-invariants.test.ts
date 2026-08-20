@@ -78,6 +78,27 @@ const RULES = [
   'FREQ=WEEKLY;BYDAY=MO;COUNT=10',
   'FREQ=WEEKLY;BYDAY=MO,WE;COUNT=7',
   'FREQ=DAILY;COUNT=5',
+  // Deliberately nasty shapes: every one of these has bitten a real calendar
+  // implementation. They mix selection modes, use negative/edge ordinals,
+  // land on month-length boundaries, and combine bounds with BY* filters.
+  'FREQ=MONTHLY;BYMONTHDAY=29,30,31',
+  'FREQ=MONTHLY;BYMONTHDAY=-1,-2',
+  'FREQ=MONTHLY;BYDAY=-1FR',
+  'FREQ=MONTHLY;BYDAY=1MO,3WE,-1FR',
+  'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-2',
+  'FREQ=MONTHLY;INTERVAL=3;BYDAY=2TU',
+  'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=29',
+  'FREQ=YEARLY;BYMONTH=1,3,5,7,9,11;BYMONTHDAY=31',
+  'FREQ=YEARLY;BYYEARDAY=1,100,-1',
+  'FREQ=YEARLY;BYWEEKNO=1,26,52;BYDAY=SU',
+  'FREQ=YEARLY;INTERVAL=2;BYMONTH=6;BYDAY=3SA',
+  'FREQ=WEEKLY;INTERVAL=3;BYDAY=MO,TU,WE,TH,FR,SA,SU',
+  'FREQ=WEEKLY;WKST=SU;INTERVAL=2;BYDAY=SU,SA',
+  'FREQ=DAILY;INTERVAL=1;BYMONTH=12',
+  'FREQ=DAILY;BYDAY=MO,WE,FR;COUNT=13',
+  'FREQ=MONTHLY;BYMONTHDAY=31;COUNT=4',
+  'FREQ=MONTHLY;BYDAY=-1SU;UNTIL=20270630T090000Z',
+  'FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=15;COUNT=3',
   'FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130T090000Z',
   'FREQ=MONTHLY;BYMONTHDAY=10;UNTIL=20270101T090000Z',
 ]
@@ -153,7 +174,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
         let overrides: EventRow[] = []
         const exdates = new Set<string>()
 
-        for (let step = 0; step < 12; step++) {
+        for (let step = 0; step < 20; step++) {
           const instances = expand(master, zone)
           if (instances.length === 0) break
           const target = instances[Math.floor(rng() * instances.length)]
@@ -178,7 +199,7 @@ describe('recurrence invariants (deterministic fuzz)', () => {
                 endDate: new Date(target.endDate.getTime() + 3600_000),
               },
             ]
-          } else if (roll < 0.7) {
+          } else if (roll < 0.6) {
             // "delete this event": exdate AND drop the override row (the
             // paired write the server performs).
             exdates.add(target.recurrenceId)
@@ -186,6 +207,55 @@ describe('recurrence invariants (deterministic fuzz)', () => {
             overrides = overrides.filter(
               (o) => o.recurrenceId !== target.recurrenceId,
             )
+          } else if (roll < 0.78) {
+            // "all events" with a cross-day move: translate the WHOLE pattern
+            // (rule + exdates + override stamps) the way the server does, so
+            // a long sequence exercises repeated pattern translation on top of
+            // splits and single edits.
+            const dayDelta = 1 + Math.floor(rng() * 3)
+            if (!canTranslateRuleByDays(master.rrule!, dayDelta)) continue
+            const shiftedStart = addWallClockDays(
+              master.startDate,
+              dayDelta,
+              zone,
+            )
+            const translatedRule = translateRuleByDays(
+              master.rrule!,
+              dayDelta,
+              shiftedStart,
+              master.isAllDay,
+              zone,
+            )
+            const movedExdates =
+              translateStampsByDays(
+                master.exdate,
+                dayDelta,
+                shiftedStart,
+                zone,
+              ) ?? null
+            master = {
+              ...master,
+              rrule: translatedRule,
+              startDate: shiftedStart,
+              endDate: addWallClockDays(master.endDate, dayDelta, zone),
+              exdate: movedExdates,
+            }
+            exdates.clear()
+            for (const stamp of movedExdates ?? []) exdates.add(stamp)
+            // Override stamps travel with the pattern (server: shiftMoved-
+            // Overrides / remapOverridesClock with the same dayDelta).
+            overrides = overrides.map((o) => ({
+              ...o,
+              recurrenceId:
+                o.recurrenceId === null
+                  ? null
+                  : (translateStampsByDays(
+                      [o.recurrenceId],
+                      dayDelta,
+                      shiftedStart,
+                      zone,
+                    )?.[0] ?? o.recurrenceId),
+            }))
           } else {
             // "this and following": split.
             const plan = planInstanceChange({

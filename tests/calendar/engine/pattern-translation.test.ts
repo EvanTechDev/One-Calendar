@@ -158,6 +158,40 @@ describe('translateRuleByDays', () => {
     expect(canTranslateRuleByDays(rule, 1)).toBe(false)
   })
 
+  it('refuses shifts that cross a month-length boundary', () => {
+    // Found by the invariant fuzz: BYMONTHDAY=31 exists in 7 months, the 30th
+    // in 11, the 29th in 12. Shifting between those classes adds or removes
+    // occurrences (31 → 30 gains four a year), so the shift is refused.
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=31', -1)).toBe(false)
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=30', -1)).toBe(false)
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=29,30,31', -1)).toBe(
+      false,
+    )
+    // Days that exist in every month shift freely.
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=15', 1)).toBe(true)
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=1,15', 1)).toBe(true)
+    // 28 → 29 keeps the same month count (both 12), so it is allowed.
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=28', 1)).toBe(true)
+    // Feb 29 → Mar 1 would turn a leap-year-only event into a yearly one.
+    expect(
+      canTranslateRuleByDays('FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=29', 1),
+    ).toBe(false)
+  })
+
+  it('refuses shifting a DAILY/WEEKLY rule that is filtered by BYMONTH', () => {
+    // Also found by the fuzz: BYMONTH on a sub-monthly rule keeps only the days
+    // inside those months, so moving the pattern changes which days survive the
+    // filter and the spacing at each month boundary.
+    expect(canTranslateRuleByDays('FREQ=DAILY;INTERVAL=1;BYMONTH=12', 1)).toBe(
+      false,
+    )
+    expect(canTranslateRuleByDays('FREQ=WEEKLY;BYDAY=MO;BYMONTH=6,7', 1)).toBe(
+      false,
+    )
+    // Without the filter the same rule shifts fine.
+    expect(canTranslateRuleByDays('FREQ=DAILY;INTERVAL=1', 1)).toBe(true)
+  })
+
   it('refuses last-day-of-month and partial-week BYWEEKNO shifts', () => {
     expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=-1', 1)).toBe(false)
     expect(canTranslateRuleByDays('FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO', 1)).toBe(
