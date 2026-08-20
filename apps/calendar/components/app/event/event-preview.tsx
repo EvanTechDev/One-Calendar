@@ -692,7 +692,13 @@ export default function EventPreview({
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
+                              {/* Wider than the default 8rem: the trigger is a
+                                  32px icon button, so the menu inherits its
+                                  width and items like "Copy invite link" wrap. */}
+                              <DropdownMenuContent
+                                align="end"
+                                className="min-w-52"
+                              >
                                 {!invite.emailSent ? (
                                   <DropdownMenuItem
                                     onClick={() =>

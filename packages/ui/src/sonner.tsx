@@ -16,6 +16,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
+      // Bottom-centre by default so toasts never cover the calendar's
+      // top-right controls or the right sidebar. Overridable per mount.
+      position="bottom-center"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
