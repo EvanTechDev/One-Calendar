@@ -129,9 +129,6 @@ export default function InvitePage() {
           <p className="text-muted-foreground">
             {error || 'This invite link is invalid or has expired.'}
           </p>
-          <Button variant="outline" onClick={() => window.close()}>
-            Close
-          </Button>
         </div>
       </div>
     )

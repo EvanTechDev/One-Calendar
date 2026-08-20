@@ -18,8 +18,14 @@ import {
 import { Input } from '@zntr/ui/input'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Badge } from '@zntr/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@zntr/ui/select'
 import { Spinner } from '@zntr/ui/spinner'
-import { Separator } from '@zntr/ui/separator'
 import {
   Empty,
   EmptyContent,
@@ -57,6 +63,7 @@ import {
   Eye,
   EyeOff,
   MoreHorizontal,
+  Pencil,
   SlidersHorizontal,
   ScrollText,
   Plug,
@@ -116,7 +123,14 @@ const MCP_KEYS = {
   settings: '/api/mcp/settings',
   apiKeys: '/api/mcp/api-keys',
   authorizedApps: '/api/mcp/authorized-apps',
-  auditLogs: (page: number) => `/api/mcp/audit-logs?page=${page}&limit=20`,
+  auditLogs: (page: number, filters: AuditFilters) => {
+    const params = new URLSearchParams({ page: String(page), limit: '20' })
+    if (filters.entryType !== 'all') params.set('entryType', filters.entryType)
+    if (filters.mutationsOnly) params.set('mutationsOnly', 'true')
+    if (filters.failuresOnly) params.set('failuresOnly', 'true')
+    if (filters.toolName !== 'all') params.set('toolName', filters.toolName)
+    return `/api/mcp/audit-logs?${params.toString()}`
+  },
 } as const
 
 function useMcpQuery<T>(key: string, config?: SWRConfiguration<T>) {
@@ -143,15 +157,42 @@ interface AuthorizedApp {
   isRevoked: boolean
 }
 
+type AuditEntryType = 'request' | 'tool_call'
+
 interface AuditLog {
   id: string
   authType: string
   action: string
+  entryType: AuditEntryType
+  toolName: string | null
   resourceType: string | null
   resourceId: string | null
+  isMutation: boolean
+  changes: {
+    fields?: string[]
+    apply_to?: string
+    emailCount?: number
+    exdateCount?: number
+    rruleChanged?: boolean
+  } | null
+  durationMs: number | null
   success: boolean
   errorMessage: string | null
   createdAt: string
+}
+
+interface AuditFilters {
+  entryType: AuditEntryType | 'all'
+  mutationsOnly: boolean
+  failuresOnly: boolean
+  toolName: string
+}
+
+const DEFAULT_AUDIT_FILTERS: AuditFilters = {
+  entryType: 'all',
+  mutationsOnly: false,
+  failuresOnly: false,
+  toolName: 'all',
 }
 
 function endpointUrl(): string {
@@ -370,20 +411,29 @@ export default function MCPSettings() {
   const [language] = useLanguage()
   const t = translations[language]
 
+  // `rounded-lg border p-4` matches the import/export and build-info panels, so
+  // switching settings tabs no longer changes the visual container.
   return (
-    <div className="w-full space-y-8">
-      <div>
-        <h2 className="text-base font-semibold">{t.settingsMcp}</h2>
-        <p className="text-sm text-muted-foreground">{t.settingsMcpDesc}</p>
+    <div className="w-full space-y-4">
+      <div className="w-full space-y-6 rounded-lg border p-4">
+        <div>
+          <h2 className="text-base font-semibold">{t.settingsMcp}</h2>
+          <p className="text-sm text-muted-foreground">{t.settingsMcpDesc}</p>
+        </div>
+        <MCPConnection />
       </div>
 
-      <MCPConnection />
-      <Separator />
-      <MCPApiKeys />
-      <Separator />
-      <MCPOAuthApps />
-      <Separator />
-      <MCPAuditLogs />
+      <div className="w-full rounded-lg border p-4">
+        <MCPApiKeys />
+      </div>
+
+      <div className="w-full rounded-lg border p-4">
+        <MCPOAuthApps />
+      </div>
+
+      <div className="w-full rounded-lg border p-4">
+        <MCPAuditLogs />
+      </div>
     </div>
   )
 }
@@ -932,21 +982,56 @@ function MCPOAuthApps() {
   )
 }
 
+function AuditChangeSummary({ log }: { log: AuditLog }) {
+  const changes = log.changes
+  if (!changes) return null
+  const bits: string[] = []
+  if (changes.fields?.length) bits.push(changes.fields.join(', '))
+  if (changes.apply_to) bits.push(`scope: ${changes.apply_to}`)
+  if (typeof changes.emailCount === 'number') {
+    bits.push(`${changes.emailCount} participant(s)`)
+  }
+  if (typeof changes.exdateCount === 'number') {
+    bits.push(`${changes.exdateCount} exclusion(s)`)
+  }
+  if (changes.rruleChanged) bits.push('repeat rule')
+  if (bits.length === 0) return null
+  return (
+    <p className="mt-0.5 text-xs text-muted-foreground">
+      Changed: <span className="text-foreground">{bits.join(' · ')}</span>
+    </p>
+  )
+}
+
 function MCPAuditLogs() {
   const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState<AuditFilters>(DEFAULT_AUDIT_FILTERS)
+
+  // Any filter change invalidates the current offset.
+  const updateFilters = (patch: Partial<AuditFilters>) => {
+    setFilters((prev) => ({ ...prev, ...patch }))
+    setPage(1)
+  }
 
   const { data, isLoading } = useMcpQuery<{
     logs: AuditLog[]
+    toolNames?: string[]
     pagination?: { totalPages: number }
-  }>(MCP_KEYS.auditLogs(page), { keepPreviousData: true })
+  }>(MCP_KEYS.auditLogs(page, filters), { keepPreviousData: true })
   const logs = data?.logs ?? []
+  const toolNames = data?.toolNames ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
+  const filtersActive =
+    filters.entryType !== 'all' ||
+    filters.mutationsOnly ||
+    filters.failuresOnly ||
+    filters.toolName !== 'all'
 
   return (
     <Section
       icon={ScrollText}
       title="Activity"
-      description="Recent MCP operations against this calendar."
+      description="Tool calls and data changes made through MCP."
       action={
         totalPages > 1 ? (
           <div className="flex items-center gap-1">
@@ -975,6 +1060,80 @@ function MCPAuditLogs() {
         ) : null
       }
     >
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={filters.entryType}
+          onValueChange={(value) =>
+            updateFilters({ entryType: value as AuditFilters['entryType'] })
+          }
+        >
+          <SelectTrigger size="sm" className="w-[9.5rem]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All entries</SelectItem>
+            <SelectItem value="tool_call">Tool calls</SelectItem>
+            <SelectItem value="request">Requests</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filters.toolName}
+          onValueChange={(value) => updateFilters({ toolName: value })}
+          disabled={toolNames.length === 0}
+        >
+          <SelectTrigger size="sm" className="w-[11rem]">
+            <SelectValue placeholder="All tools" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tools</SelectItem>
+            {toolNames.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant={filters.mutationsOnly ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs"
+          aria-pressed={filters.mutationsOnly}
+          onClick={() =>
+            updateFilters({ mutationsOnly: !filters.mutationsOnly })
+          }
+        >
+          <Pencil className="mr-1 h-3.5 w-3.5" />
+          Data changes
+        </Button>
+
+        <Button
+          variant={filters.failuresOnly ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs"
+          aria-pressed={filters.failuresOnly}
+          onClick={() => updateFilters({ failuresOnly: !filters.failuresOnly })}
+        >
+          <X className="mr-1 h-3.5 w-3.5" />
+          Failures
+        </Button>
+
+        {filtersActive ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => {
+              setFilters(DEFAULT_AUDIT_FILTERS)
+              setPage(1)
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </div>
+
       {isLoading ? (
         <SectionSkeleton rows={3} />
       ) : logs.length === 0 ? (
@@ -983,9 +1142,13 @@ function MCPAuditLogs() {
             <EmptyMedia variant="icon">
               <ScrollText />
             </EmptyMedia>
-            <EmptyTitle>No activity yet</EmptyTitle>
+            <EmptyTitle>
+              {filtersActive ? 'No matching activity' : 'No activity yet'}
+            </EmptyTitle>
             <EmptyDescription>
-              Operations show up here once an agent connects.
+              {filtersActive
+                ? 'Try clearing the filters.'
+                : 'Operations show up here once an agent connects.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -1010,7 +1173,17 @@ function MCPAuditLogs() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-mono text-xs">{log.action}</span>
+                  <span className="font-mono text-xs">
+                    {log.toolName ?? log.action}
+                  </span>
+                  {log.isMutation ? (
+                    <Badge
+                      variant="secondary"
+                      className="h-4 px-1 py-0 text-[10px] font-normal"
+                    >
+                      write
+                    </Badge>
+                  ) : null}
                   {log.resourceType ? (
                     <span className="text-xs text-muted-foreground">
                       {log.resourceType}
@@ -1021,6 +1194,7 @@ function MCPAuditLogs() {
                     {formatRelative(log.createdAt)}
                   </span>
                 </div>
+                <AuditChangeSummary log={log} />
                 {log.errorMessage ? (
                   <p className="mt-0.5 truncate text-xs text-destructive">
                     {log.errorMessage}
@@ -1028,6 +1202,9 @@ function MCPAuditLogs() {
                 ) : null}
                 <span className="text-xs text-muted-foreground">
                   via {log.authType}
+                  {typeof log.durationMs === 'number'
+                    ? ` · ${log.durationMs}ms`
+                    : ''}
                 </span>
               </div>
             </li>

@@ -17,6 +17,7 @@ import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
+import ParticipantAvatars from '@/components/app/views/participant-avatars'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
@@ -214,6 +215,11 @@ export default function WeekView({
         onEventDrop(draggingEvent, newStartDate, newEndDate)
       }
 
+      // The browser fires `click` AFTER `mouseup`, so clearing the drag flag
+      // here would let the event block's onClick open the preview at the drop
+      // target. Suppress that one click instead (same mechanism the resize
+      // handles and the context menu use).
+      if (isDraggingRef.current) queueIgnoreEventClick()
       isDraggingRef.current = false
       setDraggingEvent(null)
       setDragStartPosition(null)
@@ -422,10 +428,15 @@ export default function WeekView({
           style={{ backgroundColor: getEventAccentColor(event.color) }}
         />
         <div
-          className="pl-1.5 truncate"
+          className="flex items-center gap-1 truncate pl-1.5"
           style={{ color: getEventAccentColor(event.color) }}
         >
-          {event.title}
+          <ParticipantAvatars
+            invites={event.invites}
+            organizer={event.organizer}
+            size={12}
+          />
+          <span className="truncate">{event.title}</span>
         </div>
       </div>
     ))
@@ -469,8 +480,20 @@ export default function WeekView({
         />
         <div className="pl-1">
           <div
-            className="font-medium truncate"
-            style={{ color: getEventAccentColor(draggingEvent.color) }}
+            className="font-medium leading-tight break-words"
+            style={{
+              color: getEventAccentColor(draggingEvent.color),
+              // Match the real block: wrap to as many lines as the preview's
+              // height allows instead of always truncating to one line.
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: Math.max(
+                1,
+                Math.floor((dragEventDuration - 8) / 16),
+              ),
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {draggingEvent.title}
           </div>
@@ -698,6 +721,11 @@ export default function WeekView({
                             textOverflow: 'ellipsis',
                           }}
                         >
+                          <ParticipantAvatars
+                            invites={event.invites}
+                            organizer={event.organizer}
+                            className="mr-1"
+                          />
                           {event.title}
                         </div>
                         {height >= 40 && (

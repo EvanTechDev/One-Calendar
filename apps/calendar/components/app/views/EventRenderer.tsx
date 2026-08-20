@@ -12,6 +12,7 @@ import {
   getEventBackgroundColor,
 } from '@/components/app/views/event-colors'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
+import ParticipantAvatars from '@/components/app/views/participant-avatars'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -244,6 +245,11 @@ export function EventRenderer({
                 textOverflow: 'ellipsis',
               }}
             >
+              <ParticipantAvatars
+                invites={event.invites}
+                organizer={event.organizer}
+                className="mr-1"
+              />
               {event.title}
             </div>
             {showTime && height >= 40 && (

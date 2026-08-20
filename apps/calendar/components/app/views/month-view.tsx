@@ -21,6 +21,7 @@ import type { ViewConfig } from '@/lib/calendar-types'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
+import ParticipantAvatars from '@/components/app/views/participant-avatars'
 
 interface RemainingPopoverState {
   key: string
@@ -169,13 +170,18 @@ export default function MonthView({
                       }}
                     />
                     <div
-                      className="pl-1.5 truncate"
+                      className="flex items-center gap-1 truncate pl-1.5"
                       style={{
                         color:
                           EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
                       }}
                     >
-                      {event.title}
+                      <ParticipantAvatars
+                        invites={event.invites}
+                        organizer={event.organizer}
+                        size={12}
+                      />
+                      <span className="truncate">{event.title}</span>
                     </div>
                   </div>
                 ))}
@@ -264,13 +270,18 @@ export default function MonthView({
                       }}
                     />
                     <div
-                      className="truncate"
+                      className="flex items-center gap-1 truncate"
                       style={{
                         color:
                           EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
                       }}
                     >
-                      {event.title}
+                      <ParticipantAvatars
+                        invites={event.invites}
+                        organizer={event.organizer}
+                        size={12}
+                      />
+                      <span className="truncate">{event.title}</span>
                     </div>
                   </button>
                 ))}

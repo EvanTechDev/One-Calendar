@@ -15,6 +15,7 @@ import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
+import ParticipantAvatars from '@/components/app/views/participant-avatars'
 
 interface YearViewProps {
   date: Date
@@ -291,9 +292,16 @@ export default function YearView({
                       />
                       <div
                         style={{ color: getAccent(event.color) }}
-                        className="truncate"
+                        className="flex items-center gap-1 truncate"
                       >
-                        {event.title || t.unnamedEvent}
+                        <ParticipantAvatars
+                          invites={event.invites}
+                          organizer={event.organizer}
+                          size={12}
+                        />
+                        <span className="truncate">
+                          {event.title || t.unnamedEvent}
+                        </span>
                       </div>
                     </button>
                   ))}

@@ -324,8 +324,22 @@ export const mcpAuditLogs = pgTable(
     authType: text('auth_type').notNull(),
     keyId: text('key_id'),
     action: text('action').notNull(),
+    /**
+     * 'request' = one row per HTTP request (transport level, also what the
+     * Redis-fallback rate limiter counts). 'tool_call' = one row per MCP tool
+     * invocation. Keeping them distinguishable is what lets the UI filter and
+     * stops per-tool rows from inflating the rate-limit count.
+     */
+    entryType: text('entry_type').notNull().default('request'),
+    /** MCP tool name for 'tool_call' rows, e.g. "update_event". */
+    toolName: text('tool_name'),
     resourceType: text('resource_type'),
     resourceId: text('resource_id'),
+    /** Whether the call mutated data — drives the "changes only" filter. */
+    isMutation: boolean('is_mutation').notNull().default(false),
+    /** Redacted summary of what changed: { fields: [...], apply_to, ... }. */
+    changes: jsonb('changes').$type<Record<string, unknown>>(),
+    durationMs: integer('duration_ms'),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     success: boolean('success').notNull().default(true),
@@ -337,6 +351,10 @@ export const mcpAuditLogs = pgTable(
   (table) => ({
     userIdIdx: index('idx_mcp_audit_user_id').on(table.userId),
     createdAtIdx: index('idx_mcp_audit_created_at').on(table.createdAt),
+    entryTypeIdx: index('idx_mcp_audit_entry_type').on(
+      table.userId,
+      table.entryType,
+    ),
   }),
 )
 

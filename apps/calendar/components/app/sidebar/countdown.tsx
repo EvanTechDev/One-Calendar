@@ -638,15 +638,23 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   onChange={(e) => setIconSearch(e.target.value)}
                   className="mb-2"
                 />
+                {/* The grid must fit the popover's inner width, otherwise it
+                    overflows horizontally and the right-hand icons cannot be
+                    reached (ScrollArea only scrolls vertically). Auto-fit
+                    columns size themselves to the available space instead of
+                    forcing 8 fixed-width cells. */}
                 <ScrollArea className="h-52">
-                  <div className="grid grid-cols-8 gap-1">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(2rem,1fr))] gap-1 pr-1">
                     {filteredIcons.map((iconName) => (
-                      <div
+                      <button
                         key={iconName}
+                        type="button"
+                        aria-label={iconName}
+                        aria-pressed={newCountdown.icon === iconName}
                         className={cn(
-                          'h-11 w-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent',
+                          'flex aspect-square w-full items-center justify-center rounded-md hover:bg-accent',
                           newCountdown.icon === iconName &&
-                            'ring-2 ring-primary bg-accent/60',
+                            'bg-accent/60 ring-2 ring-primary',
                         )}
                         onClick={() =>
                           setNewCountdown({ ...newCountdown, icon: iconName })
@@ -657,7 +665,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                           newCountdown.color || 'bg-blue-500',
                           18,
                         )}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </ScrollArea>

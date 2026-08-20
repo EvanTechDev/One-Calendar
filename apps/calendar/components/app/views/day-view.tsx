@@ -176,6 +176,11 @@ export default function DayView({
         onEventDrop(draggingEvent, newStartDate, newEndDate)
       }
 
+      // The browser fires `click` AFTER `mouseup`, so clearing the drag flag
+      // here would let the event block's onClick open the preview at the drop
+      // target. Suppress that one click instead (same mechanism the resize
+      // handles and the context menu use).
+      if (isDraggingRef.current) queueIgnoreEventClick()
       isDraggingRef.current = false
       setDraggingEvent(null)
       setDragStartPosition(null)
@@ -358,8 +363,20 @@ export default function DayView({
         />
         <div className="pl-1">
           <div
-            className="font-medium truncate"
-            style={{ color: getEventAccentColor(draggingEvent.color) }}
+            className="font-medium leading-tight break-words"
+            style={{
+              color: getEventAccentColor(draggingEvent.color),
+              // Match the real block: wrap to as many lines as the preview's
+              // height allows instead of always truncating to one line.
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: Math.max(
+                1,
+                Math.floor((dragEventDuration - 8) / 16),
+              ),
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {draggingEvent.title}
           </div>

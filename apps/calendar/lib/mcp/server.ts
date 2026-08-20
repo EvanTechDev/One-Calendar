@@ -9,6 +9,7 @@ import {
 } from './colors'
 import { CATEGORY_COLOR_VALUES } from './category-tools'
 import { InvalidEventQueryError, ParticipantError } from './errors'
+import { withToolAudit } from './tool-audit'
 
 const SCOPE_EVENTS_READ = 'events:read'
 const SCOPE_EVENTS_WRITE = 'events:write'
@@ -140,11 +141,43 @@ function respondMessage(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }] }
 }
 
+/**
+ * Wraps `server.tool` so every registration gets audit logging without
+ * touching the 27 call sites (CORE-128). Intercepting here also guarantees a
+ * tool added later is audited by default rather than silently escaping the
+ * log.
+ */
+function withAuditedTools(server: McpServer): McpServer {
+  const originalTool = server.tool.bind(server)
+  const patched = ((...args: unknown[]) => {
+    const name = args[0]
+    const handlerIndex = args.length - 1
+    const handler = args[handlerIndex]
+    if (typeof name === 'string' && typeof handler === 'function') {
+      const wrapped = withToolAudit(
+        name,
+        handler as (
+          params: Record<string, unknown>,
+          extra: { authInfo?: AuthInfo },
+        ) => Promise<unknown>,
+      )
+      const next = [...args]
+      next[handlerIndex] = wrapped
+      return (originalTool as (...a: unknown[]) => unknown)(...next)
+    }
+    return (originalTool as (...a: unknown[]) => unknown)(...args)
+  }) as typeof server.tool
+  server.tool = patched
+  return server
+}
+
 export function createServer(): McpServer {
   const server = new McpServer(
     { name: 'One Calendar MCP', version: '1.0.0' },
     { capabilities: { tools: {} } },
   )
+
+  withAuditedTools(server)
 
   registerEventTools(server)
   registerEventParticipantTools(server)
