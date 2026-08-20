@@ -362,7 +362,10 @@ describe('planInstanceChange', () => {
     expect(split.moveOverrideIds).toEqual([])
   })
 
-  it('feeds override start/end dates into the split', () => {
+  it('takes an override time into the split but snaps the day back to the pattern', () => {
+    // The override moved this occurrence to Jan 6 09:00; a "following" save
+    // adopts the 09:00 clock but keeps the split anchored on the pattern day
+    // (Jan 5) so the tail never violates the parent recurrence.
     const override = makeEvent({
       id: 'ovr-7',
       seriesId: master.id,
@@ -379,13 +382,52 @@ describe('planInstanceChange', () => {
       applyTo: 'following',
       fields: {},
       now: day(2024, 1, 1),
+      timeZone: 'UTC',
     })
     const split = plan.split!
     expect(plan.deleteOverrideId).toBe('ovr-7')
     expect(split.newSeries.startDate.getTime()).toBe(
-      day(2024, 1, 6, 9).getTime(),
+      day(2024, 1, 5, 9).getTime(),
+    )
+    expect(split.newSeries.endDate.getTime()).toBe(
+      day(2024, 1, 5, 10).getTime(),
     )
     expect(split.newSeries.rrule.startsWith('FREQ=DAILY')).toBe(true)
+  })
+
+  it('keeps a following split on the parent pattern when dragged to another weekday', () => {
+    // Mon/Wed/Fri/Sun weekly series; drag Wednesday's instance to Tuesday
+    // 15:00 and save "this and following". Expected: NO Tuesday is added —
+    // the tail stays on Mon/Wed/Fri/Sun and only moves to 15:00.
+    const weekly = makeDailySeries({
+      startDate: day(2026, 8, 3, 9), // Monday
+      endDate: day(2026, 8, 3, 10),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+    })
+    const plan = planInstanceChange({
+      master: weekly,
+      override: null,
+      overrides: [],
+      recurrenceId: '20260805T090000Z', // Wednesday
+      applyTo: 'following',
+      fields: {
+        startDate: day(2026, 8, 4, 15), // dragged to Tuesday 15:00
+        endDate: day(2026, 8, 4, 17),
+      },
+      now: day(2026, 8, 1),
+      timeZone: 'UTC',
+    })
+    const split = plan.split!
+    // Anchor snapped back to Wednesday, clock adopted (15:00-17:00).
+    expect(split.newSeries.startDate.getTime()).toBe(
+      day(2026, 8, 5, 15).getTime(),
+    )
+    expect(split.newSeries.endDate.getTime()).toBe(
+      day(2026, 8, 5, 17).getTime(),
+    )
+    // The parent pattern is untouched — no TU added.
+    expect(split.newSeries.rrule).toContain('BYDAY=MO,WE,FR,SU')
+    expect(split.newSeries.rrule).not.toMatch(/BYDAY=[^;]*TU/)
   })
 
   it('moves future overrides to the new series only', () => {

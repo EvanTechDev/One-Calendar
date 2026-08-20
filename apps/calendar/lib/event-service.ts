@@ -9,6 +9,7 @@ import {
   reanchor,
   remainingSeriesCount,
   shiftExdates,
+  snapToPatternDay,
   toRfcStamp,
   wallClockToInstant,
 } from '@/lib/recurrence/engine'
@@ -292,14 +293,30 @@ export function planInstanceChange(
 
   const duration = master.endDate.getTime() - master.startDate.getTime()
   const patternStart = parseRfcStamp(recurrenceId).date
-  const startDate =
+  const requestedStart =
     target.fields?.startDate ?? override?.startDate ?? patternStart
-  const endDate =
+  const requestedEnd =
     target.fields?.endDate ??
     override?.endDate ??
-    new Date((startDate as Date).getTime() + duration)
+    new Date((requestedStart as Date).getTime() + duration)
   const isAllDay =
     target.fields?.isAllDay ?? override?.isAllDay ?? master.isAllDay
+  // "This and following" must NOT violate the parent pattern: dragging
+  // Wednesday's instance to Tuesday 15:00 in a Mon/Wed/Fri/Sun series moves
+  // the tail to 15:00 on its OWN pattern days — it does not add Tuesdays.
+  // So the new series' anchor snaps back to the dragged occurrence's day and
+  // keeps only the new time of day. An all-day move has no clock to adopt,
+  // so it is left as requested.
+  const startDate = isAllDay
+    ? requestedStart
+    : snapToPatternDay(patternStart, requestedStart as Date, target.timeZone)
+  const endDate = isAllDay
+    ? requestedEnd
+    : new Date(
+        (startDate as Date).getTime() +
+          ((requestedEnd as Date).getTime() -
+            (requestedStart as Date).getTime()),
+      )
   const rule = master.rrule ?? ''
   const existingExdate = master.exdate ?? []
   const splitExdate = existingExdate.filter((stamp) => stamp > recurrenceId)

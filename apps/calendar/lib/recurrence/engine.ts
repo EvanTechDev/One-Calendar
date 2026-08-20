@@ -871,6 +871,205 @@ export function shiftStamp(stamp: string, deltaMs: number): string {
 }
 
 /**
+ * Whole-calendar-day distance between two instants, measured on their wall
+ * clock dates (not by milliseconds), so it is DST-safe and unaffected by the
+ * time-of-day part: Mon 09:00 → Tue 15:00 is +1 day.
+ */
+export function wallClockDayDelta(
+  from: Date,
+  to: Date,
+  timeZone?: string,
+): number {
+  const a = partsOfDate(from, timeZone)
+  const b = partsOfDate(to, timeZone)
+  const dayA = Date.UTC(a.year, a.month - 1, a.day)
+  const dayB = Date.UTC(b.year, b.month - 1, b.day)
+  return Math.round((dayB - dayA) / (24 * 3600 * 1000))
+}
+
+/**
+ * Adds whole calendar days to an instant, keeping its wall-clock time of day.
+ * DST-safe: 09:00 stays 09:00 even when the offset changes across the shift.
+ */
+export function addWallClockDays(
+  date: Date,
+  days: number,
+  timeZone?: string,
+): Date {
+  const parts = partsOfDate(date, timeZone)
+  const shifted = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day + days),
+  )
+  const clock = {
+    hour: parts.hour,
+    minute: parts.minute,
+    second: parts.second,
+  }
+  return wallClockToInstant(
+    {
+      year: shifted.getUTCFullYear(),
+      month: shifted.getUTCMonth() + 1,
+      day: shifted.getUTCDate(),
+      ...clock,
+    },
+    clock,
+    timeZone,
+  )
+}
+
+/**
+ * Translates a whole recurrence pattern by `days` calendar days and applies
+ * `clockSource`'s time of day — the "all events" semantic when the anchor is
+ * moved to a different weekday: every generated slot shifts by the same day
+ * distance (Mon/Wed/Fri/Sun + 1 → Tue/Thu/Sat/Mon) instead of the pattern
+ * collapsing onto one weekday.
+ *
+ * Handles each FREQ generically:
+ * - WEEKLY: rotates every BYDAY entry by `days`.
+ * - MONTHLY by BYMONTHDAY / YEARLY: shifts the day-of-month (and month for
+ *   YEARLY) via real date arithmetic so month lengths are respected.
+ * - MONTHLY by BYDAY+BYSETPOS ("2nd Tuesday"): rotates the weekday, keeping
+ *   the ordinal.
+ * - DAILY and rules with no day constraint: nothing to rotate — the anchor
+ *   move alone carries the shift.
+ *
+ * Returns the rule unchanged when it cannot be parsed.
+ */
+export function translateRuleByDays(
+  rule: string,
+  days: number,
+  anchorAfterShift: Date,
+  isAllDay: boolean,
+  timeZone?: string,
+): string {
+  if (days === 0) return rule
+  let parts: RruleParts
+  try {
+    parts = rruleToParts(rule)
+  } catch {
+    return rule
+  }
+  const anchorParts = partsOfDate(anchorAfterShift, timeZone)
+
+  if (parts.freq === 'WEEKLY') {
+    if (parts.byweekday && parts.byweekday.length > 0) {
+      const rotated = parts.byweekday.map((name) => {
+        const index = DAY_INDEX[name.toUpperCase()]
+        if (index === undefined) return name
+        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
+      })
+      parts = { ...parts, byweekday: [...new Set(rotated)] }
+    }
+  } else if (parts.freq === 'MONTHLY') {
+    if (
+      parts.byweekday &&
+      parts.byweekday.length > 0 &&
+      parts.bysetpos !== null
+    ) {
+      // "nth <weekday>" — rotate the weekday, keep the ordinal position.
+      const rotated = parts.byweekday.map((name) => {
+        const index = DAY_INDEX[name.toUpperCase()]
+        if (index === undefined) return name
+        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
+      })
+      parts = { ...parts, byweekday: [...new Set(rotated)] }
+    } else if (parts.bymonthday && parts.bymonthday.length > 0) {
+      parts = { ...parts, bymonthday: [anchorParts.day] }
+    }
+  } else if (parts.freq === 'YEARLY') {
+    if (
+      parts.byweekday &&
+      parts.byweekday.length > 0 &&
+      parts.bysetpos !== null
+    ) {
+      const rotated = parts.byweekday.map((name) => {
+        const index = DAY_INDEX[name.toUpperCase()]
+        if (index === undefined) return name
+        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
+      })
+      parts = { ...parts, byweekday: [...new Set(rotated)] }
+      if (parts.bymonth && parts.bymonth.length > 0) {
+        parts = { ...parts, bymonth: [anchorParts.month] }
+      }
+    } else {
+      if (parts.bymonth && parts.bymonth.length > 0) {
+        parts = { ...parts, bymonth: [anchorParts.month] }
+      }
+      if (parts.bymonthday && parts.bymonthday.length > 0) {
+        parts = { ...parts, bymonthday: [anchorParts.day] }
+      }
+    }
+  }
+
+  // An absolute UNTIL bound travels with the pattern.
+  if (parts.until !== null) {
+    try {
+      const untilDate = parseRfcStamp(parts.until).date
+      if (!Number.isNaN(untilDate.getTime())) {
+        parts = {
+          ...parts,
+          until: toRfcStamp(
+            addWallClockDays(untilDate, days, timeZone),
+            isAllDay,
+          ),
+        }
+      }
+    } catch {
+      // Leave a non-parsable UNTIL alone.
+    }
+  }
+
+  try {
+    return rruleFromParts(parts)
+  } catch {
+    return rule
+  }
+}
+
+/**
+ * Translates recurrence stamps by whole calendar days AND applies
+ * `clockSource`'s time of day — the exdate/override counterpart of
+ * `translateRuleByDays`, so stored stamps keep matching the slots the
+ * translated pattern generates.
+ */
+export function translateStampsByDays(
+  stamps: string[] | null | undefined,
+  days: number,
+  clockSource: Date,
+  timeZone?: string,
+): string[] | null {
+  if (!stamps || stamps.length === 0) return null
+  return stamps.map((stamp) => {
+    const parsed = parseRfcStamp(stamp)
+    const movedDay = addWallClockDays(parsed.date, days, timeZone)
+    return toRfcStamp(
+      parsed.isAllDay
+        ? movedDay
+        : shiftToAnchorClock(movedDay, clockSource, timeZone),
+      parsed.isAllDay,
+    )
+  })
+}
+
+/**
+ * Snaps `candidate` back onto the recurrence pattern of `rule`, keeping only
+ * its time of day — the "this and following" semantic: dragging Wednesday's
+ * instance to Tuesday 15:00 must NOT add a Tuesday to a Mon/Wed/Fri/Sun
+ * series; the split series stays on its pattern days and only adopts 15:00.
+ *
+ * Returns `patternDate`'s day with `candidate`'s clock. `patternDate` is the
+ * occurrence the user actually dragged (its stamp is a pattern member), so
+ * the result is always a valid slot.
+ */
+export function snapToPatternDay(
+  patternDate: Date,
+  candidate: Date,
+  timeZone?: string,
+): Date {
+  return shiftToAnchorClock(patternDate, candidate, timeZone)
+}
+
+/**
  * Re-anchors an RRULE so that `newStartDate` is a member of the recurrence set.
  *
  * Fixes the "root event disappears after a save" case: when a series master's

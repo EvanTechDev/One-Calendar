@@ -39,8 +39,12 @@ import {
   isSeriesEvent,
   parseInstanceId,
   parseRfcStamp,
+  addWallClockDays,
   shiftExdates,
   shiftToAnchorClock,
+  translateRuleByDays,
+  translateStampsByDays,
+  wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
@@ -161,14 +165,27 @@ async function remapOverridesClock(
   masterId: string,
   clockSource: Date,
   timeZone?: string,
+  dayDelta = 0,
 ): Promise<void> {
   const overrides = await fetchOverrides(masterId)
   for (const o of overrides) {
     if (!o.recurrenceId) continue
+    // A whole-pattern day translation ("all events" moved to another
+    // weekday) moves the override stamps by the same day distance; a pure
+    // clock change keeps their day.
+    const nextStamp =
+      dayDelta !== 0
+        ? translateStampsByDays(
+            [o.recurrenceId],
+            dayDelta,
+            clockSource,
+            timeZone,
+          )![0]
+        : shiftExdates([o.recurrenceId], clockSource, timeZone)![0]
     await getDb()
       .update(calendarEvents)
       .set({
-        recurrenceId: shiftExdates([o.recurrenceId], clockSource, timeZone)![0],
+        recurrenceId: nextStamp,
         updatedAt: new Date(),
       })
       .where(
@@ -190,6 +207,7 @@ async function shiftOverridesByDelta(
   ids: string[],
   clockSource: Date,
   timeZone?: string,
+  dayDelta = 0,
 ): Promise<void> {
   if (ids.length === 0) return
   const rows = await getDb()
@@ -200,7 +218,15 @@ async function shiftOverridesByDelta(
     )
   for (const row of rows) {
     if (!row.recurrenceId) continue
-    const newStamp = shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
+    const newStamp =
+      dayDelta !== 0
+        ? translateStampsByDays(
+            [row.recurrenceId],
+            dayDelta,
+            clockSource,
+            timeZone,
+          )![0]
+        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
     await getDb()
       .update(calendarEvents)
       .set({
@@ -868,9 +894,19 @@ export const POST = async function POST(request: NextRequest) {
       const prevStartDate = masterRow.startDate
       const nextStartDate = submittedFields.startDate as Date
       const allDay = submittedFields.isAllDay ?? masterRow.isAllDay
-      const anchorStart = shiftToAnchorClock(
-        prevStartDate,
+      // "All events" translates the WHOLE pattern: dragging the first
+      // occurrence from Monday to Tuesday shifts every generated slot by the
+      // same day distance (Mon/Wed/Fri/Sun → Tue/Thu/Sat/Mon) and applies the
+      // new time of day. A same-day move is a pure clock change (dayDelta 0),
+      // which keeps the previous behaviour.
+      const dayDelta = wallClockDayDelta(
+        parseRfcStamp(parsedId.recurrenceId).date,
         nextStartDate,
+        timeZone,
+      )
+      const anchorStart = addWallClockDays(
+        shiftToAnchorClock(prevStartDate, nextStartDate, timeZone),
+        dayDelta,
         timeZone,
       )
       submittedFields.startDate = anchorStart
@@ -878,14 +914,23 @@ export const POST = async function POST(request: NextRequest) {
         submittedFields.endDate !== null &&
         submittedFields.endDate !== undefined
       ) {
-        const delta = nextStartDate.getTime() - anchorStart.getTime()
-        submittedFields.endDate = new Date(
-          (submittedFields.endDate as Date).getTime() - delta,
-        )
+        const duration =
+          (submittedFields.endDate as Date).getTime() - nextStartDate.getTime()
+        submittedFields.endDate = new Date(anchorStart.getTime() + duration)
       }
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : masterRow.rrule
       if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                anchorStart,
+                allDay,
+                timeZone,
+              )
+            : rrule
         rrule = adaptRuleToStart(
           rrule,
           prevStartDate,
@@ -894,11 +939,15 @@ export const POST = async function POST(request: NextRequest) {
           timeZone,
         )
       }
-      const remappedExdate = shiftExdates(
-        masterRow.exdate,
-        nextStartDate,
-        timeZone,
-      )
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(
+              masterRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(masterRow.exdate, nextStartDate, timeZone)
       const set = {
         ...encryptMergedFields(masterRow.id, submittedFields),
         ...(rrule !== null ? { rrule } : {}),
@@ -924,7 +973,13 @@ export const POST = async function POST(request: NextRequest) {
         masterRow.startDate.toISOString(),
         masterRow.endDate.toISOString(),
       )
-      await remapOverridesClock(user.id, masterRow.id, nextStartDate, timeZone)
+      await remapOverridesClock(
+        user.id,
+        masterRow.id,
+        nextStartDate,
+        timeZone,
+        dayDelta,
+      )
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1132,9 +1187,23 @@ export const POST = async function POST(request: NextRequest) {
       const prevStartDate = seriesRow.startDate
       const nextStartDate = submittedFields.startDate as Date
       const allDay = submittedFields.isAllDay ?? seriesRow.isAllDay
+      // Master-id edits move the anchor itself; when the move crosses days
+      // the whole pattern travels with it (Mon/Wed/Fri/Sun → Tue/Thu/Sat/Mon),
+      // matching the instance-'all' semantic.
+      const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate, timeZone)
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : seriesRow.rrule
       if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                nextStartDate,
+                allDay,
+                timeZone,
+              )
+            : rrule
         rrule = adaptRuleToStart(
           rrule,
           prevStartDate,
@@ -1144,13 +1213,17 @@ export const POST = async function POST(request: NextRequest) {
         )
       }
       // Same invariant as the instance-'all' branch: stored exdate stamps
-      // must follow the series into the new clock space or single-deleted
-      // occurrences silently resurrect.
-      const remappedExdate = shiftExdates(
-        seriesRow.exdate,
-        nextStartDate,
-        timeZone,
-      )
+      // must follow the series into the new clock (and day) space or
+      // single-deleted occurrences silently resurrect.
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(
+              seriesRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(seriesRow.exdate, nextStartDate, timeZone)
       const set = {
         ...encryptMergedFields(seriesRow.id, submittedFields),
         ...(rrule !== null ? { rrule } : {}),
@@ -1183,6 +1256,7 @@ export const POST = async function POST(request: NextRequest) {
           overrides.map((o) => o.id),
           nextStartDate,
           timeZone,
+          dayDelta,
         )
       }
       const updatedRow = decryptEvent(updated) as unknown as EventRow

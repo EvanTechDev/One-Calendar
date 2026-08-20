@@ -22,6 +22,7 @@ import {
 } from '@/lib/event-service'
 import {
   adaptRuleToStart,
+  addWallClockDays,
   firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
@@ -29,6 +30,9 @@ import {
   parseRfcStamp,
   shiftExdates,
   shiftToAnchorClock,
+  translateRuleByDays,
+  translateStampsByDays,
+  wallClockDayDelta,
   withUntil,
 } from '@/lib/recurrence/engine'
 import { RRule } from 'rrule'
@@ -599,6 +603,7 @@ async function shiftMovedOverrides(
   ids: string[],
   clockSource: Date,
   timeZone?: string,
+  dayDelta = 0,
 ): Promise<void> {
   if (ids.length === 0) return
   const rows = await db
@@ -609,7 +614,15 @@ async function shiftMovedOverrides(
     )
   for (const row of rows) {
     if (!row.recurrenceId) continue
-    const newStamp = shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
+    const newStamp =
+      dayDelta !== 0
+        ? translateStampsByDays(
+            [row.recurrenceId],
+            dayDelta,
+            clockSource,
+            timeZone,
+          )![0]
+        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
     await db
       .update(calendarEvents)
       .set({
@@ -1144,29 +1157,46 @@ export async function updateEvent(
     }
 
     if (applyTo === 'all') {
-      // Mirror the REST route's instance-'all' sequence: clamp the new start
-      // to the master's anchor day (only the clock moves), adapt the rule,
-      // clock-remap stored exdates, then re-stamp overrides — otherwise an
-      // MCP "all events" time change orphans every single-instance override
-      // and resurrects exdated occurrences. No timeZone is threaded through
-      // MCP (deferred finding); helpers fall back to server-local day parts.
+      // Mirror the REST route's instance-'all' sequence: translate the whole
+      // pattern by the move's day distance, adapt the rule, remap stored
+      // exdates, then re-stamp overrides — otherwise an MCP "all events"
+      // change orphans every single-instance override and resurrects exdated
+      // occurrences. No timeZone is threaded through MCP (deferred finding);
+      // helpers fall back to server-local day parts.
       const prevStartDate = masterRow.startDate
       const nextStartDate =
         (fields.startDate as Date | undefined) ?? prevStartDate
       const allDay = fields.isAllDay ?? masterRow.isAllDay
-      const anchorStart = shiftToAnchorClock(prevStartDate, nextStartDate)
+      // Cross-day move → the pattern travels (Mon/Wed/Fri/Sun →
+      // Tue/Thu/Sat/Mon); same-day move → pure clock change.
+      const dayDelta = wallClockDayDelta(
+        parseRfcStamp(parsedId.recurrenceId).date,
+        nextStartDate,
+      )
+      const anchorStart = addWallClockDays(
+        shiftToAnchorClock(prevStartDate, nextStartDate),
+        dayDelta,
+      )
       if (fields.startDate !== undefined) {
         fields.startDate = anchorStart
         if (fields.endDate !== undefined && fields.endDate !== null) {
-          const delta = nextStartDate.getTime() - anchorStart.getTime()
-          fields.endDate = new Date((fields.endDate as Date).getTime() - delta)
+          const duration =
+            (fields.endDate as Date).getTime() - nextStartDate.getTime()
+          fields.endDate = new Date(anchorStart.getTime() + duration)
         }
       }
       let rrule = data.rrule !== undefined ? rawRrule : masterRow.rrule
       if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(rrule, dayDelta, anchorStart, allDay)
+            : rrule
         rrule = adaptRuleToStart(rrule, prevStartDate, anchorStart, allDay)
       }
-      const remappedExdate = shiftExdates(masterRow.exdate, nextStartDate)
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(masterRow.exdate, dayDelta, nextStartDate)
+          : shiftExdates(masterRow.exdate, nextStartDate)
       const set = {
         ...encryptMergedFields(masterRow.id, fields),
         ...(rrule !== null ? { rrule } : {}),
@@ -1194,6 +1224,8 @@ export async function updateEvent(
           userId,
           seriesOverrides.map((o) => o.id),
           nextStartDate,
+          undefined,
+          dayDelta,
         )
       }
       return decryptEvent(updated)
@@ -1272,19 +1304,26 @@ export async function updateEvent(
     const applyTo = data.apply_to ?? 'all'
 
     if (applyTo === 'all') {
-      // Same remap sequence as the instance-'all' branch above: adapt the
-      // rule to the new start, clock-remap exdates, re-stamp overrides.
-      // Master-id edits move the anchor itself, so no anchor-day clamp
-      // (mirrors the REST route's master-'all' branch).
+      // Same remap sequence as the instance-'all' branch above. Master-id
+      // edits move the anchor itself, and a cross-day move takes the whole
+      // pattern with it (mirrors the REST route's master-'all' branch).
       const prevStartDate = seriesRow.startDate
       const nextStartDate =
         (fields.startDate as Date | undefined) ?? prevStartDate
       const allDay = fields.isAllDay ?? seriesRow.isAllDay
+      const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate)
       let rrule = data.rrule !== undefined ? rawRrule : seriesRow.rrule
       if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(rrule, dayDelta, nextStartDate, allDay)
+            : rrule
         rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
       }
-      const remappedExdate = shiftExdates(seriesRow.exdate, nextStartDate)
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(seriesRow.exdate, dayDelta, nextStartDate)
+          : shiftExdates(seriesRow.exdate, nextStartDate)
       const set = {
         ...encryptMergedFields(seriesRow.id, fields),
         ...(rrule !== null ? { rrule } : {}),
@@ -1312,6 +1351,8 @@ export async function updateEvent(
           userId,
           seriesOverrides.map((o) => o.id),
           nextStartDate,
+          undefined,
+          dayDelta,
         )
       }
       return decryptEvent(updated)

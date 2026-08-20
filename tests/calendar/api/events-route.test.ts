@@ -273,6 +273,73 @@ describe('events route series mutations (characterization)', () => {
     )
   })
 
+  it('following on a Mon/Wed/Fri/Sun series dragged to Tuesday keeps the parent pattern', async () => {
+    // The reported bug: dragging Wednesday's instance to Tuesday 15:00 and
+    // saving "this and following" duplicated the event onto Tuesday AND
+    // moved the whole tail onto Tuesday's slot. Expected: the tail stays on
+    // Mon/Wed/Fri/Sun and only adopts 15:00-17:00.
+    fake.reset()
+    seedMaster({ rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU' })
+    const newId = '00000000-0000-4000-8000-0000000000ff'
+
+    const res = await POST(
+      putRequest({
+        title: 'Team sync',
+        timezone: 'UTC',
+        id: 'm1_20260805T090000Z', // Wednesday
+        apply_to: 'following',
+        // dragged onto Tuesday 15:00-17:00
+        startDate: '2026-08-04T15:00:00Z',
+        endDate: '2026-08-04T17:00:00Z',
+        split_id: newId,
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    const created = fake.row(newId)!
+    // Anchored back on Wednesday, with the new clock.
+    expect(created.startDate).toEqual(day(2026, 8, 5, 15))
+    expect(created.endDate).toEqual(day(2026, 8, 5, 17))
+    // The parent pattern is intact — no Tuesday was introduced.
+    expect(created.rrule).toContain('BYDAY=MO,WE,FR,SU')
+    expect(created.rrule as string).not.toMatch(/BYDAY=[^;]*TU/)
+  })
+
+  it('all events on a Mon/Wed/Fri/Sun series dragged to Tuesday translates the whole pattern', async () => {
+    // Dragging the FIRST occurrence (Monday) to Tuesday with "all events"
+    // shifts every slot by +1 day: Mon/Wed/Fri/Sun → Tue/Thu/Sat/Mon.
+    fake.reset()
+    seedMaster({
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+      exdate: ['20260817T090000Z'], // a Monday exclusion
+    })
+
+    const res = await POST(
+      putRequest({
+        title: 'Team sync',
+        timezone: 'UTC',
+        id: 'm1_20260803T090000Z', // the first occurrence (Monday)
+        apply_to: 'all',
+        startDate: '2026-08-04T15:00:00Z', // → Tuesday 15:00
+        endDate: '2026-08-04T17:00:00Z',
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    const master = fake.row('m1')!
+    // Anchor moved a full day and adopted the new clock.
+    expect(master.startDate).toEqual(day(2026, 8, 4, 15))
+    expect(master.endDate).toEqual(day(2026, 8, 4, 17))
+    // Whole pattern rotated by +1 day.
+    const byday = /BYDAY=([^;]+)/
+      .exec(master.rrule as string)![1]
+      .split(',')
+      .sort()
+    expect(byday).toEqual(['MO', 'SA', 'TH', 'TU'])
+    // The Monday exclusion travelled with it → the following Tuesday.
+    expect(master.exdate).toEqual(['20260818T150000Z'])
+  })
+
   it('characterizes PUT following (instance id): split write sequence', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')

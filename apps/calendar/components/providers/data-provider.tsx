@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   adaptRuleToStart,
+  addWallClockDays,
   defaultExpansionWindow,
   expandSeriesView,
   isInstanceId,
@@ -29,6 +30,10 @@ import {
   parseRfcStamp,
   shiftExdates,
   shiftToAnchorClock,
+  snapToPatternDay,
+  translateRuleByDays,
+  translateStampsByDays,
+  wallClockDayDelta,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
 
@@ -278,14 +283,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const target = eventsRef.current.find((e) => e.id === data.id)
           if (target?.seriesId && target.recurrenceId) {
             const window = defaultExpansionWindow()
+            // Mirror the server's planInstanceChange: a "this and following"
+            // save never violates the parent pattern, so the new anchor snaps
+            // back to the dragged occurrence's day and keeps only its new
+            // time of day (all-day moves have no clock to adopt).
+            const allDay = data.isAllDay ?? target.isAllDay
+            const requestedStart = new Date(data.startDate)
+            const requestedEnd = new Date(data.endDate)
+            const anchorStart = allDay
+              ? requestedStart
+              : snapToPatternDay(
+                  parseRfcStamp(target.recurrenceId).date,
+                  requestedStart,
+                  data.timezone,
+                )
+            const anchorEnd = allDay
+              ? requestedEnd
+              : new Date(
+                  anchorStart.getTime() +
+                    (requestedEnd.getTime() - requestedStart.getTime()),
+                )
             const nextMaster: EventData = {
               ...target,
               id: data.split_id,
               seriesId: null,
               recurrenceId: null,
               title: data.title ?? target.title,
-              startDate: data.startDate,
-              endDate: data.endDate,
+              startDate: anchorStart.toISOString(),
+              endDate: anchorEnd.toISOString(),
               isAllDay: data.isAllDay ?? target.isAllDay,
               color: data.color ?? target.color,
               categoryId: data.categoryId ?? target.categoryId,
@@ -739,10 +764,22 @@ export function optimisticSeries(
   if (!rule) return null
   const inputStart = new Date(data.startDate)
   const inputEnd = new Date(data.endDate)
-  const anchorStart = currentMaster
+  const prevStart = parsedId ? parseRfcStamp(parsedId.recurrenceId).date : null
+  // "All events" translates the whole pattern by the move's day distance
+  // (mirrors the server): Mon → Tue turns Mon/Wed/Fri/Sun into
+  // Tue/Thu/Sat/Mon. A same-day move is a pure clock change (delta 0).
+  const dayDelta = wallClockDayDelta(
+    prevStart ??
+      (currentMaster ? new Date(currentMaster.startDate) : inputStart),
+    inputStart,
+  )
+  const clampedStart = currentMaster
     ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
     : inputStart
-  const prevStart = parsedId ? parseRfcStamp(parsedId.recurrenceId).date : null
+  const anchorStart =
+    dayDelta !== 0 && currentMaster
+      ? addWallClockDays(clampedStart, dayDelta)
+      : clampedStart
   const startDate = anchorStart.toISOString()
   const endDate = new Date(
     anchorStart.getTime() + (inputEnd.getTime() - inputStart.getTime()),
@@ -765,15 +802,34 @@ export function optimisticSeries(
     participants: data.participants ?? currentMaster?.participants ?? null,
     rrule:
       prevStart !== null
-        ? adaptRuleToStart(rule, prevStart, inputStart, data.isAllDay ?? false)
+        ? adaptRuleToStart(
+            dayDelta !== 0
+              ? translateRuleByDays(
+                  rule,
+                  dayDelta,
+                  anchorStart,
+                  data.isAllDay ?? false,
+                )
+              : rule,
+            prevStart,
+            anchorStart,
+            data.isAllDay ?? false,
+          )
         : rule,
     // The expanded-view cache holds no raw master row, so fall back to the
     // clicked instance's inherited exdate: it carries the series' exclusions
     // (including a split's boundary exdate) and without it an inclusive UNTIL
     // would re-expand the series one occurrence past its real end.
-    exdate: currentMaster
-      ? shiftExdates(currentMaster.exdate, inputStart)
-      : (shiftExdates(target?.exdate, inputStart) ?? data.exdate ?? null),
+    exdate:
+      dayDelta !== 0
+        ? translateStampsByDays(
+            currentMaster ? currentMaster.exdate : target?.exdate,
+            dayDelta,
+            inputStart,
+          )
+        : currentMaster
+          ? shiftExdates(currentMaster.exdate, inputStart)
+          : (shiftExdates(target?.exdate, inputStart) ?? data.exdate ?? null),
   }
   // Only single-instance overrides (isOverride rows) carry custom times that
   // must survive a series-wide time change. Their recurrence stamp follows
@@ -798,7 +854,14 @@ export function optimisticSeries(
           )
           .map((e) => ({
             ...e,
-            recurrenceId: shiftExdates([e.recurrenceId!], inputStart)![0],
+            recurrenceId:
+              dayDelta !== 0
+                ? translateStampsByDays(
+                    [e.recurrenceId!],
+                    dayDelta,
+                    inputStart,
+                  )![0]
+                : shiftExdates([e.recurrenceId!], inputStart)![0],
           }))
   const window = defaultExpansionWindow()
   const expanded = expandSeriesView(
@@ -819,7 +882,12 @@ export function optimisticSeries(
     .map((e) => {
       if (e.isOverride) return e
       const originalStart = new Date(e.startDate)
-      const start = shiftToAnchorClock(originalStart, inputStart)
+      const clocked = shiftToAnchorClock(originalStart, inputStart)
+      // Earlier instances travel with the pattern too when the move crossed
+      // days, so the optimistic view matches what the translated rule will
+      // regenerate.
+      const start =
+        dayDelta !== 0 ? addWallClockDays(clocked, dayDelta) : clocked
       if (start.getTime() === originalStart.getTime()) return e
       const duration = new Date(e.endDate).getTime() - originalStart.getTime()
       return {
