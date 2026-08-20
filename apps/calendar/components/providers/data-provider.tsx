@@ -22,6 +22,7 @@ import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   adaptRuleToStart,
   addWallClockDays,
+  canTranslateRuleByDays,
   defaultExpansionWindow,
   expandSeriesView,
   isInstanceId,
@@ -773,6 +774,10 @@ export function optimisticSeries(
       (currentMaster ? new Date(currentMaster.startDate) : inputStart),
     inputStart,
   )
+  // The server refuses a day move this rule cannot express (e.g. "last day
+  // of the month"); skip the optimistic paint so the UI does not flash a
+  // state that is about to be rejected.
+  if (dayDelta !== 0 && !canTranslateRuleByDays(rule, dayDelta)) return null
   const clampedStart = currentMaster
     ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
     : inputStart

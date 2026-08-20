@@ -10,6 +10,7 @@ import { decryptEvent } from '@/lib/api-helpers'
 import { normalizeColor } from './colors'
 import { InvalidEventQueryError } from './errors'
 import { getSettings } from './settings-tools'
+import { invalidateEventCache } from '@/lib/cache/events'
 import {
   expandRows,
   firstStampOfSeries,
@@ -23,6 +24,7 @@ import {
 import {
   adaptRuleToStart,
   addWallClockDays,
+  canTranslateRuleByDays,
   firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
@@ -567,6 +569,51 @@ function encryptMergedFields(
   return encrypted
 }
 
+/**
+ * The user's IANA timezone from their settings, or undefined when unset or
+ * invalid. Recurrence day math (split boundaries, whole-pattern day shifts,
+ * all-day stamps) must run in the user's zone, not the server's, or an edit
+ * made near midnight lands on the wrong day.
+ */
+/**
+ * Drops the cached month buckets a series touches. MCP mutations previously
+ * skipped this, so a tool-driven edit left the web UI serving stale months
+ * from Redis until the TTL expired. Never throws: a cache miss is safe, a
+ * failed tool call is not.
+ */
+async function invalidateSeriesCache(
+  userId: string,
+  rows: Array<
+    { startDate: Date | string; endDate: Date | string } | null | undefined
+  >,
+): Promise<void> {
+  for (const row of rows) {
+    if (!row) continue
+    try {
+      const start = new Date(row.startDate)
+      const end = new Date(row.endDate)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue
+      await invalidateEventCache(userId, start.toISOString(), end.toISOString())
+    } catch {
+      // Cache invalidation is best-effort.
+    }
+  }
+}
+
+async function resolveUserTimeZone(
+  userId: string,
+): Promise<string | undefined> {
+  try {
+    const settings = (await getSettings(userId)) as Record<string, unknown>
+    const tz = settings.timezone
+    if (typeof tz !== 'string' || tz.trim().length === 0) return undefined
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return tz
+  } catch {
+    return undefined
+  }
+}
+
 type BaseDb = Awaited<ReturnType<typeof getDb>>
 type TxDb = Parameters<Parameters<BaseDb['transaction']>[0]>[0]
 /** Either the singleton connection or a transaction executor — helpers that
@@ -671,16 +718,25 @@ async function applySplitPlan(
       )
   }
 
-  await db
-    .update(calendarEvents)
-    .set({
-      rrule: withUntil(master.rrule!, split.masterUntil),
-      exdate: split.masterExdate,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(eq(calendarEvents.id, master.id), eq(calendarEvents.userId, userId)),
-    )
+  if (split.masterBecomesEmpty) {
+    // Same as the REST route: a truncated master that renders nothing is
+    // deleted rather than kept as an invisible zombie row.
+    await deleteCalendarEventRow(db, userId, master.id)
+  } else {
+    await db
+      .update(calendarEvents)
+      .set({
+        rrule: withUntil(master.rrule!, split.masterUntil),
+        exdate: split.masterExdate,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, master.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
 
   return decryptEvent(newMaster)
 }
@@ -1094,10 +1150,15 @@ export async function createEvent(
     })
     .returning()
 
-  return decryptEvent(event)
+  const created = decryptEvent(event)
+  // Keep the web UI's cached months in step with tool-driven creates.
+  await invalidateSeriesCache(userId, [
+    { startDate: created.startDate, endDate: created.endDate },
+  ])
+  return created
 }
 
-export async function updateEvent(
+async function updateEventImpl(
   userId: string,
   eventId: string,
   data: {
@@ -1117,6 +1178,7 @@ export async function updateEvent(
   },
 ) {
   const db = await getDb()
+  const timeZone = await resolveUserTimeZone(userId)
   const rawRrule =
     typeof data.rrule === 'string' && data.rrule.trim().length > 0
       ? data.rrule
@@ -1148,7 +1210,7 @@ export async function updateEvent(
     // Product rule (mirrors the REST route): "all events" is only allowed
     // from the series' first visible occurrence.
     if (applyTo === 'all') {
-      const firstStamp = firstVisibleStampOfSeries(masterRow)
+      const firstStamp = firstVisibleStampOfSeries(masterRow, timeZone)
       if (firstStamp === null || parsedId.recurrenceId !== firstStamp) {
         throw new Error(
           "apply_to 'all' is only allowed on the series' first occurrence",
@@ -1172,10 +1234,12 @@ export async function updateEvent(
       const dayDelta = wallClockDayDelta(
         parseRfcStamp(parsedId.recurrenceId).date,
         nextStartDate,
+        timeZone,
       )
       const anchorStart = addWallClockDays(
-        shiftToAnchorClock(prevStartDate, nextStartDate),
+        shiftToAnchorClock(prevStartDate, nextStartDate, timeZone),
         dayDelta,
+        timeZone,
       )
       if (fields.startDate !== undefined) {
         fields.startDate = anchorStart
@@ -1186,17 +1250,45 @@ export async function updateEvent(
         }
       }
       let rrule = data.rrule !== undefined ? rawRrule : masterRow.rrule
+      // Refuse rather than silently degrade a pattern the shift cannot
+      // express (mirrors the REST route).
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        throw new InvalidEventQueryError(
+          "This repeat rule cannot be moved to another day with apply_to 'all'. Change the rrule explicitly, or use 'single' / 'following'.",
+        )
+      }
       if (rrule !== null) {
         rrule =
           dayDelta !== 0
-            ? translateRuleByDays(rrule, dayDelta, anchorStart, allDay)
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                anchorStart,
+                allDay,
+                timeZone,
+              )
             : rrule
-        rrule = adaptRuleToStart(rrule, prevStartDate, anchorStart, allDay)
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          anchorStart,
+          allDay,
+          timeZone,
+        )
       }
       const remappedExdate =
         dayDelta !== 0
-          ? translateStampsByDays(masterRow.exdate, dayDelta, nextStartDate)
-          : shiftExdates(masterRow.exdate, nextStartDate)
+          ? translateStampsByDays(
+              masterRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(masterRow.exdate, nextStartDate, timeZone)
       const set = {
         ...encryptMergedFields(masterRow.id, fields),
         ...(rrule !== null ? { rrule } : {}),
@@ -1224,7 +1316,7 @@ export async function updateEvent(
           userId,
           seriesOverrides.map((o) => o.id),
           nextStartDate,
-          undefined,
+          timeZone,
           dayDelta,
         )
       }
@@ -1239,6 +1331,7 @@ export async function updateEvent(
       applyTo,
       fields,
       now: new Date(),
+      timeZone,
     })
 
     if (plan.split) {
@@ -1251,6 +1344,7 @@ export async function updateEvent(
           userId,
           plan.split!.moveOverrideIds,
           plan.split!.newSeries.startDate,
+          timeZone,
         )
         return created
       })
@@ -1311,19 +1405,45 @@ export async function updateEvent(
       const nextStartDate =
         (fields.startDate as Date | undefined) ?? prevStartDate
       const allDay = fields.isAllDay ?? seriesRow.isAllDay
-      const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate)
+      const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate, timeZone)
       let rrule = data.rrule !== undefined ? rawRrule : seriesRow.rrule
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        throw new InvalidEventQueryError(
+          "This repeat rule cannot be moved to another day with apply_to 'all'. Change the rrule explicitly, or use 'single' / 'following'.",
+        )
+      }
       if (rrule !== null) {
         rrule =
           dayDelta !== 0
-            ? translateRuleByDays(rrule, dayDelta, nextStartDate, allDay)
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                nextStartDate,
+                allDay,
+                timeZone,
+              )
             : rrule
-        rrule = adaptRuleToStart(rrule, prevStartDate, nextStartDate, allDay)
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          nextStartDate,
+          allDay,
+          timeZone,
+        )
       }
       const remappedExdate =
         dayDelta !== 0
-          ? translateStampsByDays(seriesRow.exdate, dayDelta, nextStartDate)
-          : shiftExdates(seriesRow.exdate, nextStartDate)
+          ? translateStampsByDays(
+              seriesRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(seriesRow.exdate, nextStartDate, timeZone)
       const set = {
         ...encryptMergedFields(seriesRow.id, fields),
         ...(rrule !== null ? { rrule } : {}),
@@ -1351,14 +1471,14 @@ export async function updateEvent(
           userId,
           seriesOverrides.map((o) => o.id),
           nextStartDate,
-          undefined,
+          timeZone,
           dayDelta,
         )
       }
       return decryptEvent(updated)
     }
 
-    const recurrenceId = firstStampOfSeries(seriesRow)
+    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
       seriesRow.id,
@@ -1373,6 +1493,7 @@ export async function updateEvent(
       applyTo,
       fields,
       now: new Date(),
+      timeZone,
     })
 
     if (plan.split) {
@@ -1385,6 +1506,7 @@ export async function updateEvent(
           userId,
           plan.split!.moveOverrideIds,
           plan.split!.newSeries.startDate,
+          timeZone,
         )
         return created
       })
@@ -1436,12 +1558,13 @@ export async function updateEvent(
   return decryptEvent(event)
 }
 
-export async function deleteEvent(
+async function deleteEventImpl(
   userId: string,
   eventId: string,
   applyTo?: ApplyTo,
 ): Promise<void> {
   const db = await getDb()
+  const timeZone = await resolveUserTimeZone(userId)
   const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
 
   if (parsedId) {
@@ -1509,6 +1632,7 @@ export async function deleteEvent(
       applyTo: 'following',
       fields: {},
       now: new Date(),
+      timeZone,
     })
     await db.transaction(async (tx) => {
       const newMaster = await applySplitPlan(userId, masterRow, plan, tx)
@@ -1539,7 +1663,7 @@ export async function deleteEvent(
       return
     }
     const seriesRow = decryptEvent(existing) as unknown as EventRow
-    const recurrenceId = firstStampOfSeries(seriesRow)
+    const recurrenceId = firstStampOfSeries(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
       seriesRow.id,
@@ -1554,6 +1678,7 @@ export async function deleteEvent(
       applyTo: effectiveApplyTo,
       fields: {},
       now: new Date(),
+      timeZone,
     })
 
     if (plan.split) {
@@ -1590,4 +1715,58 @@ export async function deleteEvent(
   }
 
   await deleteCalendarEventRow(db, userId, existing.id)
+}
+
+/**
+ * Snapshot of the rows a mutation may touch, used to drop the right cached
+ * month buckets afterwards. Reads the master (or the instance's series) plus
+ * its overrides so a split/day-move invalidates both the old and new spans.
+ */
+async function seriesCacheSpans(
+  userId: string,
+  eventId: string,
+): Promise<Array<{ startDate: Date; endDate: Date }>> {
+  try {
+    const db = await getDb()
+    const parsed = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+    const rootId = parsed?.seriesId ?? eventId
+    const rows = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          or(
+            eq(calendarEvents.id, rootId),
+            eq(calendarEvents.seriesId, rootId),
+          ),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    return rows.map((r) => ({
+      startDate: new Date(r.startDate),
+      endDate: new Date(r.endDate),
+    }))
+  } catch {
+    return []
+  }
+}
+
+export async function updateEvent(
+  ...args: Parameters<typeof updateEventImpl>
+): ReturnType<typeof updateEventImpl> {
+  const [userId, eventId] = args
+  const before = await seriesCacheSpans(userId, eventId)
+  const result = await updateEventImpl(...args)
+  const after = await seriesCacheSpans(userId, eventId)
+  await invalidateSeriesCache(userId, [...before, ...after])
+  return result
+}
+
+export async function deleteEvent(
+  ...args: Parameters<typeof deleteEventImpl>
+): Promise<void> {
+  const [userId, eventId] = args
+  const before = await seriesCacheSpans(userId, eventId)
+  await deleteEventImpl(...args)
+  await invalidateSeriesCache(userId, before)
 }

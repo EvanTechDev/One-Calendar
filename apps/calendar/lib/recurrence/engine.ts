@@ -32,15 +32,109 @@ export interface RecurrenceInstance {
   isAllDay: boolean
 }
 
+/**
+ * A recurrence rule in structured form. Covers the RFC 5545 fields the RRULE
+ * grammar allows so that `rruleToParts` → `rruleFromParts` is LOSSLESS: any
+ * transform (re-anchoring, day translation) that round-trips through this
+ * type must not silently drop a constraint and quietly change which
+ * occurrences a series generates.
+ *
+ * `byweekday` entries keep their ordinal prefix ("2MO", "-1FR") because a
+ * bare "MO" means a different rule.
+ */
 export interface RruleParts {
   freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
   interval: number
+  /** Weekday tokens, optionally ordinal-prefixed: "MO", "2MO", "-1FR". */
   byweekday: string[] | null
   bymonthday: number[] | null
-  bysetpos: number | null
+  bysetpos: number[] | null
   bymonth: number[] | null
+  byyearday: number[] | null
+  byweekno: number[] | null
+  byhour: number[] | null
+  byminute: number[] | null
+  bysecond: number[] | null
+  /** Week start, e.g. "MO" — changes which days BYWEEKNO/WEEKLY spans cover. */
+  wkst: string | null
   until: string | null
   count: number | null
+}
+
+/** A weekday token split into its ordinal prefix and day name. */
+export interface WeekdayToken {
+  ordinal: number | null
+  day: string
+}
+
+/**
+ * An otherwise-empty parts object for the given frequency. Use this instead
+ * of hand-writing every field so adding a new RFC field cannot silently
+ * break callers.
+ */
+export function emptyRruleParts(
+  freq: RruleParts['freq'],
+  interval = 1,
+): RruleParts {
+  return {
+    freq,
+    interval,
+    byweekday: null,
+    bymonthday: null,
+    bysetpos: null,
+    bymonth: null,
+    byyearday: null,
+    byweekno: null,
+    byhour: null,
+    byminute: null,
+    bysecond: null,
+    wkst: null,
+    until: null,
+    count: null,
+  }
+}
+
+const WEEKDAY_TOKEN_RE = /^([+-]?\d{1,2})?(MO|TU|WE|TH|FR|SA|SU)$/i
+
+export function parseWeekdayToken(token: string): WeekdayToken | null {
+  const match = WEEKDAY_TOKEN_RE.exec(token.trim())
+  if (!match) return null
+  return {
+    ordinal: match[1] !== undefined ? Number(match[1]) : null,
+    day: match[2].toUpperCase(),
+  }
+}
+
+export function formatWeekdayToken(token: WeekdayToken): string {
+  return token.ordinal === null ? token.day : `${token.ordinal}${token.day}`
+}
+
+/**
+ * Rotates a weekday token by `days`.
+ *
+ * A bare token ("MO") just rotates its day. An ORDINAL token ("2MO" = 2nd
+ * Monday of the month) is different: "2nd Monday + 1 day" is not "2nd
+ * Tuesday" in every month — when the 2nd Monday falls on the 14th, the next
+ * day is that month's 3rd Tuesday. Only whole-week shifts are expressible,
+ * and they move the ordinal (2nd Monday + 7d = 3rd Monday). Returns null when
+ * the shift cannot be expressed, so callers refuse instead of corrupting it.
+ */
+function rotateWeekdayToken(token: string, days: number): string | null {
+  const parsed = parseWeekdayToken(token)
+  if (!parsed) return token
+  const index = DAY_INDEX[parsed.day]
+  if (index === undefined) return token
+  if (parsed.ordinal === null) {
+    return formatWeekdayToken({
+      ordinal: null,
+      day: DAY_NAMES[(((index + days) % 7) + 7) % 7],
+    })
+  }
+  if (days % 7 !== 0) return null
+  const shifted = parsed.ordinal + days / 7
+  // Ordinal 0 is invalid, and |n| > 5 cannot occur in any month.
+  if (shifted === 0 || shifted > 5 || shifted < -5) return null
+  return formatWeekdayToken({ ordinal: shifted, day: parsed.day })
 }
 
 const DAY_NAMES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
@@ -367,21 +461,31 @@ export function expandSeries(
     occurrences = occurrences.slice(0, max)
   }
 
-  return occurrences.map((date) => {
+  // Occurrences are identified by a day+anchor-clock stamp, so a rule that
+  // selects several times within one day (BYHOUR/BYMINUTE/BYSECOND, or a
+  // sub-daily INTERVAL) would otherwise emit duplicate instances sharing one
+  // recurrenceId — indistinguishable rows that break override matching and
+  // render as stacked copies. Collapse them to one instance per stamp.
+  const seenStamps = new Set<string>()
+  const instances: RecurrenceInstance[] = []
+  for (const date of occurrences) {
     const dayParts = toDayParts(date)
     const startDate = toOccurrence(date)
     const recurrenceId = isAllDay
       ? dayStamp(dayParts)
       : toRfcStamp(startDate, false)
-    return {
+    if (seenStamps.has(recurrenceId)) continue
+    seenStamps.add(recurrenceId)
+    instances.push({
       id: buildInstanceId(series.id, recurrenceId),
       seriesId: series.id,
       recurrenceId,
       startDate,
       endDate: new Date(startDate.getTime() + duration),
       isAllDay,
-    }
-  })
+    })
+  }
+  return instances
 }
 
 /**
@@ -467,7 +571,14 @@ export function expandSeriesView<T extends SeriesViewInput>(
       const matchedRecurrenceIds = new Set<string>()
       // "All events" edits are only offered on the series' first visible
       // occurrence; the marker tells the client which instance that is.
-      const firstStamp = firstVisibleStampOfSeries(master, timeZone)
+      // When the window already opens at or before the series start, the
+      // window's own first instance IS that occurrence (expandSeries emits in
+      // order and skips exdates), so the extra bounded expansion is skipped.
+      const masterStart = toDate(master.startDate)
+      const firstStamp =
+        windowStart.getTime() <= masterStart.getTime()
+          ? (instances[0]?.recurrenceId ?? null)
+          : firstVisibleStampOfSeries(master, timeZone)
       for (const instance of instances) {
         const override =
           seriesOverrides.find(
@@ -492,11 +603,30 @@ export function expandSeriesView<T extends SeriesViewInput>(
             : {}),
         } as T)
       }
+      // Overrides whose stamp matched no generated slot are still shown, so a
+      // single-instance edit is never lost. NOTE: an EXDATE'd stamp that
+      // still has an override row means "this occurrence was single-edited"
+      // (the exdate suppresses the base slot, the override carries the edit) —
+      // NOT "deleted". Deletion removes the override row as well, so the
+      // override's existence is the signal. Filtering exdated overrides here
+      // would silently discard every moved single-instance edit.
+      // Overrides rendering outside the requested window are skipped: they
+      // belong to another view's range.
       for (const override of seriesOverrides) {
         const overrideRecurrenceId = override.recurrenceId
         if (
           typeof overrideRecurrenceId !== 'string' ||
           matchedRecurrenceIds.has(overrideRecurrenceId)
+        ) {
+          continue
+        }
+        const overrideStart = new Date(
+          override.startDate as unknown as string | Date,
+        )
+        if (
+          !Number.isNaN(overrideStart.getTime()) &&
+          (overrideStart.getTime() < windowStart.getTime() ||
+            overrideStart.getTime() > windowEnd.getTime())
         ) {
           continue
         }
@@ -721,6 +851,16 @@ function partsOfDate(date: Date, timeZone?: string): DateParts {
   return timeZone ? partsInTz(date, timeZone) : partsInLocal(date)
 }
 
+/**
+ * The ordinal-prefixed weekday token that selects exactly this date within
+ * its month, e.g. 2026-08-12 (2nd Wednesday) → "2WE".
+ */
+function nthWeekdayTokenOf(date: Date, timeZone?: string): string {
+  const parts = partsOfDate(date, timeZone)
+  const nth = Math.floor((parts.day - 1) / 7) + 1
+  return `${nth}${weekdayNameOf(date, timeZone)}`
+}
+
 function weekdayNameOf(date: Date, timeZone?: string): string {
   return DAY_NAMES[
     ((dayOfWeek(partsOfDate(date, timeZone)) + 6) % 7) as
@@ -734,71 +874,46 @@ function weekdayNameOf(date: Date, timeZone?: string): string {
   ]
 }
 
-function firstDayIndex(parts: DateParts): number {
-  return new Date(Date.UTC(parts.year, parts.month - 1, 1)).getUTCDay()
-}
-
-function monthHasWeekdayAt(
-  date: Date,
-  weekdayName: string,
-  timeZone?: string,
-): number {
-  const parts = partsOfDate(date, timeZone)
-  const daysInMonth = new Date(parts.year, parts.month, 0).getDate()
-  const index = DAY_INDEX[weekdayName]
-  let count = 0
-  for (let day = 1; day <= daysInMonth; day++) {
-    if (
-      new Date(Date.UTC(parts.year, parts.month - 1, day)).getUTCDay() === index
-    ) {
-      count++
-    }
-  }
-  return count
-}
-
+/**
+ * Whether `date`'s calendar day is selected by the rule. Delegates to rrule
+ * itself (day-granular, anchored on the candidate day) instead of re-deriving
+ * BY* semantics by hand — a hand-rolled matcher silently disagrees with the
+ * expansion engine as soon as a rule uses BYSETPOS lists, ordinal weekdays,
+ * BYWEEKNO or BYYEARDAY.
+ */
 function matchesParts(
   parts: RruleParts,
   date: Date,
   timeZone?: string,
 ): boolean {
-  const partsOf = partsOfDate(date, timeZone)
-  if (parts.freq === 'WEEKLY') {
-    if (!parts.byweekday || parts.byweekday.length === 0) return true
-    return parts.byweekday.includes(weekdayNameOf(date, timeZone))
-  }
-  if (parts.freq === 'MONTHLY') {
-    if (
-      parts.byweekday &&
-      parts.byweekday.length > 0 &&
-      parts.bysetpos !== null
-    ) {
-      if (weekdayNameOf(date, timeZone) !== parts.byweekday[0]) return false
-      const total = monthHasWeekdayAt(date, parts.byweekday[0], timeZone)
-      const weekdayId = DAY_INDEX[parts.byweekday[0]]
-      const firstDayIdx = (firstDayIndex(partsOf) + 6) % 7
-      const firstOccurrence = 1 + ((weekdayId - firstDayIdx + 7) % 7)
-      const day = partsOf.day
-      if (day < firstOccurrence) return false
-      const nth = Math.floor((day - firstOccurrence) / 7) + 1
-      const fromLast = total - nth + 1
-      return parts.bysetpos === nth || -parts.bysetpos === fromLast
+  const dayParts = partsOfDate(date, timeZone)
+  const dayStart = new Date(
+    Date.UTC(dayParts.year, dayParts.month - 1, dayParts.day),
+  )
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000 - 1)
+  try {
+    // Drop bounds and time-of-day constraints: this asks only "is this day in
+    // the pattern", so COUNT/UNTIL (which limit the series' extent) and
+    // BYHOUR/BYMINUTE/BYSECOND (which pick times within a day) must not
+    // influence the answer.
+    const unbounded: RruleParts = {
+      ...parts,
+      until: null,
+      count: null,
+      byhour: null,
+      byminute: null,
+      bysecond: null,
     }
-    if (parts.bymonthday && parts.bymonthday.length > 0) {
-      return parts.bymonthday.includes(partsOf.day)
-    }
+    const rule = new RRule({
+      ...RRule.fromString(rruleFromParts(unbounded)).origOptions,
+      dtstart: dayStart,
+    })
+    return rule.between(dayStart, dayEnd, true).length > 0
+  } catch {
+    // Unparsable rule: treat the anchor as a member so callers leave it alone
+    // rather than rewriting a rule they cannot reason about.
     return true
   }
-  if (parts.freq === 'YEARLY') {
-    if (parts.bymonth && parts.bymonth.length > 0) {
-      if (!parts.bymonth.includes(partsOf.month)) return false
-    }
-    if (parts.bymonthday && parts.bymonthday.length > 0) {
-      if (!parts.bymonthday.includes(partsOf.day)) return false
-    }
-    return true
-  }
-  return true
 }
 
 /**
@@ -949,56 +1064,83 @@ export function translateRuleByDays(
   } catch {
     return rule
   }
-  const anchorParts = partsOfDate(anchorAfterShift, timeZone)
 
-  if (parts.freq === 'WEEKLY') {
-    if (parts.byweekday && parts.byweekday.length > 0) {
-      const rotated = parts.byweekday.map((name) => {
-        const index = DAY_INDEX[name.toUpperCase()]
-        if (index === undefined) return name
-        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
-      })
-      parts = { ...parts, byweekday: [...new Set(rotated)] }
+  // Refuse shapes whose shift cannot be expressed as a rule that selects the
+  // same occurrences — keeping the rule intact is always safer than writing
+  // an approximation (canTranslateRuleByDays lets callers reject the edit).
+  if (!canTranslateParts(parts, days)) return rule
+
+  // Every day-selecting field travels by the same distance; multi-value
+  // fields are translated ELEMENT-WISE (collapsing them onto the anchor
+  // would silently delete occurrences, e.g. BYMONTHDAY=1,15 → 2,16 not 4).
+  if (parts.byweekday && parts.byweekday.length > 0) {
+    const rotated = parts.byweekday.map((token) =>
+      rotateWeekdayToken(token, days),
+    )
+    if (rotated.some((token) => token === null)) return rule
+    parts = { ...parts, byweekday: dedupe(rotated as string[]) }
+  }
+
+  if (parts.bymonthday && parts.bymonthday.length > 0) {
+    // Negative entries count back from month end ("-1" = last day) and stay
+    // relative; positive entries shift by the day distance. A shift that
+    // would leave the 1..31 range cannot be expressed as a plain BYMONTHDAY
+    // for every month, so the rule is left alone (see canTranslateRuleByDays).
+    const shifted = parts.bymonthday.map((day) =>
+      day < 0 ? day - days : day + days,
+    )
+    if (shifted.some((day) => day === 0 || day > 31 || day < -31)) {
+      return rule
     }
-  } else if (parts.freq === 'MONTHLY') {
-    if (
-      parts.byweekday &&
-      parts.byweekday.length > 0 &&
-      parts.bysetpos !== null
-    ) {
-      // "nth <weekday>" — rotate the weekday, keep the ordinal position.
-      const rotated = parts.byweekday.map((name) => {
-        const index = DAY_INDEX[name.toUpperCase()]
-        if (index === undefined) return name
-        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
-      })
-      parts = { ...parts, byweekday: [...new Set(rotated)] }
-    } else if (parts.bymonthday && parts.bymonthday.length > 0) {
-      parts = { ...parts, bymonthday: [anchorParts.day] }
+    parts = { ...parts, bymonthday: dedupe(shifted) }
+  }
+
+  if (parts.byyearday && parts.byyearday.length > 0) {
+    const shifted = parts.byyearday.map((day) =>
+      day < 0 ? day - days : day + days,
+    )
+    if (shifted.some((day) => day === 0 || day > 366 || day < -366)) {
+      return rule
     }
-  } else if (parts.freq === 'YEARLY') {
-    if (
-      parts.byweekday &&
-      parts.byweekday.length > 0 &&
-      parts.bysetpos !== null
-    ) {
-      const rotated = parts.byweekday.map((name) => {
-        const index = DAY_INDEX[name.toUpperCase()]
-        if (index === undefined) return name
-        return DAY_NAMES[(((index + days) % 7) + 7) % 7]
-      })
-      parts = { ...parts, byweekday: [...new Set(rotated)] }
-      if (parts.bymonth && parts.bymonth.length > 0) {
-        parts = { ...parts, bymonth: [anchorParts.month] }
-      }
-    } else {
-      if (parts.bymonth && parts.bymonth.length > 0) {
-        parts = { ...parts, bymonth: [anchorParts.month] }
-      }
-      if (parts.bymonthday && parts.bymonthday.length > 0) {
-        parts = { ...parts, bymonthday: [anchorParts.day] }
+    parts = { ...parts, byyearday: dedupe(shifted) }
+  }
+
+  // BYMONTH only needs adjusting when the shift pushes the anchor into
+  // another month; the anchor after the shift names it. Multi-month rules
+  // (quarterly etc.) are shifted element-wise by the same month distance so
+  // the cadence survives.
+  if (parts.bymonth && parts.bymonth.length > 0) {
+    const before = partsOfDate(
+      addWallClockDays(anchorAfterShift, -days, timeZone),
+      timeZone,
+    )
+    const after = partsOfDate(anchorAfterShift, timeZone)
+    const monthDelta = after.month - before.month
+    if (monthDelta !== 0) {
+      parts = {
+        ...parts,
+        bymonth: dedupe(
+          parts.bymonth.map(
+            (m) => ((((m - 1 + monthDelta) % 12) + 12) % 12) + 1,
+          ),
+        ),
       }
     }
+  }
+
+  // BYWEEKNO shifts by whole weeks only; a partial-week shift changes which
+  // ISO week each occurrence lands in and cannot be expressed by rotating
+  // the week number alone.
+  if (parts.byweekno && parts.byweekno.length > 0) {
+    if (days % 7 !== 0) {
+      return rule
+    }
+    const weeks = days / 7
+    const shifted = parts.byweekno.map((w) => (w < 0 ? w - weeks : w + weeks))
+    if (shifted.some((w) => w === 0 || w > 53 || w < -53)) {
+      return rule
+    }
+    parts = { ...parts, byweekno: dedupe(shifted) }
   }
 
   // An absolute UNTIL bound travels with the pattern.
@@ -1024,6 +1166,85 @@ export function translateRuleByDays(
   } catch {
     return rule
   }
+}
+
+function dedupe<T>(values: T[]): T[] {
+  return [...new Set(values)]
+}
+
+/**
+ * Whether `translateRuleByDays` can express this rule shifted by `days`
+ * without changing which occurrences it selects. Callers that must not
+ * silently degrade a rule (e.g. an "all events" day move) check this first
+ * and reject the edit instead of writing a rule that generates a different
+ * set.
+ */
+export function canTranslateRuleByDays(rule: string, days: number): boolean {
+  if (days === 0) return true
+  try {
+    return canTranslateParts(rruleToParts(rule), days)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * WEEKLY with INTERVAL > 1 counts whole weeks from the anchor's week. A shift
+ * that is not a whole number of weeks moves some days (and possibly the
+ * anchor) across the week boundary, which flips the interval's phase and
+ * changes the spacing between occurrences. Such a shift has no equivalent
+ * rule, so only whole-week shifts are expressible.
+ */
+function weeklyIntervalBlocksShift(parts: RruleParts, days: number): boolean {
+  if (parts.freq !== 'WEEKLY' || parts.interval <= 1) return false
+  return days % 7 !== 0
+}
+
+function canTranslateParts(parts: RruleParts, days: number): boolean {
+  if (days === 0) return true
+  if (weeklyIntervalBlocksShift(parts, days)) return false
+
+  // An ordinal weekday ("2nd Monday") only shifts by whole weeks; any other
+  // distance lands on a different ordinal depending on the month.
+  if (
+    parts.byweekday?.some((token) => rotateWeekdayToken(token, days) === null)
+  ) {
+    return false
+  }
+
+  // BYSETPOS picks the nth match WITHIN each period ("last Saturday of the
+  // month"). Rotating the weekday keeps the same positional selection, so the
+  // shifted rule lands on a date that is not the original + days: last
+  // Saturday + 7d is not "last Sunday", it is a date the rule cannot name.
+  if (parts.bysetpos && parts.bysetpos.length > 0) {
+    return false
+  }
+
+  if (parts.bymonthday?.some((d) => d < 0)) {
+    // "last day of month" + n has no fixed BYMONTHDAY equivalent.
+    return false
+  }
+  if (
+    parts.bymonthday?.some((d) => {
+      const shifted = d + days
+      return shifted === 0 || shifted > 31 || shifted < -31
+    })
+  ) {
+    return false
+  }
+  if (parts.byyearday?.some((d) => d < 0)) return false
+  if (
+    parts.byyearday?.some((d) => {
+      const shifted = d + days
+      return shifted === 0 || shifted > 366 || shifted < -366
+    })
+  ) {
+    return false
+  }
+  if (parts.byweekno && parts.byweekno.length > 0 && days % 7 !== 0) {
+    return false
+  }
+  return true
 }
 
 /**
@@ -1095,20 +1316,57 @@ export function adaptRuleToStart(
   if (!matchesParts(parts, anchor, timeZone)) {
     const anchorParts = partsOfDate(anchor, timeZone)
     const day = anchorParts.day
+    // Make the anchor a member of the set WITHOUT discarding the other
+    // selected days: a Mon/Wed/Fri series whose anchor lands on Tuesday
+    // becomes Mon/Tue/Wed/Fri, not Tuesday-only. Collapsing the set would
+    // silently delete every other occurrence of the series.
     if (parts.freq === 'WEEKLY') {
-      parts = { ...parts, byweekday: [weekdayNameOf(anchor, timeZone)] }
-    } else if (parts.freq === 'MONTHLY') {
+      const anchorDay = weekdayNameOf(anchor, timeZone)
+      const existing = parts.byweekday ?? []
+      // Ordinal prefixes are meaningless for WEEKLY; compare on day names.
+      const hasDay = existing.some(
+        (token) => parseWeekdayToken(token)?.day === anchorDay,
+      )
       parts = {
         ...parts,
-        byweekday: null,
-        bysetpos: null,
-        bymonthday: [day],
+        byweekday: hasDay ? existing : dedupe([...existing, anchorDay]),
+      }
+    } else if (parts.freq === 'MONTHLY') {
+      if (parts.byweekday && parts.byweekday.length > 0) {
+        // An nth-weekday rule ("2nd Tuesday"): adding a raw month day would
+        // mix two selection modes, so add the anchor's own nth-weekday token.
+        const anchorToken = nthWeekdayTokenOf(anchor, timeZone)
+        parts = {
+          ...parts,
+          byweekday: dedupe([...parts.byweekday, anchorToken]),
+        }
+      } else {
+        const existing = parts.bymonthday ?? []
+        parts = {
+          ...parts,
+          bymonthday: existing.includes(day)
+            ? existing
+            : dedupe([...existing, day]),
+        }
       }
     } else if (parts.freq === 'YEARLY') {
+      const months = parts.bymonth ?? []
+      const days = parts.bymonthday ?? []
       parts = {
         ...parts,
-        bymonth: [anchorParts.month],
-        bymonthday: [day],
+        bymonth: months.includes(anchorParts.month)
+          ? months
+          : dedupe([...months, anchorParts.month]),
+        ...(parts.byweekday && parts.byweekday.length > 0
+          ? {
+              byweekday: dedupe([
+                ...parts.byweekday,
+                nthWeekdayTokenOf(anchor, timeZone),
+              ]),
+            }
+          : {
+              bymonthday: days.includes(day) ? days : dedupe([...days, day]),
+            }),
       }
     }
   }
@@ -1148,11 +1406,17 @@ export function rruleFromParts(parts: RruleParts): string {
     freq: FREQ_NUMBERS[parts.freq],
     interval: parts.interval,
     count: parts.count,
-    until: parts.until !== null ? parseRfcStamp(parts.until).date : null,
-    byweekday: parts.byweekday !== null ? parts.byweekday.map(toWeekday) : null,
+    until: parts.until ? parseRfcStamp(parts.until).date : null,
+    byweekday: parts.byweekday ? parts.byweekday.map(toWeekday) : null,
     bymonthday: parts.bymonthday ?? null,
-    bysetpos: parts.bysetpos !== null ? [parts.bysetpos] : null,
+    bysetpos: parts.bysetpos ?? null,
     bymonth: parts.bymonth ?? null,
+    byyearday: parts.byyearday ?? null,
+    byweekno: parts.byweekno ?? null,
+    byhour: parts.byhour ?? null,
+    byminute: parts.byminute ?? null,
+    bysecond: parts.bysecond ?? null,
+    ...(parts.wkst ? { wkst: toWeekday(parts.wkst) } : {}),
   }
   return toRruleLine(new RRule(options))
 }
@@ -1169,17 +1433,16 @@ export function rruleToParts(rule: string): RruleParts {
   return {
     freq: freqName as RruleParts['freq'],
     interval: options.interval ?? 1,
-    byweekday: toDayNames(
-      options.byweekday as
-        | string
-        | { weekday: number }
-        | (string | { weekday: number })[]
-        | null
-        | undefined,
-    ),
+    byweekday: toDayTokens(options.byweekday),
     bymonthday: toArrayOrNull(options.bymonthday),
-    bysetpos: toSingleOrNull(options.bysetpos),
+    bysetpos: toArrayOrNull(options.bysetpos),
     bymonth: toArrayOrNull(options.bymonth),
+    byyearday: toArrayOrNull(options.byyearday),
+    byweekno: toArrayOrNull(options.byweekno),
+    byhour: toArrayOrNull(options.byhour),
+    byminute: toArrayOrNull(options.byminute),
+    bysecond: toArrayOrNull(options.bysecond),
+    wkst: toWkstName(options.wkst),
     until:
       options.until !== null && options.until !== undefined
         ? toUntilStamp(options.until)
@@ -1188,29 +1451,67 @@ export function rruleToParts(rule: string): RruleParts {
   }
 }
 
-function toWeekday(name: string): Weekday {
-  const index = DAY_INDEX[name.toUpperCase()]
-  if (index === undefined) {
-    throw new Error(`Invalid weekday: ${name}`)
+function toWkstName(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number') return DAY_NAMES[value] ?? null
+  if (typeof value === 'string') {
+    const parsed = parseWeekdayToken(value)
+    return parsed ? parsed.day : null
   }
-  return WEEKDAYS[index]
+  const weekday = (value as { weekday?: number }).weekday
+  return typeof weekday === 'number' ? (DAY_NAMES[weekday] ?? null) : null
 }
 
-function toDayNames(
-  value:
-    | string
-    | { weekday: number }
-    | (string | { weekday: number })[]
-    | null
-    | undefined,
-): string[] | null {
+/**
+ * Builds an rrule Weekday, honouring an ordinal prefix ("2MO" → 2nd Monday,
+ * "-1FR" → last Friday). A bare day name yields the plain weekday.
+ */
+function toWeekday(token: string): Weekday {
+  const parsed = parseWeekdayToken(token)
+  if (!parsed) {
+    throw new Error(`Invalid weekday: ${token}`)
+  }
+  const index = DAY_INDEX[parsed.day]
+  if (index === undefined) {
+    throw new Error(`Invalid weekday: ${token}`)
+  }
+  const base = WEEKDAYS[index]
+  return parsed.ordinal === null ? base : base.nth(parsed.ordinal)
+}
+
+/**
+ * Reads rrule's byweekday into tokens that KEEP their ordinal prefix — a
+ * "2MO" flattened to "MO" is a different rule (2nd Monday vs every Monday).
+ */
+function toDayTokens(value: unknown): string[] | null {
   if (value === null || value === undefined) {
     return null
   }
   const list = Array.isArray(value) ? value : [value]
-  return list.map((entry) =>
-    typeof entry === 'string' ? entry.toUpperCase() : DAY_NAMES[entry.weekday],
-  )
+  const tokens: string[] = []
+  for (const entry of list) {
+    if (typeof entry === 'string') {
+      const parsed = parseWeekdayToken(entry)
+      tokens.push(parsed ? formatWeekdayToken(parsed) : entry.toUpperCase())
+      continue
+    }
+    if (typeof entry === 'number') {
+      const name = DAY_NAMES[entry]
+      if (name) tokens.push(name)
+      continue
+    }
+    const obj = entry as { weekday?: number; n?: number }
+    if (typeof obj?.weekday !== 'number') continue
+    const name = DAY_NAMES[obj.weekday]
+    if (!name) continue
+    tokens.push(
+      formatWeekdayToken({
+        ordinal: typeof obj.n === 'number' && obj.n !== 0 ? obj.n : null,
+        day: name,
+      }),
+    )
+  }
+  return tokens.length > 0 ? tokens : null
 }
 
 function toArrayOrNull(
@@ -1220,15 +1521,6 @@ function toArrayOrNull(
     return null
   }
   return Array.isArray(value) ? value.slice() : [value]
-}
-
-function toSingleOrNull(
-  value: number | number[] | null | undefined,
-): number | null {
-  if (value === null || value === undefined) {
-    return null
-  }
-  return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
 function toUntilStamp(date: Date): string {
@@ -1307,25 +1599,34 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
   } else if (freq === 'WEEKLY') {
     label = i > 1 ? everyWeeks : t.repeatFrequencyWeekly
     if (byweekday !== null && byweekday.length > 0) {
-      const days = byweekday
+      const dayNames = byweekday
+        .map((token) => parseWeekdayToken(token)?.day)
+        .filter((day): day is string => day !== undefined)
+      const days = dayNames
         .slice()
         .sort((a, b) => DAY_INDEX[a] - DAY_INDEX[b])
         .map((d) =>
           isZh ? ZH_WEEKDAYS[DAY_INDEX[d]] : EN_WEEKDAYS[DAY_INDEX[d]],
         )
         .join(isZh ? '、' : ', ')
-      label += ` · ${days}`
+      if (days.length > 0) label += ` · ${days}`
     }
   } else if (freq === 'MONTHLY') {
     label = i > 1 ? everyMonths : t.repeatFrequencyMonthly
-    if (bysetpos !== null && byweekday !== null && byweekday.length > 0) {
+    // The ordinal can live either in BYSETPOS or as a weekday prefix ("2MO").
+    const firstWeekday =
+      byweekday !== null && byweekday.length > 0
+        ? parseWeekdayToken(byweekday[0])
+        : null
+    const setPos = bysetpos?.[0] ?? firstWeekday?.ordinal ?? null
+    if (setPos !== null && firstWeekday !== null) {
       const ord =
-        bysetpos === -1
+        setPos === -1
           ? t.recurrenceLastWeek
-          : t.recurrenceNthWeek.replace('{n}', String(bysetpos))
+          : t.recurrenceNthWeek.replace('{n}', String(setPos))
       const day = isZh
-        ? ZH_WEEKDAY_SHORT[DAY_INDEX[byweekday[0].toUpperCase()]]
-        : EN_WEEKDAYS[DAY_INDEX[byweekday[0].toUpperCase()]]
+        ? ZH_WEEKDAY_SHORT[DAY_INDEX[firstWeekday.day]]
+        : EN_WEEKDAYS[DAY_INDEX[firstWeekday.day]]
       label += isZh ? ` · ${ord}周${day}` : ` · ${ord} ${day}`
     } else if (bymonthday !== null && bymonthday.length > 0) {
       const d = bymonthday[0]

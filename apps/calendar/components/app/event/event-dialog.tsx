@@ -46,6 +46,8 @@ import {
 } from '@/components/app/views/event-colors'
 import {
   describeRecurrence,
+  emptyRruleParts,
+  parseWeekdayToken,
   rruleFromParts,
   rruleToParts,
   toRfcStamp,
@@ -355,12 +357,23 @@ export default function EventDialog({
           const parts = rruleToParts(seriesRule)
           setRecFreq(parts.freq)
           setRecInterval(parts.interval || 1)
-          setRecWeeklyDays(parts.byweekday ?? [])
-          setRecMonthlyMode(
-            parts.byweekday && parts.bysetpos !== null ? 'weekday' : 'day',
+          // The editor works on bare day names; ordinal prefixes ("2MO") are
+          // carried by the monthly-weekday controls instead.
+          setRecWeeklyDays(
+            (parts.byweekday ?? [])
+              .map((token) => parseWeekdayToken(token)?.day)
+              .filter((day): day is string => day !== undefined),
           )
-          setRecMonthlyWeek(parts.bysetpos ?? 1)
-          setRecMonthlyWeekday(parts.byweekday?.[0] ?? 'MO')
+          const firstWeekdayToken = parts.byweekday?.[0]
+          const firstWeekday = firstWeekdayToken
+            ? parseWeekdayToken(firstWeekdayToken)
+            : null
+          const setPos = parts.bysetpos?.[0] ?? firstWeekday?.ordinal ?? null
+          setRecMonthlyMode(
+            parts.byweekday && setPos !== null ? 'weekday' : 'day',
+          )
+          setRecMonthlyWeek(setPos ?? 1)
+          setRecMonthlyWeekday(firstWeekday?.day ?? 'MO')
           const start = new Date(event.startDate)
           setRecMonthlyDay(parts.bymonthday?.[0] ?? start.getDate())
           setRecYearlyDay(parts.bymonthday?.[0] ?? start.getDate())
@@ -569,16 +582,7 @@ export default function EventDialog({
     WEEKDAY_ORDER[d.getDay() === 0 ? 6 : d.getDay() - 1]
 
   const buildRruleParts = (): RruleParts | null => {
-    const base: RruleParts = {
-      freq: recFreq,
-      interval: recInterval,
-      byweekday: null,
-      bymonthday: null,
-      bysetpos: null,
-      bymonth: null,
-      until: null,
-      count: null,
-    }
+    const base: RruleParts = emptyRruleParts(recFreq, recInterval)
     if (recFreq === 'WEEKLY') {
       const days =
         recWeeklyDays.length > 0
@@ -592,7 +596,7 @@ export default function EventDialog({
         base.bymonthday = [recMonthlyDay]
       } else {
         base.byweekday = [recMonthlyWeekday]
-        base.bysetpos = recMonthlyWeek
+        base.bysetpos = [recMonthlyWeek]
       }
     } else if (recFreq === 'YEARLY') {
       base.bymonth = [recYearlyMonth]

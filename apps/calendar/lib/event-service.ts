@@ -204,6 +204,14 @@ export interface OverrideUpsert {
 export interface SplitPlan {
   masterUntil: string
   masterExdate: string[]
+  /**
+   * True when the truncated old master would generate no visible occurrence
+   * at all (the split happened at its first/only remaining slot). Callers
+   * must DELETE that row instead of writing a truncated rule: a zombie master
+   * accumulates on every repeated "this and following" edit and keeps
+   * re-parenting overrides to a series nobody can see.
+   */
+  masterBecomesEmpty: boolean
   newSeries: {
     id: string
     rrule: string
@@ -333,6 +341,24 @@ export function planInstanceChange(
     ? (shiftExdates(splitExdate, startDate as Date, target.timeZone) ?? [])
     : []
 
+  // Does the old series still render anything once truncated at the split
+  // boundary (UNTIL is inclusive, and masterExdate excludes the boundary
+  // itself)? If not, the caller must drop the row rather than keep an
+  // invisible master around.
+  const truncatedMaster: EventRow = {
+    ...master,
+    rrule: rule,
+    exdate: masterExdate,
+  }
+  const remainingBefore = expandSeries(
+    truncatedMaster,
+    new Date(master.startDate.getTime() - 2 * 24 * 3600 * 1000),
+    patternStart,
+    2,
+    target.timeZone,
+  ).filter((i) => i.recurrenceId < recurrenceId)
+  const masterBecomesEmpty = remainingBefore.length === 0
+
   return {
     applyTo,
     exdateToAdd: null,
@@ -341,6 +367,7 @@ export function planInstanceChange(
     split: {
       masterUntil: recurrenceId,
       masterExdate,
+      masterBecomesEmpty,
       newSeries: {
         id: crypto.randomUUID(),
         // Preserve the original series' bounds: UNTIL carries over inside

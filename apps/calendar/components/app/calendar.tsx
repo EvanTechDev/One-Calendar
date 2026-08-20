@@ -232,7 +232,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       !pendingRangeMove.event.seriesId &&
       !pendingRangeMove.event.recurrenceId) ||
       pendingRangeMove.event.isFirstInstance === true)
-  const [deleteScope, setDeleteScope] = useState<'single' | 'all'>('single')
+  const [deleteScope, setDeleteScope] = useState<
+    'single' | 'following' | 'all'
+  >('single')
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
   const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
@@ -1750,13 +1752,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <RadioGroup
                 value={deleteScope}
                 onValueChange={(value) =>
-                  setDeleteScope(value as 'single' | 'all')
+                  setDeleteScope(value as 'single' | 'following' | 'all')
                 }
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="single" id="delete-scope-single" />
                   <Label htmlFor="delete-scope-single">
                     {t.repeatDeleteThisOccurrence}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="following"
+                    id="delete-scope-following"
+                  />
+                  <Label htmlFor="delete-scope-following">
+                    {t.repeatScopeFollowing}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">

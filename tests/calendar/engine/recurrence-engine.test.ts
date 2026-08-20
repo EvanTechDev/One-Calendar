@@ -4,6 +4,7 @@ import {
   adaptRuleToStart,
   buildInstanceId,
   describeRecurrence,
+  emptyRruleParts,
   expandSeries,
   isInstanceId,
   isSeriesEvent,
@@ -35,17 +36,7 @@ function makeSeries(overrides: Partial<RecurrenceEvent> = {}): RecurrenceEvent {
 }
 
 function makeParts(overrides: Partial<RruleParts> = {}): RruleParts {
-  return {
-    freq: 'DAILY',
-    interval: 1,
-    byweekday: null,
-    bymonthday: null,
-    bysetpos: null,
-    bymonth: null,
-    until: null,
-    count: null,
-    ...overrides,
-  }
+  return { ...emptyRruleParts('DAILY'), ...overrides }
 }
 
 describe('toRfcStamp', () => {
@@ -680,7 +671,7 @@ describe('rruleToParts', () => {
     const parts = makeParts({
       freq: 'MONTHLY',
       byweekday: ['TU'],
-      bysetpos: 2,
+      bysetpos: [2],
       count: 12,
     })
     expect(rruleToParts(rruleFromParts(parts))).toEqual(parts)
@@ -714,10 +705,34 @@ describe('rruleToParts', () => {
     )
   })
 
-  it('maps nth-weekdays to plain day names', () => {
+  it('preserves nth-weekday prefixes (a 2MO rule is not a MO rule)', () => {
     expect(rruleToParts('FREQ=MONTHLY;BYDAY=-1FR')).toEqual(
-      makeParts({ freq: 'MONTHLY', byweekday: ['FR'] }),
+      makeParts({ freq: 'MONTHLY', byweekday: ['-1FR'] }),
     )
+    expect(rruleToParts('FREQ=MONTHLY;BYDAY=2MO')).toEqual(
+      makeParts({ freq: 'MONTHLY', byweekday: ['2MO'] }),
+    )
+  })
+
+  it('round-trips the RFC fields that used to be silently dropped', () => {
+    const cases = [
+      'FREQ=MONTHLY;BYMONTHDAY=1,15',
+      'FREQ=MONTHLY;BYMONTHDAY=-1',
+      'FREQ=YEARLY;BYMONTH=3,6,9,12;BYMONTHDAY=15',
+      'FREQ=YEARLY;BYYEARDAY=100',
+      'FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO',
+      'FREQ=MONTHLY;BYDAY=2MO',
+      'FREQ=WEEKLY;INTERVAL=2;BYDAY=SU;WKST=SU',
+      'FREQ=DAILY;BYHOUR=9,17',
+      'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1',
+    ]
+    for (const rule of cases) {
+      // Round-tripping must not change which occurrences the rule selects:
+      // parts → rule → parts is a fixed point.
+      const once = rruleToParts(rule)
+      const twice = rruleToParts(rruleFromParts(once))
+      expect(twice).toEqual(once)
+    }
   })
 
   it('throws on rules without FREQ', () => {
@@ -734,12 +749,22 @@ describe('rruleToParts', () => {
         count: 8,
       }),
       makeParts({ freq: 'MONTHLY', bymonthday: [1, -1] }),
-      makeParts({ freq: 'MONTHLY', byweekday: ['SA'], bysetpos: -1 }),
+      makeParts({ freq: 'MONTHLY', byweekday: ['SA'], bysetpos: [-1] }),
       makeParts({
         freq: 'YEARLY',
         bymonth: [1, 6, 12],
         bymonthday: [10, 20],
         until: '20271231',
+      }),
+      makeParts({ freq: 'MONTHLY', byweekday: ['2MO'] }),
+      makeParts({ freq: 'YEARLY', byyearday: [100, -1] }),
+      makeParts({ freq: 'YEARLY', byweekno: [20, -1], byweekday: ['MO'] }),
+      makeParts({ freq: 'DAILY', byhour: [9, 17] }),
+      makeParts({ freq: 'WEEKLY', byweekday: ['SU'], wkst: 'SU' }),
+      makeParts({
+        freq: 'MONTHLY',
+        byweekday: ['MO', 'TU', 'WE', 'TH', 'FR'],
+        bysetpos: [-1],
       }),
     ]
     for (const parts of matrix) {
@@ -804,14 +829,27 @@ describe('isValidRrule', () => {
 })
 
 describe('adaptRuleToStart', () => {
-  it('re-anchors a daily rule where the new start is not a member', () => {
+  it('adds the new anchor weekday instead of discarding the others', () => {
+    // A Monday rule whose anchor lands on Tuesday becomes Mon+Tue. Replacing
+    // the set (the old behaviour) silently deleted every Monday occurrence.
     const adapted = adaptRuleToStart(
       'FREQ=WEEKLY;BYDAY=MO',
       day(2024, 1, 1),
       day(2024, 1, 2),
       true,
     )
-    expect(adapted).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=TU')
+    expect(adapted).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU')
+  })
+
+  it('keeps every selected weekday of a multi-day rule', () => {
+    const adapted = adaptRuleToStart(
+      'FREQ=WEEKLY;BYDAY=MO,WE,FR,SU',
+      day(2024, 1, 1),
+      day(2024, 1, 2),
+      true,
+    )
+    const byday = /BYDAY=([^;]+)/.exec(adapted)![1].split(',').sort()
+    expect(byday).toEqual(['FR', 'MO', 'SU', 'TU', 'WE'])
   })
 
   it('keeps the rule untouched when the new start already matches', () => {
@@ -824,24 +862,35 @@ describe('adaptRuleToStart', () => {
     expect(adapted).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO')
   })
 
-  it('re-anchors a monthly-by-day rule onto the day of month', () => {
+  it('adds the anchor day-of-month, keeping the original', () => {
     const adapted = adaptRuleToStart(
       'FREQ=MONTHLY;BYMONTHDAY=15',
       day(2024, 1, 15),
       day(2024, 1, 3),
       true,
     )
-    expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=3')
+    const days = /BYMONTHDAY=([^;]+)/
+      .exec(adapted)![1]
+      .split(',')
+      .map(Number)
+      .sort((a, b) => a - b)
+    expect(days).toEqual([3, 15])
   })
 
-  it('converts a setpos rule to day-of-month when the new date breaks the pattern', () => {
+  it('adds the anchor as an nth-weekday instead of switching selection mode', () => {
+    // 2024-02-14 is the 2nd Wednesday. The rule keeps its nth-weekday mode
+    // (2nd Saturday) and gains the anchor, rather than being rewritten into a
+    // BYMONTHDAY rule that drops the Saturday occurrences entirely.
     const adapted = adaptRuleToStart(
       'FREQ=MONTHLY;BYDAY=SA;BYSETPOS=2',
       day(2024, 1, 13),
       day(2024, 2, 14),
       true,
     )
-    expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=14')
+    expect(adapted).toContain('BYDAY=')
+    expect(adapted).toContain('SA')
+    expect(adapted).toMatch(/2WE/)
+    expect(adapted).not.toContain('BYMONTHDAY')
   })
 
   it('keeps a setpos rule when the new date still fits the pattern', () => {
@@ -854,14 +903,25 @@ describe('adaptRuleToStart', () => {
     expect(adapted).toBe('FREQ=MONTHLY;INTERVAL=1;BYDAY=SA;BYSETPOS=2')
   })
 
-  it('re-anchors a yearly rule onto the new month and day', () => {
+  it('adds the anchor month and day to a yearly rule', () => {
     const adapted = adaptRuleToStart(
       'FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=15',
       day(2024, 1, 15),
       day(2024, 7, 2),
       true,
     )
-    expect(adapted).toBe('FREQ=YEARLY;INTERVAL=1;BYMONTHDAY=2;BYMONTH=7')
+    const months = /BYMONTH=([^;]+)/
+      .exec(adapted)![1]
+      .split(',')
+      .map(Number)
+      .sort((a, b) => a - b)
+    const days = /BYMONTHDAY=([^;]+)/
+      .exec(adapted)![1]
+      .split(',')
+      .map(Number)
+      .sort((a, b) => a - b)
+    expect(months).toEqual([1, 7])
+    expect(days).toEqual([2, 15])
   })
 
   it('shifts UNTIL by the same delta when the new start passes the end', () => {
@@ -871,9 +931,9 @@ describe('adaptRuleToStart', () => {
       day(2024, 2, 25),
       true,
     )
-    expect(adapted).toBe(
-      'FREQ=WEEKLY;INTERVAL=1;UNTIL=20240407T000000Z;BYDAY=SU',
-    )
+    expect(adapted).toContain('UNTIL=20240407T000000Z')
+    const byday = /BYDAY=([^;]+)/.exec(adapted)![1].split(',').sort()
+    expect(byday).toEqual(['MO', 'SU'])
   })
 
   it('returns the original rule on parse failure', () => {

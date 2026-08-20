@@ -40,6 +40,7 @@ import {
   parseInstanceId,
   parseRfcStamp,
   addWallClockDays,
+  canTranslateRuleByDays,
   shiftExdates,
   shiftToAnchorClock,
   translateRuleByDays,
@@ -312,19 +313,38 @@ async function applySplitPlan(
         )
     }
 
-    await tx
-      .update(calendarEvents)
-      .set({
-        rrule: withUntil(master.rrule!, split.masterUntil),
-        exdate: split.masterExdate,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(calendarEvents.id, master.id),
-          eq(calendarEvents.userId, userId),
-        ),
-      )
+    if (split.masterBecomesEmpty) {
+      // The old series would render nothing after truncation (split at its
+      // first slot): drop it so repeated "this and following" edits cannot
+      // pile up invisible zombie masters. Overrides were already re-parented
+      // above, and the FK is ON DELETE CASCADE for anything still pointing
+      // here, so nothing is orphaned.
+      await tx
+        .delete(eventInvites)
+        .where(inArray(eventInvites.eventId, [master.id]))
+      await tx
+        .delete(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.id, master.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    } else {
+      await tx
+        .update(calendarEvents)
+        .set({
+          rrule: withUntil(master.rrule!, split.masterUntil),
+          exdate: split.masterExdate,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, master.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    }
 
     return inserted
   })
@@ -920,6 +940,23 @@ export const POST = async function POST(request: NextRequest) {
       }
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : masterRow.rrule
+      // Refuse rather than silently degrade: some patterns ("last day of the
+      // month", BYWEEKNO with a partial-week shift) have no shifted rule that
+      // selects the same occurrences. Writing an approximation would delete or
+      // invent occurrences behind the user's back.
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "This repeat rule cannot be moved to another day with 'all events'. Edit the repeat rule, or use 'this event' / 'this and following'.",
+          },
+          { status: 400 },
+        )
+      }
       if (rrule !== null) {
         rrule =
           dayDelta !== 0
@@ -1193,6 +1230,21 @@ export const POST = async function POST(request: NextRequest) {
       const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate, timeZone)
       let rrule =
         body.rrule !== undefined ? (rawRrule ?? null) : seriesRow.rrule
+      // See the instance-'all' branch: refuse a day move the rule cannot
+      // express instead of writing an approximation.
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "This repeat rule cannot be moved to another day with 'all events'. Edit the repeat rule, or use 'this event' / 'this and following'.",
+          },
+          { status: 400 },
+        )
+      }
       if (rrule !== null) {
         rrule =
           dayDelta !== 0
@@ -1571,6 +1623,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
       applyTo: 'following',
       fields: {},
       now: new Date(),
+      timeZone,
     })
     const newMaster = await applySplitPlan(user.id, plan, masterRow)
     if (newMaster) {
@@ -1623,6 +1676,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
       applyTo,
       fields: {},
       now: new Date(),
+      timeZone,
     })
 
     if (plan.split) {

@@ -19,7 +19,19 @@ export async function fetchJson<T>(
     },
   }).then(async (response) => {
     if (!response.ok) {
-      const error = new Error(`Request failed: ${response.status}`)
+      // Surface the API's own message: routes return actionable errors (e.g.
+      // "this repeat rule cannot be moved to another day"), and a bare status
+      // code leaves the user with nothing to act on.
+      let message = `Request failed: ${response.status}`
+      try {
+        const body = (await response.json()) as { error?: unknown }
+        if (typeof body?.error === 'string' && body.error.trim().length > 0) {
+          message = body.error
+        }
+      } catch {
+        // Non-JSON body — keep the status-code message.
+      }
+      const error = new Error(message)
       ;(error as Error & { status?: number }).status = response.status
       throw error
     }

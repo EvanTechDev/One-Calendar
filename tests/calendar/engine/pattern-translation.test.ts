@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   addWallClockDays,
+  canTranslateRuleByDays,
   snapToPatternDay,
   translateRuleByDays,
   translateStampsByDays,
@@ -122,28 +123,126 @@ describe('translateRuleByDays', () => {
     expect(out).toContain('BYMONTHDAY=16')
   })
 
-  it('rotates the weekday of an nth-weekday monthly rule, keeping the ordinal', () => {
-    const out = translateRuleByDays(
-      'FREQ=MONTHLY;BYDAY=TU;BYSETPOS=2',
-      1,
-      day(2026, 8, 12, 9),
-      false,
-      'UTC',
-    )
-    expect(out).toContain('BYDAY=WE')
-    expect(out).toContain('BYSETPOS=2')
+  it('refuses to shift a BYSETPOS rule: "2nd Tuesday + 1 day" is not nameable', () => {
+    // BYSETPOS selects the nth match within the period. Rotating the weekday
+    // keeps the positional selection, so the result is NOT the original date
+    // plus one day (the 2nd Tuesday and the 2nd Wednesday can be six days
+    // apart). Refusing keeps the rule honest.
+    const rule = 'FREQ=MONTHLY;BYDAY=TU;BYSETPOS=2'
+    expect(canTranslateRuleByDays(rule, 1)).toBe(false)
+    expect(
+      translateRuleByDays(rule, 1, day(2026, 8, 12, 9), false, 'UTC'),
+    ).toBe(rule)
   })
 
   it('shifts month and day for a yearly rule', () => {
     const out = translateRuleByDays(
-      'FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=31',
+      'FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=15',
       1,
-      day(2026, 9, 1, 9),
+      day(2026, 8, 16, 9),
       false,
       'UTC',
     )
-    expect(out).toContain('BYMONTH=9')
-    expect(out).toContain('BYMONTHDAY=1')
+    expect(out).toContain('BYMONTH=8')
+    expect(out).toContain('BYMONTHDAY=16')
+  })
+
+  it('refuses to shift a day-of-month out of range instead of corrupting it', () => {
+    // Aug 31 + 1 day has no BYMONTHDAY that means "the day after the 31st" in
+    // every month, so the rule is returned unchanged and the caller's
+    // canTranslateRuleByDays guard rejects the edit.
+    const rule = 'FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=31'
+    expect(translateRuleByDays(rule, 1, day(2026, 9, 1, 9), false, 'UTC')).toBe(
+      rule,
+    )
+    expect(canTranslateRuleByDays(rule, 1)).toBe(false)
+  })
+
+  it('refuses last-day-of-month and partial-week BYWEEKNO shifts', () => {
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYMONTHDAY=-1', 1)).toBe(false)
+    expect(canTranslateRuleByDays('FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO', 1)).toBe(
+      false,
+    )
+    // A whole-week shift of a BYWEEKNO rule IS expressible.
+    expect(canTranslateRuleByDays('FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO', 7)).toBe(
+      true,
+    )
+  })
+
+  it('translates multi-value fields element-wise, never collapsing them', () => {
+    // The regression this guards: BYMONTHDAY=1,15 used to become a single
+    // anchor day, silently deleting half the occurrences.
+    const monthly = translateRuleByDays(
+      'FREQ=MONTHLY;BYMONTHDAY=1,15',
+      1,
+      day(2026, 8, 2, 9),
+      false,
+      'UTC',
+    )
+    const days = /BYMONTHDAY=([^;]+)/
+      .exec(monthly)![1]
+      .split(',')
+      .map(Number)
+      .sort((a, b) => a - b)
+    expect(days).toEqual([2, 16])
+
+    // Quarterly rules keep all four months.
+    const quarterly = translateRuleByDays(
+      'FREQ=YEARLY;BYMONTH=3,6,9,12;BYMONTHDAY=15',
+      1,
+      day(2026, 3, 16, 9),
+      false,
+      'UTC',
+    )
+    const months = /BYMONTH=([^;]+)/
+      .exec(quarterly)![1]
+      .split(',')
+      .map(Number)
+      .sort((a, b) => a - b)
+    expect(months).toEqual([3, 6, 9, 12])
+    expect(quarterly).toContain('BYMONTHDAY=16')
+  })
+
+  it('shifts an ordinal weekday by whole weeks and refuses partial weeks', () => {
+    // "2nd Monday + 7 days" IS the 3rd Monday.
+    const weekShift = translateRuleByDays(
+      'FREQ=MONTHLY;BYDAY=2MO',
+      7,
+      day(2026, 8, 17, 9),
+      false,
+      'UTC',
+    )
+    expect(weekShift).toMatch(/3MO/)
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYDAY=2MO', 7)).toBe(true)
+
+    // "2nd Monday + 1 day" is the 2nd Tuesday in some months and the 3rd in
+    // others, so it has no fixed rule and must be refused.
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYDAY=2MO', 1)).toBe(false)
+    expect(
+      translateRuleByDays(
+        'FREQ=MONTHLY;BYDAY=2MO',
+        1,
+        day(2026, 8, 11, 9),
+        false,
+        'UTC',
+      ),
+    ).toBe('FREQ=MONTHLY;BYDAY=2MO')
+
+    // Past the 5th week there is no such ordinal in any month.
+    expect(canTranslateRuleByDays('FREQ=MONTHLY;BYDAY=5MO', 7)).toBe(false)
+  })
+
+  it('refuses a partial-week shift of an interval>1 weekly rule', () => {
+    // Every 2nd week counts from the anchor's week; a 1-day shift can move the
+    // anchor into the previous/next week and flip the phase, changing the
+    // spacing between occurrences from 14 days to 7 or 21.
+    const rule = 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH'
+    expect(canTranslateRuleByDays(rule, 1)).toBe(false)
+    expect(canTranslateRuleByDays(rule, -1)).toBe(false)
+    // Whole-week shifts move the anchor with the pattern and are safe.
+    expect(canTranslateRuleByDays(rule, 7)).toBe(true)
+    const out = translateRuleByDays(rule, 7, day(2026, 8, 11, 9), false, 'UTC')
+    expect(out).toContain('INTERVAL=2')
   })
 
   it('leaves a daily rule alone (nothing to rotate)', () => {
@@ -171,14 +270,15 @@ describe('translateRuleByDays', () => {
   })
 
   it('preserves COUNT and INTERVAL', () => {
+    // INTERVAL=1 so the shift is expressible (see the interval>1 case above).
     const out = translateRuleByDays(
-      'FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;COUNT=10',
+      'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;COUNT=10',
       1,
       day(2026, 8, 4, 9),
       false,
       'UTC',
     )
-    expect(out).toContain('INTERVAL=2')
+    expect(out).toContain('INTERVAL=1')
     expect(out).toContain('COUNT=10')
     expect(out).toContain('BYDAY=TU')
   })
