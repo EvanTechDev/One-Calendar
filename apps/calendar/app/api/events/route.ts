@@ -1092,10 +1092,22 @@ export const POST = async function POST(request: NextRequest) {
           timeZone,
         )
       }
+      // Same invariant as the instance-'all' branch: stored exdate stamps
+      // must follow the series into the new clock space or single-deleted
+      // occurrences silently resurrect.
+      const remappedExdate = shiftExdates(
+        seriesRow.exdate,
+        nextStartDate,
+        timeZone,
+      )
       const set = {
         ...encryptMergedFields(seriesRow.id, submittedFields),
         ...(rrule !== null ? { rrule } : {}),
-        ...(body.exdate !== undefined ? { exdate: body.exdate } : {}),
+        ...(body.exdate !== undefined
+          ? { exdate: body.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
         updatedAt: new Date(),
       }
       const [updated] = await getDb()

@@ -191,7 +191,7 @@ describe('events route series mutations (characterization)', () => {
     expect(fake.row('o1')!.recurrenceId).toBe('20260810T110000Z')
   })
 
-  it('characterizes PUT all (master id): does NOT remap exdates (current behavior)', async () => {
+  it('characterizes PUT all (master id): remaps exdates', async () => {
     seedMaster({ exdate: ['20260817T090000Z'] })
     seedOverride('o1', '20260810T090000Z')
 
@@ -207,12 +207,11 @@ describe('events route series mutations (characterization)', () => {
     )
 
     expect(res.status).toBe(200)
-    // Overrides ARE remapped to the new clock…
+    // Overrides are remapped to the new clock…
     expect(fake.row('o1')!.recurrenceId).toBe('20260810T110000Z')
-    // …but the exdates are NOT (BUG, pinned): the stale stamp matches no
-    // occurrence anymore, so the deleted instance resurrects. Plan 002 flips
-    // this assertion to expect 20260817T110000Z.
-    expect(fake.row('m1')!.exdate).toEqual(['20260817T090000Z'])
+    // …and so are the stored exdates (fixed by plan 002): both stamp sets
+    // follow the series into the new clock space in one operation.
+    expect(fake.row('m1')!.exdate).toEqual(['20260817T110000Z'])
   })
 
   it('characterizes PUT following (instance id): split write sequence', async () => {
