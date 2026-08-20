@@ -17,6 +17,7 @@ import {
   Send,
   UserMinus,
   Repeat,
+  ClipboardCopy,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Badge } from '@zntr/ui/badge'
@@ -333,6 +334,22 @@ export default function EventPreview({
       toast.success('Participant removed')
     } catch {
       toast.error('Failed to remove participant')
+    }
+  }
+
+  /**
+   * Copies a participant's own invite link so the organiser can share it
+   * directly (e.g. over chat) instead of relying on the invite email. The
+   * token is per-participant, so each row copies a distinct link.
+   */
+  const handleCopyInviteLink = async (inviteToken: string) => {
+    const url = `${window.location.origin}/invite/${inviteToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(_t.inviteLinkCopied)
+    } catch {
+      // Clipboard access can be denied (insecure context, permission policy).
+      toast.error('Failed to copy invite link')
     }
   }
 
@@ -695,6 +712,16 @@ export default function EventPreview({
                                     Resend Invite
                                   </DropdownMenuItem>
                                 )}
+                                {invite.inviteToken ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleCopyInviteLink(invite.inviteToken)
+                                    }
+                                  >
+                                    <ClipboardCopy className="mr-2 h-4 w-4" />
+                                    {_t.copyInviteLink}
+                                  </DropdownMenuItem>
+                                ) : null}
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() =>

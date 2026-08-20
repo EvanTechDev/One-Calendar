@@ -268,7 +268,7 @@ export default function YearView({
                       key={event.id}
                       type="button"
                       className={cn(
-                        'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                        'relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs',
                         event.color,
                       )}
                       onClick={(e) => {
@@ -286,7 +286,7 @@ export default function YearView({
                       }}
                     >
                       <div
-                        className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                        className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
                         style={{ backgroundColor: getAccent(event.color) }}
                       />
                       <div

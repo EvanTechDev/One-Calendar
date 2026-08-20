@@ -509,5 +509,7 @@
   "recurrenceUntilSuffix": "until {until}",
   "recurrenceCountSuffix": "{n} times",
   "recurrenceLastDay": "last day",
-  "recurrenceYearlyMonth": "Month {n}"
+  "recurrenceYearlyMonth": "Month {n}",
+  "copyInviteLink": "Copy invite link",
+  "inviteLinkCopied": "Invite link copied"
 }

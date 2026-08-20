@@ -383,7 +383,7 @@ export default function WeekView({
         key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
         data-event-id={event.id}
         className={cn(
-          'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
+          'relative rounded-md p-1 text-xs cursor-pointer overflow-hidden',
           event.color,
         )}
         style={{
@@ -418,7 +418,7 @@ export default function WeekView({
         }}
       >
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
           style={{ backgroundColor: getEventAccentColor(event.color) }}
         />
         <div
@@ -445,7 +445,7 @@ export default function WeekView({
     return (
       <div
         className={cn(
-          'absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+          'absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
           draggingEvent.color,
         )}
         style={{
@@ -464,7 +464,7 @@ export default function WeekView({
         }}
       >
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
           style={{ backgroundColor: getEventAccentColor(draggingEvent.color) }}
         />
         <div className="pl-1">
@@ -613,7 +613,7 @@ export default function WeekView({
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
                       data-event-id={event.id}
                       className={cn(
-                        'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+                        'relative absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
                         event.color,
                       )}
                       style={{
@@ -648,7 +648,7 @@ export default function WeekView({
                       {canResize && (
                         <>
                           <div
-                            className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-lg"
+                            className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-md"
                             onMouseDown={(e) =>
                               beginResize(
                                 event,
@@ -661,7 +661,7 @@ export default function WeekView({
                             }
                           />
                           <div
-                            className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-lg"
+                            className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-md"
                             onMouseDown={(e) =>
                               beginResize(
                                 event,
@@ -677,7 +677,7 @@ export default function WeekView({
                       )}
                       <div
                         className={cn(
-                          'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                          'absolute left-0 top-0 w-1 h-full rounded-l-sm',
                         )}
                         style={{
                           backgroundColor: getEventAccentColor(event.color),
@@ -719,7 +719,7 @@ export default function WeekView({
 
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
-                  className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,

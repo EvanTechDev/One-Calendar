@@ -17,6 +17,7 @@ import { Download, Upload, AlertCircle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { generateICSFile, parseICS } from '@/lib/ics'
 import { Checkbox } from '@zntr/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
 import { Button } from '@zntr/ui/button'
@@ -249,7 +250,9 @@ export default function ImportExport({
         rawContent = await selectedFile.text()
 
         if (fileExt === 'ics') {
-          importedEvents = parseICS(rawContent)
+          importedEvents = parseICS(rawContent, {
+            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+          }) as unknown as CalendarEvent[]
         } else if (fileExt === 'json') {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -268,7 +271,9 @@ export default function ImportExport({
         rawContent = await response.text()
 
         if (importUrl.endsWith('.ics')) {
-          importedEvents = parseICS(rawContent)
+          importedEvents = parseICS(rawContent, {
+            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+          }) as unknown as CalendarEvent[]
         } else if (importUrl.endsWith('.json')) {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -491,47 +496,6 @@ ${rawContent.substring(0, 500)}...`)
     }
   }
 
-  const generateICSFile = (events: CalendarEvent[]): string => {
-    let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//One Calendar//NONSGML v1.0//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-`
-
-    const formatDate = (date: Date) => {
-      const utcYear = date.getUTCFullYear()
-      const utcMonth = String(date.getUTCMonth() + 1).padStart(2, '0')
-      const utcDay = String(date.getUTCDate()).padStart(2, '0')
-      const utcHours = String(date.getUTCHours()).padStart(2, '0')
-      const utcMinutes = String(date.getUTCMinutes()).padStart(2, '0')
-      const utcSeconds = String(date.getUTCSeconds()).padStart(2, '0')
-
-      return `${utcYear}${utcMonth}${utcDay}T${utcHours}${utcMinutes}${utcSeconds}Z`
-    }
-
-    events.forEach((event) => {
-      const startDate = new Date(event.startDate)
-      const endDate = new Date(event.endDate)
-
-      icsContent += `BEGIN:VEVENT
-UID:${event.id}
-DTSTAMP:${formatDate(new Date())}
-DTSTART:${formatDate(startDate)}
-DTEND:${formatDate(endDate)}
-SUMMARY:${event.title}
-${event.rrule ? `RRULE:${event.rrule}\n` : ''}
-${event.exdate?.length ? `EXDATE:${event.exdate.join(',')}\n` : ''}
-${event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : ''}
-${event.location ? `LOCATION:${event.location}` : ''}
-END:VEVENT
-`
-    })
-
-    icsContent += 'END:VCALENDAR'
-    return icsContent
-  }
-
   const generateCSV = (events: CalendarEvent[]): string => {
     const headers = [
       'Title',
@@ -559,208 +523,6 @@ END:VEVENT
     ].join('\n')
 
     return csvContent
-  }
-
-  const parseICS = (icsContent: string): CalendarEvent[] => {
-    const events: CalendarEvent[] = []
-    const lines = icsContent.split(/\r\n|\n|\r/)
-
-    let currentEvent: Partial<CalendarEvent> = {}
-    let inEvent = false
-
-    const processedLines: string[] = []
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      if (line.startsWith(' ') || line.startsWith('\t')) {
-        if (processedLines.length > 0) {
-          processedLines[processedLines.length - 1] += line.substring(1)
-        }
-      } else {
-        processedLines.push(line)
-      }
-    }
-
-    for (const line of processedLines) {
-      if (line.startsWith('BEGIN:VEVENT')) {
-        currentEvent = {
-          id:
-            Date.now().toString() + Math.random().toString(36).substring(2, 9),
-          title: t.unnamedEvent || 'Unnamed Event',
-          isAllDay: false,
-          rrule: null,
-          participants: [],
-          notification: 0,
-          color: 'bg-[#E6F6FD]',
-          calendarId: '',
-        }
-        inEvent = true
-      } else if (line.startsWith('END:VEVENT')) {
-        if (inEvent && currentEvent.title && currentEvent.startDate) {
-          if (
-            !currentEvent.endDate ||
-            new Date(currentEvent.endDate) < new Date(currentEvent.startDate)
-          ) {
-            currentEvent.endDate = new Date(
-              new Date(currentEvent.startDate).getTime() + 60 * 60 * 1000,
-            )
-          }
-
-          events.push(currentEvent as CalendarEvent)
-        }
-        currentEvent = {}
-        inEvent = false
-      } else if (inEvent) {
-        const colonIndex = line.indexOf(':')
-        if (colonIndex > 0) {
-          const key = line.substring(0, colonIndex)
-          const value = line.substring(colonIndex + 1)
-
-          const [mainKey, ...params] = key.split(';')
-
-          switch (mainKey) {
-            case 'SUMMARY':
-              currentEvent.title = value
-              break
-            case 'DESCRIPTION':
-              currentEvent.description = value
-                .replace(/\\n/g, '\n')
-                .replace(/\\,/g, ',')
-              break
-            case 'LOCATION':
-              currentEvent.location = value
-              break
-            case 'UID':
-              currentEvent.id = value
-              break
-            case 'DTSTART':
-              try {
-                const hasTimeZone = params.some((p) => p.startsWith('TZID='))
-                const isAllDay = !value.includes('T')
-
-                currentEvent.startDate = parseICSDate(value, hasTimeZone)
-                currentEvent.isAllDay = isAllDay
-              } catch (e) {
-                console.error('Error parsing DTSTART:', value, e)
-              }
-              break
-            case 'DTEND':
-              try {
-                const hasTimeZone = params.some((p) => p.startsWith('TZID='))
-                currentEvent.endDate = parseICSDate(value, hasTimeZone)
-              } catch (e) {
-                console.error('Error parsing DTEND:', value, e)
-              }
-              break
-            case 'RRULE':
-              currentEvent.rrule = value
-              break
-            case 'EXDATE':
-              {
-                const stamps = value.split(',').map((s) => s.trim())
-                currentEvent.exdate = [
-                  ...(currentEvent.exdate ?? []),
-                  ...stamps,
-                ]
-              }
-              break
-          }
-        }
-      }
-    }
-
-    return events
-  }
-
-  const parseICSDate = (dateString: string, _hasTimeZone: boolean): Date => {
-    let year,
-      month,
-      day,
-      hour = 0,
-      minute = 0,
-      second = 0
-
-    const hasOffset =
-      dateString.includes('+') ||
-      (dateString.includes('-') && dateString.indexOf('-') > 8)
-    const isUTC = dateString.endsWith('Z')
-
-    if (dateString.includes('T')) {
-      let datePart, timePart
-
-      if (hasOffset) {
-        const offsetIndex = Math.max(
-          dateString.lastIndexOf('+'),
-          dateString.lastIndexOf('-'),
-        )
-        datePart = dateString.substring(0, dateString.indexOf('T'))
-        timePart = dateString.substring(
-          dateString.indexOf('T') + 1,
-          offsetIndex,
-        )
-
-        const offsetPart = dateString.substring(offsetIndex)
-        const isoDateString = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}T${timePart.substring(0, 2)}:${timePart.substring(2, 4)}:${timePart.substring(4, 6)}${offsetPart.substring(0, 3)}:${offsetPart.substring(3, 5)}`
-        const parsedDate = new Date(isoDateString)
-
-        if (!Number.isNaN(parsedDate.getTime())) {
-          return parsedDate
-        }
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-        hour = Number.parseInt(timePart.substring(0, 2), 10)
-        minute = Number.parseInt(timePart.substring(2, 4), 10)
-        second = Number.parseInt(timePart.substring(4, 6), 10)
-
-        const offsetSign = offsetPart.charAt(0) === '+' ? 1 : -1
-        const offsetHours = Number.parseInt(offsetPart.substring(1, 3), 10)
-        const offsetMinutes = Number.parseInt(offsetPart.substring(3, 5), 10)
-        const totalOffsetMinutes =
-          offsetSign * (offsetHours * 60 + offsetMinutes)
-        const utcTime =
-          Date.UTC(year, month, day, hour, minute, second) -
-          totalOffsetMinutes * 60 * 1000
-
-        return new Date(utcTime)
-      } else if (isUTC) {
-        datePart = dateString.split('T')[0]
-        timePart = dateString.split('T')[1].replace('Z', '')
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-
-        if (timePart.length >= 6) {
-          hour = Number.parseInt(timePart.substring(0, 2), 10)
-          minute = Number.parseInt(timePart.substring(2, 4), 10)
-          second = Number.parseInt(timePart.substring(4, 6), 10)
-        }
-
-        return new Date(Date.UTC(year, month, day, hour, minute, second))
-      } else {
-        datePart = dateString.split('T')[0]
-        timePart = dateString.split('T')[1]
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-
-        if (timePart.length >= 6) {
-          hour = Number.parseInt(timePart.substring(0, 2), 10)
-          minute = Number.parseInt(timePart.substring(2, 4), 10)
-          second = Number.parseInt(timePart.substring(4, 6), 10)
-        }
-
-        return new Date(year, month, day, hour, minute, second)
-      }
-    } else {
-      year = Number.parseInt(dateString.substring(0, 4), 10)
-      month = Number.parseInt(dateString.substring(4, 6), 10) - 1
-      day = Number.parseInt(dateString.substring(6, 8), 10)
-
-      return new Date(year, month, day)
-    }
   }
 
   const parseCSV = (csvContent: string): CalendarEvent[] => {

@@ -481,5 +481,7 @@
   "repeatFrequencyDaily": "每天",
   "repeatFrequencyMonthly": "每月",
   "repeatFrequencyWeekly": "每週",
-  "repeatFrequencyYearly": "每年"
+  "repeatFrequencyYearly": "每年",
+  "copyInviteLink": "複製邀請連結",
+  "inviteLinkCopied": "邀請連結已複製"
 }

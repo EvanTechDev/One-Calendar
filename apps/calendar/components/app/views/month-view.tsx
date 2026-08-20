@@ -141,7 +141,7 @@ export default function MonthView({
                     key={event.id}
                     data-event-id={event.id}
                     className={cn(
-                      'relative text-xs truncate rounded-md p-1 cursor-pointer text-white',
+                      'relative text-xs truncate rounded-sm p-1 cursor-pointer text-white',
                       event.color,
                     )}
                     onClick={(e) =>
@@ -161,7 +161,7 @@ export default function MonthView({
                   >
                     <div
                       className={cn(
-                        'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                        'absolute left-0 top-0 w-1 h-full rounded-l-sm',
                       )}
                       style={{
                         backgroundColor:
@@ -246,7 +246,7 @@ export default function MonthView({
                   <button
                     key={event.id}
                     type="button"
-                    className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
+                    className="relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs"
                     style={{
                       backgroundColor: isDark
                         ? EVENT_BG_TO_DARK[event.color]
@@ -257,7 +257,7 @@ export default function MonthView({
                     }}
                   >
                     <div
-                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
                       style={{
                         backgroundColor:
                           EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,

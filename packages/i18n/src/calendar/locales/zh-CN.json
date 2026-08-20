@@ -490,5 +490,7 @@
   "repeatFrequencyDaily": "每天",
   "repeatFrequencyMonthly": "每月",
   "repeatFrequencyWeekly": "每周",
-  "repeatFrequencyYearly": "每年"
+  "repeatFrequencyYearly": "每年",
+  "copyInviteLink": "复制邀请链接",
+  "inviteLinkCopied": "邀请链接已复制"
 }
