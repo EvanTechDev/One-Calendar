@@ -1412,11 +1412,12 @@ export async function deleteEvent(
       return
     }
 
-    if (plan.deleteOverrideId) {
-      await deleteCalendarEventRow(db, userId, override!.id)
-      return
+    // Mirror the REST route's master-id 'single' delete: remove the override
+    // row AND exdate the occurrence, or the engine re-renders the deleted
+    // first instance as a ghost.
+    if (override) {
+      await deleteCalendarEventRow(db, userId, override.id)
     }
-
     await db
       .update(calendarEvents)
       .set({

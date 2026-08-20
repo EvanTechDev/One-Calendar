@@ -1509,12 +1509,13 @@ export const DELETE = async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, seriesEvents })
     }
 
-    if (plan.deleteOverrideId) {
-      await deleteRow(user.id, override!)
-      const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
-      return NextResponse.json({ success: true, seriesEvents })
+    // Mirror the instance-id 'single' branch: delete the override row (its
+    // invites are removed inside deleteRow), then exdate the occurrence. If
+    // the override survived, the engine would re-render the deleted first
+    // instance as a ghost.
+    if (override) {
+      await deleteRow(user.id, override)
     }
-
     await getDb()
       .update(calendarEvents)
       .set({

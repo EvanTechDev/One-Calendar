@@ -148,7 +148,7 @@ describe('events route series mutations (characterization)', () => {
     expect(fake.row('m1')!.exdate).toContain('20260810T090000Z')
   })
 
-  it('characterizes DELETE single (master id) with override: adds exdate, KEEPS override (current behavior)', async () => {
+  it('characterizes DELETE single (master id) with override: deletes override AND adds exdate', async () => {
     seedMaster()
     // Override sits on the series' FIRST stamp — the one the master-id
     // 'single' path targets via firstStampOfSeries.
@@ -161,10 +161,10 @@ describe('events route series mutations (characterization)', () => {
 
     expect(res.status).toBe(200)
     expect(fake.row('m1')!.exdate).toContain('20260803T090000Z')
-    // BUG (pinned): the override row survives, so the engine re-renders the
-    // deleted first instance as a ghost. Plan 002 flips this assertion.
-    expect(fake.ops).not.toContain('delete:calendar_events:id=o1')
-    expect(fake.row('o1')).toBeDefined()
+    // Fixed by plan 002: the override row is deleted along with the exdate
+    // write, mirroring the instance-id branch, so no ghost survives.
+    expect(fake.ops).toContain('delete:calendar_events:id=o1')
+    expect(fake.row('o1')).toBeUndefined()
   })
 
   it('characterizes PUT all (instance id): remaps exdates and override stamps', async () => {
