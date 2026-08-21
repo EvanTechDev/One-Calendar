@@ -6,6 +6,7 @@ import {
   generateDeviceCode,
   generateUserCode,
   hashToken,
+  parseRequestedScopes,
   verifyOAuthClientSecret,
 } from '@/lib/mcp/auth'
 import { withRedis } from '@/lib/cache/client'
@@ -24,8 +25,11 @@ export async function POST(request: NextRequest) {
       body = await request.json().catch(() => ({}))
     }
     const clientId = body.client_id
-    const clientName = body.client_name || body.client_id || 'Unknown Client'
-    const scopes = body.scope ? body.scope.split(' ') : ['events:read']
+    const clientName = (
+      body.client_name ||
+      body.client_id ||
+      'Unknown Client'
+    ).slice(0, 120)
 
     if (!clientId) {
       return NextResponse.json(
@@ -67,10 +71,9 @@ export async function POST(request: NextRequest) {
       const authHeader = request.headers.get('authorization') || ''
       if (authHeader.startsWith('Basic ')) {
         try {
-          const decoded = Buffer.from(
-            authHeader.slice(6),
-            'base64',
-          ).toString('utf8')
+          const decoded = Buffer.from(authHeader.slice(6), 'base64').toString(
+            'utf8',
+          )
           secret = decoded.includes(':') ? decoded.split(':')[1] : undefined
         } catch {
           secret = undefined
@@ -88,9 +91,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Narrow to scopes this server actually implements. Placed after client
+    // authentication so an unauthenticated caller cannot use it as an oracle.
+    const requestedScopes = parseRequestedScopes(body.scope)
+    if (body.scope && requestedScopes.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'invalid_scope',
+          error_description: 'No supported scopes were requested',
+        },
+        { status: 400 },
+      )
+    }
+    const scopes =
+      requestedScopes.length > 0 ? requestedScopes : ['events:read']
+
     const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      'unknown'
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     const throttleKey = `mcp:device:issue:${ip}:${clientId}`
     const allowed = await withRedis<boolean>(
       async (redis) => {

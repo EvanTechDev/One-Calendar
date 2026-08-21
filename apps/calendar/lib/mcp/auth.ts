@@ -214,12 +214,7 @@ export async function registerOAuthClient(
 ): Promise<RegisteredOAuthClient> {
   const db = await getDb()
 
-  const redirectUris = Array.isArray(metadata.redirect_uris)
-    ? metadata.redirect_uris
-    : []
-  if (redirectUris.length === 0) {
-    throw new McpAuthError('redirect_uris is required', 400)
-  }
+  const redirectUris = validateRedirectUris(metadata.redirect_uris)
 
   const grantTypes =
     metadata.grant_types && metadata.grant_types.length > 0
@@ -253,15 +248,18 @@ export async function registerOAuthClient(
 
   const clientId = `${CLIENT_PREFIX}${crypto.randomBytes(16).toString('hex')}`
 
+  // A 10 KB "client name" would be a consent-screen attack; bound it.
+  const clientName = (metadata.client_name || 'MCP Client').slice(0, 120)
+
   await db.insert(mcpOauthClients).values({
     id: clientId,
     clientSecretHash,
-    clientName: metadata.client_name || 'MCP Client',
+    clientName,
     redirectUris,
     grantTypes,
     responseTypes,
     tokenEndpointAuthMethod: authMethod,
-    scopes: metadata.scope ? metadata.scope.split(' ') : [],
+    scopes: parseRequestedScopes(metadata.scope),
     isRevoked: false,
   })
 
@@ -333,9 +331,103 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
+/**
+ * Authorization codes are stored hashed, like device codes and access tokens.
+ * The plaintext code exists only in the redirect to the client; a reader of
+ * `mcp_auth_requests` cannot redeem what they find there.
+ *
+ * A plain SHA-256 (no salt, no KDF) is correct: the input is a 128-bit random
+ * UUID, so there is no low-entropy secret to brute-force.
+ */
+export function hashAuthorizationCode(code: string): string {
+  return hashToken(code)
+}
+
 export function redirectUriAllowed(
   registeredUris: string[],
   candidate: string,
 ): boolean {
   return registeredUris.some((u) => u === candidate)
+}
+
+const MAX_REDIRECT_URIS = 10
+const MAX_REDIRECT_URI_LENGTH = 2048
+
+/**
+ * A registered redirect_uri is the only thing standing between an
+ * authorization code and an attacker, so the registration endpoint — which is
+ * deliberately unauthenticated per RFC 7591 — must not accept arbitrary
+ * strings.
+ *
+ * Accepted: absolute https URIs, and http URIs on loopback hosts only (the
+ * localhost exception native/CLI clients rely on, RFC 8252 §7.3). Custom
+ * private-use schemes (e.g. `myapp:/callback`) are also allowed because native
+ * MCP clients use them, but they must be absolute and carry no fragment.
+ * Rejected: fragments (RFC 6749 §3.1.2), non-loopback http, and everything
+ * else (javascript:, data:, relative URIs).
+ */
+export function isValidRedirectUri(candidate: unknown): boolean {
+  if (typeof candidate !== 'string') return false
+  if (candidate.length === 0 || candidate.length > MAX_REDIRECT_URI_LENGTH) {
+    return false
+  }
+
+  let url: URL
+  try {
+    url = new URL(candidate)
+  } catch {
+    return false
+  }
+
+  // RFC 6749 §3.1.2: the endpoint URI must not include a fragment.
+  if (url.hash !== '') return false
+
+  if (url.protocol === 'https:') return true
+
+  if (url.protocol === 'http:') {
+    return (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '[::1]' ||
+      url.hostname === '::1'
+    )
+  }
+
+  // Private-use scheme (native clients). Must not be a dangerous
+  // script-executing scheme.
+  const blocked = ['javascript:', 'data:', 'vbscript:', 'file:', 'blob:']
+  if (blocked.includes(url.protocol)) return false
+
+  return url.protocol.endsWith(':') && url.protocol.length > 1
+}
+
+/** Validates a whole `redirect_uris` array from a registration request. */
+export function validateRedirectUris(uris: unknown): string[] {
+  if (!Array.isArray(uris) || uris.length === 0) {
+    throw new McpAuthError('redirect_uris is required', 400)
+  }
+  if (uris.length > MAX_REDIRECT_URIS) {
+    throw new McpAuthError(
+      `At most ${MAX_REDIRECT_URIS} redirect_uris are allowed`,
+      400,
+    )
+  }
+  for (const uri of uris) {
+    if (!isValidRedirectUri(uri)) {
+      throw new McpAuthError(`Invalid redirect_uri: ${String(uri)}`, 400)
+    }
+  }
+  return uris as string[]
+}
+
+/**
+ * Narrows a requested scope string to the scopes this server implements.
+ * An unrecognised scope is dropped rather than stored, so it can never travel
+ * into a token and imply a permission nothing enforces.
+ */
+export function parseRequestedScopes(scope: string | undefined): string[] {
+  if (!scope) return []
+  const requested = scope.split(' ').filter(Boolean)
+  const allowed = new Set<string>(ALL_SCOPES)
+  return [...new Set(requested.filter((s) => allowed.has(s)))]
 }

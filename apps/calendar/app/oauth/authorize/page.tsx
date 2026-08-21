@@ -23,6 +23,7 @@ function AuthorizeForm() {
   const [flow, setFlow] = useState<Flow>(null)
   const [redirectUri, setRedirectUri] = useState('')
   const [scopes, setScopes] = useState<string[]>([])
+  const [clientName, setClientName] = useState('')
 
   useEffect(() => {
     const responseType = searchParams.get('response_type')
@@ -39,6 +40,21 @@ function AuthorizeForm() {
       }
     } else if (deviceUserCode) {
       setFlow('device_code')
+      fetch(
+        `/api/oauth/authorize?user_code=${encodeURIComponent(deviceUserCode)}`,
+      )
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Invalid or expired code')
+          return res.json()
+        })
+        .then((data: { client_name?: string; scopes?: string[] }) => {
+          setScopes(data.scopes ?? [])
+          setClientName(data.client_name ?? '')
+        })
+        .catch(() => {
+          setStatus('error')
+          setErrorMsg('Invalid or expired code.')
+        })
     } else {
       setStatus('error')
       setErrorMsg('Invalid authorization request.')
@@ -195,20 +211,14 @@ function AuthorizeForm() {
           <div className="text-center">
             <p className="text-lg font-semibold">{session?.user?.name}</p>
             <p className="text-sm text-muted-foreground">
-              Authorize access to your calendar
+              {clientName
+                ? `${clientName} wants access to your calendar`
+                : 'Authorize access to your calendar'}
             </p>
           </div>
         </CardHeader>
 
-        {flow === 'device_code' && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground text-center">
-              You are authorizing a device to access your calendar.
-            </p>
-          </CardContent>
-        )}
-
-        {flow === 'auth_code' && scopes.length > 0 && (
+        {scopes.length > 0 ? (
           <CardContent className="space-y-4">
             <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3">
               <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
@@ -239,6 +249,14 @@ function AuthorizeForm() {
                 ))}
               </div>
             </div>
+          </CardContent>
+        ) : (
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center">
+              {flow === 'device_code'
+                ? 'You are authorizing a device to access your calendar.'
+                : 'This application is requesting access to your calendar.'}
+            </p>
           </CardContent>
         )}
 

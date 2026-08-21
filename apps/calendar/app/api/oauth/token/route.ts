@@ -11,6 +11,7 @@ import {
   generateAccessToken,
   generateCodeChallenge,
   generateRefreshToken,
+  hashAuthorizationCode,
   hashToken,
   verifyOAuthClientSecret,
   getUserNameAndEmail,
@@ -175,10 +176,9 @@ async function handleAuthorizationCodeGrant(
     const authHeader = request.headers.get('authorization') || ''
     if (authHeader.startsWith('Basic ')) {
       try {
-        const decoded = Buffer.from(
-          authHeader.slice(6),
-          'base64',
-        ).toString('utf8')
+        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString(
+          'utf8',
+        )
         secret = decoded.includes(':') ? decoded.split(':')[1] : undefined
       } catch {
         secret = undefined
@@ -196,12 +196,14 @@ async function handleAuthorizationCodeGrant(
     }
   }
 
+  const codeHash = hashAuthorizationCode(code)
+
   const [record] = await db
     .select()
     .from(mcpAuthRequests)
     .where(
       and(
-        eq(mcpAuthRequests.authorizationCode, code),
+        eq(mcpAuthRequests.authorizationCode, codeHash),
         eq(mcpAuthRequests.status, 'approved'),
         gte(mcpAuthRequests.codeExpiresAt, new Date()),
       ),
@@ -256,11 +258,29 @@ async function handleAuthorizationCodeGrant(
     )
   }
 
-  // Mark code as used
-  await db
+  // Atomically claim the code: the WHERE includes the current status, so of two
+  // concurrent redemptions exactly one row is updated and the loser gets
+  // invalid_grant instead of a second valid token pair.
+  const [claimed] = await db
     .update(mcpAuthRequests)
     .set({ status: 'used' })
-    .where(eq(mcpAuthRequests.id, record.id))
+    .where(
+      and(
+        eq(mcpAuthRequests.id, record.id),
+        eq(mcpAuthRequests.status, 'approved'),
+      ),
+    )
+    .returning({ id: mcpAuthRequests.id })
+
+  if (!claimed) {
+    return NextResponse.json(
+      {
+        error: 'invalid_grant',
+        error_description: 'Authorization code already redeemed',
+      },
+      { status: 400 },
+    )
+  }
 
   if (!record.userId) {
     return NextResponse.json(
