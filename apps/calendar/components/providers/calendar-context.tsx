@@ -25,6 +25,8 @@ export interface CalendarEvent {
   exdate?: string[] | null
   seriesId?: string | null
   recurrenceId?: string | null
+  /** True when this occurrence has its own stored single-instance edit. */
+  isOverride?: boolean
   isFirstInstance?: boolean
   location?: string
   participants: string[]
@@ -61,6 +63,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     exdate: e.exdate ?? null,
     seriesId: e.seriesId ?? null,
     recurrenceId: e.recurrenceId ?? null,
+    isOverride: e.isOverride === true,
     isFirstInstance: e.isFirstInstance === true,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],

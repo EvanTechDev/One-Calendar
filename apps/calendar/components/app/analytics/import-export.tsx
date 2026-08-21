@@ -63,11 +63,119 @@ interface AppSettingsSnapshot {
   theme?: string
 }
 
+/**
+ * Event shape written to a JSON backup.
+ *
+ * Two deliberate reductions versus the in-memory `CalendarEvent`:
+ *
+ * 1. `invites[].userImage` (and the invite plumbing: tokens, delivery flags) is
+ *    dropped. An avatar URL is a third-party CDN link that will rot, it bloats
+ *    the file, and a backup does not need it to restore the calendar. Only the
+ *    invitee's email and RSVP status are kept, which is what re-creating an
+ *    invite actually requires.
+ * 2. A recurring series is written once — the master row with its rrule and
+ *    exdates — rather than every expanded occurrence. Occurrences are derived
+ *    data; exporting them made the file grow with the expansion window and,
+ *    on import, produced one standalone event per occurrence. Single-instance
+ *    edits are the exception: they are real stored rows, so each is kept with
+ *    its seriesId/recurrenceId so it can be re-attached.
+ */
+interface JsonBackupEvent {
+  id: string
+  title: string
+  startDate: string
+  endDate: string
+  isAllDay: boolean
+  description?: string
+  location?: string
+  notification?: number
+  color?: string
+  calendarId?: string
+  participants?: string[]
+  rrule?: string | null
+  exdate?: string[] | null
+  /** Present only on single-instance edits of a series. */
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  invites?: Array<{
+    email: string
+    status: string
+  }>
+}
+
+/**
+ * What `normalizeImportedEvent` accepts: an ics/csv parse result (dates as
+ * `Date`) or a JSON-backup row (dates as ISO strings, invites reduced to email
+ * plus status).
+ */
+type ImportableEvent = {
+  id?: string
+  title?: string
+  startDate?: Date | string
+  endDate?: Date | string
+  isAllDay?: boolean
+  description?: string
+  location?: string
+  notification?: number
+  color?: string
+  calendarId?: string
+  participants?: string[]
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  invites?: Array<{ email?: string; status?: string }>
+}
+
+function toBackupEvent(event: CalendarEvent): JsonBackupEvent {
+  const invites = (event.invites ?? [])
+    .map((invite) => ({ email: invite.email, status: invite.status }))
+    .filter((invite) => !!invite.email)
+
+  return {
+    id: event.id,
+    title: event.title,
+    startDate: new Date(event.startDate).toISOString(),
+    endDate: new Date(event.endDate).toISOString(),
+    isAllDay: Boolean(event.isAllDay),
+    ...(event.description ? { description: event.description } : {}),
+    ...(event.location ? { location: event.location } : {}),
+    ...(event.notification ? { notification: event.notification } : {}),
+    ...(event.color ? { color: event.color } : {}),
+    ...(event.calendarId ? { calendarId: event.calendarId } : {}),
+    ...(event.participants?.length ? { participants: event.participants } : {}),
+    ...(event.rrule ? { rrule: event.rrule.replace(/^RRULE:/i, '') } : {}),
+    ...(event.exdate?.length ? { exdate: event.exdate } : {}),
+    ...(event.isOverride
+      ? {
+          seriesId: event.seriesId ?? null,
+          recurrenceId: event.recurrenceId ?? null,
+          isOverride: true,
+        }
+      : {}),
+    ...(invites.length ? { invites } : {}),
+  }
+}
+
+/**
+ * Collapses expanded occurrences into their parent series and strips derived
+ * fields. Uses the same anchor rule as the ics export: the earliest occurrence
+ * becomes the exported row so its rrule regenerates the same set.
+ */
+function toBackupEvents(events: CalendarEvent[]): JsonBackupEvent[] {
+  const collapsed = collapseSeriesForExport(
+    events as unknown as Parameters<typeof collapseSeriesForExport>[0],
+  ) as unknown as CalendarEvent[]
+  return collapsed.map(toBackupEvent)
+}
+
 interface JsonBackupPayloadV2 {
   format: 'one-calendar-json-v2'
   exportedAt: string
   data: {
-    events: CalendarEvent[]
+    events: JsonBackupEvent[]
     calendars: ImportedCategory[]
     eventCategoryMap: Record<string, string>
     bookmarks: unknown[]
@@ -140,18 +248,21 @@ export default function ImportExport({
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
       } else if (exportFormat === 'json') {
+        const backupEvents = toBackupEvents(filteredEvents)
         const exportPayload: JsonBackupPayloadV2 = {
           format: 'one-calendar-json-v2',
           exportedAt: new Date().toISOString(),
           data: {
-            events: filteredEvents,
+            events: backupEvents,
             calendars: categories.map((c: CategoryData) => ({
               id: c.id,
               name: c.name,
               color: c.color,
             })),
+            // Keyed off the collapsed rows so the map has no entries for
+            // occurrences that are no longer exported.
             eventCategoryMap: Object.fromEntries(
-              filteredEvents.map((event) => [event.id, event.calendarId || '']),
+              backupEvents.map((event) => [event.id, event.calendarId || '']),
             ),
             bookmarks: bookmarks.map((b: BookmarkData) => ({
               eventId: b.eventId,
@@ -250,9 +361,12 @@ export default function ImportExport({
         rawContent = await selectedFile.text()
 
         if (fileExt === 'ics') {
+          // Normalise rather than cast: parseICS returns its own shape (and
+          // recurrence overrides carry seriesId/recurrenceId), so the store
+          // needs real Dates and defaulted fields.
           importedEvents = parseICS(rawContent, {
             fallbackTitle: t.unnamedEvent || 'Unnamed Event',
-          }) as unknown as CalendarEvent[]
+          }).map((event) => normalizeImportedEvent(event))
         } else if (fileExt === 'json') {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -271,9 +385,12 @@ export default function ImportExport({
         rawContent = await response.text()
 
         if (importUrl.endsWith('.ics')) {
+          // Normalise rather than cast: parseICS returns its own shape (and
+          // recurrence overrides carry seriesId/recurrenceId), so the store
+          // needs real Dates and defaulted fields.
           importedEvents = parseICS(rawContent, {
             fallbackTitle: t.unnamedEvent || 'Unnamed Event',
-          }) as unknown as CalendarEvent[]
+          }).map((event) => normalizeImportedEvent(event))
         } else if (importUrl.endsWith('.json')) {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -469,9 +586,17 @@ ${rawContent.substring(0, 500)}...`)
     throw new Error(t.unsupportedFormat || 'Unsupported file format')
   }
 
-  const normalizeImportedEvent = (
-    input: Partial<CalendarEvent>,
-  ): CalendarEvent => {
+  /**
+   * Accepts both a parsed ics/csv event and a JSON-backup event. Dates arrive as
+   * `Date` from the parsers and as ISO strings from a JSON file, hence the loose
+   * input type.
+   *
+   * Recurrence fields must survive: a backup now stores a series once (master +
+   * rrule + exdate) plus its single-instance edits, so dropping `exdate` or the
+   * `seriesId`/`recurrenceId` link would import the series without its
+   * exclusions and turn every edited occurrence into a detached event.
+   */
+  const normalizeImportedEvent = (input: ImportableEvent): CalendarEvent => {
     const start = input.startDate ? new Date(input.startDate) : new Date()
     const parsedEnd = input.endDate
       ? new Date(input.endDate)
@@ -479,13 +604,42 @@ ${rawContent.substring(0, 500)}...`)
     const end =
       parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
 
+    // A backup keeps only email + status per invite; the rest (tokens, delivery
+    // flags, avatars) is server state that is re-created on invite.
+    const invites = Array.isArray(input.invites)
+      ? input.invites
+          .filter((invite) => typeof invite?.email === 'string')
+          .map((invite) => ({
+            id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
+            email: invite.email as string,
+            status: (invite.status ?? 'pending') as
+              | 'pending'
+              | 'accepted'
+              | 'maybe'
+              | 'declined',
+            inviteToken: '',
+            emailSent: false,
+            addedToCalendar: false,
+            userName: null,
+            userImage: null,
+          }))
+      : undefined
+
     return {
       id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
       title: input.title || t.unnamedEvent || 'Unnamed Event',
       startDate: start,
       endDate: end,
       isAllDay: Boolean(input.isAllDay),
-      rrule: input.rrule ?? null,
+      rrule: input.rrule ? input.rrule.replace(/^RRULE:/i, '') : null,
+      exdate: Array.isArray(input.exdate) ? input.exdate : null,
+      ...(input.isOverride
+        ? {
+            seriesId: input.seriesId ?? null,
+            recurrenceId: input.recurrenceId ?? null,
+            isOverride: true,
+          }
+        : {}),
       location: input.location,
       participants: Array.isArray(input.participants) ? input.participants : [],
       notification:
@@ -493,6 +647,7 @@ ${rawContent.substring(0, 500)}...`)
       description: input.description,
       color: input.color || 'bg-[#E6F6FD]',
       calendarId: input.calendarId || '',
+      ...(invites?.length ? { invites } : {}),
     }
   }
 

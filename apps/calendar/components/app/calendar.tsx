@@ -126,6 +126,8 @@ export interface CalendarEvent {
   exdate?: string[] | null
   seriesId?: string | null
   recurrenceId?: string | null
+  /** True when this occurrence has its own stored single-instance edit. */
+  isOverride?: boolean
   isFirstInstance?: boolean
   location?: string
   participants: string[]

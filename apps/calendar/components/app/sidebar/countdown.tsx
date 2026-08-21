@@ -2,7 +2,7 @@
 
 import { useCountdowns } from '@/components/providers/data-provider'
 import { Button } from '@zntr/ui/button'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { Input } from '@zntr/ui/input'
 import {
@@ -12,6 +12,7 @@ import {
 } from '@zntr/ui/input-group'
 import { Label } from '@zntr/ui/label'
 import { ScrollArea } from '@zntr/ui/scroll-area'
+import CountdownIconPicker from './countdown-icon-picker'
 import {
   Select,
   SelectTrigger,
@@ -91,128 +92,6 @@ const TEXT_COLOR_MAP: Record<string, string> = {
   'bg-orange-500': '#f97316',
 }
 
-/**
- * Icons people actually count down to, grouped by occasion.
- *
- * The picker previously listed every lucide export (~1500 names) truncated to
- * the first 200 alphabetically, so the visible set was an arbitrary slice
- * starting at "A" — mostly icons no countdown would ever use. A curated list
- * is both shorter than one screen of scrolling and relevant.
- */
-const COUNTDOWN_ICON_NAMES = [
-  // Time
-  'Clock',
-  'AlarmClock',
-  'Timer',
-  'Hourglass',
-  'CalendarDays',
-  'CalendarClock',
-  'CalendarHeart',
-  'CalendarCheck',
-  // Celebrations
-  'PartyPopper',
-  'Cake',
-  'Gift',
-  'Sparkles',
-  'Star',
-  'Heart',
-  'Crown',
-  'Trophy',
-  'Medal',
-  'Award',
-  // Travel
-  'Plane',
-  'PlaneTakeoff',
-  'PlaneLanding',
-  'Train',
-  'Car',
-  'Ship',
-  'Bus',
-  'Bike',
-  'Luggage',
-  'MapPin',
-  'Globe',
-  'Tent',
-  'Palmtree',
-  'Mountain',
-  'Sun',
-  'Umbrella',
-  // Work & study
-  'Briefcase',
-  'GraduationCap',
-  'BookOpen',
-  'Notebook',
-  'PenLine',
-  'Presentation',
-  'Target',
-  'Rocket',
-  'Building2',
-  'Users',
-  'Handshake',
-  'FileText',
-  'ClipboardCheck',
-  'BellRing',
-  // Milestones & life
-  'Baby',
-  'Home',
-  'Ring',
-  'Church',
-  'Stethoscope',
-  'Pill',
-  'HeartPulse',
-  'Dumbbell',
-  'Footprints',
-  // Seasons & holidays
-  'Snowflake',
-  'TreePine',
-  'Flower2',
-  'Leaf',
-  'Moon',
-  'CloudSun',
-  'Flame',
-  'Ghost',
-  'Egg',
-  // Money & shopping
-  'Wallet',
-  'CreditCard',
-  'PiggyBank',
-  'ShoppingCart',
-  'Tag',
-  'Receipt',
-  // Entertainment
-  'Music',
-  'Film',
-  'Tv',
-  'Gamepad2',
-  'Ticket',
-  'Camera',
-  'Mic',
-  'Popcorn',
-  'Wine',
-  'Coffee',
-  'UtensilsCrossed',
-  'Pizza',
-  // Misc
-  'Flag',
-  'Bookmark',
-  'Bell',
-  'Zap',
-  'Lightbulb',
-  'Key',
-  'Package',
-  'Wrench',
-  'Palette',
-  'Puzzle',
-  'Anchor',
-  'Compass',
-  'Swords',
-  'Shield',
-  'Smile',
-  'ThumbsUp',
-]
-  // Guard against a lucide rename silently leaving a blank cell.
-  .filter((name) => name in lucideIcons)
-
 const toDateString = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -255,22 +134,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   }, [serverCountdowns])
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [iconSearch, setIconSearch] = useState('')
-
-  const filteredIcons = useMemo(() => {
-    const keyword = iconSearch.trim().toLowerCase()
-    if (!keyword) return COUNTDOWN_ICON_NAMES
-    const curated = COUNTDOWN_ICON_NAMES.filter((name) =>
-      name.toLowerCase().includes(keyword),
-    )
-    // Searching may legitimately want an icon outside the curated set, so fall
-    // back to the full lucide catalogue only when the curated list misses.
-    if (curated.length > 0) return curated
-    return Object.keys(lucideIcons)
-      .filter((name) => name.toLowerCase().includes(keyword))
-      .sort((a, b) => a.localeCompare(b))
-      .slice(0, 60)
-  }, [iconSearch])
 
   const renderCountdownIcon = (
     iconName: string | undefined,
@@ -745,65 +608,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
           <div className="space-y-2">
             <Label>{t.countdownIcon}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                >
-                  {renderCountdownIcon(
-                    newCountdown.icon,
-                    newCountdown.color || 'bg-blue-500',
-                  )}
-                  <span>{newCountdown.icon || 'Clock'}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-3" align="start">
-                <Input
-                  placeholder={t.countdownSearchIcon}
-                  value={iconSearch}
-                  onChange={(e) => setIconSearch(e.target.value)}
-                  className="mb-2"
-                />
-                {/*
-                  A plain overflow container rather than Radix ScrollArea:
-                  inside a Popover the ScrollArea viewport never received wheel
-                  events (only its scrollbar thumb worked), so the list could
-                  not be scrolled with a mouse. Native overflow scrolls with the
-                  wheel, trackpad and touch.
-
-                  Auto-fit columns keep the grid inside the popover's width;
-                  fixed `grid-cols-8` at 44px overflowed by 84px and pushed the
-                  right-hand icons out of reach.
-                */}
-                <div className="h-52 overflow-y-auto overscroll-contain">
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(2rem,1fr))] gap-1 pr-1">
-                    {filteredIcons.map((iconName) => (
-                      <button
-                        key={iconName}
-                        type="button"
-                        aria-label={iconName}
-                        aria-pressed={newCountdown.icon === iconName}
-                        className={cn(
-                          'flex aspect-square w-full items-center justify-center rounded-md hover:bg-accent',
-                          newCountdown.icon === iconName &&
-                            'bg-accent/60 ring-2 ring-primary',
-                        )}
-                        onClick={() =>
-                          setNewCountdown({ ...newCountdown, icon: iconName })
-                        }
-                      >
-                        {renderCountdownIcon(
-                          iconName,
-                          newCountdown.color || 'bg-blue-500',
-                          18,
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <CountdownIconPicker
+              value={newCountdown.icon}
+              onChange={(icon) => setNewCountdown({ ...newCountdown, icon })}
+              color={newCountdown.color || 'bg-blue-500'}
+              iconColor={
+                TEXT_COLOR_MAP[newCountdown.color || 'bg-blue-500'] ?? '#3b82f6'
+              }
+              placeholder={t.countdownSearchIcon}
+              triggerLabel={t.countdownIcon}
+            />
           </div>
 
           <div className="space-y-2">

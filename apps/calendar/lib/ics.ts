@@ -29,7 +29,8 @@ export interface IcsEvent {
   isOverride?: boolean
   color?: string
   calendarId?: string
-  participants?: unknown[]
+  /** Participant emails; the store keeps them as plain strings. */
+  participants?: string[]
 }
 
 /**
