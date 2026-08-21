@@ -104,7 +104,7 @@ export default function CountdownIconPicker({
         data-selected={isSelected}
         className={cn(
           'relative flex aspect-square w-full items-center justify-center rounded-md transition-colors',
-          'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
           isSelected && 'bg-accent ring-2 ring-primary',
         )}
         onClick={() => {

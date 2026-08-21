@@ -147,7 +147,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       lucideIcons.Clock
     if (withBackground) {
       return (
-        <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full">
           <IconComponent size={size} style={{ color: iconColor }} />
         </div>
       )
@@ -401,7 +401,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   return (
                     <div
                       key={countdown.id}
-                      className="flex items-center p-3 hover:bg-accent rounded-md cursor-pointer border border-border/50"
+                      className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
                       onClick={() => viewCountdownDetail(countdown)}
                     >
                       <Avatar className="h-12 w-12 mr-3">
@@ -458,7 +458,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="mr-2"
+              className="mr-2 hover:bg-transparent"
               onClick={backToCountdownList}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -520,7 +520,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="flex space-x-2 mt-8">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 hover:bg-transparent"
               onClick={() => startEditCountdown(selectedCountdown)}
             >
               <Edit2 className="mr-2 h-4 w-4" />
@@ -528,7 +528,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             </Button>
             <Button
               variant="destructive"
-              className="flex-1"
+              className="flex-1 hover:bg-destructive"
               onClick={() => deleteCountdown(selectedCountdown.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -547,7 +547,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="mr-2"
+            className="mr-2 hover:bg-transparent"
             onClick={() => {
               if (selectedCountdown) {
                 setView('detail')

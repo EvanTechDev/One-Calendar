@@ -478,10 +478,13 @@ export default function SettingsDialog({
     }
   }, [open, focusSection, onFocusSectionHandled])
 
+  // Reset AFTER the close animation, not the moment `open` flips: resetting
+  // synchronously re-rendered the dialog on the first tab while it was still
+  // fading out, which showed as a flash to "General" on every close.
   useEffect(() => {
-    if (!open) {
-      setSection('general')
-    }
+    if (open) return
+    const timer = window.setTimeout(() => setSection('general'), 250)
+    return () => window.clearTimeout(timer)
   }, [open])
 
   const sections: Array<{
@@ -526,8 +529,10 @@ export default function SettingsDialog({
       >
         <div className="flex h-[min(86vh,46rem)] flex-col overflow-hidden sm:flex-row">
           <aside className="flex shrink-0 flex-col border-b bg-muted/30 sm:w-56 sm:border-r sm:border-b-0 sm:bg-card/40">
-            <div className="hidden items-center border-b px-4 py-3.5 sm:flex">
-              <span className="font-heading text-sm font-semibold">
+            {/* Same height and type scale as the content header on the right,
+                so the two tops line up instead of stepping. */}
+            <div className="hidden h-14 shrink-0 items-center border-b px-4 sm:flex">
+              <span className="font-heading text-base leading-snug font-semibold">
                 {t.settings}
               </span>
             </div>
@@ -559,16 +564,14 @@ export default function SettingsDialog({
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="flex items-start justify-between gap-4 border-b px-5 pt-4 pb-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground [&_svg]:size-4">
-                    {activeSection?.icon}
-                  </span>
-                  <h2 className="font-heading text-lg leading-snug font-semibold">
-                    {activeSection?.label}
-                  </h2>
-                </div>
+            <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-muted-foreground [&_svg]:size-4">
+                  {activeSection?.icon}
+                </span>
+                <h2 className="font-heading truncate text-base leading-snug font-semibold">
+                  {activeSection?.label}
+                </h2>
               </div>
               <Button
                 variant="ghost"

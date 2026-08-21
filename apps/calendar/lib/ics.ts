@@ -156,6 +156,9 @@ export function generateICSFile(events: IcsEvent[]): string {
     'PRODID:-//Zentra//One Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
+    // Blank lines group related properties and separate events. Parsers ignore
+    // empty content lines, and it makes an exported file readable by eye.
+    '',
   ]
 
   const stamp = formatIcsDateTime(new Date())
@@ -176,6 +179,7 @@ export function generateICSFile(events: IcsEvent[]): string {
     lines.push(`DTSTAMP:${stamp}`)
     lines.push(`CREATED:${stamp}`)
     lines.push(`LAST-MODIFIED:${stamp}`)
+    lines.push('')
 
     if (event.isOverride && event.recurrenceId) {
       lines.push(
@@ -192,6 +196,7 @@ export function generateICSFile(events: IcsEvent[]): string {
       lines.push(`DTSTART:${formatIcsDateTime(startDate)}`)
       lines.push(`DTEND:${formatIcsDateTime(endDate)}`)
     }
+    lines.push('')
 
     lines.push(foldIcsLine(`SUMMARY:${escapeIcsText(event.title)}`))
     if (event.description) {
@@ -200,6 +205,7 @@ export function generateICSFile(events: IcsEvent[]): string {
     if (event.location) {
       lines.push(foldIcsLine(`LOCATION:${escapeIcsText(event.location)}`))
     }
+    lines.push('')
 
     // An override describes ONE occurrence, so repeating the parent's rule
     // would make it recur on its own.
@@ -218,12 +224,16 @@ export function generateICSFile(events: IcsEvent[]): string {
           : `EXDATE:${event.exdate.join(',')}`,
       )
     }
+    if (carriesRule && (event.rrule || event.exdate?.length)) {
+      lines.push('')
+    }
 
     lines.push('STATUS:CONFIRMED')
     lines.push('TRANSP:OPAQUE')
 
     // A reminder becomes a VALARM so other calendars actually notify.
     if (typeof event.notification === 'number' && event.notification > 0) {
+      lines.push('')
       lines.push('BEGIN:VALARM')
       lines.push(`TRIGGER:-PT${event.notification}M`)
       lines.push('ACTION:DISPLAY')
@@ -231,7 +241,10 @@ export function generateICSFile(events: IcsEvent[]): string {
       lines.push('END:VALARM')
     }
 
+    lines.push('')
     lines.push('END:VEVENT')
+    // Separates this event from the next one.
+    lines.push('')
   }
 
   lines.push('END:VCALENDAR')
@@ -302,6 +315,11 @@ function unfoldLines(icsContent: string): string[] {
   const raw = icsContent.split(/\r\n|\n|\r/)
   const out: string[] = []
   for (const line of raw) {
+    // Skip truly empty lines: we emit them ourselves to make the file readable.
+    // Checked before the fold test but WITHOUT trimming, because a folded
+    // continuation legitimately looks like " " when the content had a space at
+    // the fold boundary — trimming would discard that character.
+    if (line === '') continue
     if ((line.startsWith(' ') || line.startsWith('\t')) && out.length > 0) {
       out[out.length - 1] += line.substring(1)
     } else {
