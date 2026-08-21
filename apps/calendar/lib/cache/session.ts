@@ -1,3 +1,4 @@
+import { getSessionCookie } from '@zntr/auth'
 import { withRedis } from './client'
 import { sessionKey } from './keys'
 
@@ -76,6 +77,21 @@ export async function setCachedSession(
     },
     async () => {},
   )
+}
+
+/**
+ * Reads the Better Auth session token out of a raw `Cookie` header.
+ *
+ * Delegates to Better Auth's own reader so the `__Secure-` prefix it adds on
+ * HTTPS deployments is handled. A hand-rolled regex on the unprefixed name
+ * matches only in local development, which silently disabled cache eviction
+ * in production.
+ */
+export function sessionTokenFromCookieHeader(
+  cookieHeader: string | null,
+): string | null {
+  if (!cookieHeader) return null
+  return getSessionCookie(new Headers({ cookie: cookieHeader }))
 }
 
 export async function invalidateCachedSession(token: string): Promise<void> {

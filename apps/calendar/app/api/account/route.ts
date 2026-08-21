@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import { invalidateCachedSession } from '@/lib/cache/session'
+import {
+  invalidateCachedSession,
+  sessionTokenFromCookieHeader,
+} from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import {
   user as userTable,
@@ -17,14 +20,6 @@ import {
 import { eq } from 'drizzle-orm'
 
 export const runtime = 'nodejs'
-
-function sessionTokenFromCookieHeader(
-  cookieHeader: string | null,
-): string | null {
-  if (!cookieHeader) return null
-  const match = cookieHeader.match(/(?:^|;\s*)better-auth\.session_token=([^;]+)/)
-  return match?.[1] ? decodeURIComponent(match[1]) : null
-}
 
 export const DELETE = withEvlog(async function DELETE(request: Request) {
   try {
