@@ -20,44 +20,22 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
 
+    if (!auth) {
+      return Response.json(
+        { error: 'unauthorized' },
+        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
+      )
+    }
+
+    // GET opens the SSE stream. The SDK only rejects a *present* mismatching
+    // Origin, so this check is defence-in-depth on top of the bearer token
+    // above — not a substitute for it.
     if (request.method === 'GET') {
       const origin = request.headers.get('origin')
       const list = allowedOrigins()
       if (origin && list.length > 0 && !list.includes(origin)) {
         return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
       }
-
-      const server = createServer()
-      const transport = new WebStandardStreamableHTTPServerTransport({
-        enableJsonResponse: true,
-        allowedOrigins: allowedOrigins(),
-      })
-      await server.connect(transport)
-      return transport.handleRequest(
-        request,
-        auth
-          ? {
-              authInfo: {
-                token: auth.token,
-                clientId: `user:${auth.user.userId}`,
-                scopes: auth.user.scopes,
-                extra: {
-                  userId: auth.user.userId,
-                  email: auth.user.email,
-                  clientId: auth.user.keyId ?? auth.user.authType,
-                  authType: auth.user.authType,
-                },
-              },
-            }
-          : undefined,
-      )
-    }
-
-    if (!auth) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
-      )
     }
 
     const settings = await getMcpSettings(auth.user.userId)
