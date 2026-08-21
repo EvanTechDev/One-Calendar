@@ -113,6 +113,31 @@ export const bookmarkSchema = z.object({
   eventId: z.string(),
 })
 
+export const RSVP_STATUSES = [
+  'pending',
+  'accepted',
+  'maybe',
+  'declined',
+] as const
+
+export type RsvpStatus = (typeof RSVP_STATUSES)[number]
+
+/**
+ * Body of `PATCH /api/invite/[token]`. Both fields are optional — the client
+ * sends `status` to RSVP and `categoryId` to file the event into a calendar —
+ * but at least one must be present, so an empty body is a 400 rather than a
+ * silent success.
+ */
+export const invitePatchSchema = z
+  .object({
+    status: z.enum(RSVP_STATUSES).optional(),
+    categoryId: z.string().min(1).max(100).optional(),
+  })
+  .refine(
+    (value) => value.status !== undefined || value.categoryId !== undefined,
+    { message: 'Provide status or categoryId' },
+  )
+
 export function firstZodMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'issues' in error) {
     const issues = (error as { issues: Array<{ message: string }> }).issues

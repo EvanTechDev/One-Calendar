@@ -43,7 +43,6 @@ interface InviteData {
   }
   inviter: {
     name: string
-    email?: string
     image?: string | null
   }
   isRegisteredUser: boolean

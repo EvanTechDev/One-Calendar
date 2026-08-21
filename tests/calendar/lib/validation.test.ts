@@ -5,6 +5,8 @@ import {
   countdownSchema,
   importSchema,
   firstZodMessage,
+  invitePatchSchema,
+  RSVP_STATUSES,
 } from '@/lib/validation'
 
 function validEvent() {
@@ -99,8 +101,9 @@ describe('eventSchema', () => {
 describe('importSchema', () => {
   it('rejects more than 500 events', () => {
     expect(
-      importSchema.safeParse({ events: Array.from({ length: 501 }, validEvent) })
-        .success,
+      importSchema.safeParse({
+        events: Array.from({ length: 501 }, validEvent),
+      }).success,
     ).toBe(false)
   })
 
@@ -157,6 +160,63 @@ describe('countdownSchema', () => {
         targetDate: '2026-08-13',
       }).success,
     ).toBe(true)
+  })
+})
+
+describe('invitePatchSchema', () => {
+  it('accepts each valid status', () => {
+    for (const status of RSVP_STATUSES) {
+      expect(invitePatchSchema.safeParse({ status }).success).toBe(true)
+    }
+  })
+
+  it('rejects an unknown status', () => {
+    expect(invitePatchSchema.safeParse({ status: 'attending' }).success).toBe(
+      false,
+    )
+    expect(invitePatchSchema.safeParse({ status: '' }).success).toBe(false)
+    expect(invitePatchSchema.safeParse({ status: null }).success).toBe(false)
+  })
+
+  it('accepts a categoryId alone', () => {
+    expect(invitePatchSchema.safeParse({ categoryId: 'abc' }).success).toBe(
+      true,
+    )
+  })
+
+  it('accepts both fields together', () => {
+    expect(
+      invitePatchSchema.safeParse({ status: 'accepted', categoryId: 'abc' })
+        .success,
+    ).toBe(true)
+  })
+
+  it('rejects an empty body with a helpful message', () => {
+    const result = invitePatchSchema.safeParse({})
+    expect(result.success).toBe(false)
+    if (result.success) throw new Error('expected parse failure')
+    expect(firstZodMessage(result.error)).toBe('Provide status or categoryId')
+  })
+
+  it('rejects null (the malformed-body sentinel)', () => {
+    expect(invitePatchSchema.safeParse(null).success).toBe(false)
+  })
+
+  it('rejects an over-long categoryId', () => {
+    expect(
+      invitePatchSchema.safeParse({ categoryId: 'a'.repeat(101) }).success,
+    ).toBe(false)
+  })
+})
+
+describe('RSVP_STATUSES', () => {
+  it('has exactly the four expected members', () => {
+    expect([...RSVP_STATUSES]).toEqual([
+      'pending',
+      'accepted',
+      'maybe',
+      'declined',
+    ])
   })
 })
 
