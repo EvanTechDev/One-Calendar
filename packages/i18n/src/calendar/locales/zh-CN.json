@@ -492,5 +492,6 @@
   "repeatFrequencyWeekly": "每周",
   "repeatFrequencyYearly": "每年",
   "copyInviteLink": "复制邀请链接",
-  "inviteLinkCopied": "邀请链接已复制"
+  "inviteLinkCopied": "邀请链接已复制",
+  "shortcutsDialogDesc": "日历中可用的键盘快捷键。"
 }

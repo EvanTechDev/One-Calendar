@@ -26,14 +26,20 @@ function RadioGroupItem({
     <RadioGroupPrimitive.Item
       data-slot="radio-group-item"
       className={cn(
-        'relative size-4 shrink-0 rounded-full border border-input shadow-xs transition-[color,box-shadow] outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 data-[state=checked]:border-primary data-[state=checked]:bg-primary',
+        // Selected state uses `data-checked`, the attribute this version of
+        // radix-ui emits. The old `data-[state=checked]` selector never
+        // matched, so a checked radio kept its unchecked styling — invisible in
+        // dark mode, where `dark:bg-input/30` left only an empty outline.
+        // `dark:data-checked:bg-primary` mirrors checkbox.tsx and overrides
+        // that translucent dark background.
+        'relative size-4 shrink-0 rounded-full border border-input shadow-xs transition-[color,box-shadow] outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary',
         className,
       )}
       {...props}
     >
       <RadioGroupPrimitive.Indicator
         data-slot="radio-group-indicator"
-        className="grid place-content-center text-primary-foreground"
+        className="grid place-content-center text-current"
       >
         <span className="size-1.5 rounded-full bg-current" />
       </RadioGroupPrimitive.Indicator>

@@ -360,7 +360,7 @@ export default function Sidebar({
                   onCheckedChange={(checked) =>
                     onCategoryFilterChange?.(calendar.id, checked === true)
                   }
-                  className="h-4 w-4 rounded-md border-0 data-[state=checked]:text-white"
+                  className="h-4 w-4 rounded-md border-0 data-checked:text-white"
                   style={{
                     backgroundColor:
                       CALENDAR_COLOR_MAP[calendar.color] ?? '#3b82f6',

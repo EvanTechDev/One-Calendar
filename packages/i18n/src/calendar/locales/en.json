@@ -511,5 +511,6 @@
   "recurrenceLastDay": "last day",
   "recurrenceYearlyMonth": "Month {n}",
   "copyInviteLink": "Copy invite link",
-  "inviteLinkCopied": "Invite link copied"
+  "inviteLinkCopied": "Invite link copied",
+  "shortcutsDialogDesc": "Keyboard shortcuts available across the calendar."
 }

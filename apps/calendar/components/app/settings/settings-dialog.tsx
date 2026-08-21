@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@zntr/ui/dialog'
@@ -391,65 +392,66 @@ function GeneralSettings({
       </SettingsGroup>
 
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t.availableShortcuts}</DialogTitle>
+            <DialogDescription>{t.shortcutsDialogDesc}</DialogDescription>
           </DialogHeader>
-          <div className="divide-y divide-border rounded-lg border bg-card">
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsActions}
-            </h3>
+          {/*
+            One card per group instead of a single divided list: the group
+            headings used to be children of the `divide-y` container, so a
+            divider was drawn through every heading. Headings are also no longer
+            forced `lowercase`, which mangles non-Latin labels.
+          */}
+          <div className="space-y-4">
             {[
-              { keys: 'N', label: t.newEvent },
-              { keys: '/', label: t.searchEvents },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
-            ))}
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsViews}
-            </h3>
-            {[
-              { keys: '1', label: t.day },
-              { keys: '2', label: t.week },
-              { keys: '3', label: t.month },
-              { keys: '4', label: t.year },
-              { keys: '5', label: t.fourDay },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
-            ))}
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsNavigation}
-            </h3>
-            {[
-              { keys: 'T', label: t.today },
-              { keys: '←', label: t.previousPeriod },
-              { keys: '→', label: t.nextPeriod },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
+              {
+                id: 'actions',
+                title: t.shortcutsActions,
+                items: [
+                  { keys: 'N', label: t.newEvent },
+                  { keys: '/', label: t.searchEvents },
+                ],
+              },
+              {
+                id: 'views',
+                title: t.shortcutsViews,
+                items: [
+                  { keys: '1', label: t.day },
+                  { keys: '2', label: t.week },
+                  { keys: '3', label: t.month },
+                  { keys: '4', label: t.year },
+                  { keys: '5', label: t.fourDay },
+                ],
+              },
+              {
+                id: 'navigation',
+                title: t.shortcutsNavigation,
+                items: [
+                  { keys: 'T', label: t.today },
+                  { keys: '←', label: t.previousPeriod },
+                  { keys: '→', label: t.nextPeriod },
+                ],
+              },
+            ].map((group) => (
+              <section key={group.id} className="space-y-1.5">
+                <h3 className="px-1 text-xs font-medium text-muted-foreground">
+                  {group.title}
+                </h3>
+                <div className="divide-y divide-border overflow-hidden rounded-lg border bg-card">
+                  {group.items.map((item) => (
+                    <div
+                      key={item.keys}
+                      className="flex items-center justify-between gap-3 px-3 py-2"
+                    >
+                      <span className="min-w-0 truncate text-sm">
+                        {item.label}
+                      </span>
+                      <Kbd className="shrink-0">{item.keys}</Kbd>
+                    </div>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </DialogContent>

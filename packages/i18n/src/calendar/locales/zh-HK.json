@@ -483,5 +483,6 @@
   "repeatFrequencyWeekly": "每週",
   "repeatFrequencyYearly": "每年",
   "copyInviteLink": "複製邀請連結",
-  "inviteLinkCopied": "邀請連結已複製"
+  "inviteLinkCopied": "邀請連結已複製",
+  "shortcutsDialogDesc": "日曆中可用的鍵盤快捷鍵。"
 }
