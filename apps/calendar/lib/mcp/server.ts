@@ -8,6 +8,11 @@ import {
   COLOR_NAMES,
 } from './colors'
 import { CATEGORY_COLOR_VALUES } from './category-tools'
+import {
+  COUNTDOWN_ICON_ENUM,
+  COUNTDOWN_ICON_GROUPS,
+  COUNTDOWN_ICON_NAMES,
+} from '@/lib/countdown-icons'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { withToolAudit } from './tool-audit'
 
@@ -42,6 +47,15 @@ const EVENT_SEARCH_FIELDS = ['title', 'description', 'location'] as const
 const COLOR_DESCRIPTION = `Color by name (${COLOR_NAME_LIST}) or hex code (${COLOR_HEX_LIST})`
 
 const COLOR_SCHEMA = z.union([z.enum(COLOR_NAMES), z.enum(COLOR_HEX_VALUES)])
+
+/**
+ * Countdown icons are restricted to the shared catalogue. An arbitrary string
+ * used to be accepted and then silently rendered as the fallback Clock, so an
+ * agent had no way to tell that its icon was rejected.
+ */
+const COUNTDOWN_ICON_DESCRIPTION = `Icon name from the countdown catalogue (${COUNTDOWN_ICON_NAMES.length} options, e.g. ${COUNTDOWN_ICON_NAMES.slice(0, 8).join(', ')}). Use list_countdown_icons to see them all.`
+
+const COUNTDOWN_ICON_SCHEMA = z.enum(COUNTDOWN_ICON_ENUM)
 
 const LANGUAGE_OPTIONS = [
   'bn',
@@ -699,6 +713,23 @@ function registerCategoryTools(server: McpServer): void {
 
 function registerCountdownTools(server: McpServer): void {
   server.tool(
+    'list_countdown_icons',
+    `List the icon names accepted by create_countdown and update_countdown,
+grouped by occasion. Any other value is rejected.`,
+    {},
+    async (_params, extra) => {
+      requireScope(extra.authInfo, SCOPE_COUNTDOWNS_READ)
+      return respond({
+        groups: COUNTDOWN_ICON_GROUPS.map((group) => ({
+          group: group.label,
+          icons: group.icons,
+        })),
+        total: COUNTDOWN_ICON_NAMES.length,
+      })
+    },
+  )
+
+  server.tool(
     'list_countdowns',
     'List all countdowns',
     {
@@ -735,7 +766,9 @@ function registerCountdownTools(server: McpServer): void {
       target_date: z.string().describe('Target date (ISO 8601)'),
       description: z.string().optional(),
       color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
-      icon: z.string().optional(),
+      icon: COUNTDOWN_ICON_SCHEMA.optional().describe(
+        COUNTDOWN_ICON_DESCRIPTION,
+      ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_WRITE)
@@ -758,7 +791,9 @@ function registerCountdownTools(server: McpServer): void {
       target_date: z.string().optional(),
       description: z.string().optional(),
       color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
-      icon: z.string().optional(),
+      icon: COUNTDOWN_ICON_SCHEMA.optional().describe(
+        COUNTDOWN_ICON_DESCRIPTION,
+      ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_WRITE)

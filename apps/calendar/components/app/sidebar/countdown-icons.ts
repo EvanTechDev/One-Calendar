@@ -1,193 +1,23 @@
 import * as lucideIcons from 'lucide-react'
+import {
+  COUNTDOWN_ICON_GROUPS as CATALOGUE_GROUPS,
+  type CountdownIconGroup,
+} from '@/lib/countdown-icons'
 
 /**
- * Icons offered for countdowns, grouped by occasion.
+ * Client-side view of the countdown icon catalogue.
  *
- * The picker used to list every lucide export (~1500 names) sorted
- * alphabetically and truncated to the first 200, so the visible set was an
- * arbitrary slice starting at "A" — mostly icons nobody would pick for a
- * countdown. Grouping also gives the picker real section headers instead of one
- * undifferentiated grid.
+ * The catalogue itself lives in `@/lib/countdown-icons` so the MCP tool schema
+ * can validate against the same list without pulling `lucide-react` into the
+ * server bundle. This module adds the lucide-dependent parts: filtering out
+ * names lucide no longer exports, and searching the full library.
  */
-export interface CountdownIconGroup {
-  /** Stable key, also used as the i18n lookup for the section label. */
-  id: string
-  label: string
-  icons: string[]
-}
-
-const RAW_GROUPS: CountdownIconGroup[] = [
-  {
-    id: 'time',
-    label: 'Time',
-    icons: [
-      'Clock',
-      'AlarmClock',
-      'AlarmClockCheck',
-      'Timer',
-      'Hourglass',
-      'CalendarDays',
-      'CalendarClock',
-      'CalendarCheck',
-      'CalendarHeart',
-      'History',
-    ],
-  },
-  {
-    id: 'celebration',
-    label: 'Celebration',
-    icons: [
-      'PartyPopper',
-      'Cake',
-      'Gift',
-      'Sparkles',
-      'Star',
-      'Heart',
-      'Crown',
-      'Trophy',
-      'Medal',
-      'Award',
-      'Confetti',
-      'Bell',
-    ],
-  },
-  {
-    id: 'travel',
-    label: 'Travel',
-    icons: [
-      'Plane',
-      'PlaneTakeoff',
-      'PlaneLanding',
-      'Train',
-      'TramFront',
-      'Car',
-      'Bus',
-      'Ship',
-      'Bike',
-      'Luggage',
-      'MapPin',
-      'Map',
-      'Globe',
-      'Compass',
-      'Tent',
-      'Palmtree',
-      'Mountain',
-      'Umbrella',
-      'Sun',
-      'Waves',
-    ],
-  },
-  {
-    id: 'work',
-    label: 'Work & study',
-    icons: [
-      'Briefcase',
-      'GraduationCap',
-      'BookOpen',
-      'Notebook',
-      'PenLine',
-      'Presentation',
-      'Target',
-      'Rocket',
-      'Building2',
-      'Users',
-      'Handshake',
-      'FileText',
-      'ClipboardCheck',
-      'ChartLine',
-      'Code',
-      'Laptop',
-    ],
-  },
-  {
-    id: 'life',
-    label: 'Milestones',
-    icons: [
-      'Baby',
-      'Home',
-      'HeartHandshake',
-      'Stethoscope',
-      'Pill',
-      'HeartPulse',
-      'Dumbbell',
-      'Footprints',
-      'Sprout',
-      'Key',
-    ],
-  },
-  {
-    id: 'seasons',
-    label: 'Seasons',
-    icons: [
-      'Snowflake',
-      'TreePine',
-      'Flower2',
-      'Leaf',
-      'Moon',
-      'CloudSun',
-      'CloudRain',
-      'Flame',
-      'Ghost',
-      'Egg',
-      'Rainbow',
-    ],
-  },
-  {
-    id: 'money',
-    label: 'Money',
-    icons: [
-      'Wallet',
-      'CreditCard',
-      'PiggyBank',
-      'ShoppingCart',
-      'ShoppingBag',
-      'Tag',
-      'Receipt',
-      'Coins',
-      'BadgeDollarSign',
-    ],
-  },
-  {
-    id: 'leisure',
-    label: 'Leisure',
-    icons: [
-      'Music',
-      'Film',
-      'Tv',
-      'Gamepad2',
-      'Ticket',
-      'Camera',
-      'Mic',
-      'Popcorn',
-      'Wine',
-      'Coffee',
-      'UtensilsCrossed',
-      'Pizza',
-      'Dices',
-      'Guitar',
-    ],
-  },
-  {
-    id: 'other',
-    label: 'Other',
-    icons: [
-      'Flag',
-      'Bookmark',
-      'Zap',
-      'Lightbulb',
-      'Package',
-      'Wrench',
-      'Palette',
-      'Puzzle',
-      'Anchor',
-      'Shield',
-      'Smile',
-      'ThumbsUp',
-      'CircleCheck',
-      'Info',
-    ],
-  },
-]
+export type { CountdownIconGroup }
+export {
+  COUNTDOWN_ICON_NAMES as CATALOGUE_ICON_NAMES,
+  DEFAULT_COUNTDOWN_ICON,
+  isCountdownIconName,
+} from '@/lib/countdown-icons'
 
 /** True when lucide actually exports this icon. */
 export function isLucideIconName(name: string): boolean {
@@ -198,7 +28,7 @@ export function isLucideIconName(name: string): boolean {
  * Groups with unavailable icons filtered out, so a lucide rename shows a
  * shorter list rather than blank cells.
  */
-export const COUNTDOWN_ICON_GROUPS: CountdownIconGroup[] = RAW_GROUPS.map(
+export const COUNTDOWN_ICON_GROUPS: CountdownIconGroup[] = CATALOGUE_GROUPS.map(
   (group) => ({ ...group, icons: group.icons.filter(isLucideIconName) }),
 ).filter((group) => group.icons.length > 0)
 
@@ -206,27 +36,18 @@ export const COUNTDOWN_ICON_NAMES: string[] = COUNTDOWN_ICON_GROUPS.flatMap(
   (group) => group.icons,
 )
 
-export const DEFAULT_COUNTDOWN_ICON = 'Clock'
-
 /**
- * Searches the curated set first and only falls back to the full lucide
- * catalogue when nothing matches, so a deliberate search for an uncommon icon
- * still works without the catalogue drowning the default view.
+ * Searches the catalogue only.
+ *
+ * There is deliberately no fallback to the full lucide library: the write path
+ * (`countdownSchema`) and the MCP tool schema both reject names outside the
+ * catalogue, so offering one here would let the user pick an icon whose save
+ * then fails.
  */
-export function searchCountdownIcons(keyword: string, limit = 60): string[] {
+export function searchCountdownIcons(keyword: string): string[] {
   const needle = keyword.trim().toLowerCase()
   if (!needle) return COUNTDOWN_ICON_NAMES
-  const curated = COUNTDOWN_ICON_NAMES.filter((name) =>
+  return COUNTDOWN_ICON_NAMES.filter((name) =>
     name.toLowerCase().includes(needle),
   )
-  if (curated.length > 0) return curated
-  return Object.keys(lucideIcons)
-    .filter(
-      (name) =>
-        /^[A-Z]/.test(name) &&
-        !name.endsWith('Icon') &&
-        name.toLowerCase().includes(needle),
-    )
-    .sort((a, b) => a.localeCompare(b))
-    .slice(0, limit)
 }

@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  DEFAULT_COUNTDOWN_ICON,
+  isCountdownIconName,
+} from '@/lib/countdown-icons'
 
 // The calendar client stores colors as Tailwind classes, not raw hex:
 // events use arbitrary values ("bg-[#E6F6FD]"), categories/countdowns use the
@@ -58,13 +62,40 @@ export const countdownSchema = z.object({
   repeat: z.string().max(20).optional(),
   description: z.string().max(1000).nullish(),
   color: z.string().regex(colorRegex).nullish(),
-  icon: z.string().max(50).nullish(),
+  // Restricted to the shared catalogue: an unknown name is silently rendered
+  // as the fallback Clock, so accepting it here just stores a value the UI can
+  // never show. Kept nullish because the icon is optional.
+  icon: z
+    .string()
+    .max(50)
+    .refine(isCountdownIconName, {
+      message: 'Unknown countdown icon',
+    })
+    .nullish(),
+})
+
+/**
+ * Import variant of {@link countdownSchema}.
+ *
+ * A backup can predate the icon catalogue or come from another install, and
+ * rejecting the whole file over one unrecognised icon would be hostile. Unknown
+ * icons are coerced to the default instead — the countdown still restores, and
+ * the UI would have rendered that fallback anyway.
+ */
+const importCountdownSchema = countdownSchema.extend({
+  icon: z
+    .string()
+    .max(50)
+    .nullish()
+    .transform((value) =>
+      value && isCountdownIconName(value) ? value : DEFAULT_COUNTDOWN_ICON,
+    ),
 })
 
 export const importSchema = z.object({
   events: z.array(eventSchema).max(500).optional(),
   categories: z.array(categorySchema).max(200).optional(),
-  countdowns: z.array(countdownSchema).max(200).optional(),
+  countdowns: z.array(importCountdownSchema).max(200).optional(),
   bookmarks: z
     .array(z.object({ eventId: z.string() }))
     .max(500)
