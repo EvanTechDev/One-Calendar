@@ -60,8 +60,9 @@ describe('api-helpers', () => {
     expect(decrypted.location).toBeNull()
   }, 30000)
 
-  it('decryptEvent falls back to encrypted value on decrypt failure', async () => {
+  it('decryptEvent throws instead of leaking ciphertext as the title', async () => {
     const { decryptEvent } = await import('@/lib/api-helpers')
+    const { FieldDecryptionError } = await import('@/lib/field-crypto')
 
     const event = {
       id: 'evt-fallback',
@@ -80,7 +81,41 @@ describe('api-helpers', () => {
       updatedAt: new Date(),
     }
 
+    let thrown: unknown
+    let result: ReturnType<typeof decryptEvent> | undefined
+    try {
+      result = decryptEvent(event as any)
+    } catch (err) {
+      thrown = err
+    }
+
+    expect(thrown).toBeInstanceOf(FieldDecryptionError)
+    expect(JSON.stringify(result ?? {})).not.toContain('"ct":')
+  })
+
+  it('decryptEvent returns legacy plaintext titles unchanged', async () => {
+    const { decryptEvent } = await import('@/lib/api-helpers')
+
+    const event = {
+      id: 'evt-legacy-plaintext',
+      userId: 'user-1',
+      title: 'Team standup',
+      description: 'Daily sync',
+      location: 'Room 2',
+      startDate: new Date(),
+      endDate: new Date(),
+      isAllDay: false,
+      color: null,
+      categoryId: null,
+      participants: null,
+      notificationMinutes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
     const decrypted = decryptEvent(event as any)
-    expect(decrypted.title).toBe('{"ct":"bad","iv":"bad","tag":"bad"}')
+    expect(decrypted.title).toBe('Team standup')
+    expect(decrypted.description).toBe('Daily sync')
+    expect(decrypted.location).toBe('Room 2')
   })
 })
