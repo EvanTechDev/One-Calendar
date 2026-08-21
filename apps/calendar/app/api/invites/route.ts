@@ -10,6 +10,7 @@ import {
   getInvitesForEvent,
   removeParticipantFromCalendar,
 } from '@/lib/invites/invite-service'
+import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -18,6 +19,14 @@ export const POST = async function POST(request: NextRequest) {
   if (!currentUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const limit = await checkFixedWindowLimit({
+    name: 'invite-send',
+    subject: currentUser.id,
+    limit: 50,
+    windowSeconds: 3600,
+  })
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfter)
 
   const body = await request.json()
   const { eventId, emails } = body as { eventId: string; emails: string[] }
