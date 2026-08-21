@@ -17,7 +17,6 @@ import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
-import ParticipantAvatars from '@/components/app/views/participant-avatars'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
@@ -428,15 +427,10 @@ export default function WeekView({
           style={{ backgroundColor: getEventAccentColor(event.color) }}
         />
         <div
-          className="flex items-center gap-1 truncate pl-1.5"
+          className="pl-1.5 truncate"
           style={{ color: getEventAccentColor(event.color) }}
         >
-          <ParticipantAvatars
-            invites={event.invites}
-            organizer={event.organizer}
-            size={12}
-          />
-          <span className="truncate">{event.title}</span>
+          {event.title}
         </div>
       </div>
     ))
@@ -721,11 +715,6 @@ export default function WeekView({
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          <ParticipantAvatars
-                            invites={event.invites}
-                            organizer={event.organizer}
-                            className="mr-1"
-                          />
                           {event.title}
                         </div>
                         {height >= 40 && (

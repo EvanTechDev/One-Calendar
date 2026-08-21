@@ -17,7 +17,7 @@ import { Download, Upload, AlertCircle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import { generateICSFile, parseICS } from '@/lib/ics'
+import { collapseSeriesForExport, generateICSFile, parseICS } from '@/lib/ics'
 import { Checkbox } from '@zntr/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
 import { Button } from '@zntr/ui/button'
@@ -497,32 +497,47 @@ ${rawContent.substring(0, 500)}...`)
   }
 
   const generateCSV = (events: CalendarEvent[]): string => {
+    // All Day / Reminder / Repeat Rule were previously dropped, so a CSV
+    // round-trip silently turned all-day events into timed ones and lost every
+    // recurrence. Recurring series are collapsed the same way as the ics export
+    // so one series is one row, not one row per occurrence.
     const headers = [
       'Title',
       'Start Date',
       'End Date',
+      'All Day',
       'Location',
       'Description',
+      'Reminder Minutes',
+      'Repeat Rule',
       'Color',
     ]
 
-    const rows = events.map((event) => [
+    const rows = collapseSeriesForExport(
+      events as unknown as Parameters<typeof collapseSeriesForExport>[0],
+    ).map((event) => [
       event.title,
       new Date(event.startDate).toISOString(),
       new Date(event.endDate).toISOString(),
+      event.isAllDay ? 'true' : 'false',
       event.location || '',
       event.description || '',
-      event.color,
+      event.notification ? String(event.notification) : '',
+      (event.rrule ?? '').replace(/^RRULE:/i, ''),
+      event.color || '',
     ])
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
-      ),
-    ].join('\n')
-
-    return csvContent
+    // CRLF and a UTF-8 BOM: Excel misreads plain LF and mangles non-ASCII
+    // titles without the BOM.
+    return (
+      '\uFEFF' +
+      [
+        headers.join(','),
+        ...rows.map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
+        ),
+      ].join('\r\n')
+    )
   }
 
   const parseCSV = (csvContent: string): CalendarEvent[] => {
@@ -557,6 +572,21 @@ ${rawContent.substring(0, 500)}...`)
         const colorIndex = headers.findIndex((h) =>
           h.toLowerCase().includes('color'),
         )
+        // Columns added alongside the richer export; files from other tools
+        // simply lack them and fall back to the previous defaults.
+        const allDayIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes('all day'),
+        )
+        const reminderIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes('reminder'),
+        )
+        const rruleIndex = headers.findIndex(
+          (h) =>
+            h.toLowerCase().includes('repeat') ||
+            h.toLowerCase().includes('rrule'),
+        )
+        const cell = (index: number): string =>
+          index >= 0 && index < values.length ? values[index].trim() : ''
 
         const title =
           titleIndex >= 0 && titleIndex < values.length
@@ -581,14 +611,14 @@ ${rawContent.substring(0, 500)}...`)
           title,
           startDate,
           endDate,
-          isAllDay: false,
-          rrule: null,
+          isAllDay: cell(allDayIndex).toLowerCase() === 'true',
+          rrule: cell(rruleIndex) ? cell(rruleIndex) : null,
           location:
             locationIndex >= 0 && locationIndex < values.length
               ? values[locationIndex]
               : undefined,
           participants: [],
-          notification: 0,
+          notification: Number.parseInt(cell(reminderIndex), 10) || 0,
           description:
             descriptionIndex >= 0 && descriptionIndex < values.length
               ? values[descriptionIndex]

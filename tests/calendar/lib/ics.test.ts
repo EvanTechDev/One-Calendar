@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
+  collapseSeriesForExport,
   escapeIcsText,
   foldIcsLine,
   formatIcsDate,
@@ -328,5 +329,144 @@ describe('parseICS', () => {
     ].join('\r\n')
     const [back] = parseICS(ics, { fallbackTitle: '未命名日程' })
     expect(back.title).toBe('未命名日程')
+  })
+})
+
+describe('recurring series export (CORE-152 regression)', () => {
+  /**
+   * The store holds a recurring series as N expanded occurrences, each
+   * inheriting the master's rrule. Exporting them verbatim produced N VEVENTs
+   * that each carried the full RRULE, so an importing calendar re-expanded
+   * every one into the whole series and the user saw the same event repeated —
+   * the "每个日程都是一样的" report.
+   */
+  function occurrence(
+    stamp: string,
+    start: Date,
+    overrides: Partial<IcsEvent> = {},
+  ): IcsEvent {
+    return {
+      id: `m1_${stamp}`,
+      seriesId: 'm1',
+      recurrenceId: stamp,
+      title: 'Standup',
+      rrule: 'FREQ=WEEKLY;BYDAY=MO',
+      startDate: start,
+      endDate: new Date(start.getTime() + 60 * 60 * 1000),
+      isAllDay: false,
+      notification: 0,
+      ...overrides,
+    }
+  }
+
+  const series = [
+    occurrence('20260803T090000Z', new Date(Date.UTC(2026, 7, 3, 9))),
+    occurrence('20260810T090000Z', new Date(Date.UTC(2026, 7, 10, 9))),
+    occurrence('20260817T090000Z', new Date(Date.UTC(2026, 7, 17, 9))),
+  ]
+
+  it('collapses expanded occurrences into a single anchor', () => {
+    const collapsed = collapseSeriesForExport(series)
+    expect(collapsed).toHaveLength(1)
+    // The anchor must be the EARLIEST occurrence, or the rule regenerates a
+    // different set.
+    expect(new Date(collapsed[0].startDate).toISOString()).toBe(
+      '2026-08-03T09:00:00.000Z',
+    )
+  })
+
+  it('keeps the anchor even when occurrences arrive out of order', () => {
+    const shuffled = [series[2], series[0], series[1]]
+    const collapsed = collapseSeriesForExport(shuffled)
+    expect(collapsed).toHaveLength(1)
+    expect(new Date(collapsed[0].startDate).toISOString()).toBe(
+      '2026-08-03T09:00:00.000Z',
+    )
+  })
+
+  it('writes ONE VEVENT with ONE RRULE for the whole series', () => {
+    const ics = generateICSFile(series)
+    expect((ics.match(/BEGIN:VEVENT/g) ?? []).length).toBe(1)
+    expect((ics.match(/^RRULE:/gm) ?? []).length).toBe(1)
+    expect(ics).toContain('DTSTART:20260803T090000Z')
+    // All occurrences share the series UID, not their instance ids.
+    expect(ics).toContain('UID:m1@zentra-calendar')
+    expect(ics).not.toContain('m1_20260810T090000Z@zentra-calendar')
+  })
+
+  it('does not merge distinct series or plain events', () => {
+    const mixed = [
+      ...series,
+      occurrence('20260804T140000Z', new Date(Date.UTC(2026, 7, 4, 14)), {
+        id: 'm2_20260804T140000Z',
+        seriesId: 'm2',
+        title: 'Other series',
+      }),
+      {
+        id: 'plain-1',
+        title: 'One-off',
+        startDate: new Date(Date.UTC(2026, 7, 5, 10)),
+        endDate: new Date(Date.UTC(2026, 7, 5, 11)),
+      } as IcsEvent,
+    ]
+    const ics = generateICSFile(mixed)
+    expect((ics.match(/BEGIN:VEVENT/g) ?? []).length).toBe(3)
+    const summaries = [...ics.matchAll(/^SUMMARY:(.*)$/gm)].map((m) =>
+      m[1].trim(),
+    )
+    expect(summaries.sort()).toEqual(['One-off', 'Other series', 'Standup'])
+  })
+
+  it('emits a single-instance edit as a RECURRENCE-ID override without its own rule', () => {
+    const withOverride = [
+      ...series,
+      occurrence('20260824T090000Z', new Date(Date.UTC(2026, 7, 24, 15)), {
+        id: 'ovr-1',
+        isOverride: true,
+        title: 'Standup (moved)',
+      }),
+    ]
+    const ics = generateICSFile(withOverride)
+    // Anchor + override.
+    expect((ics.match(/BEGIN:VEVENT/g) ?? []).length).toBe(2)
+    // Only the anchor recurs.
+    expect((ics.match(/^RRULE:/gm) ?? []).length).toBe(1)
+    expect(ics).toContain('RECURRENCE-ID:20260824T090000Z')
+    // The override shares the parent UID so calendars link them.
+    expect((ics.match(/^UID:m1@zentra-calendar/gm) ?? []).length).toBe(2)
+  })
+
+  it('round-trips the collapsed series back to one recurring event', () => {
+    const parsed = parseICS(generateICSFile(series))
+    expect(parsed).toHaveLength(1)
+    expect(parsed[0].rrule).toBe('FREQ=WEEKLY;BYDAY=MO')
+    expect(new Date(parsed[0].startDate).toISOString()).toBe(
+      '2026-08-03T09:00:00.000Z',
+    )
+  })
+
+  it('round-trips an override as an override', () => {
+    const withOverride = [
+      series[0],
+      occurrence('20260824T090000Z', new Date(Date.UTC(2026, 7, 24, 15)), {
+        id: 'ovr-1',
+        isOverride: true,
+      }),
+    ]
+    const parsed = parseICS(generateICSFile(withOverride))
+    expect(parsed).toHaveLength(2)
+    const override = parsed.find((e) => e.isOverride)
+    expect(override).toBeDefined()
+    expect(override?.recurrenceId).toBe('20260824T090000Z')
+    expect(override?.rrule).toBeNull()
+  })
+
+  it('keeps EXDATEs on the anchor only', () => {
+    const withExdate = series.map((e) => ({
+      ...e,
+      exdate: ['20260831T090000Z'],
+    }))
+    const ics = generateICSFile(withExdate)
+    expect((ics.match(/^EXDATE/gm) ?? []).length).toBe(1)
   })
 })

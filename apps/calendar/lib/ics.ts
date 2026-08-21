@@ -21,9 +21,67 @@ export interface IcsEvent {
   notification?: number
   rrule?: string | null
   exdate?: string[] | null
+  /** Set on expanded occurrences of a recurring series. */
+  seriesId?: string | null
+  /** RFC 5545 stamp identifying which occurrence this is. */
+  recurrenceId?: string | null
+  /** True when this occurrence carries its own single-instance edit. */
+  isOverride?: boolean
   color?: string
   calendarId?: string
   participants?: unknown[]
+}
+
+/**
+ * Collapses expanded occurrences back into the series they came from.
+ *
+ * The app's store holds a recurring series as N separate expanded instances,
+ * each inheriting the master's RRULE. Exporting them verbatim writes N VEVENTs
+ * that each carry the full rule, so an importing calendar re-expands every one
+ * of them into the entire series — the user sees the same event over and over.
+ *
+ * A series must therefore be exported as ONE VEVENT: the earliest occurrence
+ * (the anchor) with the RRULE and EXDATEs attached. Single-instance edits are
+ * the exception — they genuinely differ from the pattern, so each is emitted as
+ * its own RECURRENCE-ID override, which is exactly how RFC 5545 models them.
+ */
+export function collapseSeriesForExport(events: IcsEvent[]): IcsEvent[] {
+  const result: IcsEvent[] = []
+  // seriesId -> index in `result` of that series' anchor VEVENT.
+  const anchorIndex = new Map<string, number>()
+
+  for (const event of events) {
+    const seriesId = event.seriesId ?? null
+
+    // Plain events and raw master rows pass straight through.
+    if (!seriesId) {
+      result.push(event)
+      continue
+    }
+
+    // A single-instance edit differs from the pattern, so it survives as its
+    // own override entry rather than being folded away.
+    if (event.isOverride) {
+      result.push(event)
+      continue
+    }
+
+    const existing = anchorIndex.get(seriesId)
+    if (existing === undefined) {
+      anchorIndex.set(seriesId, result.length)
+      result.push(event)
+      continue
+    }
+
+    // Keep whichever occurrence starts earliest as the anchor: DTSTART must be
+    // the series' first occurrence for the rule to regenerate the same set.
+    const anchor = result[existing]
+    if (new Date(event.startDate) < new Date(anchor.startDate)) {
+      result[existing] = event
+    }
+  }
+
+  return result
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, '0')
@@ -101,16 +159,30 @@ export function generateICSFile(events: IcsEvent[]): string {
 
   const stamp = formatIcsDateTime(new Date())
 
-  for (const event of events) {
+  // Expanded occurrences of one series must become a single recurring VEVENT,
+  // otherwise each exported copy carries the RRULE and the importing calendar
+  // regenerates the whole series per copy.
+  for (const event of collapseSeriesForExport(events)) {
     const startDate = new Date(event.startDate)
     const endDate = new Date(event.endDate)
     const allDay = Boolean(event.isAllDay)
+    // Every occurrence of a series shares one UID; an override is distinguished
+    // by RECURRENCE-ID, which is how RFC 5545 links it to its parent.
+    const uid = event.seriesId ?? event.id
 
     lines.push('BEGIN:VEVENT')
-    lines.push(`UID:${event.id}@zentra-calendar`)
+    lines.push(`UID:${uid}@zentra-calendar`)
     lines.push(`DTSTAMP:${stamp}`)
     lines.push(`CREATED:${stamp}`)
     lines.push(`LAST-MODIFIED:${stamp}`)
+
+    if (event.isOverride && event.recurrenceId) {
+      lines.push(
+        allDay
+          ? `RECURRENCE-ID;VALUE=DATE:${event.recurrenceId}`
+          : `RECURRENCE-ID:${event.recurrenceId}`,
+      )
+    }
 
     if (allDay) {
       lines.push(`DTSTART;VALUE=DATE:${formatIcsDate(startDate)}`)
@@ -128,12 +200,16 @@ export function generateICSFile(events: IcsEvent[]): string {
       lines.push(foldIcsLine(`LOCATION:${escapeIcsText(event.location)}`))
     }
 
+    // An override describes ONE occurrence, so repeating the parent's rule
+    // would make it recur on its own.
+    const carriesRule = !event.isOverride
+
     // Stored rules have no "RRULE:" prefix, but older imports may carry one —
     // normalise so we never emit "RRULE:RRULE:".
-    if (event.rrule) {
+    if (carriesRule && event.rrule) {
       lines.push(`RRULE:${event.rrule.replace(/^RRULE:/i, '')}`)
     }
-    if (event.exdate?.length) {
+    if (carriesRule && event.exdate?.length) {
       const dateOnly = event.exdate.every((s) => !s.includes('T'))
       lines.push(
         dateOnly
@@ -344,6 +420,12 @@ export function parseICS(
         break
       case 'RRULE':
         current.rrule = value.replace(/^RRULE:/i, '')
+        break
+      case 'RECURRENCE-ID':
+        // Marks this VEVENT as a single-occurrence override of its UID's
+        // series rather than a series in its own right.
+        current.recurrenceId = value.trim()
+        current.isOverride = true
         break
       case 'EXDATE':
         current.exdate = [
