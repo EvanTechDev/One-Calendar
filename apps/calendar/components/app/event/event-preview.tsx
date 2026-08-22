@@ -256,11 +256,14 @@ export default function EventPreview({
   }
 
   const formatNotificationTime = () => {
-    if (event.notification === 0)
-      return isZh ? '事件开始时' : 'At time of event'
-    return isZh
-      ? `${event.notification} 分钟前`
-      : `${event.notification} minutes before`
+    if (event.notification === null || event.notification === undefined) {
+      return _t.noReminder
+    }
+    if (event.notification === 0) return _t.atEventTime
+    if (event.notification % 60 === 0) {
+      return _t.hourBefore.replace('{hours}', String(event.notification / 60))
+    }
+    return _t.minutesBefore.replace('{minutes}', String(event.notification))
   }
 
   const seriesMaster = event.seriesId
@@ -280,6 +283,17 @@ export default function EventPreview({
     event.participants.some((p) => p.trim() !== '')
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen)
+
+  const isRecurring = !!event?.rrule || !!event?.seriesId
+  /**
+   * Mirrors the event dialog's `canAllScope`: "all events" is only offered on
+   * the series' first occurrence. A raw master row IS the series root, so "all"
+   * stays allowed there.
+   */
+  const isRawMasterTarget =
+    !!event?.rrule && !event?.seriesId && !event?.recurrenceId
+  const canAllScope =
+    !!event && (isRawMasterTarget || event.isFirstInstance === true)
 
   const toggleBookmark = async () => {
     if (!event) return
@@ -324,16 +338,42 @@ export default function EventPreview({
     }
   }
 
-  const handleRemoveParticipant = async (inviteId: string) => {
+  /**
+   * Removes a participant from the chosen occurrences.
+   *
+   * For a recurring event the scope follows the same rule as an event edit:
+   * `all` only on the series' first occurrence, `following` elsewhere. See
+   * ADR-0007 (participant scope follows the same rules as event scope).
+   */
+  const handleRemoveParticipant = async (
+    inviteId: string,
+    scope: 'single' | 'following' | 'all' = 'all',
+  ) => {
     if (!event) return
     try {
-      await fetch(`/api/invites/manage?id=${inviteId}`, {
+      const params = new URLSearchParams({ id: inviteId, scope })
+      if (isRecurring) params.set('occurrenceId', event.id)
+      const response = await fetch(`/api/invites/manage?${params}`, {
         method: 'DELETE',
       })
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
+      // Correct for every scope here: the participant is gone from the
+      // occurrence being viewed, which is what this list shows. The 15-second
+      // poll reconciles the grant's remaining occurrences.
       setInvites((prev) => prev.filter((i) => i.id !== inviteId))
       toast.success('Participant removed')
-    } catch {
-      toast.error('Failed to remove participant')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to remove participant',
+      )
     }
   }
 
@@ -728,15 +768,65 @@ export default function EventPreview({
                                     {_t.copyInviteLink}
                                   </DropdownMenuItem>
                                 ) : null}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() =>
-                                    handleRemoveParticipant(invite.id)
-                                  }
-                                >
-                                  <UserMinus className="mr-2 h-4 w-4" />
-                                  Remove
-                                </DropdownMenuItem>
+                                {isRecurring ? (
+                                  <>
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() =>
+                                        handleRemoveParticipant(
+                                          invite.id,
+                                          'single',
+                                        )
+                                      }
+                                    >
+                                      <UserMinus className="mr-2 h-4 w-4" />
+                                      {isZh
+                                        ? '移除（仅此日程）'
+                                        : 'Remove (this event)'}
+                                    </DropdownMenuItem>
+                                    {canAllScope ? (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'all',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4" />
+                                        {isZh
+                                          ? '移除（所有日程）'
+                                          : 'Remove (all events)'}
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'following',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4" />
+                                        {isZh
+                                          ? '移除（此日程及后续）'
+                                          : 'Remove (this and following)'}
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() =>
+                                      handleRemoveParticipant(invite.id, 'all')
+                                    }
+                                  >
+                                    <UserMinus className="mr-2 h-4 w-4" />
+                                    Remove
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -804,19 +894,22 @@ export default function EventPreview({
               </div>
             )}
 
-            {event.notification > 0 && (
-              <div className="flex items-start">
-                <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                <div className="flex-1">
-                  <p>{formatNotificationTime()}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isZh
-                      ? `${event.notification} 分钟前 按电子邮件`
-                      : `${event.notification} minutes before by email`}
-                  </p>
+            {event.notification !== null &&
+              event.notification !== undefined && (
+                <div className="flex items-start">
+                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{formatNotificationTime()}</p>
+                    {/* Shown only when it is actually true — the old copy
+                        claimed email unconditionally and no email existed. */}
+                    {event.emailReminder === true && (
+                      <p className="text-sm text-muted-foreground">
+                        {_t.emailReminder}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {event.description && event.description.trim() !== '' && (
               <div className="flex items-start">

@@ -1,16 +1,30 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents, eventInvites, user } from '@/lib/drizzle/schema'
+import { eventInvites, user } from '@/lib/drizzle/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
 import {
-  createInvitesForEvent,
   sendInviteEmails,
   getInvitesForEvent,
   removeParticipantFromCalendar,
 } from '@/lib/invites/invite-service'
+import {
+  applyScopedParticipantChange,
+  resolveParticipantTarget,
+  ParticipantScopeError,
+} from '@/lib/invites/scoped-invites'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
+import type { ApplyTo } from '@/lib/event-service'
+
+const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']
+
+function parseScope(value: unknown): ApplyTo | null {
+  if (value === undefined || value === null) return 'all'
+  return PARTICIPANT_SCOPES.includes(value as ApplyTo)
+    ? (value as ApplyTo)
+    : null
+}
 
 export const runtime = 'nodejs'
 
@@ -29,13 +43,23 @@ export const POST = async function POST(request: NextRequest) {
   if (!limit.allowed) return rateLimitedResponse(limit.retryAfter)
 
   const body = await request.json()
-  const { eventId, emails } = body as { eventId: string; emails: string[] }
+  const { eventId, emails, scope, timezone } = body as {
+    eventId: string
+    emails: string[]
+    scope?: string
+    timezone?: string
+  }
 
   if (!eventId || !emails || !Array.isArray(emails) || emails.length === 0) {
     return NextResponse.json(
       { error: 'Missing eventId or emails' },
       { status: 400 },
     )
+  }
+
+  const participantScope = parseScope(scope)
+  if (participantScope === null) {
+    return NextResponse.json({ error: 'Invalid scope' }, { status: 400 })
   }
 
   if (emails.length > 20) {
@@ -63,33 +87,32 @@ export const POST = async function POST(request: NextRequest) {
     }
   }
 
-  const [event] = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.id, eventId),
-        eq(calendarEvents.userId, currentUser.id),
-      ),
-    )
-
-  if (!event) {
+  // Accepts a plain id, a series master id, or an instance id.
+  const target = await resolveParticipantTarget(
+    eventId,
+    currentUser.id,
+    timezone,
+  )
+  if (!target) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const existingInvites = await getInvitesForEvent(eventId)
-  const existingEmails = new Set(
-    existingInvites.map((i: { email: string }) => i.email),
-  )
-  const newEmails = uniqueEmails.filter((e) => !existingEmails.has(e))
-
-  if (newEmails.length > 0) {
-    await createInvitesForEvent(
-      eventId,
-      newEmails.map((email) => ({ email })),
-    )
+  let changed
+  try {
+    changed = await applyScopedParticipantChange({
+      target,
+      emails: uniqueEmails,
+      scope: participantScope,
+      action: 'add',
+    })
+  } catch (error) {
+    if (error instanceof ParticipantScopeError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
   }
 
+  const event = target.master
   const [inviter] = await getDb()
     .select({ name: user.name })
     .from(user)
@@ -99,23 +122,30 @@ export const POST = async function POST(request: NextRequest) {
   const startStr = new Date(event.startDate).toLocaleString()
   const endStr = new Date(event.endDate).toLocaleString()
 
-  const result = await sendInviteEmails({
-    eventId,
-    eventTitle: decryptField(event.id, event.title) ?? event.title,
-    startDate: startStr,
-    endDate: endStr,
-    isAllDay: event.isAllDay,
-    inviterName: inviter?.name ?? 'Someone',
-    description: decryptField(event.id, event.description) ?? undefined,
-    location: decryptField(event.id, event.location) ?? undefined,
-    emails: uniqueEmails,
-    baseUrl,
-  })
+  // Only newly created invites are emailed. Widening an existing grant reuses
+  // the original link, which is the point of the single-token design — see
+  // ADR-0005 (participant visibility is a baseline range plus per-stamp exceptions).
+  const result =
+    changed.createdEmails.length > 0
+      ? await sendInviteEmails({
+          eventId: target.masterId,
+          eventTitle: decryptField(event.id, event.title) ?? event.title,
+          startDate: startStr,
+          endDate: endStr,
+          isAllDay: event.isAllDay,
+          inviterName: inviter?.name ?? 'Someone',
+          description: decryptField(event.id, event.description) ?? undefined,
+          location: decryptField(event.id, event.location) ?? undefined,
+          emails: changed.createdEmails,
+          baseUrl,
+        })
+      : { sent: 0, failed: [] as string[] }
 
   return NextResponse.json({
     success: true,
     sent: result.sent,
     failed: result.failed,
+    reused: changed.updatedEmails,
   })
 }
 
@@ -131,21 +161,13 @@ export const GET = async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing eventId' }, { status: 400 })
   }
 
-  const [event] = await getDb()
-    .select({ id: calendarEvents.id })
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.id, eventId),
-        eq(calendarEvents.userId, currentUser.id),
-      ),
-    )
-
-  if (!event) {
+  // Accepts an instance id, so the preview can poll invites for an occurrence.
+  const target = await resolveParticipantTarget(eventId, currentUser.id)
+  if (!target) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const invites = await getInvitesForEvent(eventId)
+  const invites = await getInvitesForEvent(target.masterId)
 
   const emails = [...new Set(invites.map((i: { email: string }) => i.email))]
   const users = emails.length

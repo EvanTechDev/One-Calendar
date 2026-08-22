@@ -3,6 +3,7 @@ import { getDb } from '@/lib/drizzle/client'
 import {
   calendarEvents,
   eventInvites,
+  eventInviteOccurrences,
   settings,
   user,
 } from '@/lib/drizzle/schema'
@@ -41,7 +42,9 @@ import {
   parseRfcStamp,
   addWallClockDays,
   canTranslateRuleByDays,
+  describeRecurrence,
   shiftExdates,
+  shiftStamp,
   shiftToAnchorClock,
   translateRuleByDays,
   translateStampsByDays,
@@ -49,6 +52,14 @@ import {
   withUntil,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
+import {
+  canParticipantSeeOccurrence,
+  rsvpForOccurrence,
+} from '@/lib/invites/visibility'
+import {
+  baselineOf,
+  getOccurrencesForInvites,
+} from '@/lib/invites/invite-service'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
@@ -112,6 +123,8 @@ function encryptMergedFields(
   if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
   if (fields.notificationMinutes !== undefined)
     encrypted.notificationMinutes = fields.notificationMinutes
+  if (fields.emailReminder !== undefined)
+    encrypted.emailReminder = fields.emailReminder
   return encrypted
 }
 
@@ -249,6 +262,19 @@ async function deleteRow(
     ? [row.id]
     : [row.id, ...(await fetchOverrides(row.id, dbx)).map((r) => r.id)]
   if (rowIds.length > 0) {
+    // Scheduled reminder rows cascade with the event, but the PROVIDER's copy
+    // does not — it must be cancelled explicitly or the user is emailed about a
+    // deleted event. See ADR-0010.
+    try {
+      const { cancelRemindersForEvents } =
+        await import('@/lib/reminders/reconcile')
+      await cancelRemindersForEvents(rowIds)
+    } catch {
+      // Never block a delete on the email provider.
+    }
+    // Occurrence rows cascade from event_invites, which cascades from
+    // calendar_events, so deleting the invites removes their per-occurrence
+    // visibility and RSVPs with them.
     await dbx.delete(eventInvites).where(inArray(eventInvites.eventId, rowIds))
     await dbx
       .delete(calendarEvents)
@@ -264,6 +290,121 @@ async function deleteRow(
     row.startDate.toISOString(),
     row.endDate.toISOString(),
   )
+}
+
+/**
+ * Moves participant grants that reach past a split boundary onto the new
+ * master, keeping each invite token so no participant is re-invited.
+ *
+ * Grants living entirely before the boundary stay on the old master and are
+ * deliberately not copied — which is why this is per-stamp rather than a
+ * wholesale copy.
+ */
+async function carryInvitesAcrossSplit(
+  tx: Dbx,
+  params: {
+    oldMasterId: string
+    newMasterId: string
+    boundaryStamp: string
+    stampDeltaMs: number
+  },
+): Promise<void> {
+  const { oldMasterId, newMasterId, boundaryStamp, stampDeltaMs } = params
+
+  const invites = await tx
+    .select()
+    .from(eventInvites)
+    .where(eq(eventInvites.eventId, oldMasterId))
+  if (invites.length === 0) return
+
+  const shift = (stamp: string) =>
+    stampDeltaMs === 0 ? stamp : (shiftStamp(stamp, stampDeltaMs) ?? stamp)
+
+  for (const invite of invites) {
+    const exceptions = await tx
+      .select()
+      .from(eventInviteOccurrences)
+      .where(eq(eventInviteOccurrences.inviteId, invite.id))
+
+    const tailExceptions = exceptions.filter(
+      (e) => e.recurrenceId >= boundaryStamp,
+    )
+    const baselineReachesTail =
+      invite.baselineKind === 'all' &&
+      (invite.untilStamp === null || invite.untilStamp > boundaryStamp)
+
+    if (!baselineReachesTail && tailExceptions.length === 0) continue
+
+    const [carried] = await tx
+      .insert(eventInvites)
+      .values({
+        id: crypto.randomUUID(),
+        eventId: newMasterId,
+        email: invite.email,
+        status: invite.status,
+        // The same token, so the participant's existing link keeps working.
+        inviteToken: invite.inviteToken,
+        emailSent: invite.emailSent,
+        addedToCalendar: invite.addedToCalendar,
+        categoryId: invite.categoryId,
+        baselineKind: baselineReachesTail ? 'all' : 'none',
+        fromStamp: baselineReachesTail
+          ? shift(
+              invite.fromStamp && invite.fromStamp > boundaryStamp
+                ? invite.fromStamp
+                : boundaryStamp,
+            )
+          : null,
+        untilStamp:
+          baselineReachesTail && invite.untilStamp
+            ? shift(invite.untilStamp)
+            : null,
+        expiresAt: invite.expiresAt,
+        createdAt: invite.createdAt,
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing({
+        target: [eventInvites.eventId, eventInvites.email],
+      })
+      .returning()
+
+    if (!carried) continue
+
+    if (tailExceptions.length > 0) {
+      await tx.insert(eventInviteOccurrences).values(
+        tailExceptions.map((e) => ({
+          id: crypto.randomUUID(),
+          inviteId: carried.id,
+          // Re-stamped when the split moved the occurrence times, mirroring
+          // what shiftOverridesByDelta does for override rows.
+          recurrenceId: shift(e.recurrenceId),
+          visible: e.visible,
+          status: e.status,
+          createdAt: e.createdAt,
+          updatedAt: new Date(),
+        })),
+      )
+    }
+
+    // The old master keeps only what precedes the boundary.
+    if (tailExceptions.length > 0) {
+      await tx.delete(eventInviteOccurrences).where(
+        and(
+          eq(eventInviteOccurrences.inviteId, invite.id),
+          inArray(
+            eventInviteOccurrences.recurrenceId,
+            tailExceptions.map((e) => e.recurrenceId),
+          ),
+        ),
+      )
+    }
+    if (baselineReachesTail) {
+      await tx
+        .update(eventInvites)
+        .set({ untilStamp: boundaryStamp, updatedAt: new Date() })
+        .where(eq(eventInvites.id, invite.id))
+    }
+  }
 }
 
 async function applySplitPlan(
@@ -313,12 +454,28 @@ async function applySplitPlan(
         )
     }
 
+    // Participants must not silently lose the tail of the series. Invites are
+    // bound to the master, so a split leaves the new master with none unless
+    // they are carried across — preserving each token, because a split is the
+    // organiser's edit and must not invalidate a participant's link. See
+    // ADR-0009 (invites and their visibility survive a series split).
+    await carryInvitesAcrossSplit(tx, {
+      oldMasterId: master.id,
+      newMasterId: newId,
+      boundaryStamp: split.masterUntil,
+      stampDeltaMs:
+        split.newSeries.startDate.getTime() - master.startDate.getTime(),
+    })
+
     if (split.masterBecomesEmpty) {
       // The old series would render nothing after truncation (split at its
       // first slot): drop it so repeated "this and following" edits cannot
       // pile up invisible zombie masters. Overrides were already re-parented
       // above, and the FK is ON DELETE CASCADE for anything still pointing
       // here, so nothing is orphaned.
+      //
+      // Safe now that anything still needed was carried to the new master
+      // above; deleting first would have destroyed the grants outright.
       await tx
         .delete(eventInvites)
         .where(inArray(eventInvites.eventId, [master.id]))
@@ -362,6 +519,20 @@ async function applySplitPlan(
     ),
   ])
 
+  // Occurrences past the boundary now belong to the new master and may have
+  // moved, so their scheduled sends are cancelled and left for the top-up cron
+  // to re-create. Outside the transaction: this calls the email provider.
+  try {
+    const { clearRemindersPastSplit } =
+      await import('@/lib/reminders/reconcile')
+    await clearRemindersPastSplit({
+      oldMasterId: master.id,
+      boundaryStamp: split.masterUntil,
+    })
+  } catch {
+    // Never fail a split because of the email provider.
+  }
+
   return decryptEvent(newMaster)
 }
 
@@ -396,9 +567,18 @@ async function enrichEventsWithInvites(
       inviteToken: eventInvites.inviteToken,
       emailSent: eventInvites.emailSent,
       addedToCalendar: eventInvites.addedToCalendar,
+      baselineKind: eventInvites.baselineKind,
+      fromStamp: eventInvites.fromStamp,
+      untilStamp: eventInvites.untilStamp,
     })
     .from(eventInvites)
     .where(inArray(eventInvites.eventId, idKeys))
+
+  // Per-occurrence exceptions, so the organiser sees who is on THIS occurrence
+  // and their RSVP for it — not a series-wide answer.
+  const occurrencesByInvite = await getOccurrencesForInvites(
+    allInvites.map((i) => i.id),
+  )
 
   const inviteEmails = [
     ...new Set(allInvites.map((i) => i.email.toLowerCase())),
@@ -427,35 +607,56 @@ async function enrichEventsWithInvites(
   const viewerEmailLower = viewerEmail?.toLowerCase()
 
   const invitesByEvent = allInvites.reduce(
-    (acc: Record<string, EnrichedInvite[]>, invite) => {
-      const emailLower = invite.email.toLowerCase()
-      const isOwnInvite = emailLower === viewerEmailLower
-      const enriched: EnrichedInvite = {
-        id: invite.id,
-        email: invite.email,
-        status: invite.status as 'pending' | 'accepted' | 'maybe' | 'declined',
-        inviteToken:
-          eventOwners.get(invite.eventId) === viewerId || isOwnInvite
-            ? invite.inviteToken
-            : '',
-        emailSent: invite.emailSent,
-        addedToCalendar: invite.addedToCalendar,
-        userName: userMap[emailLower]?.name ?? null,
-        userImage: userMap[emailLower]?.image ?? null,
-      }
+    (acc: Record<string, typeof allInvites>, invite) => {
       if (!acc[invite.eventId]) acc[invite.eventId] = []
-      acc[invite.eventId].push(enriched)
+      acc[invite.eventId].push(invite)
       return acc
     },
-    {} as Record<string, EnrichedInvite[]>,
+    {} as Record<string, typeof allInvites>,
   )
 
   return events.map((e) => {
     const key = (e.seriesId ?? e.id) as string
-    return {
-      ...e,
-      invites: invitesByEvent[key] ?? [],
-    }
+    const candidates = invitesByEvent[key] ?? []
+    // A plain event has no stamp, so every invite applies to it.
+    const stamp = e.recurrenceId ?? null
+
+    const invites = candidates
+      .filter((invite) => {
+        if (stamp === null) return true
+        return canParticipantSeeOccurrence(
+          baselineOf(invite),
+          occurrencesByInvite.get(invite.id) ?? [],
+          stamp,
+        )
+      })
+      .map((invite) => {
+        const emailLower = invite.email.toLowerCase()
+        const isOwnInvite = emailLower === viewerEmailLower
+        const exceptions = occurrencesByInvite.get(invite.id) ?? []
+        const enriched: EnrichedInvite = {
+          id: invite.id,
+          email: invite.email,
+          // RSVP is per-occurrence for a series; the invite row's own status
+          // only answers for a non-recurring event.
+          status:
+            stamp === null
+              ? (invite.status as EnrichedInvite['status'])
+              : rsvpForOccurrence(exceptions, stamp),
+          // Only the organiser or the invitee themselves get a usable token.
+          inviteToken:
+            eventOwners.get(invite.eventId) === viewerId || isOwnInvite
+              ? invite.inviteToken
+              : '',
+          emailSent: invite.emailSent,
+          addedToCalendar: invite.addedToCalendar,
+          userName: userMap[emailLower]?.name ?? null,
+          userImage: userMap[emailLower]?.image ?? null,
+        }
+        return enriched
+      })
+
+    return { ...e, invites }
   })
 }
 
@@ -471,11 +672,9 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     }
   >
 > {
-  const sharedEventRows = await getDb()
-    .select({
-      eventId: eventInvites.eventId,
-      categoryId: eventInvites.categoryId,
-    })
+  const now = new Date()
+  const sharedInvites = await getDb()
+    .select()
     .from(eventInvites)
     .where(
       and(
@@ -484,12 +683,19 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
       ),
     )
 
-  if (sharedEventRows.length === 0) return []
-
-  const inviteCategoryByEvent = new Map(
-    sharedEventRows.map((r) => [r.eventId, r.categoryId]),
+  // Expiry is enforced here too, not only in isEventViewableBy — an expired
+  // grant must not keep feeding the calendar.
+  const liveInvites = sharedInvites.filter(
+    (i) => !i.expiresAt || i.expiresAt > now,
   )
-  const sharedIds = sharedEventRows.map((r) => r.eventId)
+  if (liveInvites.length === 0) return []
+
+  const inviteByEvent = new Map(liveInvites.map((i) => [i.eventId, i]))
+  const occurrencesByInvite = await getOccurrencesForInvites(
+    liveInvites.map((i) => i.id),
+  )
+
+  const sharedIds = liveInvites.map((i) => i.eventId)
   const sharedResults = await getDb()
     .select()
     .from(calendarEvents)
@@ -509,20 +715,101 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     : []
 
   const ownerMap = new Map(owners.map((u) => [u.id, u]))
+  const organiserTimeZones = await organiserTimeZonesFor(ownerIds)
 
-  return sharedResults.map((e) => {
-    const owner = e.userId ? ownerMap.get(e.userId) : null
-    return {
-      ...decryptEvent(e),
-      categoryId: inviteCategoryByEvent.has(e.id)
-        ? (inviteCategoryByEvent.get(e.id) ?? null)
-        : e.categoryId,
-      viewOnly: true,
-      organizer: owner
-        ? { name: owner.name, email: owner.email, image: owner.image }
-        : null,
+  const out: Array<
+    ReturnType<typeof decryptEvent> & {
+      viewOnly: boolean
+      organizer: {
+        name: string
+        email: string
+        image: string | null
+      } | null
     }
-  })
+  > = []
+
+  for (const row of sharedResults) {
+    const invite = inviteByEvent.get(row.id)
+    if (!invite) continue
+
+    const owner = row.userId ? ownerMap.get(row.userId) : null
+    const organizer = owner
+      ? { name: owner.name, email: owner.email, image: owner.image }
+      : null
+    const categoryId = invite.categoryId ?? row.categoryId
+    const decrypted = decryptEvent(row)
+
+    const isSeries = !!row.rrule && row.rrule.trim().length > 0
+    if (!isSeries) {
+      out.push({ ...decrypted, categoryId, viewOnly: true, organizer })
+      continue
+    }
+
+    // A series is expanded and filtered HERE, and the rule is withheld from the
+    // response. Handing a participant an rrule lets their client generate
+    // occurrences they were never granted — see
+    // ADR-0006 (participants never receive the recurrence rule).
+    const exceptions = occurrencesByInvite.get(invite.id) ?? []
+    const baseline = baselineOf(invite)
+    const overrides = await fetchOverrides(row.id)
+    const instances = expandSeriesView(
+      [decrypted as unknown as SeriesViewInput],
+      overrides.map(decryptEvent) as unknown as SeriesViewInput[],
+      new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
+      new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
+      MAX_EXPANSION,
+      // The organiser's timezone, so the participant sees the occurrences the
+      // organiser actually scheduled rather than a UTC-shifted set.
+      organiserTimeZones.get(row.userId),
+    ) as Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>
+
+    const recurrenceSummary = describeRecurrence(row.rrule!, false)
+
+    for (const instance of instances) {
+      const stamp = instance.recurrenceId
+      if (
+        stamp === null ||
+        !canParticipantSeeOccurrence(baseline, exceptions, stamp)
+      ) {
+        continue
+      }
+      out.push({
+        ...instance,
+        categoryId,
+        // Withheld deliberately. Do not "restore" these.
+        rrule: null,
+        exdate: null,
+        recurrenceSummary,
+        viewOnly: true,
+        organizer,
+      } as (typeof out)[number])
+    }
+  }
+
+  return out
+}
+
+/**
+ * Timezones of the given users, from their settings blob. A series must be
+ * expanded in its organiser's timezone or a participant sees occurrences at the
+ * wrong wall-clock time.
+ */
+async function organiserTimeZonesFor(
+  userIds: string[],
+): Promise<Map<string, string | undefined>> {
+  const map = new Map<string, string | undefined>()
+  if (userIds.length === 0) return map
+
+  const rows = await getDb()
+    .select({ userId: settings.userId, data: settings.data })
+    .from(settings)
+    .where(inArray(settings.userId, userIds))
+
+  for (const row of rows) {
+    const tz = (row.data as { timezone?: unknown } | null)?.timezone
+    map.set(row.userId, typeof tz === 'string' && tz ? tz : undefined)
+  }
+  return map
 }
 
 type MergedViewEvent = ReturnType<typeof decryptEvent> & {
@@ -800,7 +1087,7 @@ export const GET = async function GET(request: NextRequest) {
   return NextResponse.json({ events: eventsWithInvites })
 }
 
-export const POST = async function POST(request: NextRequest) {
+const postHandler = async function POST(request: NextRequest) {
   const user = await getAuthedUser()
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -865,6 +1152,7 @@ export const POST = async function POST(request: NextRequest) {
     categoryId: body.categoryId ?? null,
     participants: body.participants as unknown as string[] | undefined,
     notificationMinutes: body.notificationMinutes ?? null,
+    emailReminder: body.emailReminder ?? false,
   }
 
   if (parsedId) {
@@ -1473,6 +1761,7 @@ export const POST = async function POST(request: NextRequest) {
       categoryId: body.categoryId ?? null,
       participants: encryptJsonField(id, body.participants),
       notificationMinutes: body.notificationMinutes ?? null,
+      emailReminder: body.emailReminder ?? false,
       rrule: upsertRrule,
       exdate: body.exdate ?? null,
     })
@@ -1490,6 +1779,7 @@ export const POST = async function POST(request: NextRequest) {
         categoryId: body.categoryId ?? null,
         participants: encryptJsonField(id, body.participants),
         notificationMinutes: body.notificationMinutes ?? null,
+        emailReminder: body.emailReminder ?? false,
         rrule: upsertRrule,
         exdate: body.exdate ?? null,
         updatedAt: new Date(),
@@ -1507,7 +1797,7 @@ export const POST = async function POST(request: NextRequest) {
   return NextResponse.json({ event: createdRow })
 }
 
-export const DELETE = async function DELETE(request: NextRequest) {
+const deleteHandler = async function DELETE(request: NextRequest) {
   const user = await getAuthedUser()
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -1728,3 +2018,73 @@ export const DELETE = async function DELETE(request: NextRequest) {
   await deleteRow(user.id, old as unknown as EventRow)
   return NextResponse.json({ success: true })
 }
+
+/**
+ * Reconciles the event's scheduled reminder emails after a successful mutation.
+ *
+ * Wrapping is deliberate: POST alone has eight success returns, and a reminder
+ * left scheduled for a deleted or moved event emails the user about something
+ * that no longer exists. Doing this once at the boundary is the only way to be
+ * sure no path is missed. See
+ * ADR-0010 (email reminders are opt-in per event and scheduled through Resend).
+ */
+async function withReminderReconciliation(
+  request: NextRequest,
+  handler: (request: NextRequest) => Promise<NextResponse>,
+): Promise<NextResponse> {
+  // The body is read by the handler, so clone before it is consumed.
+  const peek = await request
+    .clone()
+    .json()
+    .catch(() => null)
+
+  const response = await handler(request)
+  if (response.status < 200 || response.status >= 300) return response
+
+  const user = await getAuthedUser()
+  if (!user) return response
+
+  const rawId = (peek as { id?: unknown } | null)?.id
+  if (typeof rawId !== 'string') return response
+  const eventId = isInstanceId(rawId)
+    ? (parseInstanceId(rawId)?.seriesId ?? rawId)
+    : rawId
+
+  try {
+    const { reconcileEventReminders, SendQuotaExceeded } =
+      await import('@/lib/reminders/reconcile')
+    const wantsEmail = (peek as { emailReminder?: unknown } | null)
+      ?.emailReminder
+    try {
+      await reconcileEventReminders({
+        userId: user.id,
+        eventId,
+        // A quota refusal is only worth surfacing when the user just asked for
+        // email reminders; on unrelated edits it is noise.
+        strictQuota: wantsEmail === true,
+      })
+    } catch (error) {
+      if (error instanceof SendQuotaExceeded) {
+        // The event was saved. Report the refusal alongside it rather than
+        // failing the save — see ADR-0010.
+        const body = await response.json().catch(() => ({}))
+        return NextResponse.json(
+          { ...body, reminderWarning: error.message },
+          { status: response.status },
+        )
+      }
+      throw error
+    }
+  } catch {
+    // A provider or database failure here must never fail the event mutation.
+    // The top-up cron retries.
+  }
+
+  return response
+}
+
+export const POST = (request: NextRequest) =>
+  withReminderReconciliation(request, postHandler)
+
+export const DELETE = (request: NextRequest) =>
+  withReminderReconciliation(request, deleteHandler)

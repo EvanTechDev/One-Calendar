@@ -8,7 +8,7 @@ import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
 import { normalizeColor } from './colors'
-import { InvalidEventQueryError } from './errors'
+import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import { invalidateEventCache } from '@/lib/cache/events'
 import {
@@ -88,6 +88,7 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
   is_all_day: 'isAllDay',
   category_id: 'categoryId',
   notification_minutes: 'notificationMinutes',
+  email_reminder: 'emailReminder',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   series_id: 'seriesId',
@@ -1117,6 +1118,7 @@ export async function createEvent(
     color: string
     category_id?: string | null
     notification_minutes?: number | null
+    email_reminder?: boolean
     rrule?: string | null
     exdate?: string[] | null
   },
@@ -1155,6 +1157,11 @@ export async function createEvent(
   await invalidateSeriesCache(userId, [
     { startDate: created.startDate, endDate: created.endDate },
   ])
+  // An agent that set email_reminder must actually get scheduled emails, and a
+  // quota refusal must reach it — otherwise the checkbox appears set with no
+  // emails behind it, and a quota refusal must reach the agent rather than
+  // being flattened into a generic error. See ADR-0010.
+  await reconcileReminders(userId, created.id, data.email_reminder === true)
   return created
 }
 
@@ -1751,14 +1758,49 @@ async function seriesCacheSpans(
   }
 }
 
+/**
+ * Keeps scheduled reminder emails in step after an MCP mutation, through the
+ * same module the REST route uses. There must not be a second scheduling or
+ * quota implementation — ADR-0008 makes that argument for participant
+ * visibility, and it holds here for the same reason: duplicated rules drift.
+ *
+ * A quota refusal is surfaced to the agent so it can tell the user why; every
+ * other failure is swallowed and left to the top-up cron.
+ */
+async function reconcileReminders(
+  userId: string,
+  eventId: string,
+  strictQuota: boolean,
+): Promise<void> {
+  const { reconcileEventReminders, SendQuotaExceeded } =
+    await import('@/lib/reminders/reconcile')
+  const seriesId = isInstanceId(eventId)
+    ? (parseInstanceId(eventId)?.seriesId ?? eventId)
+    : eventId
+  try {
+    await reconcileEventReminders({ userId, eventId: seriesId, strictQuota })
+  } catch (error) {
+    if (error instanceof SendQuotaExceeded) {
+      // ParticipantError is the MCP layer's user-facing 4xx carrier; the tool
+      // handlers already translate it into a clean CLI error.
+      throw new ParticipantError(error.message, 400)
+    }
+  }
+}
+
 export async function updateEvent(
   ...args: Parameters<typeof updateEventImpl>
 ): ReturnType<typeof updateEventImpl> {
-  const [userId, eventId] = args
+  const [userId, eventId, data] = args
   const before = await seriesCacheSpans(userId, eventId)
   const result = await updateEventImpl(...args)
   const after = await seriesCacheSpans(userId, eventId)
   await invalidateSeriesCache(userId, [...before, ...after])
+  await reconcileReminders(
+    userId,
+    eventId,
+    (data as { email_reminder?: unknown } | undefined)?.email_reminder === true,
+  )
   return result
 }
 
@@ -1769,4 +1811,5 @@ export async function deleteEvent(
   const before = await seriesCacheSpans(userId, eventId)
   await deleteEventImpl(...args)
   await invalidateSeriesCache(userId, before)
+  await reconcileReminders(userId, eventId, false)
 }

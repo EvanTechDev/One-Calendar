@@ -4,15 +4,26 @@ import { eq, and, inArray, desc } from 'drizzle-orm'
 import { decryptEvent } from '@/lib/api-helpers'
 import { ParticipantError } from './errors'
 import {
-  createInvitesForEvent,
   sendInviteEmails,
   getInvitesForEvent,
   resendInviteEmail,
-  deleteInviteByToken,
   updateRsvp,
   removeParticipantFromCalendar,
   getInviteByToken,
+  baselineOf,
+  getInviteOccurrences,
+  updateOccurrenceRsvp,
 } from '@/lib/invites/invite-service'
+import {
+  applyScopedParticipantChange,
+  resolveParticipantTarget,
+} from '@/lib/invites/scoped-invites'
+import {
+  canParticipantSeeOccurrence,
+  rsvpForOccurrence,
+  ParticipantScopeError,
+} from '@/lib/invites/visibility'
+import type { ApplyTo } from '@/lib/event-service'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_PARTICIPANTS = 20
@@ -88,39 +99,54 @@ export async function addEventParticipants(
   eventId: string,
   emails: string[],
   sendEmail: boolean = true,
+  /**
+   * Which occurrences the participants apply to. Routed through the same shared
+   * module the API uses, so an agent cannot bypass the visibility model — see
+   * ADR-0008 (visibility is decided in one place, shared by every reader).
+   */
+  scope: ApplyTo = 'all',
 ) {
-  const event = await getOwnedEvent(userId, eventId)
-  if (!event) throw new ParticipantError('Event not found', 404)
+  const target = await resolveParticipantTarget(eventId, userId)
+  if (!target) throw new ParticipantError('Event not found', 404)
 
   const uniqueEmails = normalizeEmails(emails)
-  const existingInvites = await getInvitesForEvent(eventId)
-  const existingEmails = new Set(existingInvites.map((i) => i.email))
-  const newEmails = uniqueEmails.filter((e) => !existingEmails.has(e))
-  const alreadyExists = uniqueEmails.filter((e) => existingEmails.has(e))
 
-  if (newEmails.length > 0) {
-    await createInvitesForEvent(
-      eventId,
-      newEmails.map((email) => ({ email })),
-    )
+  let changed
+  try {
+    changed = await applyScopedParticipantChange({
+      target,
+      emails: uniqueEmails,
+      scope,
+      action: 'add',
+    })
+  } catch (error) {
+    if (error instanceof ParticipantScopeError) {
+      throw new ParticipantError(error.message, 400)
+    }
+    throw error
   }
 
   let sent = 0
   let failed: string[] = []
-  if (sendEmail && newEmails.length > 0) {
-    const payload = await buildEmailPayload(event)
-    const result = await sendInviteEmails({
-      ...payload,
-      emails: newEmails,
-    })
-    sent = result.sent
-    failed = result.failed
+  // Only a brand-new invite warrants an email; widening an existing grant
+  // reuses the participant's original link.
+  if (sendEmail && changed.createdEmails.length > 0) {
+    const event = await getOwnedEvent(userId, target.masterId)
+    if (event) {
+      const payload = await buildEmailPayload(event)
+      const result = await sendInviteEmails({
+        ...payload,
+        emails: changed.createdEmails,
+      })
+      sent = result.sent
+      failed = result.failed
+    }
   }
 
   return {
-    event_id: eventId,
-    added: newEmails,
-    already_exists: alreadyExists,
+    event_id: target.masterId,
+    added: changed.createdEmails,
+    already_exists: changed.updatedEmails,
     email_sent: sendEmail,
     sent,
     failed,
@@ -151,27 +177,39 @@ export async function removeEventParticipant(
   userId: string,
   eventId: string,
   email: string,
+  scope: ApplyTo = 'all',
 ) {
-  const event = await getOwnedEvent(userId, eventId)
-  if (!event) throw new ParticipantError('Event not found', 404)
+  const target = await resolveParticipantTarget(eventId, userId)
+  if (!target) throw new ParticipantError('Event not found', 404)
 
   const normalized = email.trim().toLowerCase()
-  const invites = await getInvitesForEvent(eventId)
-  const invite = invites.find((i) => i.email === normalized)
-  if (!invite) {
+  const invites = await getInvitesForEvent(target.masterId)
+  if (!invites.some((i) => i.email === normalized)) {
     throw new ParticipantError('Invite not found for this event', 404)
   }
 
-  await deleteInviteByToken(invite.inviteToken)
+  try {
+    await applyScopedParticipantChange({
+      target,
+      emails: [normalized],
+      scope,
+      action: 'remove',
+    })
+  } catch (error) {
+    if (error instanceof ParticipantScopeError) {
+      throw new ParticipantError(error.message, 400)
+    }
+    throw error
+  }
 
-  return { event_id: eventId, email: normalized, removed: true }
+  return { event_id: target.masterId, email: normalized, removed: true }
 }
 
 export async function listEventParticipants(userId: string, eventId: string) {
-  const event = await getOwnedEvent(userId, eventId)
-  if (!event) throw new ParticipantError('Event not found', 404)
+  const target = await resolveParticipantTarget(eventId, userId)
+  if (!target) throw new ParticipantError('Event not found', 404)
 
-  const invites = await getInvitesForEvent(eventId)
+  const invites = await getInvitesForEvent(target.masterId)
   const emails = [...new Set(invites.map((i) => i.email))]
   const users = emails.length
     ? await getDb()
@@ -181,17 +219,34 @@ export async function listEventParticipants(userId: string, eventId: string) {
     : []
   const userMap = new Map(users.map((u) => [u.email.toLowerCase(), u]))
 
-  return {
-    event_id: eventId,
-    participants: invites.map((invite) => ({
+  // For a recurring event, report the participants of THIS occurrence and their
+  // RSVP for it — a series-wide answer would misreport both.
+  const stamp = target.stamp
+  const participants: Array<Record<string, unknown>> = []
+
+  for (const invite of invites) {
+    const exceptions = stamp ? await getInviteOccurrences(invite.id) : []
+    if (
+      stamp &&
+      !canParticipantSeeOccurrence(baselineOf(invite), exceptions, stamp)
+    ) {
+      continue
+    }
+    participants.push({
       id: invite.id,
       email: invite.email,
-      status: invite.status,
+      status: stamp ? rsvpForOccurrence(exceptions, stamp) : invite.status,
       email_sent: invite.emailSent,
       added_to_calendar: invite.addedToCalendar,
       user_name: userMap.get(invite.email)?.name ?? null,
       user_image: userMap.get(invite.email)?.image ?? null,
-    })),
+    })
+  }
+
+  return {
+    event_id: target.masterId,
+    occurrence: stamp,
+    participants,
   }
 }
 
@@ -213,12 +268,32 @@ export async function updateInviteRsvp(
   userEmail: string,
   inviteToken: string,
   status: 'pending' | 'accepted' | 'maybe' | 'declined',
+  /** RFC stamp of the occurrence being answered, for a recurring event. */
+  recurrenceId?: string,
 ) {
   const invite = await getOwnInvite(userEmail, inviteToken)
-  await updateRsvp(inviteToken, status)
+
+  if (recurrenceId) {
+    const exceptions = await getInviteOccurrences(invite.id)
+    if (
+      !canParticipantSeeOccurrence(baselineOf(invite), exceptions, recurrenceId)
+    ) {
+      throw new ParticipantError('Occurrence not found', 404)
+    }
+    await updateOccurrenceRsvp({
+      inviteId: invite.id,
+      recurrenceId,
+      status,
+      visible: true,
+    })
+  } else {
+    await updateRsvp(inviteToken, status)
+  }
+
   return {
     event_id: invite.eventId,
     email: invite.email,
+    occurrence: recurrenceId ?? null,
     status,
   }
 }

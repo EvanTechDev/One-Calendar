@@ -1,6 +1,5 @@
 'use client'
 
-import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
 import { getEventAccentColor } from '@/components/app/views/event-colors'
 import { useNotifications } from '@/components/app/hooks/useNotifications'
 import {
@@ -131,7 +130,13 @@ export interface CalendarEvent {
   isFirstInstance?: boolean
   location?: string
   participants: string[]
-  notification: number
+  /**
+   * Minutes before the start to remind, or null for no reminder.
+   * Zero is a real value — "at the event's start" — not an absent one.
+   */
+  notification: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
   description?: string
   color: string
   calendarId: string
@@ -197,7 +202,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimezone(validTz)
     updateSettings({ timezone: validTz })
   }
-  const [notificationSound] = useState<NOTIFICATION_SOUNDS>('telegram')
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
@@ -243,6 +247,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [pendingInvites, setPendingInvites] = useState<{
     eventId: string
     emails: string[]
+    /** Which occurrences the participants apply to, for a recurring event. */
+    scope?: 'single' | 'following' | 'all'
   } | null>(null)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
@@ -344,7 +350,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               typeof p === 'string' ? { name: p } : p,
             )
           : null,
-        notificationMinutes: updatedEvent.notification || null,
+        // `?? null`, not `|| null`: 0 is a real reminder ("at the event's
+        // start") and must survive a drag-move.
+        notificationMinutes: updatedEvent.notification ?? null,
+        emailReminder: updatedEvent.emailReminder === true,
         color: updatedEvent.color || null,
         categoryId: updatedEvent.calendarId || null,
         apply_to: scope,
@@ -776,6 +785,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           )
         : null,
       notificationMinutes: newEvent.notification,
+      emailReminder: newEvent.emailReminder === true,
       categoryId: newEvent.calendarId || null,
       rrule: newEvent.rrule ?? null,
       timezone,
@@ -858,6 +868,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             )
           : null,
         notificationMinutes: updatedEvent.notification,
+        emailReminder: updatedEvent.emailReminder === true,
         categoryId: updatedEvent.calendarId || null,
         rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
         apply_to: applyTo,
@@ -967,7 +978,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   typeof p === 'string' ? { name: p } : p,
                 )
               : null,
-            notificationMinutes: deletedEvent.notification || null,
+            // `?? null`, not `|| null`: 0 is a real reminder and must survive
+            // an undo-restore.
+            notificationMinutes: deletedEvent.notification ?? null,
+            emailReminder: deletedEvent.emailReminder === true,
             color: deletedEvent.color || null,
             categoryId: deletedEvent.calendarId || null,
             timezone,
@@ -1089,38 +1103,52 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEventDialogOpen(true)
   }
 
-  const handleInvitesAdded = (eventId: string, emails: string[]) => {
+  const handleInvitesAdded = (
+    eventId: string,
+    emails: string[],
+    scope?: 'single' | 'following' | 'all',
+  ) => {
     if (emails.length === 0) return
-    setPendingInvites({ eventId, emails })
+    setPendingInvites({ eventId, emails, scope })
   }
 
   const handleSendInvites = async () => {
     if (!pendingInvites) return
-    const { eventId, emails } = pendingInvites
+    const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
       const response = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, emails }),
+        body: JSON.stringify({ eventId, emails, scope, timezone }),
       })
-      if (!response.ok) throw new Error('failed')
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
       await refreshEventInvites(eventId)
       toast.success('Invitations sent')
-    } catch {
-      toast.error('Failed to send invitations')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to send invitations',
+      )
     }
   }
 
   const handleSkipInvites = async () => {
     if (!pendingInvites) return
-    const { eventId, emails } = pendingInvites
+    const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
       const response = await fetch('/api/invites/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, emails }),
+        body: JSON.stringify({ eventId, emails, scope, timezone }),
       })
       if (!response.ok) throw new Error('failed')
       await refreshEventInvites(eventId)
@@ -1238,7 +1266,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return filteredEvents.slice(0, 8)
   }, [filteredEvents, searchTerm])
 
-  useNotifications(events, notificationSound)
+  useNotifications(events)
 
   return (
     <div className={className}>

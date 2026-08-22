@@ -3,9 +3,9 @@
  * and the MCP event tools. It is a characterization-test harness, NOT a
  * database emulator: it supports exactly the chainable calls those two files
  * make (select/insert/update/delete + where/returning/orderBy/limit/
- * onConflictDoUpdate) and evaluates only the plain-object conditions produced
- * by `drizzleOperatorsMock` below. Any unknown condition shape throws — that
- * is a deliberate STOP signal, not a bug to silence.
+ * onConflictDoUpdate/onConflictDoNothing) and evaluates only the plain-object
+ * conditions produced by `drizzleOperatorsMock` below. Any unknown condition
+ * shape throws — that is a deliberate STOP signal, not a bug to silence.
  *
  * Test files must mock the `drizzle-orm` module with `drizzleOperatorsMock`
  * (spread over the real module so `relations` etc. keep working) and mock
@@ -166,6 +166,26 @@ export function makeFakeDb(): FakeDb {
     return t
   }
 
+  /**
+   * Existing row conflicting with `value` on the declared unique target.
+   * Falls back to the primary key when no target is given.
+   */
+  function findConflict(
+    name: string,
+    value: FakeRow,
+    target: unknown,
+  ): FakeRow | undefined {
+    const cols = Array.isArray(target) ? target : target ? [target] : []
+    const keys = cols.map(colKey)
+    if (keys.length === 0 || keys.includes('id')) {
+      return tbl(name).get(value.id as string)
+    }
+    for (const row of tbl(name).values()) {
+      if (keys.every((key) => row[key] === value[key])) return row
+    }
+    return undefined
+  }
+
   function logWrite(
     op: 'insert' | 'update' | 'delete',
     table: string,
@@ -218,12 +238,17 @@ export function makeFakeDb(): FakeDb {
     insert(table: unknown) {
       const name = tableName(table)
       return {
-        values(values: FakeRow) {
+        values(values: FakeRow | FakeRow[]) {
+          const rows = Array.isArray(values) ? values : [values]
           const doInsert = () => {
-            const id = values.id as string
-            tbl(name).set(id, { ...values })
-            logWrite('insert', name, id, { ...values })
-            return [{ ...values }]
+            const inserted: FakeRow[] = []
+            for (const value of rows) {
+              const id = value.id as string
+              tbl(name).set(id, { ...value })
+              logWrite('insert', name, id, { ...value })
+              inserted.push({ ...value })
+            }
+            return inserted
           }
           return {
             returning: async () => doInsert(),
@@ -237,14 +262,23 @@ export function makeFakeDb(): FakeDb {
             },
             onConflictDoUpdate(conflict: { target: unknown; set: FakeRow }) {
               const doUpsert = () => {
-                const id = values.id as string
-                const existing = tbl(name).get(id)
-                if (existing) {
-                  Object.assign(existing, conflict.set)
-                  logWrite('update', name, id, { ...conflict.set })
-                  return [{ ...existing }]
+                const out: FakeRow[] = []
+                for (const value of rows) {
+                  const existing = findConflict(name, value, conflict.target)
+                  if (existing) {
+                    Object.assign(existing, conflict.set)
+                    logWrite('update', name, existing.id as string, {
+                      ...conflict.set,
+                    })
+                    out.push({ ...existing })
+                    continue
+                  }
+                  const id = value.id as string
+                  tbl(name).set(id, { ...value })
+                  logWrite('insert', name, id, { ...value })
+                  out.push({ ...value })
                 }
-                return doInsert()
+                return out
               }
               return {
                 returning: async () => doUpsert(),
@@ -254,6 +288,35 @@ export function makeFakeDb(): FakeDb {
                 ) {
                   return Promise.resolve()
                     .then(doUpsert)
+                    .then(onFulfilled, onRejected)
+                },
+              }
+            },
+            /**
+             * Honours the declared conflict target, unlike onConflictDoUpdate's
+             * id-only shortcut: the invite carry-over relies on the real
+             * (event_id, email) uniqueness to detect a losing race.
+             */
+            onConflictDoNothing(conflict?: { target?: unknown }) {
+              const doInsertIgnoring = () => {
+                const out: FakeRow[] = []
+                for (const value of rows) {
+                  if (findConflict(name, value, conflict?.target)) continue
+                  const id = value.id as string
+                  tbl(name).set(id, { ...value })
+                  logWrite('insert', name, id, { ...value })
+                  out.push({ ...value })
+                }
+                return out
+              }
+              return {
+                returning: async () => doInsertIgnoring(),
+                then(
+                  onFulfilled: (rows: FakeRow[]) => unknown,
+                  onRejected?: (err: unknown) => unknown,
+                ) {
+                  return Promise.resolve()
+                    .then(doInsertIgnoring)
                     .then(onFulfilled, onRejected)
                 },
               }

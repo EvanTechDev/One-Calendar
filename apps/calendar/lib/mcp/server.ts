@@ -361,6 +361,12 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      email_reminder: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also deliver the reminder by email. Consumes the user's daily reminder-email allowance (5 per day).",
+        ),
       rrule: z
         .string()
         .optional()
@@ -379,6 +385,8 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         const { createEvent } = await import('./event-tools')
         return respond(await createEvent(userId, params))
       } catch (err) {
+        // A reminder-quota refusal is user-facing, not an internal error.
+        if (err instanceof ParticipantError) return respondCliError(err)
         return respondError(err)
       }
     },
@@ -403,6 +411,12 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      email_reminder: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also deliver the reminder by email. Consumes the user's daily reminder-email allowance (5 per day).",
+        ),
       rrule: z
         .string()
         .optional()
@@ -428,6 +442,9 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         if (!result) return respondMessage('Event not found')
         return respond(result)
       } catch (err) {
+        // A reminder-quota refusal is a user-facing 4xx, not an internal error;
+        // respondError would flatten it to 'Internal server error'.
+        if (err instanceof ParticipantError) return respondCliError(err)
         return respondError(err)
       }
     },
@@ -466,9 +483,13 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 function registerEventParticipantTools(server: McpServer): void {
   server.tool(
     'add_event_participants',
-    'Invite participants to an event. Sends invitation emails by default.',
+    'Invite participants to an event. Sends invitation emails by default. For a recurring event, accepts an occurrence id and an apply_to scope; re-adding someone previously removed reuses their original invite link and sends no new email.',
     {
-      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID, or an occurrence id ({seriesId}_{stamp}) to act from one occurrence',
+        ),
       emails: z
         .array(z.string().email())
         .min(1)
@@ -479,6 +500,12 @@ function registerEventParticipantTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe('Send invitation emails (default true)'),
+      apply_to: z
+        .enum(['single', 'following', 'all'])
+        .optional()
+        .describe(
+          "Which occurrences to invite to (default all). 'all' is only permitted on the series' first occurrence.",
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -491,6 +518,7 @@ function registerEventParticipantTools(server: McpServer): void {
             params.event_id,
             params.emails,
             params.send_email ?? true,
+            params.apply_to ?? 'all',
           ),
         )
       } catch (err) {
@@ -524,10 +552,20 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'remove_event_participant',
-    'Remove a participant (invite) from an event',
+    'Remove a participant (invite) from an event. For a recurring event, accepts an occurrence id and an apply_to scope.',
     {
-      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID, or an occurrence id ({seriesId}_{stamp}) to act from one occurrence',
+        ),
       email: z.string().email().describe('Participant email to remove'),
+      apply_to: z
+        .enum(['single', 'following', 'all'])
+        .optional()
+        .describe(
+          "Which occurrences to remove from (default all). 'all' is only permitted on the series' first occurrence.",
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -535,7 +573,12 @@ function registerEventParticipantTools(server: McpServer): void {
       try {
         const { removeEventParticipant } = await import('./participant-tools')
         return respond(
-          await removeEventParticipant(userId, params.event_id, params.email),
+          await removeEventParticipant(
+            userId,
+            params.event_id,
+            params.email,
+            params.apply_to ?? 'all',
+          ),
         )
       } catch (err) {
         if (err instanceof ParticipantError) return respondCliError(err)
@@ -565,12 +608,18 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'update_event_rsvp',
-    'Set your RSVP status for an event you were invited to (uses your own invite link)',
+    'Set your RSVP status for an event you were invited to (uses your own invite link). Each occurrence of a recurring event carries its own RSVP, so pass recurrence_id to answer one.',
     {
       invite_token: z.string().describe('Your invite token'),
       status: z
         .enum(['pending', 'accepted', 'maybe', 'declined'])
         .describe('New RSVP status'),
+      recurrence_id: z
+        .string()
+        .optional()
+        .describe(
+          'RFC stamp of the occurrence to answer (YYYYMMDD or YYYYMMDDTHHMMSSZ). Required for a recurring event.',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -578,7 +627,12 @@ function registerEventParticipantTools(server: McpServer): void {
       try {
         const { updateInviteRsvp } = await import('./participant-tools')
         return respond(
-          await updateInviteRsvp(userEmail, params.invite_token, params.status),
+          await updateInviteRsvp(
+            userEmail,
+            params.invite_token,
+            params.status,
+            params.recurrence_id,
+          ),
         )
       } catch (err) {
         if (err instanceof ParticipantError) return respondCliError(err)

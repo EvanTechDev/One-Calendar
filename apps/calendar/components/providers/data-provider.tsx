@@ -347,6 +347,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           )
         }
         const res = await api.events.create(data)
+        // The event saved, but its reminder emails were refused on quota. Say so
+        // rather than leaving the checkbox looking effective — see
+        // ADR-0010 (email reminders are opt-in per event and scheduled through Resend).
+        if (res.reminderWarning) toast.warning(res.reminderWarning)
         for (const id of res.removedSeriesIds ?? []) purgeSeriesIds.add(id)
         const seriesEvents = res.seriesEvents
         if (seriesEvents && seriesEvents.length > 0) {

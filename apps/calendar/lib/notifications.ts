@@ -2,61 +2,179 @@ import { toast } from 'sonner'
 import { getStoredLanguage, translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '@/components/app/calendar'
 
-let notificationInterval: NodeJS.Timeout | null = null
-const firedNotifications = new Map<string, number>()
-const NOTIFICATION_GRACE_PERIOD_MS = 2 * 60 * 1000
-const NOTIFICATION_CLEANUP_WINDOW_MS = 24 * 60 * 60 * 1000
+/**
+ * Client-side reminder delivery. There is no server-side path — see
+ * ADR-0001 (in-app reminders are client-side only).
+ */
 
-export type NOTIFICATION_SOUNDS = 'telegram'
+/**
+ * A reminder stays deliverable from its due time until the event starts, so a
+ * missed reminder is caught up on next open only while it still has value. See
+ * ADR-0002 (missed reminders are caught up until the event starts).
+ *
+ * The floor exists for the at-start reminder (`notification === 0`), whose due
+ * time equals the event's start: without it that window would be zero-width and
+ * such a reminder could never fire at all.
+ */
+const CATCH_UP_FLOOR_MS = 5 * 60 * 1000
 
-const notificationSounds: Record<NOTIFICATION_SOUNDS, string> = {
-  telegram: 'https://cdn.xyehr.cn/source/Voicy_Telegram_notification.mp3',
-}
+/** Fired records older than this are pruned; nothing can still be due. */
+const FIRED_RECORD_TTL_MS = 24 * 60 * 60 * 1000
 
-export const clearAllNotificationTimers = () => {
-  if (notificationInterval) {
-    clearInterval(notificationInterval)
-    notificationInterval = null
+const FIRED_STORAGE_KEY = 'reminder-fired'
+
+/**
+ * Self-hosted, so no external domain and no CSP media-src rule is involved.
+ * WAV rather than MP3: it is generated rather than licensed, and 54 KB of
+ * uncompressed audio is cheaper than an unclear provenance.
+ */
+const REMINDER_SOUND_URL = '/sounds/reminder.wav'
+
+type FiredRecord = Record<string, number>
+
+/**
+ * Fallback when localStorage is unavailable — private-mode Safari throws on
+ * access, and writes throw when the quota is exceeded. Losing dedupe across a
+ * reload is much better than throwing out of the reminder path.
+ */
+let memoryFired: FiredRecord = {}
+
+function readFiredRecord(now: number): FiredRecord {
+  let raw: string | null = null
+  try {
+    raw = localStorage.getItem(FIRED_STORAGE_KEY)
+  } catch {
+    return prune(memoryFired, now)
+  }
+
+  if (!raw) return prune(memoryFired, now)
+
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (
+      parsed === null ||
+      typeof parsed !== 'object' ||
+      Array.isArray(parsed)
+    ) {
+      return prune(memoryFired, now)
+    }
+    const record: FiredRecord = {}
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        record[key] = value
+      }
+    }
+    return prune(record, now)
+  } catch {
+    return prune(memoryFired, now)
   }
 }
 
-export const checkPendingNotifications = async (
+function prune(record: FiredRecord, now: number): FiredRecord {
+  const kept: FiredRecord = {}
+  for (const [key, firedAt] of Object.entries(record)) {
+    if (now - firedAt <= FIRED_RECORD_TTL_MS) kept[key] = firedAt
+  }
+  return kept
+}
+
+function writeFiredRecord(record: FiredRecord) {
+  memoryFired = record
+  try {
+    localStorage.setItem(FIRED_STORAGE_KEY, JSON.stringify(record))
+  } catch {
+    // Keep the in-memory copy; dedupe degrades to per-session.
+  }
+}
+
+/**
+ * Minutes-before-start as an instant, or null when the event has no reminder.
+ * Null `notification` means no reminder; zero means "at the event's start".
+ */
+export const getReminderTime = (event: CalendarEvent): number | null => {
+  if (!event.startDate) return null
+  if (event.notification === null || event.notification === undefined) {
+    return null
+  }
+  if (!Number.isFinite(event.notification)) return null
+  if (event.notification < 0) return null
+
+  const startTime = new Date(event.startDate).getTime()
+  if (Number.isNaN(startTime)) return null
+
+  return startTime - event.notification * 60 * 1000
+}
+
+export const getReminderKey = (event: CalendarEvent, reminderTime: number) =>
+  `${event.id}-${reminderTime}`
+
+/**
+ * True while a reminder is worth delivering: due, and the event either has not
+ * started or is still inside the catch-up floor.
+ */
+export const isReminderDue = (event: CalendarEvent, now: number): boolean => {
+  const reminderTime = getReminderTime(event)
+  if (reminderTime === null) return false
+  if (reminderTime > now) return false
+
+  const startTime = new Date(event.startDate).getTime()
+  if (Number.isNaN(startTime)) return false
+
+  const deadline = Math.max(startTime, reminderTime + CATCH_UP_FLOOR_MS)
+  return now < deadline
+}
+
+/** Due reminders that have not already been delivered. */
+export const getPendingEvents = (
   events: CalendarEvent[],
-  sound: NOTIFICATION_SOUNDS = 'telegram',
-) => {
+  now: number,
+  fired: FiredRecord,
+): CalendarEvent[] =>
+  events.filter((event) => {
+    if (!isReminderDue(event, now)) return false
+    const reminderTime = getReminderTime(event)
+    if (reminderTime === null) return false
+    return !(getReminderKey(event, reminderTime) in fired)
+  })
+
+export const checkPendingNotifications = async (events: CalendarEvent[]) => {
   const now = Date.now()
-  const pendingEvents = getPendingEvents(events, now)
+  const fired = readFiredRecord(now)
+  const pendingEvents = getPendingEvents(events, now, fired)
+
+  // Nothing to deliver: leave storage alone. Writing the pruned record back on
+  // every tick would mean a localStorage write per minute for no reason.
+  if (pendingEvents.length === 0) return
+
+  // Record before delivering, so a throw mid-delivery cannot cause a re-fire
+  // on the next tick.
+  for (const event of pendingEvents) {
+    const reminderTime = getReminderTime(event)
+    if (reminderTime !== null) fired[getReminderKey(event, reminderTime)] = now
+  }
+  writeFiredRecord(fired)
 
   await Promise.all(
     pendingEvents.map(async (event) => {
-      triggerNotification(event, sound)
-      markNotificationFired(event, now)
+      playReminderSound()
+      await showSystemNotification(event)
       await showToast(event)
     }),
   )
 }
 
-const getPendingEvents = (events: CalendarEvent[], currentTime: number) => {
-  cleanupFiredNotifications(currentTime)
-  return events.filter((event) => {
-    const notificationTime = getNotificationTime(event)
-    if (!notificationTime) return false
-    if (notificationTime > currentTime) return false
-    if (notificationTime <= currentTime - NOTIFICATION_GRACE_PERIOD_MS)
-      return false
-    const key = getNotificationKey(event, notificationTime)
-    return !firedNotifications.has(key)
-  })
-}
-
-const triggerNotification = async (
-  event: CalendarEvent,
-  soundKey: NOTIFICATION_SOUNDS,
-) => {
-  const sound = notificationSounds[soundKey] ?? notificationSounds.telegram
-  const audio = new Audio(sound)
-  audio.play().catch(() => {})
-  await showSystemNotification(event)
+/**
+ * The sound is always ours. System notifications are created silent, because
+ * whether they would chime is up to the OS and undetectable from here — see
+ * ADR-0004 (the reminder sound is ours alone).
+ */
+const playReminderSound = () => {
+  try {
+    const audio = new Audio(REMINDER_SOUND_URL)
+    audio.play().catch(() => {})
+  } catch {
+    // No audio support; the notification and toast still land.
+  }
 }
 
 const showToast = async (event: CalendarEvent) => {
@@ -73,30 +191,33 @@ const getServiceWorkerRegistration = async () => {
   if (!('serviceWorker' in navigator)) return null
 
   try {
-    const currentRegistration = await navigator.serviceWorker.getRegistration()
-    if (currentRegistration) return currentRegistration
-
-    return await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
-      updateViaCache: 'none',
-    })
+    return await navigator.serviceWorker.getRegistration()
   } catch {
     return null
+  }
+}
+
+/**
+ * Prompts for notification permission. Call this only from a user gesture —
+ * never from the delivery path.
+ */
+export const requestNotificationPermission = async (): Promise<boolean> => {
+  if (typeof window === 'undefined') return false
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+
+  try {
+    return (await Notification.requestPermission()) === 'granted'
+  } catch {
+    return false
   }
 }
 
 const showSystemNotification = async (event: CalendarEvent) => {
   if (typeof window === 'undefined') return
   if (!('Notification' in window)) return
-
-  if (Notification.permission === 'default') {
-    try {
-      await Notification.requestPermission()
-    } catch {
-      return
-    }
-  }
-
+  // Never prompt here — see requestNotificationPermission.
   if (Notification.permission !== 'granted') return
 
   const language = await getStoredLanguage()
@@ -111,6 +232,7 @@ const showSystemNotification = async (event: CalendarEvent) => {
     tag,
     icon: '/favicon.ico',
     badge: '/favicon.ico',
+    silent: true,
   }
 
   const registration = await getServiceWorkerRegistration()
@@ -118,57 +240,14 @@ const showSystemNotification = async (event: CalendarEvent) => {
     try {
       await registration.showNotification(title, options)
       return
-    } catch {}
+    } catch {
+      // Fall through to the constructor.
+    }
   }
 
   try {
     new Notification(title, options)
   } catch {
     return
-  }
-}
-
-const getNotificationTime = (event: CalendarEvent) => {
-  if (!event.startDate) return null
-  const startTime = new Date(event.startDate).getTime()
-  if (Number.isNaN(startTime)) return null
-  const notificationMinutes = Number.isFinite(event.notification)
-    ? event.notification
-    : 0
-  if (notificationMinutes < 0) return null
-  return startTime - notificationMinutes * 60 * 1000
-}
-
-const getNotificationKey = (event: CalendarEvent, notificationTime: number) => {
-  return `${event.id}-${notificationTime}`
-}
-
-const markNotificationFired = (event: CalendarEvent, currentTime: number) => {
-  const notificationTime = getNotificationTime(event)
-  if (!notificationTime) return
-  const key = getNotificationKey(event, notificationTime)
-  firedNotifications.set(key, currentTime)
-}
-
-const cleanupFiredNotifications = (currentTime: number) => {
-  firedNotifications.forEach((timestamp, key) => {
-    if (currentTime - timestamp > NOTIFICATION_CLEANUP_WINDOW_MS) {
-      firedNotifications.delete(key)
-    }
-  })
-}
-
-export const startNotificationChecking = () => {
-  if (!notificationInterval) {
-    notificationInterval = setInterval(() => {
-      checkPendingNotifications([])
-    }, 30000)
-  }
-}
-
-export const stopNotificationChecking = () => {
-  if (notificationInterval) {
-    clearInterval(notificationInterval)
-    notificationInterval = null
   }
 }

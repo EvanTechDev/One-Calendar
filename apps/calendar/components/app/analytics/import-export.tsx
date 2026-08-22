@@ -55,11 +55,9 @@ interface AppSettingsSnapshot {
   language?: string
   firstDayOfWeek?: number
   timezone?: string
-  notificationSound?: string
   defaultView?: string
   enableShortcuts?: boolean
   timeFormat?: '24h' | '12h'
-  toastPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right'
   theme?: string
 }
 
@@ -117,7 +115,8 @@ type ImportableEvent = {
   isAllDay?: boolean
   description?: string
   location?: string
-  notification?: number
+  /** Minutes before the start; null or absent means no reminder. */
+  notification?: number | null
   color?: string
   calendarId?: string
   participants?: string[]
@@ -142,7 +141,9 @@ function toBackupEvent(event: CalendarEvent): JsonBackupEvent {
     isAllDay: Boolean(event.isAllDay),
     ...(event.description ? { description: event.description } : {}),
     ...(event.location ? { location: event.location } : {}),
-    ...(event.notification ? { notification: event.notification } : {}),
+    ...(event.notification !== null && event.notification !== undefined
+      ? { notification: event.notification }
+      : {}),
     ...(event.color ? { color: event.color } : {}),
     ...(event.calendarId ? { calendarId: event.calendarId } : {}),
     ...(event.participants?.length ? { participants: event.participants } : {}),
@@ -280,12 +281,9 @@ export default function ImportExport({
               language: settings.language,
               firstDayOfWeek: settings.firstDayOfWeek,
               timezone: settings.timezone,
-              notificationSound: settings.notificationSound,
               defaultView: settings.defaultView,
               enableShortcuts: settings.enableShortcuts,
               timeFormat: settings.timeFormat,
-              toastPosition:
-                settings.toastPosition as AppSettingsSnapshot['toastPosition'],
               theme: settings.theme,
             },
           },
@@ -642,8 +640,9 @@ ${rawContent.substring(0, 500)}...`)
         : {}),
       location: input.location,
       participants: Array.isArray(input.participants) ? input.participants : [],
+      // An absent reminder in a backup means no reminder, not "at the start".
       notification:
-        typeof input.notification === 'number' ? input.notification : 0,
+        typeof input.notification === 'number' ? input.notification : null,
       description: input.description,
       color: input.color || 'bg-[#E6F6FD]',
       calendarId: input.calendarId || '',
@@ -677,7 +676,9 @@ ${rawContent.substring(0, 500)}...`)
       event.isAllDay ? 'true' : 'false',
       event.location || '',
       event.description || '',
-      event.notification ? String(event.notification) : '',
+      event.notification !== null && event.notification !== undefined
+        ? String(event.notification)
+        : '',
       (event.rrule ?? '').replace(/^RRULE:/i, ''),
       event.color || '',
     ])

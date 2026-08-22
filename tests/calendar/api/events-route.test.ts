@@ -399,3 +399,155 @@ describe('events route series mutations (characterization)', () => {
     expect(fake.row('o2')!.seriesId).toBe(newId)
   })
 })
+
+/**
+ * A `following` edit splits the series. Invites are bound to the master, so
+ * without explicit carry-over the new segment has none and participants
+ * silently lose access to the tail. See
+ * ADR-0009 (invites and their visibility survive a series split).
+ */
+describe('invites survive a series split', () => {
+  function seedInvite(overrides: Record<string, unknown> = {}) {
+    fake.seed(
+      {
+        id: 'inv1',
+        eventId: 'm1',
+        email: 'c@example.com',
+        status: 'accepted',
+        inviteToken: 'tok-stable',
+        emailSent: true,
+        addedToCalendar: true,
+        categoryId: null,
+        baselineKind: 'all',
+        fromStamp: null,
+        untilStamp: null,
+        expiresAt: null,
+        createdAt: day(2026, 7, 1),
+        updatedAt: day(2026, 7, 1),
+        ...overrides,
+      },
+      'event_invites',
+    )
+  }
+
+  it('carries an unbounded grant onto the new master, keeping the token', async () => {
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000101'
+
+    const res = await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+    expect(res.status).toBe(200)
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)
+    expect(carried).toBeDefined()
+    // The same token: a split is the organiser's edit and must not invalidate
+    // the participant's existing link or trigger a new invitation email.
+    expect(carried!.inviteToken).toBe('tok-stable')
+    expect(carried!.baselineKind).toBe('all')
+
+    // The old master keeps only what precedes the boundary.
+    const original = fake.rows('event_invites').find((r) => r.id === 'inv1')
+    expect(original!.untilStamp).toBe('20260810T090000Z')
+  })
+
+  it('carries the grant inside the split transaction', async () => {
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000102'
+
+    await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    const txBegin = fake.ops.indexOf('tx:begin')
+    const txCommit = fake.ops.indexOf('tx:commit')
+    const inviteInsert = fake.ops.findIndex((op) =>
+      op.startsWith('insert:event_invites:'),
+    )
+    expect(inviteInsert).toBeGreaterThan(txBegin)
+    expect(inviteInsert).toBeLessThan(txCommit)
+  })
+
+  it('does not carry a grant that ends before the split boundary', async () => {
+    seedMaster()
+    // Visible only up to 3 Aug; the tail starting 10 Aug is not theirs.
+    seedInvite({
+      fromStamp: '20260803T090000Z',
+      untilStamp: '20260804T090000Z',
+    })
+    const newId = '00000000-0000-4000-8000-000000000103'
+
+    await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    expect(
+      fake.rows('event_invites').find((r) => r.eventId === newId),
+    ).toBeUndefined()
+  })
+
+  it('keeps one row per (event, token) so the shared token is legal', async () => {
+    // The token is reused across segments on purpose (ADR-0009), which is why
+    // invite_token is NOT globally unique — uniqueness is (invite_token,
+    // event_id). Two rows sharing a token must therefore differ by event.
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000105'
+
+    await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    const sharing = fake
+      .rows('event_invites')
+      .filter((r) => r.inviteToken === 'tok-stable')
+    expect(sharing).toHaveLength(2)
+    expect(new Set(sharing.map((r) => r.eventId)).size).toBe(2)
+  })
+
+  it('carries the grant before deleting an emptied old master', async () => {
+    // Splitting at the series' first slot empties the old master, whose invites
+    // are then deleted. The carry-over must happen first or the grant is lost.
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000104'
+
+    await POST(
+      putRequest({
+        title: 'Team sync',
+        startDate: '2026-08-03T09:00:00Z',
+        endDate: '2026-08-03T09:30:00Z',
+        timezone: 'UTC',
+        id: 'm1_20260803T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)
+    expect(carried).toBeDefined()
+    expect(carried!.inviteToken).toBe('tok-stable')
+  })
+})

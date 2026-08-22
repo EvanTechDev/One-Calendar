@@ -33,6 +33,8 @@ export interface EventRow {
   categoryId: string | null
   participants: string[]
   notificationMinutes: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder: boolean
   createdAt: Date
   updatedAt: Date
   rrule: string | null
@@ -58,6 +60,8 @@ const MUTABLE_FIELDS = [
   'categoryId',
   'participants',
   'notificationMinutes',
+  // A reminder setting, so an override may carry its own.
+  'emailReminder',
 ] as const
 
 function pickMutable(

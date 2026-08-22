@@ -29,6 +29,7 @@ import { addDays, format, getHours, getMinutes, set } from 'date-fns'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { isZhLanguage, translations } from '@zntr/i18n/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
+import { requestNotificationPermission } from '@/lib/notifications'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Textarea } from '@zntr/ui/textarea'
 import { Calendar } from '@zntr/ui/calendar'
@@ -66,6 +67,15 @@ const minuteOptions = Array.from({ length: 12 }, (_, i) => ({
   label: (i * 5).toString().padStart(2, '0'),
 }))
 
+/**
+ * Sentinel for the reminder select's "no reminder" option. A Select needs a
+ * non-empty string value, so null cannot be used directly.
+ */
+const NO_REMINDER = 'none'
+
+/** Reminder values the select offers directly; anything else is "custom". */
+const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
+
 interface EventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -78,7 +88,12 @@ interface EventDialogProps {
     eventId: string,
     applyTo?: 'single' | 'following' | 'all',
   ) => void
-  onInvitesAdded: (eventId: string, emails: string[]) => void
+  onInvitesAdded: (
+    eventId: string,
+    emails: string[],
+    /** Which occurrences the new participants apply to. */
+    scope?: 'single' | 'following' | 'all',
+  ) => void
   initialDate: Date
   initialEndDate?: Date | null
   event: CalendarEvent | null
@@ -109,7 +124,8 @@ export default function EventDialog({
   const [participants, setParticipants] = useState('')
   const [customNotificationTime, setCustomNotificationTime] = useState('10')
   const [selectedCalendar, setSelectedCalendar] = useState('')
-  const [notification, setNotification] = useState('0')
+  const [notification, setNotification] = useState(NO_REMINDER)
+  const [emailReminder, setEmailReminder] = useState(false)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [title, setTitle] = useState('')
@@ -130,9 +146,20 @@ export default function EventDialog({
   const [saveScope, setSaveScope] = useState<'single' | 'following' | 'all'>(
     'single',
   )
+  /**
+   * Which occurrences newly added participants apply to. Chosen independently
+   * of the event's own scope — moving just this occurrence while inviting
+   * someone to the whole series is legitimate. See
+   * ADR-0007 (participant scope follows the same rules as event scope).
+   */
+  const [participantScope, setParticipantScope] = useState<
+    'single' | 'following' | 'all'
+  >('single')
   const [pendingScopeSubmit, setPendingScopeSubmit] = useState<{
     eventData: CalendarEvent
     emails: string[]
+    /** Participants not already invited, so the radio group only shows when relevant. */
+    newEmails: string[]
   } | null>(null)
   // "All events" is only offered on the series' first occurrence. A raw
   // master row (imported/duplicated events pushed into the store directly)
@@ -318,22 +345,15 @@ export default function EventDialog({
           addParticipantEmail(invite.email),
         )
         setParticipants(existingParticipantEmails.join(', '))
-        if (event.notification !== undefined) {
-          if (
-            event.notification > 0 &&
-            event.notification !== 5 &&
-            event.notification !== 15 &&
-            event.notification !== 30 &&
-            event.notification !== 60
-          ) {
-            setNotification('custom')
-            setCustomNotificationTime(event.notification.toString())
-          } else {
-            setNotification(event.notification.toString())
-          }
+        if (event.notification === null || event.notification === undefined) {
+          setNotification(NO_REMINDER)
+        } else if (PRESET_REMINDER_MINUTES.includes(event.notification)) {
+          setNotification(event.notification.toString())
         } else {
-          setNotification('0')
+          setNotification('custom')
+          setCustomNotificationTime(event.notification.toString())
         }
+        setEmailReminder(event.emailReminder === true)
         setDescription(event.description || '')
         setColor(event.color)
         setSelectedCalendar(event.calendarId || '')
@@ -441,7 +461,11 @@ export default function EventDialog({
     setEndTime(extractTimeFromDate(thirtyMinutesLater))
     setLocation('')
     setParticipants('')
-    setNotification('0')
+    // New events default to no reminder (ADR-0003). This ran on every
+    // new-event open, so leaving it at '0' would reinstate the unwanted
+    // at-start chime the ADR exists to remove.
+    setNotification(NO_REMINDER)
+    setEmailReminder(false)
     setCustomNotificationTime('10')
     setDescription('')
     setColor(EVENT_COLOR_OPTIONS[0].value)
@@ -535,6 +559,18 @@ export default function EventDialog({
     }
 
     return true
+  }
+
+  /**
+   * Selecting a real reminder is the user gesture we request notification
+   * permission from. Asking at delivery time — from inside a timer, as the old
+   * code did — is not a gesture, and browsers routinely swallow the prompt and
+   * the first reminder with it.
+   */
+  const handleNotificationChange = (value: string) => {
+    setNotification(value)
+    if (value === NO_REMINDER) return
+    void requestNotificationPermission()
   }
 
   const validateParticipants = (input: string): string[] | null => {
@@ -634,9 +670,17 @@ export default function EventDialog({
       return
     }
 
-    let notificationMinutes = Number.parseInt(notification)
+    // "None" means no reminder at all. A custom value that fails to parse is
+    // also no reminder — never fall back to 0, which would silently mean
+    // "remind at the event's start".
+    let notificationMinutes: number | null = null
     if (notification === 'custom') {
-      notificationMinutes = Number.parseInt(customNotificationTime)
+      const parsed = Number.parseInt(customNotificationTime, 10)
+      notificationMinutes =
+        Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+    } else if (notification !== NO_REMINDER) {
+      const parsed = Number.parseInt(notification, 10)
+      notificationMinutes = Number.isFinite(parsed) ? parsed : null
     }
 
     const fullStartDate = getFullStartDate()
@@ -687,6 +731,8 @@ export default function EventDialog({
       location,
       participants: participantEmails,
       notification: notificationMinutes,
+      // No reminder time means nothing to email, whatever the checkbox says.
+      emailReminder: notificationMinutes === null ? false : emailReminder,
       description,
       color,
       calendarId:
@@ -694,19 +740,36 @@ export default function EventDialog({
     }
 
     if (event && recurring) {
+      const alreadyInvited = invitedEmailsOf(event)
       setSaveScope(applyTo === 'all' && canAllScope ? 'all' : 'single')
-      setPendingScopeSubmit({ eventData, emails: participantEmails })
+      setParticipantScope(canAllScope ? 'all' : 'single')
+      setPendingScopeSubmit({
+        eventData,
+        emails: participantEmails,
+        newEmails: participantEmails.filter(
+          (email) => !alreadyInvited.has(email.toLowerCase()),
+        ),
+      })
+      setSaveScopeOpen(true)
+      return
+    }
+
+    // A NEW recurring event with participants also needs the scope prompt: the
+    // participants must land on one occurrence or the whole series.
+    if (!event && recurring && participantEmails.length > 0) {
+      setSaveScope('all')
+      setParticipantScope('all')
+      setPendingScopeSubmit({
+        eventData,
+        emails: participantEmails,
+        newEmails: participantEmails,
+      })
       setSaveScopeOpen(true)
       return
     }
 
     if (event) {
-      const alreadyInvited = new Set(
-        [
-          ...(event.participants ?? []),
-          ...(event.invites ?? []).map((i) => i.email),
-        ].map((email) => email.trim().toLowerCase()),
-      )
+      const alreadyInvited = invitedEmailsOf(event)
       const newEmails = participantEmails.filter(
         (email) => !alreadyInvited.has(email.toLowerCase()),
       )
@@ -718,21 +781,35 @@ export default function EventDialog({
     }
   }
 
-  const confirmScopeSave = () => {
-    if (!pendingScopeSubmit || !event) return
-    const alreadyInvited = new Set(
+  /** Emails already invited, from both the legacy list and the invite rows. */
+  const invitedEmailsOf = (target: CalendarEvent): Set<string> =>
+    new Set(
       [
-        ...(event.participants ?? []),
-        ...(event.invites ?? []).map((i) => i.email),
+        ...(target.participants ?? []),
+        ...(target.invites ?? []).map((i) => i.email),
       ].map((email) => email.trim().toLowerCase()),
     )
-    const newEmails = pendingScopeSubmit.emails.filter(
-      (email) => !alreadyInvited.has(email.toLowerCase()),
-    )
-    // Belt guard: never submit a scope that isn't offered.
+
+  const confirmScopeSave = () => {
+    if (!pendingScopeSubmit) return
+    const { eventData, newEmails } = pendingScopeSubmit
+
+    // Belt guard: never submit a scope that isn't offered. Applies to the
+    // participant scope too, which has the same first-occurrence restriction.
     const scope = saveScope === 'all' && !canAllScope ? 'single' : saveScope
-    onEventUpdate(pendingScopeSubmit.eventData, scope)
-    onInvitesAdded(event.id, newEmails)
+    const inviteScope =
+      participantScope === 'all' && event && !canAllScope
+        ? 'single'
+        : participantScope
+
+    if (event) {
+      onEventUpdate(eventData, scope)
+      onInvitesAdded(event.id, newEmails, inviteScope)
+    } else {
+      onEventAdd(eventData)
+      onInvitesAdded(eventData.id, newEmails, inviteScope)
+    }
+
     setSaveScopeOpen(false)
     setPendingScopeSubmit(null)
     onOpenChange(false)
@@ -1391,11 +1468,15 @@ export default function EventDialog({
 
             <div className="space-y-2">
               <Label htmlFor="notification">{t.notification}</Label>
-              <Select value={notification} onValueChange={setNotification}>
+              <Select
+                value={notification}
+                onValueChange={handleNotificationChange}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={t.selectNotification} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_REMINDER}>{t.noReminder}</SelectItem>
                   <SelectItem value="0">{t.atEventTime}</SelectItem>
                   <SelectItem value="5">
                     {t.minutesBefore.replace('{minutes}', '5')}
@@ -1412,6 +1493,29 @@ export default function EventDialog({
                   <SelectItem value="custom">{t.customTime}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/*
+              Disabled with no reminder selected: an email reminder needs a
+              reminder time to be sent at. See ADR-0010.
+            */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="email-reminder"
+                checked={emailReminder}
+                disabled={notification === NO_REMINDER}
+                onCheckedChange={(checked) =>
+                  setEmailReminder(checked as boolean)
+                }
+              />
+              <Label
+                htmlFor="email-reminder"
+                className={
+                  notification === NO_REMINDER ? 'text-muted-foreground' : ''
+                }
+              >
+                {t.emailReminder}
+              </Label>
             </div>
 
             {notification === 'custom' && (
@@ -1501,6 +1605,50 @@ export default function EventDialog({
               </div>
             )}
           </RadioGroup>
+
+          {/*
+            Only shown when participants actually changed — a third chained
+            confirmation dialog would be punishing, so this lives here instead.
+          */}
+          {(pendingScopeSubmit?.newEmails.length ?? 0) > 0 && (
+            <div className="space-y-2 border-t pt-4">
+              <Label>{t.participantScope}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t.participantScopeDescription}
+              </p>
+              <RadioGroup
+                value={participantScope}
+                onValueChange={(value) =>
+                  setParticipantScope(value as 'single' | 'following' | 'all')
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="single" id="invite-scope-single" />
+                  <Label htmlFor="invite-scope-single">
+                    {t.repeatScopeSingle}
+                  </Label>
+                </div>
+                {event && !canAllScope && (
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem
+                      value="following"
+                      id="invite-scope-following"
+                    />
+                    <Label htmlFor="invite-scope-following">
+                      {t.repeatScopeFollowing}
+                    </Label>
+                  </div>
+                )}
+                {(!event || canAllScope) && (
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="all" id="invite-scope-all" />
+                    <Label htmlFor="invite-scope-all">{t.repeatScopeAll}</Label>
+                  </div>
+                )}
+              </RadioGroup>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingScopeSubmit(null)}>
               {t.cancel}

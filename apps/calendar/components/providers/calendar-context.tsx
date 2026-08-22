@@ -30,7 +30,13 @@ export interface CalendarEvent {
   isFirstInstance?: boolean
   location?: string
   participants: string[]
-  notification: number
+  /**
+   * Minutes before the start to remind, or null for no reminder.
+   * Zero is a real value — "at the event's start" — not an absent one.
+   */
+  notification: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
   description?: string
   color: string
   calendarId: string
@@ -67,7 +73,8 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     isFirstInstance: e.isFirstInstance === true,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
-    notification: e.notificationMinutes ?? 0,
+    notification: e.notificationMinutes ?? null,
+    emailReminder: e.emailReminder === true,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
     calendarId: e.categoryId ?? '',

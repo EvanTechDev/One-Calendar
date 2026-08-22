@@ -18,7 +18,8 @@ export interface IcsEvent {
   isAllDay?: boolean
   description?: string
   location?: string
-  notification?: number
+  /** Minutes before the start; null or absent means no reminder. */
+  notification?: number | null
   rrule?: string | null
   exdate?: string[] | null
   /** Set on expanded occurrences of a recurring series. */

@@ -46,6 +46,8 @@ export const eventSchema = z.object({
     .max(50)
     .nullish(),
   notificationMinutes: z.number().int().min(0).max(10080).nullish(),
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder: z.boolean().optional(),
 })
 
 export const categorySchema = z.object({
@@ -132,6 +134,18 @@ export const invitePatchSchema = z
   .object({
     status: z.enum(RSVP_STATUSES).optional(),
     categoryId: z.string().min(1).max(100).optional(),
+    /**
+     * RFC stamp of the occurrence being answered. Required to RSVP to a
+     * recurring event, because each occurrence carries its own answer — see
+     * ADR-0005 (participant visibility is a baseline range plus per-stamp exceptions).
+     */
+    recurrenceId: z
+      .string()
+      .regex(
+        /^\d{8}(T\d{6}Z)?$/,
+        'recurrenceId must be an RFC stamp (YYYYMMDD or YYYYMMDDTHHMMSSZ)',
+      )
+      .optional(),
   })
   .refine(
     (value) => value.status !== undefined || value.categoryId !== undefined,

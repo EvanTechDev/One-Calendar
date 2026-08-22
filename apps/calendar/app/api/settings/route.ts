@@ -14,10 +14,7 @@ export type SettingsData = {
   timeFormat?: '24h' | '12h'
   theme?: 'light' | 'dark' | 'system'
   enableShortcuts?: boolean
-  notificationSound?: string
-  toastPosition?: string
   skipLanding?: boolean
-  todayToast?: string | null
 }
 
 export const GET = async function GET() {

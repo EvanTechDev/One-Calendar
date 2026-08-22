@@ -1,43 +1,29 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import {
-  checkPendingNotifications,
-  clearAllNotificationTimers,
-  type NOTIFICATION_SOUNDS,
-} from '@/lib/notifications'
+import { checkPendingNotifications } from '@/lib/notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
 
-export function useNotifications(
-  events: CalendarEvent[],
-  notificationSound: NOTIFICATION_SOUNDS,
-) {
-  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const notificationsInitializedRef = useRef(false)
+const POLL_INTERVAL_MS = 60_000
+
+export function useNotifications(events: CalendarEvent[]) {
+  /**
+   * The interval is created once and reads events through a ref. Closing over
+   * `events` directly would either pin the poll to a stale array or force the
+   * interval to be torn down and rebuilt on every revalidation.
+   */
+  const eventsRef = useRef(events)
+  eventsRef.current = events
 
   useEffect(() => {
-    if (!notificationsInitializedRef.current) {
-      checkPendingNotifications(events, notificationSound)
-      notificationsInitializedRef.current = true
-    }
+    void checkPendingNotifications(eventsRef.current)
 
-    if (!notificationIntervalRef.current) {
-      notificationIntervalRef.current = setInterval(() => {
-        checkPendingNotifications(events, notificationSound)
-      }, 60000)
-    }
+    const interval = setInterval(() => {
+      void checkPendingNotifications(eventsRef.current)
+    }, POLL_INTERVAL_MS)
 
     return () => {
-      if (notificationIntervalRef.current) {
-        clearInterval(notificationIntervalRef.current)
-      }
-    }
-  }, [events, notificationSound])
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', clearAllNotificationTimers)
-    return () => {
-      window.removeEventListener('beforeunload', clearAllNotificationTimers)
+      clearInterval(interval)
     }
   }, [])
 }

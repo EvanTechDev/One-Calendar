@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { MapPin, AlignLeft, Calendar, XCircle } from 'lucide-react'
+import { MapPin, AlignLeft, Calendar, XCircle, Repeat } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
@@ -40,7 +40,21 @@ interface InviteData {
     endDate: string
     isAllDay: boolean
     color: string | null
+    /**
+     * Human-readable recurrence, e.g. "Every day". Deliberately not the rrule —
+     * see ADR-0006 (participants never receive the recurrence rule).
+     */
+    recurrenceSummary: string | null
   }
+  /** The occurrences this link grants, each with its own RSVP. Null if not recurring. */
+  occurrences:
+    | {
+        recurrenceId: string
+        startDate: string
+        endDate: string
+        status: 'pending' | 'accepted' | 'maybe' | 'declined'
+      }[]
+    | null
   inviter: {
     name: string
     image?: string | null
@@ -71,6 +85,16 @@ export default function InvitePage() {
   const [selectedCategory, setSelectedCategory] = useState('__uncategorized__')
   const [isRegisteredUser, setIsRegisteredUser] = useState(false)
   const [addedToCalendar, setAddedToCalendar] = useState(false)
+  /**
+   * RSVP per occurrence, keyed by stamp. Two occurrences of one series never
+   * share an answer, so this cannot collapse into `status`.
+   */
+  const [occurrenceStatus, setOccurrenceStatus] = useState<
+    Record<string, string>
+  >({})
+  const [selectedOccurrence, setSelectedOccurrence] = useState<string | null>(
+    null,
+  )
 
   useEffect(() => {
     fetch(`/api/invite/${token}`)
@@ -84,6 +108,14 @@ export default function InvitePage() {
         setAddedToCalendar(data.invite.addedToCalendar)
         setCategories(data.categories ?? [])
         setIsRegisteredUser(data.isRegisteredUser)
+        if (data.occurrences && data.occurrences.length > 0) {
+          setOccurrenceStatus(
+            Object.fromEntries(
+              data.occurrences.map((o) => [o.recurrenceId, o.status]),
+            ),
+          )
+          setSelectedOccurrence(data.occurrences[0].recurrenceId)
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -93,11 +125,23 @@ export default function InvitePage() {
   }, [token])
 
   const handleRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
-    setStatus(newStatus)
+    // A recurring event is answered per occurrence; sending no stamp would
+    // write one shared answer for every occurrence.
+    const recurrenceId = selectedOccurrence
+
+    if (recurrenceId) {
+      setOccurrenceStatus((prev) => ({ ...prev, [recurrenceId]: newStatus }))
+    } else {
+      setStatus(newStatus)
+    }
+
     await fetch(`/api/invite/${token}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({
+        status: newStatus,
+        ...(recurrenceId ? { recurrenceId } : {}),
+      }),
     })
   }
 
@@ -133,7 +177,8 @@ export default function InvitePage() {
     )
   }
 
-  const { event, inviter } = data
+  const { event, inviter, occurrences } = data
+  const isRecurring = !!occurrences && occurrences.length > 0
   const startDate = new Date(event.startDate)
   const endDate = new Date(event.endDate)
 
@@ -144,8 +189,18 @@ export default function InvitePage() {
     return `${format(startDate, 'yyyy-MM-dd HH:mm')} – ${format(endDate, 'yyyy-MM-dd HH:mm')}`
   }
 
-  const canAddToCalendar =
-    (status === 'accepted' || status === 'maybe') && !addedToCalendar
+  // Adding to the calendar is per-invite, so any accepted occurrence qualifies.
+  const effectiveStatus = isRecurring
+    ? selectedOccurrence
+      ? (occurrenceStatus[selectedOccurrence] ?? 'pending')
+      : 'pending'
+    : status
+  const anyAccepted = isRecurring
+    ? Object.values(occurrenceStatus).some(
+        (s) => s === 'accepted' || s === 'maybe',
+      )
+    : status === 'accepted' || status === 'maybe'
+  const canAddToCalendar = anyAccepted && !addedToCalendar
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
@@ -184,6 +239,51 @@ export default function InvitePage() {
           </div>
 
           <CardContent className="px-5 pb-5 space-y-4">
+            {event.recurrenceSummary && (
+              <div className="flex items-start">
+                <Repeat className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{event.recurrenceSummary}</p>
+                </div>
+              </div>
+            )}
+
+            {/*
+              Only the occurrences this link grants. The list comes from the
+              server already filtered; the rule itself is never sent.
+            */}
+            {isRecurring && occurrences && occurrences.length > 1 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Which date?</p>
+                <Select
+                  value={selectedOccurrence ?? undefined}
+                  onValueChange={setSelectedOccurrence}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {occurrences.map((occurrence) => (
+                      <SelectItem
+                        key={occurrence.recurrenceId}
+                        value={occurrence.recurrenceId}
+                      >
+                        {event.isAllDay
+                          ? format(new Date(occurrence.startDate), 'yyyy-MM-dd')
+                          : format(
+                              new Date(occurrence.startDate),
+                              'yyyy-MM-dd HH:mm',
+                            )}
+                        {occurrenceStatus[occurrence.recurrenceId] !==
+                          'pending' &&
+                          ` · ${occurrenceStatus[occurrence.recurrenceId]}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {event.location && (
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
@@ -209,23 +309,24 @@ export default function InvitePage() {
             <p className="w-full text-left text-sm font-medium">
               Will you attend?
             </p>
+            {/* Reflects the SELECTED occurrence, since each has its own answer. */}
             <div className="flex w-full gap-3">
               <Button
-                variant={status === 'accepted' ? 'default' : 'outline'}
+                variant={effectiveStatus === 'accepted' ? 'default' : 'outline'}
                 className="flex-1"
                 onClick={() => handleRsvp('accepted')}
               >
                 Yes
               </Button>
               <Button
-                variant={status === 'maybe' ? 'default' : 'outline'}
+                variant={effectiveStatus === 'maybe' ? 'default' : 'outline'}
                 className="flex-1"
                 onClick={() => handleRsvp('maybe')}
               >
                 Maybe
               </Button>
               <Button
-                variant={status === 'declined' ? 'default' : 'outline'}
+                variant={effectiveStatus === 'declined' ? 'default' : 'outline'}
                 className="flex-1"
                 onClick={() => handleRsvp('declined')}
               >
