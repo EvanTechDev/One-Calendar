@@ -209,6 +209,15 @@ export const eventInvites = pgTable(
       .notNull()
       .references(() => calendarEvents.id, { onDelete: 'cascade' }),
     email: text('email').notNull(),
+    /**
+     * RSVP for a NON-recurring event. Constrained to RSVP_STATUSES in the DB.
+     *
+     * A recurring event answers per occurrence in `event_invite_occurrences`;
+     * this column is meaningless there and must not be read as a series-wide
+     * answer. Writing it for a series is what made every occurrence look
+     * unanswered, so `PATCH /api/invite/:token` now refuses a stampless RSVP
+     * when the event recurs.
+     */
     status: text('status').notNull().default('pending'),
     /**
      * The participant's credential. NOT globally unique: a series split copies

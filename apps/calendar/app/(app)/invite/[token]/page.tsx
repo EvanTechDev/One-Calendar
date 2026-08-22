@@ -95,6 +95,7 @@ export default function InvitePage() {
   const [selectedOccurrence, setSelectedOccurrence] = useState<string | null>(
     null,
   )
+  const [rsvpError, setRsvpError] = useState('')
 
   useEffect(() => {
     fetch(`/api/invite/${token}`)
@@ -128,6 +129,10 @@ export default function InvitePage() {
     // A recurring event is answered per occurrence; sending no stamp would
     // write one shared answer for every occurrence.
     const recurrenceId = selectedOccurrence
+    const previousOccurrence = recurrenceId
+      ? occurrenceStatus[recurrenceId]
+      : undefined
+    const previousStatus = status
 
     if (recurrenceId) {
       setOccurrenceStatus((prev) => ({ ...prev, [recurrenceId]: newStatus }))
@@ -135,14 +140,31 @@ export default function InvitePage() {
       setStatus(newStatus)
     }
 
-    await fetch(`/api/invite/${token}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: newStatus,
-        ...(recurrenceId ? { recurrenceId } : {}),
-      }),
-    })
+    // The optimistic update above must be rolled back on failure. Showing the
+    // new answer while the server rejected it is how an RSVP silently fails to
+    // stick — the participant believes they answered and nothing was recorded.
+    try {
+      const response = await fetch(`/api/invite/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: newStatus,
+          ...(recurrenceId ? { recurrenceId } : {}),
+        }),
+      })
+      if (!response.ok) throw new Error('rejected')
+      setRsvpError('')
+    } catch {
+      if (recurrenceId) {
+        setOccurrenceStatus((prev) => ({
+          ...prev,
+          [recurrenceId]: previousOccurrence ?? 'pending',
+        }))
+      } else {
+        setStatus(previousStatus)
+      }
+      setRsvpError('Could not save your response. Please try again.')
+    }
   }
 
   const handleAddToCalendar = async () => {
@@ -333,6 +355,12 @@ export default function InvitePage() {
                 No
               </Button>
             </div>
+
+            {rsvpError && (
+              <p className="w-full text-left text-sm text-destructive">
+                {rsvpError}
+              </p>
+            )}
 
             {canAddToCalendar && isRegisteredUser && (
               <Button

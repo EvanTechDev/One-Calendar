@@ -402,18 +402,36 @@ export default function EventPreview({
     )
     if (!dbInvite) return
     try {
-      await fetch(`/api/invite/${dbInvite.inviteToken}`, {
+      // Each occurrence of a recurring event carries its own answer, so the
+      // stamp is required. Omitting it wrote the invite-level status instead —
+      // which the calendar never reads — so the answer appeared to do nothing
+      // and every occurrence stayed "pending".
+      const response = await fetch(`/api/invite/${dbInvite.inviteToken}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          ...(event.recurrenceId ? { recurrenceId: event.recurrenceId } : {}),
+        }),
       })
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
       setInvites((prev) =>
         prev.map((i) =>
           i.id === dbInvite.id ? { ...i, status: newStatus } : i,
         ),
       )
-    } catch {
-      toast.error('Failed to update RSVP')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to update RSVP',
+      )
     }
   }
 
@@ -934,6 +952,16 @@ export default function EventPreview({
                 <p className="text-sm font-medium">
                   {isZh ? '您的回复' : 'Your response'}
                 </p>
+                {/*
+                  Each occurrence is answered independently, so say which one
+                  this is. Without it the buttons look like they set a single
+                  answer for the whole series.
+                */}
+                {isRecurring && (
+                  <p className="text-xs text-muted-foreground">
+                    {isZh ? '仅适用于此日期' : 'Applies to this date only'}
+                  </p>
+                )}
                 <ButtonGroup orientation="horizontal">
                   <Button
                     variant={
