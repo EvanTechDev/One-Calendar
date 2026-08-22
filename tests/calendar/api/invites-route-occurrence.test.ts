@@ -224,18 +224,39 @@ describe('GET /api/invites for one occurrence', () => {
     ])
   })
 
-  it('omits an expired invite', async () => {
-    // Three other readers enforce expiry; this one did not, so an expired grant
-    // kept appearing in the organiser's list.
+  it('keeps an expired invite in the list and flags it', async () => {
+    // Expiry ends the emailed link, not the grant (ADR-0013). The organiser
+    // needs to SEE the dead-link participant to resend — dropping the row hid
+    // exactly the person who needed attention.
     seedInvite('a', 'a@example.com')
     seedInvite('b', 'b@example.com', {
+      addedToCalendar: false,
       expiresAt: new Date(Date.now() - 1000),
     })
 
     const { body } = await get(`${MASTER}_${DAY1}`)
-    expect(body.invites.map((i: { email: string }) => i.email)).toEqual([
-      'a@example.com',
-    ])
+    const byEmail = Object.fromEntries(
+      body.invites.map((i: { email: string; inviteExpired: boolean }) => [
+        i.email,
+        i.inviteExpired,
+      ]),
+    )
+    expect(byEmail).toEqual({
+      'a@example.com': false,
+      'b@example.com': true,
+    })
+  })
+
+  it('does not flag an expired link once the participant joined', async () => {
+    // `addedToCalendar` is the permanent grant; the link's state is then
+    // irrelevant (ADR-0013).
+    seedInvite('a', 'a@example.com', {
+      expiresAt: new Date(Date.now() - 1000),
+    })
+
+    const { body } = await get(`${MASTER}_${DAY1}`)
+    expect(body.invites).toHaveLength(1)
+    expect(body.invites[0].inviteExpired).toBe(false)
   })
 
   it('reports the invite column for a non-recurring event', async () => {

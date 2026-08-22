@@ -176,13 +176,11 @@ export const GET = async function GET(request: NextRequest) {
 
   const allInvites = await getInvitesForEvent(target.masterId)
 
-  // Expiry is enforced here too, matching the calendar's shared-events query and
-  // `isEventViewableBy`: an expired grant must not keep appearing in the
-  // organiser's list.
-  const now = new Date()
-  const liveInvites = allInvites.filter(
-    (i) => !i.expiresAt || i.expiresAt > now,
-  )
+  // Expired invites stay in the list: expiry ends the emailed link, not the
+  // grant (ADR-0013). A participant whose link died before they ever joined is
+  // flagged below so the organiser can resend; one who already added the event
+  // holds a permanent grant and is simply a participant.
+  const liveInvites = allInvites
 
   // `target.stamp` names the occurrence being previewed. Filter to the
   // participants of THIS occurrence and report their RSVP for it, exactly as
@@ -220,6 +218,7 @@ export const GET = async function GET(request: NextRequest) {
     {} as Record<string, { name: string; image: string | null }>,
   )
 
+  const now = new Date()
   const enrichedInvites = invites.map((invite) => ({
     ...invite,
     // RSVP is per-occurrence for a series; the invite row's own status only
@@ -230,6 +229,11 @@ export const GET = async function GET(request: NextRequest) {
         : rsvpForOccurrence(occurrencesByInvite.get(invite.id) ?? [], stamp),
     userName: userMap[invite.email]?.name ?? null,
     userImage: userMap[invite.email]?.image ?? null,
+    // True exactly when the participant can no longer act: the link is dead
+    // AND they never established the permanent grant. Prompts a resend, which
+    // mints a fresh link window (ADR-0013).
+    inviteExpired:
+      !invite.addedToCalendar && !!invite.expiresAt && invite.expiresAt <= now,
   }))
 
   return NextResponse.json({ invites: enrichedInvites })

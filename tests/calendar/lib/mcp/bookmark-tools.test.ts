@@ -403,7 +403,10 @@ describe('bookmarkEvent', () => {
     expect(state.store.bookmarked_events).toHaveLength(0)
   })
 
-  it('throws Forbidden on an expired invite', async () => {
+  it('admits a grant whose emailed link has expired', async () => {
+    // Expiry ends the LINK, not the grant: `addedToCalendar` is permanent
+    // until revoked — see ADR-0013 (the invite link expires; the grant does
+    // not). This test used to assert Forbidden.
     seedUser('u1', 'owner@example.com')
     seedEvent({ id: 'evt-1', userId: 'u2' })
     state.store.event_invites.push({
@@ -411,6 +414,22 @@ describe('bookmarkEvent', () => {
       eventId: 'evt-1',
       email: 'owner@example.com',
       addedToCalendar: true,
+      expiresAt: new Date(Date.now() - 86400000),
+    })
+
+    const result = await bookmarkEvent('u1', { eventId: 'evt-1' })
+    expect(result.eventId).toBe('evt-1')
+  })
+
+  it('throws Forbidden on an expired link that never became a grant', async () => {
+    // Without `addedToCalendar` there is no grant to outlive the link.
+    seedUser('u1', 'owner@example.com')
+    seedEvent({ id: 'evt-1', userId: 'u2' })
+    state.store.event_invites.push({
+      id: 'inv-1',
+      eventId: 'evt-1',
+      email: 'owner@example.com',
+      addedToCalendar: false,
       expiresAt: new Date(Date.now() - 86400000),
     })
 

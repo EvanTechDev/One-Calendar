@@ -35,8 +35,10 @@ export async function isEventViewableBy(
     )
     .limit(1)
 
+  // `expiresAt` is deliberately not checked: it bounds the emailed link, not
+  // the grant. Once the participant has added the event to their calendar the
+  // grant is permanent until revoked (ADR-0013).
   if (!invite?.addedToCalendar) return false
-  if (invite.expiresAt && invite.expiresAt <= new Date()) return false
 
   // An invite on the series is NOT a grant to every occurrence of it. Before
   // this check, a participant invited to a single occurrence could read any

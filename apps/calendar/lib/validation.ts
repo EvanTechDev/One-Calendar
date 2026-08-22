@@ -167,6 +167,30 @@ export const invitePatchSchema = z
     { message: 'Provide status or categoryId' },
   )
 
+/**
+ * Body of `PATCH /api/invites/self`. The same writes as the token endpoint,
+ * but the caller is identified by session and names the invite by token in the
+ * body — the token here is an identifier, not a credential, so link expiry
+ * does not apply (ADR-0013: the invite link expires; the grant does not).
+ */
+export const inviteSelfPatchSchema = z
+  .object({
+    inviteToken: z.string().min(1).max(100),
+    status: z.enum(RSVP_STATUSES).optional(),
+    categoryId: z.string().min(1).max(100).optional(),
+    recurrenceId: z
+      .string()
+      .regex(
+        /^\d{8}(T\d{6}Z)?$/,
+        'recurrenceId must be an RFC stamp (YYYYMMDD or YYYYMMDDTHHMMSSZ)',
+      )
+      .optional(),
+  })
+  .refine(
+    (value) => value.status !== undefined || value.categoryId !== undefined,
+    { message: 'Provide status or categoryId' },
+  )
+
 export function firstZodMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'issues' in error) {
     const issues = (error as { issues: Array<{ message: string }> }).issues

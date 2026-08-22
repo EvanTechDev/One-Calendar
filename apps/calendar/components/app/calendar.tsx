@@ -1003,10 +1003,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     inviteToken?: string,
   ) => {
     if (inviteToken) {
-      await fetch(`/api/invite/${inviteToken}`, {
+      // Session-authenticated: undoing a removal must work even after the
+      // emailed link expired, because the grant outlives the link (ADR-0013).
+      await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          inviteToken,
           categoryId: targetEvent.calendarId ?? '__uncategorized__',
         }),
       }).catch(() => {})

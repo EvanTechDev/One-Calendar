@@ -26,6 +26,10 @@ const store = vi.hoisted(() => ({
 vi.mock('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
+  // Grant semantics — no expiry filter (ADR-0013). These fakes hold no
+  // expired rows, so the two lookups coincide here.
+  getGrantsByToken: async (token: string) =>
+    store.invites.filter((i) => i.inviteToken === token),
   getInviteByToken: async (token: string) =>
     store.invites.find((i) => i.inviteToken === token) ?? null,
   getInviteOccurrences: async (inviteId: string) =>

@@ -79,6 +79,12 @@ type EnrichedInvite = {
   addedToCalendar: boolean
   userName: string | null
   userImage: string | null
+  /**
+   * The emailed link died before the participant ever joined, so they cannot
+   * act until the organiser resends (ADR-0013). False once `addedToCalendar`:
+   * that grant is permanent, whatever the link's state.
+   */
+  inviteExpired: boolean
 }
 
 function isValidRrule(rule: string | undefined): boolean {
@@ -455,6 +461,7 @@ async function enrichEventsWithInvites(
       inviteToken: eventInvites.inviteToken,
       emailSent: eventInvites.emailSent,
       addedToCalendar: eventInvites.addedToCalendar,
+      expiresAt: eventInvites.expiresAt,
       baselineKind: eventInvites.baselineKind,
       fromStamp: eventInvites.fromStamp,
       untilStamp: eventInvites.untilStamp,
@@ -540,6 +547,12 @@ async function enrichEventsWithInvites(
           addedToCalendar: invite.addedToCalendar,
           userName: userMap[emailLower]?.name ?? null,
           userImage: userMap[emailLower]?.image ?? null,
+          // Dead link and no permanent grant: the participant cannot act
+          // until the organiser resends (ADR-0013).
+          inviteExpired:
+            !invite.addedToCalendar &&
+            !!invite.expiresAt &&
+            invite.expiresAt <= new Date(),
         }
         return enriched
       })
@@ -560,8 +573,10 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     }
   >
 > {
-  const now = new Date()
-  const sharedInvites = await getDb()
+  // `expiresAt` is deliberately not checked, matching isEventViewableBy: it
+  // bounds the emailed link, not the grant. `addedToCalendar` IS the grant,
+  // permanent until revoked (ADR-0013).
+  const liveInvites = await getDb()
     .select()
     .from(eventInvites)
     .where(
@@ -570,12 +585,6 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
         eq(eventInvites.addedToCalendar, true),
       ),
     )
-
-  // Expiry is enforced here too, not only in isEventViewableBy — an expired
-  // grant must not keep feeding the calendar.
-  const liveInvites = sharedInvites.filter(
-    (i) => !i.expiresAt || i.expiresAt > now,
-  )
   if (liveInvites.length === 0) return []
 
   const inviteByEvent = new Map(liveInvites.map((i) => [i.eventId, i]))

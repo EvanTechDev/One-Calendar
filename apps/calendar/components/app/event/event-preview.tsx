@@ -59,6 +59,11 @@ export interface EventInvite {
   addedToCalendar: boolean
   userName: string | null
   userImage: string | null
+  /**
+   * The emailed link died before the participant joined; "Resend Invite"
+   * mints a fresh one (ADR-0013). Optional because older payloads may omit it.
+   */
+  inviteExpired?: boolean
 }
 
 function CategoryDot({ color }: { color?: string }) {
@@ -406,10 +411,15 @@ export default function EventPreview({
       // stamp is required. Omitting it wrote the invite-level status instead —
       // which the calendar never reads — so the answer appeared to do nothing
       // and every occurrence stayed "pending".
-      const response = await fetch(`/api/invite/${dbInvite.inviteToken}`, {
+      //
+      // The session endpoint, not the token one: the emailed link expires but
+      // the grant does not, so answering from the calendar must keep working
+      // after the link dies (ADR-0013).
+      const response = await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          inviteToken: dbInvite.inviteToken,
           status: newStatus,
           ...(event.recurrenceId ? { recurrenceId: event.recurrenceId } : {}),
         }),
@@ -453,10 +463,15 @@ export default function EventPreview({
     if (!event || !userInvite) return
     const value = calendarId === '__uncategorized__' ? null : calendarId
     try {
-      await fetch(`/api/invite/${userInvite.inviteToken}`, {
+      // Session-authenticated: the invite link may have expired by now, but
+      // the grant persists (ADR-0013).
+      await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId: value ?? '__uncategorized__' }),
+        body: JSON.stringify({
+          inviteToken: userInvite.inviteToken,
+          categoryId: value ?? '__uncategorized__',
+        }),
       })
       onCategoryChange?.(event.id, value)
     } catch {
@@ -738,6 +753,15 @@ export default function EventPreview({
                                       : _t.pending}
                               </Badge>
                             </span>
+                            {invite.inviteExpired ? (
+                              // The link died before they joined — they cannot
+                              // act until the organiser resends (ADR-0013).
+                              <span className="ml-1.5 shrink-0">
+                                <Badge variant="outline">
+                                  {isZh ? '邀请已过期' : 'Invite expired'}
+                                </Badge>
+                              </span>
+                            ) : null}
                           </div>
                           {!event.viewOnly && (
                             <DropdownMenu>

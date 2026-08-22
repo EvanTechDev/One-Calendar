@@ -9,8 +9,7 @@ import {
   resendInviteEmail,
   updateRsvp,
   removeParticipantFromCalendar,
-  getInviteByToken,
-  getInvitesByToken,
+  getGrantsByToken,
   baselineOf,
   getInviteOccurrences,
   getOccurrencesForInvites,
@@ -255,9 +254,12 @@ export async function listEventParticipants(userId: string, eventId: string) {
 }
 
 async function getOwnInvite(userEmail: string, inviteToken: string) {
-  const invite = await getInviteByToken(inviteToken)
+  // Grant semantics: the caller is authenticated by their MCP session and the
+  // email check below, so the emailed link's expiry does not apply — the grant
+  // outlives the link (ADR-0013).
+  const [invite] = await getGrantsByToken(inviteToken)
   if (!invite) {
-    throw new ParticipantError('Invite not found or expired', 404)
+    throw new ParticipantError('Invite not found', 404)
   }
   if (invite.email.toLowerCase() !== userEmail.toLowerCase()) {
     throw new ParticipantError(
@@ -279,10 +281,13 @@ export async function updateInviteRsvp(
   // grant to the new master keeping the token (ADR-0009), so a tail stamp is
   // only covered by a later segment. `getInviteByToken` returns the earliest,
   // so validating against it alone rejected legitimate answers.
-  const grants = await getInvitesByToken(inviteToken)
+  //
+  // Grant semantics (`getGrantsByToken`): the email check below is the
+  // credential here, so link expiry does not apply (ADR-0013).
+  const grants = await getGrantsByToken(inviteToken)
   const owned = grants[0]
   if (!owned) {
-    throw new ParticipantError('Invite not found or expired', 404)
+    throw new ParticipantError('Invite not found', 404)
   }
   if (owned.email.toLowerCase() !== userEmail.toLowerCase()) {
     throw new ParticipantError(

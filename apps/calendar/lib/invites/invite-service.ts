@@ -20,6 +20,14 @@ async function sendEmail(payload: {
   await sendAuthEmail(payload)
 }
 
+/**
+ * How long an emailed invite link works. The link is a bearer credential and
+ * this bounds the damage of a forwarded email; the grant it establishes is
+ * permanent once the participant adds the event to their calendar — see
+ * ADR-0013 (the invite link expires; the grant does not).
+ */
+export const INVITE_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
 export interface ParticipantInput {
   email: string
 }
@@ -61,7 +69,7 @@ export async function createInvitesForEvent(
     baselineKind: baseline.baselineKind,
     fromStamp: baseline.fromStamp,
     untilStamp: baseline.untilStamp,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + INVITE_LINK_TTL_MS),
     createdAt: new Date(),
     updatedAt: new Date(),
   }))
@@ -160,7 +168,10 @@ export async function getInviteToken(
 }
 
 /**
- * All live grants sharing a token, oldest first.
+ * All grants sharing a token, oldest first, with LINK semantics: an expired
+ * token resolves to nothing. This is the lookup for the anonymous invite-link
+ * endpoints, where the token is the only credential — see
+ * ADR-0013 (the invite link expires; the grant does not).
  *
  * A series split copies a grant to the new master keeping the token (ADR-0009),
  * so one token can address several masters — the segments of what the
@@ -169,15 +180,25 @@ export async function getInviteToken(
  * `getInviteByToken`, which returns the earliest.
  */
 export async function getInvitesByToken(token: string) {
+  const now = new Date()
+  return (await getGrantsByToken(token)).filter(
+    (r) => !r.expiresAt || r.expiresAt > now,
+  )
+}
+
+/**
+ * All grants sharing a token, oldest first, with GRANT semantics: expiry is
+ * ignored. Only for callers that have already authenticated the participant
+ * some other way (a session, or MCP's email check) — the grant outlives the
+ * emailed link (ADR-0013), so those callers must not be locked out with it.
+ */
+export async function getGrantsByToken(token: string) {
   const db = getDb()
   const rows = await db
     .select()
     .from(eventInvites)
     .where(eq(eventInvites.inviteToken, token))
-  const now = new Date()
-  return rows
-    .filter((r) => !r.expiresAt || r.expiresAt > now)
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  return rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
 }
 
 export async function getInviteByToken(token: string) {
@@ -431,7 +452,13 @@ export async function resendInviteEmail(params: {
     })
     await db
       .update(eventInvites)
-      .set({ emailSent: true, updatedAt: new Date() })
+      .set({
+        emailSent: true,
+        // A resend mints a fresh link window. Without this the recovery path
+        // for an expired link re-sent the same dead token (ADR-0013).
+        expiresAt: new Date(Date.now() + INVITE_LINK_TTL_MS),
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(eventInvites.eventId, params.eventId),

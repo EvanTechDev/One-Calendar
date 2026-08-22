@@ -131,8 +131,21 @@ describe('isEventViewableBy', () => {
     expect(await isEventViewableBy(`m1_${DAY1}`, PARTICIPANT)).toBe(false)
   })
 
-  it('refuses an expired invite', async () => {
+  it('admits a grant whose emailed link has expired', async () => {
+    // Expiry ends the LINK, not the grant: once added to the calendar the
+    // grant is permanent until revoked — see ADR-0013 (the invite link
+    // expires; the grant does not). This test used to assert the opposite,
+    // which locked participants out of long-lived events after 7 days.
     seedInvite({ expiresAt: new Date(Date.now() - 1000) })
+    expect(await isEventViewableBy(`m1_${DAY1}`, PARTICIPANT)).toBe(true)
+  })
+
+  it('still refuses an expired link that never became a grant', async () => {
+    // Without `addedToCalendar` there is no grant to outlive the link.
+    seedInvite({
+      addedToCalendar: false,
+      expiresAt: new Date(Date.now() - 1000),
+    })
     expect(await isEventViewableBy(`m1_${DAY1}`, PARTICIPANT)).toBe(false)
   })
 
