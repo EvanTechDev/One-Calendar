@@ -8,7 +8,11 @@ import {
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
-import { verifyTurnstile, type TurnstileVerifyResult } from '@/lib/turnstile'
+import {
+  isTurnstileConfigured,
+  verifyTurnstile,
+  type TurnstileVerifyResult,
+} from '@/lib/turnstile'
 import { eq } from 'drizzle-orm'
 
 const authHandlers = toNextJsHandler(auth)
@@ -100,10 +104,25 @@ async function handleAuth(request: Request) {
   const action = authAction(pathname)
   const body = await readAuthBody(request)
 
-  if (
+  const captchaGuarded =
     request.method === 'POST' &&
     (action === 'auth.login' || action === 'auth.register')
-  ) {
+
+  // Skipped entirely when Turnstile is not configured. The client already omits
+  // the widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent, and demanding a
+  // token it was never asked to produce made sign-in impossible.
+  //
+  // Logged rather than silent: this removes a bot defence, so a deployment that
+  // lost the variable should be discoverable from the logs instead of only from
+  // the abuse it invites.
+  if (captchaGuarded && !isTurnstileConfigured()) {
+    console.warn(
+      'Turnstile is not configured (TURNSTILE_SECRET_KEY unset) — CAPTCHA skipped',
+      { action },
+    )
+  }
+
+  if (captchaGuarded && isTurnstileConfigured()) {
     const turnstileToken =
       typeof body?.turnstileToken === 'string' ? body.turnstileToken : ''
     if (!turnstileToken) {

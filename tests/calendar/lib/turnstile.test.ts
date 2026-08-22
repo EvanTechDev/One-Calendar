@@ -55,3 +55,31 @@ describe('lib/turnstile', () => {
     )
   })
 })
+
+describe('isTurnstileConfigured', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('is true when a secret is set', async () => {
+    vi.stubEnv('TURNSTILE_SECRET_KEY', 'test-secret')
+    const { isTurnstileConfigured } = await import('@/lib/turnstile')
+    expect(isTurnstileConfigured()).toBe(true)
+  })
+
+  it('is false when the secret is empty', async () => {
+    // The case that locked sign-in: the client omits the widget, so the server
+    // must not demand a token.
+    vi.stubEnv('TURNSTILE_SECRET_KEY', '')
+    const { isTurnstileConfigured } = await import('@/lib/turnstile')
+    expect(isTurnstileConfigured()).toBe(false)
+  })
+
+  it('is false when the secret is whitespace only', async () => {
+    // An env var set to a blank string in a dashboard is indistinguishable from
+    // unset as far as intent goes, and would otherwise be treated as enabled.
+    vi.stubEnv('TURNSTILE_SECRET_KEY', '   ')
+    const { isTurnstileConfigured } = await import('@/lib/turnstile')
+    expect(isTurnstileConfigured()).toBe(false)
+  })
+})
