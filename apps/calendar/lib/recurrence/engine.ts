@@ -1,6 +1,15 @@
 import { RRule } from 'rrule'
 import type { Frequency, Options, Weekday } from 'rrule'
-import { translations } from '@zntr/i18n/calendar'
+/**
+ * The raw locale map, NOT `@zntr/i18n/calendar`.
+ *
+ * That barrel re-exports `src/i18n.ts`, which is marked `'use client'` — so its
+ * `translations` export is undefined when this module is imported from a route
+ * handler, and `describeRecurrence` threw
+ * "Cannot read properties of undefined (reading 'recurrenceEveryDays')".
+ * `locales.ts` is plain JSON with no client boundary, so it works on both sides.
+ */
+import { translations as localeTranslations } from '@zntr/i18n/calendar/locales'
 
 export const MAX_EXPANSION = 1000
 
@@ -1618,7 +1627,13 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
   } catch {
     return rule
   }
-  const t = translations[isZh ? 'zh-CN' : 'en']
+  // English underneath, mirroring what the i18n barrel does: a locale file that
+  // has not been translated yet is missing keys, and a missing key here would
+  // surface as "undefined" inside the sentence.
+  const t = {
+    ...localeTranslations.en,
+    ...(isZh ? localeTranslations['zh-CN'] : {}),
+  }
   const {
     freq,
     interval,
