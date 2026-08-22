@@ -865,8 +865,12 @@ export default function EventPreview({
                       value={event.calendarId || '__uncategorized__'}
                       onValueChange={handleViewOnlyCategoryChange}
                     >
-                      <SelectTrigger className="h-7 gap-1.5 rounded-md border-0 bg-transparent p-0 pr-1 text-sm shadow-none cursor-pointer hover:bg-muted/60 focus-visible:ring-1">
-                        <SelectValue>
+                      <SelectTrigger
+                        size="sm"
+                        aria-label={_t.selectCalendar}
+                        className="w-full"
+                      >
+                        <SelectValue placeholder={_t.selectCalendar}>
                           <span className="inline-flex items-center gap-1.5">
                             <CategoryDot
                               color={
