@@ -50,6 +50,21 @@ export const eventSchema = z.object({
   emailReminder: z.boolean().optional(),
 })
 
+/**
+ * Recurrence fields on an event write, validated alongside `eventSchema`.
+ *
+ * `nullish`, not `optional`: the client sends `rrule: null` / `exdate: null` for
+ * a non-recurring event, and `JSON.stringify` preserves null while dropping
+ * undefined — so `optional()` rejected every plain event save with
+ * "Invalid input: expected string, received null". Null and absent both mean
+ * "not recurring" here, and the route already treats them identically.
+ */
+export const recurringFieldsSchema = z.object({
+  rrule: z.string().max(500).nullish(),
+  exdate: z.array(z.string()).max(500).nullish(),
+  apply_to: z.enum(['all', 'single', 'following']).nullish(),
+})
+
 export const categorySchema = z.object({
   id: z.string().min(1).max(100).optional(),
   name: z.string().min(1).max(50),

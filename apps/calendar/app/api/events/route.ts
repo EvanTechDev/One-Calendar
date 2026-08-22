@@ -18,7 +18,11 @@ import {
   groupByMonth,
 } from '@/lib/cache/events'
 import { fullMonthRange } from '@/lib/cache/keys'
-import { eventSchema, firstZodMessage } from '@/lib/validation'
+import {
+  eventSchema,
+  firstZodMessage,
+  recurringFieldsSchema,
+} from '@/lib/validation'
 import { RRule } from 'rrule'
 import {
   mergeOverride,
@@ -64,12 +68,6 @@ import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
 export const runtime = 'nodejs'
-
-const recurringFieldsSchema = z.object({
-  rrule: z.string().max(500).optional(),
-  exdate: z.array(z.string()).max(500).optional(),
-  apply_to: z.enum(['all', 'single', 'following']).optional(),
-})
 
 const APPLY_TO_VALUES = new Set(['all', 'single', 'following'])
 
@@ -1105,10 +1103,13 @@ const postHandler = async function POST(request: NextRequest) {
       { status: 400 },
     )
   }
+  // Null is a legal value the client actually sends for a non-recurring event
+  // (see recurringFieldsSchema); narrowing it away here would make every
+  // downstream `?? ` and null-check below look redundant when it is not.
   const body = parsedBody.data as typeof parsedBody.data & {
-    rrule?: string
-    exdate?: string[]
-    apply_to?: ApplyTo
+    rrule?: string | null
+    exdate?: string[] | null
+    apply_to?: ApplyTo | null
     id?: string
     timezone?: string
   }
