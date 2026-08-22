@@ -481,3 +481,192 @@ describe('visibleStamps', () => {
     ).toEqual([DAY1, DAY3])
   })
 })
+
+describe('a visibility change never destroys an RSVP (ADR-0014)', () => {
+  // The organiser's visibility operations and the participant's answers live
+  // in the same exception rows. Deleting a row for a visibility reason used to
+  // delete the answer with it — silently, in the exact "remove c on day 2, add
+  // c back on day 3" flow the feature was built for.
+
+  it('widening to all scope keeps an answered exception, only flipping it visible', () => {
+    const plan = planParticipantChange(
+      {
+        stamp: DAY1,
+        scope: 'all',
+        firstStamp: DAY1,
+        invite: NO_BASELINE,
+        exceptions: [
+          { recurrenceId: DAY3, visible: true, status: 'accepted' },
+          { recurrenceId: DAY4, visible: true },
+        ],
+      },
+      'add',
+    )
+    // DAY4 carries no answer and may go; DAY3's accepted must survive.
+    expect(plan.deleteExceptionStamps).toEqual([DAY4])
+    expect(plan.upsertExceptions).toEqual([])
+  })
+
+  it('restores an answer hidden by a single-removal when widened back to all', () => {
+    // c answered accepted for day 3, the organiser hid day 3 (the upsert path
+    // keeps the status on the hidden row), then widened c to the whole series.
+    // The answer was given and never retracted, so it counts again.
+    const plan = planParticipantChange(
+      {
+        stamp: DAY1,
+        scope: 'all',
+        firstStamp: DAY1,
+        invite: WHOLE_SERIES,
+        exceptions: [
+          { recurrenceId: DAY3, visible: false, status: 'accepted' },
+        ],
+      },
+      'add',
+    )
+    expect(plan.deleteExceptionStamps).toEqual([])
+    expect(plan.upsertExceptions).toEqual([
+      { recurrenceId: DAY3, visible: true },
+    ])
+  })
+
+  it('following-add flips a hidden answered row visible instead of deleting it', () => {
+    const plan = planParticipantChange(
+      {
+        stamp: DAY2,
+        scope: 'following',
+        firstStamp: DAY1,
+        invite: NO_BASELINE,
+        exceptions: [
+          { recurrenceId: DAY3, visible: false, status: 'declined' },
+          { recurrenceId: DAY4, visible: false },
+        ],
+      },
+      'add',
+    )
+    expect(plan.deleteExceptionStamps).toEqual([DAY4])
+    expect(plan.upsertExceptions).toEqual([
+      { recurrenceId: DAY3, visible: true },
+    ])
+  })
+
+  it('following-removal hides answered rows instead of deleting them', () => {
+    const plan = planParticipantChange(
+      {
+        stamp: DAY3,
+        scope: 'following',
+        firstStamp: DAY1,
+        invite: WHOLE_SERIES,
+        exceptions: [
+          { recurrenceId: DAY3, visible: true, status: 'accepted' },
+          { recurrenceId: DAY4, visible: true },
+        ],
+      },
+      'remove',
+    )
+    // DAY4 (no answer) is deleted; DAY3's answer survives on a hidden row.
+    expect(plan.deleteExceptionStamps).toEqual([DAY4])
+    expect(plan.upsertExceptions).toEqual([
+      { recurrenceId: DAY3, visible: false },
+    ])
+    // Visibility is still removed, whatever happens to the rows.
+    expect(plan.baseline?.untilStamp).toBe(DAY3)
+  })
+
+  it('all-removal keeps the invite alive to hold surviving answers', () => {
+    const plan = planParticipantChange(
+      {
+        stamp: DAY1,
+        scope: 'all',
+        firstStamp: DAY1,
+        invite: WHOLE_SERIES,
+        exceptions: [{ recurrenceId: DAY2, visible: true, status: 'maybe' }],
+      },
+      'remove',
+    )
+    expect(plan.baseline).toEqual(NO_BASELINE)
+    expect(plan.upsertExceptions).toEqual([
+      { recurrenceId: DAY2, visible: false },
+    ])
+    expect(plan.deleteExceptionStamps).toEqual([])
+    // Revoking would cascade the answer away; the grant must stay.
+    expect(plan.revokeInvite).toBe(false)
+  })
+
+  it('all-removal with no answers still revokes outright', () => {
+    // Without answers there is nothing to preserve, so the old behaviour —
+    // full revocation — is correct and keeps the table clean.
+    const plan = planParticipantChange(
+      {
+        stamp: DAY1,
+        scope: 'all',
+        firstStamp: DAY1,
+        invite: WHOLE_SERIES,
+        exceptions: [{ recurrenceId: DAY3, visible: true }],
+      },
+      'remove',
+    )
+    expect(plan.revokeInvite).toBe(true)
+    expect(plan.deleteExceptionStamps).toEqual([DAY3])
+  })
+
+  it('remove-then-re-add round-trips the answer, whatever the removal scope', () => {
+    // The asymmetry this rule closes: the outcome of "remove, then re-add"
+    // must not depend on whether the organiser picked single or following.
+    const answered: OccurrenceException[] = [
+      { recurrenceId: DAY3, visible: true, status: 'accepted' },
+    ]
+
+    for (const scope of ['following', 'all'] as const) {
+      const removal = planParticipantChange(
+        {
+          stamp: scope === 'all' ? DAY1 : DAY3,
+          scope,
+          firstStamp: DAY1,
+          invite: WHOLE_SERIES,
+          exceptions: answered,
+        },
+        'remove',
+      )
+      expect(removal.revokeInvite).toBe(false)
+
+      // Apply the removal to get the post-removal exception state.
+      const afterRemoval: OccurrenceException[] = answered
+        .filter((e) => !removal.deleteExceptionStamps.includes(e.recurrenceId))
+        .map((e) => {
+          const upsert = removal.upsertExceptions.find(
+            (u) => u.recurrenceId === e.recurrenceId,
+          )
+          return upsert ? { ...e, visible: upsert.visible } : e
+        })
+      // Hidden but preserved.
+      expect(rsvpForOccurrence(afterRemoval, DAY3)).toBe('accepted')
+      expect(
+        canParticipantSeeOccurrence(removal.baseline!, afterRemoval, DAY3),
+      ).toBe(false)
+
+      const readd = planParticipantChange(
+        {
+          stamp: DAY1,
+          scope: 'all',
+          firstStamp: DAY1,
+          invite: removal.baseline,
+          exceptions: afterRemoval,
+        },
+        'add',
+      )
+      const afterReadd: OccurrenceException[] = afterRemoval
+        .filter((e) => !readd.deleteExceptionStamps.includes(e.recurrenceId))
+        .map((e) => {
+          const upsert = readd.upsertExceptions.find(
+            (u) => u.recurrenceId === e.recurrenceId,
+          )
+          return upsert ? { ...e, visible: upsert.visible } : e
+        })
+      // Visible again, answer intact.
+      expect(
+        canParticipantSeeOccurrence(readd.baseline!, afterReadd, DAY3),
+      ).toBe(true)
+      expect(rsvpForOccurrence(afterReadd, DAY3)).toBe('accepted')
+    }
+  })
+})

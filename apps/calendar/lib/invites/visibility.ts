@@ -95,6 +95,16 @@ export interface ParticipantChangePlan {
 export class ParticipantScopeError extends Error {}
 
 /**
+ * An exception row holds two facts: the organiser's visibility override and
+ * the participant's answer. A visibility change may delete a row only when it
+ * carries no answer — otherwise the row is kept and only `visible` moves. See
+ * ADR-0014 (a visibility change never destroys an RSVP).
+ */
+function hasAnswer(exception: OccurrenceException): boolean {
+  return exception.status !== undefined && exception.status !== 'pending'
+}
+
+/**
  * Translate a scoped add/remove into writes.
  *
  * Scope semantics, per ADR-0007 (participant scope follows the same rules as event scope):
@@ -167,13 +177,20 @@ function planAdd(
   }
 
   if (scope === 'following') {
+    // Hidden exceptions at or after the new baseline would contradict it.
+    // Rows carrying an answer are flipped visible instead of deleted — the
+    // upsert path preserves `status` (ADR-0014).
+    const contradicting = exceptions.filter(
+      (e) => !e.visible && e.recurrenceId >= stamp,
+    )
     return {
       createInvite,
       baseline: { baselineKind: 'all', fromStamp: stamp, untilStamp: null },
-      upsertExceptions: [],
-      // Hidden exceptions at or after the new baseline would contradict it.
-      deleteExceptionStamps: exceptions
-        .filter((e) => !e.visible && e.recurrenceId >= stamp)
+      upsertExceptions: contradicting
+        .filter(hasAnswer)
+        .map((e) => ({ recurrenceId: e.recurrenceId, visible: true })),
+      deleteExceptionStamps: contradicting
+        .filter((e) => !hasAnswer(e))
         .map((e) => e.recurrenceId),
       revokeInvite: false,
     }
@@ -182,9 +199,17 @@ function planAdd(
   return {
     createInvite,
     baseline: { baselineKind: 'all', fromStamp: null, untilStamp: null },
-    upsertExceptions: [],
-    // The whole series is visible, so no exception can add anything.
-    deleteExceptionStamps: exceptions.map((e) => e.recurrenceId),
+    // The whole series is visible, so an exception can only duplicate or
+    // contradict the baseline — for VISIBILITY. The same rows also hold the
+    // participant's answers, so only answerless rows may be deleted; a hidden
+    // row with an answer becomes visible again and the answer still counts
+    // (ADR-0014).
+    upsertExceptions: exceptions
+      .filter((e) => hasAnswer(e) && !e.visible)
+      .map((e) => ({ recurrenceId: e.recurrenceId, visible: true })),
+    deleteExceptionStamps: exceptions
+      .filter((e) => !hasAnswer(e))
+      .map((e) => e.recurrenceId),
     revokeInvite: false,
   }
 }
@@ -231,30 +256,49 @@ function planRemove(
                 : stamp,
           }
 
+    // Visible exceptions from here onward would survive the cap otherwise.
+    // Rows carrying an answer are hidden rather than deleted, so a participant
+    // removed and later re-added finds their history intact (ADR-0014).
+    const affected = exceptions.filter((e) => e.recurrenceId >= stamp)
+
     const keptExceptions = exceptions.filter(
       (e) => e.recurrenceId < stamp && e.visible,
     )
-    const emptied = isEmptyBaseline(nextBaseline) && keptExceptions.length === 0
+    // The invite must survive while any answer does — only a true revocation
+    // may cascade an RSVP away.
+    const answersSurvive = exceptions.some(hasAnswer)
+    const emptied =
+      isEmptyBaseline(nextBaseline) &&
+      keptExceptions.length === 0 &&
+      !answersSurvive
 
     return {
       createInvite: false,
       baseline: nextBaseline,
-      upsertExceptions: [],
-      // Visible exceptions from here onward would survive the cap otherwise.
-      deleteExceptionStamps: exceptions
-        .filter((e) => e.recurrenceId >= stamp)
+      upsertExceptions: affected
+        .filter((e) => hasAnswer(e) && e.visible)
+        .map((e) => ({ recurrenceId: e.recurrenceId, visible: false })),
+      deleteExceptionStamps: affected
+        .filter((e) => !hasAnswer(e))
         .map((e) => e.recurrenceId),
       revokeInvite: emptied,
     }
   }
 
-  // `all`: the participant loses the entire series.
+  // `all`: the participant loses sight of the entire series. Answers are kept
+  // on hidden rows and the invite survives to hold them; the invite is only
+  // revoked outright when no answer would be lost with it (ADR-0014).
+  const answersSurvive = exceptions.some(hasAnswer)
   return {
     createInvite: false,
     baseline: { baselineKind: 'none', fromStamp: null, untilStamp: null },
-    upsertExceptions: [],
-    deleteExceptionStamps: exceptions.map((e) => e.recurrenceId),
-    revokeInvite: true,
+    upsertExceptions: exceptions
+      .filter((e) => hasAnswer(e) && e.visible)
+      .map((e) => ({ recurrenceId: e.recurrenceId, visible: false })),
+    deleteExceptionStamps: exceptions
+      .filter((e) => !hasAnswer(e))
+      .map((e) => e.recurrenceId),
+    revokeInvite: !answersSurvive,
   }
 }
 
