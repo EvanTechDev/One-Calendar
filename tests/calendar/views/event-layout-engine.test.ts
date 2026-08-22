@@ -9,7 +9,7 @@ import {
   snapToQuarterHour,
   formatTimeForDisplay,
   formatHourMinute,
-} from '@/components/app/views/engine/EventLayoutEngine'
+} from '@/components/app/views/event-layout-engine'
 import { TimeFormat } from '@/lib/calendar-types'
 import type { CalendarEvent } from '@/components/app/calendar'
 

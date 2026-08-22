@@ -10,7 +10,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
   type ColorOption,
-} from '@/components/app/views/event-colors'
+} from '@/lib/event-colors'
 
 describe('event-colors', () => {
   describe('EVENT_BG_TO_ACCENT', () => {

@@ -53,18 +53,49 @@ export const CHART_COLOR_ORDER = [
 
 export interface ColorOption {
   value: string
-  labelKey: 'colorBlue' | 'colorGreen' | 'colorAmber' | 'colorRed' | 'colorPurple' | 'colorPink' | 'colorTeal'
+  labelKey:
+    | 'colorBlue'
+    | 'colorGreen'
+    | 'colorAmber'
+    | 'colorRed'
+    | 'colorPurple'
+    | 'colorPink'
+    | 'colorTeal'
   calendarColor: string
 }
 
 export const EVENT_COLOR_OPTIONS: ColorOption[] = [
-  { value: 'bg-[#E6F6FD]', labelKey: 'colorBlue', calendarColor: 'bg-blue-500' },
-  { value: 'bg-[#E7F8F2]', labelKey: 'colorGreen', calendarColor: 'bg-green-500' },
-  { value: 'bg-[#FEF5E6]', labelKey: 'colorAmber', calendarColor: 'bg-yellow-500' },
+  {
+    value: 'bg-[#E6F6FD]',
+    labelKey: 'colorBlue',
+    calendarColor: 'bg-blue-500',
+  },
+  {
+    value: 'bg-[#E7F8F2]',
+    labelKey: 'colorGreen',
+    calendarColor: 'bg-green-500',
+  },
+  {
+    value: 'bg-[#FEF5E6]',
+    labelKey: 'colorAmber',
+    calendarColor: 'bg-yellow-500',
+  },
   { value: 'bg-[#FFE4E6]', labelKey: 'colorRed', calendarColor: 'bg-red-500' },
-  { value: 'bg-[#F3EEFE]', labelKey: 'colorPurple', calendarColor: 'bg-purple-500' },
-  { value: 'bg-[#FCE7F3]', labelKey: 'colorPink', calendarColor: 'bg-pink-500' },
-  { value: 'bg-[#E6FAF7]', labelKey: 'colorTeal', calendarColor: 'bg-teal-500' },
+  {
+    value: 'bg-[#F3EEFE]',
+    labelKey: 'colorPurple',
+    calendarColor: 'bg-purple-500',
+  },
+  {
+    value: 'bg-[#FCE7F3]',
+    labelKey: 'colorPink',
+    calendarColor: 'bg-pink-500',
+  },
+  {
+    value: 'bg-[#E6FAF7]',
+    labelKey: 'colorTeal',
+    calendarColor: 'bg-teal-500',
+  },
 ]
 
 export const CALENDAR_COLOR_TO_EVENT_COLOR = Object.fromEntries(
@@ -76,7 +107,10 @@ export function getEventAccentColor(color?: string): string {
   return EVENT_BG_TO_ACCENT[color] ?? DEFAULT_ACCENT
 }
 
-export function getEventBackgroundColor(color: string | undefined, isDark: boolean): string | undefined {
+export function getEventBackgroundColor(
+  color: string | undefined,
+  isDark: boolean,
+): string | undefined {
   if (!isDark || !color) return undefined
   return EVENT_BG_TO_DARK[color]
 }

@@ -12,10 +12,7 @@ import {
 } from 'date-fns'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { AnalyticsEvent, DateRange } from './types'
-import {
-  TAILWIND_BG_TO_HEX,
-  CHART_COLOR_ORDER,
-} from '@/components/app/views/event-colors'
+import { TAILWIND_BG_TO_HEX, CHART_COLOR_ORDER } from '@/lib/event-colors'
 
 export type AnalyticsRangePreset = 'week' | 'month' | 'quarter'
 

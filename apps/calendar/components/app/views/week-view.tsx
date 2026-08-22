@@ -20,8 +20,8 @@ import { formatSelectionRange } from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
+} from '@/lib/event-colors'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
 
 interface WeekViewProps {

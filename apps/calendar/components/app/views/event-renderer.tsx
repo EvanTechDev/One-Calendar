@@ -5,12 +5,12 @@ import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
 import { translations } from '@zntr/i18n/calendar'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
+} from '@/lib/event-colors'
 import { formatSelectionRange } from '@/components/app/views/selection-range'
 
 const ContextMenu = ({ children }: { children: React.ReactNode }) => (

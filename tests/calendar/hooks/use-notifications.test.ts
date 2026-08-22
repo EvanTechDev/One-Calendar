@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { useNotifications } from '@/components/app/hooks/useNotifications'
+import { useNotifications } from '@/hooks/use-notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
 
 const checkPendingNotifications = vi.hoisted(() => vi.fn())

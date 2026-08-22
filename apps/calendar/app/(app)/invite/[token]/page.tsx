@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { getEventAccentColor } from '@/components/app/views/event-colors'
+import { getEventAccentColor } from '@/lib/event-colors'
 
 interface InviteData {
   invite: {

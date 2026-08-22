@@ -1,7 +1,7 @@
 'use client'
 
-import { getEventAccentColor } from '@/components/app/views/event-colors'
-import { useNotifications } from '@/components/app/hooks/useNotifications'
+import { getEventAccentColor } from '@/lib/event-colors'
+import { useNotifications } from '@/hooks/use-notifications'
 import {
   Select,
   SelectContent,

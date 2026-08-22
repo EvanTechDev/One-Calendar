@@ -44,7 +44,7 @@ import {
   EVENT_COLOR_OPTIONS,
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
-} from '@/components/app/views/event-colors'
+} from '@/lib/event-colors'
 import {
   describeRecurrence,
   emptyRruleParts,

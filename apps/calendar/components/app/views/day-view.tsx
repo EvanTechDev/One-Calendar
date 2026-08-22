@@ -11,9 +11,9 @@ import type { ViewConfig } from '@/lib/calendar-types'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
-import { EventRenderer } from '@/components/app/views/EventRenderer'
-import { useEventFilter } from '@/components/app/hooks/useEventFilter'
+} from '@/lib/event-colors'
+import { EventRenderer } from '@/components/app/views/event-renderer'
+import { useEventFilter } from '@/hooks/use-event-filter'
 import { useEventResize } from '@/hooks/use-event-resize'
 
 interface DayViewProps {

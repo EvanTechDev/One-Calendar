@@ -3,8 +3,8 @@
 import { useMemo } from 'react'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
-import type { LayoutEvent } from '@/components/app/views/engine/EventLayoutEngine'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
+import type { LayoutEvent } from '@/components/app/views/event-layout-engine'
 import { isSameDay, isWithinInterval } from 'date-fns'
 
 interface UseEventFilterOptions {
