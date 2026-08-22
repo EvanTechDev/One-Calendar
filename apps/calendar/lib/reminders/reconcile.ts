@@ -112,6 +112,29 @@ async function occurrencesOf(
     }))
 }
 
+/**
+ * Fingerprint of everything the reminder email renders.
+ *
+ * Must cover exactly the fields `buildReminderEmail` puts in the subject or
+ * body — no more (or unrelated edits needlessly re-create the email) and no
+ * less (or an edit silently leaves a stale email queued). The send time is
+ * deliberately excluded: that is handled by rescheduling instead.
+ */
+function reminderContentHash(event: ReturnType<typeof decryptEvent>): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify([
+        event.title,
+        event.description ?? '',
+        event.location ?? '',
+        event.isAllDay,
+      ]),
+    )
+    .digest('hex')
+    .slice(0, 32)
+}
+
 async function sendOne(params: {
   candidate: ReminderCandidate
   event: ReturnType<typeof decryptEvent>
@@ -149,6 +172,7 @@ async function sendOne(params: {
       dueAt: candidate.dueAt,
       dueDate: candidate.dueDate,
       providerId,
+      contentHash: reminderContentHash(event),
       sentAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -156,6 +180,7 @@ async function sendOne(params: {
     .onConflictDoUpdate({
       target: [scheduledReminders.eventId, scheduledReminders.recurrenceId],
       set: {
+        contentHash: reminderContentHash(event),
         dueAt: candidate.dueAt,
         dueDate: candidate.dueDate,
         providerId,
@@ -227,9 +252,17 @@ export async function reconcileEventReminders(params: {
   )
   await cancelAll(stale)
 
-  // Move rows whose reminder time shifted.
+  // Bring surviving rows in line with the event as it is now.
+  //
+  // Two different repairs, because the provider's update endpoint can only move
+  // a queued email's SEND TIME — it cannot change its subject or body:
+  //   - time moved, content same  -> reschedule in place (cheap, keeps the id)
+  //   - content changed           -> cancel and re-create, the only way to
+  //                                  refresh what the email actually says
   let rescheduled = 0
   const live = existing.filter((r) => !stale.includes(r))
+  const contentHash = reminderContentHash(event)
+
   for (const r of live) {
     const occurrence = wanted.get(
       scheduleKey({ eventId: r.eventId, recurrenceId: r.recurrenceId }),
@@ -238,7 +271,23 @@ export async function reconcileEventReminders(params: {
     const dueAt = new Date(
       occurrence.startDate.getTime() - row.notificationMinutes * 60_000,
     )
-    if (dueAt.getTime() === r.dueAt.getTime()) continue
+    const timeMoved = dueAt.getTime() !== r.dueAt.getTime()
+    // An absent hash is a row written before this column existed. Treat it as
+    // unknown rather than stale, so upgrading does not re-create (and re-charge
+    // quota for) every already-queued reminder.
+    const contentChanged =
+      r.contentHash !== null &&
+      r.contentHash !== undefined &&
+      r.contentHash !== contentHash
+
+    if (!timeMoved && !contentChanged) continue
+
+    if (contentChanged) {
+      // Cancelling drops the row; the scheduling pass below re-creates it with
+      // the current title, location, and description.
+      await cancelAll([r])
+      continue
+    }
 
     const moved = r.providerId
       ? await rescheduleEmail(r.providerId, dueAt)
@@ -249,13 +298,14 @@ export async function reconcileEventReminders(params: {
         .set({
           dueAt,
           dueDate: dueDateIn(dueAt, timeZone),
+          contentHash,
           updatedAt: new Date(),
         })
         .where(eq(scheduledReminders.id, r.id))
       rescheduled++
     } else {
       // The provider would not move it (likely already sent). Drop the row
-      // rather than keep a stale provider id; the top-up will re-create it.
+      // rather than keep a stale provider id; the pass below re-creates it.
       await cancelAll([r])
     }
   }

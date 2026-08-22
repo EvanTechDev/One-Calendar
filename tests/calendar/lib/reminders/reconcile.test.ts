@@ -229,9 +229,81 @@ describe('reconcileEventReminders', () => {
     expect(result.cancelled).toBe(1)
   })
 
-  it('reschedules rather than duplicating when the time moves', async () => {
+  it('re-creates the email when the title changes', async () => {
+    // The provider's update endpoint accepts ONLY a new send time — it cannot
+    // change a queued email's subject or body. So a title edit can only be
+    // reflected by cancelling and re-creating; rescheduling would silently
+    // leave the old wording queued.
     seedEvent()
-    // Existing row is an hour off from what the event now implies.
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+    const firstHash = tables.scheduled_reminders[0].contentHash
+    expect(firstHash).toBeTruthy()
+
+    provider.scheduleEmail.mockClear()
+    provider.cancelEmail.mockClear()
+    provider.rescheduleEmail.mockClear()
+
+    tables.calendar_events[0].title = 'Renamed standup'
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+
+    expect(provider.cancelEmail).toHaveBeenCalledTimes(1)
+    expect(provider.scheduleEmail).toHaveBeenCalledTimes(1)
+    expect(provider.rescheduleEmail).not.toHaveBeenCalled()
+    expect(tables.scheduled_reminders).toHaveLength(1)
+    expect(tables.scheduled_reminders[0].contentHash).not.toBe(firstHash)
+  })
+
+  it('re-creates the email when the location or description changes', async () => {
+    seedEvent()
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+    provider.scheduleEmail.mockClear()
+    provider.cancelEmail.mockClear()
+
+    tables.calendar_events[0].location = 'Room 42'
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+    expect(provider.cancelEmail).toHaveBeenCalledTimes(1)
+    expect(provider.scheduleEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves the email alone when nothing the email renders changed', async () => {
+    // Guard against the opposite failure: needlessly burning quota by
+    // re-creating on every unrelated save.
+    seedEvent()
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+    provider.scheduleEmail.mockClear()
+    provider.cancelEmail.mockClear()
+    provider.rescheduleEmail.mockClear()
+
+    // Colour is not in the email.
+    tables.calendar_events[0].color = '#ff0000'
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+
+    expect(provider.cancelEmail).not.toHaveBeenCalled()
+    expect(provider.scheduleEmail).not.toHaveBeenCalled()
+    expect(provider.rescheduleEmail).not.toHaveBeenCalled()
+  })
+
+  it('reschedules in place when only the time moves', async () => {
+    seedEvent()
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+    provider.scheduleEmail.mockClear()
+    provider.rescheduleEmail.mockClear()
+    provider.cancelEmail.mockClear()
+
+    // Same wording, later start: the cheap path, keeping the provider id.
+    tables.calendar_events[0].startDate = new Date(Date.now() + 3 * DAY)
+    await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })
+
+    expect(provider.rescheduleEmail).toHaveBeenCalledTimes(1)
+    expect(provider.scheduleEmail).not.toHaveBeenCalled()
+    expect(provider.cancelEmail).not.toHaveBeenCalled()
+  })
+
+  it('reschedules a row predating the content-hash column', async () => {
+    // Rows written before content_hash existed have no fingerprint. They must
+    // still reschedule on a time change, and must NOT be treated as stale —
+    // otherwise upgrading re-creates every queued reminder and re-charges quota.
+    seedEvent()
     seedScheduled({ dueAt: new Date(Date.now() + 2 * DAY - 75 * 60_000) })
 
     await reconcileEventReminders({ userId: 'u1', eventId: 'e1' })

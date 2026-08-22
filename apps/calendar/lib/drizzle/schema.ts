@@ -353,6 +353,15 @@ export const scheduledReminders = pgTable(
     dueDate: text('due_date').notNull(),
     /** The provider's message id, for reschedule and cancel. */
     providerId: text('provider_id'),
+    /**
+     * Fingerprint of the content this email was rendered from.
+     *
+     * The provider's update endpoint accepts only a new send time — it cannot
+     * change a queued email's subject or body. So an edit to the title,
+     * location, or description can only be reflected by cancelling and
+     * re-creating, and this column is how such an edit is detected.
+     */
+    contentHash: text('content_hash'),
     sentAt: timestamp('sent_at', { precision: 3, withTimezone: true }),
     createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
       .defaultNow()
