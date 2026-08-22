@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
 import { eq, and, inArray } from 'drizzle-orm'
-import { parseInstanceId } from '@/lib/recurrence/engine'
+import { parseInstanceId, isSeriesEvent } from '@/lib/recurrence/engine'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 import { baselineOf, getInviteOccurrences } from '@/lib/invites/invite-service'
 
@@ -44,7 +44,22 @@ export async function isEventViewableBy(
   // shared with every other read path — see
   // ADR-0008 (visibility is decided in one place, shared by every reader).
   const parsed = parseInstanceId(eventId)
-  if (!parsed) return true
+  if (!parsed) {
+    // No stamp was supplied, so there is no occurrence to check and therefore
+    // no grant to honour. For a series master that is a refusal: the master row
+    // carries the rrule and the exdates, and the readers here spread the whole
+    // row, so admitting it would hand a participant the means to expand every
+    // occurrence client-side — the leak
+    // ADR-0006 (participants never receive the recurrence rule) closes
+    // structurally. A plain event has no occurrences to filter, so the invite
+    // alone is the grant.
+    const [row] = await getDb()
+      .select({ rrule: calendarEvents.rrule })
+      .from(calendarEvents)
+      .where(eq(calendarEvents.id, invite.eventId))
+      .limit(1)
+    return row ? !isSeriesEvent(row) : false
+  }
 
   const exceptions = await getInviteOccurrences(invite.id)
   return canParticipantSeeOccurrence(

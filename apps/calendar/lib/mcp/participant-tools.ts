@@ -10,10 +10,14 @@ import {
   updateRsvp,
   removeParticipantFromCalendar,
   getInviteByToken,
+  getInvitesByToken,
   baselineOf,
   getInviteOccurrences,
+  getOccurrencesForInvites,
   updateOccurrenceRsvp,
 } from '@/lib/invites/invite-service'
+import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
+import { isSeriesEvent } from '@/lib/recurrence/engine'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
@@ -271,18 +275,33 @@ export async function updateInviteRsvp(
   /** RFC stamp of the occurrence being answered, for a recurring event. */
   recurrenceId?: string,
 ) {
-  const invite = await getOwnInvite(userEmail, inviteToken)
+  // Every segment sharing the token, not just the earliest: a split copies a
+  // grant to the new master keeping the token (ADR-0009), so a tail stamp is
+  // only covered by a later segment. `getInviteByToken` returns the earliest,
+  // so validating against it alone rejected legitimate answers.
+  const grants = await getInvitesByToken(inviteToken)
+  const owned = grants[0]
+  if (!owned) {
+    throw new ParticipantError('Invite not found or expired', 404)
+  }
+  if (owned.email.toLowerCase() !== userEmail.toLowerCase()) {
+    throw new ParticipantError(
+      'Forbidden: invite does not belong to the authenticated user',
+      403,
+    )
+  }
 
-  if (recurrenceId) {
-    const exceptions = await getInviteOccurrences(invite.id)
-    if (
-      !canParticipantSeeOccurrence(baselineOf(invite), exceptions, recurrenceId)
-    ) {
-      throw new ParticipantError('Occurrence not found', 404)
-    }
+  // Where the answer belongs is decided in one place, shared with the HTTP
+  // endpoint — see ADR-0012 (an RSVP must name the occurrence it answers).
+  const target = await resolveRsvpTarget({ grants, recurrenceId })
+  if (target.kind === 'refused') {
+    throw new ParticipantError(target.error, target.status)
+  }
+
+  if (target.kind === 'occurrence') {
     await updateOccurrenceRsvp({
-      inviteId: invite.id,
-      recurrenceId,
+      inviteId: target.grant.id,
+      recurrenceId: target.recurrenceId,
       status,
       visible: true,
     })
@@ -291,8 +310,8 @@ export async function updateInviteRsvp(
   }
 
   return {
-    event_id: invite.eventId,
-    email: invite.email,
+    event_id: target.grant.eventId,
+    email: owned.email,
     occurrence: recurrenceId ?? null,
     status,
   }
@@ -337,10 +356,24 @@ export async function listMyEventInvites(
 
   const eventMap = new Map(events.map((e) => [e.id, decryptEvent(e)]))
 
+  // A series' answers live per occurrence; `event_invites.status` is meaningful
+  // only for a non-recurring event — see
+  // ADR-0012 (an RSVP must name the occurrence it answers). Reporting the
+  // column for a series showed one value, usually "pending", for every date the
+  // participant had actually answered.
+  const exceptionsByInvite = await getOccurrencesForInvites(
+    invites
+      .filter((i) =>
+        isSeriesEvent({ rrule: eventMap.get(i.eventId)?.rrule ?? null }),
+      )
+      .map((i) => i.id),
+  )
+
   const result = invites
     .map((invite) => {
       const event = eventMap.get(invite.eventId)
       if (!event) return null
+      const recurring = isSeriesEvent({ rrule: event.rrule })
       return {
         event_id: event.id,
         title: event.title,
@@ -350,7 +383,25 @@ export async function listMyEventInvites(
         color: event.color,
         location: event.location,
         category_id: event.categoryId,
-        rsvp_status: invite.status,
+        recurring,
+        rsvp_status: recurring ? null : invite.status,
+        occurrence_rsvps: recurring
+          ? (exceptionsByInvite.get(invite.id) ?? [])
+              // Only answered occurrences: a hidden exception carries no answer
+              // worth reporting, and an unanswered one is "pending" by default.
+              .filter((e) => e.visible)
+              .map((e) => ({
+                recurrence_id: e.recurrenceId,
+                rsvp_status: e.status ?? 'pending',
+              }))
+              .sort((a, b) =>
+                a.recurrence_id < b.recurrence_id
+                  ? -1
+                  : a.recurrence_id > b.recurrence_id
+                    ? 1
+                    : 0,
+              )
+          : null,
         added_to_calendar: invite.addedToCalendar,
         invite_link: `${baseUrl()}/invite/${invite.inviteToken}`,
         expires_at: invite.expiresAt,

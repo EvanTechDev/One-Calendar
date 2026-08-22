@@ -27,8 +27,8 @@ import {
   MAX_EXPANSION,
   describeRecurrence,
   expandSeries,
-  parseRfcStamp,
 } from '@/lib/recurrence/engine'
+import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
 import {
   checkFixedWindowLimit,
@@ -51,46 +51,6 @@ async function organiserTimeZone(userId: string): Promise<string | undefined> {
     .where(eq(settings.userId, userId))
   const tz = (row?.data as { timezone?: unknown } | null)?.timezone
   return typeof tz === 'string' && tz ? tz : undefined
-}
-
-/**
- * Whether the stamp is a real occurrence of the grant's series.
- *
- * The visibility rules answer "is this occurrence allowed?", which for an
- * unbounded baseline is true of any well-formed stamp — including one the series
- * never generates. Without this check a participant could create an RSVP row for
- * a date that does not exist, which then renders as a phantom occurrence.
- */
-async function grantHasOccurrence(
-  grant: { eventId: string },
-  stamp: string,
-): Promise<boolean> {
-  const [segment] = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(eq(calendarEvents.id, grant.eventId))
-  if (!segment?.rrule) return false
-
-  const target = parseRfcStampSafe(stamp)
-  if (target === null) return false
-
-  // A narrow window around the stamp: expanding ±2 years to check one date is
-  // wasteful, and the rule only needs to be asked about this instant.
-  return expandSeries(
-    segment,
-    new Date(target.getTime() - 2 * 24 * 3600 * 1000),
-    new Date(target.getTime() + 2 * 24 * 3600 * 1000),
-    MAX_EXPANSION,
-    await organiserTimeZone(segment.userId),
-  ).some((instance) => instance.recurrenceId === stamp)
-}
-
-function parseRfcStampSafe(stamp: string): Date | null {
-  try {
-    return parseRfcStamp(stamp).date
-  } catch {
-    return null
-  }
 }
 
 /**
@@ -290,63 +250,20 @@ export const PATCH = async function PATCH(
   }
 
   if (status) {
-    // Which kind of event this is decides where the answer belongs. A recurring
-    // event has no meaningful series-wide RSVP — each occurrence is answered
-    // independently — so the stamp is required rather than optional.
-    const [rsvpEvent] = await getDb()
-      .select({ rrule: calendarEvents.rrule })
-      .from(calendarEvents)
-      .where(eq(calendarEvents.id, invite.eventId))
-    const isRecurringTarget =
-      !!rsvpEvent?.rrule && rsvpEvent.rrule.trim().length > 0
-
-    if (isRecurringTarget && !recurrenceId) {
-      // The bug this guards: the calendar UI omitted the stamp, so the write
-      // landed on the invite row — which the calendar never reads — and every
-      // occurrence stayed "pending" while appearing to have been answered.
-      // Guessing an occurrence would be worse than refusing.
+    // Where the answer belongs is decided in one place, shared with the MCP
+    // tool — see ADR-0012 (an RSVP must name the occurrence it answers).
+    const target = await resolveRsvpTarget({ grants, recurrenceId })
+    if (target.kind === 'refused') {
       return NextResponse.json(
-        { error: 'recurrenceId is required to RSVP to a recurring event' },
-        { status: 400 },
+        { error: target.error },
+        { status: target.status },
       )
     }
 
-    if (!isRecurringTarget && recurrenceId) {
-      return NextResponse.json(
-        { error: 'recurrenceId is not valid for a non-recurring event' },
-        { status: 400 },
-      )
-    }
-
-    if (recurrenceId) {
-      // The stamp may belong to any segment the token addresses after a split,
-      // so find the grant that actually covers it — and reject an uncovered
-      // stamp, or a participant could RSVP to, and thereby confirm the
-      // existence of, occurrences they cannot see.
-      let target: { id: string } | null = null
-      for (const grant of grants) {
-        const exceptions = await getInviteOccurrences(grant.id)
-        if (
-          canParticipantSeeOccurrence(
-            baselineOf(grant),
-            exceptions,
-            recurrenceId,
-          ) &&
-          (await grantHasOccurrence(grant, recurrenceId))
-        ) {
-          target = grant
-          break
-        }
-      }
-      if (!target) {
-        return NextResponse.json(
-          { error: 'Occurrence not found' },
-          { status: 404 },
-        )
-      }
+    if (target.kind === 'occurrence') {
       await updateOccurrenceRsvp({
-        inviteId: target.id,
-        recurrenceId,
+        inviteId: target.grant.id,
+        recurrenceId: target.recurrenceId,
         status,
         visible: true,
       })

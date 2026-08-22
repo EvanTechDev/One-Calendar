@@ -37,6 +37,7 @@ import {
   wallClockDayDelta,
   withUntil,
 } from '@/lib/recurrence/engine'
+import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import { RRule } from 'rrule'
 import crypto from 'crypto'
 
@@ -688,6 +689,11 @@ async function applySplitPlan(
   master: EventRow,
   plan: InstanceChangePlan,
   dbx?: Db,
+  /**
+   * The organiser's timezone, so carried grants are clock-remapped in the same
+   * zone the rest of the split's stamp arithmetic uses.
+   */
+  timeZone?: string,
 ): Promise<ReturnType<typeof decryptEvent> | null> {
   const db = dbx ?? (await getDb())
   const split = plan.split!
@@ -718,6 +724,20 @@ async function applySplitPlan(
         ),
       )
   }
+
+  // Participants must not silently lose the tail of the series just because an
+  // agent rescheduled it. Shared with the REST route so the invariant lives in
+  // one place — see
+  // ADR-0009 (invites and their visibility survive a series split). This runs
+  // BEFORE the empty-master delete below, which would otherwise destroy the
+  // grants with nothing having been carried.
+  await carryInvitesAcrossSplit(db, {
+    oldMasterId: master.id,
+    newMasterId: newId,
+    boundaryStamp: split.masterUntil,
+    clockSource: split.newSeries.startDate,
+    timeZone,
+  })
 
   if (split.masterBecomesEmpty) {
     // Same as the REST route: a truncated master that renders nothing is
@@ -1344,7 +1364,13 @@ async function updateEventImpl(
     if (plan.split) {
       // Split writes + override re-stamps are one atomic unit (plan 003).
       const newMaster = await db.transaction(async (tx) => {
-        const created = await applySplitPlan(userId, masterRow, plan, tx)
+        const created = await applySplitPlan(
+          userId,
+          masterRow,
+          plan,
+          tx,
+          timeZone,
+        )
         if (!created) return null
         await shiftMovedOverrides(
           tx,
@@ -1506,7 +1532,13 @@ async function updateEventImpl(
     if (plan.split) {
       // Split writes + override re-stamps are one atomic unit (plan 003).
       const newMaster = await db.transaction(async (tx) => {
-        const created = await applySplitPlan(userId, seriesRow, plan, tx)
+        const created = await applySplitPlan(
+          userId,
+          seriesRow,
+          plan,
+          tx,
+          timeZone,
+        )
         if (!created) return null
         await shiftMovedOverrides(
           tx,
@@ -1642,7 +1674,13 @@ async function deleteEventImpl(
       timeZone,
     })
     await db.transaction(async (tx) => {
-      const newMaster = await applySplitPlan(userId, masterRow, plan, tx)
+      const newMaster = await applySplitPlan(
+        userId,
+        masterRow,
+        plan,
+        tx,
+        timeZone,
+      )
       if (newMaster) {
         await deleteCalendarEventRow(tx, userId, newMaster.id)
       }
@@ -1690,7 +1728,13 @@ async function deleteEventImpl(
 
     if (plan.split) {
       await db.transaction(async (tx) => {
-        const newMaster = await applySplitPlan(userId, seriesRow, plan, tx)
+        const newMaster = await applySplitPlan(
+          userId,
+          seriesRow,
+          plan,
+          tx,
+          timeZone,
+        )
         if (newMaster) {
           await deleteCalendarEventRow(tx, userId, newMaster.id)
         }

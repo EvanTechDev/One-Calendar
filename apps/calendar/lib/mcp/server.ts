@@ -665,12 +665,14 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'list_my_event_invites',
-    'List all events you have been invited to, with your RSVP status and invite links',
+    'List all events you have been invited to, with your RSVP status and invite links. For a recurring event, RSVPs are per occurrence and reported in occurrence_rsvps; rsvp_status is null',
     {
       status: z
         .enum(['pending', 'accepted', 'maybe', 'declined'])
         .optional()
-        .describe('Filter by RSVP status'),
+        .describe(
+          'Filter by RSVP status. Only meaningful for non-recurring events — a series has no series-wide RSVP',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)

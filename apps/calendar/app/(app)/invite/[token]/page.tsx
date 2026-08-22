@@ -96,6 +96,7 @@ export default function InvitePage() {
     null,
   )
   const [rsvpError, setRsvpError] = useState('')
+  const [addError, setAddError] = useState('')
 
   useEffect(() => {
     fetch(`/api/invite/${token}`)
@@ -115,7 +116,17 @@ export default function InvitePage() {
               data.occurrences.map((o) => [o.recurrenceId, o.status]),
             ),
           )
-          setSelectedOccurrence(data.occurrences[0].recurrenceId)
+          // The first occurrence at or after now, falling back to the last.
+          // Defaulting to occurrences[0] pointed at a date up to two years
+          // past, so the default action answered one that had already gone.
+          const now = Date.now()
+          const upcoming = data.occurrences.find(
+            (o) => new Date(o.startDate).getTime() >= now,
+          )
+          setSelectedOccurrence(
+            (upcoming ?? data.occurrences[data.occurrences.length - 1])
+              .recurrenceId,
+          )
         }
         setLoading(false)
       })
@@ -168,13 +179,28 @@ export default function InvitePage() {
   }
 
   const handleAddToCalendar = async () => {
-    await fetch(`/api/invite/${token}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId: selectedCategory }),
-    })
-    setAddedToCalendar(true)
-    setCategoryDialogOpen(false)
+    // The response is load-bearing: reporting success unconditionally hid the
+    // button on a refusal, leaving the participant with no way to retry and no
+    // indication anything went wrong. Mirrors handleRsvp's handling above.
+    try {
+      const response = await fetch(`/api/invite/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: selectedCategory }),
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string
+        } | null
+        setAddError(body?.error ?? 'Could not add this event to your calendar.')
+        return
+      }
+      setAddError('')
+      setAddedToCalendar(true)
+      setCategoryDialogOpen(false)
+    } catch {
+      setAddError('Could not add this event to your calendar.')
+    }
   }
 
   if (loading) {
@@ -200,9 +226,24 @@ export default function InvitePage() {
   }
 
   const { event, inviter, occurrences } = data
-  const isRecurring = !!occurrences && occurrences.length > 0
-  const startDate = new Date(event.startDate)
-  const endDate = new Date(event.endDate)
+  // `occurrences === null` (not recurring) and `occurrences.length === 0` (a
+  // grant reduced to nothing) are two distinct states. Conflating them rendered
+  // an empty grant as a one-off at the master's date, where every RSVP is a
+  // guaranteed 400.
+  const isRecurring = occurrences !== null
+  const hasNoGrantedDates = isRecurring && occurrences.length === 0
+  const selected = isRecurring
+    ? (occurrences.find((o) => o.recurrenceId === selectedOccurrence) ??
+      occurrences[0] ??
+      null)
+    : null
+
+  // The endpoint always sets event.startDate/endDate from the MASTER row, which
+  // for a series says nothing about which occurrences this link grants. Show the
+  // selected occurrence instead, or a participant granted one date is told to
+  // attend one they cannot see.
+  const startDate = new Date(selected?.startDate ?? event.startDate)
+  const endDate = new Date(selected?.endDate ?? event.endDate)
 
   const formatDateRange = () => {
     if (event.isAllDay) {
@@ -256,7 +297,11 @@ export default function InvitePage() {
               <h2 className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]">
                 {event.title}
               </h2>
-              <p className="text-muted-foreground">{formatDateRange()}</p>
+              <p className="text-muted-foreground">
+                {hasNoGrantedDates
+                  ? 'This invitation no longer covers any dates.'
+                  : formatDateRange()}
+              </p>
             </div>
           </div>
 
@@ -274,7 +319,7 @@ export default function InvitePage() {
               Only the occurrences this link grants. The list comes from the
               server already filtered; the rule itself is never sent.
             */}
-            {isRecurring && occurrences && occurrences.length > 1 && (
+            {isRecurring && occurrences.length >= 1 && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Which date?</p>
                 <Select
@@ -328,49 +373,67 @@ export default function InvitePage() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
-            <p className="w-full text-left text-sm font-medium">
-              Will you attend?
-            </p>
-            {/* Reflects the SELECTED occurrence, since each has its own answer. */}
-            <div className="flex w-full gap-3">
-              <Button
-                variant={effectiveStatus === 'accepted' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('accepted')}
-              >
-                Yes
-              </Button>
-              <Button
-                variant={effectiveStatus === 'maybe' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('maybe')}
-              >
-                Maybe
-              </Button>
-              <Button
-                variant={effectiveStatus === 'declined' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('declined')}
-              >
-                No
-              </Button>
-            </div>
-
-            {rsvpError && (
-              <p className="w-full text-left text-sm text-destructive">
-                {rsvpError}
+            {hasNoGrantedDates ? (
+              // Nothing to answer: the organiser has removed every occurrence
+              // this link granted, so every RSVP would be refused. Say so
+              // rather than offer buttons that cannot succeed.
+              <p className="w-full text-left text-sm text-muted-foreground">
+                The organiser has removed you from every date this invitation
+                covered. There is nothing to respond to.
               </p>
-            )}
+            ) : (
+              <>
+                <p className="w-full text-left text-sm font-medium">
+                  Will you attend?
+                </p>
+                {/* Reflects the SELECTED occurrence, since each has its own answer. */}
+                <div className="flex w-full gap-3">
+                  <Button
+                    variant={
+                      effectiveStatus === 'accepted' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('accepted')}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    variant={
+                      effectiveStatus === 'maybe' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('maybe')}
+                  >
+                    Maybe
+                  </Button>
+                  <Button
+                    variant={
+                      effectiveStatus === 'declined' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('declined')}
+                  >
+                    No
+                  </Button>
+                </div>
 
-            {canAddToCalendar && isRegisteredUser && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setCategoryDialogOpen(true)}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Add to My Calendar
-              </Button>
+                {rsvpError && (
+                  <p className="w-full text-left text-sm text-destructive">
+                    {rsvpError}
+                  </p>
+                )}
+
+                {canAddToCalendar && isRegisteredUser && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setCategoryDialogOpen(true)}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Add to My Calendar
+                  </Button>
+                )}
+              </>
             )}
           </CardFooter>
         </Card>
@@ -394,6 +457,12 @@ export default function InvitePage() {
               ))}
             </SelectContent>
           </Select>
+          {/*
+            The refusal is shown here, where the action was taken. The dialog
+            stays open so the participant can retry — closing it and reporting
+            success was how a refused add looked like a successful one.
+          */}
+          {addError && <p className="text-sm text-destructive">{addError}</p>}
           <DialogFooter>
             <Button
               variant="outline"

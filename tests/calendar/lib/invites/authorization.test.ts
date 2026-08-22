@@ -106,7 +106,11 @@ beforeEach(() => {
   invites.length = 0
   occurrences.length = 0
   events.length = 0
-  events.push({ id: 'm1', userId: 'u1' })
+  // m1 is a series master: every `m1_<stamp>` id below is one of its
+  // occurrences, so the master row must actually carry an rrule.
+  events.push({ id: 'm1', userId: 'u1', rrule: 'FREQ=WEEKLY;BYDAY=MO' })
+  // p1 is a plain, non-recurring event owned by the same organiser.
+  events.push({ id: 'p1', userId: 'u1', rrule: null })
 })
 
 describe('isEventViewableBy', () => {
@@ -169,5 +173,52 @@ describe('isEventViewableBy', () => {
     seedInvite({ fromStamp: DAY1, untilStamp: DAY3 })
     expect(await isEventViewableBy(`m1_${DAY1}`, PARTICIPANT)).toBe(true)
     expect(await isEventViewableBy(`m1_${DAY3}`, PARTICIPANT)).toBe(false)
+  })
+
+  it('admits the organiser asking for the series master id', async () => {
+    seedInvite()
+    expect(
+      await isEventViewableBy('m1', { id: 'u1', email: 'u1@example.com' }),
+    ).toBe(true)
+  })
+
+  it('refuses a participant asking for the series master id', async () => {
+    // THE MASTER-ID HOLE. A master row carries the rrule and the exdates, and
+    // decryptEvent spreads the whole row — so admitting this hands a
+    // participant granted one occurrence the means to expand the entire series
+    // client-side. There is no stamp here, therefore no grant to honour. See
+    // ADR-0006 (participants never receive the recurrence rule).
+    seedInvite({ baselineKind: 'none' })
+    occurrences.push({
+      id: 'occ1',
+      inviteId: 'inv1',
+      recurrenceId: DAY3,
+      visible: true,
+      status: 'pending',
+    })
+
+    expect(await isEventViewableBy('m1', PARTICIPANT)).toBe(false)
+    // The granted occurrence itself is unaffected.
+    expect(await isEventViewableBy(`m1_${DAY3}`, PARTICIPANT)).toBe(true)
+  })
+
+  it('refuses a participant asking for the master id even on a full baseline', async () => {
+    // Even an unbounded baseline is not a licence to read the rule itself:
+    // the response is expanded and filtered per occurrence everywhere else.
+    seedInvite()
+    expect(await isEventViewableBy('m1', PARTICIPANT)).toBe(false)
+  })
+
+  it('admits a participant asking for a plain invited event by its own id', async () => {
+    // A non-recurring shared event has no occurrences to filter, so the
+    // invite alone is the grant. This must keep working.
+    seedInvite({ id: 'inv2', eventId: 'p1' })
+    expect(await isEventViewableBy('p1', PARTICIPANT)).toBe(true)
+  })
+
+  it('treats a blank rrule as a plain event', async () => {
+    events.push({ id: 'p2', userId: 'u1', rrule: '   ' })
+    seedInvite({ id: 'inv3', eventId: 'p2' })
+    expect(await isEventViewableBy('p2', PARTICIPANT)).toBe(true)
   })
 })

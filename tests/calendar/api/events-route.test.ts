@@ -527,6 +527,150 @@ describe('invites survive a series split', () => {
     expect(new Set(sharing.map((r) => r.eventId)).size).toBe(2)
   })
 
+  function seedException(overrides: Record<string, unknown> = {}) {
+    fake.seed(
+      {
+        id: 'occ1',
+        inviteId: 'inv1',
+        recurrenceId: '20260817T090000Z',
+        visible: true,
+        status: 'accepted',
+        createdAt: day(2026, 7, 5),
+        updatedAt: day(2026, 7, 5),
+        ...overrides,
+      },
+      'event_invite_occurrences',
+    )
+  }
+
+  it('leaves a carried grant at the boundary when the split changes no clock', async () => {
+    // THE STAMP-DELTA BUG. The delta was measured from the series ANCHOR
+    // (3 Aug) to the boundary day (10 Aug), so a `following` edit that touches
+    // no clock still moved every carried stamp forward by seven days: the
+    // participant lost the start of the tail they were granted.
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000106'
+
+    const res = await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+    expect(res.status).toBe(200)
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)
+    expect(carried!.fromStamp).toBe('20260810T090000Z')
+  })
+
+  it('remaps a carried grant onto the new clock, keeping its day', async () => {
+    // A genuine time-of-day change must move the stamp's clock and nothing
+    // else — the same clock remap shiftOverridesByDelta applies to overrides.
+    seedMaster()
+    seedInvite()
+    const newId = '00000000-0000-4000-8000-000000000107'
+
+    const res = await POST(
+      putRequest({
+        title: 'Team sync',
+        timezone: 'UTC',
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        // 09:00 → 11:00 on the boundary occurrence's own day.
+        startDate: '2026-08-10T11:00:00Z',
+        endDate: '2026-08-10T11:30:00Z',
+        split_id: newId,
+      }),
+    )
+    expect(res.status).toBe(200)
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)
+    expect(carried!.fromStamp).toBe('20260810T110000Z')
+  })
+
+  it('caps a bounded carried grant at its own end, remapped not shifted', async () => {
+    seedMaster()
+    seedInvite({ untilStamp: '20260901T090000Z' })
+    const newId = '00000000-0000-4000-8000-000000000108'
+
+    await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)
+    // A same-time split must not extend the grant past what was granted.
+    expect(carried!.untilStamp).toBe('20260901T090000Z')
+  })
+
+  it('carries a tail exception with its stamp, visibility and RSVP intact', async () => {
+    seedMaster()
+    seedInvite()
+    seedException({ visible: false, status: 'declined' })
+    const newId = '00000000-0000-4000-8000-000000000109'
+
+    await POST(
+      putRequest({
+        ...baseUpdateFields,
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        split_id: newId,
+      }),
+    )
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)!
+    const carriedExceptions = fake
+      .rows('event_invite_occurrences')
+      .filter((r) => r.inviteId === carried.id)
+    expect(carriedExceptions).toHaveLength(1)
+    // Same-time split: the stamp the new series generates is unchanged, so a
+    // shifted stamp would be an unreadable orphan row.
+    expect(carriedExceptions[0].recurrenceId).toBe('20260817T090000Z')
+    expect(carriedExceptions[0].visible).toBe(false)
+    expect(carriedExceptions[0].status).toBe('declined')
+
+    // The old master keeps only what precedes the boundary.
+    expect(
+      fake
+        .rows('event_invite_occurrences')
+        .filter((r) => r.inviteId === 'inv1'),
+    ).toHaveLength(0)
+  })
+
+  it('remaps a carried tail exception onto the new clock', async () => {
+    seedMaster()
+    seedInvite()
+    seedException()
+    const newId = '00000000-0000-4000-8000-00000000010a'
+
+    await POST(
+      putRequest({
+        title: 'Team sync',
+        timezone: 'UTC',
+        id: 'm1_20260810T090000Z',
+        apply_to: 'following',
+        startDate: '2026-08-10T11:00:00Z',
+        endDate: '2026-08-10T11:30:00Z',
+        split_id: newId,
+      }),
+    )
+
+    const carried = fake.rows('event_invites').find((r) => r.eventId === newId)!
+    const carriedExceptions = fake
+      .rows('event_invite_occurrences')
+      .filter((r) => r.inviteId === carried.id)
+    expect(carriedExceptions).toHaveLength(1)
+    // 17 Aug stays 17 Aug; only the clock follows the series.
+    expect(carriedExceptions[0].recurrenceId).toBe('20260817T110000Z')
+  })
+
   it('carries the grant before deleting an emptied old master', async () => {
     // Splitting at the series' first slot empties the old master, whose invites
     // are then deleted. The carry-over must happen first or the grant is lost.

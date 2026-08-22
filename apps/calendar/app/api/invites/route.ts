@@ -7,8 +7,15 @@ import { decryptField } from '@/lib/field-crypto'
 import {
   sendInviteEmails,
   getInvitesForEvent,
+  getOccurrencesForInvites,
+  baselineOf,
   removeParticipantFromCalendar,
 } from '@/lib/invites/invite-service'
+import {
+  canParticipantSeeOccurrence,
+  rsvpForOccurrence,
+  type OccurrenceException,
+} from '@/lib/invites/visibility'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
@@ -167,7 +174,35 @@ export const GET = async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const invites = await getInvitesForEvent(target.masterId)
+  const allInvites = await getInvitesForEvent(target.masterId)
+
+  // Expiry is enforced here too, matching the calendar's shared-events query and
+  // `isEventViewableBy`: an expired grant must not keep appearing in the
+  // organiser's list.
+  const now = new Date()
+  const liveInvites = allInvites.filter(
+    (i) => !i.expiresAt || i.expiresAt > now,
+  )
+
+  // `target.stamp` names the occurrence being previewed. Filter to the
+  // participants of THIS occurrence and report their RSVP for it, exactly as
+  // `enrichEventsWithInvites` does — the client REPLACES its correctly-filtered
+  // list with this one, so an unfiltered answer silently widens it. See
+  // ADR-0008 (visibility is decided in one place, shared by every reader).
+  const stamp = target.stamp
+  const occurrencesByInvite = stamp
+    ? await getOccurrencesForInvites(liveInvites.map((i) => i.id))
+    : new Map<string, OccurrenceException[]>()
+
+  const invites = liveInvites.filter((invite) => {
+    // A plain event has no stamp, so every invite applies to it.
+    if (stamp === null) return true
+    return canParticipantSeeOccurrence(
+      baselineOf(invite),
+      occurrencesByInvite.get(invite.id) ?? [],
+      stamp,
+    )
+  })
 
   const emails = [...new Set(invites.map((i: { email: string }) => i.email))]
   const users = emails.length
@@ -185,8 +220,14 @@ export const GET = async function GET(request: NextRequest) {
     {} as Record<string, { name: string; image: string | null }>,
   )
 
-  const enrichedInvites = invites.map((invite: { email: string }) => ({
+  const enrichedInvites = invites.map((invite) => ({
     ...invite,
+    // RSVP is per-occurrence for a series; the invite row's own status only
+    // answers for a non-recurring event (ADR-0012).
+    status:
+      stamp === null
+        ? invite.status
+        : rsvpForOccurrence(occurrencesByInvite.get(invite.id) ?? [], stamp),
     userName: userMap[invite.email]?.name ?? null,
     userImage: userMap[invite.email]?.image ?? null,
   }))

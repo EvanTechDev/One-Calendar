@@ -61,7 +61,13 @@ describe('the public invite endpoint', () => {
   })
 
   it('rejects an RSVP for an occurrence the token cannot see', () => {
-    expect(source).toContain("{ error: 'Occurrence not found' }")
+    // The refusal itself now lives in the shared decision point the MCP tool
+    // also calls (lib/invites/rsvp-target.ts), so the endpoint asserts it
+    // delegates and the shared module asserts the refusal.
+    expect(source).toContain('resolveRsvpTarget')
+    expect(read('lib/invites/rsvp-target.ts')).toContain(
+      "error: 'Occurrence not found'",
+    )
   })
 })
 

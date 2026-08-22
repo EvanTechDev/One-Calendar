@@ -3,7 +3,6 @@ import { getDb } from '@/lib/drizzle/client'
 import {
   calendarEvents,
   eventInvites,
-  eventInviteOccurrences,
   settings,
   user,
 } from '@/lib/drizzle/schema'
@@ -48,7 +47,6 @@ import {
   canTranslateRuleByDays,
   describeRecurrence,
   shiftExdates,
-  shiftStamp,
   shiftToAnchorClock,
   translateRuleByDays,
   translateStampsByDays,
@@ -64,6 +62,7 @@ import {
   baselineOf,
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
+import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
@@ -290,125 +289,16 @@ async function deleteRow(
   )
 }
 
-/**
- * Moves participant grants that reach past a split boundary onto the new
- * master, keeping each invite token so no participant is re-invited.
- *
- * Grants living entirely before the boundary stay on the old master and are
- * deliberately not copied — which is why this is per-stamp rather than a
- * wholesale copy.
- */
-async function carryInvitesAcrossSplit(
-  tx: Dbx,
-  params: {
-    oldMasterId: string
-    newMasterId: string
-    boundaryStamp: string
-    stampDeltaMs: number
-  },
-): Promise<void> {
-  const { oldMasterId, newMasterId, boundaryStamp, stampDeltaMs } = params
-
-  const invites = await tx
-    .select()
-    .from(eventInvites)
-    .where(eq(eventInvites.eventId, oldMasterId))
-  if (invites.length === 0) return
-
-  const shift = (stamp: string) =>
-    stampDeltaMs === 0 ? stamp : (shiftStamp(stamp, stampDeltaMs) ?? stamp)
-
-  for (const invite of invites) {
-    const exceptions = await tx
-      .select()
-      .from(eventInviteOccurrences)
-      .where(eq(eventInviteOccurrences.inviteId, invite.id))
-
-    const tailExceptions = exceptions.filter(
-      (e) => e.recurrenceId >= boundaryStamp,
-    )
-    const baselineReachesTail =
-      invite.baselineKind === 'all' &&
-      (invite.untilStamp === null || invite.untilStamp > boundaryStamp)
-
-    if (!baselineReachesTail && tailExceptions.length === 0) continue
-
-    const [carried] = await tx
-      .insert(eventInvites)
-      .values({
-        id: crypto.randomUUID(),
-        eventId: newMasterId,
-        email: invite.email,
-        status: invite.status,
-        // The same token, so the participant's existing link keeps working.
-        inviteToken: invite.inviteToken,
-        emailSent: invite.emailSent,
-        addedToCalendar: invite.addedToCalendar,
-        categoryId: invite.categoryId,
-        baselineKind: baselineReachesTail ? 'all' : 'none',
-        fromStamp: baselineReachesTail
-          ? shift(
-              invite.fromStamp && invite.fromStamp > boundaryStamp
-                ? invite.fromStamp
-                : boundaryStamp,
-            )
-          : null,
-        untilStamp:
-          baselineReachesTail && invite.untilStamp
-            ? shift(invite.untilStamp)
-            : null,
-        expiresAt: invite.expiresAt,
-        createdAt: invite.createdAt,
-        updatedAt: new Date(),
-      })
-      .onConflictDoNothing({
-        target: [eventInvites.eventId, eventInvites.email],
-      })
-      .returning()
-
-    if (!carried) continue
-
-    if (tailExceptions.length > 0) {
-      await tx.insert(eventInviteOccurrences).values(
-        tailExceptions.map((e) => ({
-          id: crypto.randomUUID(),
-          inviteId: carried.id,
-          // Re-stamped when the split moved the occurrence times, mirroring
-          // what shiftOverridesByDelta does for override rows.
-          recurrenceId: shift(e.recurrenceId),
-          visible: e.visible,
-          status: e.status,
-          createdAt: e.createdAt,
-          updatedAt: new Date(),
-        })),
-      )
-    }
-
-    // The old master keeps only what precedes the boundary.
-    if (tailExceptions.length > 0) {
-      await tx.delete(eventInviteOccurrences).where(
-        and(
-          eq(eventInviteOccurrences.inviteId, invite.id),
-          inArray(
-            eventInviteOccurrences.recurrenceId,
-            tailExceptions.map((e) => e.recurrenceId),
-          ),
-        ),
-      )
-    }
-    if (baselineReachesTail) {
-      await tx
-        .update(eventInvites)
-        .set({ untilStamp: boundaryStamp, updatedAt: new Date() })
-        .where(eq(eventInvites.id, invite.id))
-    }
-  }
-}
-
 async function applySplitPlan(
   userId: string,
   plan: InstanceChangePlan,
   master: EventRow,
+  /**
+   * The organiser's timezone, already resolved by the handler via
+   * `resolveUserTz`. Carried grants are clock-remapped in it, exactly as the
+   * override path remaps override stamps.
+   */
+  timeZone?: string,
 ): Promise<ReturnType<typeof decryptEvent> | null> {
   const split = plan.split!
   const newId = split.newSeries.id
@@ -461,8 +351,8 @@ async function applySplitPlan(
       oldMasterId: master.id,
       newMasterId: newId,
       boundaryStamp: split.masterUntil,
-      stampDeltaMs:
-        split.newSeries.startDate.getTime() - master.startDate.getTime(),
+      clockSource: split.newSeries.startDate,
+      timeZone,
     })
 
     if (split.masterBecomesEmpty) {
@@ -1336,7 +1226,7 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, masterRow)
+      const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
@@ -1635,7 +1525,7 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow)
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
@@ -1916,7 +1806,7 @@ const deleteHandler = async function DELETE(request: NextRequest) {
       now: new Date(),
       timeZone,
     })
-    const newMaster = await applySplitPlan(user.id, plan, masterRow)
+    const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
     if (newMaster) {
       await getDb()
         .delete(calendarEvents)
@@ -1971,7 +1861,7 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow)
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
       if (newMaster) {
         await getDb()
           .delete(calendarEvents)
