@@ -3,6 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  useLiveAnchorRect,
+  pickPopoverSide,
+  buildAnchorStyle,
+} from '@/hooks/use-anchored-popover'
+import {
   Edit2,
   Trash2,
   X,
@@ -141,53 +146,15 @@ export default function EventPreview({
     invitesRef.current = invites
   }, [invites])
 
-  const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    const getLiveAnchorRect = (): DOMRect | null => {
-      const el =
-        anchorElement && anchorElement.isConnected
-          ? anchorElement
-          : event
-            ? document.querySelector(
-                `[data-event-id="${CSS.escape(event.id)}"]`,
-              )
-            : null
-      if (el) return el.getBoundingClientRect()
-      return anchorRect
-    }
-
-    const update = () => {
-      const next = getLiveAnchorRect()
-      setLiveRect((prev) => {
-        if (
-          prev &&
-          next &&
-          prev.left === next.left &&
-          prev.top === next.top &&
-          prev.width === next.width &&
-          prev.height === next.height
-        ) {
-          return prev
-        }
-        return next
-      })
-    }
-    update()
-
-    const container = scrollContainerRef?.current
-    window.addEventListener('scroll', update, true)
-    window.addEventListener('resize', update)
-    container?.addEventListener('scroll', update, true)
-
-    return () => {
-      window.removeEventListener('scroll', update, true)
-      window.removeEventListener('resize', update)
-      container?.removeEventListener('scroll', update, true)
-    }
-  }, [open, anchorElement, anchorRect, event, scrollContainerRef])
+  // Anchor resolution shared with the event editor, so the two popovers
+  // position identically (CORE-191).
+  const effectiveAnchorRect = useLiveAnchorRect({
+    open,
+    anchorElement,
+    anchorSelector: event ? `[data-event-id="${CSS.escape(event.id)}"]` : null,
+    anchorRect,
+    scrollContainerRef,
+  })
 
   const isSameInvites = (a: EventInvite[], b: EventInvite[]) =>
     a.length === b.length &&
@@ -479,73 +446,12 @@ export default function EventPreview({
     }
   }
 
-  const effectiveAnchorRect = liveRect ?? anchorRect
-
-  const popoverSide: 'top' | 'right' | 'bottom' | 'left' = effectiveAnchorRect
-    ? (() => {
-        const viewportWidth =
-          typeof window === 'undefined' ? 0 : window.innerWidth
-        const viewportHeight =
-          typeof window === 'undefined' ? 0 : window.innerHeight
-        const spaces = {
-          top: effectiveAnchorRect.top,
-          right: viewportWidth - effectiveAnchorRect.right,
-          bottom: viewportHeight - effectiveAnchorRect.bottom,
-          left: effectiveAnchorRect.left,
-        }
-        const estimatedWidth = 460
-        const estimatedHeight = 520
-        if (spaces.right >= estimatedWidth) return 'right'
-        if (spaces.left >= estimatedWidth) return 'left'
-        if (spaces.bottom >= estimatedHeight) return 'bottom'
-        if (spaces.top >= estimatedHeight) return 'top'
-        const entries = Object.entries(spaces) as Array<
-          ['top' | 'right' | 'bottom' | 'left', number]
-        >
-        return entries.sort((a, b) => b[1] - a[1])[0][0]
-      })()
-    : 'bottom'
-
-  const anchorStyle: React.CSSProperties = (() => {
-    if (effectiveAnchorRect && scrollContainerRef?.current) {
-      const containerRect = scrollContainerRef.current.getBoundingClientRect()
-      const midX = effectiveAnchorRect.left + effectiveAnchorRect.width / 2
-      const midY = effectiveAnchorRect.top + effectiveAnchorRect.height / 2
-      const edgePoint =
-        popoverSide === 'right'
-          ? { left: effectiveAnchorRect.right, top: midY }
-          : popoverSide === 'left'
-            ? { left: effectiveAnchorRect.left, top: midY }
-            : popoverSide === 'top'
-              ? { left: midX, top: effectiveAnchorRect.top }
-              : { left: midX, top: effectiveAnchorRect.bottom }
-      return {
-        position: 'absolute',
-        left:
-          edgePoint.left -
-          containerRect.left +
-          scrollContainerRef.current.scrollLeft,
-        top:
-          edgePoint.top -
-          containerRect.top +
-          scrollContainerRef.current.scrollTop,
-        width: 1,
-        height: 1,
-        pointerEvents: 'none',
-      }
-    }
-
-    return {
-      position: 'fixed',
-      left:
-        typeof window === 'undefined' ? 0 : Math.round(window.innerWidth / 2),
-      top:
-        typeof window === 'undefined' ? 0 : Math.round(window.innerHeight / 2),
-      width: 1,
-      height: 1,
-      pointerEvents: 'none',
-    }
-  })()
+  const popoverSide = pickPopoverSide(effectiveAnchorRect, 460, 520)
+  const anchorStyle = buildAnchorStyle(
+    effectiveAnchorRect,
+    popoverSide,
+    scrollContainerRef?.current,
+  )
 
   const anchorNode = (
     <PopoverAnchor asChild>

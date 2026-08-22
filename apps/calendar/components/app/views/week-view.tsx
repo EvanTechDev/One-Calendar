@@ -45,6 +45,12 @@ interface WeekViewProps {
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
+  /**
+   * Range the event editor is being opened for. Rendered as the same blue box
+   * as a live drag — it is the editor popover's anchor (CORE-191) — and
+   * disappears when the editor closes and the range is cleared.
+   */
+  selection?: { start: Date; end: Date } | null
 }
 
 export default function WeekView({
@@ -59,6 +65,7 @@ export default function WeekView({
   onEditEvent: _onEditEvent,
   onDeleteEvent: _onDeleteEvent,
   onBookmarkEvent: _onBookmarkEvent,
+  selection = null,
 }: WeekViewProps) {
   const layoutEngine = useMemo(
     () => EventLayoutEngineClass.create(config),
@@ -736,6 +743,7 @@ export default function WeekView({
 
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
+                  data-create-selection
                   className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
@@ -752,6 +760,40 @@ export default function WeekView({
                   </div>
                 </div>
               )}
+
+              {/* The editor's anchor: the committed range, kept visible while
+                  the editor popover is open (CORE-191). Same box as the live
+                  drag above, driven by the parent instead of local state. */}
+              {selection &&
+                !createSelection &&
+                isSameDay(selection.start, day) &&
+                (() => {
+                  const startMinute =
+                    selection.start.getHours() * 60 +
+                    selection.start.getMinutes()
+                  const endMinute = isSameDay(selection.end, day)
+                    ? selection.end.getHours() * 60 + selection.end.getMinutes()
+                    : 24 * 60
+                  return (
+                    <div
+                      data-create-selection
+                      className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                      style={{
+                        top: `${Math.min(startMinute, endMinute)}px`,
+                        height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
+                        zIndex: 5,
+                      }}
+                    >
+                      <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+                        {formatSelectionRange(
+                          startMinute,
+                          endMinute,
+                          formatHourMinute,
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
 
               {}
               {dragPreview &&

@@ -557,8 +557,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         case 'N':
           e.preventDefault()
           setSelectedEvent(null)
-          setQuickCreateStartTime(new Date())
-          setEventDialogOpen(true)
+          handleTimeRangeSelect(new Date())
           break
         case '/': {
           e.preventDefault()
@@ -794,6 +793,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
+    setQuickCreateEndTime(null)
   }
 
   const handleEventUpdate = (
@@ -881,6 +881,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
+    setQuickCreateEndTime(null)
   }
 
   const handleEventDelete = (
@@ -1077,6 +1078,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (targetEvent) {
       setSelectedEvent(targetEvent)
       setQuickCreateStartTime(null)
+      setQuickCreateEndTime(null)
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
@@ -1097,7 +1099,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
     setQuickCreateStartTime(startTime)
-    setQuickCreateEndTime(endTime ?? null)
+    // Always a concrete range: the views render it as the blue selection box
+    // the editor popover anchors to (CORE-191).
+    setQuickCreateEndTime(endTime ?? new Date(startTime.getTime() + 30 * 60000))
 
     setSelectedEvent(null)
     setPreviewOpen(false)
@@ -1243,6 +1247,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     })
   }, [events, selectedCategoryFilters, calendars])
 
+  // The committed create range, shown as the blue selection box the editor
+  // popover anchors to (CORE-191). Only while creating — editing anchors to
+  // the event block itself.
+  const createSelectionRange = useMemo(
+    () =>
+      eventDialogOpen && !selectedEvent && quickCreateStartTime
+        ? {
+            start: quickCreateStartTime,
+            end:
+              quickCreateEndTime ??
+              new Date(quickCreateStartTime.getTime() + 30 * 60000),
+          }
+        : null,
+    [eventDialogOpen, selectedEvent, quickCreateStartTime, quickCreateEndTime],
+  )
+
   const filteredEvents = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
     if (!keyword) return eventsByCategory
@@ -1278,8 +1298,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         <Sidebar
           onCreateEvent={() => {
             setSelectedEvent(null)
-            setQuickCreateStartTime(new Date())
-            setEventDialogOpen(true)
+            // Same path as drag-to-create: a synthetic 30-minute range shows
+            // the same blue box, and the editor anchors to it (CORE-191).
+            handleTimeRangeSelect(new Date())
           }}
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
@@ -1530,6 +1551,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
                 onBackToCalendar={() => setView(defaultView)}
+                selection={createSelectionRange}
               />
             )}
             {view === 'week' && (
@@ -1543,6 +1565,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
+                selection={createSelectionRange}
               />
             )}
             {view === 'four-day' && (
@@ -1558,6 +1581,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
+                selection={createSelectionRange}
               />
             )}
             {view === 'month' && (
@@ -1640,7 +1664,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
         <EventDialog
           open={eventDialogOpen}
-          onOpenChange={setEventDialogOpen}
+          onOpenChange={(open) => {
+            setEventDialogOpen(open)
+            if (!open) {
+              // Clearing the range removes the blue anchor box in the views.
+              setQuickCreateStartTime(null)
+              setQuickCreateEndTime(null)
+            }
+          }}
           onEventAdd={handleEventAdd}
           onEventUpdate={(event, applyTo) => handleEventUpdate(event, applyTo)}
           onEventDelete={(eventId, applyTo) =>
@@ -1651,6 +1682,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
+          scrollContainerRef={calendarRef}
         />
 
         <Dialog

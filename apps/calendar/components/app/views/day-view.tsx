@@ -36,6 +36,12 @@ interface DayViewProps {
     newEndDate: Date,
   ) => void
   onBackToCalendar?: () => void
+  /**
+   * Range the event editor is being opened for. Rendered as the same blue box
+   * as a live drag — it is the editor popover's anchor (CORE-191) — and
+   * disappears when the editor closes and the range is cleared.
+   */
+  selection?: { start: Date; end: Date } | null
 }
 
 export default function DayView({
@@ -49,6 +55,7 @@ export default function DayView({
   onBookmarkEvent,
   onEventDrop,
   onBackToCalendar: _onBackToCalendar,
+  selection = null,
 }: DayViewProps) {
   const {
     allDayEventsForDate,
@@ -509,6 +516,7 @@ export default function DayView({
 
           {createSelection && (
             <div
+              data-create-selection
               className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
               style={{
                 top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
@@ -525,6 +533,37 @@ export default function DayView({
               </div>
             </div>
           )}
+
+          {/* The editor's anchor: the committed range, kept visible while the
+              editor popover is open (CORE-191). Same box as the live drag
+              above, driven by the parent instead of local state. */}
+          {selection &&
+            !createSelection &&
+            isSameDay(selection.start, date) &&
+            (() => {
+              const startMinute =
+                selection.start.getHours() * 60 + selection.start.getMinutes()
+              const endMinute = isSameDay(selection.end, date)
+                ? selection.end.getHours() * 60 + selection.end.getMinutes()
+                : 24 * 60
+              return (
+                <div
+                  data-create-selection
+                  className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                  style={{
+                    top: `${Math.min(startMinute, endMinute)}px`,
+                    height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
+                    zIndex: 5,
+                  }}
+                >
+                  <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+                    {formatSelectionRange(startMinute, endMinute, (hour, min) =>
+                      layoutEngine.formatHourMinute(hour, min),
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
           {}
           {dragPreview && renderDragPreview()}
