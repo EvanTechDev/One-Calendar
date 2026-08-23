@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import type React from 'react'
 
 /**
@@ -38,7 +38,11 @@ export function useLiveAnchorRect({
 }: AnchorSource): DOMRect | null {
   const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
 
-  useEffect(() => {
+  // Layout effect on purpose: resolving the anchor after paint let the
+  // popover render one frame at the viewport-centre fallback and then jump
+  // to the real anchor — a visible flash on every open whose anchor is
+  // resolved via selector (the create flow's blue box).
+  useLayoutEffect(() => {
     if (!open) {
       // Closed must mean GONE — a stale liveRect keeps the absolute 1×1
       // anchor div portaled in the scroll container past the content height,
