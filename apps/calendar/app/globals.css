@@ -185,15 +185,14 @@ html {
        reads against the white grid. */
     --cal-today: #e5e5e5;
     --cal-today-foreground: var(--secondary-foreground);
-    /* The now line must be findable among event blocks: a dark neutral,
-       two steps from the foreground. */
-    --cal-now: #404040;
+    /* The now line: a mid neutral, distinct from the badge gray. */
+    --cal-now: #a3a3a3;
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #404040;
-    --cal-now: #d4d4d4;
+    --cal-now: #737373;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
