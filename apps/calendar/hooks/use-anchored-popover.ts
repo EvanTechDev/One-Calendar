@@ -40,12 +40,15 @@ export function useLiveAnchorRect({
 
   useEffect(() => {
     if (!open) {
-      // Closed must mean GONE. A stale liveRect keeps the absolute 1×1
-      // anchor div portaled inside the scroll container at click-Y +
-      // scrollTop — past the content height, which stretched every view
-      // with blank space at the bottom.
-      setLiveRect(null)
-      return
+      // Closed must mean GONE — a stale liveRect keeps the absolute 1×1
+      // anchor div portaled in the scroll container past the content height,
+      // stretching every view with blank space at the bottom. But not gone
+      // IMMEDIATELY: the popover plays a ~100ms exit animation, and yanking
+      // the anchor mid-animation snapped the closing popover to the
+      // viewport-centre fallback — it visibly flew before vanishing. Hold
+      // the position through the animation, then release.
+      const timer = window.setTimeout(() => setLiveRect(null), 250)
+      return () => window.clearTimeout(timer)
     }
 
     // An explicit rect is CLICK-AWARE — the caller built it from where the

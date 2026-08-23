@@ -10,7 +10,7 @@
  * a near-full-width anchor — neither side fit — and flipped above/below; week
  * view attached at the block's vertical middle regardless of the click.
  */
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import {
   pickPopoverSide,
@@ -168,26 +168,43 @@ describe('useLiveAnchorRect', () => {
     expect(result.current?.height).toBe(40)
   })
 
-  it('resets to null when the popover closes', () => {
-    // THE BOTTOM-WHITESPACE BUG. liveRect survived close, so the absolute
-    // 1x1 anchor stayed portaled inside the (shared) scroll container at a
-    // position that includes scrollTop — beyond the content height, it
-    // stretched every view with blank scroll space.
-    const { el } = mountAnchor(rect(100, 200, 800, 40))
-    const { result, rerender } = renderHook(
-      ({ open }: { open: boolean }) =>
-        useLiveAnchorRect({
-          open,
-          anchorElement: el,
-          anchorRect: null,
-          scrollContainerRef: undefined,
-        }),
-      { initialProps: { open: true } },
-    )
-    expect(result.current).not.toBeNull()
+  it('holds the anchor through the exit animation, then releases it', () => {
+    // Two constraints pull against each other here.
+    // Release too late (never): the absolute 1x1 anchor stays portaled in
+    // the shared scroll container past the content height — the
+    // bottom-whitespace bug. Release too early (immediately): the popover's
+    // 100ms exit animation is still running when the anchor snaps to the
+    // viewport-centre fallback, so the closing popover visibly FLIES to the
+    // centre before vanishing. The anchor must outlive the animation, then
+    // go away.
+    vi.useFakeTimers()
+    try {
+      const { el } = mountAnchor(rect(100, 200, 800, 40))
+      const { result, rerender } = renderHook(
+        ({ open }: { open: boolean }) =>
+          useLiveAnchorRect({
+            open,
+            anchorElement: el,
+            anchorRect: null,
+            scrollContainerRef: undefined,
+          }),
+        { initialProps: { open: true } },
+      )
+      expect(result.current).not.toBeNull()
 
-    rerender({ open: false })
-    expect(result.current).toBeNull()
+      rerender({ open: false })
+      // Exit animation window: position must hold.
+      expect(result.current).not.toBeNull()
+      expect(result.current?.top).toBe(200)
+
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      // Animation over: anchor released, no stale div in the container.
+      expect(result.current).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('falls back to the static rect when the element is gone', () => {
