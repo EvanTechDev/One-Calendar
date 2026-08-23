@@ -38,6 +38,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-cal-accent: var(--cal-accent);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -173,9 +174,14 @@ html {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Calendar accent: the one non-neutral in the calendar chrome (now
+       line, today, create selection). Deliberately low-chroma so the UI
+       reads minimal without collapsing into pure grayscale. */
+    --cal-accent: oklch(0.55 0.07 250);
   }
 
   .dark {
+    --cal-accent: oklch(0.72 0.06 250);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

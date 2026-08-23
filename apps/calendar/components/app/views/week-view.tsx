@@ -540,7 +540,7 @@ export default function WeekView({
                 {}
                 <div
                   className={cn(
-                    isSameDay(day, today) ? 'text-[#0066FF] font-bold' : '',
+                    isSameDay(day, today) ? 'text-cal-accent font-bold' : '',
                   )}
                 >
                   {format(day, 'd')}
@@ -744,14 +744,14 @@ export default function WeekView({
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
                     {formatSelectionRange(
                       createSelection.startMinute,
                       createSelection.endMinute,
@@ -777,14 +777,14 @@ export default function WeekView({
                   return (
                     <div
                       data-create-selection
-                      className="absolute left-0 right-0 rounded-md bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                      className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
                       style={{
                         top: `${Math.min(startMinute, endMinute)}px`,
                         height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
                         zIndex: 5,
                       }}
                     >
-                      <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+                      <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
                         {formatSelectionRange(
                           startMinute,
                           endMinute,
@@ -814,12 +814,12 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-30 pointer-events-none"
+                      className="absolute left-0 right-0 border-t-2 border-cal-accent z-30 pointer-events-none"
                       style={{
                         top: `${topPosition}px`,
                       }}
                     >
-                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-cal-accent" />
                     </div>
                   )
                 })()}

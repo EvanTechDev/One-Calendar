@@ -136,7 +136,7 @@ export default function MonthView({
               className={cn(
                 'min-h-[100px] p-2 border rounded-xl',
                 isCreateTarget &&
-                  'border-[#0066FF]/60 bg-[#0066FF]/5 ring-1 ring-[#0066FF]/40',
+                  'border-cal-accent/60 bg-cal-accent/5 ring-1 ring-cal-accent/40',
               )}
             >
               <div
@@ -144,7 +144,7 @@ export default function MonthView({
                   'font-medium text-sm',
                   isSameMonth(day, date) ? '' : 'text-gray-400',
                   isSameMonth(day, date) && isSameDay(day, today)
-                    ? 'text-[#0066FF] font-bold'
+                    ? 'text-cal-accent font-bold'
                     : '',
                 )}
               >

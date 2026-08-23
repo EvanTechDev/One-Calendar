@@ -210,9 +210,9 @@ export default function YearView({
                         dayEvents && dayEvents.length > 0 && 'font-semibold',
                         isToday &&
                           isCurrentMonth &&
-                          'bg-[#0052CC] text-white hover:bg-[#0047B3]',
+                          'bg-cal-accent text-white hover:bg-cal-accent/90',
                         isCreateTarget &&
-                          'ring-2 ring-[#0066FF]/60 bg-[#0066FF]/10',
+                          'ring-2 ring-cal-accent/60 bg-cal-accent/10',
                       )}
                       onClick={(e) => handleDayClick(e, day, dayKey)}
                     >
