@@ -6,7 +6,7 @@ import {
   CircleUser,
   Trash2,
   Mail,
-  Camera,
+  Upload,
   BarChart2,
   Settings,
   ChevronDown,
@@ -480,8 +480,8 @@ export default function UserProfileButton({
                       referrerPolicy="no-referrer"
                       fetchPriority="high"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                      <Camera className="h-5 w-5 text-white" />
+                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-gray-500/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                      <Upload className="h-5 w-5 text-white" />
                     </span>
                   </Label>
                   <Input

@@ -41,6 +41,18 @@ export function useLiveAnchorRect({
   useEffect(() => {
     if (!open) return
 
+    // An explicit rect is CLICK-AWARE — the caller built it from where the
+    // user actually clicked (e.g. `anchorRectForClick`). It must win over the
+    // element's own rect, or the popover snaps back to the block's midpoint;
+    // resolving the element first was exactly the bug where day view flipped
+    // above/below and week view ignored the click position. The element is
+    // still tracked, but only to move the click rect by the same delta when
+    // the content scrolls.
+    const elementRectAtOpen =
+      anchorRect && anchorElement?.isConnected
+        ? anchorElement.getBoundingClientRect()
+        : null
+
     const getLiveAnchorRect = (): DOMRect | null => {
       const el =
         anchorElement && anchorElement.isConnected
@@ -48,8 +60,22 @@ export function useLiveAnchorRect({
           : anchorSelector
             ? document.querySelector(anchorSelector)
             : null
+
+      if (anchorRect) {
+        if (el && elementRectAtOpen) {
+          const now = el.getBoundingClientRect()
+          return DOMRect.fromRect({
+            x: anchorRect.left + (now.left - elementRectAtOpen.left),
+            y: anchorRect.top + (now.top - elementRectAtOpen.top),
+            width: anchorRect.width,
+            height: anchorRect.height,
+          })
+        }
+        return anchorRect
+      }
+
       if (el) return el.getBoundingClientRect()
-      return anchorRect
+      return null
     }
 
     const update = () => {
@@ -86,9 +112,39 @@ export function useLiveAnchorRect({
 }
 
 /**
- * Prefer a horizontal side with room for the full estimated size; otherwise a
- * vertical one; otherwise whichever direction has the most space. Estimated
- * rather than measured because the popover has not rendered yet.
+ * The rect the popover anchors to when the user clicked INSIDE an event
+ * block: zero-height at the click's Y (clamped onto the block), spanning the
+ * block's full width. A side popover then attaches level with the cursor
+ * instead of the block's midpoint — which for a tall week-view event could be
+ * half a screen away from where the user clicked — while side-picking still
+ * judges free space from the block's true horizontal extent.
+ */
+export function anchorRectForClick(
+  blockRect: DOMRect,
+  _clientX: number,
+  clientY: number,
+): DOMRect {
+  const y = Math.min(Math.max(clientY, blockRect.top), blockRect.bottom)
+  return DOMRect.fromRect({
+    x: blockRect.left,
+    y,
+    width: blockRect.width,
+    height: 0,
+  })
+}
+
+/**
+ * Prefer a horizontal side with room for the full estimated size; otherwise
+ * the roomier horizontal side, as long as it can hold a meaningful share of
+ * the popover; only then flip vertical.
+ *
+ * The horizontal bias is deliberate. A calendar event block is wide and
+ * short, so a vertical popover covers the neighbouring rows the user is
+ * looking at — in the day view, where blocks span most of the viewport,
+ * neither side fits the FULL width and the old "fits or flip" rule always
+ * flipped vertical. Radix's collision handling shifts the popover back into
+ * the viewport, so a side with most of the required room still renders fully
+ * visible beside the block.
  */
 export function pickPopoverSide(
   rect: DOMRect | null,
@@ -106,6 +162,14 @@ export function pickPopoverSide(
   }
   if (spaces.right >= estimatedWidth) return 'right'
   if (spaces.left >= estimatedWidth) return 'left'
+
+  // Neither side fully fits. Take the roomier one if it can hold at least
+  // half the popover — collision shifting covers the rest. Below that the
+  // popover would sit mostly ON the anchor, which is worse than flipping.
+  const bestHorizontal: PopoverSide =
+    spaces.right >= spaces.left ? 'right' : 'left'
+  if (spaces[bestHorizontal] >= estimatedWidth / 2) return bestHorizontal
+
   if (spaces.bottom >= estimatedHeight) return 'bottom'
   if (spaces.top >= estimatedHeight) return 'top'
   const entries = Object.entries(spaces) as Array<[PopoverSide, number]>

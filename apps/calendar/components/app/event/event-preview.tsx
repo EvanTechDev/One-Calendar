@@ -473,7 +473,10 @@ export default function EventPreview({
           side={popoverSide}
           align="center"
           sideOffset={12}
-          className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
+          collisionPadding={12}
+          // Same height discipline as the editor: cap at what actually fits
+          // (Radix subtracts browser chrome), scroll inside.
+          className="w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
             if (Date.now() < ignoreOutsideUntilRef.current) {
@@ -795,11 +798,10 @@ export default function EventPreview({
                       value={event.calendarId || '__uncategorized__'}
                       onValueChange={handleViewOnlyCategoryChange}
                     >
-                      <SelectTrigger
-                        size="sm"
-                        aria-label={_t.selectCalendar}
-                        className="w-full"
-                      >
+                      {/* A stock trigger on purpose: default size, natural
+                          width. The colour dot before the name carries the
+                          category colour. */}
+                      <SelectTrigger aria-label={_t.selectCalendar}>
                         <SelectValue placeholder={_t.selectCalendar}>
                           <span className="inline-flex items-center gap-1.5">
                             <CategoryDot

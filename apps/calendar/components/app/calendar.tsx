@@ -2,6 +2,7 @@
 
 import { getEventAccentColor } from '@/lib/event-colors'
 import { useNotifications } from '@/hooks/use-notifications'
+import { anchorRectForClick } from '@/hooks/use-anchored-popover'
 import {
   Select,
   SelectContent,
@@ -710,19 +711,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     }
     setPreviewEvent(event)
     setPreviewAnchorEl(anchorEl ?? null)
-    if (view === 'day' && clientX !== undefined && clientY !== undefined) {
+    // The popover attaches level with the CLICK, not the block's midpoint —
+    // on a tall week-view block the midpoint can be half a screen from the
+    // cursor. One rule for every view; the anchor keeps the block's width so
+    // side space is judged from its real edges.
+    if (anchorEl && clientX !== undefined && clientY !== undefined) {
+      setPreviewAnchorRect(
+        anchorRectForClick(anchorEl.getBoundingClientRect(), clientX, clientY),
+      )
+    } else if (clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
         DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
-      )
-    } else if (clientY !== undefined && anchorEl) {
-      const rect = anchorEl.getBoundingClientRect()
-      setPreviewAnchorRect(
-        DOMRect.fromRect({
-          x: rect.left,
-          y: clientY,
-          width: rect.width,
-          height: 0,
-        }),
       )
     } else {
       setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
