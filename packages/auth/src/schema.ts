@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
@@ -101,6 +102,11 @@ export const twoFactor = pgTable('two_factor', {
   secret: text('secret').notNull(),
   backupCodes: text('backupCodes').notNull(),
   verified: boolean('verified').default(false).notNull(),
+  // Account-lockout fields required by better-auth >= 1.6.22 two-factor plugin
+  failedVerificationCount: integer('failedVerificationCount')
+    .default(0)
+    .notNull(),
+  lockedUntil: timestamp('lockedUntil', { precision: 3, withTimezone: true }),
   userId: text('userId')
     .unique()
     .notNull()
