@@ -180,16 +180,16 @@ html {
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
-    /* Today's date badge — the one colored element in the calendar, so it
-       must not share the monochrome accent. Blue pill, white digit. */
-    --cal-today: oklch(0.546 0.215 262.88);
-    --cal-today-foreground: oklch(1 0 0);
+    /* Today's date badge: monochrome like everything else — ink box,
+       paper digit. Inverts in dark mode. */
+    --cal-today: oklch(0.205 0 0);
+    --cal-today-foreground: oklch(0.985 0 0);
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
-    --cal-today: oklch(0.623 0.188 259.81);
-    --cal-today-foreground: oklch(1 0 0);
+    --cal-today: oklch(0.922 0 0);
+    --cal-today-foreground: oklch(0.145 0 0);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
