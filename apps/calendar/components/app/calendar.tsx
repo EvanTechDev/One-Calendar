@@ -1617,6 +1617,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
+                selection={createSelectionRange}
               />
             )}
             {view === 'year' && (
@@ -1625,6 +1626,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
+                selection={createSelectionRange}
               />
             )}
             {view === 'analytics' && (

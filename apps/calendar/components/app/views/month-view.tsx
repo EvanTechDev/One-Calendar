@@ -31,6 +31,13 @@ interface RemainingPopoverState {
 interface MonthViewProps {
   date: Date
   events: CalendarEvent[]
+  /**
+   * Day being created into. The cell is marked [data-create-selection] and
+   * highlighted so the editor popover has something to anchor to — the
+   * month grid has no time axis, so the whole day cell plays the role the
+   * blue range box plays in day/week views (CORE-191).
+   */
+  selection?: { start: Date; end: Date } | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -45,6 +52,7 @@ export default function MonthView({
   events,
   onEventClick,
   config,
+  selection = null,
 }: MonthViewProps) {
   const language = config.language
   const firstDayOfWeek = config.firstDayOfWeek
@@ -119,10 +127,17 @@ export default function MonthView({
           const visibleEvents = dayEvents.slice(0, 3)
           const remainingCount = dayEvents.length - visibleEvents.length
 
+          const isCreateTarget = selection && isSameDay(selection.start, day)
+
           return (
             <div
               key={day.toString()}
-              className="min-h-[100px] p-2 border rounded-xl border"
+              {...(isCreateTarget ? { 'data-create-selection': true } : {})}
+              className={cn(
+                'min-h-[100px] p-2 border rounded-xl',
+                isCreateTarget &&
+                  'border-[#0066FF]/60 bg-[#0066FF]/5 ring-1 ring-[#0066FF]/40',
+              )}
             >
               <div
                 className={cn(

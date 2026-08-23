@@ -19,6 +19,13 @@ import { RemoveScroll } from 'react-remove-scroll'
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
+  /**
+   * Day being created into. The day button is marked
+   * [data-create-selection] and highlighted so the editor popover anchors
+   * to it (CORE-191) — the year grid's day dot plays the role of the blue
+   * range box.
+   */
+  selection?: { start: Date; end: Date } | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -70,6 +77,7 @@ export default function YearView({
   events,
   onEventClick,
   config,
+  selection = null,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
@@ -184,10 +192,18 @@ export default function YearView({
                   )
                   const dayEvents = eventsByDayKey.get(dayKey)
 
+                  const isCreateTarget =
+                    selection &&
+                    isCurrentMonth &&
+                    isSameDay(selection.start, day)
+
                   return (
                     <button
                       key={`${month.label}-${dayKey}`}
                       type="button"
+                      {...(isCreateTarget
+                        ? { 'data-create-selection': true }
+                        : {})}
                       className={cn(
                         'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
                         !isCurrentMonth && 'text-muted-foreground',
@@ -195,6 +211,8 @@ export default function YearView({
                         isToday &&
                           isCurrentMonth &&
                           'bg-[#0052CC] text-white hover:bg-[#0047B3]',
+                        isCreateTarget &&
+                          'ring-2 ring-[#0066FF]/60 bg-[#0066FF]/10',
                       )}
                       onClick={(e) => handleDayClick(e, day, dayKey)}
                     >
