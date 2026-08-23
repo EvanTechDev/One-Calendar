@@ -181,8 +181,9 @@ html {
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
-    /* Today's date badge: #f5f5f5 light / #262626 dark. */
-    --cal-today: #f5f5f5;
+    /* Today's date badge: one step deeper than the panel grays so it
+       reads against the white grid. */
+    --cal-today: #e5e5e5;
     --cal-today-foreground: var(--secondary-foreground);
     /* The now line must be findable among event blocks: a dark neutral,
        two steps from the foreground. */
@@ -191,7 +192,7 @@ html {
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
-    --cal-today: #262626;
+    --cal-today: #404040;
     --cal-now: #d4d4d4;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
