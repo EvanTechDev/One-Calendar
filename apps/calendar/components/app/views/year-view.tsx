@@ -210,7 +210,7 @@ export default function YearView({
                         dayEvents && dayEvents.length > 0 && 'font-semibold',
                         isToday &&
                           isCurrentMonth &&
-                          'bg-cal-accent text-white hover:bg-cal-accent/90',
+                          'bg-cal-accent text-background hover:bg-cal-accent/90',
                         isCreateTarget &&
                           'ring-2 ring-cal-accent/60 bg-cal-accent/10',
                       )}
