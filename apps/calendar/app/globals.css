@@ -184,15 +184,15 @@ html {
     /* Today's date badge: #f5f5f5 light / #262626 dark. */
     --cal-today: #f5f5f5;
     --cal-today-foreground: var(--secondary-foreground);
-    /* The now line needs more contrast than the badge surface: #f5f5f5 on
-       white is nearly invisible. A step darker/lighter, still neutral. */
-    --cal-now: #a3a3a3;
+    /* The now line must be findable among event blocks: a dark neutral,
+       two steps from the foreground. */
+    --cal-now: #404040;
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #262626;
-    --cal-now: #737373;
+    --cal-now: #d4d4d4;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
