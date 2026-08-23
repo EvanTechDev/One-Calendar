@@ -39,7 +39,14 @@ export function useLiveAnchorRect({
   const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      // Closed must mean GONE. A stale liveRect keeps the absolute 1×1
+      // anchor div portaled inside the scroll container at click-Y +
+      // scrollTop — past the content height, which stretched every view
+      // with blank space at the bottom.
+      setLiveRect(null)
+      return
+    }
 
     // An explicit rect is CLICK-AWARE — the caller built it from where the
     // user actually clicked (e.g. `anchorRectForClick`). It must win over the
@@ -79,7 +86,10 @@ export function useLiveAnchorRect({
     }
 
     const update = () => {
-      const next = getLiveAnchorRect()
+      const raw = getLiveAnchorRect()
+      // Never anchor off-screen: a long/multi-day block extends past the
+      // fold, and its raw rect would place the popover outside the window.
+      const next = raw ? clampRectToViewport(raw) : null
       setLiveRect((prev) => {
         if (
           prev &&
@@ -108,7 +118,39 @@ export function useLiveAnchorRect({
     }
   }, [open, anchorElement, anchorSelector, anchorRect, scrollContainerRef])
 
-  return liveRect ?? anchorRect ?? null
+  // First render happens before the effect: clamp the static fallback too.
+  return liveRect ?? (anchorRect ? clampRectToViewport(anchorRect) : null)
+}
+
+/**
+ * The visible part of a rect. A long or multi-day event block extends far
+ * past the fold; anchoring to its raw rect puts the popover's attachment
+ * point off-screen (the popover renders outside the window) and, converted
+ * into scroll-container coordinates, plants the 1×1 anchor div beyond the
+ * container's content — which is what stretched every view with blank scroll
+ * space at the bottom. Every anchor rect is clamped before use.
+ */
+export function clampRectToViewport(rect: DOMRect): DOMRect {
+  const viewportWidth = typeof window === 'undefined' ? 0 : window.innerWidth
+  const viewportHeight = typeof window === 'undefined' ? 0 : window.innerHeight
+  const left = Math.max(rect.left, 0)
+  const top = Math.max(rect.top, 0)
+  const right = Math.min(rect.right, viewportWidth)
+  const bottom = Math.min(rect.bottom, viewportHeight)
+  if (
+    left === rect.left &&
+    top === rect.top &&
+    right === rect.right &&
+    bottom === rect.bottom
+  ) {
+    return rect
+  }
+  return DOMRect.fromRect({
+    x: left,
+    y: top,
+    width: Math.max(right - left, 0),
+    height: Math.max(bottom - top, 0),
+  })
 }
 
 /**

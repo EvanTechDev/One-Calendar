@@ -16,6 +16,7 @@ import {
   pickPopoverSide,
   buildAnchorStyle,
   anchorRectForClick,
+  clampRectToViewport,
   useLiveAnchorRect,
 } from '@/hooks/use-anchored-popover'
 
@@ -167,6 +168,28 @@ describe('useLiveAnchorRect', () => {
     expect(result.current?.height).toBe(40)
   })
 
+  it('resets to null when the popover closes', () => {
+    // THE BOTTOM-WHITESPACE BUG. liveRect survived close, so the absolute
+    // 1x1 anchor stayed portaled inside the (shared) scroll container at a
+    // position that includes scrollTop — beyond the content height, it
+    // stretched every view with blank scroll space.
+    const { el } = mountAnchor(rect(100, 200, 800, 40))
+    const { result, rerender } = renderHook(
+      ({ open }: { open: boolean }) =>
+        useLiveAnchorRect({
+          open,
+          anchorElement: el,
+          anchorRect: null,
+          scrollContainerRef: undefined,
+        }),
+      { initialProps: { open: true } },
+    )
+    expect(result.current).not.toBeNull()
+
+    rerender({ open: false })
+    expect(result.current).toBeNull()
+  })
+
   it('falls back to the static rect when the element is gone', () => {
     const clickRect = rect(300, 400, 0, 0)
     const { result } = renderHook(() =>
@@ -204,5 +227,57 @@ describe('buildAnchorStyle', () => {
     expect(style.position).toBe('fixed')
     expect(style.left).toBe(500)
     expect(style.top).toBe(300)
+  })
+})
+
+describe('viewport clamping', () => {
+  // THE REPORTED PAIR: a multi-day/long event block extends past the
+  // viewport bottom. Unclamped, the anchor's edge point lands off-screen —
+  // the popover renders outside the window, and converting that point into
+  // scroll-container coordinates plants an absolute 1x1 anchor BEYOND the
+  // container's content, stretching every view with blank scroll space.
+  it('clamps a rect taller than the viewport', () => {
+    setViewport(1024, 768)
+    const clamped = clampRectToViewport(rect(300, 100, 180, 1400))
+    expect(clamped.top).toBe(100)
+    expect(clamped.bottom).toBe(768)
+    expect(clamped.left).toBe(300)
+  })
+
+  it('clamps a rect extending past the right edge', () => {
+    setViewport(1024, 768)
+    const clamped = clampRectToViewport(rect(800, 100, 600, 40))
+    expect(clamped.left).toBe(800)
+    expect(clamped.right).toBe(1024)
+  })
+
+  it('returns on-screen rects unchanged', () => {
+    setViewport(1024, 768)
+    const r = rect(100, 100, 200, 40)
+    const clamped = clampRectToViewport(r)
+    expect(clamped.top).toBe(100)
+    expect(clamped.bottom).toBe(140)
+    expect(clamped.left).toBe(100)
+    expect(clamped.right).toBe(300)
+  })
+
+  it('useLiveAnchorRect never returns a rect edge outside the viewport', () => {
+    setViewport(1024, 768)
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'getBoundingClientRect', {
+      value: () => rect(300, 100, 180, 1400), // long event, below the fold
+    })
+    document.body.appendChild(el)
+
+    const { result } = renderHook(() =>
+      useLiveAnchorRect({
+        open: true,
+        anchorElement: el,
+        anchorRect: null,
+        scrollContainerRef: undefined,
+      }),
+    )
+    expect(result.current!.bottom).toBeLessThanOrEqual(768)
+    document.body.innerHTML = ''
   })
 })

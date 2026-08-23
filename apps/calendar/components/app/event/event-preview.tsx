@@ -54,6 +54,7 @@ import { RemoveScroll } from 'react-remove-scroll'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 import { describeRecurrence } from '@/lib/recurrence/engine'
+import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
 
 export interface EventInvite {
   id: string
@@ -72,11 +73,18 @@ export interface EventInvite {
 }
 
 function CategoryDot({ color }: { color?: string }) {
+  // Category colours are stored as Tailwind class names ('bg-blue-500'), not
+  // CSS colours — passing one to backgroundColor is silently invalid and
+  // every dot rendered gray. Translate through the shared map; accept a raw
+  // CSS colour as-is for callers that already resolved one.
+  const resolved = color
+    ? (TAILWIND_BG_TO_HEX[color] ?? (color.startsWith('bg-') ? null : color))
+    : null
   return (
     <span
       aria-hidden
       className="inline-block size-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: color || 'var(--muted-foreground)' }}
+      style={{ backgroundColor: resolved || 'var(--muted-foreground)' }}
     />
   )
 }

@@ -480,8 +480,15 @@ export default function UserProfileButton({
                       referrerPolicy="no-referrer"
                       fetchPriority="high"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-gray-500/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    {/* Hover is an enhancement, not the affordance: Tailwind
+                        v4 gates hover: behind (hover:hover), so on touch
+                        devices this overlay can never appear. The corner
+                        badge below is the always-visible entry point. */}
+                    <span className="pointer-events-none absolute inset-0 hidden items-center justify-center rounded-full bg-gray-500/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 sm:flex">
                       <Upload className="h-5 w-5 text-white" />
+                    </span>
+                    <span className="absolute -right-0.5 -bottom-0.5 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm">
+                      <Upload className="h-3.5 w-3.5 text-muted-foreground" />
                     </span>
                   </Label>
                   <Input
