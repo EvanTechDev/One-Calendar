@@ -139,16 +139,18 @@ export default function MonthView({
                   'border-cal-accent/60 bg-cal-accent/5 ring-1 ring-cal-accent/40',
               )}
             >
-              <div
-                className={cn(
-                  'font-medium text-sm',
-                  isSameMonth(day, date) ? '' : 'text-gray-400',
-                  isSameMonth(day, date) &&
-                    isSameDay(day, today) &&
-                    'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
-                )}
-              >
-                {format(day, 'd')}
+              <div className="mb-1 flex h-6 items-center">
+                <span
+                  className={cn(
+                    'font-medium text-sm',
+                    isSameMonth(day, date) ? '' : 'text-gray-400',
+                    isSameMonth(day, date) &&
+                      isSameDay(day, today) &&
+                      'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
+                  )}
+                >
+                  {format(day, 'd')}
+                </span>
               </div>
               <div className="space-y-1">
                 {visibleEvents.map((event) => (

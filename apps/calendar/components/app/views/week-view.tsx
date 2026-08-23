@@ -816,12 +816,12 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-cal-accent z-30 pointer-events-none"
+                      className="absolute left-0 right-0 border-t-2 border-cal-today z-30 pointer-events-none"
                       style={{
                         top: `${topPosition}px`,
                       }}
                     >
-                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-cal-accent" />
+                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-cal-today" />
                     </div>
                   )
                 })()}

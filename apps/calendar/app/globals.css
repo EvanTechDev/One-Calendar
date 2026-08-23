@@ -180,14 +180,14 @@ html {
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
-    /* Today's date badge: the same quiet gray as a secondary button (the
-       sidebar's create button), not a heavy ink block. */
-    --cal-today: var(--secondary);
+    /* Today's date badge and the now line: #f5f5f5 light / #262626 dark. */
+    --cal-today: #f5f5f5;
     --cal-today-foreground: var(--secondary-foreground);
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
+    --cal-today: #262626;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
