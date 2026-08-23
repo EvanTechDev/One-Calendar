@@ -102,6 +102,13 @@ interface EventDialogProps {
   ) => void
   initialDate: Date
   initialEndDate?: Date | null
+  /**
+   * True when the editor is replacing the preview popover at the same
+   * anchor. The preview unmounts instantly (no exit animation), so playing
+   * the editor's zoom-in entrance reads as a flash; appearing in place makes
+   * the hand-off look like one panel swapping content.
+   */
+  replacesPreview?: boolean
   event: CalendarEvent | null
   config: ViewConfig
   /**
@@ -131,6 +138,7 @@ export default function EventDialog({
   onInvitesAdded,
   initialDate,
   initialEndDate,
+  replacesPreview = false,
   event,
   config,
   anchorRect = null,
@@ -971,7 +979,10 @@ export default function EventDialog({
             // the submit buttons could never be scrolled into reach.
             // `--radix-popover-content-available-height` is what actually
             // fits between the anchor and the collision boundary.
-            className="flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0"
+            className={cn(
+              'flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0',
+              replacesPreview && 'data-open:animate-none',
+            )}
             onOpenAutoFocus={(e) => e.preventDefault()}
             onInteractOutside={(e) => {
               // Radix popups (selects, date pickers) render in portals outside

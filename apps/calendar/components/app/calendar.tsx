@@ -173,6 +173,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [editorAnchorEl, setEditorAnchorEl] = useState<HTMLElement | null>(null)
   const [editorAnchorRect, setEditorAnchorRect] = useState<DOMRect | null>(null)
+  // The editor is replacing the preview at the same anchor, so its entrance
+  // animation is suppressed — the swap should read as one panel changing
+  // content, not a flash of two popovers.
+  const [editorReplacesPreview, setEditorReplacesPreview] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
@@ -1087,6 +1091,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       // editing from day 2 opened the popover at day 1's block.
       setEditorAnchorEl(previewAnchorEl)
       setEditorAnchorRect(previewAnchorRect)
+      setEditorReplacesPreview(previewOpen)
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
@@ -1125,6 +1130,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setSelectedEvent(null)
     setEditorAnchorEl(null)
     setEditorAnchorRect(null)
+    setEditorReplacesPreview(false)
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
@@ -1693,6 +1699,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               setQuickCreateEndTime(null)
               setEditorAnchorEl(null)
               setEditorAnchorRect(null)
+              setEditorReplacesPreview(false)
             }
           }}
           onEventAdd={handleEventAdd}
@@ -1705,6 +1712,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
+          replacesPreview={editorReplacesPreview}
           anchorElement={editorAnchorEl}
           anchorRect={editorAnchorRect}
           scrollContainerRef={calendarRef}
