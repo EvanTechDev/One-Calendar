@@ -540,7 +540,9 @@ export default function WeekView({
                 {}
                 <div
                   className={cn(
-                    isSameDay(day, today) ? 'text-cal-accent font-bold' : '',
+                    'mx-auto flex h-7 w-7 items-center justify-center',
+                    isSameDay(day, today) &&
+                      'rounded-lg bg-cal-today text-cal-today-foreground',
                   )}
                 >
                   {format(day, 'd')}

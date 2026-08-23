@@ -39,6 +39,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-cal-accent: var(--cal-accent);
+  --color-cal-today: var(--cal-today);
+  --color-cal-today-foreground: var(--cal-today-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -174,14 +176,20 @@ html {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    /* Calendar accent for the chrome (now line, today, create selection).
+    /* Calendar accent for the chrome (now line, create selection).
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
+    /* Today's date badge — the one colored element in the calendar, so it
+       must not share the monochrome accent. Blue pill, white digit. */
+    --cal-today: oklch(0.546 0.215 262.88);
+    --cal-today-foreground: oklch(1 0 0);
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
+    --cal-today: oklch(0.623 0.188 259.81);
+    --cal-today-foreground: oklch(1 0 0);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

@@ -415,7 +415,10 @@ export default function DayView({
           <div
             className={cn(
               'text-3xl font-semibold text-foreground',
-              isSameDay(date, new Date()) && 'text-cal-accent',
+              // Today sits on a rounded blue box — the one colored element
+              // in the otherwise monochrome calendar.
+              isSameDay(date, new Date()) &&
+                'inline-block rounded-xl bg-cal-today px-3 py-1 text-cal-today-foreground',
             )}
           >
             {format(date, 'd')}
