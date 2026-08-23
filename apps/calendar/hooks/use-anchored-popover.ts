@@ -27,6 +27,14 @@ export interface AnchorSource {
   anchorRect?: DOMRect | null
   /** Scrollable ancestor whose scrolling should re-anchor the popover. */
   scrollContainerRef?: React.RefObject<HTMLElement | null>
+  /**
+   * Bring a partly or fully off-screen anchor into view once, when the
+   * popover opens. For anchors the user did not just click (the create
+   * flow's highlighted day in month/year views, a range below the fold)
+   * there is no guarantee they are visible — and a popover anchored to the
+   * clamped edge of nothing is unmoored.
+   */
+  scrollIntoViewOnOpen?: boolean
 }
 
 export function useLiveAnchorRect({
@@ -35,6 +43,7 @@ export function useLiveAnchorRect({
   anchorSelector,
   anchorRect = null,
   scrollContainerRef,
+  scrollIntoViewOnOpen = false,
 }: AnchorSource): DOMRect | null {
   const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
 
@@ -53,6 +62,32 @@ export function useLiveAnchorRect({
       // the position through the animation, then release.
       const timer = window.setTimeout(() => setLiveRect(null), 250)
       return () => window.clearTimeout(timer)
+    }
+
+    // An anchor the user did not click (the create flow's highlighted day)
+    // may be scrolled out of view; anchoring to the clamped edge of nothing
+    // visible leaves the popover unmoored. Bring it fully on screen first —
+    // once, before the anchor is measured.
+    if (scrollIntoViewOnOpen) {
+      const el =
+        anchorElement && anchorElement.isConnected
+          ? anchorElement
+          : anchorSelector
+            ? document.querySelector(anchorSelector)
+            : null
+      if (el) {
+        const r = el.getBoundingClientRect()
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const fullyVisible =
+          r.top >= 0 &&
+          r.left >= 0 &&
+          r.bottom <= viewportHeight &&
+          r.right <= viewportWidth
+        if (!fullyVisible) {
+          el.scrollIntoView({ block: 'center', behavior: 'instant' })
+        }
+      }
     }
 
     // An explicit rect is CLICK-AWARE — the caller built it from where the
@@ -123,7 +158,14 @@ export function useLiveAnchorRect({
       window.removeEventListener('resize', update)
       container?.removeEventListener('scroll', update, true)
     }
-  }, [open, anchorElement, anchorSelector, anchorRect, scrollContainerRef])
+  }, [
+    open,
+    anchorElement,
+    anchorSelector,
+    anchorRect,
+    scrollContainerRef,
+    scrollIntoViewOnOpen,
+  ])
 
   // First render happens before the effect: clamp the static fallback too.
   return liveRect ?? (anchorRect ? clampRectToViewport(anchorRect) : null)

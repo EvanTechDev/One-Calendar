@@ -160,6 +160,11 @@ export default function EventDialog({
       : '[data-create-selection]',
     anchorRect,
     scrollContainerRef,
+    // Creating anchors to an element the user did not click (the
+    // highlighted day/range), which may be scrolled out of view — in the
+    // month/year grids especially. Editing anchors to the block the user
+    // just clicked, which is visible by definition.
+    scrollIntoViewOnOpen: !event,
   })
   const popoverSide = pickPopoverSide(effectiveAnchorRect, 460, 620)
   const anchorStyle = buildAnchorStyle(

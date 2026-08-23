@@ -222,6 +222,71 @@ describe('useLiveAnchorRect', () => {
   })
 })
 
+describe('scrollIntoViewOnOpen', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('scrolls an off-screen anchor element into view before measuring', () => {
+    // Month/year views: the highlighted create-target day can be outside the
+    // scrolled viewport, so the popover anchored to a clamped edge of
+    // nothing visible. The hook must bring the anchor on screen first.
+    setViewport(1024, 768)
+    const el = document.createElement('div')
+    let r = rect(300, 2000, 40, 40) // far below the fold
+    Object.defineProperty(el, 'getBoundingClientRect', {
+      value: () => r,
+      configurable: true,
+    })
+    const scrolled: unknown[] = []
+    Object.defineProperty(el, 'scrollIntoView', {
+      value: (opts: unknown) => {
+        scrolled.push(opts)
+        r = rect(300, 364, 40, 40) // browser brings it to centre
+      },
+    })
+    document.body.appendChild(el)
+
+    const { result } = renderHook(() =>
+      useLiveAnchorRect({
+        open: true,
+        anchorElement: el,
+        anchorRect: null,
+        scrollContainerRef: undefined,
+        scrollIntoViewOnOpen: true,
+      }),
+    )
+
+    expect(scrolled).toHaveLength(1)
+    // The measured rect is the post-scroll, on-screen one.
+    expect(result.current?.top).toBe(364)
+  })
+
+  it('does not scroll when the anchor is already fully visible', () => {
+    setViewport(1024, 768)
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'getBoundingClientRect', {
+      value: () => rect(300, 300, 40, 40),
+    })
+    const scrolled: unknown[] = []
+    Object.defineProperty(el, 'scrollIntoView', {
+      value: (opts: unknown) => scrolled.push(opts),
+    })
+    document.body.appendChild(el)
+
+    renderHook(() =>
+      useLiveAnchorRect({
+        open: true,
+        anchorElement: el,
+        anchorRect: null,
+        scrollContainerRef: undefined,
+        scrollIntoViewOnOpen: true,
+      }),
+    )
+    expect(scrolled).toHaveLength(0)
+  })
+})
+
 describe('buildAnchorStyle', () => {
   it('places a right-side anchor on the right edge at the rect vertical centre', () => {
     // A zero-height click rect: its "centre" IS the click Y, so the popover
