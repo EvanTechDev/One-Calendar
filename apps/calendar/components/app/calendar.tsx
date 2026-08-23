@@ -3,6 +3,7 @@
 import { getEventAccentColor } from '@/lib/event-colors'
 import { useNotifications } from '@/hooks/use-notifications'
 import { anchorRectForClick } from '@/hooks/use-anchored-popover'
+import { defaultCreateRange } from '@/components/app/views/selection-range'
 import {
   Select,
   SelectContent,
@@ -170,6 +171,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [editorAnchorEl, setEditorAnchorEl] = useState<HTMLElement | null>(null)
+  const [editorAnchorRect, setEditorAnchorRect] = useState<DOMRect | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
@@ -1078,6 +1081,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       setSelectedEvent(targetEvent)
       setQuickCreateStartTime(null)
       setQuickCreateEndTime(null)
+      // Hand the preview's anchor to the editor. Without this the editor
+      // falls back to querying [data-event-id] — which for a multi-day event
+      // returns the FIRST rendered segment, not the one the user clicked, so
+      // editing from day 2 opened the popover at day 1's block.
+      setEditorAnchorEl(previewAnchorEl)
+      setEditorAnchorRect(previewAnchorRect)
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
@@ -1099,10 +1108,23 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
     setQuickCreateStartTime(startTime)
     // Always a concrete range: the views render it as the blue selection box
-    // the editor popover anchors to (CORE-191).
-    setQuickCreateEndTime(endTime ?? new Date(startTime.getTime() + 30 * 60000))
+    // the editor popover anchors to (CORE-191). The default 30-minute range
+    // is clamped to the start's own day — creating at 23:40 must not spill
+    // into a day that may not even be on screen.
+    setQuickCreateEndTime(endTime ?? defaultCreateRange(startTime).end)
+
+    // Creating from the sidebar or the N shortcut while viewing another
+    // week/month left the blue box (and the editor's anchor) outside the
+    // visible period. Navigate to the period that contains the new event.
+    // Only for those entry points: a drag passes endTime and is by
+    // definition already in view — and in the four-day view, whose window
+    // starts at `date`, navigating on drag would shift the window under
+    // the user's cursor.
+    if (endTime === undefined) setDate(startTime)
 
     setSelectedEvent(null)
+    setEditorAnchorEl(null)
+    setEditorAnchorRect(null)
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
@@ -1256,7 +1278,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             start: quickCreateStartTime,
             end:
               quickCreateEndTime ??
-              new Date(quickCreateStartTime.getTime() + 30 * 60000),
+              defaultCreateRange(quickCreateStartTime).end,
           }
         : null,
     [eventDialogOpen, selectedEvent, quickCreateStartTime, quickCreateEndTime],
@@ -1669,6 +1691,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               // Clearing the range removes the blue anchor box in the views.
               setQuickCreateStartTime(null)
               setQuickCreateEndTime(null)
+              setEditorAnchorEl(null)
+              setEditorAnchorRect(null)
             }
           }}
           onEventAdd={handleEventAdd}
@@ -1681,6 +1705,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           initialEndDate={quickCreateEndTime}
           event={selectedEvent}
           config={viewConfig}
+          anchorElement={editorAnchorEl}
+          anchorRect={editorAnchorRect}
           scrollContainerRef={calendarRef}
         />
 
