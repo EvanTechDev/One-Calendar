@@ -41,3 +41,15 @@ export {
   recordLeave,
   retainChatMessage,
 } from './sessions'
+export {
+  getEventTitlesForMeetings,
+  getMeetingStats,
+  getMeetingSummaries,
+  listUpcomingEventMeetings,
+  searchMeetings,
+} from './dashboard'
+export type {
+  MeetingSessionStats,
+  MeetingStats,
+  UpcomingEventMeeting,
+} from './dashboard'

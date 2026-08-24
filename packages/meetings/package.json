@@ -8,7 +8,8 @@
     "./schema": "./src/schema.ts",
     "./operations": "./src/operations.ts",
     "./sessions": "./src/sessions.ts",
-    "./readonly-calendar": "./src/readonly-calendar.ts"
+    "./readonly-calendar": "./src/readonly-calendar.ts",
+    "./dashboard": "./src/dashboard.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
