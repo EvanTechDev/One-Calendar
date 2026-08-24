@@ -1,8 +1,9 @@
 'use client'
 
-import { type NOTIFICATION_SOUNDS } from '@/lib/notifications'
-import { getEventAccentColor } from '@/components/app/views/event-colors'
-import { useNotifications } from '@/components/app/hooks/useNotifications'
+import { getEventAccentColor } from '@/lib/event-colors'
+import { useNotifications } from '@/hooks/use-notifications'
+import { anchorRectForClick } from '@/hooks/use-anchored-popover'
+import { defaultCreateRange } from '@/components/app/views/selection-range'
 import {
   Select,
   SelectContent,
@@ -28,7 +29,6 @@ import UserProfileButton, {
   type UserProfileSection,
 } from '@/components/app/profile/user-profile-button'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import crypto from 'crypto'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
@@ -37,6 +37,7 @@ import {
   useBookmarks,
 } from '@/components/providers/data-provider'
 import { getValidTimezone } from '@/lib/timezone'
+import { uuid } from '@/lib/uuid'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview, {
@@ -83,6 +84,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@zntr/ui/alert-dialog'
+import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
+import { Label } from '@zntr/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -102,6 +105,10 @@ const loadAnalyticsView = () =>
   import('@/components/app/analytics/analytics-view')
 const loadSettingsDialog = () =>
   import('@/components/app/settings/settings-dialog')
+import {
+  defaultExpansionWindow,
+  optimisticFollowingSplit,
+} from '@/lib/recurrence/engine'
 
 const DayView = dynamic(loadDayView)
 const WeekView = dynamic(loadWeekView)
@@ -116,10 +123,22 @@ export interface CalendarEvent {
   startDate: Date
   endDate: Date
   isAllDay: boolean
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  /** True when this occurrence has its own stored single-instance edit. */
+  isOverride?: boolean
+  isFirstInstance?: boolean
   location?: string
   participants: string[]
-  notification: number
+  /**
+   * Minutes before the start to remind, or null for no reminder.
+   * Zero is a real value — "at the event's start" — not an absent one.
+   */
+  notification: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
   description?: string
   color: string
   calendarId: string
@@ -152,6 +171,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [editorAnchorEl, setEditorAnchorEl] = useState<HTMLElement | null>(null)
+  const [editorAnchorRect, setEditorAnchorRect] = useState<DOMRect | null>(null)
+  // The editor is replacing the preview at the same anchor, so its entrance
+  // animation is suppressed — the swap should read as one panel changing
+  // content, not a flash of two popovers.
+  const [editorReplacesPreview, setEditorReplacesPreview] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
   const [searchTerm, setSearchTerm] = useState('')
@@ -165,7 +190,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const t = translations[language]
   const { settings, updateSettings } = useSettings()
   const { setTheme } = useTheme()
-  const { upsertEvent, deleteEvent } = useEvents()
+  const { upsertEvent, deleteEvent, refreshEvents } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
@@ -185,7 +210,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setTimezone(validTz)
     updateSettings({ timezone: validTz })
   }
-  const [notificationSound] = useState<NOTIFICATION_SOUNDS>('telegram')
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(
@@ -200,13 +224,39 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
+  const [pendingDeleteApplyTo, setPendingDeleteApplyTo] = useState<
+    'single' | 'following' | 'all' | undefined
+  >(undefined)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingRangeMove, setPendingRangeMove] = useState<{
+    event: CalendarEvent
+    startDate: Date
+    endDate: Date
+  } | null>(null)
+  const [rangeMoveOpen, setRangeMoveOpen] = useState(false)
+  const [rangeMoveScope, setRangeMoveScope] = useState<
+    'single' | 'following' | 'all'
+  >('single')
+  // "All events" is only offered on the series' first occurrence (or a raw
+  // master row, which IS the series root). Mirrors the save-scope gating in
+  // event-dialog.tsx.
+  const rangeMoveCanAll =
+    !!pendingRangeMove &&
+    ((!!pendingRangeMove.event.rrule &&
+      !pendingRangeMove.event.seriesId &&
+      !pendingRangeMove.event.recurrenceId) ||
+      pendingRangeMove.event.isFirstInstance === true)
+  const [deleteScope, setDeleteScope] = useState<
+    'single' | 'following' | 'all'
+  >('single')
   const [pendingRemoveInvite, setPendingRemoveInvite] =
     useState<CalendarEvent | null>(null)
   const [removeInviteConfirmOpen, setRemoveInviteConfirmOpen] = useState(false)
   const [pendingInvites, setPendingInvites] = useState<{
     eventId: string
     emails: string[]
+    /** Which occurrences the participants apply to, for a recurring event. */
+    scope?: 'single' | 'following' | 'all'
   } | null>(null)
   const { data: session } = authClient.useSession()
   const isSignedIn = Boolean(session?.user)
@@ -228,28 +278,112 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
+    if (event.rrule || event.seriesId || event.recurrenceId) {
+      setPendingRangeMove({
+        event,
+        startDate: newStartDate,
+        endDate: newEndDate,
+      })
+      setRangeMoveScope('single')
+      setRangeMoveOpen(true)
+      return
+    }
+    commitRangeMove(event, newStartDate, newEndDate)
+  }
+
+  const commitRangeMove = (
+    event: CalendarEvent,
+    newStartDate: Date,
+    newEndDate: Date,
+    scope?: 'single' | 'following' | 'all',
+  ) => {
     const updatedEvent = {
       ...event,
       startDate: newStartDate,
       endDate: newEndDate,
     }
-    updateEvent(updatedEvent)
-    upsertEvent({
-      id: updatedEvent.id,
-      title: updatedEvent.title,
-      startDate: updatedEvent.startDate.toISOString(),
-      endDate: updatedEvent.endDate.toISOString(),
-      isAllDay: updatedEvent.isAllDay,
-      location: updatedEvent.location || null,
-      participants: updatedEvent.participants?.length
-        ? updatedEvent.participants.map((p: any) =>
-            typeof p === 'string' ? { name: p } : p,
-          )
-        : null,
-      notificationMinutes: updatedEvent.notification || null,
-      color: updatedEvent.color || null,
-      categoryId: updatedEvent.calendarId || null,
-    }).catch(() => {})
+    // Same discipline as handleEventUpdate: decide the split ids before
+    // touching the store, keep the zustand updater pure, and never let a
+    // synchronous planning failure kill the save.
+    let splitId: string | null = null
+    let oldSeriesId: string | null = null
+    let optimisticEvents: CalendarEvent[] | null = null
+    if (scope === 'following') {
+      try {
+        splitId = uuid()
+        oldSeriesId =
+          updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+        if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
+          const window = defaultExpansionWindow()
+          const nextMaster = {
+            ...updatedEvent,
+            id: splitId,
+            seriesId: null,
+            recurrenceId: null,
+            rrule: updatedEvent.rrule ?? null,
+          }
+          const target = events.find((item) => item.id === updatedEvent.id)
+          if (target) {
+            optimisticEvents = optimisticFollowingSplit(
+              events,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+              undefined,
+              timezone,
+            )
+          }
+        }
+      } catch {
+        splitId = null
+        optimisticEvents = null
+      }
+    }
+    if (optimisticEvents) {
+      setEvents(optimisticEvents)
+    } else {
+      updateEvent(updatedEvent)
+    }
+    upsertEvent(
+      {
+        id: updatedEvent.id,
+        title: updatedEvent.title,
+        startDate: updatedEvent.startDate.toISOString(),
+        endDate: updatedEvent.endDate.toISOString(),
+        isAllDay: updatedEvent.isAllDay,
+        location: updatedEvent.location || null,
+        participants: updatedEvent.participants?.length
+          ? updatedEvent.participants.map((p: any) =>
+              typeof p === 'string' ? { name: p } : p,
+            )
+          : null,
+        // `?? null`, not `|| null`: 0 is a real reminder ("at the event's
+        // start") and must survive a drag-move.
+        notificationMinutes: updatedEvent.notification ?? null,
+        emailReminder: updatedEvent.emailReminder === true,
+        color: updatedEvent.color || null,
+        categoryId: updatedEvent.calendarId || null,
+        apply_to: scope,
+        split_id: splitId ?? undefined,
+        timezone,
+      },
+      oldSeriesId ? new Set([oldSeriesId]) : undefined,
+    ).catch(() => {})
+  }
+
+  const confirmRangeMove = (requested: 'single' | 'following' | 'all') => {
+    if (!pendingRangeMove) return
+    // Belt guard: never commit a scope that isn't offered.
+    const scope = requested === 'all' && !rangeMoveCanAll ? 'single' : requested
+    commitRangeMove(
+      pendingRangeMove.event,
+      pendingRangeMove.startDate,
+      pendingRangeMove.endDate,
+      scope,
+    )
+    setRangeMoveOpen(false)
+    setPendingRangeMove(null)
   }
 
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
@@ -258,6 +392,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [quickCreateEndTime, setQuickCreateEndTime] = useState<Date | null>(
     null,
   )
+  /**
+   * Live draft range coming back from the editor's date/time fields while
+   * creating. Takes precedence over the committed quick-create range so the
+   * selection box follows the user's edits in real time (CORE-191).
+   */
+  const [createDraftRange, setCreateDraftRange] = useState<{
+    start: Date
+    end: Date
+  } | null>(null)
 
   const [defaultView, setDefaultView] = useState<CalendarViewTypeValue>(
     (settings.defaultView as CalendarViewTypeValue) ?? 'week',
@@ -431,8 +574,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         case 'N':
           e.preventDefault()
           setSelectedEvent(null)
-          setQuickCreateStartTime(new Date())
-          setEventDialogOpen(true)
+          handleTimeRangeSelect(new Date())
           break
         case '/': {
           e.preventDefault()
@@ -585,19 +727,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     }
     setPreviewEvent(event)
     setPreviewAnchorEl(anchorEl ?? null)
-    if (view === 'day' && clientX !== undefined && clientY !== undefined) {
+    // The popover attaches level with the CLICK, not the block's midpoint —
+    // on a tall week-view block the midpoint can be half a screen from the
+    // cursor. One rule for every view; the anchor keeps the block's width so
+    // side space is judged from its real edges.
+    if (anchorEl && clientX !== undefined && clientY !== undefined) {
+      setPreviewAnchorRect(
+        anchorRectForClick(anchorEl.getBoundingClientRect(), clientX, clientY),
+      )
+    } else if (clientX !== undefined && clientY !== undefined) {
       setPreviewAnchorRect(
         DOMRect.fromRect({ x: clientX, y: clientY, width: 0, height: 0 }),
-      )
-    } else if (clientY !== undefined && anchorEl) {
-      const rect = anchorEl.getBoundingClientRect()
-      setPreviewAnchorRect(
-        DOMRect.fromRect({
-          x: rect.left,
-          y: clientY,
-          width: rect.width,
-          height: 0,
-        }),
       )
     } else {
       setPreviewAnchorRect(anchorEl?.getBoundingClientRect() ?? null)
@@ -640,7 +780,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
-      id: event.id || crypto.randomUUID(),
+      id: event.id || uuid(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
@@ -659,66 +799,180 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           )
         : null,
       notificationMinutes: newEvent.notification,
+      emailReminder: newEvent.emailReminder === true,
       categoryId: newEvent.calendarId || null,
+      rrule: newEvent.rrule ?? null,
+      timezone,
     })
     toast(t.eventCreated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
+    setQuickCreateEndTime(null)
   }
 
-  const handleEventUpdate = (updatedEvent: CalendarEvent) => {
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
-        event.id === updatedEvent.id ? updatedEvent : event,
-      ),
+  const handleEventUpdate = (
+    updatedEvent: CalendarEvent,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => {
+    // Plan a "this and following" split OUTSIDE the zustand updater: the
+    // updater must stay pure, and splitId/oldSeriesId have to be decided
+    // exactly once up front — when the event is a raw series master (no
+    // seriesId/recurrenceId) the server still splits at the series root,
+    // so those ids must be sent or the old series would linger as ghosts.
+    // The whole plan is wrapped so a synchronous failure can never kill
+    // the save — without splitId the server assigns the new series id and
+    // its response reconciles the view.
+    let splitId: string | null = null
+    let oldSeriesId: string | null = null
+    let optimisticEvents: CalendarEvent[] | null = null
+    if (applyTo === 'following') {
+      try {
+        splitId = uuid()
+        oldSeriesId =
+          updatedEvent.seriesId ?? (updatedEvent.rrule ? updatedEvent.id : null)
+        if (updatedEvent.seriesId && updatedEvent.recurrenceId) {
+          const window = defaultExpansionWindow()
+          const nextMaster = {
+            ...updatedEvent,
+            id: splitId,
+            seriesId: null,
+            recurrenceId: null,
+            rrule: updatedEvent.rrule ?? null,
+          }
+          const target = events.find((event) => event.id === updatedEvent.id)
+          if (target) {
+            optimisticEvents = optimisticFollowingSplit(
+              events,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+              undefined,
+              timezone,
+            )
+          }
+        }
+      } catch {
+        splitId = null
+        optimisticEvents = null
+      }
+    }
+    if (optimisticEvents) {
+      setEvents(optimisticEvents)
+    } else {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === updatedEvent.id ? updatedEvent : event,
+        ),
+      )
+    }
+    upsertEvent(
+      {
+        id: updatedEvent.id,
+        title: updatedEvent.title,
+        startDate: updatedEvent.startDate.toISOString(),
+        endDate: updatedEvent.endDate.toISOString(),
+        isAllDay: updatedEvent.isAllDay,
+        color: updatedEvent.color,
+        location: updatedEvent.location,
+        description: updatedEvent.description,
+        participants: updatedEvent.participants?.length
+          ? updatedEvent.participants.map((p: any) =>
+              typeof p === 'string' ? { name: p } : p,
+            )
+          : null,
+        notificationMinutes: updatedEvent.notification,
+        emailReminder: updatedEvent.emailReminder === true,
+        categoryId: updatedEvent.calendarId || null,
+        rrule: updatedEvent.rrule ? updatedEvent.rrule : undefined,
+        apply_to: applyTo,
+        split_id: splitId ?? undefined,
+        timezone,
+      },
+      oldSeriesId ? new Set([oldSeriesId]) : undefined,
     )
-    upsertEvent({
-      id: updatedEvent.id,
-      title: updatedEvent.title,
-      startDate: updatedEvent.startDate.toISOString(),
-      endDate: updatedEvent.endDate.toISOString(),
-      isAllDay: updatedEvent.isAllDay,
-      color: updatedEvent.color,
-      location: updatedEvent.location,
-      description: updatedEvent.description,
-      participants: updatedEvent.participants?.length
-        ? updatedEvent.participants.map((p: any) =>
-            typeof p === 'string' ? { name: p } : p,
-          )
-        : null,
-      notificationMinutes: updatedEvent.notification,
-      categoryId: updatedEvent.calendarId || null,
-    })
     toast(t.eventUpdated)
     setEventDialogOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
+    setQuickCreateEndTime(null)
   }
 
-  const handleEventDelete = (eventId: string) => {
+  const handleEventDelete = (
+    eventId: string,
+    applyTo?: 'single' | 'following' | 'all',
+  ) => {
     const targetEvent = events.find((event) => event.id === eventId)
     if (!targetEvent) return
     setPendingDeleteEvent(targetEvent)
+    setPendingDeleteApplyTo(applyTo)
+    setDeleteScope(applyTo === 'all' ? 'all' : 'single')
     setDeleteConfirmOpen(true)
   }
 
-  const confirmEventDelete = async () => {
+  const confirmEventDelete = async (
+    applyToOverride?: 'single' | 'following' | 'all',
+  ) => {
     if (!pendingDeleteEvent) return
 
     const deletedEvent = pendingDeleteEvent
+    const applyTo = applyToOverride ?? pendingDeleteApplyTo
     let cancelled = false
 
-    setEvents((prevEvents) =>
-      prevEvents.filter((event) => event.id !== deletedEvent.id),
-    )
+    setEvents((prevEvents) => {
+      if (applyTo === 'all' && deletedEvent.seriesId) {
+        return prevEvents.filter(
+          (event) => event.seriesId !== deletedEvent.seriesId,
+        )
+      }
+      if (
+        applyTo === 'following' &&
+        deletedEvent.seriesId &&
+        deletedEvent.recurrenceId
+      ) {
+        return prevEvents.filter(
+          (event) =>
+            event.seriesId !== deletedEvent.seriesId ||
+            (event.recurrenceId ?? '') < deletedEvent.recurrenceId!,
+        )
+      }
+      return prevEvents.filter((event) => event.id !== deletedEvent.id)
+    })
 
-    toast(t.eventDeleted, {
+    void deleteEvent(deletedEvent.id, applyTo, timezone, {
+      deferNetwork: true,
+    }).catch(() => {})
+
+    const deleteTimer = window.setTimeout(() => {
+      if (cancelled) return
+      void (async () => {
+        try {
+          await deleteBookmarkByEvent(deletedEvent.id)
+        } catch {}
+        try {
+          await deleteEvent(deletedEvent.id, applyTo, timezone)
+        } catch {}
+      })()
+    }, 6000)
+
+    toast.success(t.eventDeleted, {
       description: deletedEvent.title,
+      duration: 6000,
       action: {
         label: t.undo,
         onClick: () => {
           cancelled = true
+          window.clearTimeout(deleteTimer)
+          if (
+            deletedEvent.rrule ||
+            deletedEvent.seriesId ||
+            deletedEvent.recurrenceId
+          ) {
+            void refreshEvents()
+            toast(t.deletionUndone)
+            return
+          }
           setEvents((prevEvents) => {
             if (prevEvents.some((event) => event.id === deletedEvent.id))
               return prevEvents
@@ -740,9 +994,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   typeof p === 'string' ? { name: p } : p,
                 )
               : null,
-            notificationMinutes: deletedEvent.notification || null,
+            // `?? null`, not `|| null`: 0 is a real reminder and must survive
+            // an undo-restore.
+            notificationMinutes: deletedEvent.notification ?? null,
+            emailReminder: deletedEvent.emailReminder === true,
             color: deletedEvent.color || null,
             categoryId: deletedEvent.calendarId || null,
+            timezone,
           }).catch(() => {})
           toast(t.deletionUndone)
         },
@@ -754,14 +1012,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(false)
     setDeleteConfirmOpen(false)
     setPendingDeleteEvent(null)
-
-    try {
-      await deleteBookmarkByEvent(deletedEvent.id)
-    } catch {}
-    if (cancelled) return
-    try {
-      await deleteEvent(deletedEvent.id)
-    } catch {}
   }
 
   const reAddInviteToCalendar = async (
@@ -769,10 +1019,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     inviteToken?: string,
   ) => {
     if (inviteToken) {
-      await fetch(`/api/invite/${inviteToken}`, {
+      // Session-authenticated: undoing a removal must work even after the
+      // emailed link expired, because the grant outlives the link (ADR-0013).
+      await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          inviteToken,
           categoryId: targetEvent.calendarId ?? '__uncategorized__',
         }),
       }).catch(() => {})
@@ -840,6 +1093,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (targetEvent) {
       setSelectedEvent(targetEvent)
       setQuickCreateStartTime(null)
+      setQuickCreateEndTime(null)
+      // Hand the preview's anchor to the editor. Without this the editor
+      // falls back to querying [data-event-id] — which for a multi-day event
+      // returns the FIRST rendered segment, not the one the user clicked, so
+      // editing from day 2 opened the popover at day 1's block.
+      setEditorAnchorEl(previewAnchorEl)
+      setEditorAnchorRect(previewAnchorRect)
+      setEditorReplacesPreview(previewOpen)
       setEventDialogOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
@@ -860,47 +1121,77 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
     setQuickCreateStartTime(startTime)
-    setQuickCreateEndTime(endTime ?? null)
+    // Always a concrete range: the views render it as the blue selection box
+    // the editor popover anchors to (CORE-191). The default 30-minute range
+    // is clamped to the start's own day — creating at 23:40 must not spill
+    // into a day that may not even be on screen.
+    setQuickCreateEndTime(endTime ?? defaultCreateRange(startTime).end)
+
+    // Creating from the sidebar or the N shortcut while viewing another
+    // week/month left the blue box (and the editor's anchor) outside the
+    // visible period. Navigate to the period that contains the new event.
+    // Only for those entry points: a drag passes endTime and is by
+    // definition already in view — and in the four-day view, whose window
+    // starts at `date`, navigating on drag would shift the window under
+    // the user's cursor.
+    if (endTime === undefined) setDate(startTime)
 
     setSelectedEvent(null)
+    setEditorAnchorEl(null)
+    setEditorAnchorRect(null)
+    setEditorReplacesPreview(false)
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
     setEventDialogOpen(true)
   }
 
-  const handleInvitesAdded = (eventId: string, emails: string[]) => {
+  const handleInvitesAdded = (
+    eventId: string,
+    emails: string[],
+    scope?: 'single' | 'following' | 'all',
+  ) => {
     if (emails.length === 0) return
-    setPendingInvites({ eventId, emails })
+    setPendingInvites({ eventId, emails, scope })
   }
 
   const handleSendInvites = async () => {
     if (!pendingInvites) return
-    const { eventId, emails } = pendingInvites
+    const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
       const response = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, emails }),
+        body: JSON.stringify({ eventId, emails, scope, timezone }),
       })
-      if (!response.ok) throw new Error('failed')
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
       await refreshEventInvites(eventId)
       toast.success('Invitations sent')
-    } catch {
-      toast.error('Failed to send invitations')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to send invitations',
+      )
     }
   }
 
   const handleSkipInvites = async () => {
     if (!pendingInvites) return
-    const { eventId, emails } = pendingInvites
+    const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
       const response = await fetch('/api/invites/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, emails }),
+        body: JSON.stringify({ eventId, emails, scope, timezone }),
       })
       if (!response.ok) throw new Error('failed')
       await refreshEventInvites(eventId)
@@ -992,6 +1283,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     })
   }, [events, selectedCategoryFilters, calendars])
 
+  // The committed create range, shown as the blue selection box the editor
+  // popover anchors to (CORE-191). Only while creating — editing anchors to
+  // the event block itself.
+  const createSelectionRange = useMemo(() => {
+    if (!eventDialogOpen || selectedEvent) return null
+    // The editor's draft (live date/time fields) wins over the committed
+    // quick-create range, so the box follows the user's edits.
+    if (createDraftRange) {
+      const { start, end } = createDraftRange
+      // Tolerate inverted input while the user is mid-edit.
+      return start <= end ? { start, end } : { start: end, end: start }
+    }
+    if (!quickCreateStartTime) return null
+    return {
+      start: quickCreateStartTime,
+      end: quickCreateEndTime ?? defaultCreateRange(quickCreateStartTime).end,
+    }
+  }, [
+    eventDialogOpen,
+    selectedEvent,
+    quickCreateStartTime,
+    quickCreateEndTime,
+    createDraftRange,
+  ])
+
   const filteredEvents = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
     if (!keyword) return eventsByCategory
@@ -1018,7 +1334,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return filteredEvents.slice(0, 8)
   }, [filteredEvents, searchTerm])
 
-  useNotifications(events, notificationSound)
+  useNotifications(events)
 
   return (
     <div className={className}>
@@ -1027,8 +1343,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         <Sidebar
           onCreateEvent={() => {
             setSelectedEvent(null)
-            setQuickCreateStartTime(new Date())
-            setEventDialogOpen(true)
+            // Same path as drag-to-create: a synthetic 30-minute range shows
+            // the same blue box, and the editor anchors to it (CORE-191).
+            handleTimeRangeSelect(new Date())
           }}
           onDateSelect={handleDateSelect}
           onViewChange={handleViewChange}
@@ -1279,6 +1596,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
                 onBackToCalendar={() => setView(defaultView)}
+                selection={createSelectionRange}
               />
             )}
             {view === 'week' && (
@@ -1292,6 +1610,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
+                selection={createSelectionRange}
               />
             )}
             {view === 'four-day' && (
@@ -1307,6 +1626,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
                 onEventDrop={handleEventDrop}
+                selection={createSelectionRange}
               />
             )}
             {view === 'month' && (
@@ -1315,6 +1635,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
+                selection={createSelectionRange}
               />
             )}
             {view === 'year' && (
@@ -1323,6 +1644,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 config={viewConfig}
+                selection={createSelectionRange}
               />
             )}
             {view === 'analytics' && (
@@ -1389,15 +1711,33 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
         <EventDialog
           open={eventDialogOpen}
-          onOpenChange={setEventDialogOpen}
+          onOpenChange={(open) => {
+            setEventDialogOpen(open)
+            if (!open) {
+              // Clearing the range removes the blue anchor box in the views.
+              setQuickCreateStartTime(null)
+              setQuickCreateEndTime(null)
+              setCreateDraftRange(null)
+              setEditorAnchorEl(null)
+              setEditorAnchorRect(null)
+              setEditorReplacesPreview(false)
+            }
+          }}
           onEventAdd={handleEventAdd}
-          onEventUpdate={handleEventUpdate}
-          onEventDelete={handleEventDelete}
+          onEventUpdate={(event, applyTo) => handleEventUpdate(event, applyTo)}
+          onEventDelete={(eventId, applyTo) =>
+            handleEventDelete(eventId, applyTo)
+          }
           onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
+          onDraftRangeChange={setCreateDraftRange}
           event={selectedEvent}
           config={viewConfig}
+          replacesPreview={editorReplacesPreview}
+          anchorElement={editorAnchorEl}
+          anchorRect={editorAnchorRect}
+          scrollContainerRef={calendarRef}
         />
 
         <Dialog
@@ -1456,6 +1796,59 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onFocusSectionHandled={() => setFocusUserProfileSection(null)}
         />
 
+        <AlertDialog open={rangeMoveOpen} onOpenChange={setRangeMoveOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.repeatScope}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t.moveEventScopeDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <RadioGroup
+              value={rangeMoveScope}
+              onValueChange={(value) =>
+                setRangeMoveScope(value as 'single' | 'following' | 'all')
+              }
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="range-move-scope-single" />
+                <Label htmlFor="range-move-scope-single">
+                  {t.repeatScopeSingle}
+                </Label>
+              </div>
+              {!rangeMoveCanAll && (
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="following"
+                    id="range-move-scope-following"
+                  />
+                  <Label htmlFor="range-move-scope-following">
+                    {t.repeatScopeFollowing}
+                  </Label>
+                </div>
+              )}
+              {rangeMoveCanAll && (
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="range-move-scope-all" />
+                  <Label htmlFor="range-move-scope-all">
+                    {t.repeatScopeAll}
+                  </Label>
+                </div>
+              )}
+            </RadioGroup>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingRangeMove(null)}>
+                {t.cancel}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => confirmRangeMove(rangeMoveScope)}
+              >
+                {t.confirm}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <AlertDialog
           open={deleteConfirmOpen}
           onOpenChange={setDeleteConfirmOpen}
@@ -1465,18 +1858,68 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <AlertDialogTitle>{t.deleteEventConfirmTitle}</AlertDialogTitle>
               <AlertDialogDescription>
                 {t.deleteEventConfirmDescription}
+                {pendingDeleteEvent &&
+                  (pendingDeleteEvent.rrule ||
+                    pendingDeleteEvent.seriesId ||
+                    pendingDeleteEvent.recurrenceId) &&
+                  ` ${t.deleteEventConfirmRecurring}`}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {pendingDeleteEvent &&
+            (pendingDeleteEvent.rrule ||
+              pendingDeleteEvent.seriesId ||
+              pendingDeleteEvent.recurrenceId) ? (
+              <RadioGroup
+                value={deleteScope}
+                onValueChange={(value) =>
+                  setDeleteScope(value as 'single' | 'following' | 'all')
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="single" id="delete-scope-single" />
+                  <Label htmlFor="delete-scope-single">
+                    {t.repeatDeleteThisOccurrence}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="following"
+                    id="delete-scope-following"
+                  />
+                  <Label htmlFor="delete-scope-following">
+                    {t.repeatScopeFollowing}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="delete-scope-all" />
+                  <Label htmlFor="delete-scope-all">
+                    {t.repeatDeleteAllOccurrences}
+                  </Label>
+                </div>
+              </RadioGroup>
+            ) : null}
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setPendingDeleteEvent(null)}>
                 {t.cancel}
               </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground"
-                onClick={confirmEventDelete}
-              >
-                {t.delete}
-              </AlertDialogAction>
+              {pendingDeleteEvent &&
+              (pendingDeleteEvent.rrule ||
+                pendingDeleteEvent.seriesId ||
+                pendingDeleteEvent.recurrenceId) ? (
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground"
+                  onClick={() => confirmEventDelete(deleteScope)}
+                >
+                  {t.delete}
+                </AlertDialogAction>
+              ) : (
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground"
+                  onClick={() => confirmEventDelete()}
+                >
+                  {t.delete}
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

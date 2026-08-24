@@ -6,14 +6,20 @@ import { format, isSameDay, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
 import { translations } from '@zntr/i18n/calendar'
-import { formatSelectionRange } from '@/components/app/views/selection-range'
+import {
+  formatSelectionRange,
+  clampRangeToDay,
+} from '@/components/app/views/selection-range'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
-import { EventRenderer } from '@/components/app/views/EventRenderer'
-import { useEventFilter } from '@/components/app/hooks/useEventFilter'
+} from '@/lib/event-colors'
+import {
+  EventRenderer,
+  AllDayEventRenderer,
+} from '@/components/app/views/event-renderer'
+import { useEventFilter } from '@/hooks/use-event-filter'
 import { useEventResize } from '@/hooks/use-event-resize'
 
 interface DayViewProps {
@@ -36,6 +42,12 @@ interface DayViewProps {
     newEndDate: Date,
   ) => void
   onBackToCalendar?: () => void
+  /**
+   * Range the event editor is being opened for. Rendered as the same blue box
+   * as a live drag — it is the editor popover's anchor (CORE-191) — and
+   * disappears when the editor closes and the range is cleared.
+   */
+  selection?: { start: Date; end: Date } | null
 }
 
 export default function DayView({
@@ -49,6 +61,7 @@ export default function DayView({
   onBookmarkEvent,
   onEventDrop,
   onBackToCalendar: _onBackToCalendar,
+  selection = null,
 }: DayViewProps) {
   const {
     allDayEventsForDate,
@@ -176,6 +189,11 @@ export default function DayView({
         onEventDrop(draggingEvent, newStartDate, newEndDate)
       }
 
+      // The browser fires `click` AFTER `mouseup`, so clearing the drag flag
+      // here would let the event block's onClick open the preview at the drop
+      // target. Suppress that one click instead (same mechanism the resize
+      // handles and the context menu use).
+      if (isDraggingRef.current) queueIgnoreEventClick()
       isDraggingRef.current = false
       setDraggingEvent(null)
       setDragStartPosition(null)
@@ -334,7 +352,7 @@ export default function DayView({
     return (
       <div
         className={cn(
-          'absolute rounded-lg p-2 text-sm overflow-hidden',
+          'absolute rounded-md p-2 text-sm overflow-hidden',
           draggingEvent.color,
         )}
         style={{
@@ -353,13 +371,25 @@ export default function DayView({
         }}
       >
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
           style={{ backgroundColor: getEventAccentColor(draggingEvent.color) }}
         />
         <div className="pl-1">
           <div
-            className="font-medium truncate"
-            style={{ color: getEventAccentColor(draggingEvent.color) }}
+            className="font-medium leading-tight break-words"
+            style={{
+              color: getEventAccentColor(draggingEvent.color),
+              // Match the real block: wrap to as many lines as the preview's
+              // height allows instead of always truncating to one line.
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: Math.max(
+                1,
+                Math.floor((dragEventDuration - 8) / 16),
+              ),
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {draggingEvent.title}
           </div>
@@ -383,15 +413,16 @@ export default function DayView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
-        <div className="py-2 text-center">
+      <div className="grid grid-cols-[84px_1fr] border-b relative z-30 bg-background">
+        <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}
           </div>
           <div
             className={cn(
-              'text-3xl font-semibold text-foreground',
-              isSameDay(date, new Date()) && 'text-[#0066ff]',
+              'mx-auto flex h-6 w-6 items-center justify-center text-sm',
+              isSameDay(date, new Date()) &&
+                'rounded-md bg-cal-today text-cal-today-foreground',
             )}
           >
             {format(date, 'd')}
@@ -403,17 +434,11 @@ export default function DayView({
             className="relative"
             style={{ height: allDayEventsHeight + 'px' }}
           >
-            {allDayEvents.map((event, _index) => (
-              <EventRenderer
+            {allDayEvents.map((event, index) => (
+              <AllDayEventRenderer
                 key={`allday-${event.id}`}
                 event={event}
-                layout={{
-                  start: new Date(event.startDate),
-                  end: new Date(event.endDate),
-                  column: 0,
-                  totalColumns: 1,
-                  isMultiDay: false,
-                }}
+                index={index}
                 config={config}
                 isDark={isDark}
                 onEventClick={onEventClick}
@@ -426,7 +451,7 @@ export default function DayView({
                 ignoreNextEventClickRef={ignoreNextEventClickRef}
                 isDraggingRef={isDraggingRef}
                 queueIgnoreEventClick={queueIgnoreEventClick}
-                showTime={false}
+                eventSpacing={eventSpacing}
               />
             ))}
           </div>
@@ -434,7 +459,7 @@ export default function DayView({
       </div>
 
       <div
-        className="flex-1 grid grid-cols-[100px_1fr] overflow-auto select-none"
+        className="flex-1 grid grid-cols-[84px_1fr] overflow-auto select-none"
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground">
@@ -442,7 +467,7 @@ export default function DayView({
             <div key={hour} className="h-[60px] relative">
               <span
                 className={cn(
-                  'absolute right-4',
+                  'absolute right-3',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >
@@ -460,46 +485,49 @@ export default function DayView({
             <div key={hour} className="h-[60px] border-t" />
           ))}
 
-          {eventLayouts.map(({ event, start, end, column, totalColumns }) => (
-            <EventRenderer
-              key={event.id}
-              event={event}
-              layout={{ start, end, column, totalColumns, isMultiDay: false }}
-              config={config}
-              isDark={isDark}
-              onEventClick={onEventClick}
-              onEditEvent={onEditEvent}
-              onDeleteEvent={onDeleteEvent}
-              onBookmarkEvent={onBookmarkEvent}
-              onEventDragStart={handleEventDragStart}
-              onEventDragEnd={handleEventDragEnd}
-              onEventResizeStart={beginResize}
-              resizeOverride={
-                resize?.event.id === event.id
-                  ? {
-                      startMinutes: resize.liveStart,
-                      endMinutes: resize.liveEnd,
-                    }
-                  : null
-              }
-              suppressResizeClickRef={suppressResizeClickRef}
-              isDragging={isDraggingRef.current}
-              ignoreNextEventClickRef={ignoreNextEventClickRef}
-              isDraggingRef={isDraggingRef}
-              queueIgnoreEventClick={queueIgnoreEventClick}
-            />
-          ))}
+          {eventLayouts.map(
+            ({ event, start, end, column, totalColumns, isMultiDay }) => (
+              <EventRenderer
+                key={event.id}
+                event={event}
+                layout={{ start, end, column, totalColumns, isMultiDay }}
+                config={config}
+                isDark={isDark}
+                onEventClick={onEventClick}
+                onEditEvent={onEditEvent}
+                onDeleteEvent={onDeleteEvent}
+                onBookmarkEvent={onBookmarkEvent}
+                onEventDragStart={handleEventDragStart}
+                onEventDragEnd={handleEventDragEnd}
+                onEventResizeStart={beginResize}
+                resizeOverride={
+                  resize?.event.id === event.id
+                    ? {
+                        startMinutes: resize.liveStart,
+                        endMinutes: resize.liveEnd,
+                      }
+                    : null
+                }
+                suppressResizeClickRef={suppressResizeClickRef}
+                isDragging={isDraggingRef.current}
+                ignoreNextEventClickRef={ignoreNextEventClickRef}
+                isDraggingRef={isDraggingRef}
+                queueIgnoreEventClick={queueIgnoreEventClick}
+              />
+            ),
+          )}
 
           {createSelection && (
             <div
-              className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+              data-create-selection
+              className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
               style={{
                 top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                 height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                 zIndex: 5,
               }}
             >
-              <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+              <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
@@ -508,6 +536,35 @@ export default function DayView({
               </div>
             </div>
           )}
+
+          {/* The editor's anchor: the committed/draft range, kept visible
+              while the editor popover is open (CORE-191) and following the
+              editor's date-time fields. A range wider than this day renders
+              clamped to the day; a range that misses it renders nothing. */}
+          {selection &&
+            !createSelection &&
+            (() => {
+              const slice = clampRangeToDay(selection, date)
+              if (!slice) return null
+              const { startMinute, endMinute } = slice
+              return (
+                <div
+                  data-create-selection
+                  className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
+                  style={{
+                    top: `${startMinute}px`,
+                    height: `${Math.max(endMinute - startMinute, 15)}px`,
+                    zIndex: 5,
+                  }}
+                >
+                  <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
+                    {formatSelectionRange(startMinute, endMinute, (hour, min) =>
+                      layoutEngine.formatHourMinute(hour, min),
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
           {}
           {dragPreview && renderDragPreview()}
@@ -530,12 +587,12 @@ export default function DayView({
 
             return (
               <div
-                className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-30 pointer-events-none"
+                className="absolute left-0 right-0 border-t-2 border-cal-now z-30 pointer-events-none"
                 style={{
                   top: `${topPosition}px`,
                 }}
               >
-                <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                <span className="absolute -left-[6px] -top-[7px] h-3 w-3 rounded-full bg-cal-now" />
               </div>
             )
           })()}

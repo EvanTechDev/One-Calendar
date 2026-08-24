@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 import { getAuthedUser } from '@/lib/api-helpers'
+import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -17,6 +18,14 @@ export async function POST() {
 
   if (!currentUser.email)
     return NextResponse.json({ error: 'No email' }, { status: 400 })
+
+  const limit = await checkFixedWindowLimit({
+    name: 'welcome-email',
+    subject: currentUser.id,
+    limit: 3,
+    windowSeconds: 3600,
+  })
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfter)
 
   try {
     await sendAuthEmail({

@@ -17,6 +17,7 @@ import { Download, Upload, AlertCircle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { collapseSeriesForExport, generateICSFile, parseICS } from '@/lib/ics'
 import { Checkbox } from '@zntr/ui/checkbox'
 import type { CalendarEvent } from '../calendar'
 import { Button } from '@zntr/ui/button'
@@ -54,19 +55,128 @@ interface AppSettingsSnapshot {
   language?: string
   firstDayOfWeek?: number
   timezone?: string
-  notificationSound?: string
   defaultView?: string
   enableShortcuts?: boolean
   timeFormat?: '24h' | '12h'
-  toastPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right'
   theme?: string
+}
+
+/**
+ * Event shape written to a JSON backup.
+ *
+ * Two deliberate reductions versus the in-memory `CalendarEvent`:
+ *
+ * 1. `invites[].userImage` (and the invite plumbing: tokens, delivery flags) is
+ *    dropped. An avatar URL is a third-party CDN link that will rot, it bloats
+ *    the file, and a backup does not need it to restore the calendar. Only the
+ *    invitee's email and RSVP status are kept, which is what re-creating an
+ *    invite actually requires.
+ * 2. A recurring series is written once — the master row with its rrule and
+ *    exdates — rather than every expanded occurrence. Occurrences are derived
+ *    data; exporting them made the file grow with the expansion window and,
+ *    on import, produced one standalone event per occurrence. Single-instance
+ *    edits are the exception: they are real stored rows, so each is kept with
+ *    its seriesId/recurrenceId so it can be re-attached.
+ */
+interface JsonBackupEvent {
+  id: string
+  title: string
+  startDate: string
+  endDate: string
+  isAllDay: boolean
+  description?: string
+  location?: string
+  notification?: number
+  color?: string
+  calendarId?: string
+  participants?: string[]
+  rrule?: string | null
+  exdate?: string[] | null
+  /** Present only on single-instance edits of a series. */
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  invites?: Array<{
+    email: string
+    status: string
+  }>
+}
+
+/**
+ * What `normalizeImportedEvent` accepts: an ics/csv parse result (dates as
+ * `Date`) or a JSON-backup row (dates as ISO strings, invites reduced to email
+ * plus status).
+ */
+type ImportableEvent = {
+  id?: string
+  title?: string
+  startDate?: Date | string
+  endDate?: Date | string
+  isAllDay?: boolean
+  description?: string
+  location?: string
+  /** Minutes before the start; null or absent means no reminder. */
+  notification?: number | null
+  color?: string
+  calendarId?: string
+  participants?: string[]
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  invites?: Array<{ email?: string; status?: string }>
+}
+
+function toBackupEvent(event: CalendarEvent): JsonBackupEvent {
+  const invites = (event.invites ?? [])
+    .map((invite) => ({ email: invite.email, status: invite.status }))
+    .filter((invite) => !!invite.email)
+
+  return {
+    id: event.id,
+    title: event.title,
+    startDate: new Date(event.startDate).toISOString(),
+    endDate: new Date(event.endDate).toISOString(),
+    isAllDay: Boolean(event.isAllDay),
+    ...(event.description ? { description: event.description } : {}),
+    ...(event.location ? { location: event.location } : {}),
+    ...(event.notification !== null && event.notification !== undefined
+      ? { notification: event.notification }
+      : {}),
+    ...(event.color ? { color: event.color } : {}),
+    ...(event.calendarId ? { calendarId: event.calendarId } : {}),
+    ...(event.participants?.length ? { participants: event.participants } : {}),
+    ...(event.rrule ? { rrule: event.rrule.replace(/^RRULE:/i, '') } : {}),
+    ...(event.exdate?.length ? { exdate: event.exdate } : {}),
+    ...(event.isOverride
+      ? {
+          seriesId: event.seriesId ?? null,
+          recurrenceId: event.recurrenceId ?? null,
+          isOverride: true,
+        }
+      : {}),
+    ...(invites.length ? { invites } : {}),
+  }
+}
+
+/**
+ * Collapses expanded occurrences into their parent series and strips derived
+ * fields. Uses the same anchor rule as the ics export: the earliest occurrence
+ * becomes the exported row so its rrule regenerates the same set.
+ */
+function toBackupEvents(events: CalendarEvent[]): JsonBackupEvent[] {
+  const collapsed = collapseSeriesForExport(
+    events as unknown as Parameters<typeof collapseSeriesForExport>[0],
+  ) as unknown as CalendarEvent[]
+  return collapsed.map(toBackupEvent)
 }
 
 interface JsonBackupPayloadV2 {
   format: 'one-calendar-json-v2'
   exportedAt: string
   data: {
-    events: CalendarEvent[]
+    events: JsonBackupEvent[]
     calendars: ImportedCategory[]
     eventCategoryMap: Record<string, string>
     bookmarks: unknown[]
@@ -139,18 +249,21 @@ export default function ImportExport({
         const icsContent = generateICSFile(filteredEvents)
         downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
       } else if (exportFormat === 'json') {
+        const backupEvents = toBackupEvents(filteredEvents)
         const exportPayload: JsonBackupPayloadV2 = {
           format: 'one-calendar-json-v2',
           exportedAt: new Date().toISOString(),
           data: {
-            events: filteredEvents,
+            events: backupEvents,
             calendars: categories.map((c: CategoryData) => ({
               id: c.id,
               name: c.name,
               color: c.color,
             })),
+            // Keyed off the collapsed rows so the map has no entries for
+            // occurrences that are no longer exported.
             eventCategoryMap: Object.fromEntries(
-              filteredEvents.map((event) => [event.id, event.calendarId || '']),
+              backupEvents.map((event) => [event.id, event.calendarId || '']),
             ),
             bookmarks: bookmarks.map((b: BookmarkData) => ({
               eventId: b.eventId,
@@ -168,12 +281,9 @@ export default function ImportExport({
               language: settings.language,
               firstDayOfWeek: settings.firstDayOfWeek,
               timezone: settings.timezone,
-              notificationSound: settings.notificationSound,
               defaultView: settings.defaultView,
               enableShortcuts: settings.enableShortcuts,
               timeFormat: settings.timeFormat,
-              toastPosition:
-                settings.toastPosition as AppSettingsSnapshot['toastPosition'],
               theme: settings.theme,
             },
           },
@@ -249,7 +359,12 @@ export default function ImportExport({
         rawContent = await selectedFile.text()
 
         if (fileExt === 'ics') {
-          importedEvents = parseICS(rawContent)
+          // Normalise rather than cast: parseICS returns its own shape (and
+          // recurrence overrides carry seriesId/recurrenceId), so the store
+          // needs real Dates and defaulted fields.
+          importedEvents = parseICS(rawContent, {
+            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+          }).map((event) => normalizeImportedEvent(event))
         } else if (fileExt === 'json') {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -268,7 +383,12 @@ export default function ImportExport({
         rawContent = await response.text()
 
         if (importUrl.endsWith('.ics')) {
-          importedEvents = parseICS(rawContent)
+          // Normalise rather than cast: parseICS returns its own shape (and
+          // recurrence overrides carry seriesId/recurrenceId), so the store
+          // needs real Dates and defaulted fields.
+          importedEvents = parseICS(rawContent, {
+            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+          }).map((event) => normalizeImportedEvent(event))
         } else if (importUrl.endsWith('.json')) {
           const parsedResult = await parseJsonEvents(rawContent)
           importedEvents = parsedResult.events
@@ -464,9 +584,17 @@ ${rawContent.substring(0, 500)}...`)
     throw new Error(t.unsupportedFormat || 'Unsupported file format')
   }
 
-  const normalizeImportedEvent = (
-    input: Partial<CalendarEvent>,
-  ): CalendarEvent => {
+  /**
+   * Accepts both a parsed ics/csv event and a JSON-backup event. Dates arrive as
+   * `Date` from the parsers and as ISO strings from a JSON file, hence the loose
+   * input type.
+   *
+   * Recurrence fields must survive: a backup now stores a series once (master +
+   * rrule + exdate) plus its single-instance edits, so dropping `exdate` or the
+   * `seriesId`/`recurrenceId` link would import the series without its
+   * exclusions and turn every edited occurrence into a detached event.
+   */
+  const normalizeImportedEvent = (input: ImportableEvent): CalendarEvent => {
     const start = input.startDate ? new Date(input.startDate) : new Date()
     const parsedEnd = input.endDate
       ? new Date(input.endDate)
@@ -474,290 +602,98 @@ ${rawContent.substring(0, 500)}...`)
     const end =
       parsedEnd < start ? new Date(start.getTime() + 60 * 60 * 1000) : parsedEnd
 
+    // A backup keeps only email + status per invite; the rest (tokens, delivery
+    // flags, avatars) is server state that is re-created on invite.
+    const invites = Array.isArray(input.invites)
+      ? input.invites
+          .filter((invite) => typeof invite?.email === 'string')
+          .map((invite) => ({
+            id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
+            email: invite.email as string,
+            status: (invite.status ?? 'pending') as
+              | 'pending'
+              | 'accepted'
+              | 'maybe'
+              | 'declined',
+            inviteToken: '',
+            emailSent: false,
+            addedToCalendar: false,
+            userName: null,
+            userImage: null,
+          }))
+      : undefined
+
     return {
       id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
       title: input.title || t.unnamedEvent || 'Unnamed Event',
       startDate: start,
       endDate: end,
       isAllDay: Boolean(input.isAllDay),
-      recurrence: input.recurrence || 'none',
+      rrule: input.rrule ? input.rrule.replace(/^RRULE:/i, '') : null,
+      exdate: Array.isArray(input.exdate) ? input.exdate : null,
+      ...(input.isOverride
+        ? {
+            seriesId: input.seriesId ?? null,
+            recurrenceId: input.recurrenceId ?? null,
+            isOverride: true,
+          }
+        : {}),
       location: input.location,
       participants: Array.isArray(input.participants) ? input.participants : [],
+      // An absent reminder in a backup means no reminder, not "at the start".
       notification:
-        typeof input.notification === 'number' ? input.notification : 0,
+        typeof input.notification === 'number' ? input.notification : null,
       description: input.description,
       color: input.color || 'bg-[#E6F6FD]',
       calendarId: input.calendarId || '',
+      ...(invites?.length ? { invites } : {}),
     }
-  }
-
-  const generateICSFile = (events: CalendarEvent[]): string => {
-    let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//One Calendar//NONSGML v1.0//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-`
-
-    const formatDate = (date: Date) => {
-      const utcYear = date.getUTCFullYear()
-      const utcMonth = String(date.getUTCMonth() + 1).padStart(2, '0')
-      const utcDay = String(date.getUTCDate()).padStart(2, '0')
-      const utcHours = String(date.getUTCHours()).padStart(2, '0')
-      const utcMinutes = String(date.getUTCMinutes()).padStart(2, '0')
-      const utcSeconds = String(date.getUTCSeconds()).padStart(2, '0')
-
-      return `${utcYear}${utcMonth}${utcDay}T${utcHours}${utcMinutes}${utcSeconds}Z`
-    }
-
-    events.forEach((event) => {
-      const startDate = new Date(event.startDate)
-      const endDate = new Date(event.endDate)
-
-      icsContent += `BEGIN:VEVENT
-UID:${event.id}
-DTSTAMP:${formatDate(new Date())}
-DTSTART:${formatDate(startDate)}
-DTEND:${formatDate(endDate)}
-SUMMARY:${event.title}
-${event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : ''}
-${event.location ? `LOCATION:${event.location}` : ''}
-END:VEVENT
-`
-    })
-
-    icsContent += 'END:VCALENDAR'
-    return icsContent
   }
 
   const generateCSV = (events: CalendarEvent[]): string => {
+    // All Day / Reminder / Repeat Rule were previously dropped, so a CSV
+    // round-trip silently turned all-day events into timed ones and lost every
+    // recurrence. Recurring series are collapsed the same way as the ics export
+    // so one series is one row, not one row per occurrence.
     const headers = [
       'Title',
       'Start Date',
       'End Date',
+      'All Day',
       'Location',
       'Description',
+      'Reminder Minutes',
+      'Repeat Rule',
       'Color',
     ]
 
-    const rows = events.map((event) => [
+    const rows = collapseSeriesForExport(
+      events as unknown as Parameters<typeof collapseSeriesForExport>[0],
+    ).map((event) => [
       event.title,
       new Date(event.startDate).toISOString(),
       new Date(event.endDate).toISOString(),
+      event.isAllDay ? 'true' : 'false',
       event.location || '',
       event.description || '',
-      event.color,
+      event.notification !== null && event.notification !== undefined
+        ? String(event.notification)
+        : '',
+      (event.rrule ?? '').replace(/^RRULE:/i, ''),
+      event.color || '',
     ])
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
-      ),
-    ].join('\n')
-
-    return csvContent
-  }
-
-  const parseICS = (icsContent: string): CalendarEvent[] => {
-    const events: CalendarEvent[] = []
-    const lines = icsContent.split(/\r\n|\n|\r/)
-
-    let currentEvent: Partial<CalendarEvent> = {}
-    let inEvent = false
-
-    const processedLines: string[] = []
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      if (line.startsWith(' ') || line.startsWith('\t')) {
-        if (processedLines.length > 0) {
-          processedLines[processedLines.length - 1] += line.substring(1)
-        }
-      } else {
-        processedLines.push(line)
-      }
-    }
-
-    for (const line of processedLines) {
-      if (line.startsWith('BEGIN:VEVENT')) {
-        currentEvent = {
-          id:
-            Date.now().toString() + Math.random().toString(36).substring(2, 9),
-          title: t.unnamedEvent || 'Unnamed Event',
-          isAllDay: false,
-          recurrence: 'none',
-          participants: [],
-          notification: 0,
-          color: 'bg-[#E6F6FD]',
-          calendarId: '',
-        }
-        inEvent = true
-      } else if (line.startsWith('END:VEVENT')) {
-        if (inEvent && currentEvent.title && currentEvent.startDate) {
-          if (
-            !currentEvent.endDate ||
-            new Date(currentEvent.endDate) < new Date(currentEvent.startDate)
-          ) {
-            currentEvent.endDate = new Date(
-              new Date(currentEvent.startDate).getTime() + 60 * 60 * 1000,
-            )
-          }
-
-          events.push(currentEvent as CalendarEvent)
-        }
-        currentEvent = {}
-        inEvent = false
-      } else if (inEvent) {
-        const colonIndex = line.indexOf(':')
-        if (colonIndex > 0) {
-          const key = line.substring(0, colonIndex)
-          const value = line.substring(colonIndex + 1)
-
-          const [mainKey, ...params] = key.split(';')
-
-          switch (mainKey) {
-            case 'SUMMARY':
-              currentEvent.title = value
-              break
-            case 'DESCRIPTION':
-              currentEvent.description = value
-                .replace(/\\n/g, '\n')
-                .replace(/\\,/g, ',')
-              break
-            case 'LOCATION':
-              currentEvent.location = value
-              break
-            case 'UID':
-              currentEvent.id = value
-              break
-            case 'DTSTART':
-              try {
-                const hasTimeZone = params.some((p) => p.startsWith('TZID='))
-                const isAllDay = !value.includes('T')
-
-                currentEvent.startDate = parseICSDate(value, hasTimeZone)
-                currentEvent.isAllDay = isAllDay
-              } catch (e) {
-                console.error('Error parsing DTSTART:', value, e)
-              }
-              break
-            case 'DTEND':
-              try {
-                const hasTimeZone = params.some((p) => p.startsWith('TZID='))
-                currentEvent.endDate = parseICSDate(value, hasTimeZone)
-              } catch (e) {
-                console.error('Error parsing DTEND:', value, e)
-              }
-              break
-            case 'RRULE':
-              if (value.includes('FREQ=DAILY')) {
-                currentEvent.recurrence = 'daily'
-              } else if (value.includes('FREQ=WEEKLY')) {
-                currentEvent.recurrence = 'weekly'
-              } else if (value.includes('FREQ=MONTHLY')) {
-                currentEvent.recurrence = 'monthly'
-              } else if (value.includes('FREQ=YEARLY')) {
-                currentEvent.recurrence = 'yearly'
-              }
-              break
-          }
-        }
-      }
-    }
-
-    return events
-  }
-
-  const parseICSDate = (dateString: string, _hasTimeZone: boolean): Date => {
-    let year,
-      month,
-      day,
-      hour = 0,
-      minute = 0,
-      second = 0
-
-    const hasOffset =
-      dateString.includes('+') ||
-      (dateString.includes('-') && dateString.indexOf('-') > 8)
-    const isUTC = dateString.endsWith('Z')
-
-    if (dateString.includes('T')) {
-      let datePart, timePart
-
-      if (hasOffset) {
-        const offsetIndex = Math.max(
-          dateString.lastIndexOf('+'),
-          dateString.lastIndexOf('-'),
-        )
-        datePart = dateString.substring(0, dateString.indexOf('T'))
-        timePart = dateString.substring(
-          dateString.indexOf('T') + 1,
-          offsetIndex,
-        )
-
-        const offsetPart = dateString.substring(offsetIndex)
-        const isoDateString = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}T${timePart.substring(0, 2)}:${timePart.substring(2, 4)}:${timePart.substring(4, 6)}${offsetPart.substring(0, 3)}:${offsetPart.substring(3, 5)}`
-        const parsedDate = new Date(isoDateString)
-
-        if (!Number.isNaN(parsedDate.getTime())) {
-          return parsedDate
-        }
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-        hour = Number.parseInt(timePart.substring(0, 2), 10)
-        minute = Number.parseInt(timePart.substring(2, 4), 10)
-        second = Number.parseInt(timePart.substring(4, 6), 10)
-
-        const offsetSign = offsetPart.charAt(0) === '+' ? 1 : -1
-        const offsetHours = Number.parseInt(offsetPart.substring(1, 3), 10)
-        const offsetMinutes = Number.parseInt(offsetPart.substring(3, 5), 10)
-        const totalOffsetMinutes =
-          offsetSign * (offsetHours * 60 + offsetMinutes)
-        const utcTime =
-          Date.UTC(year, month, day, hour, minute, second) -
-          totalOffsetMinutes * 60 * 1000
-
-        return new Date(utcTime)
-      } else if (isUTC) {
-        datePart = dateString.split('T')[0]
-        timePart = dateString.split('T')[1].replace('Z', '')
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-
-        if (timePart.length >= 6) {
-          hour = Number.parseInt(timePart.substring(0, 2), 10)
-          minute = Number.parseInt(timePart.substring(2, 4), 10)
-          second = Number.parseInt(timePart.substring(4, 6), 10)
-        }
-
-        return new Date(Date.UTC(year, month, day, hour, minute, second))
-      } else {
-        datePart = dateString.split('T')[0]
-        timePart = dateString.split('T')[1]
-
-        year = Number.parseInt(datePart.substring(0, 4), 10)
-        month = Number.parseInt(datePart.substring(4, 6), 10) - 1
-        day = Number.parseInt(datePart.substring(6, 8), 10)
-
-        if (timePart.length >= 6) {
-          hour = Number.parseInt(timePart.substring(0, 2), 10)
-          minute = Number.parseInt(timePart.substring(2, 4), 10)
-          second = Number.parseInt(timePart.substring(4, 6), 10)
-        }
-
-        return new Date(year, month, day, hour, minute, second)
-      }
-    } else {
-      year = Number.parseInt(dateString.substring(0, 4), 10)
-      month = Number.parseInt(dateString.substring(4, 6), 10) - 1
-      day = Number.parseInt(dateString.substring(6, 8), 10)
-
-      return new Date(year, month, day)
-    }
+    // CRLF and a UTF-8 BOM: Excel misreads plain LF and mangles non-ASCII
+    // titles without the BOM.
+    return (
+      '\uFEFF' +
+      [
+        headers.join(','),
+        ...rows.map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
+        ),
+      ].join('\r\n')
+    )
   }
 
   const parseCSV = (csvContent: string): CalendarEvent[] => {
@@ -792,6 +728,21 @@ END:VEVENT
         const colorIndex = headers.findIndex((h) =>
           h.toLowerCase().includes('color'),
         )
+        // Columns added alongside the richer export; files from other tools
+        // simply lack them and fall back to the previous defaults.
+        const allDayIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes('all day'),
+        )
+        const reminderIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes('reminder'),
+        )
+        const rruleIndex = headers.findIndex(
+          (h) =>
+            h.toLowerCase().includes('repeat') ||
+            h.toLowerCase().includes('rrule'),
+        )
+        const cell = (index: number): string =>
+          index >= 0 && index < values.length ? values[index].trim() : ''
 
         const title =
           titleIndex >= 0 && titleIndex < values.length
@@ -816,14 +767,14 @@ END:VEVENT
           title,
           startDate,
           endDate,
-          isAllDay: false,
-          recurrence: 'none',
+          isAllDay: cell(allDayIndex).toLowerCase() === 'true',
+          rrule: cell(rruleIndex) ? cell(rruleIndex) : null,
           location:
             locationIndex >= 0 && locationIndex < values.length
               ? values[locationIndex]
               : undefined,
           participants: [],
-          notification: 0,
+          notification: Number.parseInt(cell(reminderIndex), 10) || 0,
           description:
             descriptionIndex >= 0 && descriptionIndex < values.length
               ? values[descriptionIndex]

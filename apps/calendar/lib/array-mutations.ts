@@ -24,3 +24,12 @@ export function removeById<T extends { id: string }>(
 ): T[] {
   return list.filter((x) => x.id !== id)
 }
+
+export function dedupeById<T extends { id: string }>(list: T[]): T[] {
+  const seen = new Set<string>()
+  return list.filter((x) => {
+    if (seen.has(x.id)) return false
+    seen.add(x.id)
+    return true
+  })
+}

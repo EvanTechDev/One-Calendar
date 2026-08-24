@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { registerOAuthClient } from '@/lib/mcp/auth'
 import { McpAuthError } from '@/lib/mcp/types'
+import { checkFixedWindowLimit, clientIpFrom } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    // Dynamic registration is unauthenticated by design (RFC 7591), so IP is
+    // the only available subject — a speed bump, not a guarantee.
+    const limit = await checkFixedWindowLimit({
+      name: 'oauth-register',
+      subject: clientIpFrom(request),
+      limit: 20,
+      windowSeconds: 3600,
+    })
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'invalid_client_metadata',
+          error_description: 'Too many registration requests',
+        },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } },
+      )
+    }
+
     let body: Record<string, unknown>
     try {
       body = await request.json()

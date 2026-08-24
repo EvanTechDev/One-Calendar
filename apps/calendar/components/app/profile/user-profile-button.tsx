@@ -6,9 +6,12 @@ import {
   CircleUser,
   Trash2,
   Mail,
-  Camera,
+  Upload,
   BarChart2,
   Settings,
+  ChevronDown,
+  KeyRound,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import {
@@ -29,7 +32,6 @@ import {
 } from '@zntr/ui/dropdown-menu'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
 import { toast } from 'sonner'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { authClient } from '@/lib/auth/client'
@@ -67,9 +69,11 @@ export default function UserProfileButton({
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState('')
+  // Which security row is expanded. One at a time: each row hosts a stepped
+  // flow (OTP, QR) and two open flows compete for attention and vertical room.
   const [profileSection, setProfileSection] = useState<
-    'basic' | 'emails' | 'twofa' | 'password'
-  >('basic')
+    'emails' | 'twofa' | 'password' | null
+  >(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -93,9 +97,6 @@ export default function UserProfileButton({
 
   useEffect(() => {
     if (mode !== 'settings' || !focusSection) return
-    if (focusSection === 'profile') {
-      setProfileSection('basic')
-    }
     const target = document.getElementById(`settings-account-${focusSection}`)
     target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [focusSection, mode])
@@ -451,364 +452,448 @@ export default function UserProfileButton({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {isAnySignedIn ? (
             <>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={user?.image || '/user.png'}
-                    alt="avatar"
-                    width={40}
-                    height={40}
-                    className="h-10 w-10 rounded-full border object-cover"
-                    referrerPolicy="no-referrer"
-                    fetchPriority="high"
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">
-                      {user?.name || 'User'}
-                    </p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {user?.email || ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {isSignedIn ? (
-                <div
-                  id="settings-account-profile"
-                  className="rounded-lg border p-4"
-                >
-                  <Tabs
-                    value={profileSection}
-                    onValueChange={(value) =>
-                      setProfileSection(
-                        value as 'basic' | 'emails' | 'twofa' | 'password',
-                      )
-                    }
+              {/* Identity: the avatar IS the upload control and the name is
+                  edited in place — no separate "basic info" tab to find. */}
+              <section
+                id="settings-account-profile"
+                className="space-y-4"
+                aria-label={t.basicInfo}
+              >
+                <div className="flex items-start gap-4">
+                  <Label
+                    htmlFor="profile-avatar-input"
+                    className={cn(
+                      'group relative shrink-0 cursor-pointer rounded-full',
+                      avatarUploading && 'pointer-events-none opacity-60',
+                    )}
+                    aria-label={t.changeAvatar}
                   >
-                    <TabsList>
-                      <TabsTrigger value="basic">{t.basicInfo}</TabsTrigger>
-                      <TabsTrigger value="emails">
-                        {t.emailManagement}
-                      </TabsTrigger>
-                      <TabsTrigger value="twofa">
-                        {t.twoFactorAuthentication}
-                      </TabsTrigger>
-                      <TabsTrigger value="password">
-                        {t.changePassword}
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="basic" className="space-y-3 pt-4">
-                      <div className="space-y-2">
-                        <Label>{t.avatar}</Label>
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={user?.image || '/user.png'}
-                            alt="avatar"
-                            width={52}
-                            height={52}
-                            className="h-12 w-12 rounded-full border object-cover"
-                            referrerPolicy="no-referrer"
-                            fetchPriority="high"
-                          />
-                          <Label
-                            htmlFor="profile-avatar-input"
-                            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent"
-                          >
-                            <Camera className="h-4 w-4" />
-                            {avatarUploading ? t.uploading : t.changeAvatar}
-                          </Label>
-                          <Input
-                            id="profile-avatar-input"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={avatarUploading}
-                            onChange={(e) => {
-                              void updateAvatar(e.target.files?.[0])
-                              e.currentTarget.value = ''
-                            }}
-                          />
-                        </div>
+                    <img
+                      src={user?.image || '/user.png'}
+                      alt="avatar"
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-full border object-cover"
+                      referrerPolicy="no-referrer"
+                      fetchPriority="high"
+                    />
+                    {/* Hover is an enhancement, not the affordance: Tailwind
+                        v4 gates hover: behind (hover:hover), so on touch
+                        devices this overlay can never appear. The corner
+                        badge below is the always-visible entry point. */}
+                    <span className="pointer-events-none absolute inset-0 hidden items-center justify-center rounded-full bg-gray-500/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 sm:flex">
+                      <Upload className="h-5 w-5 text-white" />
+                    </span>
+                    <span className="absolute -right-0.5 -bottom-0.5 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm">
+                      <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                    </span>
+                  </Label>
+                  <Input
+                    id="profile-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={avatarUploading}
+                    onChange={(e) => {
+                      void updateAvatar(e.target.files?.[0])
+                      e.currentTarget.value = ''
+                    }}
+                  />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="profile-first-name">
+                          {t.firstName}
+                        </Label>
+                        <Input
+                          id="profile-first-name"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                        />
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label>{t.firstName}</Label>
-                          <Input
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>{t.lastName}</Label>
-                          <Input
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                          />
-                        </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="profile-last-name">{t.lastName}</Label>
+                        <Input
+                          id="profile-last-name"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                        />
                       </div>
-                      <Button onClick={saveProfile} disabled={profileSaving}>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-sm text-muted-foreground">
+                        {user?.email || ''}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={saveProfile}
+                        disabled={profileSaving}
+                      >
                         {profileSaving ? t.saving : t.saveProfile}
                       </Button>
-                    </TabsContent>
-
-                    <TabsContent value="emails" className="space-y-3 pt-4">
-                      <h3 className="font-medium flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        {t.accountEmailManagement}
-                      </h3>
-                      {emailStep === 1 ? (
-                        <>
-                          <div className="rounded-md border px-3 py-2 text-sm">
-                            <p className="text-muted-foreground">
-                              {t.currentEmail}
-                            </p>
-                            <p className="font-medium">{user?.email || '-'}</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t.newEmail}</Label>
-                            <Input
-                              type="email"
-                              value={newEmail}
-                              onChange={(e) => setNewEmail(e.target.value)}
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={sendEmailChangeOtp}
-                            >
-                              {t.next}
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>{t.emailOtpCode}</Label>
-                          <Input
-                            value={emailOtp}
-                            onChange={(e) =>
-                              setEmailOtp(
-                                e.target.value.replace(/\D/g, '').slice(0, 6),
-                              )
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={confirmEmailChange}
-                            >
-                              {t.verifyAndUpdateEmail}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => setEmailStep(1)}
-                            >
-                              {t.back}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="twofa" className="space-y-3 pt-4">
-                      <h3 className="font-medium">
-                        {t.twoFactorAuthentication}
-                      </h3>
-                      {twoFaStep === 1 ? (
-                        <>
-                          <div className="space-y-2">
-                            <Label>{t.currentPassword}</Label>
-                            <Input
-                              type="password"
-                              value={twoFactorPassword}
-                              onChange={(e) =>
-                                setTwoFactorPassword(e.target.value)
-                              }
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={enableTwoFactor}
-                              disabled={
-                                twoFactorPending ||
-                                twoFactorEnabled ||
-                                !twoFactorPassword
-                              }
-                            >
-                              {t.next}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={disableTwoFactor}
-                              disabled={
-                                twoFactorPending ||
-                                !twoFactorEnabled ||
-                                !twoFactorPassword
-                              }
-                            >
-                              {t.disable2fa}
-                            </Button>
-                          </div>
-                        </>
-                      ) : null}
-                      {twoFaStep === 2 && twoFactorUri ? (
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            <Label>{t.scanQrFor2fa}</Label>
-                            <img
-                              src={twoFactorQrCode}
-                              alt={t.twoFactorQrCodeAlt}
-                              className="h-44 w-44 rounded-md border"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t.otpCode}</Label>
-                            <Input
-                              value={twoFactorCode}
-                              onChange={(e) =>
-                                setTwoFactorCode(
-                                  e.target.value.replace(/\D/g, '').slice(0, 6),
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={verifyTwoFactorSetup}
-                              disabled={
-                                twoFactorPending || twoFactorCode.length < 6
-                              }
-                            >
-                              {t.verify2faCode}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => setTwoFaStep(1)}
-                            >
-                              {t.back}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              onClick={resetTwoFactorFlow}
-                              disabled={twoFactorPending}
-                            >
-                              Close
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-                      {twoFaStep === 3 ? (
-                        <p className="text-sm text-muted-foreground">
-                          {t.twoFactorEnabledMessage}
-                        </p>
-                      ) : null}
-                    </TabsContent>
-
-                    <TabsContent value="password" className="space-y-3 pt-4">
-                      <h3 className="font-medium">{t.changePassword}</h3>
-                      {passwordStep === 1 ? (
-                        <div className="space-y-2 border-t pt-2">
-                          <p className="text-sm text-muted-foreground">
-                            {t.changePasswordDescription}
-                          </p>
-                          <div className="rounded-md border px-3 py-2 text-sm">
-                            <p className="text-muted-foreground">
-                              {t.currentEmail}
-                            </p>
-                            <p className="font-medium">{user?.email || '-'}</p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            onClick={sendPasswordResetOtp}
-                            disabled={twoFactorPending}
-                          >
-                            {t.next}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 border-t pt-2">
-                          <Label>{t.emailOtpCode}</Label>
-                          <Input
-                            value={passwordOtp}
-                            onChange={(e) =>
-                              setPasswordOtp(
-                                e.target.value.replace(/\D/g, '').slice(0, 6),
-                              )
-                            }
-                          />
-                          <Label>{t.newPassword || 'New password'}</Label>
-                          <Input
-                            type="password"
-                            value={changePasswordValue}
-                            onChange={(e) =>
-                              setChangePasswordValue(e.target.value)
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={confirmPasswordReset}
-                              disabled={twoFactorPending}
-                            >
-                              {t.updatePassword || 'Update password'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setPasswordStep(1)
-                                setPasswordOtp('')
-                              }}
-                            >
-                              {t.back}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                    </div>
+                  </div>
                 </div>
+              </section>
+
+              {/* Security: one expandable row per flow. Rows replace the old
+                  Tabs, which overflowed horizontally and hid three of the
+                  four sections behind unlabelled truncation. */}
+              {isSignedIn ? (
+                <section
+                  className="space-y-2"
+                  aria-label={t.twoFactorAuthentication}
+                >
+                  <div className="divide-y rounded-lg border">
+                    {(
+                      [
+                        {
+                          key: 'emails' as const,
+                          icon: <Mail className="h-4 w-4" />,
+                          title: t.accountEmailManagement,
+                          summary: user?.email || '-',
+                        },
+                        {
+                          key: 'twofa' as const,
+                          icon: <ShieldCheck className="h-4 w-4" />,
+                          title: t.twoFactorAuthentication,
+                          summary: twoFactorEnabled
+                            ? t.twoFactorEnabledMessage
+                            : t.twoFactorAuthenticationDescription,
+                        },
+                        {
+                          key: 'password' as const,
+                          icon: <KeyRound className="h-4 w-4" />,
+                          title: t.changePassword,
+                          summary: t.changePasswordDescription,
+                        },
+                      ] as const
+                    ).map((row) => {
+                      const isOpen = profileSection === row.key
+                      return (
+                        <div key={row.key}>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/50"
+                            aria-expanded={isOpen}
+                            onClick={() =>
+                              setProfileSection(isOpen ? null : row.key)
+                            }
+                          >
+                            <span className="text-muted-foreground">
+                              {row.icon}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium">
+                                {row.title}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {row.summary}
+                              </span>
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                                isOpen && 'rotate-180',
+                              )}
+                            />
+                          </button>
+
+                          {isOpen && row.key === 'emails' ? (
+                            <div className="space-y-3 border-t bg-muted/30 px-4 py-4">
+                              {emailStep === 1 ? (
+                                <>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-new-email">
+                                      {t.newEmail}
+                                    </Label>
+                                    <Input
+                                      id="account-new-email"
+                                      type="email"
+                                      value={newEmail}
+                                      onChange={(e) =>
+                                        setNewEmail(e.target.value)
+                                      }
+                                    />
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={sendEmailChangeOtp}
+                                    disabled={twoFactorPending || !newEmail}
+                                  >
+                                    {t.next}
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t.verificationCodeSentNewEmail}
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-email-otp">
+                                      {t.emailOtpCode}
+                                    </Label>
+                                    <Input
+                                      id="account-email-otp"
+                                      inputMode="numeric"
+                                      value={emailOtp}
+                                      onChange={(e) =>
+                                        setEmailOtp(
+                                          e.target.value
+                                            .replace(/\D/g, '')
+                                            .slice(0, 6),
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={confirmEmailChange}
+                                      disabled={
+                                        twoFactorPending || emailOtp.length < 6
+                                      }
+                                    >
+                                      {t.verifyAndUpdateEmail}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => setEmailStep(1)}
+                                    >
+                                      {t.back}
+                                    </Button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : null}
+
+                          {isOpen && row.key === 'twofa' ? (
+                            <div className="space-y-3 border-t bg-muted/30 px-4 py-4">
+                              {twoFaStep === 1 ? (
+                                <>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-2fa-password">
+                                      {t.currentPassword}
+                                    </Label>
+                                    <Input
+                                      id="account-2fa-password"
+                                      type="password"
+                                      value={twoFactorPassword}
+                                      onChange={(e) =>
+                                        setTwoFactorPassword(e.target.value)
+                                      }
+                                    />
+                                  </div>
+                                  {twoFactorEnabled ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={disableTwoFactor}
+                                      disabled={
+                                        twoFactorPending || !twoFactorPassword
+                                      }
+                                    >
+                                      {t.disable2fa}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={enableTwoFactor}
+                                      disabled={
+                                        twoFactorPending || !twoFactorPassword
+                                      }
+                                    >
+                                      {t.next}
+                                    </Button>
+                                  )}
+                                </>
+                              ) : null}
+                              {twoFaStep === 2 && twoFactorUri ? (
+                                <>
+                                  <div className="space-y-1.5">
+                                    <Label>{t.scanQrFor2fa}</Label>
+                                    <img
+                                      src={twoFactorQrCode}
+                                      alt={t.twoFactorQrCodeAlt}
+                                      className="h-44 w-44 rounded-md border bg-white p-2"
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-2fa-otp">
+                                      {t.otpCode}
+                                    </Label>
+                                    <Input
+                                      id="account-2fa-otp"
+                                      inputMode="numeric"
+                                      value={twoFactorCode}
+                                      onChange={(e) =>
+                                        setTwoFactorCode(
+                                          e.target.value
+                                            .replace(/\D/g, '')
+                                            .slice(0, 6),
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={verifyTwoFactorSetup}
+                                      disabled={
+                                        twoFactorPending ||
+                                        twoFactorCode.length < 6
+                                      }
+                                    >
+                                      {t.verify2faCode}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={resetTwoFactorFlow}
+                                      disabled={twoFactorPending}
+                                    >
+                                      {t.back}
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : null}
+                              {twoFaStep === 3 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  {t.twoFactorEnabledMessage}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          {isOpen && row.key === 'password' ? (
+                            <div className="space-y-3 border-t bg-muted/30 px-4 py-4">
+                              {passwordStep === 1 ? (
+                                <>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t.changePasswordDescription}
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    onClick={sendPasswordResetOtp}
+                                    disabled={twoFactorPending}
+                                  >
+                                    {t.next}
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t.verificationCodeSentEmail}
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-password-otp">
+                                      {t.emailOtpCode}
+                                    </Label>
+                                    <Input
+                                      id="account-password-otp"
+                                      inputMode="numeric"
+                                      value={passwordOtp}
+                                      onChange={(e) =>
+                                        setPasswordOtp(
+                                          e.target.value
+                                            .replace(/\D/g, '')
+                                            .slice(0, 6),
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label htmlFor="account-new-password">
+                                      {t.newPassword || 'New password'}
+                                    </Label>
+                                    <Input
+                                      id="account-new-password"
+                                      type="password"
+                                      value={changePasswordValue}
+                                      onChange={(e) =>
+                                        setChangePasswordValue(e.target.value)
+                                      }
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={confirmPasswordReset}
+                                      disabled={
+                                        twoFactorPending ||
+                                        passwordOtp.length < 6 ||
+                                        !changePasswordValue
+                                      }
+                                    >
+                                      {t.updatePassword || 'Update password'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setPasswordStep(1)
+                                        setPasswordOtp('')
+                                      }}
+                                    >
+                                      {t.back}
+                                    </Button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
               ) : null}
 
-              <div className="rounded-lg border p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{t.signOut}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium">{t.signOut}</p>
+                  <p className="truncate text-xs text-muted-foreground">
                     {t.signOutHelp}
                   </p>
                 </div>
                 <Button
                   id="settings-account-signout"
                   variant="outline"
+                  size="sm"
                   onClick={async () => {
                     await authClient.signOut()
                     router.refresh()
                   }}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <LogOut className="mr-2 h-4 w-4" />
                   {t.signOut}
                 </Button>
               </div>
 
               {isSignedIn ? (
-                <div className="rounded-lg border border-destructive/70 bg-destructive/5 p-4 space-y-3">
-                  <p className="text-sm font-semibold text-destructive">
-                    {t.deleteAccount}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.deleteAccountPermanentHelp}
-                  </p>
+                <div
+                  id="settings-account-delete"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-destructive/50 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-destructive">
+                      {t.deleteAccount}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {t.deleteAccountPermanentHelp}
+                    </p>
+                  </div>
                   <Button
                     variant="destructive"
+                    size="sm"
                     onClick={() => setDeleteAccountOpen(true)}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="mr-2 h-4 w-4" />
                     {t.deleteAccount}
                   </Button>
                 </div>

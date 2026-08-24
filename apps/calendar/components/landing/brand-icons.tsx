@@ -243,18 +243,18 @@ export const CursorIcon = ({ className }: IconProps) => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <path fill="#0066FF" d="M5 3 19 12l-7.5 1.5L9 21Z" />
+    <path fill="currentColor" d="M5 3 19 12l-7.5 1.5L9 21Z" />
     <circle
       cx="18"
       cy="18"
       r="3.5"
-      fill="#0066FF"
+      fill="currentColor"
       fillOpacity="0.25"
-      stroke="#0066FF"
+      stroke="currentColor"
       strokeWidth="1.5"
     />
     <path
-      stroke="#0066FF"
+      stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
       d="M16.5 18h3M18 16.5v3"

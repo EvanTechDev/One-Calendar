@@ -39,7 +39,7 @@ interface BookmarkedEvent {
   startDate: string | Date
   endDate: string | Date
   color: string
-  location?: string
+  description?: string
   bookmarkedAt: string
   eventId: string
 }
@@ -84,7 +84,7 @@ export default function BookmarkPanel({
           startDate: live?.startDate ?? bm.event?.startDate ?? '',
           endDate: live?.endDate ?? bm.event?.endDate ?? '',
           color: live?.color ?? bm.event?.color ?? 'bg-[#E6F6FD]',
-          location: live?.location ?? bm.event?.location ?? undefined,
+          description: live?.description ?? bm.event?.description ?? undefined,
           bookmarkedAt: bm.createdAt,
         }
       }),
@@ -115,8 +115,8 @@ export default function BookmarkPanel({
   const filteredBookmarks = bookmarks.filter(
     (bookmark) =>
       bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (bookmark.location &&
-        bookmark.location.toLowerCase().includes(searchTerm.toLowerCase())),
+      (bookmark.description &&
+        bookmark.description.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
   return (
@@ -176,9 +176,9 @@ export default function BookmarkPanel({
                       <p className="text-sm text-muted-foreground">
                         {formatEventDate(bookmark.startDate)}
                       </p>
-                      {bookmark.location && (
+                      {bookmark.description && (
                         <p className="text-xs text-muted-foreground truncate mt-1">
-                          {bookmark.location}
+                          {bookmark.description}
                         </p>
                       )}
                     </div>

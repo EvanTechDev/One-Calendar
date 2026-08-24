@@ -20,44 +20,22 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   try {
     const auth = await getMcpAuth(request)
 
+    if (!auth) {
+      return Response.json(
+        { error: 'unauthorized' },
+        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
+      )
+    }
+
+    // GET opens the SSE stream. The SDK only rejects a *present* mismatching
+    // Origin, so this check is defence-in-depth on top of the bearer token
+    // above — not a substitute for it.
     if (request.method === 'GET') {
       const origin = request.headers.get('origin')
       const list = allowedOrigins()
       if (origin && list.length > 0 && !list.includes(origin)) {
         return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
       }
-
-      const server = createServer()
-      const transport = new WebStandardStreamableHTTPServerTransport({
-        enableJsonResponse: true,
-        allowedOrigins: allowedOrigins(),
-      })
-      await server.connect(transport)
-      return transport.handleRequest(
-        request,
-        auth
-          ? {
-              authInfo: {
-                token: auth.token,
-                clientId: `user:${auth.user.userId}`,
-                scopes: auth.user.scopes,
-                extra: {
-                  userId: auth.user.userId,
-                  email: auth.user.email,
-                  clientId: auth.user.keyId ?? auth.user.authType,
-                  authType: auth.user.authType,
-                },
-              },
-            }
-          : undefined,
-      )
-    }
-
-    if (!auth) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
-      )
     }
 
     const settings = await getMcpSettings(auth.user.userId)
@@ -75,6 +53,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         authType: auth.user.authType,
         keyId: auth.user.keyId,
         action: 'rate_limited',
+        entryType: 'request',
         success: false,
         errorMessage: 'Rate limit exceeded',
         ipAddress: request.headers.get('x-forwarded-for') ?? '',
@@ -89,6 +68,13 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       )
     }
 
+    const clientIp =
+      request.headers.get('cf-connecting-ip') ??
+      request.headers.get('x-forwarded-for') ??
+      request.headers.get('x-real-ip') ??
+      ''
+    const userAgent = request.headers.get('user-agent') ?? ''
+
     const authInfo: AuthInfo = {
       token: auth.token,
       clientId: `user:${auth.user.userId}`,
@@ -98,15 +84,14 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         email: auth.user.email,
         clientId: auth.user.keyId ?? auth.user.authType,
         authType: auth.user.authType,
+        // Per-tool-call audit rows are written inside the tool handlers, which
+        // only receive `authInfo` — so the request-scoped identity and client
+        // details have to travel with it.
+        keyId: auth.user.keyId,
+        ipAddress: clientIp,
+        userAgent,
       },
     }
-
-    const clientIp =
-      request.headers.get('cf-connecting-ip') ??
-      request.headers.get('x-forwarded-for') ??
-      request.headers.get('x-real-ip') ??
-      ''
-    const userAgent = request.headers.get('user-agent') ?? ''
 
     const server = createServer()
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -124,6 +109,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         authType: auth.user.authType,
         keyId: auth.user.keyId,
         action: 'mcp_request',
+        entryType: 'request',
         success: response.status < 400,
         errorMessage:
           response.status >= 400 ? 'HTTP ' + response.status : undefined,
@@ -138,6 +124,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         authType: auth.user.authType,
         keyId: auth.user.keyId,
         action: 'mcp_request',
+        entryType: 'request',
         success: false,
         errorMessage: String(mcpErr),
         ipAddress: clientIp,

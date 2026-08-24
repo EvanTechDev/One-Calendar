@@ -8,8 +8,16 @@ import {
   deleteInviteByToken,
   resendInviteEmail,
 } from '@/lib/invites/invite-service'
+import {
+  applyScopedParticipantChange,
+  resolveParticipantTarget,
+  ParticipantScopeError,
+} from '@/lib/invites/scoped-invites'
+import type { ApplyTo } from '@/lib/event-service'
 
 export const runtime = 'nodejs'
+
+const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']
 
 export const DELETE = async function DELETE(request: NextRequest) {
   const currentUser = await getAuthedUser()
@@ -22,6 +30,17 @@ export const DELETE = async function DELETE(request: NextRequest) {
   if (!inviteId) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 })
   }
+
+  // Which occurrences to remove the participant from. Without this the only
+  // possible removal was series-wide, so the issue's "remove c from this and
+  // following" step was unreachable from the product.
+  const scopeParam = searchParams.get('scope')
+  const scope: ApplyTo = scopeParam === null ? 'all' : (scopeParam as ApplyTo)
+  if (!PARTICIPANT_SCOPES.includes(scope)) {
+    return NextResponse.json({ error: 'Invalid scope' }, { status: 400 })
+  }
+  // The occurrence the organiser is acting from, for a scoped removal.
+  const occurrenceId = searchParams.get('occurrenceId')
 
   const [invite] = await getDb()
     .select()
@@ -46,7 +65,34 @@ export const DELETE = async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await deleteInviteByToken(invite.inviteToken)
+  // 'all' on a non-recurring event is just "remove them", which the old path
+  // did directly; keep that cheap and avoid loading the series machinery.
+  if (scope === 'all' && occurrenceId === null) {
+    await deleteInviteByToken(invite.inviteToken)
+    return NextResponse.json({ success: true })
+  }
+
+  const target = await resolveParticipantTarget(
+    occurrenceId ?? invite.eventId,
+    currentUser.id,
+  )
+  if (!target) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+  }
+
+  try {
+    await applyScopedParticipantChange({
+      target,
+      emails: [invite.email],
+      scope,
+      action: 'remove',
+    })
+  } catch (error) {
+    if (error instanceof ParticipantScopeError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
+  }
 
   return NextResponse.json({ success: true })
 }

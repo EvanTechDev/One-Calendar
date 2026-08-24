@@ -8,7 +8,13 @@ import {
   COLOR_NAMES,
 } from './colors'
 import { CATEGORY_COLOR_VALUES } from './category-tools'
+import {
+  COUNTDOWN_ICON_ENUM,
+  COUNTDOWN_ICON_GROUPS,
+  COUNTDOWN_ICON_NAMES,
+} from '@/lib/countdown-icons'
 import { InvalidEventQueryError, ParticipantError } from './errors'
+import { withToolAudit } from './tool-audit'
 
 const SCOPE_EVENTS_READ = 'events:read'
 const SCOPE_EVENTS_WRITE = 'events:write'
@@ -19,6 +25,8 @@ const SCOPE_COUNTDOWNS_WRITE = 'countdowns:write'
 const SCOPE_SETTINGS_READ = 'settings:read'
 const SCOPE_SETTINGS_WRITE = 'settings:write'
 const SCOPE_PROFILE_READ = 'profile:read'
+const SCOPE_BOOKMARKS_READ = 'bookmarks:read'
+const SCOPE_BOOKMARKS_WRITE = 'bookmarks:write'
 
 const EVENT_STATUS_OPTIONS = ['confirmed', 'tentative', 'cancelled'] as const
 const TIME_PRESET_OPTIONS = [
@@ -39,6 +47,15 @@ const EVENT_SEARCH_FIELDS = ['title', 'description', 'location'] as const
 const COLOR_DESCRIPTION = `Color by name (${COLOR_NAME_LIST}) or hex code (${COLOR_HEX_LIST})`
 
 const COLOR_SCHEMA = z.union([z.enum(COLOR_NAMES), z.enum(COLOR_HEX_VALUES)])
+
+/**
+ * Countdown icons are restricted to the shared catalogue. An arbitrary string
+ * used to be accepted and then silently rendered as the fallback Clock, so an
+ * agent had no way to tell that its icon was rejected.
+ */
+const COUNTDOWN_ICON_DESCRIPTION = `Icon name from the countdown catalogue (${COUNTDOWN_ICON_NAMES.length} options, e.g. ${COUNTDOWN_ICON_NAMES.slice(0, 8).join(', ')}). Use list_countdown_icons to see them all.`
+
+const COUNTDOWN_ICON_SCHEMA = z.enum(COUNTDOWN_ICON_ENUM)
 
 const LANGUAGE_OPTIONS = [
   'bn',
@@ -138,11 +155,43 @@ function respondMessage(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }] }
 }
 
+/**
+ * Wraps `server.tool` so every registration gets audit logging without
+ * touching the 27 call sites (CORE-128). Intercepting here also guarantees a
+ * tool added later is audited by default rather than silently escaping the
+ * log.
+ */
+function withAuditedTools(server: McpServer): McpServer {
+  const originalTool = server.tool.bind(server)
+  const patched = ((...args: unknown[]) => {
+    const name = args[0]
+    const handlerIndex = args.length - 1
+    const handler = args[handlerIndex]
+    if (typeof name === 'string' && typeof handler === 'function') {
+      const wrapped = withToolAudit(
+        name,
+        handler as (
+          params: Record<string, unknown>,
+          extra: { authInfo?: AuthInfo },
+        ) => Promise<unknown>,
+      )
+      const next = [...args]
+      next[handlerIndex] = wrapped
+      return (originalTool as (...a: unknown[]) => unknown)(...next)
+    }
+    return (originalTool as (...a: unknown[]) => unknown)(...args)
+  }) as typeof server.tool
+  server.tool = patched
+  return server
+}
+
 export function createServer(): McpServer {
   const server = new McpServer(
     { name: 'One Calendar MCP', version: '1.0.0' },
     { capabilities: { tools: {} } },
   )
+
+  withAuditedTools(server)
 
   registerEventTools(server)
   registerEventParticipantTools(server)
@@ -150,6 +199,7 @@ export function createServer(): McpServer {
   registerCountdownTools(server)
   registerSettingsTools(server)
   registerProfileTool(server)
+  registerBookmarkTools(server)
 
   return server
 }
@@ -271,8 +321,14 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'get_event',
-    'Get detailed information about a single event',
-    { event_id: z.string().describe('Event ID') },
+    'Get detailed information about a single event (plain event, series, or recurring instance)',
+    {
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
+    },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
       const userId = getUserId(extra.authInfo)
@@ -289,7 +345,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'create_event',
-    'Create a new calendar event',
+    'Create a new calendar event (optionally a recurring series)',
     {
       title: z.string().describe('Event title'),
       description: z.string().optional().describe('Event description'),
@@ -305,6 +361,22 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      email_reminder: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also deliver the reminder by email. Consumes the user's daily reminder-email allowance (5 per day).",
+        ),
+      rrule: z
+        .string()
+        .optional()
+        .describe(
+          'RFC 5545 RRULE (e.g. FREQ=WEEKLY;INTERVAL=1) to make this a recurring series',
+        ),
+      exdate: z
+        .array(z.string())
+        .optional()
+        .describe('RFC 5545 DATE-TIME stamps of occurrences to exclude'),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -313,6 +385,8 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         const { createEvent } = await import('./event-tools')
         return respond(await createEvent(userId, params))
       } catch (err) {
+        // A reminder-quota refusal is user-facing, not an internal error.
+        if (err instanceof ParticipantError) return respondCliError(err)
         return respondError(err)
       }
     },
@@ -320,9 +394,13 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'update_event',
-    'Update an existing event',
+    'Update an existing event (plain event, recurring series, or occurrence)',
     {
-      event_id: z.string().describe('Event ID'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
       title: z.string().optional(),
       description: z.string().optional(),
       location: z.string().optional(),
@@ -333,6 +411,26 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
       category_id: z.string().optional(),
       notification_minutes: z.number().optional(),
+      email_reminder: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also deliver the reminder by email. Consumes the user's daily reminder-email allowance (5 per day).",
+        ),
+      rrule: z
+        .string()
+        .optional()
+        .describe('RFC 5545 RRULE; applies when editing the whole series'),
+      exdate: z
+        .array(z.string())
+        .optional()
+        .describe('RFC 5545 DATE-TIME stamps of occurrences to exclude'),
+      apply_to: z
+        .enum(['all', 'single', 'following'])
+        .optional()
+        .describe(
+          'all: whole series (default for a series ID), single: one occurrence (default for an instance ID), following: this and all future occurrences',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -344,6 +442,9 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         if (!result) return respondMessage('Event not found')
         return respond(result)
       } catch (err) {
+        // A reminder-quota refusal is a user-facing 4xx, not an internal error;
+        // respondError would flatten it to 'Internal server error'.
+        if (err instanceof ParticipantError) return respondCliError(err)
         return respondError(err)
       }
     },
@@ -351,14 +452,26 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 
   server.tool(
     'delete_event',
-    'Delete an event',
-    { event_id: z.string().describe('Event ID') },
+    'Delete an event (plain event, recurring series, or occurrence)',
+    {
+      event_id: z
+        .string()
+        .describe(
+          'Event ID of a plain event, series, or a recurring instance (instance IDs look like <seriesId>_<recurrenceId>)',
+        ),
+      apply_to: z
+        .enum(['all', 'single', 'following'])
+        .optional()
+        .describe(
+          'all: whole series (default for a series ID), single: one occurrence (default for an instance ID), following: this and all future occurrences',
+        ),
+    },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
       const userId = getUserId(extra.authInfo)
       try {
         const { deleteEvent } = await import('./event-tools')
-        await deleteEvent(userId, params.event_id)
+        await deleteEvent(userId, params.event_id, params.apply_to)
         return respondMessage('Event deleted')
       } catch (err) {
         return respondError(err)
@@ -370,9 +483,13 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
 function registerEventParticipantTools(server: McpServer): void {
   server.tool(
     'add_event_participants',
-    'Invite participants to an event. Sends invitation emails by default.',
+    'Invite participants to an event. Sends invitation emails by default. For a recurring event, accepts an occurrence id and an apply_to scope; re-adding someone previously removed reuses their original invite link and sends no new email.',
     {
-      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID, or an occurrence id ({seriesId}_{stamp}) to act from one occurrence',
+        ),
       emails: z
         .array(z.string().email())
         .min(1)
@@ -383,6 +500,12 @@ function registerEventParticipantTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe('Send invitation emails (default true)'),
+      apply_to: z
+        .enum(['single', 'following', 'all'])
+        .optional()
+        .describe(
+          "Which occurrences to invite to (default all). 'all' is only permitted on the series' first occurrence.",
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -395,6 +518,7 @@ function registerEventParticipantTools(server: McpServer): void {
             params.event_id,
             params.emails,
             params.send_email ?? true,
+            params.apply_to ?? 'all',
           ),
         )
       } catch (err) {
@@ -428,10 +552,20 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'remove_event_participant',
-    'Remove a participant (invite) from an event',
+    'Remove a participant (invite) from an event. For a recurring event, accepts an occurrence id and an apply_to scope.',
     {
-      event_id: z.string().describe('Event ID (must be owned by the caller)'),
+      event_id: z
+        .string()
+        .describe(
+          'Event ID, or an occurrence id ({seriesId}_{stamp}) to act from one occurrence',
+        ),
       email: z.string().email().describe('Participant email to remove'),
+      apply_to: z
+        .enum(['single', 'following', 'all'])
+        .optional()
+        .describe(
+          "Which occurrences to remove from (default all). 'all' is only permitted on the series' first occurrence.",
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -439,7 +573,12 @@ function registerEventParticipantTools(server: McpServer): void {
       try {
         const { removeEventParticipant } = await import('./participant-tools')
         return respond(
-          await removeEventParticipant(userId, params.event_id, params.email),
+          await removeEventParticipant(
+            userId,
+            params.event_id,
+            params.email,
+            params.apply_to ?? 'all',
+          ),
         )
       } catch (err) {
         if (err instanceof ParticipantError) return respondCliError(err)
@@ -469,12 +608,18 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'update_event_rsvp',
-    'Set your RSVP status for an event you were invited to (uses your own invite link)',
+    'Set your RSVP status for an event you were invited to (uses your own invite link). Each occurrence of a recurring event carries its own RSVP, so pass recurrence_id to answer one.',
     {
       invite_token: z.string().describe('Your invite token'),
       status: z
         .enum(['pending', 'accepted', 'maybe', 'declined'])
         .describe('New RSVP status'),
+      recurrence_id: z
+        .string()
+        .optional()
+        .describe(
+          'RFC stamp of the occurrence to answer (YYYYMMDD or YYYYMMDDTHHMMSSZ). Required for a recurring event.',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_WRITE)
@@ -482,7 +627,12 @@ function registerEventParticipantTools(server: McpServer): void {
       try {
         const { updateInviteRsvp } = await import('./participant-tools')
         return respond(
-          await updateInviteRsvp(userEmail, params.invite_token, params.status),
+          await updateInviteRsvp(
+            userEmail,
+            params.invite_token,
+            params.status,
+            params.recurrence_id,
+          ),
         )
       } catch (err) {
         if (err instanceof ParticipantError) return respondCliError(err)
@@ -515,12 +665,14 @@ function registerEventParticipantTools(server: McpServer): void {
 
   server.tool(
     'list_my_event_invites',
-    'List all events you have been invited to, with your RSVP status and invite links',
+    'List all events you have been invited to, with your RSVP status and invite links. For a recurring event, RSVPs are per occurrence and reported in occurrence_rsvps; rsvp_status is null',
     {
       status: z
         .enum(['pending', 'accepted', 'maybe', 'declined'])
         .optional()
-        .describe('Filter by RSVP status'),
+        .describe(
+          'Filter by RSVP status. Only meaningful for non-recurring events — a series has no series-wide RSVP',
+        ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_EVENTS_READ)
@@ -617,6 +769,23 @@ function registerCategoryTools(server: McpServer): void {
 
 function registerCountdownTools(server: McpServer): void {
   server.tool(
+    'list_countdown_icons',
+    `List the icon names accepted by create_countdown and update_countdown,
+grouped by occasion. Any other value is rejected.`,
+    {},
+    async (_params, extra) => {
+      requireScope(extra.authInfo, SCOPE_COUNTDOWNS_READ)
+      return respond({
+        groups: COUNTDOWN_ICON_GROUPS.map((group) => ({
+          group: group.label,
+          icons: group.icons,
+        })),
+        total: COUNTDOWN_ICON_NAMES.length,
+      })
+    },
+  )
+
+  server.tool(
     'list_countdowns',
     'List all countdowns',
     {
@@ -653,7 +822,9 @@ function registerCountdownTools(server: McpServer): void {
       target_date: z.string().describe('Target date (ISO 8601)'),
       description: z.string().optional(),
       color: COLOR_SCHEMA.describe(COLOR_DESCRIPTION),
-      icon: z.string().optional(),
+      icon: COUNTDOWN_ICON_SCHEMA.optional().describe(
+        COUNTDOWN_ICON_DESCRIPTION,
+      ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_WRITE)
@@ -676,7 +847,9 @@ function registerCountdownTools(server: McpServer): void {
       target_date: z.string().optional(),
       description: z.string().optional(),
       color: COLOR_SCHEMA.optional().describe(COLOR_DESCRIPTION),
-      icon: z.string().optional(),
+      icon: COUNTDOWN_ICON_SCHEMA.optional().describe(
+        COUNTDOWN_ICON_DESCRIPTION,
+      ),
     },
     async (params, extra) => {
       requireScope(extra.authInfo, SCOPE_COUNTDOWNS_WRITE)
@@ -767,6 +940,71 @@ function registerProfileTool(server: McpServer): void {
       try {
         const { getProfile } = await import('./profile-tools')
         return respond(await getProfile(userId))
+      } catch (err) {
+        return respondError(err)
+      }
+    },
+  )
+}
+
+function registerBookmarkTools(server: McpServer): void {
+  server.tool(
+    'bookmark_event',
+    'Bookmark an event so it can be found quickly later',
+    { event_id: z.string().describe('Event ID') },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { bookmarkEvent } = await import('./bookmark-tools')
+        return respond(
+          await bookmarkEvent(userId, { eventId: params.event_id }),
+        )
+      } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'list_bookmarked_events',
+    'List events you have bookmarked, newest first',
+    {
+      event_id: z.string().optional().describe('Filter by event ID'),
+      page: z.number().optional().describe('Page number'),
+      limit: z.number().optional().describe('Items per page (max 100)'),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { listBookmarkedEvents } = await import('./bookmark-tools')
+        return respond(
+          await listBookmarkedEvents(userId, {
+            eventId: params.event_id,
+            page: params.page,
+            limit: params.limit,
+          }),
+        )
+      } catch (err) {
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'remove_bookmark',
+    'Remove a bookmark from an event',
+    { event_id: z.string().describe('Event ID') },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_BOOKMARKS_WRITE)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { removeBookmark } = await import('./bookmark-tools')
+        return respond(
+          await removeBookmark(userId, { eventId: params.event_id }),
+        )
       } catch (err) {
         return respondError(err)
       }

@@ -16,6 +16,8 @@ export async function GET() {
       'settings:read',
       'settings:write',
       'profile:read',
+      'bookmarks:read',
+      'bookmarks:write',
     ],
     bearer_methods_supported: ['header'],
   })

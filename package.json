@@ -5,6 +5,10 @@
   "packageManager": "pnpm@11.5.2",
   "scripts": {
     "build:calendar": "pnpm --filter one-calendar build",
+    "dev:meet": "pnpm --filter one-meet dev",
+    "build:meet": "pnpm --filter one-meet build",
+    "lint:meet": "pnpm --filter one-meet lint",
+    "tc:meet": "pnpm --filter one-meet type-check",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint",
@@ -86,16 +90,9 @@
   "knip": {
     "$schema": "https://unpkg.com/knip@latest/schema.json",
     "ignoreFiles": [
-      "apps/calendar/components/app/analytics/events-calendar.tsx",
-      "apps/calendar/hooks/use-toast.ts",
-      "apps/calendar/hooks/useMobile.ts",
-      "apps/calendar/lib/time-analytics.ts",
       "apps/calendar/public/sw.js"
     ],
     "ignoreIssues": {
-      "apps/calendar/components/app/analytics/analytics-utils.ts": [
-        "exports"
-      ],
       "apps/calendar/components/providers/calendar-context.tsx": [
         "exports",
         "duplicates"
@@ -103,13 +100,7 @@
       "packages/ui/src/**": [
         "exports"
       ],
-      "packages/utils/src/useLocalStorage.ts": [
-        "exports"
-      ],
       "apps/calendar/lib/evlog.ts": [
-        "exports"
-      ],
-      "apps/calendar/lib/notifications.ts": [
         "exports"
       ]
     }

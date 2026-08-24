@@ -16,12 +16,19 @@ import { cn } from '@zntr/utils'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { formatSelectionRange } from '@/components/app/views/selection-range'
+import {
+  formatSelectionRange,
+  clampRangeToDay,
+} from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
-} from '@/components/app/views/event-colors'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/engine/EventLayoutEngine'
+} from '@/lib/event-colors'
+import {
+  EventLayoutEngine as EventLayoutEngineClass,
+  isBannerEvent,
+  layoutAllDaySegments,
+} from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
 
 interface WeekViewProps {
@@ -45,6 +52,12 @@ interface WeekViewProps {
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
+  /**
+   * Range the event editor is being opened for. Rendered as the same blue box
+   * as a live drag — it is the editor popover's anchor (CORE-191) — and
+   * disappears when the editor closes and the range is cleared.
+   */
+  selection?: { start: Date; end: Date } | null
 }
 
 export default function WeekView({
@@ -59,6 +72,7 @@ export default function WeekView({
   onEditEvent: _onEditEvent,
   onDeleteEvent: _onDeleteEvent,
   onBookmarkEvent: _onBookmarkEvent,
+  selection = null,
 }: WeekViewProps) {
   const layoutEngine = useMemo(
     () => EventLayoutEngineClass.create(config),
@@ -75,13 +89,28 @@ export default function WeekView({
       )
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const gridTemplateColumns = `100px repeat(${weekDays.length}, minmax(0, 1fr))`
+  const TIME_GUTTER_WIDTH = 84
+  const gridTemplateColumns = `${TIME_GUTTER_WIDTH}px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasScrolledRef = useRef(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // The time grid is the scroll container; when its scrollbar shows, its
+  // content is narrower than the fixed header above. Pad the header by the
+  // scrollbar width so both grids share the same column tracks.
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const update = () => setScrollbarWidth(el.offsetWidth - el.clientWidth)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
   const [dragStartPosition, setDragStartPosition] = useState<{
@@ -214,6 +243,11 @@ export default function WeekView({
         onEventDrop(draggingEvent, newStartDate, newEndDate)
       }
 
+      // The browser fires `click` AFTER `mouseup`, so clearing the drag flag
+      // here would let the event block's onClick open the preview at the drop
+      // target. Suppress that one click instead (same mechanism the resize
+      // handles and the context menu use).
+      if (isDraggingRef.current) queueIgnoreEventClick()
       isDraggingRef.current = false
       setDraggingEvent(null)
       setDragStartPosition(null)
@@ -375,61 +409,85 @@ export default function WeekView({
     setCreateSelection({ dayIndex, startMinute, endMinute: startMinute })
   }
 
-  const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
-    const eventSpacing = 2
+  const ALL_DAY_BAR_HEIGHT = 20
+  const ALL_DAY_BAR_GAP = 2
+  const ALL_DAY_BAR_INSET = 2
 
-    return allDayEvents.map((event, index) => (
-      <div
-        key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
-        data-event-id={event.id}
-        className={cn(
-          'relative rounded-lg p-1 text-xs cursor-pointer overflow-hidden',
-          event.color,
-        )}
-        style={{
-          height: '20px',
-          top: index * (20 + eventSpacing) + 'px',
-          position: 'absolute',
-          left: '0',
-          right: '0',
-          opacity: isDark ? 1 : 0.9,
-          backgroundColor: getEventBackgroundColor(event.color, isDark),
-          zIndex: 10 + index,
-        }}
-        onMouseDown={(e) => handleEventDragStart(event, e)}
-        onMouseUp={handleEventDragEnd}
-        onMouseLeave={handleEventDragEnd}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          queueIgnoreEventClick()
-        }}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (ignoreNextEventClickRef.current) return
-          if (!isDraggingRef.current) {
-            onEventClick(
-              event,
-              e.currentTarget as HTMLElement,
-              e.clientX,
-              e.clientY,
-            )
-          }
-        }}
-      >
+  const allDaySegments = layoutAllDaySegments(
+    events.filter((event) => isBannerEvent(event)),
+    weekDays,
+  )
+  const allDayLaneCount =
+    allDaySegments.length > 0
+      ? Math.max(...allDaySegments.map((s) => s.lane)) + 1
+      : 0
+  const allDayRowHeight =
+    allDayLaneCount > 0
+      ? allDayLaneCount * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) +
+        ALL_DAY_BAR_GAP
+      : 0
+
+  const renderAllDaySegments = () =>
+    allDaySegments.map((segment) => {
+      const { event, startIndex, span, lane } = segment
+      const leftInset = segment.continuesLeft ? 0 : ALL_DAY_BAR_INSET
+      const rightInset = segment.continuesRight ? 0 : ALL_DAY_BAR_INSET
+
+      return (
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
-          style={{ backgroundColor: getEventAccentColor(event.color) }}
-        />
-        <div
-          className="pl-1.5 truncate"
-          style={{ color: getEventAccentColor(event.color) }}
+          key={`allday-${event.id}`}
+          data-event-id={event.id}
+          className={cn(
+            'absolute rounded-md p-1 text-xs cursor-pointer overflow-hidden',
+            event.color,
+            segment.continuesLeft && 'rounded-l-none',
+            segment.continuesRight && 'rounded-r-none',
+          )}
+          style={{
+            top: lane * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) + 'px',
+            left: `calc(${startIndex} / ${weekDays.length} * 100% + ${leftInset}px)`,
+            width: `calc(${span} / ${weekDays.length} * 100% - ${leftInset + rightInset}px)`,
+            height: ALL_DAY_BAR_HEIGHT + 'px',
+            opacity: isDark ? 1 : 0.9,
+            backgroundColor: getEventBackgroundColor(event.color, isDark),
+            zIndex: 10 + lane,
+          }}
+          onMouseDown={(e) => handleEventDragStart(event, e)}
+          onMouseUp={handleEventDragEnd}
+          onMouseLeave={handleEventDragEnd}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            queueIgnoreEventClick()
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (ignoreNextEventClickRef.current) return
+            if (!isDraggingRef.current) {
+              onEventClick(
+                event,
+                e.currentTarget as HTMLElement,
+                e.clientX,
+                e.clientY,
+              )
+            }
+          }}
         >
-          {event.title}
+          {!segment.continuesLeft && (
+            <div
+              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
+              style={{ backgroundColor: getEventAccentColor(event.color) }}
+            />
+          )}
+          <div
+            className="pl-1.5 truncate"
+            style={{ color: getEventAccentColor(event.color) }}
+          >
+            {event.title}
+          </div>
         </div>
-      </div>
-    ))
-  }
+      )
+    })
 
   const renderDragPreview = () => {
     if (!dragPreview || !draggingEvent) return null
@@ -445,7 +503,7 @@ export default function WeekView({
     return (
       <div
         className={cn(
-          'absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+          'absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
           draggingEvent.color,
         )}
         style={{
@@ -464,13 +522,25 @@ export default function WeekView({
         }}
       >
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-md')}
+          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
           style={{ backgroundColor: getEventAccentColor(draggingEvent.color) }}
         />
         <div className="pl-1">
           <div
-            className="font-medium truncate"
-            style={{ color: getEventAccentColor(draggingEvent.color) }}
+            className="font-medium leading-tight break-words"
+            style={{
+              color: getEventAccentColor(draggingEvent.color),
+              // Match the real block: wrap to as many lines as the preview's
+              // height allows instead of always truncating to one line.
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: Math.max(
+                1,
+                Math.floor((dragEventDuration - 8) / 16),
+              ),
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {draggingEvent.title}
           </div>
@@ -488,51 +558,56 @@ export default function WeekView({
   return (
     <div className="flex flex-col h-full">
       <div
-        className="grid divide-x relative z-30 bg-background border-b"
-        style={{ gridTemplateColumns }}
+        className="relative z-30 bg-background border-b"
+        style={{ paddingRight: scrollbarWidth + 'px' }}
       >
-        <div className="sticky top-0 z-30 bg-background" />
-        {weekDays.map((day) => {
-          const dayEvents = events.filter((event) =>
-            layoutEngine.shouldShowEventOnDay(event, day),
-          )
-
-          const { allDayEvents } = layoutEngine.separateEvents(dayEvents, day)
-
-          const eventSpacing = 2
-          const allDayEventsHeight =
-            allDayEvents.length > 0
-              ? allDayEvents.length * 20 +
-                (allDayEvents.length - 1) * eventSpacing
-              : 0
-
-          return (
-            <div
-              key={day.toString()}
-              className="sticky top-0 z-30 bg-background"
-            >
-              <div className="p-2 text-center">
-                <div>{t.weekdays[day.getDay()]}</div>
-                {}
-                <div
-                  className={cn(
-                    isSameDay(day, today) ? 'text-[#0066FF] font-bold' : '',
-                  )}
+        {/* One grid holds both the weekday header and the all-day area, so
+            the divide-x lines run through both and always match. */}
+        <div className="relative">
+          <div className="grid divide-x" style={{ gridTemplateColumns }}>
+            <div className="relative text-sm text-muted-foreground">
+              {allDayRowHeight > 0 && (
+                <span
+                  className="absolute right-3"
+                  style={{ bottom: allDayRowHeight - 20 + 'px' }}
                 >
-                  {format(day, 'd')}
-                </div>
-              </div>
-
-              {}
-              <div
-                className="relative"
-                style={{ height: allDayEventsHeight + 'px' }}
-              >
-                {renderAllDayEvents(day, allDayEvents)}
-              </div>
+                  {t.allDay}
+                </span>
+              )}
             </div>
-          )
-        })}
+            {weekDays.map((day) => (
+              <div key={day.toString()}>
+                <div className="p-2 text-center">
+                  <div>{t.weekdays[day.getDay()]}</div>
+                  <div
+                    className={cn(
+                      'mx-auto flex h-6 w-6 items-center justify-center text-sm',
+                      isSameDay(day, today) &&
+                        'rounded-md bg-cal-today text-cal-today-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </div>
+                </div>
+                {allDayRowHeight > 0 && (
+                  <div style={{ height: allDayRowHeight + 'px' }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {allDayRowHeight > 0 && (
+            <div
+              className="absolute bottom-0 right-0"
+              style={{
+                left: TIME_GUTTER_WIDTH + 'px',
+                height: allDayRowHeight + 'px',
+              }}
+            >
+              {renderAllDaySegments()}
+            </div>
+          )}
+        </div>
       </div>
 
       <div
@@ -545,7 +620,7 @@ export default function WeekView({
             <div key={hour} className="h-[60px] relative border-gray-200">
               <span
                 className={cn(
-                  'absolute right-4',
+                  'absolute right-3',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >
@@ -570,7 +645,7 @@ export default function WeekView({
           return (
             <div
               key={day.toString()}
-              className="relative border-l grid-col select-none"
+              className="relative grid-col select-none"
               onMouseDown={(event) => handleGridMouseDown(dayIndex, event)}
             >
               {hours.map((hour) => (
@@ -613,7 +688,7 @@ export default function WeekView({
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
                       data-event-id={event.id}
                       className={cn(
-                        'relative absolute rounded-lg p-2 text-sm cursor-pointer overflow-hidden',
+                        'relative absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
                         event.color,
                       )}
                       style={{
@@ -648,7 +723,7 @@ export default function WeekView({
                       {canResize && (
                         <>
                           <div
-                            className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-lg"
+                            className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-ns-resize rounded-t-md"
                             onMouseDown={(e) =>
                               beginResize(
                                 event,
@@ -661,7 +736,7 @@ export default function WeekView({
                             }
                           />
                           <div
-                            className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-lg"
+                            className="absolute bottom-0 left-0 right-0 z-10 h-1.5 cursor-ns-resize rounded-b-md"
                             onMouseDown={(e) =>
                               beginResize(
                                 event,
@@ -677,7 +752,7 @@ export default function WeekView({
                       )}
                       <div
                         className={cn(
-                          'absolute left-0 top-0 w-1 h-full rounded-l-md',
+                          'absolute left-0 top-0 w-1 h-full rounded-l-sm',
                         )}
                         style={{
                           backgroundColor: getEventAccentColor(event.color),
@@ -719,14 +794,15 @@ export default function WeekView({
 
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
-                  className="absolute left-0 right-0 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/40 pointer-events-none"
+                  data-create-selection
+                  className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-[#0066FF]">
+                  <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                     {formatSelectionRange(
                       createSelection.startMinute,
                       createSelection.endMinute,
@@ -735,6 +811,45 @@ export default function WeekView({
                   </div>
                 </div>
               )}
+
+              {/* The editor's anchor: the committed/draft range, kept visible
+                  while the editor popover is open (CORE-191) and following
+                  the editor's date-time fields. A multi-day range renders a
+                  clamped slice per visible day column; days outside this
+                  period simply produce no slice. */}
+              {selection &&
+                !createSelection &&
+                (() => {
+                  const slice = clampRangeToDay(selection, day)
+                  if (!slice) return null
+                  const { startMinute, endMinute } = slice
+                  // Anchor the editor to the first *visible* slice — when the
+                  // range starts before this period, its true start day is
+                  // not on screen.
+                  const firstVisibleIndex = weekDays.findIndex(
+                    (d) => clampRangeToDay(selection, d) !== null,
+                  )
+                  const isFirstDay = dayIndex === firstVisibleIndex
+                  return (
+                    <div
+                      {...(isFirstDay ? { 'data-create-selection': true } : {})}
+                      className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
+                      style={{
+                        top: `${startMinute}px`,
+                        height: `${Math.max(endMinute - startMinute, 15)}px`,
+                        zIndex: 5,
+                      }}
+                    >
+                      <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
+                        {formatSelectionRange(
+                          startMinute,
+                          endMinute,
+                          formatHourMinute,
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
 
               {}
               {dragPreview &&
@@ -755,12 +870,12 @@ export default function WeekView({
 
                   return (
                     <div
-                      className="absolute left-0 right-0 border-t-2 border-[#0066FF] z-30 pointer-events-none"
+                      className="absolute left-0 right-0 border-t-2 border-cal-now z-30 pointer-events-none"
                       style={{
                         top: `${topPosition}px`,
                       }}
                     >
-                      <span className="absolute -left-[5px] -top-[6px] h-2.5 w-2.5 rounded-full bg-[#0066FF]" />
+                      <span className="absolute -left-[6px] -top-[7px] h-3 w-3 rounded-full bg-cal-now" />
                     </div>
                   )
                 })()}

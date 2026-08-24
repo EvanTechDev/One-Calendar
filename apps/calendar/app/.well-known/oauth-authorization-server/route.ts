@@ -25,6 +25,8 @@ export async function GET() {
       'settings:read',
       'settings:write',
       'profile:read',
+      'bookmarks:read',
+      'bookmarks:write',
     ],
     code_challenge_methods_supported: ['S256'],
   })

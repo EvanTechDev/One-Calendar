@@ -4,12 +4,41 @@ import {
   calendarCategories,
   eventInvites,
 } from '@/lib/drizzle/schema'
-import { eq, and, lt, gt, inArray, type SQL } from 'drizzle-orm'
+import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
 import { normalizeColor } from './colors'
-import { InvalidEventQueryError } from './errors'
+import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
+import { invalidateEventCache } from '@/lib/cache/events'
+import {
+  expandRows,
+  resolveMasterEditStamp,
+  mergeOverride,
+  planInstanceChange,
+  resolveInstance,
+  type ApplyTo,
+  type EventRow,
+  type InstanceChangePlan,
+} from '@/lib/event-service'
+import {
+  adaptRuleToStart,
+  addWallClockDays,
+  canTranslateRuleByDays,
+  firstVisibleStampOfSeries,
+  isInstanceId,
+  isSeriesEvent,
+  parseInstanceId,
+  parseRfcStamp,
+  shiftExdates,
+  shiftToAnchorClock,
+  translateRuleByDays,
+  translateStampsByDays,
+  wallClockDayDelta,
+  withUntil,
+} from '@/lib/recurrence/engine'
+import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+import { RRule } from 'rrule'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
@@ -48,6 +77,10 @@ export const EVENT_FIELD_WHITELIST = [
   'status',
   'createdAt',
   'updatedAt',
+  'rrule',
+  'exdate',
+  'seriesId',
+  'recurrenceId',
 ] as const
 
 const EVENT_FIELD_ALIASES: Record<string, string> = {
@@ -56,8 +89,11 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
   is_all_day: 'isAllDay',
   category_id: 'categoryId',
   notification_minutes: 'notificationMinutes',
+  email_reminder: 'emailReminder',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
+  series_id: 'seriesId',
+  recurrence_id: 'recurrenceId',
 }
 
 export interface ListEventsParams {
@@ -441,6 +477,351 @@ export function matchesParticipantFilter(
 }
 
 // ---------------------------------------------------------------------------
+// Recurring events helpers
+// ---------------------------------------------------------------------------
+
+function isValidRrule(rule: string | null): boolean {
+  if (rule === null) return true
+  try {
+    return typeof RRule.fromString(rule).options.freq === 'number'
+  } catch {
+    return false
+  }
+}
+
+function isValidStamp(stamp: string): boolean {
+  try {
+    parseRfcStamp(stamp)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function validateRecurringArguments(
+  rrule: string | null,
+  exdate: string[] | null | undefined,
+): void {
+  if (rrule !== null && !isValidRrule(rrule)) {
+    throw new InvalidEventQueryError(
+      'Invalid rrule: must be a valid RFC 5545 RRULE (e.g. FREQ=WEEKLY;INTERVAL=1)',
+    )
+  }
+  if (exdate !== null && exdate !== undefined) {
+    if (rrule === null) {
+      throw new InvalidEventQueryError('exdate requires rrule')
+    }
+    for (const stamp of exdate) {
+      if (!isValidStamp(stamp)) {
+        throw new InvalidEventQueryError(`Invalid exdate: ${stamp}`)
+      }
+    }
+  }
+}
+
+function mcpFieldsToEventRow(data: {
+  title?: string
+  description?: string | null
+  location?: string | null
+  start_date?: string
+  end_date?: string
+  is_all_day?: boolean
+  status?: EventStatus | null
+  color?: string | null
+  category_id?: string | null
+  notification_minutes?: number | null
+}): Partial<EventRow> {
+  const fields: Partial<EventRow> = {}
+  if (data.title !== undefined) fields.title = data.title
+  if (data.description !== undefined) fields.description = data.description
+  if (data.location !== undefined) fields.location = data.location
+  if (data.start_date !== undefined)
+    fields.startDate = new Date(data.start_date)
+  if (data.end_date !== undefined) fields.endDate = new Date(data.end_date)
+  if (data.is_all_day !== undefined) fields.isAllDay = data.is_all_day
+  if (data.status !== undefined && data.status !== null)
+    fields.status = data.status
+  if (data.color !== undefined && data.color !== null)
+    fields.color = normalizeColor(data.color)
+  if (data.category_id !== undefined) fields.categoryId = data.category_id
+  if (data.notification_minutes !== undefined)
+    fields.notificationMinutes = data.notification_minutes
+  return fields
+}
+
+function encryptMergedFields(
+  rowId: string,
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const encrypted: Record<string, unknown> = {}
+  if (fields.title !== undefined)
+    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
+  if (fields.description !== undefined)
+    encrypted.description = encryptField(rowId, fields.description as string)
+  if (fields.location !== undefined)
+    encrypted.location = encryptField(rowId, fields.location as string)
+  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
+  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
+  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
+  if (fields.status !== undefined) encrypted.status = fields.status
+  if (fields.color !== undefined) encrypted.color = fields.color
+  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
+  if (fields.notificationMinutes !== undefined)
+    encrypted.notificationMinutes = fields.notificationMinutes
+  return encrypted
+}
+
+/**
+ * The user's IANA timezone from their settings, or undefined when unset or
+ * invalid. Recurrence day math (split boundaries, whole-pattern day shifts,
+ * all-day stamps) must run in the user's zone, not the server's, or an edit
+ * made near midnight lands on the wrong day.
+ */
+/**
+ * Drops the cached month buckets a series touches. MCP mutations previously
+ * skipped this, so a tool-driven edit left the web UI serving stale months
+ * from Redis until the TTL expired. Never throws: a cache miss is safe, a
+ * failed tool call is not.
+ */
+async function invalidateSeriesCache(
+  userId: string,
+  rows: Array<
+    { startDate: Date | string; endDate: Date | string } | null | undefined
+  >,
+): Promise<void> {
+  for (const row of rows) {
+    if (!row) continue
+    try {
+      const start = new Date(row.startDate)
+      const end = new Date(row.endDate)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue
+      await invalidateEventCache(userId, start.toISOString(), end.toISOString())
+    } catch {
+      // Cache invalidation is best-effort.
+    }
+  }
+}
+
+async function resolveUserTimeZone(
+  userId: string,
+): Promise<string | undefined> {
+  try {
+    const settings = (await getSettings(userId)) as Record<string, unknown>
+    const tz = settings.timezone
+    if (typeof tz !== 'string' || tz.trim().length === 0) return undefined
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return tz
+  } catch {
+    return undefined
+  }
+}
+
+type BaseDb = Awaited<ReturnType<typeof getDb>>
+type TxDb = Parameters<Parameters<BaseDb['transaction']>[0]>[0]
+/** Either the singleton connection or a transaction executor — helpers that
+ * take this can participate in a caller's transaction unchanged. */
+type Db = BaseDb | TxDb
+
+async function deleteCalendarEventRow(
+  db: Db,
+  userId: string,
+  eventId: string,
+): Promise<void> {
+  await db.delete(eventInvites).where(eq(eventInvites.eventId, eventId))
+  await db
+    .delete(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
+    )
+}
+
+async function fetchSeriesOverrides(
+  db: Db,
+  seriesId: string,
+): Promise<ReturnType<typeof decryptEvent>[]> {
+  const rows = await db
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.seriesId, seriesId))
+  return rows.map(decryptEvent)
+}
+
+async function shiftMovedOverrides(
+  db: Db,
+  userId: string,
+  ids: string[],
+  clockSource: Date,
+  timeZone?: string,
+  dayDelta = 0,
+): Promise<void> {
+  if (ids.length === 0) return
+  const rows = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
+    )
+  for (const row of rows) {
+    if (!row.recurrenceId) continue
+    const newStamp =
+      dayDelta !== 0
+        ? translateStampsByDays(
+            [row.recurrenceId],
+            dayDelta,
+            clockSource,
+            timeZone,
+          )![0]
+        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
+    await db
+      .update(calendarEvents)
+      .set({
+        recurrenceId: newStamp,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
+      )
+  }
+}
+
+async function applySplitPlan(
+  userId: string,
+  master: EventRow,
+  plan: InstanceChangePlan,
+  dbx?: Db,
+  /**
+   * The organiser's timezone, so carried grants are clock-remapped in the same
+   * zone the rest of the split's stamp arithmetic uses.
+   */
+  timeZone?: string,
+): Promise<ReturnType<typeof decryptEvent> | null> {
+  const db = dbx ?? (await getDb())
+  const split = plan.split!
+  const newId = split.newSeries.id
+  const [newMaster] = await db
+    .insert(calendarEvents)
+    .values({
+      id: newId,
+      userId,
+      rrule: split.newSeries.rrule,
+      exdate: split.newSeries.exdate,
+      ...encryptMergedFields(newId, split.newSeries.fields),
+    } as typeof calendarEvents.$inferInsert)
+    .returning()
+
+  if (plan.deleteOverrideId) {
+    await deleteCalendarEventRow(db, userId, plan.deleteOverrideId)
+  }
+
+  if (split.moveOverrideIds.length > 0) {
+    await db
+      .update(calendarEvents)
+      .set({ seriesId: newId })
+      .where(
+        and(
+          inArray(calendarEvents.id, split.moveOverrideIds),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  // Participants must not silently lose the tail of the series just because an
+  // agent rescheduled it. Shared with the REST route so the invariant lives in
+  // one place — see
+  // ADR-0009 (invites and their visibility survive a series split). This runs
+  // BEFORE the empty-master delete below, which would otherwise destroy the
+  // grants with nothing having been carried.
+  await carryInvitesAcrossSplit(db, {
+    oldMasterId: master.id,
+    newMasterId: newId,
+    boundaryStamp: split.masterUntil,
+    clockSource: split.newSeries.startDate,
+    timeZone,
+  })
+
+  if (split.masterBecomesEmpty) {
+    // Same as the REST route: a truncated master that renders nothing is
+    // deleted rather than kept as an invisible zombie row.
+    await deleteCalendarEventRow(db, userId, master.id)
+  } else {
+    await db
+      .update(calendarEvents)
+      .set({
+        rrule: withUntil(master.rrule!, split.masterUntil),
+        exdate: split.masterExdate,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, master.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  return decryptEvent(newMaster)
+}
+
+async function applySinglePlan(
+  db: Db,
+  userId: string,
+  master: EventRow,
+  plan: InstanceChangePlan,
+): Promise<ReturnType<typeof decryptEvent> | null> {
+  const upsert = plan.overrideUpsert!
+  if (plan.exdateToAdd) {
+    await db
+      .update(calendarEvents)
+      .set({
+        exdate: [...(master.exdate ?? []), plan.exdateToAdd],
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, master.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+  }
+
+  const encrypted = encryptMergedFields(upsert.id, upsert.fields)
+  let stored
+  if (upsert.isNew) {
+    // Upsert on the (seriesId, recurrenceId) unique index: a double-submit
+    // resolves to one row (last writer wins) instead of erroring.
+    ;[stored] = await db
+      .insert(calendarEvents)
+      .values({
+        id: upsert.id,
+        userId,
+        seriesId: upsert.seriesId,
+        recurrenceId: upsert.recurrenceId,
+        createdAt: upsert.fields.createdAt as Date,
+        updatedAt: upsert.fields.updatedAt as Date,
+        ...encrypted,
+      } as typeof calendarEvents.$inferInsert)
+      .onConflictDoUpdate({
+        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
+        set: { ...encrypted, updatedAt: new Date() },
+      })
+      .returning()
+  } else {
+    ;[stored] = await db
+      .update(calendarEvents)
+      .set({ ...encrypted, updatedAt: new Date() })
+      .where(
+        and(
+          eq(calendarEvents.id, upsert.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+      .returning()
+  }
+
+  return stored ? decryptEvent(stored) : null
+}
+
+// ---------------------------------------------------------------------------
 // listEvents
 // ---------------------------------------------------------------------------
 
@@ -554,13 +935,41 @@ export async function listEvents(
     .from(calendarEvents)
     .where(and(...sqlFilters))
 
+  const recurringRows = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.userId, userId),
+        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
+      ),
+    )
+
   let events = rows.map(decryptEvent)
+  const recurring = recurringRows.map(decryptEvent)
+  const recurringIds = new Set(recurring.map((e) => e.id))
+  const plainRows = events.filter((e) => !recurringIds.has(e.id))
+
+  if (timeRange.start || timeRange.end) {
+    events = expandRows([...plainRows, ...recurring], {
+      windowStart: timeRange.start,
+      windowEnd: timeRange.end,
+    }).map((e) =>
+      e.recurrenceId !== null
+        ? ({ ...e, id: e.instanceId } as ReturnType<typeof decryptEvent>)
+        : (e as ReturnType<typeof decryptEvent>),
+    )
+  } else {
+    events = plainRows
+  }
 
   // Merge invite emails into participants so returned events show the full
   // participant set, not just the ones stored on the event row.
-  const emailSets = await buildParticipantEmailSets(events.map((e) => e.id))
+  const emailSets = await buildParticipantEmailSets([
+    ...new Set(events.map((e) => (e.seriesId ?? e.id) as string)),
+  ])
   for (const event of events) {
-    const inviteEmails = emailSets.get(event.id)
+    const inviteEmails = emailSets.get((event.seriesId ?? event.id) as string)
     if (inviteEmails && inviteEmails.size > 0) {
       event.participants = mergeParticipantEmails(
         event.participants,
@@ -679,6 +1088,32 @@ async function buildParticipantEmailSets(
 
 export async function getEvent(userId: string, eventId: string) {
   const db = await getDb()
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return null
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      master.id,
+    )) as unknown as EventRow[]
+    const resolved = resolveInstance(
+      decryptEvent(master) as unknown as EventRow,
+      parsedId.recurrenceId,
+      overrides,
+    )
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
+
   const [row] = await db
     .select()
     .from(calendarEvents)
@@ -687,7 +1122,7 @@ export async function getEvent(userId: string, eventId: string) {
     )
 
   if (!row) return null
-  return decryptEvent(row)
+  return { ...decryptEvent(row), instanceId: row.id }
 }
 
 export async function createEvent(
@@ -703,8 +1138,17 @@ export async function createEvent(
     color: string
     category_id?: string | null
     notification_minutes?: number | null
+    email_reminder?: boolean
+    rrule?: string | null
+    exdate?: string[] | null
   },
 ) {
+  const rawRrule =
+    typeof data.rrule === 'string' && data.rrule.trim().length > 0
+      ? data.rrule
+      : null
+  validateRecurringArguments(rawRrule, data.exdate)
+
   const id = crypto.randomUUID()
   const db = await getDb()
 
@@ -723,13 +1167,25 @@ export async function createEvent(
       color: normalizeColor(data.color),
       categoryId: data.category_id ?? null,
       notificationMinutes: data.notification_minutes ?? null,
+      rrule: rawRrule,
+      exdate: data.exdate ?? null,
     })
     .returning()
 
-  return decryptEvent(event)
+  const created = decryptEvent(event)
+  // Keep the web UI's cached months in step with tool-driven creates.
+  await invalidateSeriesCache(userId, [
+    { startDate: created.startDate, endDate: created.endDate },
+  ])
+  // An agent that set email_reminder must actually get scheduled emails, and a
+  // quota refusal must reach it — otherwise the checkbox appears set with no
+  // emails behind it, and a quota refusal must reach the agent rather than
+  // being flattened into a generic error. See ADR-0010.
+  await reconcileReminders(userId, created.id, data.email_reminder === true)
+  return created
 }
 
-export async function updateEvent(
+async function updateEventImpl(
   userId: string,
   eventId: string,
   data: {
@@ -743,11 +1199,370 @@ export async function updateEvent(
     color?: string | null
     category_id?: string | null
     notification_minutes?: number | null
+    rrule?: string | null
+    exdate?: string[] | null
+    apply_to?: ApplyTo
   },
 ) {
   const db = await getDb()
-  const existing = await getEvent(userId, eventId)
+  const timeZone = await resolveUserTimeZone(userId)
+  const rawRrule =
+    typeof data.rrule === 'string' && data.rrule.trim().length > 0
+      ? data.rrule
+      : null
+  validateRecurringArguments(rawRrule, data.exdate)
+  const fields = mcpFieldsToEventRow(data)
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return null
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      masterRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const applyTo = data.apply_to ?? 'single'
+
+    // Product rule (mirrors the REST route): "all events" is only allowed
+    // from the series' first visible occurrence.
+    if (applyTo === 'all') {
+      const firstStamp = firstVisibleStampOfSeries(masterRow, timeZone)
+      if (firstStamp === null || parsedId.recurrenceId !== firstStamp) {
+        throw new Error(
+          "apply_to 'all' is only allowed on the series' first occurrence",
+        )
+      }
+    }
+
+    if (applyTo === 'all') {
+      // Mirror the REST route's instance-'all' sequence: translate the whole
+      // pattern by the move's day distance, adapt the rule, remap stored
+      // exdates, then re-stamp overrides — otherwise an MCP "all events"
+      // change orphans every single-instance override and resurrects exdated
+      // occurrences. No timeZone is threaded through MCP (deferred finding);
+      // helpers fall back to server-local day parts.
+      const prevStartDate = masterRow.startDate
+      const nextStartDate =
+        (fields.startDate as Date | undefined) ?? prevStartDate
+      const allDay = fields.isAllDay ?? masterRow.isAllDay
+      // Cross-day move → the pattern travels (Mon/Wed/Fri/Sun →
+      // Tue/Thu/Sat/Mon); same-day move → pure clock change.
+      const dayDelta = wallClockDayDelta(
+        parseRfcStamp(parsedId.recurrenceId).date,
+        nextStartDate,
+        timeZone,
+      )
+      const anchorStart = addWallClockDays(
+        shiftToAnchorClock(prevStartDate, nextStartDate, timeZone),
+        dayDelta,
+        timeZone,
+      )
+      if (fields.startDate !== undefined) {
+        fields.startDate = anchorStart
+        if (fields.endDate !== undefined && fields.endDate !== null) {
+          const duration =
+            (fields.endDate as Date).getTime() - nextStartDate.getTime()
+          fields.endDate = new Date(anchorStart.getTime() + duration)
+        }
+      }
+      let rrule = data.rrule !== undefined ? rawRrule : masterRow.rrule
+      // Refuse rather than silently degrade a pattern the shift cannot
+      // express (mirrors the REST route).
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        throw new InvalidEventQueryError(
+          "This repeat rule cannot be moved to another day with apply_to 'all'. Change the rrule explicitly, or use 'single' / 'following'.",
+        )
+      }
+      if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                anchorStart,
+                allDay,
+                timeZone,
+              )
+            : rrule
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          anchorStart,
+          allDay,
+          timeZone,
+        )
+      }
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(
+              masterRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(masterRow.exdate, nextStartDate, timeZone)
+      const set = {
+        ...encryptMergedFields(masterRow.id, fields),
+        ...(rrule !== null ? { rrule } : {}),
+        ...(data.exdate !== undefined
+          ? { exdate: data.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await db
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, masterRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+        .returning()
+      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+        const seriesOverrides = await fetchSeriesOverrides(db, masterRow.id)
+        await shiftMovedOverrides(
+          db,
+          userId,
+          seriesOverrides.map((o) => o.id),
+          nextStartDate,
+          timeZone,
+          dayDelta,
+        )
+      }
+      return decryptEvent(updated)
+    }
+
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo,
+      fields,
+      now: new Date(),
+      timeZone,
+    })
+
+    if (plan.split) {
+      // Split writes + override re-stamps are one atomic unit (plan 003).
+      const newMaster = await db.transaction(async (tx) => {
+        const created = await applySplitPlan(
+          userId,
+          masterRow,
+          plan,
+          tx,
+          timeZone,
+        )
+        if (!created) return null
+        await shiftMovedOverrides(
+          tx,
+          userId,
+          plan.split!.moveOverrideIds,
+          plan.split!.newSeries.startDate,
+          timeZone,
+        )
+        return created
+      })
+      return newMaster
+    }
+
+    const stored = await db.transaction(async (tx) =>
+      applySinglePlan(tx, userId, masterRow, plan),
+    )
+    if (!stored) return null
+    const resolved = resolveInstance(masterRow, parsedId.recurrenceId, [
+      stored,
+      ...overrides,
+    ] as unknown as EventRow[])
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
+
+  const [existing] = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
+    )
   if (!existing) return null
+
+  if (existing.seriesId !== null) {
+    const overrideRow = decryptEvent(existing) as unknown as EventRow
+    const merged = mergeOverride<EventRow>(overrideRow, fields)
+    const [updated] = await db
+      .update(calendarEvents)
+      .set({
+        ...encryptMergedFields(
+          overrideRow.id,
+          merged as unknown as Record<string, unknown>,
+        ),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(calendarEvents.id, overrideRow.id),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+      .returning()
+    return decryptEvent(updated)
+  }
+
+  if (isSeriesEvent({ rrule: existing.rrule })) {
+    const seriesRow = decryptEvent(existing) as unknown as EventRow
+    const applyTo = data.apply_to ?? 'all'
+
+    if (applyTo === 'all') {
+      // Same remap sequence as the instance-'all' branch above. Master-id
+      // edits move the anchor itself, and a cross-day move takes the whole
+      // pattern with it (mirrors the REST route's master-'all' branch).
+      const prevStartDate = seriesRow.startDate
+      const nextStartDate =
+        (fields.startDate as Date | undefined) ?? prevStartDate
+      const allDay = fields.isAllDay ?? seriesRow.isAllDay
+      const dayDelta = wallClockDayDelta(prevStartDate, nextStartDate, timeZone)
+      let rrule = data.rrule !== undefined ? rawRrule : seriesRow.rrule
+      if (
+        rrule !== null &&
+        dayDelta !== 0 &&
+        !canTranslateRuleByDays(rrule, dayDelta)
+      ) {
+        throw new InvalidEventQueryError(
+          "This repeat rule cannot be moved to another day with apply_to 'all'. Change the rrule explicitly, or use 'single' / 'following'.",
+        )
+      }
+      if (rrule !== null) {
+        rrule =
+          dayDelta !== 0
+            ? translateRuleByDays(
+                rrule,
+                dayDelta,
+                nextStartDate,
+                allDay,
+                timeZone,
+              )
+            : rrule
+        rrule = adaptRuleToStart(
+          rrule,
+          prevStartDate,
+          nextStartDate,
+          allDay,
+          timeZone,
+        )
+      }
+      const remappedExdate =
+        dayDelta !== 0
+          ? translateStampsByDays(
+              seriesRow.exdate,
+              dayDelta,
+              nextStartDate,
+              timeZone,
+            )
+          : shiftExdates(seriesRow.exdate, nextStartDate, timeZone)
+      const set = {
+        ...encryptMergedFields(seriesRow.id, fields),
+        ...(rrule !== null ? { rrule } : {}),
+        ...(data.exdate !== undefined
+          ? { exdate: data.exdate }
+          : remappedExdate !== null
+            ? { exdate: remappedExdate }
+            : {}),
+        updatedAt: new Date(),
+      }
+      const [updated] = await db
+        .update(calendarEvents)
+        .set(set)
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+        .returning()
+      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+        const seriesOverrides = await fetchSeriesOverrides(db, seriesRow.id)
+        await shiftMovedOverrides(
+          db,
+          userId,
+          seriesOverrides.map((o) => o.id),
+          nextStartDate,
+          timeZone,
+          dayDelta,
+        )
+      }
+      return decryptEvent(updated)
+    }
+
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      seriesRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo,
+      fields,
+      now: new Date(),
+      timeZone,
+    })
+
+    if (plan.split) {
+      // Split writes + override re-stamps are one atomic unit (plan 003).
+      const newMaster = await db.transaction(async (tx) => {
+        const created = await applySplitPlan(
+          userId,
+          seriesRow,
+          plan,
+          tx,
+          timeZone,
+        )
+        if (!created) return null
+        await shiftMovedOverrides(
+          tx,
+          userId,
+          plan.split!.moveOverrideIds,
+          plan.split!.newSeries.startDate,
+          timeZone,
+        )
+        return created
+      })
+      return newMaster
+    }
+
+    const stored = await db.transaction(async (tx) =>
+      applySinglePlan(tx, userId, seriesRow, plan),
+    )
+    if (!stored) return null
+    const resolved = resolveInstance(seriesRow, recurrenceId, [
+      stored,
+      ...overrides,
+    ] as unknown as EventRow[])
+    if (!resolved) return null
+    return { ...resolved, id: eventId, instanceId: eventId }
+  }
 
   const values: Record<string, unknown> = {}
   if (data.title !== undefined)
@@ -767,6 +1582,8 @@ export async function updateEvent(
   if (data.category_id !== undefined) values.categoryId = data.category_id
   if (data.notification_minutes !== undefined)
     values.notificationMinutes = data.notification_minutes
+  if (data.rrule !== undefined) values.rrule = rawRrule
+  if (data.exdate !== undefined) values.exdate = data.exdate
   values.updatedAt = new Date()
 
   const [event] = await db
@@ -780,14 +1597,263 @@ export async function updateEvent(
   return decryptEvent(event)
 }
 
-export async function deleteEvent(
+async function deleteEventImpl(
   userId: string,
   eventId: string,
+  applyTo?: ApplyTo,
 ): Promise<void> {
   const db = await getDb()
-  await db
-    .delete(calendarEvents)
+  const timeZone = await resolveUserTimeZone(userId)
+  const parsedId = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+
+  if (parsedId) {
+    const [master] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, parsedId.seriesId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!master || !isSeriesEvent({ rrule: master.rrule })) return
+    const masterRow = decryptEvent(master) as unknown as EventRow
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      masterRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
+    const effectiveApplyTo = applyTo ?? 'single'
+
+    if (effectiveApplyTo === 'all') {
+      await deleteCalendarEventRow(db, userId, masterRow.id)
+      return
+    }
+
+    if (effectiveApplyTo === 'single') {
+      // Both writes, mirroring the REST route: drop the override row AND
+      // exdate the base occurrence — deleting only the override would let
+      // the unedited base occurrence resurrect at the next expansion.
+      // Atomic (plan 003).
+      await db.transaction(async (tx) => {
+        if (override) {
+          await deleteCalendarEventRow(tx, userId, override.id)
+        }
+        if (!(masterRow.exdate ?? []).includes(parsedId.recurrenceId)) {
+          await tx
+            .update(calendarEvents)
+            .set({
+              exdate: [
+                ...new Set([
+                  ...(masterRow.exdate ?? []),
+                  parsedId.recurrenceId,
+                ]),
+              ],
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(calendarEvents.id, masterRow.id),
+                eq(calendarEvents.userId, userId),
+              ),
+            )
+        }
+      })
+      return
+    }
+
+    const plan = planInstanceChange({
+      master: masterRow,
+      override,
+      overrides,
+      recurrenceId: parsedId.recurrenceId,
+      applyTo: 'following',
+      fields: {},
+      now: new Date(),
+      timeZone,
+    })
+    await db.transaction(async (tx) => {
+      const newMaster = await applySplitPlan(
+        userId,
+        masterRow,
+        plan,
+        tx,
+        timeZone,
+      )
+      if (newMaster) {
+        await deleteCalendarEventRow(tx, userId, newMaster.id)
+      }
+    })
+    return
+  }
+
+  const [existing] = await db
+    .select()
+    .from(calendarEvents)
     .where(
       and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
     )
+  if (!existing) return
+
+  if (existing.seriesId !== null) {
+    await deleteCalendarEventRow(db, userId, existing.id)
+    return
+  }
+
+  if (isSeriesEvent({ rrule: existing.rrule })) {
+    const effectiveApplyTo = applyTo ?? 'all'
+    if (effectiveApplyTo === 'all') {
+      await deleteCalendarEventRow(db, userId, existing.id)
+      return
+    }
+    const seriesRow = decryptEvent(existing) as unknown as EventRow
+    const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
+    const overrides = (await fetchSeriesOverrides(
+      db,
+      seriesRow.id,
+    )) as unknown as EventRow[]
+    const override =
+      overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
+    const plan = planInstanceChange({
+      master: seriesRow,
+      override,
+      overrides,
+      recurrenceId,
+      applyTo: effectiveApplyTo,
+      fields: {},
+      now: new Date(),
+      timeZone,
+    })
+
+    if (plan.split) {
+      await db.transaction(async (tx) => {
+        const newMaster = await applySplitPlan(
+          userId,
+          seriesRow,
+          plan,
+          tx,
+          timeZone,
+        )
+        if (newMaster) {
+          await deleteCalendarEventRow(tx, userId, newMaster.id)
+        }
+      })
+      return
+    }
+
+    // Mirror the REST route's master-id 'single' delete: remove the override
+    // row AND exdate the occurrence, or the engine re-renders the deleted
+    // first instance as a ghost. Atomic (plan 003).
+    await db.transaction(async (tx) => {
+      if (override) {
+        await deleteCalendarEventRow(tx, userId, override.id)
+      }
+      await tx
+        .update(calendarEvents)
+        .set({
+          exdate: [...new Set([...(seriesRow.exdate ?? []), recurrenceId])],
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(calendarEvents.id, seriesRow.id),
+            eq(calendarEvents.userId, userId),
+          ),
+        )
+    })
+    return
+  }
+
+  await deleteCalendarEventRow(db, userId, existing.id)
+}
+
+/**
+ * Snapshot of the rows a mutation may touch, used to drop the right cached
+ * month buckets afterwards. Reads the master (or the instance's series) plus
+ * its overrides so a split/day-move invalidates both the old and new spans.
+ */
+async function seriesCacheSpans(
+  userId: string,
+  eventId: string,
+): Promise<Array<{ startDate: Date; endDate: Date }>> {
+  try {
+    const db = await getDb()
+    const parsed = isInstanceId(eventId) ? parseInstanceId(eventId) : null
+    const rootId = parsed?.seriesId ?? eventId
+    const rows = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(
+          or(
+            eq(calendarEvents.id, rootId),
+            eq(calendarEvents.seriesId, rootId),
+          ),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    return rows.map((r) => ({
+      startDate: new Date(r.startDate),
+      endDate: new Date(r.endDate),
+    }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Keeps scheduled reminder emails in step after an MCP mutation, through the
+ * same module the REST route uses. There must not be a second scheduling or
+ * quota implementation — ADR-0008 makes that argument for participant
+ * visibility, and it holds here for the same reason: duplicated rules drift.
+ *
+ * A quota refusal is surfaced to the agent so it can tell the user why; every
+ * other failure is swallowed and left to the top-up cron.
+ */
+async function reconcileReminders(
+  userId: string,
+  eventId: string,
+  strictQuota: boolean,
+): Promise<void> {
+  const { reconcileEventReminders, SendQuotaExceeded } =
+    await import('@/lib/reminders/reconcile')
+  const seriesId = isInstanceId(eventId)
+    ? (parseInstanceId(eventId)?.seriesId ?? eventId)
+    : eventId
+  try {
+    await reconcileEventReminders({ userId, eventId: seriesId, strictQuota })
+  } catch (error) {
+    if (error instanceof SendQuotaExceeded) {
+      // ParticipantError is the MCP layer's user-facing 4xx carrier; the tool
+      // handlers already translate it into a clean CLI error.
+      throw new ParticipantError(error.message, 400)
+    }
+  }
+}
+
+export async function updateEvent(
+  ...args: Parameters<typeof updateEventImpl>
+): ReturnType<typeof updateEventImpl> {
+  const [userId, eventId, data] = args
+  const before = await seriesCacheSpans(userId, eventId)
+  const result = await updateEventImpl(...args)
+  const after = await seriesCacheSpans(userId, eventId)
+  await invalidateSeriesCache(userId, [...before, ...after])
+  await reconcileReminders(
+    userId,
+    eventId,
+    (data as { email_reminder?: unknown } | undefined)?.email_reminder === true,
+  )
+  return result
+}
+
+export async function deleteEvent(
+  ...args: Parameters<typeof deleteEventImpl>
+): Promise<void> {
+  const [userId, eventId] = args
+  const before = await seriesCacheSpans(userId, eventId)
+  await deleteEventImpl(...args)
+  await invalidateSeriesCache(userId, before)
+  await reconcileReminders(userId, eventId, false)
 }

@@ -2,7 +2,7 @@
 
 import { useCountdowns } from '@/components/providers/data-provider'
 import { Button } from '@zntr/ui/button'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { Input } from '@zntr/ui/input'
 import {
@@ -12,6 +12,7 @@ import {
 } from '@zntr/ui/input-group'
 import { Label } from '@zntr/ui/label'
 import { ScrollArea } from '@zntr/ui/scroll-area'
+import CountdownIconPicker from './countdown-icon-picker'
 import {
   Select,
   SelectTrigger,
@@ -91,8 +92,6 @@ const TEXT_COLOR_MAP: Record<string, string> = {
   'bg-orange-500': '#f97316',
 }
 
-const allIconNames = Object.keys(lucideIcons).sort((a, b) => a.localeCompare(b))
-
 const toDateString = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -135,15 +134,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   }, [serverCountdowns])
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [iconSearch, setIconSearch] = useState('')
-
-  const filteredIcons = useMemo(() => {
-    const keyword = iconSearch.trim().toLowerCase()
-    const target = keyword
-      ? allIconNames.filter((name) => name.toLowerCase().includes(keyword))
-      : allIconNames
-    return target.slice(0, 200)
-  }, [iconSearch])
 
   const renderCountdownIcon = (
     iconName: string | undefined,
@@ -157,7 +147,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       lucideIcons.Clock
     if (withBackground) {
       return (
-        <div className="h-10 w-10 rounded-full bg-muted/70 dark:bg-muted/40 flex items-center justify-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full">
           <IconComponent size={size} style={{ color: iconColor }} />
         </div>
       )
@@ -411,7 +401,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   return (
                     <div
                       key={countdown.id}
-                      className="flex items-center p-3 hover:bg-accent rounded-md cursor-pointer border border-border/50"
+                      className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
                       onClick={() => viewCountdownDetail(countdown)}
                     >
                       <Avatar className="h-12 w-12 mr-3">
@@ -468,7 +458,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="mr-2"
+              className="mr-2 hover:bg-transparent"
               onClick={backToCountdownList}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -530,7 +520,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <div className="flex space-x-2 mt-8">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 hover:bg-transparent"
               onClick={() => startEditCountdown(selectedCountdown)}
             >
               <Edit2 className="mr-2 h-4 w-4" />
@@ -538,7 +528,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
             </Button>
             <Button
               variant="destructive"
-              className="flex-1"
+              className="flex-1 hover:bg-destructive"
               onClick={() => deleteCountdown(selectedCountdown.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -557,7 +547,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="mr-2"
+            className="mr-2 hover:bg-transparent"
             onClick={() => {
               if (selectedCountdown) {
                 setView('detail')
@@ -618,51 +608,16 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
 
           <div className="space-y-2">
             <Label>{t.countdownIcon}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                >
-                  {renderCountdownIcon(
-                    newCountdown.icon,
-                    newCountdown.color || 'bg-blue-500',
-                  )}
-                  <span>{newCountdown.icon || 'Clock'}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-3" align="start">
-                <Input
-                  placeholder={t.countdownSearchIcon}
-                  value={iconSearch}
-                  onChange={(e) => setIconSearch(e.target.value)}
-                  className="mb-2"
-                />
-                <ScrollArea className="h-52">
-                  <div className="grid grid-cols-8 gap-1">
-                    {filteredIcons.map((iconName) => (
-                      <div
-                        key={iconName}
-                        className={cn(
-                          'h-11 w-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-accent',
-                          newCountdown.icon === iconName &&
-                            'ring-2 ring-primary bg-accent/60',
-                        )}
-                        onClick={() =>
-                          setNewCountdown({ ...newCountdown, icon: iconName })
-                        }
-                      >
-                        {renderCountdownIcon(
-                          iconName,
-                          newCountdown.color || 'bg-blue-500',
-                          18,
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
+            <CountdownIconPicker
+              value={newCountdown.icon}
+              onChange={(icon) => setNewCountdown({ ...newCountdown, icon })}
+              color={newCountdown.color || 'bg-blue-500'}
+              iconColor={
+                TEXT_COLOR_MAP[newCountdown.color || 'bg-blue-500'] ?? '#3b82f6'
+              }
+              placeholder={t.countdownSearchIcon}
+              triggerLabel={t.countdownIcon}
+            />
           </div>
 
           <div className="space-y-2">

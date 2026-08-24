@@ -1,11 +1,31 @@
 import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
+const CURRENT_VERSION = 1
+
+interface Envelope {
+  v?: number
+  ct: string
+  iv: string
+  tag: string
+}
+
+export class FieldDecryptionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'FieldDecryptionError'
+  }
+}
+
+const SALT = process.env.SALT
 
 function getSalt(): string {
-  const salt = process.env.SALT
-  if (!salt) throw new Error('Missing SALT environment variable')
-  return salt
+  if (!SALT || SALT.length < 16) {
+    throw new Error(
+      'SALT environment variable is missing or shorter than 16 characters',
+    )
+  }
+  return SALT
 }
 
 function deriveKey(salt: string, rowId: string): Buffer {
@@ -18,6 +38,27 @@ function deriveKey(salt: string, rowId: string): Buffer {
       32,
     ),
   )
+}
+
+/**
+ * Recognises our ciphertext envelope without attempting decryption.
+ *
+ * This is what separates "wrong key / corrupt data" (an error worth shouting
+ * about) from "this column holds legacy plaintext written before field
+ * encryption existed" (pass through unchanged).
+ */
+export function looksLikeEnvelope(value: string): boolean {
+  if (!value.startsWith('{')) return false
+  try {
+    const parsed = JSON.parse(value) as Partial<Envelope>
+    return (
+      typeof parsed.ct === 'string' &&
+      typeof parsed.iv === 'string' &&
+      typeof parsed.tag === 'string'
+    )
+  } catch {
+    return false
+  }
 }
 
 export function encryptField(
@@ -33,6 +74,7 @@ export function encryptField(
   encrypted += cipher.final('hex')
   const authTag = cipher.getAuthTag()
   return JSON.stringify({
+    v: CURRENT_VERSION,
     ct: encrypted,
     iv: iv.toString('hex'),
     tag: authTag.toString('hex'),
@@ -47,7 +89,14 @@ export function decryptField(
   try {
     const salt = getSalt()
     const key = deriveKey(salt, rowId)
-    const parsed = JSON.parse(encrypted)
+    const parsed = JSON.parse(encrypted) as Envelope
+    // An absent `v` means a row written before versioning existed, i.e. v1.
+    const version = parsed.v ?? 1
+    if (version !== CURRENT_VERSION) {
+      throw new FieldDecryptionError(
+        `Unsupported field encryption version: ${version}`,
+      )
+    }
     const decipher = crypto.createDecipheriv(
       ALGORITHM,
       key,
@@ -60,6 +109,35 @@ export function decryptField(
   } catch {
     return null
   }
+}
+
+/**
+ * Decrypts a field, distinguishing the three cases the old lenient version
+ * collapsed into `null`:
+ *
+ *  - not our envelope  → returned unchanged (legacy plaintext row)
+ *  - our envelope, decrypts → plaintext
+ *  - our envelope, fails    → throws FieldDecryptionError
+ *
+ * The third case used to return `null`, and callers wrote `?? storedValue`,
+ * which surfaced raw ciphertext to users and re-encrypted it on the next save —
+ * silently destroying the original plaintext. Failing loudly is strictly safer:
+ * a 500 is recoverable, corrupted data is not.
+ */
+export function decryptFieldStrict(
+  rowId: string,
+  stored: string | null | undefined,
+): string | null {
+  if (stored === null || stored === undefined) return null
+  if (!looksLikeEnvelope(stored)) return stored
+
+  const plaintext = decryptField(rowId, stored)
+  if (plaintext === null) {
+    throw new FieldDecryptionError(
+      `Failed to decrypt field for row ${rowId}: wrong SALT or corrupt data`,
+    )
+  }
+  return plaintext
 }
 
 export function encryptJsonField<T>(

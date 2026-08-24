@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import { invalidateEventCache } from '@/lib/cache/events'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { isEventViewableBy } from '@/app/api/bookmarks/route'
+import { isEventViewableBy } from '@/lib/bookmarks'
 import { importSchema, firstZodMessage } from '@/lib/validation'
 import crypto from 'crypto'
 
@@ -22,9 +22,7 @@ export const POST = async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const parsed = importSchema.safeParse(
-    await request.json().catch(() => null),
-  )
+  const parsed = importSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json(
       { error: firstZodMessage(parsed.error) },

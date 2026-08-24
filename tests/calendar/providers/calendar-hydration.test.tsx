@@ -20,14 +20,15 @@ type Resolver = (value: {
 let pending = new Map<string, Resolver>()
 
 const resolveJson = (url: string, body: unknown) => {
-  const resolver = pending.get(url)
-  if (!resolver) throw new Error(`no pending fetch for ${url}`)
-  resolver({
+  const keys = [...pending.keys()]
+  const key = keys.find((k) => k === url || k.startsWith(`${url}?`))
+  if (!key) throw new Error(`no pending fetch for ${url}`)
+  pending.get(key)!({
     ok: true,
     status: 200,
     json: async () => body,
   })
-  pending.delete(url)
+  pending.delete(key)
 }
 
 const resetStore = () => {

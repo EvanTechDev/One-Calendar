@@ -19,6 +19,24 @@ import {
 } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
+import {
+  adaptRuleToStart,
+  addWallClockDays,
+  canTranslateRuleByDays,
+  defaultExpansionWindow,
+  expandSeriesView,
+  isInstanceId,
+  optimisticFollowingSplit,
+  parseInstanceId,
+  parseRfcStamp,
+  shiftExdates,
+  shiftToAnchorClock,
+  snapToPatternDay,
+  translateRuleByDays,
+  translateStampsByDays,
+  wallClockDayDelta,
+  type SeriesViewInput,
+} from '@/lib/recurrence/engine'
 
 type LoadingState = 'loading' | 'loaded' | 'error'
 
@@ -52,8 +70,14 @@ interface DataContextValue {
 
   upsertEvent: (
     data: Parameters<typeof api.events.create>[0],
+    oldSeriesIds?: Set<string>,
   ) => Promise<EventData>
-  deleteEvent: (id: string) => Promise<void>
+  deleteEvent: (
+    id: string,
+    applyTo?: 'single' | 'following' | 'all',
+    timezone?: string,
+    opts?: { deferNetwork?: boolean },
+  ) => Promise<void>
 
   createCategory: (
     data: Parameters<typeof api.categories.create>[0],
@@ -77,7 +101,11 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const eventsReq = useSWR(DATA_KEYS.events, () => api.events.list())
+  const eventsReq = useSWR(DATA_KEYS.events, () =>
+    api.events.list({
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  )
   const categoriesReq = useSWR(DATA_KEYS.categories, () =>
     api.categories.list(),
   )
@@ -219,15 +247,139 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [loading, settings, refreshSettings])
 
   const upsertEvent = useCallback(
-    async (data: Parameters<typeof api.events.create>[0]) => {
+    async (
+      data: Parameters<typeof api.events.create>[0],
+      oldSeriesIds?: Set<string>,
+    ) => {
       try {
+        // A "this and following" split orphans the old series: the server
+        // truncates it, and when nothing survives before the split point
+        // (root-instance split, or every earlier instance was exdated) the
+        // response's seriesEvents contains no row for it at all. Purging
+        // therefore cannot rely on inference from the payload — derive the
+        // old series id from the cache so a caller forgetting oldSeriesIds
+        // can never leave ghost instances behind.
+        const purgeSeriesIds = new Set<string>(oldSeriesIds ?? [])
+        if (data.apply_to === 'following' && data.id) {
+          const cached = eventsRef.current.find((e) => e.id === data.id)
+          if (cached?.seriesId) {
+            purgeSeriesIds.add(cached.seriesId)
+          } else {
+            const parsed = isInstanceId(data.id)
+              ? parseInstanceId(data.id)
+              : null
+            if (parsed) purgeSeriesIds.add(parsed.seriesId)
+            else if (cached?.rrule) purgeSeriesIds.add(cached.id)
+          }
+        }
+        const purge = purgeSeriesIds.size > 0 ? purgeSeriesIds : undefined
+
+        let optimistic: EventData[] | null = null
+        if (
+          data.id &&
+          (data.apply_to === undefined || data.apply_to === 'all')
+        ) {
+          optimistic = optimisticSeries(data, eventsRef.current)
+        } else if (data.apply_to === 'following' && data.split_id && data.id) {
+          const target = eventsRef.current.find((e) => e.id === data.id)
+          if (target?.seriesId && target.recurrenceId) {
+            const window = defaultExpansionWindow()
+            // Mirror the server's planInstanceChange: a "this and following"
+            // save never violates the parent pattern, so the new anchor snaps
+            // back to the dragged occurrence's day and keeps only its new
+            // time of day (all-day moves have no clock to adopt).
+            const allDay = data.isAllDay ?? target.isAllDay
+            const requestedStart = new Date(data.startDate)
+            const requestedEnd = new Date(data.endDate)
+            const anchorStart = allDay
+              ? requestedStart
+              : snapToPatternDay(
+                  parseRfcStamp(target.recurrenceId).date,
+                  requestedStart,
+                  data.timezone,
+                )
+            const anchorEnd = allDay
+              ? requestedEnd
+              : new Date(
+                  anchorStart.getTime() +
+                    (requestedEnd.getTime() - requestedStart.getTime()),
+                )
+            const nextMaster: EventData = {
+              ...target,
+              id: data.split_id,
+              seriesId: null,
+              recurrenceId: null,
+              title: data.title ?? target.title,
+              startDate: anchorStart.toISOString(),
+              endDate: anchorEnd.toISOString(),
+              isAllDay: data.isAllDay ?? target.isAllDay,
+              color: data.color ?? target.color,
+              categoryId: data.categoryId ?? target.categoryId,
+              description: data.description ?? target.description,
+              location: data.location ?? target.location,
+              notificationMinutes:
+                data.notificationMinutes ?? target.notificationMinutes,
+              participants: data.participants ?? target.participants,
+              rrule: data.rrule ?? target.rrule ?? null,
+            }
+            optimistic = optimisticFollowingSplit(
+              eventsRef.current,
+              target,
+              nextMaster,
+              window.windowStart,
+              window.windowEnd,
+              undefined,
+              data.timezone,
+            )
+          }
+        }
+        if (optimistic) {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(
+                cur?.events ?? [],
+                optimistic,
+                purge,
+              ),
+            }),
+            { revalidate: false },
+          )
+        }
         const res = await api.events.create(data)
-        await mutate(
-          DATA_KEYS.events,
-          (cur?: { events: EventData[] }) =>
-            cur ? { events: upsertById(cur.events, res.event) } : cur,
-          { revalidate: false },
-        )
+        // The event saved, but its reminder emails were refused on quota. Say so
+        // rather than leaving the checkbox looking effective — see
+        // ADR-0010 (email reminders are opt-in per event and scheduled through Resend).
+        if (res.reminderWarning) toast.warning(res.reminderWarning)
+        for (const id of res.removedSeriesIds ?? []) purgeSeriesIds.add(id)
+        const seriesEvents = res.seriesEvents
+        if (seriesEvents && seriesEvents.length > 0) {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(
+                cur?.events ?? [],
+                seriesEvents,
+                purgeSeriesIds.size > 0 ? purgeSeriesIds : undefined,
+              ),
+            }),
+            { revalidate: false },
+          )
+        } else if (res.event?.rrule) {
+          // A series master row must never enter the expanded-view cache —
+          // it would render as a standalone duplicate of the series' first
+          // instance. Without seriesEvents there is nothing safe to apply
+          // locally, so fall back to server truth.
+          await mutate(DATA_KEYS.events)
+        } else {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: upsertById(cur?.events ?? [], res.event),
+            }),
+            { revalidate: false },
+          )
+        }
         return res.event
       } catch (e) {
         toast.error('Failed to save event', {
@@ -239,23 +391,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const deleteEvent = useCallback(async (id: string) => {
-    const prev = eventsRef.current
-    await mutate(
-      DATA_KEYS.events,
-      { events: removeById(prev, id) },
-      { revalidate: false },
-    )
-    try {
-      await api.events.delete(id)
-    } catch (e) {
-      await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
-      toast.error('Failed to delete event', {
-        description: e instanceof Error ? e.message : 'Unknown',
-      })
-      throw e
-    }
-  }, [])
+  const deleteEvent = useCallback(
+    async (
+      id: string,
+      applyTo?: 'single' | 'following' | 'all',
+      timezone?: string,
+      opts?: { deferNetwork?: boolean },
+    ) => {
+      const prev = eventsRef.current
+      const target = prev.find((e) => e.id === id)
+      const seriesId = target?.seriesId
+      const recurrenceId = target?.recurrenceId
+      let optimistic: EventData[] = removeById(prev, id)
+      if (seriesId) {
+        if (applyTo === 'all') {
+          optimistic = prev.filter((e) => e.seriesId !== seriesId)
+        } else if (applyTo === 'following' && recurrenceId) {
+          optimistic = prev.filter(
+            (e) =>
+              e.seriesId !== seriesId || (e.recurrenceId ?? '') < recurrenceId,
+          )
+        }
+      }
+      await mutate(
+        DATA_KEYS.events,
+        { events: optimistic },
+        { revalidate: false },
+      )
+      if (opts?.deferNetwork) return
+      try {
+        const res = await api.events.delete(id, applyTo, timezone)
+        const seriesEvents = res.seriesEvents
+        if (seriesEvents && seriesEvents.length > 0) {
+          await mutate(
+            DATA_KEYS.events,
+            (cur?: { events: EventData[] }) => ({
+              events: replaceSeriesInstances(cur?.events ?? [], seriesEvents),
+            }),
+            { revalidate: false },
+          )
+        }
+      } catch (e) {
+        await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
+        toast.error('Failed to delete event', {
+          description: e instanceof Error ? e.message : 'Unknown',
+        })
+        throw e
+      }
+    },
+    [],
+  )
 
   const createCategory = useCallback(
     async (data: Parameters<typeof api.categories.create>[0]) => {
@@ -488,7 +673,6 @@ export function useEvents() {
   const { events, loading, upsertEvent, deleteEvent, refreshEvents } = useData()
   return { events, loading, upsertEvent, deleteEvent, refreshEvents }
 }
-
 export function useCategories() {
   const {
     categories,
@@ -545,4 +729,181 @@ export function useBookmarks() {
 export function useSettings() {
   const { settings, loading, updateSettings, refreshSettings } = useData()
   return { settings, loading, updateSettings, refreshSettings }
+}
+
+function replaceSeriesInstances(
+  events: EventData[],
+  incoming: EventData[],
+  oldSeriesIds?: Set<string>,
+): EventData[] {
+  if (incoming.length === 0 && !oldSeriesIds?.size) return events
+  const seriesIds = new Set<string>()
+  const ids = new Set<string>()
+  for (const e of incoming) {
+    if (e.seriesId) seriesIds.add(e.seriesId)
+    else ids.add(e.id)
+  }
+  const kept = events.filter((e) => {
+    if (e.seriesId && seriesIds.has(e.seriesId)) return false
+    // Purge by series membership for instances — and by the row's own id
+    // for raw master rows, whose "series id" is their id (seriesId null).
+    if (oldSeriesIds?.size) {
+      if (e.seriesId && oldSeriesIds.has(e.seriesId)) return false
+      if (!e.seriesId && oldSeriesIds.has(e.id)) return false
+    }
+    return !ids.has(e.id)
+  })
+  return [...kept, ...incoming]
+}
+
+export function optimisticSeries(
+  data: Parameters<typeof api.events.create>[0],
+  current: EventData[],
+): EventData[] | null {
+  const target = current.find((e) => e.id === data.id)
+  const parsedId =
+    data.id && isInstanceId(data.id) ? parseInstanceId(data.id) : null
+  const key = target?.seriesId ?? parsedId?.seriesId ?? (data.id as string)
+  const currentMaster = current.find((e) => e.id === key && e.seriesId === null)
+  const rule = data.rrule ?? currentMaster?.rrule ?? target?.rrule ?? null
+  if (!rule) return null
+  const inputStart = new Date(data.startDate)
+  const inputEnd = new Date(data.endDate)
+  const prevStart = parsedId ? parseRfcStamp(parsedId.recurrenceId).date : null
+  // "All events" translates the whole pattern by the move's day distance
+  // (mirrors the server): Mon → Tue turns Mon/Wed/Fri/Sun into
+  // Tue/Thu/Sat/Mon. A same-day move is a pure clock change (delta 0).
+  const dayDelta = wallClockDayDelta(
+    prevStart ??
+      (currentMaster ? new Date(currentMaster.startDate) : inputStart),
+    inputStart,
+  )
+  // The server refuses a day move this rule cannot express (e.g. "last day
+  // of the month"); skip the optimistic paint so the UI does not flash a
+  // state that is about to be rejected.
+  if (dayDelta !== 0 && !canTranslateRuleByDays(rule, dayDelta)) return null
+  const clampedStart = currentMaster
+    ? shiftToAnchorClock(new Date(currentMaster.startDate), inputStart)
+    : inputStart
+  const anchorStart =
+    dayDelta !== 0 && currentMaster
+      ? addWallClockDays(clampedStart, dayDelta)
+      : clampedStart
+  const startDate = anchorStart.toISOString()
+  const endDate = new Date(
+    anchorStart.getTime() + (inputEnd.getTime() - inputStart.getTime()),
+  ).toISOString()
+  const master: SeriesViewInput = {
+    ...(currentMaster as unknown as SeriesViewInput | undefined),
+    id: key,
+    seriesId: null,
+    recurrenceId: null,
+    title: data.title ?? currentMaster?.title ?? '',
+    description: data.description ?? currentMaster?.description ?? null,
+    location: data.location ?? currentMaster?.location ?? null,
+    startDate,
+    endDate,
+    isAllDay: data.isAllDay ?? currentMaster?.isAllDay ?? false,
+    color: data.color ?? currentMaster?.color ?? null,
+    categoryId: data.categoryId ?? currentMaster?.categoryId ?? null,
+    notificationMinutes:
+      data.notificationMinutes ?? currentMaster?.notificationMinutes ?? null,
+    participants: data.participants ?? currentMaster?.participants ?? null,
+    rrule:
+      prevStart !== null
+        ? adaptRuleToStart(
+            dayDelta !== 0
+              ? translateRuleByDays(
+                  rule,
+                  dayDelta,
+                  anchorStart,
+                  data.isAllDay ?? false,
+                )
+              : rule,
+            prevStart,
+            anchorStart,
+            data.isAllDay ?? false,
+          )
+        : rule,
+    // The expanded-view cache holds no raw master row, so fall back to the
+    // clicked instance's inherited exdate: it carries the series' exclusions
+    // (including a split's boundary exdate) and without it an inclusive UNTIL
+    // would re-expand the series one occurrence past its real end.
+    exdate:
+      dayDelta !== 0
+        ? translateStampsByDays(
+            currentMaster ? currentMaster.exdate : target?.exdate,
+            dayDelta,
+            inputStart,
+          )
+        : currentMaster
+          ? shiftExdates(currentMaster.exdate, inputStart)
+          : (shiftExdates(target?.exdate, inputStart) ?? data.exdate ?? null),
+  }
+  // Only single-instance overrides (isOverride rows) carry custom times that
+  // must survive a series-wide time change. Their recurrence stamp follows
+  // the series into the new clock space (like the server's remapOverridesClock)
+  // but their stored time stays untouched, so the override keeps matching its
+  // regenerated occurrence instead of resurfacing as an orphan duplicate.
+  // Master edits shift by an unknown delta, so they skip overrides entirely
+  // and let the server response reconcile them.
+  const anchorStamp = parsedId?.recurrenceId ?? null
+  const overrides =
+    prevStart === null || anchorStamp === null
+      ? []
+      : current
+          .filter(
+            (e) =>
+              e.seriesId === key &&
+              e.isOverride &&
+              e.recurrenceId !== null &&
+              e.recurrenceId !== undefined &&
+              e.recurrenceId >= anchorStamp &&
+              e.id !== data.id,
+          )
+          .map((e) => ({
+            ...e,
+            recurrenceId:
+              dayDelta !== 0
+                ? translateStampsByDays(
+                    [e.recurrenceId!],
+                    dayDelta,
+                    inputStart,
+                  )![0]
+                : shiftExdates([e.recurrenceId!], inputStart)![0],
+          }))
+  const window = defaultExpansionWindow()
+  const expanded = expandSeriesView(
+    [master],
+    overrides as unknown as SeriesViewInput[],
+    window.windowStart,
+    window.windowEnd,
+  ) as unknown as EventData[]
+  if (prevStart === null || anchorStamp === null) return expanded
+  const keptEarly = current
+    .filter(
+      (e) =>
+        e.seriesId === key &&
+        e.recurrenceId !== null &&
+        e.recurrenceId !== undefined &&
+        e.recurrenceId < anchorStamp,
+    )
+    .map((e) => {
+      if (e.isOverride) return e
+      const originalStart = new Date(e.startDate)
+      const clocked = shiftToAnchorClock(originalStart, inputStart)
+      // Earlier instances travel with the pattern too when the move crossed
+      // days, so the optimistic view matches what the translated rule will
+      // regenerate.
+      const start =
+        dayDelta !== 0 ? addWallClockDays(clocked, dayDelta) : clocked
+      if (start.getTime() === originalStart.getTime()) return e
+      const duration = new Date(e.endDate).getTime() - originalStart.getTime()
+      return {
+        ...e,
+        startDate: start.toISOString(),
+        endDate: new Date(start.getTime() + duration).toISOString(),
+      }
+    })
+  return [...keptEarly, ...expanded]
 }

@@ -7,6 +7,10 @@
     {
       "path": "/api/mcp/cleanup",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/reminders/topup",
+      "schedule": "0 2 * * *"
     }
   ]
 }

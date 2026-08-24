@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest'
+import { z } from 'zod'
 import {
   eventSchema,
   categorySchema,
   countdownSchema,
   importSchema,
   firstZodMessage,
+  invitePatchSchema,
+  recurringFieldsSchema,
+  RSVP_STATUSES,
 } from '@/lib/validation'
 
 function validEvent() {
@@ -99,8 +103,9 @@ describe('eventSchema', () => {
 describe('importSchema', () => {
   it('rejects more than 500 events', () => {
     expect(
-      importSchema.safeParse({ events: Array.from({ length: 501 }, validEvent) })
-        .success,
+      importSchema.safeParse({
+        events: Array.from({ length: 501 }, validEvent),
+      }).success,
     ).toBe(false)
   })
 
@@ -160,6 +165,63 @@ describe('countdownSchema', () => {
   })
 })
 
+describe('invitePatchSchema', () => {
+  it('accepts each valid status', () => {
+    for (const status of RSVP_STATUSES) {
+      expect(invitePatchSchema.safeParse({ status }).success).toBe(true)
+    }
+  })
+
+  it('rejects an unknown status', () => {
+    expect(invitePatchSchema.safeParse({ status: 'attending' }).success).toBe(
+      false,
+    )
+    expect(invitePatchSchema.safeParse({ status: '' }).success).toBe(false)
+    expect(invitePatchSchema.safeParse({ status: null }).success).toBe(false)
+  })
+
+  it('accepts a categoryId alone', () => {
+    expect(invitePatchSchema.safeParse({ categoryId: 'abc' }).success).toBe(
+      true,
+    )
+  })
+
+  it('accepts both fields together', () => {
+    expect(
+      invitePatchSchema.safeParse({ status: 'accepted', categoryId: 'abc' })
+        .success,
+    ).toBe(true)
+  })
+
+  it('rejects an empty body with a helpful message', () => {
+    const result = invitePatchSchema.safeParse({})
+    expect(result.success).toBe(false)
+    if (result.success) throw new Error('expected parse failure')
+    expect(firstZodMessage(result.error)).toBe('Provide status or categoryId')
+  })
+
+  it('rejects null (the malformed-body sentinel)', () => {
+    expect(invitePatchSchema.safeParse(null).success).toBe(false)
+  })
+
+  it('rejects an over-long categoryId', () => {
+    expect(
+      invitePatchSchema.safeParse({ categoryId: 'a'.repeat(101) }).success,
+    ).toBe(false)
+  })
+})
+
+describe('RSVP_STATUSES', () => {
+  it('has exactly the four expected members', () => {
+    expect([...RSVP_STATUSES]).toEqual([
+      'pending',
+      'accepted',
+      'maybe',
+      'declined',
+    ])
+  })
+})
+
 describe('firstZodMessage', () => {
   it('returns the first issue message', () => {
     const result = eventSchema.safeParse({ startDate: 'bad' })
@@ -167,5 +229,78 @@ describe('firstZodMessage', () => {
     const message = firstZodMessage(result.error)
     expect(typeof message).toBe('string')
     expect(message.length).toBeGreaterThan(0)
+  })
+})
+
+describe('recurringFieldsSchema', () => {
+  // These fields were `.optional()`, which accepts undefined but rejects null.
+  // The client sends `rrule: null` for a non-recurring event and JSON.stringify
+  // preserves null while dropping undefined, so saving ANY plain event failed
+  // with "Invalid input: expected string, received null".
+  it('accepts null for a non-recurring event', () => {
+    const result = recurringFieldsSchema.safeParse({
+      rrule: null,
+      exdate: null,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts the fields being absent entirely', () => {
+    expect(recurringFieldsSchema.safeParse({}).success).toBe(true)
+  })
+
+  it('accepts a real rule with exdates and a scope', () => {
+    const result = recurringFieldsSchema.safeParse({
+      rrule: 'FREQ=DAILY',
+      exdate: ['20260810T090000Z'],
+      apply_to: 'following',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts a null scope', () => {
+    expect(recurringFieldsSchema.safeParse({ apply_to: null }).success).toBe(
+      true,
+    )
+  })
+
+  it('still rejects a non-string rule', () => {
+    expect(recurringFieldsSchema.safeParse({ rrule: 42 }).success).toBe(false)
+  })
+
+  it('still rejects an unknown scope', () => {
+    expect(
+      recurringFieldsSchema.safeParse({ apply_to: 'everything' }).success,
+    ).toBe(false)
+  })
+
+  it('still enforces the length caps', () => {
+    expect(
+      recurringFieldsSchema.safeParse({ rrule: 'x'.repeat(501) }).success,
+    ).toBe(false)
+    expect(
+      recurringFieldsSchema.safeParse({
+        rrule: 'FREQ=DAILY',
+        exdate: Array.from({ length: 501 }, () => '20260810T090000Z'),
+      }).success,
+    ).toBe(false)
+  })
+
+  it('composes with eventSchema the way the route does', () => {
+    // The exact shape the client POSTs for a plain event with no reminder.
+    const combined = z
+      .object({})
+      .passthrough()
+      .and(recurringFieldsSchema)
+      .and(eventSchema)
+
+    const result = combined.safeParse({
+      ...validEvent(),
+      notificationMinutes: null,
+      emailReminder: false,
+      rrule: null,
+      timezone: 'UTC',
+    })
+    expect(result.success).toBe(true)
   })
 })

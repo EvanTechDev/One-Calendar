@@ -467,5 +467,22 @@
   "enable2faFailed": "啟用雙重認證失敗",
   "disable2faFailed": "停用雙重認證失敗",
   "twoFactorSetupVerified": "雙重認證設定已驗證。",
-  "invalidOtpCode": "無效的{code}"
+  "invalidOtpCode": "無效的{code}",
+  "recurrenceCountSuffix": "共 {n} 次",
+  "recurrenceEveryDays": "每 {n} 天",
+  "recurrenceEveryMonths": "每 {n} 個月",
+  "recurrenceEveryWeeks": "每 {n} 週",
+  "recurrenceEveryYears": "每 {n} 年",
+  "recurrenceLastDay": "最後一天",
+  "recurrenceLastWeek": "最後一個",
+  "recurrenceNthWeek": "第 {n} 個",
+  "recurrenceUntilSuffix": "直到 {until}",
+  "recurrenceYearlyMonth": "{n} 月",
+  "repeatFrequencyDaily": "每天",
+  "repeatFrequencyMonthly": "每月",
+  "repeatFrequencyWeekly": "每週",
+  "repeatFrequencyYearly": "每年",
+  "copyInviteLink": "複製邀請連結",
+  "inviteLinkCopied": "邀請連結已複製",
+  "shortcutsDialogDesc": "日曆中可用的鍵盤快捷鍵。"
 }

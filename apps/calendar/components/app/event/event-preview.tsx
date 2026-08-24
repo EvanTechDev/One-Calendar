@@ -3,6 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  useLiveAnchorRect,
+  pickPopoverSide,
+  buildAnchorStyle,
+} from '@/hooks/use-anchored-popover'
+import {
   Edit2,
   Trash2,
   X,
@@ -16,6 +21,8 @@ import {
   MoreHorizontal,
   Send,
   UserMinus,
+  Repeat,
+  ClipboardCopy,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Badge } from '@zntr/ui/badge'
@@ -46,6 +53,8 @@ import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
+import { describeRecurrence } from '@/lib/recurrence/engine'
+import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
 
 export interface EventInvite {
   id: string
@@ -56,14 +65,26 @@ export interface EventInvite {
   addedToCalendar: boolean
   userName: string | null
   userImage: string | null
+  /**
+   * The emailed link died before the participant joined; "Resend Invite"
+   * mints a fresh one (ADR-0013). Optional because older payloads may omit it.
+   */
+  inviteExpired?: boolean
 }
 
 function CategoryDot({ color }: { color?: string }) {
+  // Category colours are stored as Tailwind class names ('bg-blue-500'), not
+  // CSS colours — passing one to backgroundColor is silently invalid and
+  // every dot rendered gray. Translate through the shared map; accept a raw
+  // CSS colour as-is for callers that already resolved one.
+  const resolved = color
+    ? (TAILWIND_BG_TO_HEX[color] ?? (color.startsWith('bg-') ? null : color))
+    : null
   return (
     <span
       aria-hidden
       className="inline-block size-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: color || 'var(--muted-foreground)' }}
+      style={{ backgroundColor: resolved || 'var(--muted-foreground)' }}
     />
   )
 }
@@ -99,7 +120,7 @@ export default function EventPreview({
   onInvitesChange,
   onCategoryChange,
 }: EventPreviewProps) {
-  const { calendars } = useCalendar()
+  const { calendars, events } = useCalendar()
   const isZh = isZhLanguage(language)
   const _t = translations[language]
   const locale = isZh ? zhCN : enUS
@@ -133,53 +154,15 @@ export default function EventPreview({
     invitesRef.current = invites
   }, [invites])
 
-  const [liveRect, setLiveRect] = useState<DOMRect | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    const getLiveAnchorRect = (): DOMRect | null => {
-      const el =
-        anchorElement && anchorElement.isConnected
-          ? anchorElement
-          : event
-            ? document.querySelector(
-                `[data-event-id="${CSS.escape(event.id)}"]`,
-              )
-            : null
-      if (el) return el.getBoundingClientRect()
-      return anchorRect
-    }
-
-    const update = () => {
-      const next = getLiveAnchorRect()
-      setLiveRect((prev) => {
-        if (
-          prev &&
-          next &&
-          prev.left === next.left &&
-          prev.top === next.top &&
-          prev.width === next.width &&
-          prev.height === next.height
-        ) {
-          return prev
-        }
-        return next
-      })
-    }
-    update()
-
-    const container = scrollContainerRef?.current
-    window.addEventListener('scroll', update, true)
-    window.addEventListener('resize', update)
-    container?.addEventListener('scroll', update, true)
-
-    return () => {
-      window.removeEventListener('scroll', update, true)
-      window.removeEventListener('resize', update)
-      container?.removeEventListener('scroll', update, true)
-    }
-  }, [open, anchorElement, anchorRect, event, scrollContainerRef])
+  // Anchor resolution shared with the event editor, so the two popovers
+  // position identically (CORE-191).
+  const effectiveAnchorRect = useLiveAnchorRect({
+    open,
+    anchorElement,
+    anchorSelector: event ? `[data-event-id="${CSS.escape(event.id)}"]` : null,
+    anchorRect,
+    scrollContainerRef,
+  })
 
   const isSameInvites = (a: EventInvite[], b: EventInvite[]) =>
     a.length === b.length &&
@@ -253,12 +236,24 @@ export default function EventPreview({
   }
 
   const formatNotificationTime = () => {
-    if (event.notification === 0)
-      return isZh ? '事件开始时' : 'At time of event'
-    return isZh
-      ? `${event.notification} 分钟前`
-      : `${event.notification} minutes before`
+    if (event.notification === null || event.notification === undefined) {
+      return _t.noReminder
+    }
+    if (event.notification === 0) return _t.atEventTime
+    if (event.notification % 60 === 0) {
+      return _t.hourBefore.replace('{hours}', String(event.notification / 60))
+    }
+    return _t.minutesBefore.replace('{minutes}', String(event.notification))
   }
+
+  const seriesMaster = event.seriesId
+    ? events.find((e) => e.id === event.seriesId)
+    : undefined
+  const recurrenceSummary = event.rrule
+    ? describeRecurrence(event.rrule, isZh)
+    : seriesMaster?.rrule
+      ? describeRecurrence(seriesMaster.rrule, isZh)
+      : null
 
   const _getInitials = (name: string) => name.charAt(0).toUpperCase()
 
@@ -268,6 +263,17 @@ export default function EventPreview({
     event.participants.some((p) => p.trim() !== '')
 
   const toggleParticipants = () => setParticipantsOpen(!participantsOpen)
+
+  const isRecurring = !!event?.rrule || !!event?.seriesId
+  /**
+   * Mirrors the event dialog's `canAllScope`: "all events" is only offered on
+   * the series' first occurrence. A raw master row IS the series root, so "all"
+   * stays allowed there.
+   */
+  const isRawMasterTarget =
+    !!event?.rrule && !event?.seriesId && !event?.recurrenceId
+  const canAllScope =
+    !!event && (isRawMasterTarget || event.isFirstInstance === true)
 
   const toggleBookmark = async () => {
     if (!event) return
@@ -312,16 +318,58 @@ export default function EventPreview({
     }
   }
 
-  const handleRemoveParticipant = async (inviteId: string) => {
+  /**
+   * Removes a participant from the chosen occurrences.
+   *
+   * For a recurring event the scope follows the same rule as an event edit:
+   * `all` only on the series' first occurrence, `following` elsewhere. See
+   * ADR-0007 (participant scope follows the same rules as event scope).
+   */
+  const handleRemoveParticipant = async (
+    inviteId: string,
+    scope: 'single' | 'following' | 'all' = 'all',
+  ) => {
     if (!event) return
     try {
-      await fetch(`/api/invites/manage?id=${inviteId}`, {
+      const params = new URLSearchParams({ id: inviteId, scope })
+      if (isRecurring) params.set('occurrenceId', event.id)
+      const response = await fetch(`/api/invites/manage?${params}`, {
         method: 'DELETE',
       })
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
+      // Correct for every scope here: the participant is gone from the
+      // occurrence being viewed, which is what this list shows. The 15-second
+      // poll reconciles the grant's remaining occurrences.
       setInvites((prev) => prev.filter((i) => i.id !== inviteId))
       toast.success('Participant removed')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to remove participant',
+      )
+    }
+  }
+
+  /**
+   * Copies a participant's own invite link so the organiser can share it
+   * directly (e.g. over chat) instead of relying on the invite email. The
+   * token is per-participant, so each row copies a distinct link.
+   */
+  const handleCopyInviteLink = async (inviteToken: string) => {
+    const url = `${window.location.origin}/invite/${inviteToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(_t.inviteLinkCopied)
     } catch {
-      toast.error('Failed to remove participant')
+      // Clipboard access can be denied (insecure context, permission policy).
+      toast.error('Failed to copy invite link')
     }
   }
 
@@ -334,18 +382,41 @@ export default function EventPreview({
     )
     if (!dbInvite) return
     try {
-      await fetch(`/api/invite/${dbInvite.inviteToken}`, {
+      // Each occurrence of a recurring event carries its own answer, so the
+      // stamp is required. Omitting it wrote the invite-level status instead —
+      // which the calendar never reads — so the answer appeared to do nothing
+      // and every occurrence stayed "pending".
+      //
+      // The session endpoint, not the token one: the emailed link expires but
+      // the grant does not, so answering from the calendar must keep working
+      // after the link dies (ADR-0013).
+      const response = await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          inviteToken: dbInvite.inviteToken,
+          status: newStatus,
+          ...(event.recurrenceId ? { recurrenceId: event.recurrenceId } : {}),
+        }),
       })
+      if (!response.ok) {
+        const message = await response
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null)
+        throw new Error(message ?? 'failed')
+      }
       setInvites((prev) =>
         prev.map((i) =>
           i.id === dbInvite.id ? { ...i, status: newStatus } : i,
         ),
       )
-    } catch {
-      toast.error('Failed to update RSVP')
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message !== 'failed'
+          ? error.message
+          : 'Failed to update RSVP',
+      )
     }
   }
 
@@ -367,10 +438,15 @@ export default function EventPreview({
     if (!event || !userInvite) return
     const value = calendarId === '__uncategorized__' ? null : calendarId
     try {
-      await fetch(`/api/invite/${userInvite.inviteToken}`, {
+      // Session-authenticated: the invite link may have expired by now, but
+      // the grant persists (ADR-0013).
+      await fetch('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId: value ?? '__uncategorized__' }),
+        body: JSON.stringify({
+          inviteToken: userInvite.inviteToken,
+          categoryId: value ?? '__uncategorized__',
+        }),
       })
       onCategoryChange?.(event.id, value)
     } catch {
@@ -378,73 +454,12 @@ export default function EventPreview({
     }
   }
 
-  const effectiveAnchorRect = liveRect ?? anchorRect
-
-  const popoverSide: 'top' | 'right' | 'bottom' | 'left' = effectiveAnchorRect
-    ? (() => {
-        const viewportWidth =
-          typeof window === 'undefined' ? 0 : window.innerWidth
-        const viewportHeight =
-          typeof window === 'undefined' ? 0 : window.innerHeight
-        const spaces = {
-          top: effectiveAnchorRect.top,
-          right: viewportWidth - effectiveAnchorRect.right,
-          bottom: viewportHeight - effectiveAnchorRect.bottom,
-          left: effectiveAnchorRect.left,
-        }
-        const estimatedWidth = 460
-        const estimatedHeight = 520
-        if (spaces.right >= estimatedWidth) return 'right'
-        if (spaces.left >= estimatedWidth) return 'left'
-        if (spaces.bottom >= estimatedHeight) return 'bottom'
-        if (spaces.top >= estimatedHeight) return 'top'
-        const entries = Object.entries(spaces) as Array<
-          ['top' | 'right' | 'bottom' | 'left', number]
-        >
-        return entries.sort((a, b) => b[1] - a[1])[0][0]
-      })()
-    : 'bottom'
-
-  const anchorStyle: React.CSSProperties = (() => {
-    if (effectiveAnchorRect && scrollContainerRef?.current) {
-      const containerRect = scrollContainerRef.current.getBoundingClientRect()
-      const midX = effectiveAnchorRect.left + effectiveAnchorRect.width / 2
-      const midY = effectiveAnchorRect.top + effectiveAnchorRect.height / 2
-      const edgePoint =
-        popoverSide === 'right'
-          ? { left: effectiveAnchorRect.right, top: midY }
-          : popoverSide === 'left'
-            ? { left: effectiveAnchorRect.left, top: midY }
-            : popoverSide === 'top'
-              ? { left: midX, top: effectiveAnchorRect.top }
-              : { left: midX, top: effectiveAnchorRect.bottom }
-      return {
-        position: 'absolute',
-        left:
-          edgePoint.left -
-          containerRect.left +
-          scrollContainerRef.current.scrollLeft,
-        top:
-          edgePoint.top -
-          containerRect.top +
-          scrollContainerRef.current.scrollTop,
-        width: 1,
-        height: 1,
-        pointerEvents: 'none',
-      }
-    }
-
-    return {
-      position: 'fixed',
-      left:
-        typeof window === 'undefined' ? 0 : Math.round(window.innerWidth / 2),
-      top:
-        typeof window === 'undefined' ? 0 : Math.round(window.innerHeight / 2),
-      width: 1,
-      height: 1,
-      pointerEvents: 'none',
-    }
-  })()
+  const popoverSide = pickPopoverSide(effectiveAnchorRect, 460, 520)
+  const anchorStyle = buildAnchorStyle(
+    effectiveAnchorRect,
+    popoverSide,
+    scrollContainerRef?.current,
+  )
 
   const anchorNode = (
     <PopoverAnchor asChild>
@@ -466,7 +481,10 @@ export default function EventPreview({
           side={popoverSide}
           align="center"
           sideOffset={12}
-          className="w-[min(96vw,28rem)] rounded-xl p-0 overflow-hidden"
+          collisionPadding={12}
+          // Same height discipline as the editor: cap at what actually fits
+          // (Radix subtracts browser chrome), scroll inside.
+          className="w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
             if (Date.now() < ignoreOutsideUntilRef.current) {
@@ -652,6 +670,15 @@ export default function EventPreview({
                                       : _t.pending}
                               </Badge>
                             </span>
+                            {invite.inviteExpired ? (
+                              // The link died before they joined — they cannot
+                              // act until the organiser resends (ADR-0013).
+                              <span className="ml-1.5 shrink-0">
+                                <Badge variant="outline">
+                                  {isZh ? '邀请已过期' : 'Invite expired'}
+                                </Badge>
+                              </span>
+                            ) : null}
                           </div>
                           {!event.viewOnly && (
                             <DropdownMenu>
@@ -664,7 +691,13 @@ export default function EventPreview({
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
+                              {/* Wider than the default 8rem: the trigger is a
+                                  32px icon button, so the menu inherits its
+                                  width and items like "Copy invite link" wrap. */}
+                              <DropdownMenuContent
+                                align="end"
+                                className="min-w-52"
+                              >
                                 {!invite.emailSent ? (
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -684,15 +717,75 @@ export default function EventPreview({
                                     Resend Invite
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() =>
-                                    handleRemoveParticipant(invite.id)
-                                  }
-                                >
-                                  <UserMinus className="mr-2 h-4 w-4" />
-                                  Remove
-                                </DropdownMenuItem>
+                                {invite.inviteToken ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleCopyInviteLink(invite.inviteToken)
+                                    }
+                                  >
+                                    <ClipboardCopy className="mr-2 h-4 w-4" />
+                                    {_t.copyInviteLink}
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {isRecurring ? (
+                                  <>
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() =>
+                                        handleRemoveParticipant(
+                                          invite.id,
+                                          'single',
+                                        )
+                                      }
+                                    >
+                                      <UserMinus className="mr-2 h-4 w-4" />
+                                      {isZh
+                                        ? '移除（仅此日程）'
+                                        : 'Remove (this event)'}
+                                    </DropdownMenuItem>
+                                    {canAllScope ? (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'all',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4" />
+                                        {isZh
+                                          ? '移除（所有日程）'
+                                          : 'Remove (all events)'}
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'following',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4" />
+                                        {isZh
+                                          ? '移除（此日程及后续）'
+                                          : 'Remove (this and following)'}
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() =>
+                                      handleRemoveParticipant(invite.id, 'all')
+                                    }
+                                  >
+                                    <UserMinus className="mr-2 h-4 w-4" />
+                                    Remove
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -713,8 +806,11 @@ export default function EventPreview({
                       value={event.calendarId || '__uncategorized__'}
                       onValueChange={handleViewOnlyCategoryChange}
                     >
-                      <SelectTrigger className="h-7 gap-1.5 rounded-md border-0 bg-transparent p-0 pr-1 text-sm shadow-none cursor-pointer hover:bg-muted/60 focus-visible:ring-1">
-                        <SelectValue>
+                      {/* A stock trigger on purpose: default size, natural
+                          width. The colour dot before the name carries the
+                          category colour. */}
+                      <SelectTrigger aria-label={_t.selectCalendar}>
+                        <SelectValue placeholder={_t.selectCalendar}>
                           <span className="inline-flex items-center gap-1.5">
                             <CategoryDot
                               color={
@@ -751,19 +847,31 @@ export default function EventPreview({
               </div>
             )}
 
-            {event.notification > 0 && (
+            {recurrenceSummary && (
               <div className="flex items-start">
-                <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <Repeat className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
                 <div className="flex-1">
-                  <p>{formatNotificationTime()}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isZh
-                      ? `${event.notification} 分钟前 按电子邮件`
-                      : `${event.notification} minutes before by email`}
-                  </p>
+                  <p>{recurrenceSummary}</p>
                 </div>
               </div>
             )}
+
+            {event.notification !== null &&
+              event.notification !== undefined && (
+                <div className="flex items-start">
+                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{formatNotificationTime()}</p>
+                    {/* Shown only when it is actually true — the old copy
+                        claimed email unconditionally and no email existed. */}
+                    {event.emailReminder === true && (
+                      <p className="text-sm text-muted-foreground">
+                        {_t.emailReminder}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
             {event.description && event.description.trim() !== '' && (
               <div className="flex items-start">
@@ -788,6 +896,16 @@ export default function EventPreview({
                 <p className="text-sm font-medium">
                   {isZh ? '您的回复' : 'Your response'}
                 </p>
+                {/*
+                  Each occurrence is answered independently, so say which one
+                  this is. Without it the buttons look like they set a single
+                  answer for the whole series.
+                */}
+                {isRecurring && (
+                  <p className="text-xs text-muted-foreground">
+                    {isZh ? '仅适用于此日期' : 'Applies to this date only'}
+                  </p>
+                )}
                 <ButtonGroup orientation="horizontal">
                   <Button
                     variant={

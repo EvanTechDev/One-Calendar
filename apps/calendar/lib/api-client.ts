@@ -24,6 +24,16 @@ export type EventData = {
   categoryId: string | null
   participants: Array<{ name: string; email?: string; userId?: string }> | null
   notificationMinutes: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  isFirstInstance?: boolean
+  /** Human-readable recurrence for a shared event; never the rrule (ADR-0006). */
+  recurrenceSummary?: string | null
   createdAt: string
   updatedAt: string
   viewOnly?: boolean
@@ -71,10 +81,7 @@ export type SettingsData = {
   timeFormat?: '24h' | '12h'
   theme?: 'light' | 'dark' | 'system'
   enableShortcuts?: boolean
-  notificationSound?: string
-  toastPosition?: string
   skipLanding?: boolean
-  todayToast?: string | null
 }
 
 export const api = {
@@ -83,12 +90,14 @@ export const api = {
       startDate?: string
       endDate?: string
       categoryIds?: string
+      timezone?: string
     }) => {
       const searchParams = new URLSearchParams()
       if (params?.startDate) searchParams.set('startDate', params.startDate)
       if (params?.endDate) searchParams.set('endDate', params.endDate)
       if (params?.categoryIds)
         searchParams.set('categoryIds', params.categoryIds)
+      if (params?.timezone) searchParams.set('tz', params.timezone)
       const qs = searchParams.toString()
       return fetchJson<{ events: EventData[] }>(
         `/api/events${qs ? `?${qs}` : ''}`,
@@ -110,16 +119,45 @@ export const api = {
         userId?: string
       }> | null
       notificationMinutes?: number | null
+      emailReminder?: boolean
+      rrule?: string | null
+      exdate?: string[] | null
+      apply_to?: 'single' | 'following' | 'all'
+      split_id?: string
+      timezone?: string
     }) =>
-      fetchJson<{ event: EventData }>('/api/events', {
+      fetchJson<{
+        event: EventData
+        seriesEvents?: EventData[]
+        /**
+         * Series whose rendered instances must be purged from the local
+         * cache. Sent after a "this and following" split: the truncated old
+         * series can expand to zero in-window instances, leaving no trace of
+         * itself in seriesEvents for the client to infer the purge from.
+         */
+        removedSeriesIds?: string[]
+        /**
+         * The event saved, but its reminder emails were refused on the daily
+         * quota. Surfaced to the user so the checkbox does not look effective
+         * when it is not (ADR-0010).
+         */
+        reminderWarning?: string
+      }>('/api/events', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    delete: (id: string) =>
-      fetchJson<{ success: boolean }>('/api/events', {
-        method: 'DELETE',
-        body: JSON.stringify({ id }),
-      }),
+    delete: (
+      id: string,
+      applyTo?: 'single' | 'following' | 'all',
+      timezone?: string,
+    ) =>
+      fetchJson<{ success: boolean; seriesEvents?: EventData[] }>(
+        '/api/events',
+        {
+          method: 'DELETE',
+          body: JSON.stringify({ id, apply_to: applyTo, timezone }),
+        },
+      ),
   },
 
   settings: {

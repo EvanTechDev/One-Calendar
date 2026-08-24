@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { MapPin, AlignLeft, Calendar, XCircle } from 'lucide-react'
+import { MapPin, AlignLeft, Calendar, XCircle, Repeat } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { getEventAccentColor } from '@/components/app/views/event-colors'
+import { getEventAccentColor } from '@/lib/event-colors'
 
 interface InviteData {
   invite: {
@@ -40,10 +40,23 @@ interface InviteData {
     endDate: string
     isAllDay: boolean
     color: string | null
+    /**
+     * Human-readable recurrence, e.g. "Every day". Deliberately not the rrule —
+     * see ADR-0006 (participants never receive the recurrence rule).
+     */
+    recurrenceSummary: string | null
   }
+  /** The occurrences this link grants, each with its own RSVP. Null if not recurring. */
+  occurrences:
+    | {
+        recurrenceId: string
+        startDate: string
+        endDate: string
+        status: 'pending' | 'accepted' | 'maybe' | 'declined'
+      }[]
+    | null
   inviter: {
     name: string
-    email?: string
     image?: string | null
   }
   isRegisteredUser: boolean
@@ -72,6 +85,18 @@ export default function InvitePage() {
   const [selectedCategory, setSelectedCategory] = useState('__uncategorized__')
   const [isRegisteredUser, setIsRegisteredUser] = useState(false)
   const [addedToCalendar, setAddedToCalendar] = useState(false)
+  /**
+   * RSVP per occurrence, keyed by stamp. Two occurrences of one series never
+   * share an answer, so this cannot collapse into `status`.
+   */
+  const [occurrenceStatus, setOccurrenceStatus] = useState<
+    Record<string, string>
+  >({})
+  const [selectedOccurrence, setSelectedOccurrence] = useState<string | null>(
+    null,
+  )
+  const [rsvpError, setRsvpError] = useState('')
+  const [addError, setAddError] = useState('')
 
   useEffect(() => {
     fetch(`/api/invite/${token}`)
@@ -85,6 +110,24 @@ export default function InvitePage() {
         setAddedToCalendar(data.invite.addedToCalendar)
         setCategories(data.categories ?? [])
         setIsRegisteredUser(data.isRegisteredUser)
+        if (data.occurrences && data.occurrences.length > 0) {
+          setOccurrenceStatus(
+            Object.fromEntries(
+              data.occurrences.map((o) => [o.recurrenceId, o.status]),
+            ),
+          )
+          // The first occurrence at or after now, falling back to the last.
+          // Defaulting to occurrences[0] pointed at a date up to two years
+          // past, so the default action answered one that had already gone.
+          const now = Date.now()
+          const upcoming = data.occurrences.find(
+            (o) => new Date(o.startDate).getTime() >= now,
+          )
+          setSelectedOccurrence(
+            (upcoming ?? data.occurrences[data.occurrences.length - 1])
+              .recurrenceId,
+          )
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -94,22 +137,70 @@ export default function InvitePage() {
   }, [token])
 
   const handleRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
-    setStatus(newStatus)
-    await fetch(`/api/invite/${token}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    })
+    // A recurring event is answered per occurrence; sending no stamp would
+    // write one shared answer for every occurrence.
+    const recurrenceId = selectedOccurrence
+    const previousOccurrence = recurrenceId
+      ? occurrenceStatus[recurrenceId]
+      : undefined
+    const previousStatus = status
+
+    if (recurrenceId) {
+      setOccurrenceStatus((prev) => ({ ...prev, [recurrenceId]: newStatus }))
+    } else {
+      setStatus(newStatus)
+    }
+
+    // The optimistic update above must be rolled back on failure. Showing the
+    // new answer while the server rejected it is how an RSVP silently fails to
+    // stick — the participant believes they answered and nothing was recorded.
+    try {
+      const response = await fetch(`/api/invite/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: newStatus,
+          ...(recurrenceId ? { recurrenceId } : {}),
+        }),
+      })
+      if (!response.ok) throw new Error('rejected')
+      setRsvpError('')
+    } catch {
+      if (recurrenceId) {
+        setOccurrenceStatus((prev) => ({
+          ...prev,
+          [recurrenceId]: previousOccurrence ?? 'pending',
+        }))
+      } else {
+        setStatus(previousStatus)
+      }
+      setRsvpError('Could not save your response. Please try again.')
+    }
   }
 
   const handleAddToCalendar = async () => {
-    await fetch(`/api/invite/${token}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId: selectedCategory }),
-    })
-    setAddedToCalendar(true)
-    setCategoryDialogOpen(false)
+    // The response is load-bearing: reporting success unconditionally hid the
+    // button on a refusal, leaving the participant with no way to retry and no
+    // indication anything went wrong. Mirrors handleRsvp's handling above.
+    try {
+      const response = await fetch(`/api/invite/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: selectedCategory }),
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string
+        } | null
+        setAddError(body?.error ?? 'Could not add this event to your calendar.')
+        return
+      }
+      setAddError('')
+      setAddedToCalendar(true)
+      setCategoryDialogOpen(false)
+    } catch {
+      setAddError('Could not add this event to your calendar.')
+    }
   }
 
   if (loading) {
@@ -129,17 +220,30 @@ export default function InvitePage() {
           <p className="text-muted-foreground">
             {error || 'This invite link is invalid or has expired.'}
           </p>
-          <Button variant="outline" onClick={() => window.close()}>
-            Close
-          </Button>
         </div>
       </div>
     )
   }
 
-  const { event, inviter } = data
-  const startDate = new Date(event.startDate)
-  const endDate = new Date(event.endDate)
+  const { event, inviter, occurrences } = data
+  // `occurrences === null` (not recurring) and `occurrences.length === 0` (a
+  // grant reduced to nothing) are two distinct states. Conflating them rendered
+  // an empty grant as a one-off at the master's date, where every RSVP is a
+  // guaranteed 400.
+  const isRecurring = occurrences !== null
+  const hasNoGrantedDates = isRecurring && occurrences.length === 0
+  const selected = isRecurring
+    ? (occurrences.find((o) => o.recurrenceId === selectedOccurrence) ??
+      occurrences[0] ??
+      null)
+    : null
+
+  // The endpoint always sets event.startDate/endDate from the MASTER row, which
+  // for a series says nothing about which occurrences this link grants. Show the
+  // selected occurrence instead, or a participant granted one date is told to
+  // attend one they cannot see.
+  const startDate = new Date(selected?.startDate ?? event.startDate)
+  const endDate = new Date(selected?.endDate ?? event.endDate)
 
   const formatDateRange = () => {
     if (event.isAllDay) {
@@ -148,8 +252,18 @@ export default function InvitePage() {
     return `${format(startDate, 'yyyy-MM-dd HH:mm')} – ${format(endDate, 'yyyy-MM-dd HH:mm')}`
   }
 
-  const canAddToCalendar =
-    (status === 'accepted' || status === 'maybe') && !addedToCalendar
+  // Adding to the calendar is per-invite, so any accepted occurrence qualifies.
+  const effectiveStatus = isRecurring
+    ? selectedOccurrence
+      ? (occurrenceStatus[selectedOccurrence] ?? 'pending')
+      : 'pending'
+    : status
+  const anyAccepted = isRecurring
+    ? Object.values(occurrenceStatus).some(
+        (s) => s === 'accepted' || s === 'maybe',
+      )
+    : status === 'accepted' || status === 'maybe'
+  const canAddToCalendar = anyAccepted && !addedToCalendar
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
@@ -183,11 +297,60 @@ export default function InvitePage() {
               <h2 className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]">
                 {event.title}
               </h2>
-              <p className="text-muted-foreground">{formatDateRange()}</p>
+              <p className="text-muted-foreground">
+                {hasNoGrantedDates
+                  ? 'This invitation no longer covers any dates.'
+                  : formatDateRange()}
+              </p>
             </div>
           </div>
 
           <CardContent className="px-5 pb-5 space-y-4">
+            {event.recurrenceSummary && (
+              <div className="flex items-start">
+                <Repeat className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{event.recurrenceSummary}</p>
+                </div>
+              </div>
+            )}
+
+            {/*
+              Only the occurrences this link grants. The list comes from the
+              server already filtered; the rule itself is never sent.
+            */}
+            {isRecurring && occurrences.length >= 1 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Which date?</p>
+                <Select
+                  value={selectedOccurrence ?? undefined}
+                  onValueChange={setSelectedOccurrence}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {occurrences.map((occurrence) => (
+                      <SelectItem
+                        key={occurrence.recurrenceId}
+                        value={occurrence.recurrenceId}
+                      >
+                        {event.isAllDay
+                          ? format(new Date(occurrence.startDate), 'yyyy-MM-dd')
+                          : format(
+                              new Date(occurrence.startDate),
+                              'yyyy-MM-dd HH:mm',
+                            )}
+                        {occurrenceStatus[occurrence.recurrenceId] !==
+                          'pending' &&
+                          ` · ${occurrenceStatus[occurrence.recurrenceId]}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {event.location && (
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
@@ -210,42 +373,67 @@ export default function InvitePage() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
-            <p className="w-full text-left text-sm font-medium">
-              Will you attend?
-            </p>
-            <div className="flex w-full gap-3">
-              <Button
-                variant={status === 'accepted' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('accepted')}
-              >
-                Yes
-              </Button>
-              <Button
-                variant={status === 'maybe' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('maybe')}
-              >
-                Maybe
-              </Button>
-              <Button
-                variant={status === 'declined' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => handleRsvp('declined')}
-              >
-                No
-              </Button>
-            </div>
+            {hasNoGrantedDates ? (
+              // Nothing to answer: the organiser has removed every occurrence
+              // this link granted, so every RSVP would be refused. Say so
+              // rather than offer buttons that cannot succeed.
+              <p className="w-full text-left text-sm text-muted-foreground">
+                The organiser has removed you from every date this invitation
+                covered. There is nothing to respond to.
+              </p>
+            ) : (
+              <>
+                <p className="w-full text-left text-sm font-medium">
+                  Will you attend?
+                </p>
+                {/* Reflects the SELECTED occurrence, since each has its own answer. */}
+                <div className="flex w-full gap-3">
+                  <Button
+                    variant={
+                      effectiveStatus === 'accepted' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('accepted')}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    variant={
+                      effectiveStatus === 'maybe' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('maybe')}
+                  >
+                    Maybe
+                  </Button>
+                  <Button
+                    variant={
+                      effectiveStatus === 'declined' ? 'default' : 'outline'
+                    }
+                    className="flex-1"
+                    onClick={() => handleRsvp('declined')}
+                  >
+                    No
+                  </Button>
+                </div>
 
-            {canAddToCalendar && isRegisteredUser && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setCategoryDialogOpen(true)}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Add to My Calendar
-              </Button>
+                {rsvpError && (
+                  <p className="w-full text-left text-sm text-destructive">
+                    {rsvpError}
+                  </p>
+                )}
+
+                {canAddToCalendar && isRegisteredUser && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setCategoryDialogOpen(true)}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Add to My Calendar
+                  </Button>
+                )}
+              </>
             )}
           </CardFooter>
         </Card>
@@ -269,6 +457,12 @@ export default function InvitePage() {
               ))}
             </SelectContent>
           </Select>
+          {/*
+            The refusal is shown here, where the action was taken. The dialog
+            stays open so the participant can retry — closing it and reporting
+            success was how a refused add looked like a successful one.
+          */}
+          {addError && <p className="text-sm text-destructive">{addError}</p>}
           <DialogFooter>
             <Button
               variant="outline"

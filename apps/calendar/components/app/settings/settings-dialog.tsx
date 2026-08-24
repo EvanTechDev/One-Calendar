@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@zntr/ui/dialog'
@@ -391,65 +392,66 @@ function GeneralSettings({
       </SettingsGroup>
 
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t.availableShortcuts}</DialogTitle>
+            <DialogDescription>{t.shortcutsDialogDesc}</DialogDescription>
           </DialogHeader>
-          <div className="divide-y divide-border rounded-lg border bg-card">
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsActions}
-            </h3>
+          {/*
+            One card per group instead of a single divided list: the group
+            headings used to be children of the `divide-y` container, so a
+            divider was drawn through every heading. Headings are also no longer
+            forced `lowercase`, which mangles non-Latin labels.
+          */}
+          <div className="space-y-4">
             {[
-              { keys: 'N', label: t.newEvent },
-              { keys: '/', label: t.searchEvents },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
-            ))}
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsViews}
-            </h3>
-            {[
-              { keys: '1', label: t.day },
-              { keys: '2', label: t.week },
-              { keys: '3', label: t.month },
-              { keys: '4', label: t.year },
-              { keys: '5', label: t.fourDay },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
-            ))}
-            <h3 className="px-3 pt-3 pb-1.5 text-xs font-semibold tracking-wide text-foreground lowercase">
-              {t.shortcutsNavigation}
-            </h3>
-            {[
-              { keys: 'T', label: t.today },
-              { keys: '←', label: t.previousPeriod },
-              { keys: '→', label: t.nextPeriod },
-            ].map((item) => (
-              <div
-                key={item.keys}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <Kbd>{item.keys}</Kbd>
-              </div>
+              {
+                id: 'actions',
+                title: t.shortcutsActions,
+                items: [
+                  { keys: 'N', label: t.newEvent },
+                  { keys: '/', label: t.searchEvents },
+                ],
+              },
+              {
+                id: 'views',
+                title: t.shortcutsViews,
+                items: [
+                  { keys: '1', label: t.day },
+                  { keys: '2', label: t.week },
+                  { keys: '3', label: t.month },
+                  { keys: '4', label: t.year },
+                  { keys: '5', label: t.fourDay },
+                ],
+              },
+              {
+                id: 'navigation',
+                title: t.shortcutsNavigation,
+                items: [
+                  { keys: 'T', label: t.today },
+                  { keys: '←', label: t.previousPeriod },
+                  { keys: '→', label: t.nextPeriod },
+                ],
+              },
+            ].map((group) => (
+              <section key={group.id} className="space-y-1.5">
+                <h3 className="px-1 text-xs font-medium text-muted-foreground">
+                  {group.title}
+                </h3>
+                <div className="divide-y divide-border overflow-hidden rounded-lg border bg-card">
+                  {group.items.map((item) => (
+                    <div
+                      key={item.keys}
+                      className="flex items-center justify-between gap-3 px-3 py-2"
+                    >
+                      <span className="min-w-0 truncate text-sm">
+                        {item.label}
+                      </span>
+                      <Kbd className="shrink-0">{item.keys}</Kbd>
+                    </div>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </DialogContent>
@@ -478,10 +480,13 @@ export default function SettingsDialog({
     }
   }, [open, focusSection, onFocusSectionHandled])
 
+  // Reset AFTER the close animation, not the moment `open` flips: resetting
+  // synchronously re-rendered the dialog on the first tab while it was still
+  // fading out, which showed as a flash to "General" on every close.
   useEffect(() => {
-    if (!open) {
-      setSection('general')
-    }
+    if (open) return
+    const timer = window.setTimeout(() => setSection('general'), 250)
+    return () => window.clearTimeout(timer)
   }, [open])
 
   const sections: Array<{
@@ -526,8 +531,10 @@ export default function SettingsDialog({
       >
         <div className="flex h-[min(86vh,46rem)] flex-col overflow-hidden sm:flex-row">
           <aside className="flex shrink-0 flex-col border-b bg-muted/30 sm:w-56 sm:border-r sm:border-b-0 sm:bg-card/40">
-            <div className="hidden items-center border-b px-4 py-3.5 sm:flex">
-              <span className="font-heading text-sm font-semibold">
+            {/* Same height and type scale as the content header on the right,
+                so the two tops line up instead of stepping. */}
+            <div className="hidden h-14 shrink-0 items-center border-b px-4 sm:flex">
+              <span className="font-heading text-base leading-snug font-semibold">
                 {t.settings}
               </span>
             </div>
@@ -559,16 +566,14 @@ export default function SettingsDialog({
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="flex items-start justify-between gap-4 border-b px-5 pt-4 pb-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground [&_svg]:size-4">
-                    {activeSection?.icon}
-                  </span>
-                  <h2 className="font-heading text-lg leading-snug font-semibold">
-                    {activeSection?.label}
-                  </h2>
-                </div>
+            <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-muted-foreground [&_svg]:size-4">
+                  {activeSection?.icon}
+                </span>
+                <h2 className="font-heading truncate text-base leading-snug font-semibold">
+                  {activeSection?.label}
+                </h2>
               </div>
               <Button
                 variant="ghost"

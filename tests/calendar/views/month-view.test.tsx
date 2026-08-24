@@ -88,7 +88,7 @@ describe('MonthView', () => {
 
   it('renders all days of the month', () => {
     renderMonthView({ date: new Date(2025, 0, 1) })
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
     const day31Elements = screen.getAllByText('31')
     expect(day31Elements.length).toBeGreaterThanOrEqual(1)
   })
@@ -115,7 +115,7 @@ describe('MonthView', () => {
   it('highlights today', () => {
     const today = new Date()
     const { container } = renderMonthView({ date: today })
-    const todayElement = container.querySelector('.text-\\[\\#0066FF\\]')
+    const todayElement = container.querySelector('.bg-cal-today')
     expect(todayElement).toBeTruthy()
   })
 
@@ -207,6 +207,44 @@ describe('MonthView', () => {
     expect(eventEl).toBeTruthy()
   })
 
+  it('renders a multi-day all-day event as a single spanning bar', () => {
+    const events = [
+      createEvent({
+        id: 'span',
+        title: 'Multi Day Trip',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 23, 59),
+      }),
+    ]
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      events,
+    })
+    const bars = container.querySelectorAll('[data-event-id="span"]')
+    expect(bars).toHaveLength(1)
+    expect(screen.getByText('Multi Day Trip')).toBeInTheDocument()
+  })
+
+  it('splits a multi-day all-day event crossing a week boundary into one bar per week row', () => {
+    // Jan 2025, weeks start Sunday: Jan 18 is Saturday, Jan 19 is Sunday.
+    const events = [
+      createEvent({
+        id: 'cross',
+        title: 'Cross Week',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 17, 0, 0),
+        endDate: new Date(2025, 0, 20, 23, 59),
+      }),
+    ]
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      events,
+    })
+    const bars = container.querySelectorAll('[data-event-id="cross"]')
+    expect(bars).toHaveLength(2)
+  })
+
   it('handles different languages', () => {
     renderMonthView({ config: makeConfig({ language: new Language('es') }) })
     expect(screen.getByText('Dom')).toBeInTheDocument()
@@ -215,6 +253,6 @@ describe('MonthView', () => {
 
   it('handles different timezones', () => {
     renderMonthView({ config: makeConfig({ timezone: 'America/New_York' }) })
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
   })
 })

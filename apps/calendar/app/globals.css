@@ -38,6 +38,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-cal-accent: var(--cal-accent);
+  --color-cal-today: var(--cal-today);
+  --color-cal-today-foreground: var(--cal-today-foreground);
+  --color-cal-now: var(--cal-now);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -173,9 +177,22 @@ html {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Calendar accent for the chrome (now line, create selection).
+       Monochrome by request: ink on light, paper on dark — the hierarchy
+       comes from opacity steps, not hue. */
+    --cal-accent: oklch(0.205 0 0);
+    /* Today's date badge: one step deeper than the panel grays so it
+       reads against the white grid. */
+    --cal-today: #e5e5e5;
+    --cal-today-foreground: var(--secondary-foreground);
+    /* The now line: a deep neutral, clearly darker than the grid lines. */
+    --cal-now: #737373;
   }
 
   .dark {
+    --cal-accent: oklch(0.922 0 0);
+    --cal-today: #404040;
+    --cal-now: #a3a3a3;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

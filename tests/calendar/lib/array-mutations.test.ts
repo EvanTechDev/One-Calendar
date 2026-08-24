@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { upsertById, upsertBy, removeById } from '@/lib/array-mutations'
+import {
+  upsertById,
+  upsertBy,
+  removeById,
+  dedupeById,
+} from '@/lib/array-mutations'
 
 describe('upsertById', () => {
   it('replaces an item with a matching id in place', () => {
@@ -72,5 +77,31 @@ describe('removeById', () => {
   it('returns the list unchanged when the id is absent', () => {
     const input = [{ id: 'a' }]
     expect(removeById(input, 'zzz')).toEqual(input)
+  })
+})
+
+describe('dedupeById', () => {
+  it('keeps the first occurrence of each id, in order', () => {
+    const input = [
+      { id: 'a', n: 1 },
+      { id: 'b', n: 2 },
+      { id: 'a', n: 3 },
+      { id: 'c', n: 4 },
+    ]
+    expect(dedupeById(input)).toEqual([
+      { id: 'a', n: 1 },
+      { id: 'b', n: 2 },
+      { id: 'c', n: 4 },
+    ])
+  })
+
+  it('returns an empty list for no input', () => {
+    expect(dedupeById([])).toEqual([])
+  })
+
+  it('does not mutate the input list', () => {
+    const input = [{ id: 'a' }, { id: 'a' }]
+    dedupeById(input)
+    expect(input).toHaveLength(2)
   })
 })

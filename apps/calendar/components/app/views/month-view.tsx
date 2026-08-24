@@ -8,6 +8,7 @@ import {
   isSameMonth,
   isSameDay,
   subDays,
+  addDays,
 } from 'date-fns'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
@@ -16,8 +17,16 @@ import {
   EVENT_BG_TO_ACCENT,
   EVENT_BG_TO_DARK,
   DEFAULT_ACCENT,
-} from '@/components/app/views/event-colors'
+  getEventAccentColor,
+  getEventBackgroundColor,
+} from '@/lib/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
+import {
+  isBannerEvent,
+  shouldShowEventOnDay,
+  layoutAllDaySegments,
+} from '@/components/app/views/event-layout-engine'
+import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
@@ -31,6 +40,13 @@ interface RemainingPopoverState {
 interface MonthViewProps {
   date: Date
   events: CalendarEvent[]
+  /**
+   * Day being created into. The cell is marked [data-create-selection] and
+   * highlighted so the editor popover has something to anchor to — the
+   * month grid has no time axis, so the whole day cell plays the role the
+   * blue range box plays in day/week views (CORE-191).
+   */
+  selection?: { start: Date; end: Date } | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -40,11 +56,21 @@ interface MonthViewProps {
   config: ViewConfig
 }
 
+/** Height of the day-number block at the top of each cell, in px. */
+const DAY_NUMBER_BLOCK_HEIGHT = 36
+/** Height of one all-day bar, in px (matches single-day event blocks). */
+const ALL_DAY_BAR_HEIGHT = 24
+/** Vertical gap between stacked all-day bars, in px. */
+const ALL_DAY_BAR_GAP = 4
+/** Horizontal inset of a bar end that does not continue past the row, px. */
+const ALL_DAY_BAR_INSET = 8
+
 export default function MonthView({
   date,
   events,
   onEventClick,
   config,
+  selection = null,
 }: MonthViewProps) {
   const language = config.language
   const firstDayOfWeek = config.firstDayOfWeek
@@ -67,6 +93,24 @@ export default function MonthView({
 
   const totalDays = [...prevMonthDays, ...monthDays]
 
+  // Pad with next-month days so the grid always ends on a full week row.
+  const trailingCount = (7 - (totalDays.length % 7)) % 7
+  for (let i = 1; i <= trailingCount; i++) {
+    totalDays.push(addDays(monthEnd, i))
+  }
+
+  const weeks: Date[][] = []
+  for (let i = 0; i < totalDays.length; i += 7) {
+    weeks.push(totalDays.slice(i, i + 7))
+  }
+
+  const allDayCandidates = events.filter((event) => isBannerEvent(event))
+
+  // First visible day the draft selection touches — the editor's anchor cell.
+  const selectionAnchorDay = selection
+    ? (totalDays.find((d) => selectionCoversDay(selection, d)) ?? null)
+    : null
+
   const [remainingPopover, setRemainingPopover] =
     useState<RemainingPopoverState | null>(null)
 
@@ -74,9 +118,11 @@ export default function MonthView({
     (
       e: React.MouseEvent<HTMLButtonElement>,
       day: Date,
-      allDayEvents: CalendarEvent[],
+      remainingEvents: CalendarEvent[],
     ) => {
-      const cell = (e.currentTarget as HTMLElement).parentElement?.parentElement
+      const cell = (e.currentTarget as HTMLElement).closest(
+        '[data-day-cell]',
+      ) as HTMLElement | null
       const rect = cell
         ? cell.getBoundingClientRect()
         : e.currentTarget.getBoundingClientRect()
@@ -84,7 +130,7 @@ export default function MonthView({
       setRemainingPopover({
         key,
         anchorRect: rect,
-        remainingEvents: allDayEvents.slice(3),
+        remainingEvents,
       })
     },
     [],
@@ -94,104 +140,219 @@ export default function MonthView({
 
   const remainingPopoverListRef = useRef<HTMLDivElement>(null)
 
+  const orderedDays = [
+    ...t.weekdays.slice(firstDayOfWeek.value),
+    ...t.weekdays.slice(0, firstDayOfWeek.value),
+  ]
+
   return (
     <RemoveScroll
       enabled={!!remainingPopover}
       shards={[remainingPopoverListRef]}
+      className="h-full"
     >
-      <div className="grid grid-cols-7 gap-1 p-4">
-        {(() => {
-          const orderedDays = [
-            ...t.weekdays.slice(firstDayOfWeek.value),
-            ...t.weekdays.slice(0, firstDayOfWeek.value),
-          ]
-          return orderedDays.map((day) => (
+      <div className="flex min-h-full flex-col">
+        <div className="grid grid-cols-7">
+          {orderedDays.map((day) => (
             <div key={day} className="text-center font-medium text-sm py-2">
               {day}
             </div>
-          ))
-        })()}
+          ))}
+        </div>
 
-        {totalDays.map((day) => {
-          const dayEvents = events.filter((event) =>
-            isSameDay(new Date(event.startDate), day),
-          )
-          const visibleEvents = dayEvents.slice(0, 3)
-          const remainingCount = dayEvents.length - visibleEvents.length
+        {weeks.map((week) => {
+          const segments = layoutAllDaySegments(allDayCandidates, week)
+          const laneCount =
+            segments.length > 0
+              ? Math.max(...segments.map((s) => s.lane)) + 1
+              : 0
+          const lanesHeight =
+            laneCount > 0
+              ? laneCount * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP)
+              : 0
 
           return (
             <div
-              key={day.toString()}
-              className="min-h-[100px] p-2 border rounded-xl border"
+              key={week[0].toString()}
+              className="relative grid flex-1 grid-cols-7 border-t"
             >
-              <div
-                className={cn(
-                  'font-medium text-sm',
-                  isSameMonth(day, date) ? '' : 'text-gray-400',
-                  isSameMonth(day, date) && isSameDay(day, today)
-                    ? 'text-[#0066FF] font-bold'
-                    : '',
-                )}
-              >
-                {format(day, 'd')}
-              </div>
-              <div className="space-y-1">
-                {visibleEvents.map((event) => (
+              {week.map((day, dayIndex) => {
+                const timedEvents = events.filter(
+                  (event) =>
+                    !isBannerEvent(event) && shouldShowEventOnDay(event, day),
+                )
+                const visibleEvents = timedEvents.slice(0, 3)
+                const remainingCount = timedEvents.length - visibleEvents.length
+
+                // Highlight every cell the draft range touches; the anchor
+                // attribute goes on the first visible one so the editor still
+                // has something to point at when the range starts in an
+                // earlier month.
+                const isCreateTarget =
+                  selection && selectionCoversDay(selection, day)
+                const isCreateAnchor =
+                  isCreateTarget &&
+                  selectionAnchorDay !== null &&
+                  isSameDay(day, selectionAnchorDay)
+
+                return (
                   <div
-                    key={event.id}
+                    key={day.toString()}
+                    data-day-cell
+                    {...(isCreateAnchor
+                      ? { 'data-create-selection': true }
+                      : {})}
+                    className={cn(
+                      'min-h-[100px] p-2',
+                      dayIndex < 6 && 'border-r',
+                      isCreateTarget &&
+                        'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
+                    )}
+                  >
+                    <div
+                      className="flex items-center"
+                      style={{ height: DAY_NUMBER_BLOCK_HEIGHT - 12 + 'px' }}
+                    >
+                      <span
+                        className={cn(
+                          'font-medium text-sm',
+                          isSameMonth(day, date) ? '' : 'text-gray-400',
+                          isSameMonth(day, date) &&
+                            isSameDay(day, today) &&
+                            'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </span>
+                    </div>
+
+                    {/* Space reserved for the all-day bars overlaying the row */}
+                    {lanesHeight > 0 && (
+                      <div style={{ height: lanesHeight + 'px' }} />
+                    )}
+
+                    <div className="space-y-1">
+                      {visibleEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          data-event-id={event.id}
+                          className={cn(
+                            'relative text-xs truncate rounded-sm p-1 cursor-pointer text-white',
+                            event.color,
+                          )}
+                          onClick={(e) =>
+                            onEventClick(
+                              event,
+                              e.currentTarget as HTMLElement,
+                              e.clientX,
+                              e.clientY,
+                            )
+                          }
+                          style={{
+                            opacity: 1,
+                            backgroundColor: isDark
+                              ? EVENT_BG_TO_DARK[event.color]
+                              : undefined,
+                          }}
+                        >
+                          <div
+                            className={cn(
+                              'absolute left-0 top-0 w-1 h-full rounded-l-sm',
+                            )}
+                            style={{
+                              backgroundColor:
+                                EVENT_BG_TO_ACCENT[event.color] ??
+                                DEFAULT_ACCENT,
+                            }}
+                          />
+                          <div
+                            className="pl-1.5 truncate"
+                            style={{
+                              color:
+                                EVENT_BG_TO_ACCENT[event.color] ??
+                                DEFAULT_ACCENT,
+                            }}
+                          >
+                            {event.title}
+                          </div>
+                        </div>
+                      ))}
+                      {remainingCount > 0 && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) =>
+                            handleRemainingClick(e, day, timedEvents.slice(3))
+                          }
+                        >
+                          {(remainingCount === 1
+                            ? t.moreEvents
+                            : t.moreEventsPlural
+                          ).replace('{count}', remainingCount.toString())}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {segments.map((segment) => {
+                const { event, startIndex, span, lane } = segment
+                const leftInset = segment.continuesLeft ? 0 : ALL_DAY_BAR_INSET
+                const rightInset = segment.continuesRight
+                  ? 0
+                  : ALL_DAY_BAR_INSET
+                return (
+                  <div
+                    key={`allday-${event.id}`}
                     data-event-id={event.id}
                     className={cn(
-                      'relative text-xs truncate rounded-md p-1 cursor-pointer text-white',
+                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs',
                       event.color,
+                      segment.continuesLeft && 'rounded-l-none',
+                      segment.continuesRight && 'rounded-r-none',
                     )}
-                    onClick={(e) =>
+                    style={{
+                      top:
+                        DAY_NUMBER_BLOCK_HEIGHT +
+                        lane * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) +
+                        'px',
+                      left: `calc(${startIndex} / 7 * 100% + ${leftInset}px)`,
+                      width: `calc(${span} / 7 * 100% - ${leftInset + rightInset}px)`,
+                      height: ALL_DAY_BAR_HEIGHT + 'px',
+                      backgroundColor: getEventBackgroundColor(
+                        event.color,
+                        isDark,
+                      ),
+                      zIndex: 10 + lane,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
                       onEventClick(
                         event,
                         e.currentTarget as HTMLElement,
                         e.clientX,
                         e.clientY,
                       )
-                    }
-                    style={{
-                      opacity: 1,
-                      backgroundColor: isDark
-                        ? EVENT_BG_TO_DARK[event.color]
-                        : undefined,
                     }}
                   >
-                    <div
-                      className={cn(
-                        'absolute left-0 top-0 w-1 h-full rounded-l-md',
-                      )}
-                      style={{
-                        backgroundColor:
-                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                      }}
-                    />
+                    {!segment.continuesLeft && (
+                      <div
+                        className="absolute left-0 top-0 w-1 h-full rounded-l-sm"
+                        style={{
+                          backgroundColor: getEventAccentColor(event.color),
+                        }}
+                      />
+                    )}
                     <div
                       className="pl-1.5 truncate"
-                      style={{
-                        color:
-                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                      }}
+                      style={{ color: getEventAccentColor(event.color) }}
                     >
                       {event.title}
                     </div>
                   </div>
-                ))}
-                {remainingCount > 0 && (
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={(e) => handleRemainingClick(e, day, dayEvents)}
-                  >
-                    {(remainingCount === 1
-                      ? t.moreEvents
-                      : t.moreEventsPlural
-                    ).replace('{count}', remainingCount.toString())}
-                  </button>
-                )}
-              </div>
+                )
+              })}
             </div>
           )
         })}
@@ -246,7 +407,7 @@ export default function MonthView({
                   <button
                     key={event.id}
                     type="button"
-                    className="relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs"
+                    className="relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs"
                     style={{
                       backgroundColor: isDark
                         ? EVENT_BG_TO_DARK[event.color]
@@ -257,7 +418,7 @@ export default function MonthView({
                     }}
                   >
                     <div
-                      className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
                       style={{
                         backgroundColor:
                           EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,

@@ -8,9 +8,64 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import crypto from 'crypto'
-import { hashToken, redirectUriAllowed } from '@/lib/mcp/auth'
+import {
+  hashAuthorizationCode,
+  hashToken,
+  parseRequestedScopes,
+  redirectUriAllowed,
+} from '@/lib/mcp/auth'
 
 export const runtime = 'nodejs'
+
+/**
+ * Describes a pending device code so the consent screen can show the user what
+ * they are approving. Requires a signed-in session so it is not an open oracle
+ * for guessing user codes, and returns display data only — never the code.
+ */
+export async function GET(request: NextRequest) {
+  const session = await getServerSession()
+  if (!session?.user) {
+    return NextResponse.json(
+      { error: 'access_denied', error_description: 'Authentication required' },
+      { status: 401 },
+    )
+  }
+
+  const userCode = request.nextUrl.searchParams.get('user_code')
+  if (!userCode) {
+    return NextResponse.json(
+      { error: 'invalid_request', error_description: 'Missing user_code' },
+      { status: 400 },
+    )
+  }
+
+  const db = await getDb()
+  const [record] = await db
+    .select({
+      clientName: mcpDeviceCodes.clientName,
+      scopes: mcpDeviceCodes.scopes,
+    })
+    .from(mcpDeviceCodes)
+    .where(
+      and(
+        eq(mcpDeviceCodes.userCode, hashToken(userCode)),
+        eq(mcpDeviceCodes.status, 'pending'),
+        gte(mcpDeviceCodes.expiresAt, new Date()),
+      ),
+    )
+
+  if (!record) {
+    return NextResponse.json(
+      { error: 'invalid_grant', error_description: 'Invalid or expired code' },
+      { status: 400 },
+    )
+  }
+
+  return NextResponse.json({
+    client_name: record.clientName,
+    scopes: record.scopes as string[],
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +80,10 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession()
     if (!session?.user) {
       return NextResponse.json(
-        { error: 'access_denied', error_description: 'Authentication required' },
+        {
+          error: 'access_denied',
+          error_description: 'Authentication required',
+        },
         { status: 401 },
       )
     }
@@ -133,12 +191,13 @@ export async function POST(request: NextRequest) {
         userId,
         clientId,
         redirectUri,
-        scopes: scope.split(' ').filter(Boolean),
+        scopes: parseRequestedScopes(scope),
         codeChallenge,
         codeChallengeMethod,
         state: state ?? null,
         resource: resource ?? null,
-        authorizationCode,
+        // Stored hashed; only the client receives the plaintext below.
+        authorizationCode: hashAuthorizationCode(authorizationCode),
         codeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
         status: 'approved',
       })

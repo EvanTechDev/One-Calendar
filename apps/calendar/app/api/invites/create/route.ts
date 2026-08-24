@@ -1,11 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { getDb } from '@/lib/drizzle/client'
-import { calendarEvents } from '@/lib/drizzle/schema'
-import { eq, and } from 'drizzle-orm'
-import { createInvitesForEvent } from '@/lib/invites/invite-service'
+import {
+  applyScopedParticipantChange,
+  resolveParticipantTarget,
+  ParticipantScopeError,
+} from '@/lib/invites/scoped-invites'
+import type { ApplyTo } from '@/lib/event-service'
 
 export const runtime = 'nodejs'
+
+const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']
 
 export const POST = async function POST(request: NextRequest) {
   const currentUser = await getAuthedUser()
@@ -14,13 +18,24 @@ export const POST = async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { eventId, emails } = body as { eventId: string; emails: string[] }
+  const { eventId, emails, scope, timezone } = body as {
+    eventId: string
+    emails: string[]
+    scope?: string
+    timezone?: string
+  }
 
   if (!eventId || !emails || !Array.isArray(emails) || emails.length === 0) {
     return NextResponse.json(
       { error: 'Missing eventId or emails' },
       { status: 400 },
     )
+  }
+
+  const participantScope: ApplyTo =
+    scope === undefined || scope === null ? 'all' : (scope as ApplyTo)
+  if (!PARTICIPANT_SCOPES.includes(participantScope)) {
+    return NextResponse.json({ error: 'Invalid scope' }, { status: 400 })
   }
 
   if (emails.length > 20) {
@@ -48,24 +63,28 @@ export const POST = async function POST(request: NextRequest) {
     }
   }
 
-  const [event] = await getDb()
-    .select({ id: calendarEvents.id })
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.id, eventId),
-        eq(calendarEvents.userId, currentUser.id),
-      ),
-    )
-
-  if (!event) {
+  const target = await resolveParticipantTarget(
+    eventId,
+    currentUser.id,
+    timezone,
+  )
+  if (!target) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  await createInvitesForEvent(
-    eventId,
-    uniqueEmails.map((email) => ({ email })),
-  )
+  try {
+    await applyScopedParticipantChange({
+      target,
+      emails: uniqueEmails,
+      scope: participantScope,
+      action: 'add',
+    })
+  } catch (error) {
+    if (error instanceof ParticipantScopeError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
+  }
 
   return NextResponse.json({ success: true })
 }

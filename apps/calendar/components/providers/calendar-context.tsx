@@ -21,10 +21,22 @@ export interface CalendarEvent {
   startDate: Date
   endDate: Date
   isAllDay: boolean
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  /** True when this occurrence has its own stored single-instance edit. */
+  isOverride?: boolean
+  isFirstInstance?: boolean
   location?: string
   participants: string[]
-  notification: number
+  /**
+   * Minutes before the start to remind, or null for no reminder.
+   * Zero is a real value — "at the event's start" — not an absent one.
+   */
+  notification: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
   description?: string
   color: string
   calendarId: string
@@ -53,10 +65,16 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     startDate: new Date(e.startDate),
     endDate: new Date(e.endDate),
     isAllDay: e.isAllDay,
-    recurrence: 'none',
+    rrule: e.rrule ?? null,
+    exdate: e.exdate ?? null,
+    seriesId: e.seriesId ?? null,
+    recurrenceId: e.recurrenceId ?? null,
+    isOverride: e.isOverride === true,
+    isFirstInstance: e.isFirstInstance === true,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
-    notification: e.notificationMinutes ?? 0,
+    notification: e.notificationMinutes ?? null,
+    emailReminder: e.emailReminder === true,
     description: e.description ?? undefined,
     color: e.color ?? '#3B82F6',
     calendarId: e.categoryId ?? '',
@@ -167,13 +185,21 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
   const setCalendars = useCalendarStore((state) => state.setCalendars)
   const setEvents = useCalendarStore((state) => state.setEvents)
   const hydratedRef = useRef(false)
+  const lastEventsRef = useRef<EventData[] | null>(null)
 
   useEffect(() => {
-    if (hydratedRef.current) return
     if (!eventsLoaded || !categoriesLoaded) return
-    hydratedRef.current = true
-    setCalendars(serverCategories.map(categoryDataToCalendarCategory))
-    setEvents(serverEvents.map(eventDataToCalendarEvent))
+    if (!hydratedRef.current) {
+      hydratedRef.current = true
+      lastEventsRef.current = serverEvents
+      setCalendars(serverCategories.map(categoryDataToCalendarCategory))
+      setEvents(serverEvents.map(eventDataToCalendarEvent))
+      return
+    }
+    if (lastEventsRef.current !== serverEvents) {
+      lastEventsRef.current = serverEvents
+      setEvents(serverEvents.map(eventDataToCalendarEvent))
+    }
   }, [
     serverEvents,
     serverCategories,

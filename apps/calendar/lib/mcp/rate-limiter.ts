@@ -38,6 +38,10 @@ export async function checkRateLimit(userId: string): Promise<{
         and(
           eq(mcpAuditLogs.userId, userId),
           gte(mcpAuditLogs.createdAt, windowStart),
+          // Count REQUESTS only. Since audit logging became per-tool-call, a
+          // single batched request writes N extra rows; counting those would
+          // charge one request N times against the RPM budget.
+          eq(mcpAuditLogs.entryType, 'request'),
         ),
       )
 

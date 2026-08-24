@@ -13,12 +13,20 @@ import type { CalendarEvent } from '../calendar'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
+import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
 
 interface YearViewProps {
   date: Date
   events: CalendarEvent[]
+  /**
+   * Day being created into. The day button is marked
+   * [data-create-selection] and highlighted so the editor popover anchors
+   * to it (CORE-191) — the year grid's day dot plays the role of the blue
+   * range box.
+   */
+  selection?: { start: Date; end: Date } | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -70,6 +78,7 @@ export default function YearView({
   events,
   onEventClick,
   config,
+  selection = null,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
@@ -184,17 +193,35 @@ export default function YearView({
                   )
                   const dayEvents = eventsByDayKey.get(dayKey)
 
+                  const isCreateTarget =
+                    selection &&
+                    isCurrentMonth &&
+                    selectionCoversDay(selection, day)
+                  // Anchor on the range's start day, or on Jan 1 when the
+                  // range began in an earlier year.
+                  const isCreateAnchor =
+                    isCreateTarget &&
+                    (isSameDay(selection.start, day) ||
+                      (selection.start < new Date(currentYear, 0, 1) &&
+                        day.getMonth() === 0 &&
+                        day.getDate() === 1))
+
                   return (
                     <button
                       key={`${month.label}-${dayKey}`}
                       type="button"
+                      {...(isCreateAnchor
+                        ? { 'data-create-selection': true }
+                        : {})}
                       className={cn(
                         'mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors hover:bg-accent',
                         !isCurrentMonth && 'text-muted-foreground',
                         dayEvents && dayEvents.length > 0 && 'font-semibold',
                         isToday &&
                           isCurrentMonth &&
-                          'bg-[#0052CC] text-white hover:bg-[#0047B3]',
+                          'bg-cal-today text-cal-today-foreground hover:bg-cal-today/90',
+                        isCreateTarget &&
+                          'ring-2 ring-cal-accent/60 bg-cal-accent/10',
                       )}
                       onClick={(e) => handleDayClick(e, day, dayKey)}
                     >
@@ -268,7 +295,7 @@ export default function YearView({
                       key={event.id}
                       type="button"
                       className={cn(
-                        'relative w-full cursor-pointer truncate rounded-md p-1.5 pl-3 text-left text-xs',
+                        'relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs',
                         event.color,
                       )}
                       onClick={(e) => {
@@ -286,7 +313,7 @@ export default function YearView({
                       }}
                     >
                       <div
-                        className="absolute left-0 top-0 h-full w-1 rounded-l-md"
+                        className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
                         style={{ backgroundColor: getAccent(event.color) }}
                       />
                       <div
