@@ -26,7 +26,7 @@ import {
 } from '@/lib/event-colors'
 import {
   EventLayoutEngine as EventLayoutEngineClass,
-  isAllDayEvent,
+  isBannerEvent,
   layoutAllDaySegments,
 } from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
@@ -414,7 +414,7 @@ export default function WeekView({
   const ALL_DAY_BAR_INSET = 2
 
   const allDaySegments = layoutAllDaySegments(
-    events.filter((event) => isAllDayEvent(event)),
+    events.filter((event) => isBannerEvent(event)),
     weekDays,
   )
   const allDayLaneCount =

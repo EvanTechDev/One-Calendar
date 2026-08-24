@@ -134,20 +134,9 @@ export class EventLayoutEngine {
 
   separateEvents(
     dayEvents: CalendarEvent[],
-    _day: Date,
+    day: Date,
   ): { allDayEvents: CalendarEvent[]; regularEvents: CalendarEvent[] } {
-    const allDayEvents: CalendarEvent[] = []
-    const regularEvents: CalendarEvent[] = []
-
-    dayEvents.forEach((event) => {
-      if (this.isAllDayEvent(event)) {
-        allDayEvents.push(event)
-      } else {
-        regularEvents.push(event)
-      }
-    })
-
-    return { allDayEvents, regularEvents }
+    return separateEvents(dayEvents, day)
   }
 
   layoutEventsForDay(dayEvents: CalendarEvent[], day: Date): LayoutEvent[] {
@@ -306,16 +295,52 @@ export function isMultiDayEvent(start: Date, end: Date): boolean {
 }
 
 /**
- * Last calendar day an event visually occupies. All-day events whose end
- * lands exactly on midnight are treated as exclusive-end (they occupy up to
- * the previous day).
+ * True when the event fully covers at least one calendar day (midnight to
+ * midnight). An end at 23:59 counts as reaching the next midnight.
+ */
+export function coversFullCalendarDay(event: CalendarEvent): boolean {
+  const start = new Date(event.startDate)
+  const end = new Date(event.endDate)
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
+
+  // First midnight at or after the start.
+  const firstFullDayStart =
+    start.getTime() === startOfDay(start).getTime()
+      ? startOfDay(start)
+      : startOfDay(addDays(start, 1))
+
+  const effectiveEndMs =
+    end.getHours() === 23 && end.getMinutes() === 59
+      ? end.getTime() + 60 * 1000
+      : end.getTime()
+
+  return effectiveEndMs >= addDays(firstFullDayStart, 1).getTime()
+}
+
+/**
+ * True when the event belongs in the all-day ("banner") area: explicit
+ * all-day events, and multi-day timed events that fully cover at least one
+ * calendar day (e.g. 1st 00:00 – 5th 16:00). Short overnight events
+ * (Mon 22:00 – Tue 03:00) stay in the time grid.
+ */
+export function isBannerEvent(event: CalendarEvent): boolean {
+  if (isAllDayEvent(event)) return true
+
+  const start = new Date(event.startDate)
+  const end = new Date(event.endDate)
+  return isMultiDayEvent(start, end) && coversFullCalendarDay(event)
+}
+
+/**
+ * Last calendar day an event visually occupies. An end landing exactly on
+ * midnight is treated as exclusive-end (the event occupies up to the
+ * previous day) — a bar for 1st 00:00 – 5th 00:00 must not cover the 5th.
  */
 export function getEventLastDay(event: CalendarEvent): Date {
   const start = new Date(event.startDate)
   const end = new Date(event.endDate)
 
   if (
-    isAllDayEvent(event) &&
     end.getHours() === 0 &&
     end.getMinutes() === 0 &&
     !isSameDay(start, end)
@@ -333,7 +358,9 @@ export function shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
   if (isSameDay(start, day)) return true
 
   if (isMultiDayEvent(start, end)) {
-    if (isAllDayEvent(event)) {
+    // Banner events (all-day, or timed spanning full days) occupy whole
+    // calendar days; an end exactly at midnight excludes that day.
+    if (isBannerEvent(event)) {
       const rangeStart = startOfDay(start)
       const rangeEnd = getEventLastDay(event)
       if (rangeEnd.getTime() < rangeStart.getTime()) return false
@@ -474,7 +501,9 @@ export function separateEvents(
   const regularEvents: CalendarEvent[] = []
 
   dayEvents.forEach((event) => {
-    if (isAllDayEvent(event)) {
+    // Banner events (explicit all-day, or timed multi-day covering at least
+    // one full calendar day) live in the all-day area, not the time grid.
+    if (isBannerEvent(event)) {
       allDayEvents.push(event)
     } else {
       regularEvents.push(event)

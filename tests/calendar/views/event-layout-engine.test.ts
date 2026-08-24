@@ -6,6 +6,8 @@ import {
   shouldShowEventOnDay,
   isAllDayEvent,
   isMultiDayEvent,
+  isBannerEvent,
+  coversFullCalendarDay,
   layoutAllDaySegments,
   snapToQuarterHour,
   formatTimeForDisplay,
@@ -106,6 +108,71 @@ describe('EventLayoutEngine', () => {
     it('handles null/undefined gracefully', () => {
       expect(isMultiDayEvent(null as any, new Date())).toBe(false)
       expect(isMultiDayEvent(new Date(), null as any)).toBe(false)
+    })
+  })
+
+  describe('coversFullCalendarDay', () => {
+    it('true for a timed event spanning full days (1st 00:00 - 5th 16:00)', () => {
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 0, 0),
+        endDate: new Date(2025, 0, 5, 16, 0),
+      })
+      expect(coversFullCalendarDay(event)).toBe(true)
+    })
+
+    it('true when starting mid-day but covering a later full day', () => {
+      // 1st 15:00 - 3rd 10:00 fully covers the 2nd.
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 15, 0),
+        endDate: new Date(2025, 0, 3, 10, 0),
+      })
+      expect(coversFullCalendarDay(event)).toBe(true)
+    })
+
+    it('false for a short overnight event (22:00 - 03:00)', () => {
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 22, 0),
+        endDate: new Date(2025, 0, 2, 3, 0),
+      })
+      expect(coversFullCalendarDay(event)).toBe(false)
+    })
+
+    it('false for a same-day timed event', () => {
+      expect(coversFullCalendarDay(createEvent())).toBe(false)
+    })
+
+    it('treats an end at 23:59 as reaching midnight', () => {
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 0, 0),
+        endDate: new Date(2025, 0, 1, 23, 59),
+      })
+      expect(coversFullCalendarDay(event)).toBe(true)
+    })
+  })
+
+  describe('isBannerEvent', () => {
+    it('true for explicit all-day events', () => {
+      expect(isBannerEvent(createEvent({ isAllDay: true }))).toBe(true)
+    })
+
+    it('true for a multi-day timed event covering full days', () => {
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 0, 0),
+        endDate: new Date(2025, 0, 5, 16, 0),
+      })
+      expect(isBannerEvent(event)).toBe(true)
+    })
+
+    it('false for a short overnight event', () => {
+      const event = createEvent({
+        startDate: new Date(2025, 0, 1, 22, 0),
+        endDate: new Date(2025, 0, 2, 3, 0),
+      })
+      expect(isBannerEvent(event)).toBe(false)
+    })
+
+    it('false for a regular timed event', () => {
+      expect(isBannerEvent(createEvent())).toBe(false)
     })
   })
 
@@ -228,6 +295,27 @@ describe('EventLayoutEngine', () => {
       const { allDayEvents, regularEvents } = separateEvents([], new Date())
       expect(allDayEvents).toHaveLength(0)
       expect(regularEvents).toHaveLength(0)
+    })
+
+    it('routes multi-day timed events covering full days to the all-day side', () => {
+      const events = [
+        createEvent({
+          id: 'span',
+          startDate: new Date(2025, 0, 1, 0, 0),
+          endDate: new Date(2025, 0, 5, 16, 0),
+        }),
+        createEvent({
+          id: 'overnight',
+          startDate: new Date(2025, 0, 1, 22, 0),
+          endDate: new Date(2025, 0, 2, 3, 0),
+        }),
+      ]
+      const { allDayEvents, regularEvents } = separateEvents(
+        events,
+        new Date(2025, 0, 2),
+      )
+      expect(allDayEvents.map((e) => e.id)).toEqual(['span'])
+      expect(regularEvents.map((e) => e.id)).toEqual(['overnight'])
     })
   })
 
@@ -525,6 +613,17 @@ describe('EventLayoutEngine', () => {
         isAllDay: true,
         startDate: new Date(2025, 0, 14, 0, 0),
         endDate: new Date(2025, 0, 17, 0, 0), // occupies 14th..16th
+      })
+      const segments = layoutAllDaySegments([event], rowDays)
+      expect(segments[0]).toMatchObject({ startIndex: 1, span: 3 })
+    })
+
+    it('spans a multi-day timed event through its partial last day', () => {
+      // 14th 00:00 - 16th 16:00: the 16th is partial but still covered.
+      const event = createEvent({
+        id: 'timed-span',
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 16, 0),
       })
       const segments = layoutAllDaySegments([event], rowDays)
       expect(segments[0]).toMatchObject({ startIndex: 1, span: 3 })

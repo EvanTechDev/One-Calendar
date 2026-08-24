@@ -22,7 +22,7 @@ import {
 } from '@/lib/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
-  isAllDayEvent,
+  isBannerEvent,
   shouldShowEventOnDay,
   layoutAllDaySegments,
 } from '@/components/app/views/event-layout-engine'
@@ -104,7 +104,7 @@ export default function MonthView({
     weeks.push(totalDays.slice(i, i + 7))
   }
 
-  const allDayCandidates = events.filter((event) => isAllDayEvent(event))
+  const allDayCandidates = events.filter((event) => isBannerEvent(event))
 
   // First visible day the draft selection touches — the editor's anchor cell.
   const selectionAnchorDay = selection
@@ -179,7 +179,7 @@ export default function MonthView({
               {week.map((day, dayIndex) => {
                 const timedEvents = events.filter(
                   (event) =>
-                    !isAllDayEvent(event) && shouldShowEventOnDay(event, day),
+                    !isBannerEvent(event) && shouldShowEventOnDay(event, day),
                 )
                 const visibleEvents = timedEvents.slice(0, 3)
                 const remainingCount = timedEvents.length - visibleEvents.length
