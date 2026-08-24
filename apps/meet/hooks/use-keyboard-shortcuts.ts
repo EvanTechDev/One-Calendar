@@ -15,14 +15,18 @@ export function useKeyboardShortcuts() {
     const onKeyDown = (event: KeyboardEvent) => {
       const modifier = event.ctrlKey || event.metaKey
       if (!modifier || !event.shiftKey) return
+      // Holding the shortcut would otherwise fire racing toggle calls.
+      if (event.repeat) return
       if (event.code === 'KeyA') {
         event.preventDefault()
-        localParticipant.setMicrophoneEnabled(
-          !localParticipant.isMicrophoneEnabled,
-        )
+        localParticipant
+          .setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled)
+          .catch(() => {})
       } else if (event.code === 'KeyV') {
         event.preventDefault()
-        localParticipant.setCameraEnabled(!localParticipant.isCameraEnabled)
+        localParticipant
+          .setCameraEnabled(!localParticipant.isCameraEnabled)
+          .catch(() => {})
       }
     }
     window.addEventListener('keydown', onKeyDown)

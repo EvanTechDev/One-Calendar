@@ -40,6 +40,7 @@ export function PreJoinScreen({
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
   const [joining, setJoining] = useState(false)
   const [isE2ee, setIsE2ee] = useState(false)
+  const [deviceNotice, setDeviceNotice] = useState<string>()
 
   // Restore saved choices once on mount.
   useEffect(() => {
@@ -51,6 +52,28 @@ export function PreJoinScreen({
     setAudioDeviceId(saved.audioDeviceId)
     setIsE2ee(window.location.hash.length > 1)
   }, [defaultUsername])
+
+  // Device lists are refreshed independently of the camera preview, so an
+  // audio-only joiner can still pick a microphone.
+  useEffect(() => {
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        if (cancelled) return
+        setVideoDevices(devices.filter((d) => d.kind === 'videoinput'))
+        setAudioDevices(devices.filter((d) => d.kind === 'audioinput'))
+      } catch {
+        // Enumeration is best-effort; the join flow does not depend on it.
+      }
+    }
+    refresh()
+    navigator.mediaDevices.addEventListener('devicechange', refresh)
+    return () => {
+      cancelled = true
+      navigator.mediaDevices.removeEventListener('devicechange', refresh)
+    }
+  }, [])
 
   // Camera preview lifecycle.
   useEffect(() => {
@@ -76,18 +99,30 @@ export function PreJoinScreen({
         }
         stopStream()
         streamRef.current = stream
+        setDeviceNotice(undefined)
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
-        // Populate device lists once we have permission.
+        // Labels only arrive once permission is granted.
         navigator.mediaDevices.enumerateDevices().then((devices) => {
           if (cancelled) return
           setVideoDevices(devices.filter((d) => d.kind === 'videoinput'))
           setAudioDevices(devices.filter((d) => d.kind === 'audioinput'))
         })
       })
-      .catch(() => {
-        if (!cancelled) setVideoEnabled(false)
+      .catch((error: unknown) => {
+        if (cancelled) return
+        // A silent toggle flip is indistinguishable from a user choice, so
+        // say what actually happened.
+        const name = error instanceof Error ? error.name : ''
+        setDeviceNotice(
+          name === 'NotAllowedError'
+            ? 'Camera permission denied. Allow it in your browser settings to show video.'
+            : name === 'NotFoundError'
+              ? 'No camera found on this device.'
+              : 'Your camera could not be started.',
+        )
+        setVideoEnabled(false)
       })
 
     return () => {
@@ -162,6 +197,9 @@ export function PreJoinScreen({
               </Button>
             </div>
           </div>
+          {deviceNotice ? (
+            <p className="text-sm text-muted-foreground">{deviceNotice}</p>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-2">
             <DeviceSelect
               devices={videoDevices}
@@ -197,7 +235,9 @@ export function PreJoinScreen({
             placeholder="Your name"
             aria-label="Your name"
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && username.trim()) handleJoin()
+              if (event.key === 'Enter' && username.trim() && !joining) {
+                handleJoin()
+              }
             }}
           />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

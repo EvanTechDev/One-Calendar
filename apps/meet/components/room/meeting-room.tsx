@@ -7,6 +7,7 @@ import {
   StartAudio,
   useTracks,
 } from '@livekit/components-react'
+import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
 import { cn } from '@zntr/utils'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { ParticipantTile } from '@/components/room/participant-tile'
@@ -16,10 +17,18 @@ import { RecordingBanner } from '@/components/room/recording-banner'
 
 interface MeetingRoomProps {
   roomName: string
+  /** Called when the user deliberately leaves, so a drop screen is skipped. */
+  onLeaveIntent: () => void
 }
 
-export function MeetingRoom({ roomName }: MeetingRoomProps) {
+/** Stable per-track key, also used as the focus identifier. */
+function trackKey(track: TrackReferenceOrPlaceholder): string {
+  return `${track.participant.identity}/${track.source}`
+}
+
+export function MeetingRoom({ roomName, onLeaveIntent }: MeetingRoomProps) {
   const [chatOpen, setChatOpen] = useState(false)
+  const [pinnedKey, setPinnedKey] = useState<string | null>(null)
   useKeyboardShortcuts()
 
   const tracks = useTracks(
@@ -30,48 +39,75 @@ export function MeetingRoom({ roomName }: MeetingRoomProps) {
     { onlySubscribed: false },
   )
 
-  const screenShareTrack = useMemo(
+  const screenShares = useMemo(
     () =>
-      tracks.find(
+      tracks.filter(
         (track) => track.publication?.source === Track.Source.ScreenShare,
       ),
     [tracks],
   )
-  const cameraTracks = useMemo(
-    () =>
-      tracks.filter(
-        (track) => track.publication?.source !== Track.Source.ScreenShare,
-      ),
-    [tracks],
+
+  /**
+   * Focus resolution: an explicit pin wins, then the newest screen share,
+   * then nothing (grid). A pin on a track that has since gone away falls
+   * back rather than showing an empty stage.
+   */
+  const focused = useMemo(() => {
+    if (pinnedKey) {
+      const pinned = tracks.find((track) => trackKey(track) === pinnedKey)
+      if (pinned) return pinned
+    }
+    return screenShares.at(-1)
+  }, [pinnedKey, tracks, screenShares])
+
+  const others = useMemo(
+    () => tracks.filter((track) => track !== focused),
+    [tracks, focused],
   )
+
+  const togglePin = (track: TrackReferenceOrPlaceholder) => {
+    const key = trackKey(track)
+    setPinnedKey((current) => (current === key ? null : key))
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-background">
       <RecordingBanner />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col p-3">
-          {screenShareTrack ? (
+          {focused ? (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               <div className="min-h-0 flex-1">
-                <ParticipantTile trackRef={screenShareTrack} isFocus />
+                <ParticipantTile
+                  trackRef={focused}
+                  isFocus
+                  isPinned={pinnedKey === trackKey(focused)}
+                  onTogglePin={() => togglePin(focused)}
+                />
               </div>
-              <div className="flex h-28 gap-2 overflow-x-auto">
-                {cameraTracks.map((track) => (
-                  <div
-                    key={track.participant.identity + track.source}
-                    className="aspect-video h-full shrink-0"
-                  >
-                    <ParticipantTile trackRef={track} />
-                  </div>
-                ))}
-              </div>
+              {others.length > 0 ? (
+                <div className="flex h-28 gap-2 overflow-x-auto">
+                  {others.map((track) => (
+                    <div
+                      key={trackKey(track)}
+                      className="aspect-video h-full shrink-0"
+                    >
+                      <ParticipantTile
+                        trackRef={track}
+                        onTogglePin={() => togglePin(track)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : (
-            <VideoGrid count={cameraTracks.length}>
-              {cameraTracks.map((track) => (
+            <VideoGrid count={others.length}>
+              {others.map((track) => (
                 <ParticipantTile
-                  key={track.participant.identity + track.source}
+                  key={trackKey(track)}
                   trackRef={track}
+                  onTogglePin={() => togglePin(track)}
                 />
               ))}
             </VideoGrid>
@@ -83,6 +119,7 @@ export function MeetingRoom({ roomName }: MeetingRoomProps) {
         roomName={roomName}
         chatOpen={chatOpen}
         onToggleChat={() => setChatOpen((open) => !open)}
+        onLeaveIntent={onLeaveIntent}
       />
       <RoomAudioRenderer />
       <StartAudio

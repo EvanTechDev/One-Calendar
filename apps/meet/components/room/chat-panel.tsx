@@ -5,6 +5,7 @@ import { useChat } from '@livekit/components-react'
 import { Send, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
+import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 
 const URL_PATTERN = /https?:\/\/[^\s<>"')]+/g
@@ -45,8 +46,14 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
   const sendMessage = async () => {
     const message = draft.trim()
     if (!message) return
-    setDraft('')
-    await send(message)
+    try {
+      await send(message)
+      // Cleared only once the message is actually out, so a failed send
+      // never silently swallows what the user typed.
+      setDraft('')
+    } catch {
+      toast.error('Message failed to send')
+    }
   }
 
   return (

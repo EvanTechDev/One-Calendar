@@ -25,12 +25,14 @@ interface ControlBarProps {
   roomName: string
   chatOpen: boolean
   onToggleChat: () => void
+  onLeaveIntent: () => void
 }
 
 export function ControlBar({
   roomName,
   chatOpen,
   onToggleChat,
+  onLeaveIntent,
 }: ControlBarProps) {
   const room = useRoomContext()
   const {
@@ -56,6 +58,7 @@ export function ControlBar({
 
   const endForAll = async () => {
     setEnding(true)
+    onLeaveIntent()
     try {
       const response = await fetch(`/api/meetings/${roomName}/end`, {
         method: 'POST',
@@ -159,7 +162,10 @@ export function ControlBar({
             size="icon"
             variant="destructive"
             className="rounded-full"
-            onClick={() => room.disconnect()}
+            onClick={() => {
+              onLeaveIntent()
+              room.disconnect()
+            }}
             aria-label="Leave meeting"
           >
             <PhoneOff className="size-4" />

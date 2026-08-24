@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
+import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { isLowPowerDevice } from '@/lib/meet-utils'
 
@@ -34,6 +35,13 @@ const BACKGROUND_IMAGES: Record<'office' | 'mountains', string> = {
   office: '/backgrounds/office.jpg',
   mountains: '/backgrounds/mountains.jpg',
 }
+
+/**
+ * Which background is applied per camera track. LiveKit's processor only
+ * reports its kind ("virtual-background"), not which image, so the dialog
+ * would otherwise lose the selection every time it reopens.
+ */
+const appliedBackgrounds = new Map<string, BackgroundEffect>()
 
 export function SettingsDialog({
   open,
@@ -122,11 +130,22 @@ function BackgroundEffects() {
     return undefined
   }, [cameraTrack])
 
-  // Reflect the currently applied processor when the dialog reopens.
+  // Reflect the currently applied processor when the dialog reopens. The
+  // processor name cannot tell two virtual backgrounds apart, so the applied
+  // choice is remembered per track id — otherwise reopening the dialog would
+  // claim no background is active while one clearly is.
   useEffect(() => {
-    const name = localVideoTrack?.getProcessor()?.name
-    if (name === 'background-blur') setEffect('blur')
-    else if (name !== 'virtual-background') setEffect('none')
+    if (!localVideoTrack) return
+    const name = localVideoTrack.getProcessor()?.name
+    if (name === 'background-blur') {
+      setEffect('blur')
+      return
+    }
+    if (name === 'virtual-background') {
+      setEffect(appliedBackgrounds.get(localVideoTrack.sid ?? '') ?? 'office')
+      return
+    }
+    setEffect('none')
   }, [localVideoTrack])
 
   const applyEffect = async (next: BackgroundEffect) => {
@@ -142,7 +161,12 @@ function BackgroundEffects() {
           VirtualBackground(BACKGROUND_IMAGES[next]),
         )
       }
+      if (localVideoTrack.sid) {
+        appliedBackgrounds.set(localVideoTrack.sid, next)
+      }
       setEffect(next)
+    } catch {
+      toast.error('That background effect is not supported on this device')
     } finally {
       setApplying(false)
     }
