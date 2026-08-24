@@ -1,6 +1,6 @@
 'use client'
 
-import { isWithinInterval, isSameDay } from 'date-fns'
+import { isWithinInterval, isSameDay, startOfDay, addDays } from 'date-fns'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
   Language,
@@ -16,6 +16,25 @@ export interface LayoutEvent {
   column: number
   totalColumns: number
   isMultiDay: boolean
+}
+
+/**
+ * A horizontal bar for an event spanning one or more day columns inside a
+ * single row of days (a month-view week row, or the week-view all-day
+ * header). Events that overlap in time are stacked into `lane`s.
+ */
+export interface AllDaySegment {
+  event: CalendarEvent
+  /** Index of the first day column the bar covers (within the given row). */
+  startIndex: number
+  /** Number of day columns the bar covers. */
+  span: number
+  /** Vertical stacking lane (0 = topmost). */
+  lane: number
+  /** True when the event started before this row of days. */
+  continuesLeft: boolean
+  /** True when the event ends after this row of days. */
+  continuesRight: boolean
 }
 
 export class EventLayoutEngine {
@@ -77,20 +96,14 @@ export class EventLayoutEngine {
   }
 
   shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
+    return shouldShowEventOnDay(event, day)
+  }
 
-    if (this.isAllDayEvent(event) && this.isMultiDayEvent(start, end)) {
-      return isSameDay(start, day)
-    }
-
-    if (isSameDay(start, day)) return true
-
-    if (this.isMultiDayEvent(start, end) && !this.isAllDayEvent(event)) {
-      return isWithinInterval(day, { start, end })
-    }
-
-    return false
+  layoutAllDaySegments(
+    events: CalendarEvent[],
+    rowDays: Date[],
+  ): AllDaySegment[] {
+    return layoutAllDaySegments(events, rowDays)
   }
 
   getEventTimesForDay(event: CalendarEvent, day: Date): EventTimeRange | null {
@@ -292,21 +305,136 @@ export function isMultiDayEvent(start: Date, end: Date): boolean {
   )
 }
 
+/**
+ * Last calendar day an event visually occupies. All-day events whose end
+ * lands exactly on midnight are treated as exclusive-end (they occupy up to
+ * the previous day).
+ */
+export function getEventLastDay(event: CalendarEvent): Date {
+  const start = new Date(event.startDate)
+  const end = new Date(event.endDate)
+
+  if (
+    isAllDayEvent(event) &&
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    !isSameDay(start, end)
+  ) {
+    return startOfDay(addDays(end, -1))
+  }
+
+  return startOfDay(end)
+}
+
 export function shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
   const start = new Date(event.startDate)
   const end = new Date(event.endDate)
 
-  if (isAllDayEvent(event) && isMultiDayEvent(start, end)) {
-    return isSameDay(start, day)
-  }
-
   if (isSameDay(start, day)) return true
 
-  if (isMultiDayEvent(start, end) && !isAllDayEvent(event)) {
+  if (isMultiDayEvent(start, end)) {
+    if (isAllDayEvent(event)) {
+      const rangeStart = startOfDay(start)
+      const rangeEnd = getEventLastDay(event)
+      if (rangeEnd.getTime() < rangeStart.getTime()) return false
+      return isWithinInterval(startOfDay(day), {
+        start: rangeStart,
+        end: rangeEnd,
+      })
+    }
     return isWithinInterval(day, { start, end })
   }
 
   return false
+}
+
+/**
+ * Lays out all-day / multi-day events as horizontal bars across a row of
+ * consecutive days (a month-view week row, or the week-view all-day header).
+ * Longer/earlier events claim the top lanes so a spanning bar stays on a
+ * single line across all its columns.
+ */
+export function layoutAllDaySegments(
+  events: CalendarEvent[],
+  rowDays: Date[],
+): AllDaySegment[] {
+  if (!events || events.length === 0 || rowDays.length === 0) return []
+
+  const rowStart = startOfDay(rowDays[0])
+  const rowEnd = startOfDay(rowDays[rowDays.length - 1])
+
+  type PendingSegment = Omit<AllDaySegment, 'lane'>
+
+  const pending: PendingSegment[] = []
+  const seen = new Set<string>()
+
+  for (const event of events) {
+    if (seen.has(event.id)) continue
+    seen.add(event.id)
+
+    const eventStart = startOfDay(new Date(event.startDate))
+    const eventLastDay = getEventLastDay(event)
+    if (eventLastDay.getTime() < eventStart.getTime()) continue
+
+    // Clip to this row of days
+    if (
+      eventLastDay.getTime() < rowStart.getTime() ||
+      eventStart.getTime() > rowEnd.getTime()
+    ) {
+      continue
+    }
+
+    const startIndex = rowDays.findIndex(
+      (day) =>
+        startOfDay(day).getTime() ===
+        Math.max(eventStart.getTime(), rowStart.getTime()),
+    )
+    let endIndex = rowDays.findIndex(
+      (day) =>
+        startOfDay(day).getTime() ===
+        Math.min(eventLastDay.getTime(), rowEnd.getTime()),
+    )
+    if (startIndex === -1) continue
+    if (endIndex === -1) endIndex = rowDays.length - 1
+
+    pending.push({
+      event,
+      startIndex,
+      span: Math.max(endIndex - startIndex + 1, 1),
+      continuesLeft: eventStart.getTime() < rowStart.getTime(),
+      continuesRight: eventLastDay.getTime() > rowEnd.getTime(),
+    })
+  }
+
+  // Longer bars first, then earlier start, then id for stability
+  pending.sort((a, b) => {
+    if (a.startIndex !== b.startIndex) return a.startIndex - b.startIndex
+    if (a.span !== b.span) return b.span - a.span
+    return a.event.id.localeCompare(b.event.id)
+  })
+
+  // Greedy lane assignment: first lane with no overlap
+  const lanes: PendingSegment[][] = []
+  const segments: AllDaySegment[] = []
+
+  for (const segment of pending) {
+    let lane = 0
+    while (true) {
+      const occupied = lanes[lane]
+      const overlaps = occupied?.some(
+        (other) =>
+          segment.startIndex < other.startIndex + other.span &&
+          other.startIndex < segment.startIndex + segment.span,
+      )
+      if (!overlaps) break
+      lane++
+    }
+    if (!lanes[lane]) lanes[lane] = []
+    lanes[lane].push(segment)
+    segments.push({ ...segment, lane })
+  }
+
+  return segments
 }
 
 export function getEventTimesForDay(

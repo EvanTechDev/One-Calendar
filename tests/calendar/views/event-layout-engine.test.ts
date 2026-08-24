@@ -6,6 +6,7 @@ import {
   shouldShowEventOnDay,
   isAllDayEvent,
   isMultiDayEvent,
+  layoutAllDaySegments,
   snapToQuarterHour,
   formatTimeForDisplay,
   formatHourMinute,
@@ -116,14 +117,29 @@ describe('EventLayoutEngine', () => {
       expect(shouldShowEventOnDay(event, day)).toBe(true)
     })
 
-    it('shows all-day multi-day event only on first day', () => {
+    it('shows all-day multi-day event on every day it covers', () => {
       const event = createEvent({
         isAllDay: true,
-        startDate: utcDate(2025, 0, 14),
-        endDate: utcDate(2025, 0, 16),
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 23, 59),
       })
-      expect(shouldShowEventOnDay(event, utcDate(2025, 0, 14))).toBe(true)
-      expect(shouldShowEventOnDay(event, utcDate(2025, 0, 15))).toBe(false)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 14))).toBe(true)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 15))).toBe(true)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 16))).toBe(true)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 17))).toBe(false)
+    })
+
+    it('treats a midnight end as exclusive for all-day events', () => {
+      // Local (not UTC) dates: the exclusive-end rule keys off a local
+      // midnight end time.
+      const event = createEvent({
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 0, 0), // exclusive midnight end
+      })
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 14))).toBe(true)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 15))).toBe(true)
+      expect(shouldShowEventOnDay(event, new Date(2025, 0, 16))).toBe(false)
     })
 
     it('shows regular multi-day event on all days in range', () => {
@@ -408,6 +424,110 @@ describe('EventLayoutEngine', () => {
       expect(formatHourMinute(0, 0, TimeFormat.h12())).toBe('12:00 AM')
       expect(formatHourMinute(12, 0, TimeFormat.h12())).toBe('12:00 PM')
       expect(formatHourMinute(13, 30, TimeFormat.h12())).toBe('1:30 PM')
+    })
+  })
+
+  describe('layoutAllDaySegments', () => {
+    // Mon Jan 13 .. Sun Jan 19, 2025 (local dates)
+    const rowDays = Array.from(
+      { length: 7 },
+      (_, i) => new Date(2025, 0, 13 + i),
+    )
+
+    it('returns empty array for no events', () => {
+      expect(layoutAllDaySegments([], rowDays)).toEqual([])
+    })
+
+    it('spans a 3-day all-day event across its columns', () => {
+      const event = createEvent({
+        id: 'span',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 23, 59),
+      })
+      const segments = layoutAllDaySegments([event], rowDays)
+      expect(segments).toHaveLength(1)
+      expect(segments[0]).toMatchObject({
+        startIndex: 1,
+        span: 3,
+        lane: 0,
+        continuesLeft: false,
+        continuesRight: false,
+      })
+    })
+
+    it('clips events that extend past the row and flags continuation', () => {
+      const event = createEvent({
+        id: 'long',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 10, 0, 0),
+        endDate: new Date(2025, 0, 22, 23, 59),
+      })
+      const segments = layoutAllDaySegments([event], rowDays)
+      expect(segments).toHaveLength(1)
+      expect(segments[0]).toMatchObject({
+        startIndex: 0,
+        span: 7,
+        continuesLeft: true,
+        continuesRight: true,
+      })
+    })
+
+    it('stacks overlapping events into separate lanes', () => {
+      const a = createEvent({
+        id: 'a',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 13, 0, 0),
+        endDate: new Date(2025, 0, 15, 23, 59),
+      })
+      const b = createEvent({
+        id: 'b',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 14, 23, 59),
+      })
+      const segments = layoutAllDaySegments([a, b], rowDays)
+      const segA = segments.find((s) => s.event.id === 'a')!
+      const segB = segments.find((s) => s.event.id === 'b')!
+      expect(segA.lane).not.toBe(segB.lane)
+    })
+
+    it('reuses a lane when events do not overlap', () => {
+      const a = createEvent({
+        id: 'a',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 13, 0, 0),
+        endDate: new Date(2025, 0, 13, 23, 59),
+      })
+      const b = createEvent({
+        id: 'b',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 16, 0, 0),
+        endDate: new Date(2025, 0, 16, 23, 59),
+      })
+      const segments = layoutAllDaySegments([a, b], rowDays)
+      expect(segments.every((s) => s.lane === 0)).toBe(true)
+    })
+
+    it('excludes events fully outside the row', () => {
+      const event = createEvent({
+        id: 'out',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 25, 0, 0),
+        endDate: new Date(2025, 0, 26, 23, 59),
+      })
+      expect(layoutAllDaySegments([event], rowDays)).toEqual([])
+    })
+
+    it('treats a midnight end as exclusive', () => {
+      const event = createEvent({
+        id: 'excl',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 17, 0, 0), // occupies 14th..16th
+      })
+      const segments = layoutAllDaySegments([event], rowDays)
+      expect(segments[0]).toMatchObject({ startIndex: 1, span: 3 })
     })
   })
 })

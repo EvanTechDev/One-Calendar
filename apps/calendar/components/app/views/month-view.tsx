@@ -8,6 +8,7 @@ import {
   isSameMonth,
   isSameDay,
   subDays,
+  addDays,
 } from 'date-fns'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
@@ -16,8 +17,15 @@ import {
   EVENT_BG_TO_ACCENT,
   EVENT_BG_TO_DARK,
   DEFAULT_ACCENT,
+  getEventAccentColor,
 } from '@/lib/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
+import {
+  isAllDayEvent,
+  shouldShowEventOnDay,
+  layoutAllDaySegments,
+  formatHourMinute,
+} from '@/components/app/views/event-layout-engine'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
@@ -47,6 +55,15 @@ interface MonthViewProps {
   config: ViewConfig
 }
 
+/** Height of the day-number block at the top of each cell, in px. */
+const DAY_NUMBER_BLOCK_HEIGHT = 40
+/** Height of one all-day bar, in px. */
+const ALL_DAY_BAR_HEIGHT = 24
+/** Vertical gap between stacked all-day bars, in px. */
+const ALL_DAY_BAR_GAP = 4
+/** Horizontal inset of a bar end that does not continue past the row, px. */
+const ALL_DAY_BAR_INSET = 4
+
 export default function MonthView({
   date,
   events,
@@ -75,6 +92,19 @@ export default function MonthView({
 
   const totalDays = [...prevMonthDays, ...monthDays]
 
+  // Pad with next-month days so the grid always ends on a full week row.
+  const trailingCount = (7 - (totalDays.length % 7)) % 7
+  for (let i = 1; i <= trailingCount; i++) {
+    totalDays.push(addDays(monthEnd, i))
+  }
+
+  const weeks: Date[][] = []
+  for (let i = 0; i < totalDays.length; i += 7) {
+    weeks.push(totalDays.slice(i, i + 7))
+  }
+
+  const allDayCandidates = events.filter((event) => isAllDayEvent(event))
+
   const [remainingPopover, setRemainingPopover] =
     useState<RemainingPopoverState | null>(null)
 
@@ -82,9 +112,11 @@ export default function MonthView({
     (
       e: React.MouseEvent<HTMLButtonElement>,
       day: Date,
-      allDayEvents: CalendarEvent[],
+      remainingEvents: CalendarEvent[],
     ) => {
-      const cell = (e.currentTarget as HTMLElement).parentElement?.parentElement
+      const cell = (e.currentTarget as HTMLElement).closest(
+        '[data-day-cell]',
+      ) as HTMLElement | null
       const rect = cell
         ? cell.getBoundingClientRect()
         : e.currentTarget.getBoundingClientRect()
@@ -92,7 +124,7 @@ export default function MonthView({
       setRemainingPopover({
         key,
         anchorRect: rect,
-        remainingEvents: allDayEvents.slice(3),
+        remainingEvents,
       })
     },
     [],
@@ -102,113 +134,205 @@ export default function MonthView({
 
   const remainingPopoverListRef = useRef<HTMLDivElement>(null)
 
+  const orderedDays = [
+    ...t.weekdays.slice(firstDayOfWeek.value),
+    ...t.weekdays.slice(0, firstDayOfWeek.value),
+  ]
+
   return (
     <RemoveScroll
       enabled={!!remainingPopover}
       shards={[remainingPopoverListRef]}
+      className="h-full"
     >
-      <div className="grid grid-cols-7 gap-1 p-4">
-        {(() => {
-          const orderedDays = [
-            ...t.weekdays.slice(firstDayOfWeek.value),
-            ...t.weekdays.slice(0, firstDayOfWeek.value),
-          ]
-          return orderedDays.map((day) => (
-            <div key={day} className="text-center font-medium text-sm py-2">
-              {day}
-            </div>
-          ))
-        })()}
+      <div className="flex min-h-full flex-col">
+        <div className="grid grid-cols-7">
+          {orderedDays.map((day, index) => {
+            const weekdayValue = (firstDayOfWeek.value + index) % 7
+            const isTodayColumn = today.getDay() === weekdayValue
+            return (
+              <div
+                key={day}
+                className={cn(
+                  'py-2 text-center text-sm font-medium',
+                  isTodayColumn && 'text-cal-accent',
+                )}
+              >
+                {day}
+              </div>
+            )
+          })}
+        </div>
 
-        {totalDays.map((day) => {
-          const dayEvents = events.filter((event) =>
-            isSameDay(new Date(event.startDate), day),
-          )
-          const visibleEvents = dayEvents.slice(0, 3)
-          const remainingCount = dayEvents.length - visibleEvents.length
-
-          const isCreateTarget = selection && isSameDay(selection.start, day)
+        {weeks.map((week) => {
+          const segments = layoutAllDaySegments(allDayCandidates, week)
+          const laneCount =
+            segments.length > 0
+              ? Math.max(...segments.map((s) => s.lane)) + 1
+              : 0
+          const lanesHeight =
+            laneCount > 0
+              ? laneCount * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP)
+              : 0
 
           return (
             <div
-              key={day.toString()}
-              {...(isCreateTarget ? { 'data-create-selection': true } : {})}
-              className={cn(
-                'min-h-[100px] p-2 border rounded-xl',
-                isCreateTarget &&
-                  'border-cal-accent/60 bg-cal-accent/5 ring-1 ring-cal-accent/40',
-              )}
+              key={week[0].toString()}
+              className="relative grid flex-1 grid-cols-7 border-t"
             >
-              <div className="mb-1 flex h-6 items-center">
-                <span
-                  className={cn(
-                    'font-medium text-sm',
-                    isSameMonth(day, date) ? '' : 'text-gray-400',
-                    isSameMonth(day, date) &&
-                      isSameDay(day, today) &&
-                      'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
-                  )}
-                >
-                  {format(day, 'd')}
-                </span>
-              </div>
-              <div className="space-y-1">
-                {visibleEvents.map((event) => (
+              {week.map((day, dayIndex) => {
+                const timedEvents = events.filter(
+                  (event) =>
+                    !isAllDayEvent(event) && shouldShowEventOnDay(event, day),
+                )
+                const visibleEvents = timedEvents.slice(0, 3)
+                const remainingCount = timedEvents.length - visibleEvents.length
+
+                const isCreateTarget =
+                  selection && isSameDay(selection.start, day)
+
+                return (
                   <div
-                    key={event.id}
+                    key={day.toString()}
+                    data-day-cell
+                    {...(isCreateTarget
+                      ? { 'data-create-selection': true }
+                      : {})}
+                    className={cn(
+                      'min-h-[110px] pb-1',
+                      dayIndex < 6 && 'border-r',
+                      isCreateTarget &&
+                        'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
+                    )}
+                  >
+                    <div
+                      className="flex items-start justify-center pt-2"
+                      style={{ height: DAY_NUMBER_BLOCK_HEIGHT + 'px' }}
+                    >
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          isSameMonth(day, date) ? '' : 'text-gray-400',
+                          isSameMonth(day, date) &&
+                            isSameDay(day, today) &&
+                            'inline-flex h-7 min-w-7 items-center justify-center rounded-lg border-2 border-cal-accent px-1 font-semibold text-cal-accent',
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </span>
+                    </div>
+
+                    {/* Space reserved for the all-day bars overlaying the row */}
+                    {lanesHeight > 0 && (
+                      <div style={{ height: lanesHeight + 'px' }} />
+                    )}
+
+                    <div className="space-y-0.5 px-1.5">
+                      {visibleEvents.map((event) => {
+                        // Multi-day timed events show 00:00 on days after
+                        // their start day (clipped to the current day).
+                        const eventStart = new Date(event.startDate)
+                        const startsToday = isSameDay(eventStart, day)
+                        const startHour = startsToday
+                          ? eventStart.getHours()
+                          : 0
+                        const startMinute = startsToday
+                          ? eventStart.getMinutes()
+                          : 0
+                        return (
+                          <div
+                            key={event.id}
+                            data-event-id={event.id}
+                            className="flex cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-xs hover:bg-muted/60"
+                            onClick={(e) =>
+                              onEventClick(
+                                event,
+                                e.currentTarget as HTMLElement,
+                                e.clientX,
+                                e.clientY,
+                              )
+                            }
+                          >
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor: getEventAccentColor(
+                                  event.color,
+                                ),
+                              }}
+                            />
+                            <span className="shrink-0 text-muted-foreground">
+                              {formatHourMinute(
+                                startHour,
+                                startMinute,
+                                config.timeFormat,
+                              )}
+                            </span>
+                            <span className="truncate font-medium text-muted-foreground">
+                              {event.title}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {remainingCount > 0 && (
+                        <button
+                          type="button"
+                          className="px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                          onClick={(e) =>
+                            handleRemainingClick(e, day, timedEvents.slice(3))
+                          }
+                        >
+                          {(remainingCount === 1
+                            ? t.moreEvents
+                            : t.moreEventsPlural
+                          ).replace('{count}', remainingCount.toString())}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {segments.map((segment) => {
+                const { event, startIndex, span, lane } = segment
+                const leftInset = segment.continuesLeft ? 0 : ALL_DAY_BAR_INSET
+                const rightInset = segment.continuesRight
+                  ? 0
+                  : ALL_DAY_BAR_INSET
+                return (
+                  <div
+                    key={`allday-${event.id}`}
                     data-event-id={event.id}
                     className={cn(
-                      'relative text-xs truncate rounded-sm p-1 cursor-pointer text-white',
-                      event.color,
+                      'absolute flex cursor-pointer items-center overflow-hidden rounded-md px-2 text-xs font-medium text-white',
+                      segment.continuesLeft && 'rounded-l-none',
+                      segment.continuesRight && 'rounded-r-none',
                     )}
-                    onClick={(e) =>
+                    style={{
+                      top:
+                        DAY_NUMBER_BLOCK_HEIGHT +
+                        lane * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) +
+                        'px',
+                      left: `calc(${startIndex} / 7 * 100% + ${leftInset}px)`,
+                      width: `calc(${span} / 7 * 100% - ${leftInset + rightInset}px)`,
+                      height: ALL_DAY_BAR_HEIGHT + 'px',
+                      backgroundColor: getEventAccentColor(event.color),
+                      zIndex: 10 + lane,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
                       onEventClick(
                         event,
                         e.currentTarget as HTMLElement,
                         e.clientX,
                         e.clientY,
                       )
-                    }
-                    style={{
-                      opacity: 1,
-                      backgroundColor: isDark
-                        ? EVENT_BG_TO_DARK[event.color]
-                        : undefined,
                     }}
                   >
-                    <div
-                      className={cn(
-                        'absolute left-0 top-0 w-1 h-full rounded-l-sm',
-                      )}
-                      style={{
-                        backgroundColor:
-                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                      }}
-                    />
-                    <div
-                      className="pl-1.5 truncate"
-                      style={{
-                        color:
-                          EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
-                      }}
-                    >
-                      {event.title}
-                    </div>
+                    <span className="truncate">{event.title}</span>
                   </div>
-                ))}
-                {remainingCount > 0 && (
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={(e) => handleRemainingClick(e, day, dayEvents)}
-                  >
-                    {(remainingCount === 1
-                      ? t.moreEvents
-                      : t.moreEventsPlural
-                    ).replace('{count}', remainingCount.toString())}
-                  </button>
-                )}
-              </div>
+                )
+              })}
             </div>
           )
         })}

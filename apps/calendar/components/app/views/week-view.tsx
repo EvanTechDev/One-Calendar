@@ -21,7 +21,11 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
+import {
+  EventLayoutEngine as EventLayoutEngineClass,
+  isAllDayEvent,
+  layoutAllDaySegments,
+} from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
 
 interface WeekViewProps {
@@ -387,61 +391,72 @@ export default function WeekView({
     setCreateSelection({ dayIndex, startMinute, endMinute: startMinute })
   }
 
-  const renderAllDayEvents = (day: Date, allDayEvents: CalendarEvent[]) => {
-    const eventSpacing = 2
+  const ALL_DAY_BAR_HEIGHT = 22
+  const ALL_DAY_BAR_GAP = 3
+  const ALL_DAY_BAR_INSET = 4
 
-    return allDayEvents.map((event, index) => (
-      <div
-        key={`allday-${event.id}-${day.toISOString().split('T')[0]}`}
-        data-event-id={event.id}
-        className={cn(
-          'relative rounded-md p-1 text-xs cursor-pointer overflow-hidden',
-          event.color,
-        )}
-        style={{
-          height: '20px',
-          top: index * (20 + eventSpacing) + 'px',
-          position: 'absolute',
-          left: '0',
-          right: '0',
-          opacity: isDark ? 1 : 0.9,
-          backgroundColor: getEventBackgroundColor(event.color, isDark),
-          zIndex: 10 + index,
-        }}
-        onMouseDown={(e) => handleEventDragStart(event, e)}
-        onMouseUp={handleEventDragEnd}
-        onMouseLeave={handleEventDragEnd}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          queueIgnoreEventClick()
-        }}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (ignoreNextEventClickRef.current) return
-          if (!isDraggingRef.current) {
-            onEventClick(
-              event,
-              e.currentTarget as HTMLElement,
-              e.clientX,
-              e.clientY,
-            )
-          }
-        }}
-      >
+  const allDaySegments = layoutAllDaySegments(
+    events.filter((event) => isAllDayEvent(event)),
+    weekDays,
+  )
+  const allDayLaneCount =
+    allDaySegments.length > 0
+      ? Math.max(...allDaySegments.map((s) => s.lane)) + 1
+      : 0
+  const allDayRowHeight =
+    allDayLaneCount > 0
+      ? allDayLaneCount * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) +
+        ALL_DAY_BAR_GAP
+      : 0
+
+  const renderAllDaySegments = () =>
+    allDaySegments.map((segment) => {
+      const { event, startIndex, span, lane } = segment
+      const leftInset = segment.continuesLeft ? 0 : ALL_DAY_BAR_INSET
+      const rightInset = segment.continuesRight ? 0 : ALL_DAY_BAR_INSET
+
+      return (
         <div
-          className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
-          style={{ backgroundColor: getEventAccentColor(event.color) }}
-        />
-        <div
-          className="pl-1.5 truncate"
-          style={{ color: getEventAccentColor(event.color) }}
+          key={`allday-${event.id}`}
+          data-event-id={event.id}
+          className={cn(
+            'absolute flex cursor-pointer items-center overflow-hidden rounded-md px-2 text-xs font-medium text-white',
+            segment.continuesLeft && 'rounded-l-none',
+            segment.continuesRight && 'rounded-r-none',
+          )}
+          style={{
+            top: lane * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) + 'px',
+            left: `calc(${startIndex} / ${weekDays.length} * 100% + ${leftInset}px)`,
+            width: `calc(${span} / ${weekDays.length} * 100% - ${leftInset + rightInset}px)`,
+            height: ALL_DAY_BAR_HEIGHT + 'px',
+            backgroundColor: getEventAccentColor(event.color),
+            zIndex: 10 + lane,
+          }}
+          onMouseDown={(e) => handleEventDragStart(event, e)}
+          onMouseUp={handleEventDragEnd}
+          onMouseLeave={handleEventDragEnd}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            queueIgnoreEventClick()
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (ignoreNextEventClickRef.current) return
+            if (!isDraggingRef.current) {
+              onEventClick(
+                event,
+                e.currentTarget as HTMLElement,
+                e.clientX,
+                e.clientY,
+              )
+            }
+          }}
         >
-          {event.title}
+          <span className="truncate">{event.title}</span>
         </div>
-      </div>
-    ))
-  }
+      )
+    })
 
   const renderDragPreview = () => {
     if (!dragPreview || !draggingEvent) return null
@@ -511,54 +526,39 @@ export default function WeekView({
 
   return (
     <div className="flex flex-col h-full">
-      <div
-        className="grid divide-x relative z-30 bg-background border-b"
-        style={{ gridTemplateColumns }}
-      >
-        <div className="sticky top-0 z-30 bg-background" />
-        {weekDays.map((day) => {
-          const dayEvents = events.filter((event) =>
-            layoutEngine.shouldShowEventOnDay(event, day),
-          )
-
-          const { allDayEvents } = layoutEngine.separateEvents(dayEvents, day)
-
-          const eventSpacing = 2
-          const allDayEventsHeight =
-            allDayEvents.length > 0
-              ? allDayEvents.length * 20 +
-                (allDayEvents.length - 1) * eventSpacing
-              : 0
-
-          return (
-            <div
-              key={day.toString()}
-              className="sticky top-0 z-30 bg-background"
-            >
-              <div className="p-2 text-center">
-                <div>{t.weekdays[day.getDay()]}</div>
-                {}
-                <div
-                  className={cn(
-                    'mx-auto flex h-6 w-6 items-center justify-center text-sm',
-                    isSameDay(day, today) &&
-                      'rounded-md bg-cal-today text-cal-today-foreground',
-                  )}
-                >
-                  {format(day, 'd')}
-                </div>
-              </div>
-
-              {}
+      <div className="relative z-30 bg-background border-b">
+        <div className="grid divide-x" style={{ gridTemplateColumns }}>
+          <div />
+          {weekDays.map((day) => (
+            <div key={day.toString()} className="p-2 text-center">
+              <div>{t.weekdays[day.getDay()]}</div>
               <div
-                className="relative"
-                style={{ height: allDayEventsHeight + 'px' }}
+                className={cn(
+                  'mx-auto flex h-6 w-6 items-center justify-center text-sm',
+                  isSameDay(day, today) &&
+                    'rounded-md bg-cal-today text-cal-today-foreground',
+                )}
               >
-                {renderAllDayEvents(day, allDayEvents)}
+                {format(day, 'd')}
               </div>
             </div>
-          )
-        })}
+          ))}
+        </div>
+
+        {allDayRowHeight > 0 && (
+          <div className="grid" style={{ gridTemplateColumns }}>
+            <div />
+            <div
+              className="relative"
+              style={{
+                height: allDayRowHeight + 'px',
+                gridColumn: `span ${weekDays.length} / span ${weekDays.length}`,
+              }}
+            >
+              {renderAllDaySegments()}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
