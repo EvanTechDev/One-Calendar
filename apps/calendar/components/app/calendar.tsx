@@ -43,7 +43,7 @@ import { addDays, addYears, subDays, subYears } from 'date-fns'
 import EventPreview, {
   type EventInvite,
 } from '@/components/app/event/event-preview'
-import EventDialog from '@/components/app/event/event-dialog'
+import EventEditor from '@/components/app/event/event-editor'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
@@ -170,7 +170,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
-  const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [eventEditorOpen, setEventEditorOpen] = useState(false)
   const [editorAnchorEl, setEditorAnchorEl] = useState<HTMLElement | null>(null)
   const [editorAnchorRect, setEditorAnchorRect] = useState<DOMRect | null>(null)
   // The editor is replacing the preview at the same anchor, so its entrance
@@ -239,7 +239,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   >('single')
   // "All events" is only offered on the series' first occurrence (or a raw
   // master row, which IS the series root). Mirrors the save-scope gating in
-  // event-dialog.tsx.
+  // event-editor.tsx.
   const rangeMoveCanAll =
     !!pendingRangeMove &&
     ((!!pendingRangeMove.event.rrule &&
@@ -805,7 +805,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       timezone,
     })
     toast(t.eventCreated)
-    setEventDialogOpen(false)
+    setEventEditorOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
     setQuickCreateEndTime(null)
@@ -893,7 +893,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       oldSeriesId ? new Set([oldSeriesId]) : undefined,
     )
     toast(t.eventUpdated)
-    setEventDialogOpen(false)
+    setEventEditorOpen(false)
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
     setQuickCreateEndTime(null)
@@ -1007,7 +1007,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       },
     })
 
-    setEventDialogOpen(false)
+    setEventEditorOpen(false)
     setSelectedEvent(null)
     setPreviewOpen(false)
     setDeleteConfirmOpen(false)
@@ -1101,7 +1101,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       setEditorAnchorEl(previewAnchorEl)
       setEditorAnchorRect(previewAnchorRect)
       setEditorReplacesPreview(previewOpen)
-      setEventDialogOpen(true)
+      setEventEditorOpen(true)
       setPreviewOpen(false)
       setPreviewAnchorRect(null)
       setPreviewAnchorEl(null)
@@ -1143,7 +1143,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(false)
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
-    setEventDialogOpen(true)
+    setEventEditorOpen(true)
   }
 
   const handleInvitesAdded = (
@@ -1287,7 +1287,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // popover anchors to (CORE-191). Only while creating — editing anchors to
   // the event block itself.
   const createSelectionRange = useMemo(() => {
-    if (!eventDialogOpen || selectedEvent) return null
+    if (!eventEditorOpen || selectedEvent) return null
     // The editor's draft (live date/time fields) wins over the committed
     // quick-create range, so the box follows the user's edits.
     if (createDraftRange) {
@@ -1301,7 +1301,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       end: quickCreateEndTime ?? defaultCreateRange(quickCreateStartTime).end,
     }
   }, [
-    eventDialogOpen,
+    eventEditorOpen,
     selectedEvent,
     quickCreateStartTime,
     quickCreateEndTime,
@@ -1653,7 +1653,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onCreateEvent={(_startDate, _endDate) => {
                   setSelectedEvent(null)
                   setQuickCreateStartTime(_startDate)
-                  setEventDialogOpen(true)
+                  setEventEditorOpen(true)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
                 isSidebarTransitioning={isSidebarTransitioning}
@@ -1709,10 +1709,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onCategoryChange={handlePreviewCategoryChange}
         />
 
-        <EventDialog
-          open={eventDialogOpen}
+        <EventEditor
+          open={eventEditorOpen}
           onOpenChange={(open) => {
-            setEventDialogOpen(open)
+            setEventEditorOpen(open)
             if (!open) {
               // Clearing the range removes the blue anchor box in the views.
               setQuickCreateStartTime(null)

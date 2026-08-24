@@ -82,7 +82,7 @@ const NO_REMINDER = 'none'
 /** Reminder values the select offers directly; anything else is "custom". */
 const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
 
-interface EventDialogProps {
+interface EventEditorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEventAdd: (event: CalendarEvent) => void
@@ -136,7 +136,7 @@ interface TimeInput {
   isCustomInput: boolean
 }
 
-export default function EventDialog({
+export default function EventEditor({
   open,
   onOpenChange,
   onEventAdd,
@@ -152,7 +152,7 @@ export default function EventDialog({
   anchorRect = null,
   anchorElement,
   scrollContainerRef,
-}: EventDialogProps) {
+}: EventEditorProps) {
   if (!config) return null
   const { calendars, events } = useCalendar()
 
