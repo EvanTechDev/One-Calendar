@@ -86,13 +86,28 @@ export default function WeekView({
       )
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const gridTemplateColumns = `84px repeat(${weekDays.length}, minmax(0, 1fr))`
+  const TIME_GUTTER_WIDTH = 84
+  const gridTemplateColumns = `${TIME_GUTTER_WIDTH}px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasScrolledRef = useRef(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // The time grid is the scroll container; when its scrollbar shows, its
+  // content is narrower than the fixed header above. Pad the header by the
+  // scrollbar width so both grids share the same column tracks.
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const update = () => setScrollbarWidth(el.offsetWidth - el.clientWidth)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
   const [dragStartPosition, setDragStartPosition] = useState<{
@@ -539,7 +554,10 @@ export default function WeekView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative z-30 bg-background border-b">
+      <div
+        className="relative z-30 bg-background border-b"
+        style={{ paddingRight: scrollbarWidth + 'px' }}
+      >
         <div className="grid divide-x" style={{ gridTemplateColumns }}>
           <div />
           {weekDays.map((day) => (
@@ -621,7 +639,7 @@ export default function WeekView({
           return (
             <div
               key={day.toString()}
-              className="relative border-l grid-col select-none"
+              className="relative grid-col select-none"
               onMouseDown={(event) => handleGridMouseDown(dayIndex, event)}
             >
               {hours.map((hour) => (
