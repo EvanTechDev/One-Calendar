@@ -6,7 +6,10 @@ import { format, isSameDay, add } from 'date-fns'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '../calendar'
 import { translations } from '@zntr/i18n/calendar'
-import { formatSelectionRange } from '@/components/app/views/selection-range'
+import {
+  formatSelectionRange,
+  clampRangeToDay,
+} from '@/components/app/views/selection-range'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   getEventAccentColor,
@@ -535,25 +538,23 @@ export default function DayView({
             </div>
           )}
 
-          {/* The editor's anchor: the committed range, kept visible while the
-              editor popover is open (CORE-191). Same box as the live drag
-              above, driven by the parent instead of local state. */}
+          {/* The editor's anchor: the committed/draft range, kept visible
+              while the editor popover is open (CORE-191) and following the
+              editor's date-time fields. A range wider than this day renders
+              clamped to the day; a range that misses it renders nothing. */}
           {selection &&
             !createSelection &&
-            isSameDay(selection.start, date) &&
             (() => {
-              const startMinute =
-                selection.start.getHours() * 60 + selection.start.getMinutes()
-              const endMinute = isSameDay(selection.end, date)
-                ? selection.end.getHours() * 60 + selection.end.getMinutes()
-                : 24 * 60
+              const slice = clampRangeToDay(selection, date)
+              if (!slice) return null
+              const { startMinute, endMinute } = slice
               return (
                 <div
                   data-create-selection
                   className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
                   style={{
-                    top: `${Math.min(startMinute, endMinute)}px`,
-                    height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
+                    top: `${startMinute}px`,
+                    height: `${Math.max(endMinute - startMinute, 15)}px`,
                     zIndex: 5,
                   }}
                 >

@@ -392,6 +392,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [quickCreateEndTime, setQuickCreateEndTime] = useState<Date | null>(
     null,
   )
+  /**
+   * Live draft range coming back from the editor's date/time fields while
+   * creating. Takes precedence over the committed quick-create range so the
+   * selection box follows the user's edits in real time (CORE-191).
+   */
+  const [createDraftRange, setCreateDraftRange] = useState<{
+    start: Date
+    end: Date
+  } | null>(null)
 
   const [defaultView, setDefaultView] = useState<CalendarViewTypeValue>(
     (settings.defaultView as CalendarViewTypeValue) ?? 'week',
@@ -1277,18 +1286,27 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // The committed create range, shown as the blue selection box the editor
   // popover anchors to (CORE-191). Only while creating — editing anchors to
   // the event block itself.
-  const createSelectionRange = useMemo(
-    () =>
-      eventDialogOpen && !selectedEvent && quickCreateStartTime
-        ? {
-            start: quickCreateStartTime,
-            end:
-              quickCreateEndTime ??
-              defaultCreateRange(quickCreateStartTime).end,
-          }
-        : null,
-    [eventDialogOpen, selectedEvent, quickCreateStartTime, quickCreateEndTime],
-  )
+  const createSelectionRange = useMemo(() => {
+    if (!eventDialogOpen || selectedEvent) return null
+    // The editor's draft (live date/time fields) wins over the committed
+    // quick-create range, so the box follows the user's edits.
+    if (createDraftRange) {
+      const { start, end } = createDraftRange
+      // Tolerate inverted input while the user is mid-edit.
+      return start <= end ? { start, end } : { start: end, end: start }
+    }
+    if (!quickCreateStartTime) return null
+    return {
+      start: quickCreateStartTime,
+      end: quickCreateEndTime ?? defaultCreateRange(quickCreateStartTime).end,
+    }
+  }, [
+    eventDialogOpen,
+    selectedEvent,
+    quickCreateStartTime,
+    quickCreateEndTime,
+    createDraftRange,
+  ])
 
   const filteredEvents = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
@@ -1699,6 +1717,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               // Clearing the range removes the blue anchor box in the views.
               setQuickCreateStartTime(null)
               setQuickCreateEndTime(null)
+              setCreateDraftRange(null)
               setEditorAnchorEl(null)
               setEditorAnchorRect(null)
               setEditorReplacesPreview(false)
@@ -1712,6 +1731,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
+          onDraftRangeChange={setCreateDraftRange}
           event={selectedEvent}
           config={viewConfig}
           replacesPreview={editorReplacesPreview}

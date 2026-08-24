@@ -26,6 +26,7 @@ import {
   shouldShowEventOnDay,
   layoutAllDaySegments,
 } from '@/components/app/views/event-layout-engine'
+import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
@@ -105,6 +106,11 @@ export default function MonthView({
 
   const allDayCandidates = events.filter((event) => isAllDayEvent(event))
 
+  // First visible day the draft selection touches — the editor's anchor cell.
+  const selectionAnchorDay = selection
+    ? (totalDays.find((d) => selectionCoversDay(selection, d)) ?? null)
+    : null
+
   const [remainingPopover, setRemainingPopover] =
     useState<RemainingPopoverState | null>(null)
 
@@ -178,14 +184,22 @@ export default function MonthView({
                 const visibleEvents = timedEvents.slice(0, 3)
                 const remainingCount = timedEvents.length - visibleEvents.length
 
+                // Highlight every cell the draft range touches; the anchor
+                // attribute goes on the first visible one so the editor still
+                // has something to point at when the range starts in an
+                // earlier month.
                 const isCreateTarget =
-                  selection && isSameDay(selection.start, day)
+                  selection && selectionCoversDay(selection, day)
+                const isCreateAnchor =
+                  isCreateTarget &&
+                  selectionAnchorDay !== null &&
+                  isSameDay(day, selectionAnchorDay)
 
                 return (
                   <div
                     key={day.toString()}
                     data-day-cell
-                    {...(isCreateTarget
+                    {...(isCreateAnchor
                       ? { 'data-create-selection': true }
                       : {})}
                     className={cn(

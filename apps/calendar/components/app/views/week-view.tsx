@@ -16,7 +16,10 @@ import { cn } from '@zntr/utils'
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { formatSelectionRange } from '@/components/app/views/selection-range'
+import {
+  formatSelectionRange,
+  clampRangeToDay,
+} from '@/components/app/views/selection-range'
 import {
   getEventAccentColor,
   getEventBackgroundColor,
@@ -809,26 +812,31 @@ export default function WeekView({
                 </div>
               )}
 
-              {/* The editor's anchor: the committed range, kept visible while
-                  the editor popover is open (CORE-191). Same box as the live
-                  drag above, driven by the parent instead of local state. */}
+              {/* The editor's anchor: the committed/draft range, kept visible
+                  while the editor popover is open (CORE-191) and following
+                  the editor's date-time fields. A multi-day range renders a
+                  clamped slice per visible day column; days outside this
+                  period simply produce no slice. */}
               {selection &&
                 !createSelection &&
-                isSameDay(selection.start, day) &&
                 (() => {
-                  const startMinute =
-                    selection.start.getHours() * 60 +
-                    selection.start.getMinutes()
-                  const endMinute = isSameDay(selection.end, day)
-                    ? selection.end.getHours() * 60 + selection.end.getMinutes()
-                    : 24 * 60
+                  const slice = clampRangeToDay(selection, day)
+                  if (!slice) return null
+                  const { startMinute, endMinute } = slice
+                  // Anchor the editor to the first *visible* slice — when the
+                  // range starts before this period, its true start day is
+                  // not on screen.
+                  const firstVisibleIndex = weekDays.findIndex(
+                    (d) => clampRangeToDay(selection, d) !== null,
+                  )
+                  const isFirstDay = dayIndex === firstVisibleIndex
                   return (
                     <div
-                      data-create-selection
+                      {...(isFirstDay ? { 'data-create-selection': true } : {})}
                       className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
                       style={{
-                        top: `${Math.min(startMinute, endMinute)}px`,
-                        height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
+                        top: `${startMinute}px`,
+                        height: `${Math.max(endMinute - startMinute, 15)}px`,
                         zIndex: 5,
                       }}
                     >

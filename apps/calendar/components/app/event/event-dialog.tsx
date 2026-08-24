@@ -103,6 +103,13 @@ interface EventDialogProps {
   initialDate: Date
   initialEndDate?: Date | null
   /**
+   * Live draft range while creating. Fired whenever the editor's start/end
+   * date-time fields change, so the views can keep the selection box
+   * (CORE-191) in sync with what the user is typing. Not fired when editing
+   * an existing event.
+   */
+  onDraftRangeChange?: (range: { start: Date; end: Date } | null) => void
+  /**
    * True when the editor is replacing the preview popover at the same
    * anchor. The preview unmounts instantly (no exit animation), so playing
    * the editor's zoom-in entrance reads as a flash; appearing in place makes
@@ -138,6 +145,7 @@ export default function EventDialog({
   onInvitesAdded,
   initialDate,
   initialEndDate,
+  onDraftRangeChange,
   replacesPreview = false,
   event,
   config,
@@ -309,6 +317,40 @@ export default function EventDialog({
 
   const getFullStartDate = () => combineDateTime(startDate, startTime)
   const getFullEndDate = () => combineDateTime(endDate, endTime)
+
+  // Keep the views' selection box in sync with the editor's draft range
+  // while creating (CORE-191). All-day drafts span whole days; timed drafts
+  // use the combined date+time fields. Invalid or inverted input is passed
+  // through — the views clamp per day and simply skip days they don't show.
+  useEffect(() => {
+    if (!onDraftRangeChange) return
+    if (!open || event) {
+      onDraftRangeChange(null)
+      return
+    }
+
+    let start = combineDateTime(startDate, startTime)
+    let end = combineDateTime(endDate, endTime)
+    if (isAllDay) {
+      start = set(new Date(startDate), {
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        milliseconds: 0,
+      })
+      end = set(new Date(endDate), {
+        hours: 23,
+        minutes: 59,
+        seconds: 0,
+        milliseconds: 0,
+      })
+    }
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return
+
+    onDraftRangeChange({ start, end })
+    // combineDateTime is stable in behavior; deps below cover its inputs.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, event, startDate, endDate, startTime, endTime, isAllDay])
 
   const validateTimeFormat = (input: string): boolean => {
     if (!input) return false

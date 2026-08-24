@@ -13,6 +13,7 @@ import type { CalendarEvent } from '../calendar'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
+import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { RemoveScroll } from 'react-remove-scroll'
 
@@ -195,13 +196,21 @@ export default function YearView({
                   const isCreateTarget =
                     selection &&
                     isCurrentMonth &&
-                    isSameDay(selection.start, day)
+                    selectionCoversDay(selection, day)
+                  // Anchor on the range's start day, or on Jan 1 when the
+                  // range began in an earlier year.
+                  const isCreateAnchor =
+                    isCreateTarget &&
+                    (isSameDay(selection.start, day) ||
+                      (selection.start < new Date(currentYear, 0, 1) &&
+                        day.getMonth() === 0 &&
+                        day.getDate() === 1))
 
                   return (
                     <button
                       key={`${month.label}-${dayKey}`}
                       type="button"
-                      {...(isCreateTarget
+                      {...(isCreateAnchor
                         ? { 'data-create-selection': true }
                         : {})}
                       className={cn(
