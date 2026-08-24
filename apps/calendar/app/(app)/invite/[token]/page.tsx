@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { MapPin, AlignLeft, Calendar, XCircle, Repeat } from 'lucide-react'
+import {
+  MapPin,
+  AlignLeft,
+  Calendar,
+  XCircle,
+  Repeat,
+  Video,
+} from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
@@ -45,6 +52,8 @@ interface InviteData {
      * see ADR-0006 (participants never receive the recurrence rule).
      */
     recurrenceSummary: string | null
+    /** Join link for the attached Zentra Meet room, when there is one. */
+    meetingUrl: string | null
   }
   /** The occurrences this link grants, each with its own RSVP. Null if not recurring. */
   occurrences:
@@ -348,6 +357,23 @@ export default function InvitePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {event.meetingUrl && (
+              <div className="flex items-start">
+                <Video className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <Button asChild size="sm">
+                    <a
+                      href={event.meetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Join with Zentra Meet
+                    </a>
+                  </Button>
+                </div>
               </div>
             )}
 

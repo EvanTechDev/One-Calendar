@@ -62,6 +62,7 @@ import {
   type RruleParts,
 } from '@/lib/recurrence'
 import type { ViewConfig } from '@/lib/calendar-types'
+import { EventMeetingField } from '@/components/app/event/event-meeting-field'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -188,6 +189,13 @@ export default function EventEditor({
   const [emailReminder, setEmailReminder] = useState(false)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
+  /**
+   * A Series carries its Meeting on the master row (ADR-0019), so editing an
+   * occurrence still targets the series. Null while the event is a draft.
+   */
+  const meetingEventId = event ? (event.seriesId ?? event.id) : null
+  /** "Add Zentra Meet" pressed on a draft — attach it once the event exists. */
+  const [meetingPending, setMeetingPending] = useState(false)
   const [title, setTitle] = useState('')
   const [color, setColor] = useState(EVENT_COLOR_OPTIONS[0].value)
 
@@ -872,7 +880,24 @@ export default function EventEditor({
     } else {
       onEventAdd(eventData)
       onInvitesAdded(eventData.id, participantEmails)
+      attachPendingMeeting(eventData.id)
     }
+  }
+
+  /**
+   * A draft event has no row yet, so "Add Zentra Meet" only records the
+   * intent; the meeting is created once the event exists.
+   */
+  const attachPendingMeeting = (eventId: string) => {
+    if (!meetingPending) return
+    setMeetingPending(false)
+    void fetch('/api/meetings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId }),
+    }).catch(() => {
+      // The event still saved; the organiser can add the meeting again.
+    })
   }
 
   /** Emails already invited, from both the legacy list and the invite rows. */
@@ -902,6 +927,7 @@ export default function EventEditor({
     } else {
       onEventAdd(eventData)
       onInvitesAdded(eventData.id, newEmails, inviteScope)
+      attachPendingMeeting(eventData.id)
     }
 
     setSaveScopeOpen(false)
@@ -1283,6 +1309,11 @@ export default function EventEditor({
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
+
+                <EventMeetingField
+                  eventId={meetingEventId}
+                  onPendingChange={setMeetingPending}
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="participants">{t.participants}</Label>

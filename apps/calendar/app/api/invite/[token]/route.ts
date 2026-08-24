@@ -8,6 +8,8 @@ import {
   user,
 } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
+import { getMeetingForEvent } from '@zntr/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import {
   getInviteByToken,
   getInvitesByToken,
@@ -132,6 +134,12 @@ export const GET = async function GET(
   let occurrences: GrantedOccurrence[] | null = null
   let recurrenceSummary: string | null = null
 
+  // A Series carries its Meeting on the master row (ADR-0019).
+  const eventMeeting = await getMeetingForEvent(
+    getDb(),
+    event.seriesId ?? event.id,
+  )
+
   if (isSeries) {
     recurrenceSummary = describeRecurrence(event.rrule!, false)
     const timeZone = await organiserTimeZone(event.userId)
@@ -203,6 +211,12 @@ export const GET = async function GET(
         color: event.color,
         /** Human-readable only. Deliberately not the rrule. */
         recurrenceSummary,
+        /**
+         * The Event Meeting's join link, when one is attached. Holding the
+         * link is what admits someone to a meeting (ADR-0019); the invite
+         * token's only role here is revealing it.
+         */
+        meetingUrl: eventMeeting ? meetingUrl(eventMeeting.id) : null,
       },
       /** Null for a non-recurring event. */
       occurrences,

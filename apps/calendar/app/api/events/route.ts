@@ -63,6 +63,7 @@ import {
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
@@ -279,6 +280,12 @@ async function deleteRow(
     // calendar_events, so deleting the invites removes their per-occurrence
     // visibility and RSVPs with them.
     await dbx.delete(eventInvites).where(inArray(eventInvites.eventId, rowIds))
+    // Event Meetings live in a separate package with no database FK back to
+    // this table on purpose (ADR-0017), so their cascade runs here. Deleting
+    // the row is what invalidates the meeting link.
+    for (const rowId of rowIds) {
+      await deleteMeetingsForEvent(dbx, rowId)
+    }
     await dbx
       .delete(calendarEvents)
       .where(
@@ -360,6 +367,14 @@ async function applySplitPlan(
       clockSource: split.newSeries.startDate,
       timeZone,
     })
+
+    // A Series has one Meeting whose link stays stable across occurrences
+    // (ADR-0019), so the split's tail — the part participants are still going
+    // to attend — keeps it. Must run before the branch below can delete the
+    // old master, or the meeting would be cascaded away with it.
+    if (split.masterBecomesEmpty) {
+      await moveMeetingToEvent(tx, master.id, newId)
+    }
 
     if (split.masterBecomesEmpty) {
       // The old series would render nothing after truncation (split at its
