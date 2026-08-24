@@ -27,6 +27,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "geist": "latest",
+    "ioredis": "^5.11.1",
     "livekit-client": "2.22.0",
     "livekit-server-sdk": "2.18.0",
     "lucide-react": "1.21.0",

@@ -10,25 +10,36 @@ describe('parseRoomInput', () => {
     expect(parseRoomInput('  ab3k-x9q2  ')).toBe('ab3k-x9q2')
   })
 
-  it('extracts the code from a full room URL', () => {
+  it('extracts the code from a root-path room URL', () => {
+    expect(parseRoomInput('https://meet.example.com/ab3k-x9q2')).toBe(
+      'ab3k-x9q2',
+    )
+  })
+
+  it('still accepts a legacy /rooms/ URL', () => {
     expect(parseRoomInput('https://meet.example.com/rooms/ab3k-x9q2')).toBe(
       'ab3k-x9q2',
     )
   })
 
+  it('rejects a code that is not the xxxx-xxxx shape', () => {
+    expect(parseRoomInput('abc')).toBeNull()
+    expect(parseRoomInput('ab3k_x9q2')).toBeNull()
+    expect(parseRoomInput('AB3K-X9Q2')).toBeNull()
+  })
+
   it('extracts the code from a URL carrying query params', () => {
-    expect(
-      parseRoomInput('https://meet.example.com/rooms/ab3k-x9q2?hq=true'),
-    ).toBe('ab3k-x9q2')
+    expect(parseRoomInput('https://meet.example.com/ab3k-x9q2?hq=true')).toBe(
+      'ab3k-x9q2',
+    )
   })
 
   it('extracts the code from a URL carrying an E2EE hash', () => {
-    // Note: the passphrase in the hash is dropped by the caller today
-    // (audit CORRECT-02, fixed in plan 019). This asserts the parse step
-    // only; hash preservation is the navigation step's job.
-    expect(
-      parseRoomInput('https://meet.example.com/rooms/ab3k-x9q2#secret'),
-    ).toBe('ab3k-x9q2')
+    // The passphrase itself is carried by the navigation step, not this
+    // parser (see invitePartsFrom in home-actions).
+    expect(parseRoomInput('https://meet.example.com/ab3k-x9q2#secret')).toBe(
+      'ab3k-x9q2',
+    )
   })
 
   it('rejects empty input', () => {

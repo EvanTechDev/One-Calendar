@@ -7,22 +7,42 @@ import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { Switch } from '@zntr/ui/switch'
-import {
-  encodePassphrase,
-  generatePassphrase,
-  generateRoomId,
-} from '@/lib/meet-utils'
+import { toast } from 'sonner'
+import { encodePassphrase, generatePassphrase } from '@/lib/meet-utils'
+import { storeCreatorToken } from '@/lib/creator-token'
 
-/** Extracts a room id from raw input — accepts codes or full room URLs. */
+const ROOM_CODE_PATTERN = /^[a-z0-9]{4}-[a-z0-9]{4}$/
+
+/**
+ * Extracts a room code from raw input — a bare code, a root-path link
+ * (`/ab3k-x9q2`), or a legacy `/rooms/<code>` link.
+ */
 export function parseRoomInput(value: string): string | null {
   const trimmed = value.trim()
   if (!trimmed) return null
   try {
     const url = new URL(trimmed)
-    const match = url.pathname.match(/\/rooms\/([^/]+)/)
-    return match ? match[1] : null
+    const legacy = url.pathname.match(/\/rooms\/([^/]+)/)
+    const candidate = legacy
+      ? legacy[1]
+      : url.pathname.replace(/^\/+|\/+$/g, '')
+    return ROOM_CODE_PATTERN.test(candidate) ? candidate : null
   } catch {
-    return /^[\w-]+$/.test(trimmed) ? trimmed : null
+    return ROOM_CODE_PATTERN.test(trimmed) ? trimmed : null
+  }
+}
+
+/**
+ * The search and hash of a pasted invite link must survive the jump into
+ * the room: the hash carries the E2EE passphrase, and dropping it lands the
+ * user in an encrypted room without the key.
+ */
+function invitePartsFrom(value: string): { search: string; hash: string } {
+  try {
+    const url = new URL(value.trim())
+    return { search: url.search, hash: url.hash }
+  } catch {
+    return { search: '', hash: '' }
   }
 }
 
@@ -30,24 +50,52 @@ export function HomeActions() {
   const router = useRouter()
   const [joinCode, setJoinCode] = useState('')
   const [e2ee, setE2ee] = useState(false)
+  const [creating, setCreating] = useState(false)
 
-  const startMeeting = () => {
-    const roomId = generateRoomId()
-    const hash = e2ee ? `#${encodePassphrase(generatePassphrase())}` : ''
-    router.push(`/rooms/${roomId}${hash}`)
+  const startMeeting = async () => {
+    setCreating(true)
+    try {
+      const response = await fetch('/api/meetings', { method: 'POST' })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error ?? 'Could not start the meeting')
+      }
+      const { id, joinPath, creatorToken } = (await response.json()) as {
+        id: string
+        joinPath: string
+        creatorToken?: string
+      }
+      // A guest Organiser's authority lives in this token (ADR 0016).
+      if (creatorToken) storeCreatorToken(id, creatorToken)
+      const hash = e2ee ? `#${encodePassphrase(generatePassphrase())}` : ''
+      router.push(`${joinPath}${hash}`)
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Could not start the meeting',
+      )
+    } finally {
+      setCreating(false)
+    }
   }
 
   const joinMeeting = () => {
     const roomId = parseRoomInput(joinCode)
-    if (roomId) router.push(`/rooms/${roomId}`)
+    if (!roomId) return
+    const { search, hash } = invitePartsFrom(joinCode)
+    router.push(`/${roomId}${search}${hash}`)
   }
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <Button className="w-full" size="lg" onClick={startMeeting}>
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={startMeeting}
+          disabled={creating}
+        >
           <Video className="size-4" />
-          Start an instant meeting
+          {creating ? 'Starting…' : 'Start an instant meeting'}
         </Button>
         <div className="flex items-center justify-between rounded-lg border px-4 py-3">
           <div className="flex items-center gap-2">
