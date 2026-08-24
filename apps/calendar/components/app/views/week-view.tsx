@@ -792,7 +792,7 @@ export default function WeekView({
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md bg-muted/85 border border-muted-foreground/25 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
@@ -825,7 +825,7 @@ export default function WeekView({
                   return (
                     <div
                       data-create-selection
-                      className="absolute left-0 right-0 rounded-md bg-muted/85 border border-muted-foreground/25 pointer-events-none"
+                      className="absolute left-0 right-0 rounded-md bg-muted/40 border border-muted-foreground/20 pointer-events-none"
                       style={{
                         top: `${Math.min(startMinute, endMinute)}px`,
                         height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
