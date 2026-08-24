@@ -19,6 +19,8 @@ interface MeetingRoomProps {
   roomName: string
   /** Called when the user deliberately leaves, so a drop screen is skipped. */
   onLeaveIntent: () => void
+  /** False in encrypted rooms, where chat is never retained (ADR 0020). */
+  retainChat: boolean
 }
 
 /** Stable per-track key, also used as the focus identifier. */
@@ -26,7 +28,11 @@ function trackKey(track: TrackReferenceOrPlaceholder): string {
   return `${track.participant.identity}/${track.source}`
 }
 
-export function MeetingRoom({ roomName, onLeaveIntent }: MeetingRoomProps) {
+export function MeetingRoom({
+  roomName,
+  onLeaveIntent,
+  retainChat,
+}: MeetingRoomProps) {
   const [chatOpen, setChatOpen] = useState(false)
   const [pinnedKey, setPinnedKey] = useState<string | null>(null)
   useKeyboardShortcuts()
@@ -113,7 +119,13 @@ export function MeetingRoom({ roomName, onLeaveIntent }: MeetingRoomProps) {
             </VideoGrid>
           )}
         </div>
-        {chatOpen ? <ChatPanel onClose={() => setChatOpen(false)} /> : null}
+        {chatOpen ? (
+          <ChatPanel
+            onClose={() => setChatOpen(false)}
+            roomName={roomName}
+            retainMessages={retainChat}
+          />
+        ) : null}
       </div>
       <ControlBar
         roomName={roomName}

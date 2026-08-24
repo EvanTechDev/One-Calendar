@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useChat } from '@livekit/components-react'
+import { useChat, useLocalParticipant } from '@livekit/components-react'
 import { Send, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -34,8 +34,25 @@ function LinkifiedText({ text }: { text: string }) {
   return <>{parts}</>
 }
 
-export function ChatPanel({ onClose }: { onClose: () => void }) {
+interface ChatPanelProps {
+  onClose: () => void
+  /** The room this chat belongs to, for retention. */
+  roomName: string
+  /**
+   * Encrypted rooms never retain chat — the server would only ever see
+   * ciphertext, and pretending otherwise would weaken the E2EE promise
+   * (ADR 0020).
+   */
+  retainMessages: boolean
+}
+
+export function ChatPanel({
+  onClose,
+  roomName,
+  retainMessages,
+}: ChatPanelProps) {
   const { chatMessages, send } = useChat()
+  const { localParticipant } = useLocalParticipant()
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -51,6 +68,19 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       // Cleared only once the message is actually out, so a failed send
       // never silently swallows what the user typed.
       setDraft('')
+      if (retainMessages) {
+        // Best-effort: the live message already went through, so a failed
+        // retention post must not surface as a send failure.
+        void fetch(`/api/meetings/${roomName}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            senderIdentity: localParticipant.identity,
+            senderName: localParticipant.name || localParticipant.identity,
+          }),
+        }).catch(() => {})
+      }
     } catch {
       toast.error('Message failed to send')
     }
@@ -70,6 +100,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           <X className="size-4" />
         </Button>
       </div>
+      <p className="border-b px-4 py-2 text-xs text-muted-foreground">
+        {retainMessages
+          ? 'Messages are saved to this meeting’s history'
+          : 'Encrypted meeting — messages are not saved'}
+      </p>
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
         {chatMessages.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">

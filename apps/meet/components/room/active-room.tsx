@@ -227,6 +227,7 @@ export function ActiveRoom({
       <MeetingRoom
         roomName={connectionDetails.roomName}
         onLeaveIntent={markLeaving}
+        retainChat={!e2ee.enabled}
       />
     </RoomContext.Provider>
   )

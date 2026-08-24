@@ -29,3 +29,15 @@ export {
   verifyCreatorToken,
 } from './operations'
 export type { CreateMeetingInput } from './operations'
+export {
+  closeOpenAttendance,
+  closeSession,
+  getOpenSession,
+  listAttendance,
+  listChatMessages,
+  listSessions,
+  openSession,
+  recordJoin,
+  recordLeave,
+  retainChatMessage,
+} from './sessions'

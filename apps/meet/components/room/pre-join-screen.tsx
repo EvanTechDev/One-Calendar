@@ -228,6 +228,12 @@ export function PreJoinScreen({
               Room {roomName}
               {isE2ee ? ' · encrypted' : ''}
             </p>
+            {/* Say plainly what happens to chat either way (ADR 0020). */}
+            <p className="text-xs text-muted-foreground">
+              {isE2ee
+                ? 'End-to-end encrypted. Chat is not saved.'
+                : 'Chat messages are saved for this meeting.'}
+            </p>
           </div>
           <Input
             value={username}
