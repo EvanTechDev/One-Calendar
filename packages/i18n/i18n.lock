@@ -507,6 +507,8 @@ checksums:
     selectCalendar: 9bcc8c633d5971262e1fc1e9eb803280
     selectColor: 750cc55b9ef6db24629703f8e3126da9
     selectNotification: 3405815a2e2befdc69927b2ffafaa4a2
+    noReminder: 94b973a229c52b933f7cb670dffe7f07
+    emailReminder: 5daf3d1e379095813420803e2c0da040
     atEventTime: 3bc08df2f219f5f7970606320e0b9f03
     customTime: 1031938312c001d19ab8ca37d3e179d3
     customTimeMinutes: e482a4ab84fe4d0266822ec86b7e1859
@@ -921,3 +923,42 @@ checksums:
     disable2faFailed: 653c2c797a1e8eddeed2d6653cb60887
     twoFactorSetupVerified: 8fc0a43cc27cff5e0ad5e58d685f840f
     invalidOtpCode: 77025ce46fb4dbf24d78b4f785c63c26
+    deleteEventConfirmRecurring: 5f50bda0eaa952efe29251bb18609c45
+    repeatDeleteThisOccurrence: 13060dfff5ce4fc06b6d4de5e801c44c
+    repeatDeleteAllOccurrences: 5e04e4ec85166161f104ba4cd1b4df5a
+    repeatEveryIntervalHint: 19eb7952a22ee9dae91d189db1f9f244
+    repeatFrequencyDaily: 5574eee83ead295147d3a9ae2e62bb8c
+    repeatFrequencyMonthly: 818f1192e32bb855597f930d3e78806e
+    repeatFrequencyWeekly: 9e687411dbf1248496a4ae5dd5391679
+    repeatFrequencyYearly: 87f43e016c19cb25860f456549a2f431
+    repeatLabel: 276fb78c3c42a2eb30d20743fced859b
+    repeatMonthlyModeDay: 3cfe7c5dcb46e8a88ced2ae9539b0c86
+    repeatMonthlyModeWeekday: 8cc99abc8745e65da8c9425e21ece66f
+    repeatEnds: 89639c1e84d4029174995d4d627d875c
+    repeatEndNever: 975007d8aae7e3af47897721a6961be8
+    repeatEndCount: 9c5848662eb8024ddf360f7e4001a968
+    repeatEndUntil: 3c3d633ae963ae7e5682e54c69febb5d
+    repeatOccurrencesSuffix: c17f14695a3dad9653fd8bb8c77c47ed
+    repeatRule: a3fb311faf1830d073094ecfb13e964b
+    repeatRuleEditHint: 0c9c84f42bf911a27db202478316e8f4
+    repeatScope: 7b0a76f957f8b4c1b21dfe86eafdc692
+    moveEventScopeDescription: e2cbb0f8e254ca887f2891a3f4b219dc
+    repeatScopeSingle: 2a6037fd9adf6df95e6207d0eda010bd
+    repeatScopeFollowing: f4803a6f913b3521a419b2f6e1c2a108
+    repeatScopeAll: e73f270e452d8b42abc1ba6aceabe633
+    updateEventScopeDescription: 695e1dde03ab48dc288a29c611fc4305
+    participantScope: 09cd073a441b4b2c7894477e033ba800
+    participantScopeDescription: 3b6f978c264e32489136dd65046d3170
+    recurrenceEveryDays: 5ebaf758fa7d4ab1cba26548b089b56c
+    recurrenceEveryWeeks: 0b8cda05b7e32425fd2cee360fb6c2a7
+    recurrenceEveryMonths: ac781577dede7bc07f9fef10600b05eb
+    recurrenceEveryYears: a67cfd0481a9c6680d7e9b17597e7eaf
+    recurrenceNthWeek: fbb7826c2ce1b04e60a48aad23c40d52
+    recurrenceLastWeek: d273a9651c8d697470c326a76cece10d
+    recurrenceUntilSuffix: e44243188710c72174d493636c3cb6fe
+    recurrenceCountSuffix: 1a934014bb41df59b33a7fe9ec11c320
+    recurrenceLastDay: 7cc5136709feb07e3810b99195e58d9b
+    recurrenceYearlyMonth: 52891c567abccd1ea2536ab1d1e1c5c0
+    copyInviteLink: 181840a28f41caec62936fe6f8c4a80d
+    inviteLinkCopied: 4046f23a78e1cd5166671c3fb8a7ea6e
+    shortcutsDialogDesc: bc64d08698a52657c94343dd87505b10
