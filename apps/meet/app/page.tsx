@@ -1,0 +1,43 @@
+import { getServerSession } from '@/lib/auth/server'
+import { HomeActions } from '@/components/home-actions'
+
+export default async function HomePage() {
+  const session = await getServerSession()
+
+  return (
+    <main className="flex min-h-dvh flex-col">
+      <header className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
+            M
+          </div>
+          <span className="text-sm font-medium">One Meet</span>
+        </div>
+        {session ? (
+          <span className="text-sm text-muted-foreground">
+            {session.user.name}
+          </span>
+        ) : null}
+      </header>
+
+      <section className="flex flex-1 items-center justify-center px-6">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-2 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Meetings for your calendar
+            </h1>
+            <p className="text-muted-foreground">
+              Start an instant meeting or join with a code. No downloads
+              required.
+            </p>
+          </div>
+          <HomeActions />
+        </div>
+      </section>
+
+      <footer className="px-6 py-4 text-center text-xs text-muted-foreground">
+        Part of the One Calendar suite
+      </footer>
+    </main>
+  )
+}
