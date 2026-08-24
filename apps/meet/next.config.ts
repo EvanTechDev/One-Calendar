@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // The room UI carries mic/camera/screen-share controls; framing it
+          // elsewhere would let a hostile page trick users into clicking them.
+          { key: 'X-Frame-Options', value: 'DENY' },
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
