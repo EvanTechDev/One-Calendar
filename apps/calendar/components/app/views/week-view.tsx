@@ -86,7 +86,7 @@ export default function WeekView({
       )
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const gridTemplateColumns = `100px repeat(${weekDays.length}, minmax(0, 1fr))`
+  const gridTemplateColumns = `72px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
@@ -560,7 +560,9 @@ export default function WeekView({
 
         {allDayRowHeight > 0 && (
           <div className="grid" style={{ gridTemplateColumns }}>
-            <div />
+            <div className="relative text-sm text-muted-foreground">
+              <span className="absolute right-4 top-0">{t.allDay}</span>
+            </div>
             <div
               className="relative"
               style={{
@@ -568,6 +570,16 @@ export default function WeekView({
                 gridColumn: `span ${weekDays.length} / span ${weekDays.length}`,
               }}
             >
+              {/* Per-day vertical dividers, matching the time grid below */}
+              {weekDays.map((day, index) => (
+                <div
+                  key={`allday-divider-${day.toString()}`}
+                  className="absolute bottom-0 top-0 border-l"
+                  style={{
+                    left: `calc(${index} / ${weekDays.length} * 100%)`,
+                  }}
+                />
+              ))}
               {renderAllDaySegments()}
             </div>
           </div>
@@ -759,14 +771,14 @@ export default function WeekView({
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                  <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                     {formatSelectionRange(
                       createSelection.startMinute,
                       createSelection.endMinute,
@@ -792,14 +804,14 @@ export default function WeekView({
                   return (
                     <div
                       data-create-selection
-                      className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
+                      className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
                       style={{
                         top: `${Math.min(startMinute, endMinute)}px`,
                         height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
                         zIndex: 5,
                       }}
                     >
-                      <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                      <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                         {formatSelectionRange(
                           startMinute,
                           endMinute,

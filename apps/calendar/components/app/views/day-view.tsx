@@ -407,15 +407,16 @@ export default function DayView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[100px_1fr] border-b relative z-30 bg-background">
-        <div className="py-2 text-center">
+      <div className="grid grid-cols-[72px_1fr] border-b relative z-30 bg-background">
+        <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}
           </div>
           <div
             className={cn(
-              'text-3xl font-semibold text-foreground',
-              isSameDay(date, new Date()) && 'font-bold',
+              'mx-auto flex h-6 w-6 items-center justify-center text-sm',
+              isSameDay(date, new Date()) &&
+                'rounded-md bg-cal-today text-cal-today-foreground',
             )}
           >
             {format(date, 'd')}
@@ -458,7 +459,7 @@ export default function DayView({
       </div>
 
       <div
-        className="flex-1 grid grid-cols-[100px_1fr] overflow-auto select-none"
+        className="flex-1 grid grid-cols-[72px_1fr] overflow-auto select-none"
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground">
@@ -517,14 +518,14 @@ export default function DayView({
           {createSelection && (
             <div
               data-create-selection
-              className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
+              className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
               style={{
                 top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                 height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                 zIndex: 5,
               }}
             >
-              <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+              <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                 {formatSelectionRange(
                   createSelection.startMinute,
                   createSelection.endMinute,
@@ -549,14 +550,14 @@ export default function DayView({
               return (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
                   style={{
                     top: `${Math.min(startMinute, endMinute)}px`,
                     height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                  <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">
                     {formatSelectionRange(startMinute, endMinute, (hour, min) =>
                       layoutEngine.formatHourMinute(hour, min),
                     )}
