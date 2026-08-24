@@ -86,7 +86,7 @@ export default function WeekView({
       )
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const gridTemplateColumns = `72px repeat(${weekDays.length}, minmax(0, 1fr))`
+  const gridTemplateColumns = `84px repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
@@ -561,7 +561,7 @@ export default function WeekView({
         {allDayRowHeight > 0 && (
           <div className="grid" style={{ gridTemplateColumns }}>
             <div className="relative text-sm text-muted-foreground">
-              <span className="absolute right-4 top-0">{t.allDay}</span>
+              <span className="absolute right-3 top-0">{t.allDay}</span>
             </div>
             <div
               className="relative"
@@ -596,7 +596,7 @@ export default function WeekView({
             <div key={hour} className="h-[60px] relative border-gray-200">
               <span
                 className={cn(
-                  'absolute right-4',
+                  'absolute right-3',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >

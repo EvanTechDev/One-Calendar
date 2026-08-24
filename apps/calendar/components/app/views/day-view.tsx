@@ -407,7 +407,7 @@ export default function DayView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[72px_1fr] border-b relative z-30 bg-background">
+      <div className="grid grid-cols-[84px_1fr] border-b relative z-30 bg-background">
         <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}
@@ -459,7 +459,7 @@ export default function DayView({
       </div>
 
       <div
-        className="flex-1 grid grid-cols-[72px_1fr] overflow-auto select-none"
+        className="flex-1 grid grid-cols-[84px_1fr] overflow-auto select-none"
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground">
@@ -467,7 +467,7 @@ export default function DayView({
             <div key={hour} className="h-[60px] relative">
               <span
                 className={cn(
-                  'absolute right-4',
+                  'absolute right-3',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >
