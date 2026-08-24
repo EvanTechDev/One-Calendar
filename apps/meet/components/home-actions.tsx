@@ -14,7 +14,7 @@ import {
 } from '@/lib/meet-utils'
 
 /** Extracts a room id from raw input — accepts codes or full room URLs. */
-function parseRoomInput(value: string): string | null {
+export function parseRoomInput(value: string): string | null {
   const trimmed = value.trim()
   if (!trimmed) return null
   try {

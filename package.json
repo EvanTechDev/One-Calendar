@@ -20,6 +20,8 @@
     "tc:auth": "pnpm --filter @zntr/auth type-check",
     "test:calendar": "pnpm --filter zentra-calendar test",
     "test:calendar:watch": "pnpm --filter zentra-calendar test:watch",
+    "test:meet": "pnpm --filter zentra-meet test",
+    "test:meet:watch": "pnpm --filter zentra-meet test:watch",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
     "format": "prettier . --write --ignore-path config/.prettierignore",
