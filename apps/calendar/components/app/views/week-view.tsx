@@ -558,50 +558,53 @@ export default function WeekView({
         className="relative z-30 bg-background border-b"
         style={{ paddingRight: scrollbarWidth + 'px' }}
       >
-        <div className="grid divide-x" style={{ gridTemplateColumns }}>
-          <div />
-          {weekDays.map((day) => (
-            <div key={day.toString()} className="p-2 text-center">
-              <div>{t.weekdays[day.getDay()]}</div>
-              <div
-                className={cn(
-                  'mx-auto flex h-6 w-6 items-center justify-center text-sm',
-                  isSameDay(day, today) &&
-                    'rounded-md bg-cal-today text-cal-today-foreground',
-                )}
-              >
-                {format(day, 'd')}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {allDayRowHeight > 0 && (
-          <div className="grid" style={{ gridTemplateColumns }}>
+        {/* One grid holds both the weekday header and the all-day area, so
+            the divide-x lines run through both and always match. */}
+        <div className="relative">
+          <div className="grid divide-x" style={{ gridTemplateColumns }}>
             <div className="relative text-sm text-muted-foreground">
-              <span className="absolute right-3 top-0">{t.allDay}</span>
+              {allDayRowHeight > 0 && (
+                <span
+                  className="absolute right-3"
+                  style={{ bottom: allDayRowHeight - 20 + 'px' }}
+                >
+                  {t.allDay}
+                </span>
+              )}
             </div>
+            {weekDays.map((day) => (
+              <div key={day.toString()}>
+                <div className="p-2 text-center">
+                  <div>{t.weekdays[day.getDay()]}</div>
+                  <div
+                    className={cn(
+                      'mx-auto flex h-6 w-6 items-center justify-center text-sm',
+                      isSameDay(day, today) &&
+                        'rounded-md bg-cal-today text-cal-today-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </div>
+                </div>
+                {allDayRowHeight > 0 && (
+                  <div style={{ height: allDayRowHeight + 'px' }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {allDayRowHeight > 0 && (
             <div
-              className="relative"
+              className="absolute bottom-0 right-0"
               style={{
+                left: TIME_GUTTER_WIDTH + 'px',
                 height: allDayRowHeight + 'px',
-                gridColumn: `span ${weekDays.length} / span ${weekDays.length}`,
               }}
             >
-              {/* Per-day vertical dividers, matching the time grid below */}
-              {weekDays.map((day, index) => (
-                <div
-                  key={`allday-divider-${day.toString()}`}
-                  className="absolute bottom-0 top-0 border-l"
-                  style={{
-                    left: `calc(${index} / ${weekDays.length} * 100%)`,
-                  }}
-                />
-              ))}
               {renderAllDaySegments()}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div
@@ -789,7 +792,7 @@ export default function WeekView({
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md bg-muted/85 border border-muted-foreground/25 pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
@@ -822,7 +825,7 @@ export default function WeekView({
                   return (
                     <div
                       data-create-selection
-                      className="absolute left-0 right-0 rounded-md bg-muted/60 border border-muted-foreground/25 pointer-events-none"
+                      className="absolute left-0 right-0 rounded-md bg-muted/85 border border-muted-foreground/25 pointer-events-none"
                       style={{
                         top: `${Math.min(startMinute, endMinute)}px`,
                         height: `${Math.max(Math.abs(endMinute - startMinute), 15)}px`,
