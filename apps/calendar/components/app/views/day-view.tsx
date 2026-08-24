@@ -15,7 +15,10 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
-import { EventRenderer } from '@/components/app/views/event-renderer'
+import {
+  EventRenderer,
+  AllDayEventRenderer,
+} from '@/components/app/views/event-renderer'
 import { useEventFilter } from '@/hooks/use-event-filter'
 import { useEventResize } from '@/hooks/use-event-resize'
 
@@ -431,17 +434,11 @@ export default function DayView({
             className="relative"
             style={{ height: allDayEventsHeight + 'px' }}
           >
-            {allDayEvents.map((event, _index) => (
-              <EventRenderer
+            {allDayEvents.map((event, index) => (
+              <AllDayEventRenderer
                 key={`allday-${event.id}`}
                 event={event}
-                layout={{
-                  start: new Date(event.startDate),
-                  end: new Date(event.endDate),
-                  column: 0,
-                  totalColumns: 1,
-                  isMultiDay: false,
-                }}
+                index={index}
                 config={config}
                 isDark={isDark}
                 onEventClick={onEventClick}
@@ -454,7 +451,7 @@ export default function DayView({
                 ignoreNextEventClickRef={ignoreNextEventClickRef}
                 isDraggingRef={isDraggingRef}
                 queueIgnoreEventClick={queueIgnoreEventClick}
-                showTime={false}
+                eventSpacing={eventSpacing}
               />
             ))}
           </div>
@@ -488,35 +485,37 @@ export default function DayView({
             <div key={hour} className="h-[60px] border-t" />
           ))}
 
-          {eventLayouts.map(({ event, start, end, column, totalColumns }) => (
-            <EventRenderer
-              key={event.id}
-              event={event}
-              layout={{ start, end, column, totalColumns, isMultiDay: false }}
-              config={config}
-              isDark={isDark}
-              onEventClick={onEventClick}
-              onEditEvent={onEditEvent}
-              onDeleteEvent={onDeleteEvent}
-              onBookmarkEvent={onBookmarkEvent}
-              onEventDragStart={handleEventDragStart}
-              onEventDragEnd={handleEventDragEnd}
-              onEventResizeStart={beginResize}
-              resizeOverride={
-                resize?.event.id === event.id
-                  ? {
-                      startMinutes: resize.liveStart,
-                      endMinutes: resize.liveEnd,
-                    }
-                  : null
-              }
-              suppressResizeClickRef={suppressResizeClickRef}
-              isDragging={isDraggingRef.current}
-              ignoreNextEventClickRef={ignoreNextEventClickRef}
-              isDraggingRef={isDraggingRef}
-              queueIgnoreEventClick={queueIgnoreEventClick}
-            />
-          ))}
+          {eventLayouts.map(
+            ({ event, start, end, column, totalColumns, isMultiDay }) => (
+              <EventRenderer
+                key={event.id}
+                event={event}
+                layout={{ start, end, column, totalColumns, isMultiDay }}
+                config={config}
+                isDark={isDark}
+                onEventClick={onEventClick}
+                onEditEvent={onEditEvent}
+                onDeleteEvent={onDeleteEvent}
+                onBookmarkEvent={onBookmarkEvent}
+                onEventDragStart={handleEventDragStart}
+                onEventDragEnd={handleEventDragEnd}
+                onEventResizeStart={beginResize}
+                resizeOverride={
+                  resize?.event.id === event.id
+                    ? {
+                        startMinutes: resize.liveStart,
+                        endMinutes: resize.liveEnd,
+                      }
+                    : null
+                }
+                suppressResizeClickRef={suppressResizeClickRef}
+                isDragging={isDraggingRef.current}
+                ignoreNextEventClickRef={ignoreNextEventClickRef}
+                isDraggingRef={isDraggingRef}
+                queueIgnoreEventClick={queueIgnoreEventClick}
+              />
+            ),
+          )}
 
           {createSelection && (
             <div

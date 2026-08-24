@@ -5,7 +5,6 @@ import type { CalendarEvent } from '@/components/app/calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
 import type { LayoutEvent } from '@/components/app/views/event-layout-engine'
-import { isSameDay, isWithinInterval } from 'date-fns'
 
 interface UseEventFilterOptions {
   events: CalendarEvent[]
@@ -33,26 +32,12 @@ export function useEventFilter({
   const getDayEvents = useMemo(
     () =>
       (date: Date): CalendarEvent[] => {
-        return events.filter((event) => {
-          const start = new Date(event.startDate)
-          const end = new Date(event.endDate)
-
-          if (!layoutEngine.isAllDayEvent(event)) {
-            if (isSameDay(start, date)) return true
-
-            if (layoutEngine.isMultiDayEvent(start, end)) {
-              return isWithinInterval(date, { start, end })
-            }
-
-            return false
-          }
-
-          if (layoutEngine.isMultiDayEvent(start, end)) {
-            return isSameDay(start, date)
-          }
-
-          return isSameDay(start, date)
-        })
+        // Single source of truth: the engine's day filter, which shows
+        // banner events (all-day and full-day-spanning timed events) on
+        // every day they cover.
+        return events.filter((event) =>
+          layoutEngine.shouldShowEventOnDay(event, date),
+        )
       },
     [events, layoutEngine],
   )
