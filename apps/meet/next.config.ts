@@ -4,7 +4,12 @@ const nextConfig: NextConfig = {
   // Room connection is managed imperatively; double-invoked effects under
   // strict mode cause connect/disconnect churn.
   reactStrictMode: false,
-  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/auth'],
+  transpilePackages: [
+    '@zntr/ui',
+    '@zntr/utils',
+    '@zntr/auth',
+    '@zntr/meetings',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },

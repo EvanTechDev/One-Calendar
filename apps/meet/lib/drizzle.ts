@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { authSchema } from '@zntr/auth'
+import { meetingsSchema } from '@zntr/meetings'
 
 let _db: ReturnType<typeof drizzle> | null = null
 
@@ -12,7 +13,7 @@ export function getDb() {
       prepare: false,
       ssl: 'require',
     })
-    _db = drizzle(client, { schema: authSchema })
+    _db = drizzle(client, { schema: { ...authSchema, ...meetingsSchema } })
   }
   return _db
 }

@@ -17,6 +17,7 @@
     "@livekit/krisp-noise-filter": "0.4.4",
     "@livekit/track-processors": "^0.7.2",
     "@zntr/auth": "workspace:*",
+    "@zntr/meetings": "workspace:*",
     "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",
     "bcryptjs": "latest",

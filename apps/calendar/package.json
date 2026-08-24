@@ -26,6 +26,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/mdx": "^2.0.13",
     "@zntr/auth": "workspace:*",
+    "@zntr/meetings": "workspace:*",
     "@zntr/i18n": "workspace:*",
     "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",

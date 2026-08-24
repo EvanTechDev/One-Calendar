@@ -21,7 +21,13 @@ const getGitCommit = () => {
 }
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/i18n', '@zntr/auth'],
+  transpilePackages: [
+    '@zntr/ui',
+    '@zntr/utils',
+    '@zntr/i18n',
+    '@zntr/auth',
+    '@zntr/meetings',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },

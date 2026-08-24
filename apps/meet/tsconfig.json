@@ -9,6 +9,8 @@
       "@zntr/utils": ["../../packages/utils/src/index.ts"],
       "@zntr/utils/*": ["../../packages/utils/src/*"],
       "@zntr/auth": ["../../packages/auth/src/index.ts"],
+      "@zntr/meetings": ["../../packages/meetings/src/index.ts"],
+      "@zntr/meetings/*": ["../../packages/meetings/src/*"],
       "@zntr/auth/*": ["../../packages/auth/src/*"]
     },
     "plugins": [{ "name": "next" }]
