@@ -115,7 +115,7 @@ describe('MonthView', () => {
   it('highlights today', () => {
     const today = new Date()
     const { container } = renderMonthView({ date: today })
-    const todayElement = container.querySelector('.border-cal-accent')
+    const todayElement = container.querySelector('.bg-cal-today')
     expect(todayElement).toBeTruthy()
   })
 
@@ -243,20 +243,6 @@ describe('MonthView', () => {
     })
     const bars = container.querySelectorAll('[data-event-id="cross"]')
     expect(bars).toHaveLength(2)
-  })
-
-  it('shows a timed event with a colored dot and its start time', () => {
-    const events = [
-      createEvent({
-        id: 'dot',
-        title: 'Dotted',
-        startDate: new Date(2025, 0, 15, 16, 0),
-        endDate: new Date(2025, 0, 15, 17, 0),
-      }),
-    ]
-    renderMonthView({ date: new Date(2025, 0, 15), events })
-    expect(screen.getByText('16:00')).toBeInTheDocument()
-    expect(screen.getByText('Dotted')).toBeInTheDocument()
   })
 
   it('handles different languages', () => {

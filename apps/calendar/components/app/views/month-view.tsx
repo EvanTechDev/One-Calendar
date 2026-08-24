@@ -18,13 +18,13 @@ import {
   EVENT_BG_TO_DARK,
   DEFAULT_ACCENT,
   getEventAccentColor,
+  getEventBackgroundColor,
 } from '@/lib/event-colors'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   isAllDayEvent,
   shouldShowEventOnDay,
   layoutAllDaySegments,
-  formatHourMinute,
 } from '@/components/app/views/event-layout-engine'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
@@ -56,13 +56,13 @@ interface MonthViewProps {
 }
 
 /** Height of the day-number block at the top of each cell, in px. */
-const DAY_NUMBER_BLOCK_HEIGHT = 40
-/** Height of one all-day bar, in px. */
+const DAY_NUMBER_BLOCK_HEIGHT = 36
+/** Height of one all-day bar, in px (matches single-day event blocks). */
 const ALL_DAY_BAR_HEIGHT = 24
 /** Vertical gap between stacked all-day bars, in px. */
 const ALL_DAY_BAR_GAP = 4
 /** Horizontal inset of a bar end that does not continue past the row, px. */
-const ALL_DAY_BAR_INSET = 4
+const ALL_DAY_BAR_INSET = 8
 
 export default function MonthView({
   date,
@@ -147,21 +147,11 @@ export default function MonthView({
     >
       <div className="flex min-h-full flex-col">
         <div className="grid grid-cols-7">
-          {orderedDays.map((day, index) => {
-            const weekdayValue = (firstDayOfWeek.value + index) % 7
-            const isTodayColumn = today.getDay() === weekdayValue
-            return (
-              <div
-                key={day}
-                className={cn(
-                  'py-2 text-center text-sm font-medium',
-                  isTodayColumn && 'text-cal-accent',
-                )}
-              >
-                {day}
-              </div>
-            )
-          })}
+          {orderedDays.map((day) => (
+            <div key={day} className="text-center font-medium text-sm py-2">
+              {day}
+            </div>
+          ))}
         </div>
 
         {weeks.map((week) => {
@@ -199,23 +189,23 @@ export default function MonthView({
                       ? { 'data-create-selection': true }
                       : {})}
                     className={cn(
-                      'min-h-[110px] pb-1',
+                      'min-h-[100px] p-2',
                       dayIndex < 6 && 'border-r',
                       isCreateTarget &&
                         'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
                     )}
                   >
                     <div
-                      className="flex items-start justify-center pt-2"
-                      style={{ height: DAY_NUMBER_BLOCK_HEIGHT + 'px' }}
+                      className="flex items-center"
+                      style={{ height: DAY_NUMBER_BLOCK_HEIGHT - 12 + 'px' }}
                     >
                       <span
                         className={cn(
-                          'text-sm font-medium',
+                          'font-medium text-sm',
                           isSameMonth(day, date) ? '' : 'text-gray-400',
                           isSameMonth(day, date) &&
                             isSameDay(day, today) &&
-                            'inline-flex h-7 min-w-7 items-center justify-center rounded-lg border-2 border-cal-accent px-1 font-semibold text-cal-accent',
+                            'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
                         )}
                       >
                         {format(day, 'd')}
@@ -227,57 +217,56 @@ export default function MonthView({
                       <div style={{ height: lanesHeight + 'px' }} />
                     )}
 
-                    <div className="space-y-0.5 px-1.5">
-                      {visibleEvents.map((event) => {
-                        // Multi-day timed events show 00:00 on days after
-                        // their start day (clipped to the current day).
-                        const eventStart = new Date(event.startDate)
-                        const startsToday = isSameDay(eventStart, day)
-                        const startHour = startsToday
-                          ? eventStart.getHours()
-                          : 0
-                        const startMinute = startsToday
-                          ? eventStart.getMinutes()
-                          : 0
-                        return (
+                    <div className="space-y-1">
+                      {visibleEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          data-event-id={event.id}
+                          className={cn(
+                            'relative text-xs truncate rounded-sm p-1 cursor-pointer text-white',
+                            event.color,
+                          )}
+                          onClick={(e) =>
+                            onEventClick(
+                              event,
+                              e.currentTarget as HTMLElement,
+                              e.clientX,
+                              e.clientY,
+                            )
+                          }
+                          style={{
+                            opacity: 1,
+                            backgroundColor: isDark
+                              ? EVENT_BG_TO_DARK[event.color]
+                              : undefined,
+                          }}
+                        >
                           <div
-                            key={event.id}
-                            data-event-id={event.id}
-                            className="flex cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-xs hover:bg-muted/60"
-                            onClick={(e) =>
-                              onEventClick(
-                                event,
-                                e.currentTarget as HTMLElement,
-                                e.clientX,
-                                e.clientY,
-                              )
-                            }
+                            className={cn(
+                              'absolute left-0 top-0 w-1 h-full rounded-l-sm',
+                            )}
+                            style={{
+                              backgroundColor:
+                                EVENT_BG_TO_ACCENT[event.color] ??
+                                DEFAULT_ACCENT,
+                            }}
+                          />
+                          <div
+                            className="pl-1.5 truncate"
+                            style={{
+                              color:
+                                EVENT_BG_TO_ACCENT[event.color] ??
+                                DEFAULT_ACCENT,
+                            }}
                           >
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: getEventAccentColor(
-                                  event.color,
-                                ),
-                              }}
-                            />
-                            <span className="shrink-0 text-muted-foreground">
-                              {formatHourMinute(
-                                startHour,
-                                startMinute,
-                                config.timeFormat,
-                              )}
-                            </span>
-                            <span className="truncate font-medium text-muted-foreground">
-                              {event.title}
-                            </span>
+                            {event.title}
                           </div>
-                        )
-                      })}
+                        </div>
+                      ))}
                       {remainingCount > 0 && (
                         <button
                           type="button"
-                          className="px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                           onClick={(e) =>
                             handleRemainingClick(e, day, timedEvents.slice(3))
                           }
@@ -304,7 +293,8 @@ export default function MonthView({
                     key={`allday-${event.id}`}
                     data-event-id={event.id}
                     className={cn(
-                      'absolute flex cursor-pointer items-center overflow-hidden rounded-md px-2 text-xs font-medium text-white',
+                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs',
+                      event.color,
                       segment.continuesLeft && 'rounded-l-none',
                       segment.continuesRight && 'rounded-r-none',
                     )}
@@ -316,7 +306,10 @@ export default function MonthView({
                       left: `calc(${startIndex} / 7 * 100% + ${leftInset}px)`,
                       width: `calc(${span} / 7 * 100% - ${leftInset + rightInset}px)`,
                       height: ALL_DAY_BAR_HEIGHT + 'px',
-                      backgroundColor: getEventAccentColor(event.color),
+                      backgroundColor: getEventBackgroundColor(
+                        event.color,
+                        isDark,
+                      ),
                       zIndex: 10 + lane,
                     }}
                     onClick={(e) => {
@@ -329,7 +322,20 @@ export default function MonthView({
                       )
                     }}
                   >
-                    <span className="truncate">{event.title}</span>
+                    {!segment.continuesLeft && (
+                      <div
+                        className="absolute left-0 top-0 w-1 h-full rounded-l-sm"
+                        style={{
+                          backgroundColor: getEventAccentColor(event.color),
+                        }}
+                      />
+                    )}
+                    <div
+                      className="pl-1.5 truncate"
+                      style={{ color: getEventAccentColor(event.color) }}
+                    >
+                      {event.title}
+                    </div>
                   </div>
                 )
               })}

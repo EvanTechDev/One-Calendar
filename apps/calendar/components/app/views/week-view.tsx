@@ -391,9 +391,9 @@ export default function WeekView({
     setCreateSelection({ dayIndex, startMinute, endMinute: startMinute })
   }
 
-  const ALL_DAY_BAR_HEIGHT = 22
-  const ALL_DAY_BAR_GAP = 3
-  const ALL_DAY_BAR_INSET = 4
+  const ALL_DAY_BAR_HEIGHT = 20
+  const ALL_DAY_BAR_GAP = 2
+  const ALL_DAY_BAR_INSET = 2
 
   const allDaySegments = layoutAllDaySegments(
     events.filter((event) => isAllDayEvent(event)),
@@ -420,7 +420,8 @@ export default function WeekView({
           key={`allday-${event.id}`}
           data-event-id={event.id}
           className={cn(
-            'absolute flex cursor-pointer items-center overflow-hidden rounded-md px-2 text-xs font-medium text-white',
+            'absolute rounded-md p-1 text-xs cursor-pointer overflow-hidden',
+            event.color,
             segment.continuesLeft && 'rounded-l-none',
             segment.continuesRight && 'rounded-r-none',
           )}
@@ -429,7 +430,8 @@ export default function WeekView({
             left: `calc(${startIndex} / ${weekDays.length} * 100% + ${leftInset}px)`,
             width: `calc(${span} / ${weekDays.length} * 100% - ${leftInset + rightInset}px)`,
             height: ALL_DAY_BAR_HEIGHT + 'px',
-            backgroundColor: getEventAccentColor(event.color),
+            opacity: isDark ? 1 : 0.9,
+            backgroundColor: getEventBackgroundColor(event.color, isDark),
             zIndex: 10 + lane,
           }}
           onMouseDown={(e) => handleEventDragStart(event, e)}
@@ -453,7 +455,18 @@ export default function WeekView({
             }
           }}
         >
-          <span className="truncate">{event.title}</span>
+          {!segment.continuesLeft && (
+            <div
+              className={cn('absolute left-0 top-0 w-1 h-full rounded-l-sm')}
+              style={{ backgroundColor: getEventAccentColor(event.color) }}
+            />
+          )}
+          <div
+            className="pl-1.5 truncate"
+            style={{ color: getEventAccentColor(event.color) }}
+          >
+            {event.title}
+          </div>
         </div>
       )
     })
