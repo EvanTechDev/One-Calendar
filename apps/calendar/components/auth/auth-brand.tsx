@@ -9,13 +9,13 @@ export function AuthBrand() {
       <span className="flex size-6 items-center justify-center rounded-md bg-primary/15 text-primary">
         <Image
           src="/icon.svg"
-          alt="One Calendar"
+          alt="Zentra Calendar"
           width={16}
           height={16}
           className="size-4"
         />
       </span>
-      <span>One Calendar</span>
+      <span>Zentra Calendar</span>
     </a>
   )
 }

@@ -1,4 +1,4 @@
-# One Calendar — Agent Guide
+# Zentra Calendar — Agent Guide
 
 ## Monorepo structure
 
@@ -6,7 +6,7 @@ pnpm workspace + Turborepo. Package manager: `pnpm@11.5.2`.
 
 ```
 apps/
-  calendar/        Next.js 16 web app (one-calendar) — main product
+  calendar/        Next.js 16 web app (zentra-calendar) — main product
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
@@ -26,7 +26,7 @@ packages/
 | `pnpm type-check` | `tsc --noEmit` across all packages            |
 | `pnpm test`       | `vitest run` across all packages              |
 
-Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter one-calendar dev`.
+Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter zentra-calendar dev`.
 
 Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (build + type-check for one app).
 
@@ -43,7 +43,7 @@ TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — b
 ## Testing
 
 Vitest (jsdom). Setup: `apps/calendar/vitest-setup.ts` loads `@testing-library/jest-dom/vitest`.  
-Run single file: `pnpm --filter one-calendar vitest run ../../tests/calendar/path/to/test`.  
+Run single file: `pnpm --filter zentra-calendar vitest run ../../tests/calendar/path/to/test`.  
 Tests live in top-level `tests/calendar/` mirrors of source directories (`engine/`, `hooks/`, `lib/`, `providers/`, `views/`).
 
 ## i18n

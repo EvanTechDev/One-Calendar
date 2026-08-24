@@ -154,7 +154,7 @@ export function generateICSFile(events: IcsEvent[]): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Zentra//One Calendar//EN',
+    'PRODID:-//Zentra//Zentra Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     // Blank lines group related properties and separate events. Parsers ignore

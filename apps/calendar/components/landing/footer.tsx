@@ -52,7 +52,7 @@ export function Footer() {
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1000 1000"
             preserveAspectRatio="xMidYMid meet"
-            aria-label="One Calendar"
+            aria-label="Zentra Calendar"
             role="img"
             className="text-white h-9 w-9"
           >

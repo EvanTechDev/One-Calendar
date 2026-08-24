@@ -1,6 +1,6 @@
 # calendar-client (Tauri shell)
 
-Desktop shell around the hosted One Calendar web app
+Desktop shell around the hosted Zentra Calendar web app
 (`https://calendar.xyehr.cn/app`). Windows are created in
 `tauri.conf.json`; `src/lib.rs` only attaches the navigation allowlist.
 

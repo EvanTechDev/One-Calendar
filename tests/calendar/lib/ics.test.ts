@@ -104,7 +104,7 @@ describe('generateICSFile', () => {
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true)
     for (const line of [
       'VERSION:2.0',
-      'PRODID:-//Zentra//One Calendar//EN',
+      'PRODID:-//Zentra//Zentra Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'UID:evt-1@zentra-calendar',
@@ -260,7 +260,7 @@ describe('parseICS', () => {
     const reference = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Zentra//One Calendar//EN',
+      'PRODID:-//Zentra//Zentra Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'BEGIN:VEVENT',

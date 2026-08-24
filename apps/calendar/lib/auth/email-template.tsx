@@ -68,7 +68,7 @@ function AuthEmailTemplate({
               <Column style={{ verticalAlign: 'middle' }}>
                 <Img
                   src={`${baseUrl}/icon.svg`}
-                  alt="One Calendar"
+                  alt="Zentra Calendar"
                   width={23}
                   height={23}
                   style={{ display: 'block' }}
@@ -85,7 +85,7 @@ function AuthEmailTemplate({
                     margin: 0,
                   }}
                 >
-                  One Calendar
+                  Zentra Calendar
                 </Text>
               </Column>
             </Row>
@@ -102,7 +102,7 @@ function AuthEmailTemplate({
           >
             <Img
               src={`${baseUrl}/icon.svg`}
-              alt="One Calendar"
+              alt="Zentra Calendar"
               width={48}
               height={48}
               style={{ display: 'block', margin: '0 auto 20px' }}
@@ -256,7 +256,7 @@ function AuthEmailTemplate({
                 margin: 0,
               }}
             >
-              © {new Date().getFullYear()} One Calendar
+              © {new Date().getFullYear()} Zentra Calendar
             </Text>
           </Section>
         </Container>

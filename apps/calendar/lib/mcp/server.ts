@@ -187,7 +187,7 @@ function withAuditedTools(server: McpServer): McpServer {
 
 export function createServer(): McpServer {
   const server = new McpServer(
-    { name: 'One Calendar MCP', version: '1.0.0' },
+    { name: 'Zentra Calendar MCP', version: '1.0.0' },
     { capabilities: { tools: {} } },
   )
 

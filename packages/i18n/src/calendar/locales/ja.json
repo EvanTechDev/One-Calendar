@@ -43,7 +43,7 @@
   "settingsGeneral": "一般設定",
   "settingsGeneralDesc": "カレンダーの外観、言語、動作。",
   "settingsThemeDesc": "アプリの見た目を選択します。",
-  "settingsLanguageDesc": "One Calendarで使用する言語を選択します。",
+  "settingsLanguageDesc": "Zentra Calendarで使用する言語を選択します。",
   "settingsFirstDayDesc": "カレンダーの週を開始する曜日を選択します。",
   "settingsDefaultViewDesc": "カレンダーを開いたときに表示されるビュー。",
   "settingsTimezoneDesc": "日時はこのタイムゾーンで表示されます。",

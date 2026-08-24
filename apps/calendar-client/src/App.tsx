@@ -3,7 +3,7 @@ import './App.css'
 function App() {
   return (
     <main className="container">
-      <h1>One Calendar</h1>
+      <h1>Zentra Calendar</h1>
     </main>
   )
 }

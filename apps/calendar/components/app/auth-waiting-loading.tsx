@@ -28,7 +28,7 @@ export default function AuthWaitingLoading() {
           height="136"
           viewBox="0 0 1000 1000"
           preserveAspectRatio="xMidYMid meet"
-          aria-label="One Calendar"
+          aria-label="Zentra Calendar"
           role="img"
           className="text-black dark:text-white"
         >

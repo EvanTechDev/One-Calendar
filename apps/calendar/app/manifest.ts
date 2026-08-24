@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'One Calendar',
-    short_name: 'One Calendar',
-    description: 'All your events in one place, beautifully organized.',
+    name: 'Zentra Calendar',
+    short_name: 'Zentra Calendar',
+    description: 'The next gen calendar powered by AI agent.',
     id: '/app',
     start_url: '/app',
     scope: '/app',

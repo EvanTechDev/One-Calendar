@@ -162,7 +162,7 @@ export function WelcomeDialog({
 
   const welcomeStep: OnboardingStep = {
     icon: WelcomeIcon,
-    title: 'Welcome to One Calendar',
+    title: 'Welcome to Zentra Calendar',
     description:
       'A few quick questions to make your calendar feel like yours. Change anything later in Settings.',
     key: 'welcome',

@@ -30,12 +30,12 @@ export async function POST() {
   try {
     await sendAuthEmail({
       to: currentUser.email,
-      subject: 'Welcome to One Calendar!',
+      subject: 'Welcome to Zentra Calendar!',
       html: await renderAuthEmailTemplate({
-        preview: 'Welcome to One Calendar',
-        title: 'Welcome to One Calendar!',
-        body: "We're thrilled to have you here. One Calendar helps you stay organized with powerful features designed around your privacy.",
-        actionLabel: 'Start using One Calendar',
+        preview: 'Welcome to Zentra Calendar',
+        title: 'Welcome to Zentra Calendar!',
+        body: "We're thrilled to have you here. Zentra Calendar is the next gen calendar powered by AI agent: plan your week in conversation and stay organized.",
+        actionLabel: 'Start using Zentra Calendar',
         actionUrl: signInUrl,
         secondary:
           'Create events, organize with categories, and share securely — all in one place.',

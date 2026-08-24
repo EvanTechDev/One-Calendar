@@ -11,7 +11,8 @@ export const APP_CONFIG = {
     enabledOAuthProviders: [] as const,
     resend: {
       sender:
-        process.env.RESEND_SENDER_EMAIL ?? 'One Calendar <no-reply@xyehr.cn>',
+        process.env.RESEND_SENDER_EMAIL ??
+        'Zentra Calendar <no-reply@xyehr.cn>',
     },
   },
   landing: {

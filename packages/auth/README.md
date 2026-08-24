@@ -425,7 +425,7 @@ emailCallbacks: {
 
 ```
 ┌─────────────────────────────────────────┐
-│           Consumer App (e.g. one-calendar) │
+│           Consumer App (e.g. zentra-calendar) │
 │                                         │
 │  lib/auth.ts    ← @zntr/auth/server     │
 │  lib/auth/client.ts ← @zntr/auth/client │

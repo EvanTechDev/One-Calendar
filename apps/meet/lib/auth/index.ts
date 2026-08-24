@@ -5,7 +5,7 @@ import type { AuthInstance } from '@zntr/auth'
 
 let _auth: AuthInstance | null = null
 
-// Meet shares the one-calendar user database. Sign-up/password-reset emails
+// Meet shares the calendar user database. Sign-up/password-reset emails
 // are handled by the calendar app, so the callbacks here are inert; this
 // instance mainly serves session reads. Instantiated lazily so builds
 // without env vars don't fail at module load.

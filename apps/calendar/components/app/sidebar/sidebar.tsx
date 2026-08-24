@@ -298,7 +298,7 @@ export default function Sidebar({
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="324.5 178.12 367.99 643.88"
-            aria-label="One Calendar"
+            aria-label="Zentra Calendar"
             role="img"
             className="mr-2 h-6 w-6 shrink-0 brightness-0 dark:invert"
           >
@@ -317,7 +317,7 @@ export default function Sidebar({
               <path d="M6311 2784 c-76 -20 -146 -60 -212 -122 -113 -104 -159 -211 -159 -371 0 -189 74 -329 228 -431 103 -68 259 -97 385 -71 130 28 271 129 336 245 86 151 86 361 1 512 -38 65 -141 164 -208 198 -109 55 -256 71 -371 40z" />
             </g>
           </svg>
-          <h1 className="text-lg font-semibold">One Calendar</h1>
+          <h1 className="text-lg font-semibold">Zentra Calendar</h1>
         </div>
 
         <Button

@@ -382,7 +382,7 @@ function BrandMark() {
     <div className="flex items-center justify-center">
       <Image
         src="/icon.svg"
-        alt="One Calendar"
+        alt="Zentra Calendar"
         width={16}
         height={16}
         className="size-8"

@@ -22,7 +22,7 @@ const { auth } = createAuth({
         to: user.email ?? '',
         subject: 'Reset your password',
         html: await renderAuthEmailTemplate({
-          preview: 'Reset your One Calendar password',
+          preview: 'Reset your Zentra Calendar password',
           title: 'Reset your password',
           body: 'We received a request to reset your password. Use the button below to continue.',
           actionLabel: 'Reset password',
@@ -37,7 +37,7 @@ const { auth } = createAuth({
         to: user.email ?? '',
         subject: 'Verify your email',
         html: await renderAuthEmailTemplate({
-          preview: 'Verify your One Calendar email',
+          preview: 'Verify your Zentra Calendar email',
           title: 'Verify your email',
           body: 'Confirm your email address to finish setting up your account.',
           actionLabel: 'Verify email',
@@ -50,7 +50,7 @@ const { auth } = createAuth({
         to: newEmail,
         subject: 'Confirm your new email',
         html: await renderAuthEmailTemplate({
-          preview: 'Confirm your One Calendar email change',
+          preview: 'Confirm your Zentra Calendar email change',
           title: 'Confirm your new email',
           body: `A request was made to change your account email from ${user.email} to ${newEmail}.`,
           actionLabel: 'Confirm email change',
@@ -67,14 +67,14 @@ const { auth } = createAuth({
         html: await renderAuthEmailTemplate({
           preview:
             type === 'forget-password'
-              ? 'Your One Calendar reset code'
-              : 'Your One Calendar verification code',
+              ? 'Your Zentra Calendar reset code'
+              : 'Your Zentra Calendar verification code',
           title:
             type === 'forget-password' ? 'Reset code' : 'Verification code',
           body:
             type === 'forget-password'
               ? 'Use the code below to reset your password.'
-              : 'Use the code below to continue with your One Calendar account.',
+              : 'Use the code below to continue with your Zentra Calendar account.',
           code: otp,
           secondary: 'This code will expire shortly for your security.',
         }),
@@ -83,7 +83,7 @@ const { auth } = createAuth({
   },
   plugins: {
     twoFactor: {
-      issuer: 'One Calendar',
+      issuer: 'Zentra Calendar',
       trustDeviceMaxAge: 60 * 60 * 24 * 7, // 7 days, in seconds
     },
     sentinel: {

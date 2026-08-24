@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "One Calendar",
+  "productName": "Zentra Calendar",
   "version": "0.1.0",
   "identifier": "app.zntr.calendar",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "One Calendar",
+        "title": "Zentra Calendar",
         "width": 1920,
         "height": 1200,
         "url": "https://calendar.xyehr.cn/app"

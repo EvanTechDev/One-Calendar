@@ -11,7 +11,7 @@ export default async function HomePage() {
           <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
             M
           </div>
-          <span className="text-sm font-medium">One Meet</span>
+          <span className="text-sm font-medium">Zentra Meet</span>
         </div>
         {session ? (
           <span className="text-sm text-muted-foreground">
@@ -36,7 +36,7 @@ export default async function HomePage() {
       </section>
 
       <footer className="px-6 py-4 text-center text-xs text-muted-foreground">
-        Part of the One Calendar suite
+        Part of the Zentra suite
       </footer>
     </main>
   )

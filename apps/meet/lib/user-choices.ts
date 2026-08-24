@@ -6,7 +6,7 @@ export interface UserChoices {
   audioDeviceId?: string
 }
 
-const STORAGE_KEY = 'one-meet-user-choices'
+const STORAGE_KEY = 'zentra-meet-user-choices'
 
 export const defaultUserChoices: UserChoices = {
   username: '',

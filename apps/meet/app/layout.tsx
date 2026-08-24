@@ -6,11 +6,11 @@ import type { Metadata, Viewport } from 'next'
 import type React from 'react'
 
 export const metadata: Metadata = {
-  title: 'One Meet',
-  description: 'Video meetings that work with your calendar.',
+  title: 'Zentra Meet',
+  description: 'Video meetings for the next gen calendar.',
   openGraph: {
-    title: 'One Meet',
-    description: 'Video meetings that work with your calendar.',
+    title: 'Zentra Meet',
+    description: 'Video meetings for the next gen calendar.',
   },
 }
 

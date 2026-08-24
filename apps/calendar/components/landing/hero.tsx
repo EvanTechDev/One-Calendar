@@ -31,7 +31,7 @@ export function HeroSection() {
             <p className="font-mono text-xs">NOW</p>
           </div>
 
-          <span className="text-xs">Announcing One Calendar 3.0</span>
+          <span className="text-xs">Announcing Zentra Calendar 3.0</span>
           <span className="block h-5 border-l" />
 
           <div className="pr-1">
@@ -52,7 +52,7 @@ export function HeroSection() {
             },
           }}
         >
-          {'Manage your all schedules in one place'
+          {'The next gen calendar powered by AI agent'
             .split(' ')
             .map((word, i) => (
               <motion.span
@@ -87,7 +87,7 @@ export function HeroSection() {
             },
           }}
         >
-          {'A calm calendar for people and teams who value clarity over complexity.'
+          {'Plan your week in conversation. Your agent schedules, reschedules, and reminds, while the calendar stays calm and understandable.'
             .split(' ')
             .map((word, i) => (
               <motion.span

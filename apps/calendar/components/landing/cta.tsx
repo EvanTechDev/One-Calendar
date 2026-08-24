@@ -92,8 +92,8 @@ export function CallToAction() {
             Ready to take control of your time?
           </h2>
           <p className="text-balance text-center text-neutral-300/90 text-base md:text-lg max-w-lg mx-auto">
-            One Calendar helps you keep every event, reminder, and schedule in
-            sync. Free forever.
+            Let your agent handle the scheduling. Zentra Calendar keeps every
+            event, reminder, and RSVP in sync. Free forever.
           </p>
         </div>
 
