@@ -64,7 +64,16 @@ export const meetingSession = pgTable(
   'meeting_session',
   {
     id: text('id').primaryKey(),
-    meetingId: text('meeting_id').notNull(),
+    /**
+     * Real foreign key with ON DELETE CASCADE. ADR 0017's no-FK rule concerns
+     * only the cross-app `meeting.event_id`; these relations are internal to
+     * this package, so Postgres does the cascading. Without it, sittings and
+     * their attendance outlived every deletion path and were retained forever,
+     * unreachable.
+     */
+    meetingId: text('meeting_id')
+      .notNull()
+      .references(() => meeting.id, { onDelete: 'cascade' }),
     startedAt: timestamp('started_at', {
       precision: 3,
       withTimezone: true,
@@ -85,7 +94,9 @@ export const meetingAttendance = pgTable(
   'meeting_attendance',
   {
     id: text('id').primaryKey(),
-    sessionId: text('session_id').notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => meetingSession.id, { onDelete: 'cascade' }),
     participantIdentity: text('participant_identity').notNull(),
     participantName: text('participant_name').notNull(),
     joinedAt: timestamp('joined_at', {
@@ -107,8 +118,16 @@ export const meetingChatMessage = pgTable(
   'meeting_chat_message',
   {
     id: text('id').primaryKey(),
-    meetingId: text('meeting_id').notNull(),
-    sessionId: text('session_id'),
+    meetingId: text('meeting_id')
+      .notNull()
+      .references(() => meeting.id, { onDelete: 'cascade' }),
+    /**
+     * SET NULL rather than CASCADE: deleting a sitting must not destroy the
+     * chat that happened during it, only the link back to it.
+     */
+    sessionId: text('session_id').references(() => meetingSession.id, {
+      onDelete: 'set null',
+    }),
     senderIdentity: text('sender_identity').notNull(),
     senderName: text('sender_name').notNull(),
     message: text('message').notNull(),

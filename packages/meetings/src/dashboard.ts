@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, or } from 'drizzle-orm'
 import {
   meeting,
   meetingAttendance,
@@ -7,152 +7,18 @@ import {
 } from './schema'
 import { readonlyCalendarEvents } from './readonly-calendar'
 import type { Meeting } from './schema'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = any
-
-export interface UpcomingEventMeeting {
-  meetingId: string
-  eventId: string
-  title: string
-  startDate: Date
-  endDate: Date
-}
+import type { Db } from './db'
 
 /**
- * Event Meetings on the user's calendar starting inside the window.
+ * Escapes the LIKE metacharacters so a search term is matched literally.
  *
- * Joins through the read-only description of `calendar_events` (ADR 0020) —
- * the calendar app owns that table; this package only reads five columns of
- * it for exactly this query.
+ * Unescaped, a query of `%` matched every row the user owns, and `_` matched
+ * any single character — a search box that quietly ignores what you typed.
+ * The backslash must go first, or it would double-escape the escapes added
+ * after it.
  */
-export async function listUpcomingEventMeetings(
-  db: Db,
-  userId: string,
-  days = 7,
-  now: Date = new Date(),
-): Promise<UpcomingEventMeeting[]> {
-  const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
-  const rows = await db
-    .select({
-      meetingId: meeting.id,
-      eventId: readonlyCalendarEvents.id,
-      title: readonlyCalendarEvents.title,
-      startDate: readonlyCalendarEvents.startDate,
-      endDate: readonlyCalendarEvents.endDate,
-    })
-    .from(meeting)
-    .innerJoin(
-      readonlyCalendarEvents,
-      eq(meeting.eventId, readonlyCalendarEvents.id),
-    )
-    .where(
-      and(
-        eq(readonlyCalendarEvents.userId, userId),
-        gte(readonlyCalendarEvents.startDate, now),
-        lte(readonlyCalendarEvents.startDate, until),
-      ),
-    )
-    .orderBy(readonlyCalendarEvents.startDate)
-  return rows
-}
-
-export interface MeetingSessionStats {
-  sessionId: string
-  startedAt: Date
-  endedAt: Date | null
-  /** Whole minutes; null while the sitting is still open. */
-  durationMinutes: number | null
-  attendees: { identity: string; name: string; minutes: number }[]
-}
-
-export interface MeetingStats {
-  sessions: MeetingSessionStats[]
-  totalMinutes: number
-  distinctAttendees: number
-}
-
-/**
- * Duration and attendance for one meeting, aggregated from the
- * webhook-written tables (ADR 0020). Open sittings contribute attendees but
- * no duration — an unfinished meeting has no length yet.
- */
-export async function getMeetingStats(
-  db: Db,
-  meetingId: string,
-): Promise<MeetingStats> {
-  const sessions = await db
-    .select()
-    .from(meetingSession)
-    .where(eq(meetingSession.meetingId, meetingId))
-    .orderBy(desc(meetingSession.startedAt))
-
-  if (sessions.length === 0) {
-    return { sessions: [], totalMinutes: 0, distinctAttendees: 0 }
-  }
-
-  const attendance = await db
-    .select()
-    .from(meetingAttendance)
-    .where(
-      inArray(
-        meetingAttendance.sessionId,
-        sessions.map((s: { id: string }) => s.id),
-      ),
-    )
-
-  const identities = new Set<string>()
-  const stats: MeetingSessionStats[] = sessions.map(
-    (session: {
-      id: string
-      startedAt: Date
-      endedAt: Date | null
-    }): MeetingSessionStats => {
-      const rows = attendance.filter(
-        (a: { sessionId: string }) => a.sessionId === session.id,
-      )
-      for (const row of rows) identities.add(row.participantIdentity)
-      return {
-        sessionId: session.id,
-        startedAt: session.startedAt,
-        endedAt: session.endedAt,
-        durationMinutes: session.endedAt
-          ? Math.max(
-              1,
-              Math.round(
-                (session.endedAt.getTime() - session.startedAt.getTime()) /
-                  60000,
-              ),
-            )
-          : null,
-        attendees: rows.map(
-          (row: {
-            participantIdentity: string
-            participantName: string
-            joinedAt: Date
-            leftAt: Date | null
-          }) => ({
-            identity: row.participantIdentity,
-            name: row.participantName,
-            minutes: Math.max(
-              1,
-              Math.round(
-                ((row.leftAt ?? new Date()).getTime() -
-                  row.joinedAt.getTime()) /
-                  60000,
-              ),
-            ),
-          }),
-        ),
-      }
-    },
-  )
-
-  return {
-    sessions: stats,
-    totalMinutes: stats.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0),
-    distinctAttendees: identities.size,
-  }
+function escapeLikeTerm(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/[%_]/g, (c) => `\\${c}`)
 }
 
 /**
@@ -172,8 +38,9 @@ export async function searchMeetings(
   query: string,
   limit = 20,
 ): Promise<Meeting[]> {
-  const term = `%${query.trim()}%`
-  if (query.trim().length === 0) return []
+  const trimmed = query.trim()
+  if (trimmed.length === 0) return []
+  const term = `%${escapeLikeTerm(trimmed)}%`
 
   const attendeeMatches = db
     .select({ id: meeting.id })
@@ -240,32 +107,81 @@ export async function getEventTitlesForMeetings(
   return out
 }
 
-/** Attendance and duration for many meetings at once (dashboard list). */
+/**
+ * Attendance and duration for many meetings at once (dashboard list).
+ *
+ * Two flat queries aggregated in application code rather than one grouped join.
+ * The join version summed session durations across the joined attendance rows,
+ * so a 60-minute sitting with three attendees reported 180 minutes — the
+ * classic fan-out. Keeping the aggregation here also makes it obvious that an
+ * OPEN sitting contributes attendees but no duration: an unfinished meeting has
+ * no length yet, and guessing one (now − started) would report a number that
+ * changes every time the page is refreshed.
+ */
 export async function getMeetingSummaries(
   db: Db,
   meetingIds: string[],
 ): Promise<Record<string, { totalMinutes: number; attendees: number }>> {
   if (meetingIds.length === 0) return {}
-  const rows = await db
+
+  const sessions: {
+    id: string
+    meetingId: string
+    startedAt: Date
+    endedAt: Date | null
+  }[] = await db
     .select({
+      id: meetingSession.id,
       meetingId: meetingSession.meetingId,
-      minutes: sql<number>`coalesce(sum(extract(epoch from (${meetingSession.endedAt} - ${meetingSession.startedAt})) / 60), 0)`,
-      attendees: sql<number>`count(distinct ${meetingAttendance.participantIdentity})`,
+      startedAt: meetingSession.startedAt,
+      endedAt: meetingSession.endedAt,
     })
     .from(meetingSession)
-    .leftJoin(
-      meetingAttendance,
-      eq(meetingAttendance.sessionId, meetingSession.id),
-    )
     .where(inArray(meetingSession.meetingId, meetingIds))
-    .groupBy(meetingSession.meetingId)
 
   const out: Record<string, { totalMinutes: number; attendees: number }> = {}
-  for (const row of rows) {
-    out[row.meetingId] = {
-      totalMinutes: Math.round(Number(row.minutes) || 0),
-      attendees: Number(row.attendees) || 0,
+  if (sessions.length === 0) return out
+
+  const attendance: { sessionId: string; participantIdentity: string }[] =
+    await db
+      .select({
+        sessionId: meetingAttendance.sessionId,
+        participantIdentity: meetingAttendance.participantIdentity,
+      })
+      .from(meetingAttendance)
+      .where(
+        inArray(
+          meetingAttendance.sessionId,
+          sessions.map((session) => session.id),
+        ),
+      )
+
+  const meetingOfSession = new Map(sessions.map((s) => [s.id, s.meetingId]))
+  /** Distinct participants per meeting — the same person across two sittings counts once. */
+  const identities = new Map<string, Set<string>>()
+  for (const row of attendance) {
+    const meetingId = meetingOfSession.get(row.sessionId)
+    if (!meetingId) continue
+    const set = identities.get(meetingId) ?? new Set<string>()
+    set.add(row.participantIdentity)
+    identities.set(meetingId, set)
+  }
+
+  for (const session of sessions) {
+    const entry = out[session.meetingId] ?? { totalMinutes: 0, attendees: 0 }
+    if (session.endedAt) {
+      entry.totalMinutes += Math.max(
+        0,
+        Math.round(
+          (session.endedAt.getTime() - session.startedAt.getTime()) / 60000,
+        ),
+      )
     }
+    out[session.meetingId] = entry
+  }
+  for (const [meetingId, set] of identities) {
+    const entry = out[meetingId]
+    if (entry) entry.attendees = set.size
   }
   return out
 }

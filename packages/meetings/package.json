@@ -9,9 +9,23 @@
     "./operations": "./src/operations.ts",
     "./sessions": "./src/sessions.ts",
     "./readonly-calendar": "./src/readonly-calendar.ts",
-    "./dashboard": "./src/dashboard.ts"
+    "./dashboard": "./src/dashboard.ts",
+    "./db": "./src/db.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:check": "tsc && tsc --noEmit",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src",
+    "lint:check": "oxlint --config ../../config/oxlint.json src",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "vitest": "^4.1.10"
   }
 }

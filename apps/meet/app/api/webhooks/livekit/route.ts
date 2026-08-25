@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { WebhookReceiver } from 'livekit-server-sdk'
 import {
   closeOpenAttendance,
-  closeSession,
+  closeSessionById,
   getMeeting,
   getOpenSession,
+  getSession,
   openSession,
   recordJoin,
   recordLeave,
@@ -13,13 +14,23 @@ import { getDb } from '@/lib/drizzle'
 
 export const runtime = 'nodejs'
 
+/** The only events that touch attendance. Everything else is ignored. */
+const HANDLED = new Set([
+  'room_started',
+  'room_finished',
+  'participant_joined',
+  'participant_left',
+])
+
 /**
  * Attendance and duration come from here and nowhere else (ADR 0020): the
  * media server is the only party that knows who was actually connected and
  * for how long, and a client-reported number cannot be verified.
  *
  * Deliveries are retried and can arrive out of order, so the handlers are
- * idempotent and open a missing session rather than dropping the event.
+ * idempotent and self-healing. Crucially, an event that CANNOT be processed
+ * must still answer 2xx: LiveKit retries non-2xx forever, so a single
+ * undeliverable event answering 500 stalls attendance recording for everyone.
  */
 export async function POST(request: Request) {
   const apiKey = process.env.LIVEKIT_API_KEY
@@ -42,6 +53,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
+  // Discriminate BEFORE touching the database. Track and egress events are far
+  // more frequent than these four, and each one used to cost a meeting lookup
+  // just to be thrown away.
+  if (!HANDLED.has(event.event)) {
+    return NextResponse.json({ skipped: true })
+  }
+
   try {
     const db = getDb()
     const roomName = event.room?.name
@@ -53,33 +71,49 @@ export async function POST(request: Request) {
     const at = event.createdAt
       ? new Date(Number(event.createdAt) * 1000)
       : new Date()
+    // The room sid identifies the SITTING. Keying on the meeting's "current
+    // open session" instead merged distinct sittings: a room left idle
+    // overnight and rejoined counted the whole night as one meeting.
+    const sid = event.room?.sid || undefined
 
     switch (event.event) {
       case 'room_started': {
-        await openSession(db, {
-          id: event.room?.sid || undefined,
+        const session = await openSession(db, {
+          id: sid,
           meetingId: roomName,
           startedAt: at,
         })
+        // Null means this sid is already closed — a late duplicate of an event
+        // whose sitting has finished. Final, so acknowledge it.
+        if (!session) return NextResponse.json({ skipped: 'already-closed' })
         break
       }
       case 'room_finished': {
-        const open = await getOpenSession(db, roomName)
-        if (open) {
-          // Anyone still marked present left when the room did.
-          await closeOpenAttendance(db, open.id, at)
-          await closeSession(db, roomName, at)
-        }
+        // An unknown sid here means room_finished overtook room_started.
+        // Create-then-close so the ordering self-heals; previously the sitting
+        // the later room_started opened was never closed, leaving its duration
+        // null forever and the dashboard showing 0 min.
+        const session = sid
+          ? await closeSessionById(db, {
+              id: sid,
+              meetingId: roomName,
+              endedAt: at,
+            })
+          : await getOpenSession(db, roomName)
+        if (!session) return NextResponse.json({ skipped: 'no-session' })
+        // Anyone still marked present left when the room did.
+        await closeOpenAttendance(db, session.id, at)
         break
       }
       case 'participant_joined': {
         const identity = event.participant?.identity
         if (!identity) break
         const session = await openSession(db, {
-          id: event.room?.sid || undefined,
+          id: sid,
           meetingId: roomName,
           startedAt: at,
         })
+        if (!session) return NextResponse.json({ skipped: 'already-closed' })
         await recordJoin(db, {
           sessionId: session.id,
           participantIdentity: identity,
@@ -90,17 +124,27 @@ export async function POST(request: Request) {
       }
       case 'participant_left': {
         const identity = event.participant?.identity
-        const open = await getOpenSession(db, roomName)
-        if (!identity || !open) break
+        if (!identity) break
+        // The leave belongs to the sitting the participant was in, which may
+        // already be CLOSED (room_finished can land first) — so unlike a join,
+        // a closed sitting is still the right target here. One participant
+        // leaving never ends the sitting, so nothing is closed.
+        const session = sid
+          ? ((await getSession(db, sid)) ??
+            (await openSession(db, {
+              id: sid,
+              meetingId: roomName,
+              startedAt: at,
+            })))
+          : await getOpenSession(db, roomName)
+        if (!session) return NextResponse.json({ skipped: 'no-session' })
         await recordLeave(db, {
-          sessionId: open.id,
+          sessionId: session.id,
           participantIdentity: identity,
           leftAt: at,
         })
         break
       }
-      default:
-        return NextResponse.json({ skipped: true })
     }
 
     return NextResponse.json({ ok: true })

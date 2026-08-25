@@ -1,22 +1,33 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { desc, eq, lt } from 'drizzle-orm'
+import { desc, eq, inArray, lt } from 'drizzle-orm'
 import { meeting } from './schema'
 import type { Meeting } from './schema'
-
-/**
- * Any drizzle postgres-js database handle. The operations are
- * connection-agnostic: each app passes its own client.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = any
+import type { Db } from './db'
+import { closeOpenAttendance, closeSession } from './sessions'
 
 const ROOM_ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
 
+/**
+ * Largest multiple of the alphabet size that fits in a byte (252 for 36).
+ * Bytes at or above it are discarded rather than folded with `%`, which would
+ * make indices 0–3 about 14% likelier than the rest. The room code IS the join
+ * credential (holding the link is sufficient to join, ADR 0019), so its
+ * entropy is a security property, not a cosmetic one.
+ */
+const REJECTION_CEILING =
+  Math.floor(256 / ROOM_ID_ALPHABET.length) * ROOM_ID_ALPHABET.length
+
 function randomChars(length: number): string {
-  const bytes = randomBytes(length)
   let out = ''
-  for (let i = 0; i < length; i++) {
-    out += ROOM_ID_ALPHABET[bytes[i] % ROOM_ID_ALPHABET.length]
+  while (out.length < length) {
+    // Over-draw so the common case needs one syscall: at 36 symbols only
+    // 4/256 bytes are rejected.
+    const bytes = randomBytes((length - out.length) * 2)
+    for (const byte of bytes) {
+      if (byte >= REJECTION_CEILING) continue
+      out += ROOM_ID_ALPHABET[byte % ROOM_ID_ALPHABET.length]
+      if (out.length === length) break
+    }
   }
   return out
 }
@@ -103,12 +114,24 @@ export function isJoinable(row: Meeting, now: Date = new Date()): boolean {
   return true
 }
 
-/** End Meeting: the Organiser's explicit act (ADR 0016). */
+/**
+ * End Meeting: the Organiser's explicit act (ADR 0016).
+ *
+ * The open sitting is closed here rather than left to the media server's
+ * `room_finished` webhook. That webhook only fires if `deleteRoom` succeeds,
+ * and the caller swallows its failure (a room that was never live is not an
+ * error) — so an ended meeting could keep a sitting open forever, leaving its
+ * duration null and the dashboard reporting 0 min. Closing it twice is
+ * harmless; never closing it is not.
+ */
 export async function endMeeting(db: Db, id: string): Promise<void> {
+  const now = new Date()
   await db
     .update(meeting)
-    .set({ endedAt: new Date(), updatedAt: new Date() })
+    .set({ endedAt: now, updatedAt: now })
     .where(eq(meeting.id, id))
+  const closed = await closeSession(db, id, now)
+  if (closed) await closeOpenAttendance(db, closed.id, now)
 }
 
 /** Reopen an ended Meeting — the link never changed (ADR 0019). */
@@ -132,6 +155,35 @@ export async function deleteMeetingsForEvent(
   eventId: string,
 ): Promise<void> {
   await db.delete(meeting).where(eq(meeting.eventId, eventId))
+}
+
+/**
+ * The same cascade for many event rows in one statement. Deleting a series
+ * meant one statement per row (51 for a 50-override series) even though
+ * meetings only ever attach to masters. Mirrors the adjacent `eventInvites`
+ * delete, which already batches with `inArray`.
+ */
+export async function deleteMeetingsForEvents(
+  db: Db,
+  eventIds: string[],
+): Promise<void> {
+  if (eventIds.length === 0) return
+  await db.delete(meeting).where(inArray(meeting.eventId, eventIds))
+}
+
+/**
+ * Removes every Meeting a user organised — the account-deletion cascade.
+ *
+ * Without this, deleting an account left never-expiring, still-joinable rooms
+ * behind whose `organiserId` pointed at a user that no longer exists. Nobody
+ * could ever End them: `isOrganiser` needs either that user's session (gone
+ * forever) or a Creator Token (null for signed-in Organisers).
+ */
+export async function deleteMeetingsForOrganiser(
+  db: Db,
+  organiserId: string,
+): Promise<void> {
+  await db.delete(meeting).where(eq(meeting.organiserId, organiserId))
 }
 
 /**

@@ -16,6 +16,8 @@ export {
   deleteExpiredMeetings,
   deleteMeeting,
   deleteMeetingsForEvent,
+  deleteMeetingsForEvents,
+  deleteMeetingsForOrganiser,
   endMeeting,
   generateCreatorToken,
   generateMeetingId,
@@ -32,24 +34,17 @@ export type { CreateMeetingInput } from './operations'
 export {
   closeOpenAttendance,
   closeSession,
+  closeSessionById,
   getOpenSession,
-  listAttendance,
-  listChatMessages,
-  listSessions,
+  getSession,
   openSession,
   recordJoin,
   recordLeave,
   retainChatMessage,
 } from './sessions'
+export type { Db } from './db'
 export {
   getEventTitlesForMeetings,
-  getMeetingStats,
   getMeetingSummaries,
-  listUpcomingEventMeetings,
   searchMeetings,
-} from './dashboard'
-export type {
-  MeetingSessionStats,
-  MeetingStats,
-  UpcomingEventMeeting,
 } from './dashboard'

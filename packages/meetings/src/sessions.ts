@@ -1,14 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { meetingAttendance, meetingChatMessage, meetingSession } from './schema'
-import type {
-  MeetingAttendance,
-  MeetingChatMessage,
-  MeetingSession,
-} from './schema'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = any
+import type { MeetingSession } from './schema'
+import type { Db } from './db'
 
 /**
  * Sessions and Attendance are written from the media server's webhooks, never
@@ -39,41 +33,123 @@ export async function getOpenSession(
   return rows[0] ?? null
 }
 
+/** One sitting by id, open or closed. */
+export async function getSession(
+  db: Db,
+  id: string,
+): Promise<MeetingSession | null> {
+  const rows = await db
+    .select()
+    .from(meetingSession)
+    .where(eq(meetingSession.id, id))
+    .limit(1)
+  return rows[0] ?? null
+}
+
 /**
- * Opens a sitting, reusing the open one when it already exists. `id` comes
- * from the media server's room sid where available, so a retried delivery
- * lands on the same row.
+ * Opens a sitting, identified strictly by the media server's room `sid`.
+ *
+ * The sid IS the sitting's identity. Reusing "whatever open session this
+ * meeting has" instead merged two distinct sittings into one: a room left
+ * idle overnight and rejoined the next morning counted the whole night as
+ * one meeting, because the stale open row was adopted rather than a new one
+ * opened.
+ *
+ * Returns null when the row cannot be produced — which happens when the sid
+ * exists but is already CLOSED. The previous code laundered that case through
+ * a `!`, so the webhook handler dereferenced null, 500'd, and LiveKit retried
+ * the same undeliverable event forever, stalling all attendance recording.
+ * A caller seeing null must treat the event as final and unprocessable.
  */
 export async function openSession(
   db: Db,
   input: { id?: string; meetingId: string; startedAt: Date },
-): Promise<MeetingSession> {
-  const existing = await getOpenSession(db, input.meetingId)
-  if (existing) return existing
+): Promise<MeetingSession | null> {
+  const id = input.id
+  if (id) {
+    const existing = await getSession(db, id)
+    // Already closed: this delivery is late and there is nothing to reopen.
+    // Ending a sitting is final.
+    if (existing) return existing.endedAt === null ? existing : null
+  } else {
+    // No sid (shouldn't happen for room events, but the SDK types allow it):
+    // fall back to the meeting's open sitting so a join is still recorded.
+    const open = await getOpenSession(db, input.meetingId)
+    if (open) return open
+  }
+
   const [row] = await db
     .insert(meetingSession)
     .values({
-      id: input.id ?? randomUUID(),
+      id: id ?? randomUUID(),
       meetingId: input.meetingId,
       startedAt: input.startedAt,
     })
     .onConflictDoNothing()
     .returning()
-  // A concurrent delivery may have won the insert.
-  return row ?? (await getOpenSession(db, input.meetingId))!
+  if (row) return row
+
+  // A concurrent delivery won the insert. Re-read by id rather than "the open
+  // one" — the winner may already have closed it.
+  if (!id) return getOpenSession(db, input.meetingId)
+  const raced = await getSession(db, id)
+  if (!raced) return null
+  return raced.endedAt === null ? raced : null
 }
 
+/**
+ * Closes one sitting by id, creating it first when the sid is unknown.
+ *
+ * `room_finished` can arrive before `room_started` (webhook deliveries are
+ * retried independently and not ordered). Previously an unknown sid was
+ * ignored, so the later `room_started` opened a sitting nothing would ever
+ * close — its duration stayed null forever and the dashboard reported 0 min.
+ * Creating-then-closing makes the out-of-order case self-heal.
+ */
+export async function closeSessionById(
+  db: Db,
+  input: { id: string; meetingId: string; endedAt: Date },
+): Promise<MeetingSession | null> {
+  const existing = await getSession(db, input.id)
+  if (!existing) {
+    // Started and finished are the same instant as far as we can tell: the
+    // start we never received is not recoverable, and inventing an earlier
+    // one would fabricate a duration.
+    await db
+      .insert(meetingSession)
+      .values({
+        id: input.id,
+        meetingId: input.meetingId,
+        startedAt: input.endedAt,
+        endedAt: input.endedAt,
+      })
+      .onConflictDoNothing()
+    return getSession(db, input.id)
+  }
+  if (existing.endedAt !== null) return existing
+  await db
+    .update(meetingSession)
+    .set({ endedAt: input.endedAt })
+    .where(eq(meetingSession.id, input.id))
+  return { ...existing, endedAt: input.endedAt }
+}
+
+/**
+ * Closes a meeting's open sitting, whatever its id. Used by End Meeting,
+ * which has no room sid to work with.
+ */
 export async function closeSession(
   db: Db,
   meetingId: string,
   endedAt: Date,
-): Promise<void> {
+): Promise<MeetingSession | null> {
   const open = await getOpenSession(db, meetingId)
-  if (!open) return
+  if (!open) return null
   await db
     .update(meetingSession)
     .set({ endedAt })
     .where(eq(meetingSession.id, open.id))
+  return { ...open, endedAt }
 }
 
 /**
@@ -151,28 +227,6 @@ export async function closeOpenAttendance(
     )
 }
 
-export async function listAttendance(
-  db: Db,
-  sessionId: string,
-): Promise<MeetingAttendance[]> {
-  return db
-    .select()
-    .from(meetingAttendance)
-    .where(eq(meetingAttendance.sessionId, sessionId))
-    .orderBy(meetingAttendance.joinedAt)
-}
-
-export async function listSessions(
-  db: Db,
-  meetingId: string,
-): Promise<MeetingSession[]> {
-  return db
-    .select()
-    .from(meetingSession)
-    .where(eq(meetingSession.meetingId, meetingId))
-    .orderBy(desc(meetingSession.startedAt))
-}
-
 /**
  * Retained Chat: only meetings without end-to-end encryption ever reach
  * here, because an encrypted room's messages never leave the client in
@@ -198,15 +252,4 @@ export async function retainChatMessage(
     message: input.message,
     sentAt: input.sentAt ?? new Date(),
   })
-}
-
-export async function listChatMessages(
-  db: Db,
-  meetingId: string,
-): Promise<MeetingChatMessage[]> {
-  return db
-    .select()
-    .from(meetingChatMessage)
-    .where(eq(meetingChatMessage.meetingId, meetingId))
-    .orderBy(meetingChatMessage.sentAt)
 }
