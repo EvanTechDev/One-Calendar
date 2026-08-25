@@ -99,6 +99,22 @@ export function createAuth(options: CreateAuthOptions): {
     enabledPlugins.emailOTP = true
   }
 
+  /**
+   * Whether the OTP plugin has taken ownership of email verification.
+   *
+   * The plugin implements `overrideDefaultEmailVerification` from its `init`,
+   * by returning its own `emailVerification.sendVerificationEmail`. Plugin
+   * options are folded in with `defu(options, pluginOptions)`, and defu keeps
+   * the value already present — so a top-level `sendVerificationEmail` wins and
+   * the override is silently discarded. Signing up then sent the link, while
+   * other paths reached the plugin's OTP: two verification emails for one
+   * account, which is what was reported.
+   */
+  const otpOwnsVerification =
+    enabledPlugins.emailOTP &&
+    typeof plugins.emailOTP === 'object' &&
+    plugins.emailOTP.overrideDefaultEmailVerification === true
+
   const authConfig: any = {
     database: adapter,
     secret,
@@ -110,7 +126,13 @@ export function createAuth(options: CreateAuthOptions): {
       sendResetPassword: emailCallbacks.sendResetPassword,
     },
     emailVerification: {
-      sendVerificationEmail: emailCallbacks.sendVerificationEmail,
+      // Omitted when the OTP plugin owns verification, so its override is not
+      // outbid by defu. `sendChangeEmailVerification` stays either way: it is a
+      // different flow, and the plugin's changeEmail OTP is requested
+      // explicitly rather than through this callback.
+      ...(otpOwnsVerification
+        ? {}
+        : { sendVerificationEmail: emailCallbacks.sendVerificationEmail }),
       ...(emailCallbacks.sendChangeEmailVerification
         ? {
             sendChangeEmailVerification:
