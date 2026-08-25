@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { desc, eq, inArray, lt } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, lt } from 'drizzle-orm'
 import { meeting } from './schema'
 import type { Meeting } from './schema'
 import type { Db } from './db'
@@ -101,6 +101,93 @@ export async function getMeetingForEvent(
     .from(meeting)
     .where(eq(meeting.eventId, eventId))
   return rows[0] ?? null
+}
+
+/**
+ * The same lookup for many events in one statement, keyed by event id.
+ *
+ * Event surfaces used to resolve their Meeting one HTTP round trip at a time,
+ * which is what made the link appear a beat after the rest of the event. The
+ * calendar's list query decorates every row from this instead.
+ */
+export async function getMeetingsForEvents(
+  db: Db,
+  eventIds: string[],
+): Promise<Map<string, Meeting>> {
+  const out = new Map<string, Meeting>()
+  if (eventIds.length === 0) return out
+  const rows: Meeting[] = await db
+    .select()
+    .from(meeting)
+    .where(inArray(meeting.eventId, eventIds))
+  for (const row of rows) {
+    if (row.eventId !== null) out.set(row.eventId, row)
+  }
+  return out
+}
+
+/**
+ * Promotes a provisional Meeting into a committed Event Meeting.
+ *
+ * A Meeting created from the event editor exists before its event row does —
+ * the organiser wants a copyable link the moment they click "Add Zentra Meet",
+ * as Google Calendar gives them. Until the event is saved the row is provisional
+ * and carries an `expiresAt`, so the abandoned ones are swept like any other
+ * expired row. Saving the event is what makes it a real Event Meeting, whose
+ * lifecycle is the event's and which therefore has no independent expiry
+ * (ADR 0018).
+ *
+ * Scoped to the organiser, and to rows that are still provisional. Event ids are
+ * client-chosen, so without the organiser predicate a provisional row planted
+ * against an id someone else later happened to create would be silently adopted
+ * by their event.
+ */
+export async function commitMeetingForEvent(
+  db: Db,
+  eventId: string,
+  organiserId: string,
+): Promise<void> {
+  await db
+    .update(meeting)
+    .set({ expiresAt: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(meeting.eventId, eventId),
+        eq(meeting.organiserId, organiserId),
+        isNotNull(meeting.expiresAt),
+      ),
+    )
+}
+
+/**
+ * Deletes a Meeting for an event ONLY while it is still provisional.
+ *
+ * The `expiresAt IS NOT NULL` predicate is the whole point, and it lives in the
+ * statement rather than in a caller's `if`: this runs when the event editor is
+ * dismissed, and the editor cannot always tell a draft from an existing event
+ * (a draft saved mid-session is both). A committed Event Meeting belongs to a
+ * saved event, and deleting it would destroy a link participants already hold —
+ * so the database refuses rather than trusting the caller to have checked.
+ *
+ * Returns the ids actually removed, so a caller can tell "nothing to do" from
+ * "refused".
+ */
+export async function deleteProvisionalMeetingForEvent(
+  db: Db,
+  eventId: string,
+  organiserId: string,
+): Promise<string[]> {
+  const rows: Meeting[] = await db
+    .delete(meeting)
+    .where(
+      and(
+        eq(meeting.eventId, eventId),
+        eq(meeting.organiserId, organiserId),
+        isNotNull(meeting.expiresAt),
+      ),
+    )
+    .returning()
+  return rows.map((row) => row.id)
 }
 
 /**
