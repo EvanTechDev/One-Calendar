@@ -14,6 +14,9 @@ import {
   VideoOff,
   Link as LinkIcon,
   CircleSlash,
+  Hand,
+  Users,
+  Smile,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@zntr/ui/button'
@@ -21,20 +24,29 @@ import { cn } from '@zntr/utils'
 import { SettingsDialog } from '@/components/room/settings-dialog'
 import { getCreatorToken } from '@/lib/creator-token'
 import { MeetingIdentity } from '@/components/room/meeting-identity'
+import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
+import { REACTIONS } from '@/lib/room-signals'
+import type { Reaction } from '@/lib/room-signals'
 import type { RoomEventContext } from '@/lib/event-context'
 
 interface ControlBarProps {
   roomName: string
-  chatOpen: boolean
-  onToggleChat: () => void
+  panel: 'chat' | 'people' | null
+  onTogglePanel: (panel: 'chat' | 'people') => void
+  handRaised: boolean
+  onToggleHand: () => void
+  onReaction: (emoji: Reaction) => void
   onLeaveIntent: () => void
   eventContext?: RoomEventContext
 }
 
 export function ControlBar({
   roomName,
-  chatOpen,
-  onToggleChat,
+  panel,
+  onTogglePanel,
+  handRaised,
+  onToggleHand,
+  onReaction,
   onLeaveIntent,
   eventContext,
 }: ControlBarProps) {
@@ -144,10 +156,35 @@ export function ControlBar({
           </Button>
           <Button
             size="icon"
-            variant={chatOpen ? 'default' : 'secondary'}
+            variant={handRaised ? 'default' : 'secondary'}
             className="rounded-full"
-            onClick={onToggleChat}
+            onClick={onToggleHand}
+            aria-label={handRaised ? 'Lower hand' : 'Raise hand'}
+            aria-pressed={handRaised}
+            title="Raise hand (Ctrl+Alt+H)"
+          >
+            <Hand className="size-4" />
+          </Button>
+          <ReactionPicker onReaction={onReaction} />
+          <Button
+            size="icon"
+            variant={panel === 'people' ? 'default' : 'secondary'}
+            className="rounded-full"
+            onClick={() => onTogglePanel('people')}
+            aria-label="Toggle people"
+            aria-pressed={panel === 'people'}
+            title="People (Ctrl+Alt+P)"
+          >
+            <Users className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant={panel === 'chat' ? 'default' : 'secondary'}
+            className="rounded-full"
+            onClick={() => onTogglePanel('chat')}
             aria-label="Toggle chat"
+            aria-pressed={panel === 'chat'}
+            title="Chat (Ctrl+Alt+C)"
           >
             <MessageSquare className="size-4" />
           </Button>
@@ -217,5 +254,50 @@ function ControlButton({
     >
       {active ? onIcon : offIcon}
     </Button>
+  )
+}
+
+/**
+ * Reactions, behind a popover so six emoji do not permanently occupy the
+ * control bar.
+ */
+function ReactionPicker({
+  onReaction,
+}: {
+  onReaction: (emoji: Reaction) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size="icon"
+          variant="secondary"
+          className="rounded-full"
+          aria-label="Send a reaction"
+        >
+          <Smile className="size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-1.5" align="center" side="top">
+        <div className="flex gap-0.5">
+          {REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="rounded-md px-2 py-1 text-xl transition-transform hover:scale-110 hover:bg-accent"
+              onClick={() => {
+                onReaction(emoji)
+                setOpen(false)
+              }}
+              aria-label={`React with ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

@@ -14,6 +14,9 @@ import { ParticipantTile } from '@/components/room/participant-tile'
 import { ControlBar } from '@/components/room/control-bar'
 import { ChatPanel } from '@/components/room/chat-panel'
 import { RecordingBanner } from '@/components/room/recording-banner'
+import { PeoplePanel } from '@/components/room/people-panel'
+import { ReactionOverlay } from '@/components/room/reaction-overlay'
+import { useRoomSignals } from '@/hooks/use-room-signals'
 import type { RoomEventContext } from '@/lib/event-context'
 
 interface MeetingRoomProps {
@@ -44,9 +47,16 @@ export function MeetingRoom({
   participantToken,
   eventContext,
 }: MeetingRoomProps) {
-  const [chatOpen, setChatOpen] = useState(false)
+  // One panel at a time: chat and people compete for the same 320px, and two
+  // booleans let both open at once.
+  const [panel, setPanel] = useState<'chat' | 'people' | null>(null)
   const [pinnedKey, setPinnedKey] = useState<string | null>(null)
-  useKeyboardShortcuts()
+  const { handRaised, toggleHand, sendReaction, reactions } = useRoomSignals()
+  useKeyboardShortcuts({
+    onToggleChat: () => togglePanel('chat'),
+    onTogglePeople: () => togglePanel('people'),
+    onToggleHand: toggleHand,
+  })
 
   const tracks = useTracks(
     [
@@ -82,6 +92,9 @@ export function MeetingRoom({
     [tracks, focused],
   )
 
+  const togglePanel = (next: 'chat' | 'people') =>
+    setPanel((current) => (current === next ? null : next))
+
   const togglePin = (track: TrackReferenceOrPlaceholder) => {
     const key = trackKey(track)
     setPinnedKey((current) => (current === key ? null : key))
@@ -91,7 +104,7 @@ export function MeetingRoom({
     <div className="flex h-dvh flex-col bg-background">
       <RecordingBanner />
       <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col p-3">
+        <div className="relative flex min-w-0 flex-1 flex-col p-3">
           {focused ? (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               <div className="min-h-0 flex-1">
@@ -129,20 +142,27 @@ export function MeetingRoom({
               ))}
             </VideoGrid>
           )}
+          <ReactionOverlay reactions={reactions} />
         </div>
-        {chatOpen ? (
+        {panel === 'chat' ? (
           <ChatPanel
-            onClose={() => setChatOpen(false)}
+            onClose={() => setPanel(null)}
             roomName={roomName}
             retainMessages={retainChat}
             participantToken={participantToken}
           />
         ) : null}
+        {panel === 'people' ? (
+          <PeoplePanel onClose={() => setPanel(null)} />
+        ) : null}
       </div>
       <ControlBar
         roomName={roomName}
-        chatOpen={chatOpen}
-        onToggleChat={() => setChatOpen((open) => !open)}
+        panel={panel}
+        onTogglePanel={togglePanel}
+        handRaised={handRaised}
+        onToggleHand={toggleHand}
+        onReaction={sendReaction}
         onLeaveIntent={onLeaveIntent}
         eventContext={eventContext}
       />

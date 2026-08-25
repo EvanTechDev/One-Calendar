@@ -2,6 +2,7 @@
 
 import { Track } from 'livekit-client'
 import {
+  ConnectionQualityIndicator,
   VideoTrack,
   isTrackReference,
   useIsMuted,
@@ -116,6 +117,7 @@ export function ParticipantTile({
         ) : isMicMuted ? (
           <MicOff className="size-3 text-red-400" />
         ) : null}
+        <ConnectionQualityIndicator participant={participant} />
         <span className="max-w-40 truncate">
           {displayName}
           {participant.isLocal && !isScreenShare ? ' (you)' : ''}
