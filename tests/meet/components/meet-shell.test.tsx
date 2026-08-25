@@ -97,6 +97,14 @@ describe('MeetShell', () => {
     expect(onNewMeeting).toHaveBeenCalledOnce()
   })
 
+  it('carries no icon on the New meeting button', () => {
+    // The maintainer's call. The rail's nav items are the icon-bearing things;
+    // the one button above them is text.
+    renderShell()
+    const button = screen.getByRole('button', { name: /New meeting/ })
+    expect(button.querySelector('svg')).toBeNull()
+  })
+
   it('names the active section in the header and shows the identity', () => {
     renderShell({ section: 'history' })
     const header = screen.getByRole('banner')

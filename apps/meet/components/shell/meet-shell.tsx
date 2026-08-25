@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarClock, History, Home, Menu, Video } from 'lucide-react'
+import { CalendarClock, History, Home, Menu } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@zntr/ui/sheet'
 import { cn } from '@zntr/utils'
@@ -29,7 +29,11 @@ const NAV: { id: MeetSection; label: string; icon: React.ReactNode }[] = [
 interface MeetShellProps {
   section: MeetSection
   onSectionChange: (section: MeetSection) => void
-  /** Rendered in the sidebar under the brand — the "New meeting" action. */
+  /**
+   * Rendered in the sidebar under the brand. Opens the New meeting dialog —
+   * this button no longer starts a meeting directly, so `newMeetingPending`
+   * only applies to a host that still does (none today).
+   */
   onNewMeeting: () => void
   newMeetingPending?: boolean
   /** Shown at the right of the header. */
@@ -125,13 +129,15 @@ function SidebarBody({
         <span className="text-lg font-semibold">Zentra Meet</span>
       </div>
 
+      {/* No icon: the maintainer's call. It is the only button in the rail, so
+          it needs no glyph to be found, and the nav items below it are the
+          icon-bearing things. */}
       <Button
         className="mb-4 h-10 w-full justify-center"
         variant="secondary"
         onClick={onNewMeeting}
         disabled={newMeetingPending}
       >
-        <Video className="size-4" />
         {newMeetingPending ? 'Starting…' : 'New meeting'}
       </Button>
 
