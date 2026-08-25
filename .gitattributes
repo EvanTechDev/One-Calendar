@@ -1,0 +1,10 @@
+# The virtual-background images were once committed through git-lfs, and a
+# checkout without the lfs extension installed leaves 130-byte pointer stubs in
+# their place. Nothing failed loudly — the background processor catches its own
+# image load error — so the two image options in meet's settings silently did
+# nothing. These are ordinary binary files now; keep them that way.
+*.jpg -text -filter -diff -merge
+*.jpeg -text -filter -diff -merge
+*.png -text -filter -diff -merge
+*.ico -text -filter -diff -merge
+*.woff2 -text -filter -diff -merge

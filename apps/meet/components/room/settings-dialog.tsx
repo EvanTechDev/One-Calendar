@@ -37,6 +37,30 @@ const BACKGROUND_IMAGES: Record<'office' | 'mountains', string> = {
 }
 
 /**
+ * Confirms the background image decodes before a processor is built from it.
+ *
+ * BackgroundTransformer swallows its own image load failure — it catches and
+ * console.errors, then carries on — so `setProcessor` resolves happily with a
+ * processor that has no background. Clicking the option did nothing at all and
+ * said nothing, which is exactly how two image options stayed broken while the
+ * files in public/backgrounds were still git-lfs pointer stubs.
+ */
+async function imageIsUsable(url: string): Promise<boolean> {
+  try {
+    const image = new Image()
+    image.crossOrigin = 'Anonymous'
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error(`cannot load ${url}`))
+      image.src = url
+    })
+    return image.naturalWidth > 0
+  } catch {
+    return false
+  }
+}
+
+/**
  * Which background is applied per camera track. LiveKit's processor only
  * reports its kind ("virtual-background"), not which image, so the dialog
  * would otherwise lose the selection every time it reopens.
@@ -157,9 +181,13 @@ function BackgroundEffects() {
       } else if (next === 'blur') {
         await localVideoTrack.setProcessor(BackgroundBlur(10))
       } else {
-        await localVideoTrack.setProcessor(
-          VirtualBackground(BACKGROUND_IMAGES[next]),
-        )
+        const url = BACKGROUND_IMAGES[next]
+        if (!(await imageIsUsable(url))) {
+          // Fall back rather than leave a processor that quietly does nothing.
+          toast.error('That background image could not be loaded')
+          return
+        }
+        await localVideoTrack.setProcessor(VirtualBackground(url))
       }
       if (localVideoTrack.sid) {
         appliedBackgrounds.set(localVideoTrack.sid, next)
