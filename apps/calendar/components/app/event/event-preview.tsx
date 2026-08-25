@@ -23,6 +23,7 @@ import {
   UserMinus,
   Repeat,
   ClipboardCopy,
+  Video,
 } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Badge } from '@zntr/ui/badge'
@@ -55,6 +56,11 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 import { describeRecurrence } from '@/lib/recurrence/engine'
 import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
+import {
+  MeetingLinkControls,
+  meetingLookupId,
+  useEventMeeting,
+} from '@/components/app/event/event-meeting-link'
 
 export interface EventInvite {
   id: string
@@ -217,6 +223,16 @@ export default function EventPreview({
       setInvites(event.invites ?? [])
     }
   }, [event])
+
+  // An attached Meeting was previously invisible here: the organiser added it
+  // in the editor and then saw nothing when clicking the event. Resolved by
+  // lookup rather than from a column on the event (ADR-0019), keyed on the
+  // series master because an expanded occurrence's id is synthetic. Skipped
+  // for a participant's copy, which cannot own the lookup.
+  const [meeting] = useEventMeeting(
+    open && event ? meetingLookupId(event) : null,
+    !event?.viewOnly,
+  )
 
   if (!event || !open) return null
 
@@ -572,6 +588,13 @@ export default function EventPreview({
                 <div className="flex-1">
                   <p>{event.location}</p>
                 </div>
+              </div>
+            )}
+
+            {meeting && (
+              <div className="flex items-start">
+                <Video className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <MeetingLinkControls meeting={meeting} />
               </div>
             )}
 

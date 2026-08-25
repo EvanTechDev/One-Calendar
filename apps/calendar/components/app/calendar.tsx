@@ -777,14 +777,19 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     })
   }
 
-  const handleEventAdd = (event: CalendarEvent) => {
+  /**
+   * Returns the write's promise so callers can sequence work that needs the
+   * row to exist. Attaching a Meeting used to fire immediately after this
+   * returned, racing the insert and 404-ing more often than not.
+   */
+  const handleEventAdd = (event: CalendarEvent): Promise<unknown> => {
     const newEvent = {
       ...event,
       id: event.id || uuid(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
-    upsertEvent({
+    const written = upsertEvent({
       id: newEvent.id,
       title: newEvent.title,
       startDate: newEvent.startDate.toISOString(),
@@ -809,6 +814,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
     setQuickCreateEndTime(null)
+    return written
   }
 
   const handleEventUpdate = (

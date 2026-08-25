@@ -63,6 +63,7 @@ import {
 } from '@/lib/recurrence'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { EventMeetingField } from '@/components/app/event/event-meeting-field'
+import { usePendingMeeting } from '@/hooks/use-pending-meeting'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -86,7 +87,11 @@ const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
 interface EventEditorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onEventAdd: (event: CalendarEvent) => void
+  /**
+   * May return the write's promise. Work that needs the row to exist — such
+   * as attaching a Meeting — awaits it rather than firing alongside it.
+   */
+  onEventAdd: (event: CalendarEvent) => void | Promise<unknown>
   onEventUpdate: (
     event: CalendarEvent,
     applyTo?: 'single' | 'following' | 'all',
@@ -194,8 +199,13 @@ export default function EventEditor({
    * occurrence still targets the series. Null while the event is a draft.
    */
   const meetingEventId = event ? (event.seriesId ?? event.id) : null
-  /** "Add Zentra Meet" pressed on a draft — attach it once the event exists. */
-  const [meetingPending, setMeetingPending] = useState(false)
+  /**
+   * "Add Zentra Meet" pressed on a draft — attached once the event exists.
+   * Owned here, not in the field: the field unmounts with the popover, so a
+   * copy of this state there could disagree with the copy that decides
+   * whether the attachment happens.
+   */
+  const pendingMeeting = usePendingMeeting(open)
   const [title, setTitle] = useState('')
   const [color, setColor] = useState(EVENT_COLOR_OPTIONS[0].value)
 
@@ -588,6 +598,10 @@ export default function EventEditor({
     setRecMonthlyWeekday('MO')
     setRecYearlyMonth(1)
     setRecYearlyDay(1)
+    // A pending "Add Zentra Meet" belongs to the draft that armed it. Left
+    // set, dismissing that draft and creating an unrelated event silently
+    // attached a meeting to the wrong one.
+    pendingMeeting.setPending(false)
   }
 
   const handleStartDateChange = (newDate: Date | undefined) => {
@@ -878,26 +892,10 @@ export default function EventEditor({
       onEventUpdate(eventData, recurring ? applyTo : undefined)
       onInvitesAdded(event.id, newEmails)
     } else {
-      onEventAdd(eventData)
+      const written = onEventAdd(eventData)
       onInvitesAdded(eventData.id, participantEmails)
-      attachPendingMeeting(eventData.id)
+      void pendingMeeting.attach(eventData.id, written)
     }
-  }
-
-  /**
-   * A draft event has no row yet, so "Add Zentra Meet" only records the
-   * intent; the meeting is created once the event exists.
-   */
-  const attachPendingMeeting = (eventId: string) => {
-    if (!meetingPending) return
-    setMeetingPending(false)
-    void fetch('/api/meetings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId }),
-    }).catch(() => {
-      // The event still saved; the organiser can add the meeting again.
-    })
   }
 
   /** Emails already invited, from both the legacy list and the invite rows. */
@@ -925,9 +923,9 @@ export default function EventEditor({
       onEventUpdate(eventData, scope)
       onInvitesAdded(event.id, newEmails, inviteScope)
     } else {
-      onEventAdd(eventData)
+      const written = onEventAdd(eventData)
       onInvitesAdded(eventData.id, newEmails, inviteScope)
-      attachPendingMeeting(eventData.id)
+      void pendingMeeting.attach(eventData.id, written)
     }
 
     setSaveScopeOpen(false)
@@ -1312,7 +1310,8 @@ export default function EventEditor({
 
                 <EventMeetingField
                   eventId={meetingEventId}
-                  onPendingChange={setMeetingPending}
+                  pending={pendingMeeting.pending}
+                  onPendingChange={pendingMeeting.setPending}
                 />
 
                 <div className="space-y-2">

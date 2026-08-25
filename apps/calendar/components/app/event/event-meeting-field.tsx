@@ -1,10 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Copy, ExternalLink, Video, X } from 'lucide-react'
+import { useState } from 'react'
+import { Video, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Label } from '@zntr/ui/label'
 import { toast } from 'sonner'
+import {
+  MeetingLinkControls,
+  useEventMeeting,
+} from '@/components/app/event/event-meeting-link'
 
 interface EventMeetingFieldProps {
   /**
@@ -13,13 +17,14 @@ interface EventMeetingFieldProps {
    * "create it on save" mode.
    */
   eventId: string | null
-  /** Reports the pending intent so the editor can act after the first save. */
-  onPendingChange?: (pending: boolean) => void
-}
-
-interface MeetingInfo {
-  id: string
-  url: string
+  /**
+   * Whether "Add Zentra Meet" is armed on a draft. Owned by the editor, not
+   * here: this component unmounts with the popover, so a local copy and the
+   * editor's copy could disagree — and the editor's copy is what decides
+   * whether a meeting gets attached after the save.
+   */
+  pending: boolean
+  onPendingChange: (pending: boolean) => void
 }
 
 /**
@@ -30,45 +35,15 @@ interface MeetingInfo {
  */
 export function EventMeetingField({
   eventId,
+  pending,
   onPendingChange,
 }: EventMeetingFieldProps) {
-  const [meeting, setMeeting] = useState<MeetingInfo | null>(null)
+  const [meeting, setMeeting] = useEventMeeting(eventId)
   const [loading, setLoading] = useState(false)
-  const [pending, setPending] = useState(false)
-
-  useEffect(() => {
-    if (!eventId) {
-      setMeeting(null)
-      return
-    }
-    let cancelled = false
-    const load = async () => {
-      try {
-        const response = await fetch(
-          `/api/meetings?eventId=${encodeURIComponent(eventId)}`,
-        )
-        if (!response.ok) return
-        const body = (await response.json()) as { meeting: MeetingInfo | null }
-        if (!cancelled) setMeeting(body.meeting)
-      } catch {
-        // A missing meeting is indistinguishable from a failed lookup here;
-        // the control simply offers to create one.
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [eventId])
-
-  const setPendingIntent = (next: boolean) => {
-    setPending(next)
-    onPendingChange?.(next)
-  }
 
   const attach = async () => {
     if (!eventId) {
-      setPendingIntent(!pending)
+      onPendingChange(!pending)
       return
     }
     setLoading(true)
@@ -79,7 +54,9 @@ export function EventMeetingField({
         body: JSON.stringify({ eventId }),
       })
       if (!response.ok) throw new Error('Could not add the meeting')
-      const body = (await response.json()) as { meeting: MeetingInfo }
+      const body = (await response.json()) as {
+        meeting: { id: string; url: string }
+      }
       setMeeting(body.meeting)
     } catch {
       toast.error('Could not add the meeting')
@@ -106,54 +83,28 @@ export function EventMeetingField({
     }
   }
 
-  const copy = async () => {
-    if (!meeting) return
-    await navigator.clipboard.writeText(meeting.url)
-    toast.success('Meeting link copied')
-  }
-
   return (
     <div className="space-y-2">
       <Label>Video meeting</Label>
       {meeting ? (
         <div className="flex items-center gap-2 rounded-md border px-3 py-2">
           <Video className="size-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate font-mono text-xs">
-            {meeting.id}
-          </span>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="size-7"
-            onClick={copy}
-            aria-label="Copy meeting link"
-          >
-            <Copy className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="size-7"
-            asChild
-            aria-label="Join meeting"
-          >
-            <a href={meeting.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-3.5" />
-            </a>
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="size-7"
-            onClick={detach}
-            disabled={loading}
-            aria-label="Remove meeting"
-          >
-            <X className="size-3.5" />
-          </Button>
+          <MeetingLinkControls
+            meeting={meeting}
+            actions={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                onClick={detach}
+                disabled={loading}
+                aria-label="Remove meeting"
+              >
+                <X className="size-3.5" />
+              </Button>
+            }
+          />
         </div>
       ) : (
         <Button
