@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import { ControlBar } from '@/components/room/control-bar'
+import {
+  MOBILE_BAR_PADDING,
+  TAILWIND_STEP,
+  TOUCH_TARGET,
+  controlBarFits,
+} from '@/lib/control-layout'
 import type { RoomEventContext } from '@/lib/event-context'
 
 // The control bar only reads publish state and the Organiser flag off these
@@ -62,9 +68,20 @@ function renderBar(options: {
     left: region('left'),
     center: region('center'),
     centerSecondary: region('center-secondary'),
+    mobileSecondary: region('mobile-secondary'),
     right: region('right'),
   }
 }
+
+/** The six secondary toggles, in the order they are meant to appear. */
+const SECONDARY_LABELS = [
+  'Share screen',
+  'Raise hand',
+  'Send a reaction',
+  'Toggle people',
+  'Toggle chat',
+  'Settings',
+]
 
 /** The four cases the maintainer asked to be proved: role × event title. */
 const CASES = [
@@ -87,9 +104,26 @@ describe('ControlBar centering', () => {
     // the left region steal width from the centre; the explicit 0 minimum is
     // what keeps the two side tracks identical.
     expect(bar.className).toContain(
-      'grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]',
+      'sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]',
     )
+    expect(bar.className).toContain('sm:grid')
     expect(bar.className).not.toContain('justify-between')
+  })
+
+  it('turns the centring grid off below sm, where there is no left region', () => {
+    const { bar, center } = renderBar({ organiser: false })
+    // A phone hides the left region, so the grid only cost the controls half
+    // the viewport for an empty third track — which is what forced six
+    // controls into a dropdown. Every grid class is `sm:`-prefixed.
+    for (const className of bar.className.split(/\s+/)) {
+      if (className.startsWith('grid')) {
+        expect(className, 'unprefixed grid class').toBe('')
+      }
+    }
+    expect(bar.className).toContain('flex')
+    // And the controls claim the freed width rather than sitting in a track.
+    expect(center!.className).toContain('flex-1')
+    expect(center!.className).toContain('sm:flex-none')
   })
 
   it.each(CASES)(
@@ -108,21 +142,31 @@ describe('ControlBar centering', () => {
         'Mute',
         'Turn camera off',
         null, // the sm-and-up secondary cluster
-        'More controls',
+        'Meeting details',
         'Leave meeting',
       ])
       expect(
         Array.from(centerSecondary!.children).map((child) =>
           child.getAttribute('aria-label'),
         ),
-      ).toEqual([
-        'Share screen',
-        'Raise hand',
-        'Send a reaction',
-        'Toggle people',
-        'Toggle chat',
-        'Settings',
-      ])
+      ).toEqual(SECONDARY_LABELS)
+    },
+  )
+
+  it.each(CASES)(
+    'keeps the phone rows identical too: $name',
+    ({ organiser, eventContext: context }) => {
+      const { mobileSecondary } = renderBar({
+        organiser,
+        eventContext: context,
+      })
+      // The phone's secondary row is role-independent for the same reason the
+      // desktop centre track is: End for all is not in it.
+      expect(
+        Array.from(mobileSecondary!.children).map((child) =>
+          child.getAttribute('aria-label'),
+        ),
+      ).toEqual(SECONDARY_LABELS)
     },
   )
 
@@ -150,21 +194,87 @@ describe('ControlBar centering', () => {
     }
   })
 
-  it('swaps the secondary controls for an overflow menu below sm', () => {
-    const { center, centerSecondary } = renderBar({ organiser: false })
-    // Nine round buttons need ~400px; a phone viewport is 360.
+  it('moves the secondary controls to their own row below sm, not into a menu', () => {
+    const { center, centerSecondary, mobileSecondary } = renderBar({
+      organiser: false,
+    })
+    // Exactly one of the two is visible at any width, so no control is ever
+    // duplicated on screen or missing from it.
     expect(centerSecondary!.className).toContain('hidden')
     expect(centerSecondary!.className).toContain('sm:flex')
-    const overflow = center!.querySelector('[aria-label="More controls"]')
-    expect(overflow!.className).toContain('sm:hidden')
+    expect(mobileSecondary!.className).toContain('sm:hidden')
+    expect(mobileSecondary!.className).not.toMatch(/(^|\s)hidden(\s|$)/)
+
+    // The details menu no longer hides any control — it holds the room code
+    // only, and the six toggles are all real buttons in the row.
+    const details = center!.querySelector('[aria-label="Meeting details"]')
+    expect(details!.className).toContain('sm:hidden')
+    for (const label of SECONDARY_LABELS) {
+      expect(
+        mobileSecondary!.querySelector(`[aria-label="${label}"]`),
+        label,
+      ).not.toBeNull()
+    }
   })
 
-  it('shows a compact identity line only on a phone', () => {
-    const { container } = renderBar({ organiser: false, eventContext })
-    // The sm-and-up identity block lives in the left region; the phone one is
-    // a separate row so it is not squeezed to ~75px on a 360px viewport.
-    const mobileIdentity = container.querySelector('.sm\\:hidden')
-    expect(mobileIdentity).not.toBeNull()
+  it('renders the touch target lib/control-layout budgets for', () => {
+    const { bar, mobileSecondary } = renderBar({ organiser: false })
+    // The budget is in pixels and the class must be a literal for Tailwind to
+    // emit it, so the two can drift. This is the seam that catches it.
+    const sizeClass = `size-${TOUCH_TARGET / TAILWIND_STEP}`
+    const paddingClass = `px-${MOBILE_BAR_PADDING / TAILWIND_STEP}`
+    expect(mobileSecondary!.className).toContain(paddingClass)
+    expect(bar.className).toContain(paddingClass)
+    expect(mobileSecondary!.firstElementChild!.className).toContain(sizeClass)
+    // And the arithmetic those classes feed says both target viewports work.
+    expect(controlBarFits(360) && controlBarFits(390)).toBe(true)
+  })
+
+  it('gives every phone control a 44px touch target', () => {
+    const { center, mobileSecondary, right } = renderBar({ organiser: true })
+    // 44px is the iOS minimum; these were 32px. `size-11` is 2.75rem = 44px.
+    const phoneTargets = [
+      ...Array.from(mobileSecondary!.children),
+      ...Array.from(center!.children).filter(
+        (child) => child.getAttribute('aria-label') !== null,
+      ),
+      ...Array.from(right!.children),
+    ]
+    expect(phoneTargets.length).toBeGreaterThan(0)
+    for (const button of phoneTargets) {
+      expect(
+        button.className,
+        button.getAttribute('aria-label') ?? '',
+      ).toContain('size-11')
+    }
+  })
+
+  it('holds the destructive Leave away from the toggles on a phone', () => {
+    const { center } = renderBar({ organiser: false })
+    const leave = center!.querySelector('[aria-label="Leave meeting"]')!
+    const mute = center!.querySelector(':scope > [aria-label="Mute"]')!
+
+    // Leaving the call used to be one 8px gap from muting. The margin is
+    // phone-only — `sm:ml-0` keeps the desktop centre track's width unchanged,
+    // which is what the centring invariants above depend on.
+    expect(leave.className).toContain('ml-4')
+    expect(leave.className).toContain('sm:ml-0')
+    expect(mute.className).not.toContain('ml-4')
+  })
+
+  it('keeps the room code reachable on a phone', () => {
+    const { center } = renderBar({ organiser: false })
+    // ADR 0019: the code is the join link, so losing access to it on a phone
+    // would be a regression whatever the layout.
+    const details = center!.querySelector('[aria-label="Meeting details"]')
+    expect(details).not.toBeNull()
+  })
+
+  it('still names the meeting, in the left region from sm up', () => {
+    const { left, container } = renderBar({ organiser: false, eventContext })
+    // The identity block deliberately has no row of its own — that cost ~34px
+    // of a 640px viewport. On a phone it lives in the details menu instead.
+    expect(left!.textContent).toContain(eventContext.title)
     expect(container.textContent).toContain(eventContext.title)
   })
 
