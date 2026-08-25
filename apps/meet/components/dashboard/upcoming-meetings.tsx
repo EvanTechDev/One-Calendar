@@ -1,65 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Video } from 'lucide-react'
+import type { UpcomingRow, UpcomingState } from '@/hooks/use-upcoming-meetings'
 
-export interface UpcomingRow {
-  meetingId: string
-  eventId: string
-  title: string
-  /** ISO instant. Formatted here, in the visitor's own timezone. */
-  startDate: string
-  endDate: string
-}
+export type { UpcomingRow } from '@/hooks/use-upcoming-meetings'
 
 /**
- * Event Meetings on the user's calendar in the next 7 days.
- *
- * A client component for two reasons:
- *
- * 1. Times must be formatted in the VISITOR's timezone. Rendered in an async
- *    Server Component, `Intl.DateTimeFormat(undefined, …)` resolves to the
- *    server's zone — UTC on Vercel — so users were shown a join time that was
- *    not theirs, and would join at the wrong moment.
- * 2. The list comes from the calendar app's endpoint, which expands recurring
- *    series properly. A Series' master row carries the anchor date, not an
- *    occurrence, so filtering on it hid every recurring standup.
+ * The Upcoming section's list. Presentational: the fetch moved into
+ * `useUpcomingMeetings`, called once by the shell, so home's "next meeting"
+ * card and this list can never disagree about what is next.
  */
-export function UpcomingMeetings({
-  calendarOrigin,
-}: {
-  calendarOrigin: string
-}) {
-  const [rows, setRows] = useState<UpcomingRow[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-        const response = await fetch(
-          `${calendarOrigin}/api/meetings/upcoming?days=7&timezone=${encodeURIComponent(timezone)}`,
-          // The session cookie is scoped to the shared parent domain, so it
-          // must be sent on this cross-origin request explicitly.
-          { credentials: 'include' },
-        )
-        if (!response.ok) throw new Error('failed')
-        const body = (await response.json()) as { upcoming: UpcomingRow[] }
-        if (!cancelled) setRows(body.upcoming)
-      } catch {
-        if (!cancelled) {
-          setRows([])
-          setFailed(true)
-        }
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [calendarOrigin])
-
+export function UpcomingMeetings({ rows, failed }: UpcomingState) {
   return (
     // The Shell's section header already names this, so the list carries no
     // heading of its own.
@@ -94,18 +45,33 @@ export function UpcomingMeetings({
                   {formatWhen(item.startDate, item.endDate)}
                 </p>
               </div>
-              <a
-                href={`/${item.meetingId}`}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-              >
-                <Video className="size-3.5" />
-                Join
-              </a>
+              <JoinLink row={item} />
             </li>
           ))}
         </ul>
       )}
     </div>
+  )
+}
+
+export function JoinLink({
+  row,
+  className,
+}: {
+  row: UpcomingRow
+  className?: string
+}) {
+  return (
+    <a
+      href={`/${row.meetingId}`}
+      className={
+        className ??
+        'inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground'
+      }
+    >
+      <Video className="size-3.5" />
+      Join
+    </a>
   )
 }
 

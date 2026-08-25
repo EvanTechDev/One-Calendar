@@ -15,6 +15,7 @@ export default async function HomePage() {
     return (
       <Dashboard
         calendarOrigin={calendarOrigin()}
+        userName={session.user.name}
         identity={
           <span className="truncate text-sm text-muted-foreground">
             {session.user.name}
@@ -36,6 +37,11 @@ export default async function HomePage() {
         </Button>
       </header>
 
+      {/*
+        Start and join stay INLINE for a guest. They moved into a dialog for
+        signed-in users because the sidebar's "New meeting" button opens it — a
+        guest has no sidebar, so a dialog here would have no trigger.
+      */}
       <section className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2 text-center">
@@ -47,7 +53,7 @@ export default async function HomePage() {
               required.
             </p>
           </div>
-          <HomeActions />
+          <HomeActions idPrefix="guest" />
           {/*
             A session cookie issued before AUTH_COOKIE_DOMAIN was configured
             is host-only to the calendar and never reaches this app, so a
