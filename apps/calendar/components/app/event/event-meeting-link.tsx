@@ -78,7 +78,19 @@ export function MeetingLinkControls({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <span className="min-w-0 flex-1 truncate font-mono text-xs">
+      {/*
+        A room code is `xxxx-xxxx` (ADR-0019) — a code, not prose.
+
+        `text-sm` is the popover's own base size, so the code sits on the same
+        step as every other metadata row in the event preview (location,
+        calendar, recurrence, reminder); at `text-xs` it read as a footnote
+        beside them. No new size is introduced. `tabular-nums` keeps the two
+        halves the same width, which proportional digits did not. `select-all`
+        selects the whole code in one click for anyone who would rather read it
+        than press Copy, and `truncate` is gone: nine characters never overflow,
+        and clipping a credential is worse than not showing it.
+      */}
+      <span className="min-w-0 flex-1 select-all font-mono text-sm tabular-nums">
         {meeting.id}
       </span>
       <Button

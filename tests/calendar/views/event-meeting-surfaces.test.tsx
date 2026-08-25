@@ -15,6 +15,8 @@
  * 1. No request is made from this surface, on any event. A round trip removed
  *    is a round trip that cannot be stale or slow.
  * 2. A participant's view-only copy shows nothing and stays silent.
+ * 3. The room code is rendered as a code — monospace and tabular — on the same
+ *    type step as the preview's other metadata rows.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -174,5 +176,22 @@ describe('event preview meeting row', () => {
 
     await waitFor(() => expect(screen.getByText('Standup')).toBeInTheDocument())
     expect(screen.queryByLabelText('Copy meeting link')).toBeNull()
+  })
+
+  it('sets the room code as tabular monospace on the metadata type step', async () => {
+    renderPreview(
+      makeEvent({
+        meeting: { id: 'aaaa-bbbb', url: 'https://meet.test/aaaa-bbbb' },
+      }),
+    )
+
+    const code = await screen.findByText('aaaa-bbbb')
+    // `xxxx-xxxx` (ADR-0019) is a code, not prose. `text-sm` is the popover's
+    // own base size — the same step as the location, calendar, and recurrence
+    // rows it sits among — so no new size is invented.
+    expect(code.className).toContain('font-mono')
+    expect(code.className).toContain('tabular-nums')
+    expect(code.className).toContain('text-sm')
+    expect(code.className).not.toContain('text-xs')
   })
 })
