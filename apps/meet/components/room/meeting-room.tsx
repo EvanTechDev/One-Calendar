@@ -21,6 +21,12 @@ interface MeetingRoomProps {
   onLeaveIntent: () => void
   /** False in encrypted rooms, where chat is never retained (ADR 0020). */
   retainChat: boolean
+  /**
+   * The LiveKit join token, forwarded to chat retention as proof of room
+   * membership — the endpoint derives the sender's identity from it rather than
+   * trusting a client-supplied name.
+   */
+  participantToken: string
 }
 
 /** Stable per-track key, also used as the focus identifier. */
@@ -32,6 +38,7 @@ export function MeetingRoom({
   roomName,
   onLeaveIntent,
   retainChat,
+  participantToken,
 }: MeetingRoomProps) {
   const [chatOpen, setChatOpen] = useState(false)
   const [pinnedKey, setPinnedKey] = useState<string | null>(null)
@@ -124,6 +131,7 @@ export function MeetingRoom({
             onClose={() => setChatOpen(false)}
             roomName={roomName}
             retainMessages={retainChat}
+            participantToken={participantToken}
           />
         ) : null}
       </div>

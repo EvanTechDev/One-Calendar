@@ -14,6 +14,12 @@ export default defineConfig({
       '@zntr/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@zntr/utils': path.resolve(__dirname, '../../packages/utils/src'),
       '@zntr/meetings': path.resolve(__dirname, '../../packages/meetings/src'),
+      // Tests live outside this app, and pnpm does not hoist to the repo root,
+      // so a bare import from tests/meet cannot find the app's own dependency.
+      'livekit-server-sdk': path.resolve(
+        __dirname,
+        'node_modules/livekit-server-sdk',
+      ),
     },
   },
   server: {

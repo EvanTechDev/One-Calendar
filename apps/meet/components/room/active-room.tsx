@@ -45,11 +45,20 @@ export function ActiveRoom({
 }: ActiveRoomProps) {
   const router = useRouter()
   const e2ee = useE2EE()
-  const [phase, setPhase] = useState<Phase>(() =>
-    e2ee.error
-      ? { state: 'failed', message: DAMAGED_LINK_MESSAGE }
-      : { state: 'connecting' },
-  )
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (!e2ee.error) return { state: 'connecting' }
+    // Two different failures, two different remedies: a damaged link needs a
+    // fresh one from the organiser, whereas a browser that cannot start the
+    // crypto worker needs updating — telling that user their link is broken
+    // sends them to ask for a replacement that will fail identically.
+    return {
+      state: 'failed',
+      message:
+        e2ee.error === 'worker-unavailable'
+          ? UNSUPPORTED_E2EE_MESSAGE
+          : DAMAGED_LINK_MESSAGE,
+    }
+  })
   const [e2eeReady, setE2eeReady] = useState(!e2ee.enabled && !e2ee.error)
   /** Set when the local user chose to leave, so the drop screen is skipped. */
   const leavingRef = useRef(false)
@@ -228,6 +237,7 @@ export function ActiveRoom({
         roomName={connectionDetails.roomName}
         onLeaveIntent={markLeaving}
         retainChat={!e2ee.enabled}
+        participantToken={connectionDetails.participantToken}
       />
     </RoomContext.Provider>
   )

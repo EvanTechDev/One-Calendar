@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useChat, useLocalParticipant } from '@livekit/components-react'
+import { useChat } from '@livekit/components-react'
 import { Send, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -44,15 +44,21 @@ interface ChatPanelProps {
    * (ADR 0020).
    */
   retainMessages: boolean
+  /**
+   * The LiveKit join token, sent with each retained message as proof of room
+   * membership. The endpoint reads the sender's identity out of it — a
+   * client-supplied identity would be trivially forgeable.
+   */
+  participantToken: string
 }
 
 export function ChatPanel({
   onClose,
   roomName,
   retainMessages,
+  participantToken,
 }: ChatPanelProps) {
   const { chatMessages, send } = useChat()
-  const { localParticipant } = useLocalParticipant()
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -74,11 +80,9 @@ export function ChatPanel({
         void fetch(`/api/meetings/${roomName}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            senderIdentity: localParticipant.identity,
-            senderName: localParticipant.name || localParticipant.identity,
-          }),
+          // Identity is derived server-side from this token's claims, so it is
+          // deliberately NOT sent alongside it.
+          body: JSON.stringify({ message, participantToken }),
         }).catch(() => {})
       }
     } catch {
