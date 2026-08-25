@@ -62,6 +62,7 @@ export function createAuth(options: CreateAuthOptions): {
     db,
     baseURL,
     trustedOrigins,
+    advanced,
     emailCallbacks,
     plugins = {},
     password,
@@ -123,6 +124,13 @@ export function createAuth(options: CreateAuthOptions): {
 
   if (baseURL) {
     authConfig.baseURL = baseURL
+  }
+
+  // Omitted entirely when unset: Better Auth's defaults are correct for a
+  // single-origin deployment, and passing an empty `advanced` block would
+  // still be a config the library has to interpret.
+  if (advanced) {
+    authConfig.advanced = advanced
   }
 
   return {

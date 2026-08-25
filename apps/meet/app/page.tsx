@@ -53,8 +53,19 @@ export default async function HomePage() {
   )
 }
 
-/** Sign-in lives in the calendar app; meet only reads the session. */
+/**
+ * Sign-in lives in the calendar app; meet only reads the session (its own auth
+ * route deliberately exposes nothing else). The return URL brings the user
+ * back here instead of dumping them in the calendar — the calendar validates
+ * it against an allowlist, so an unknown origin is simply ignored there.
+ */
 function signInUrl(): string {
-  const origin = process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? ''
-  return `${origin.replace(/\/$/, '')}/sign-in`
+  const origin = (process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? '').replace(
+    /\/$/,
+    '',
+  )
+  const self = (process.env.NEXT_PUBLIC_BASE_URL ?? '').replace(/\/$/, '')
+  const signIn = `${origin}/sign-in`
+  if (!self) return signIn
+  return `${signIn}?redirect=${encodeURIComponent(`${self}/`)}`
 }

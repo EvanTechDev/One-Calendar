@@ -1,4 +1,5 @@
 import { createAuth } from '@zntr/auth/server'
+import { crossAppAuthConfig } from '@zntr/auth'
 import bcrypt from 'bcryptjs'
 import { getDb } from '@/lib/drizzle'
 import type { AuthInstance } from '@zntr/auth'
@@ -12,10 +13,18 @@ let _auth: AuthInstance | null = null
 export function getAuth(): AuthInstance {
   if (!_auth) {
     const baseURL = process.env.NEXT_PUBLIC_BASE_URL
+    // Must mirror the calendar's cookie configuration exactly, or the session
+    // it created is invisible here and every visitor is anonymous.
+    const { advanced, trustedOrigins } = crossAppAuthConfig({
+      cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
+      baseURL,
+      siblingOrigin: process.env.NEXT_PUBLIC_CALENDAR_ORIGIN,
+    })
     const { auth } = createAuth({
       db: getDb(),
       ...(baseURL ? { baseURL } : {}),
-      trustedOrigins: baseURL ? [baseURL] : [],
+      ...(advanced ? { advanced } : {}),
+      trustedOrigins,
       password: {
         hash: async (password: string) => bcrypt.hash(password, 10),
         verify: async ({

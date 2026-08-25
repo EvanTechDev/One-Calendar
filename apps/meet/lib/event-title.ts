@@ -50,6 +50,22 @@ function looksLikeEnvelope(value: string): boolean {
 }
 
 /**
+ * A misconfigured SALT degrades every calendar-linked meeting to "Untitled
+ * meeting", which looks like a data problem rather than a missing env var.
+ * Warned once per process — per-title would be one line per dashboard row.
+ */
+let warnedAboutSalt = false
+function warnMissingSaltOnce(): void {
+  if (warnedAboutSalt) return
+  warnedAboutSalt = true
+  console.warn(
+    '[event-title] SALT is unset or shorter than 16 characters, so encrypted ' +
+      'event titles cannot be read and every calendar-linked meeting will ' +
+      'show "Untitled meeting". It must match the calendar app\'s SALT exactly.',
+  )
+}
+
+/**
  * Returns the plaintext title, the value unchanged when it is legacy
  * plaintext, or a neutral placeholder when it cannot be read — never raw
  * ciphertext, which would be worse than saying nothing.
@@ -58,7 +74,10 @@ export function readEventTitle(rowId: string, stored: string): string {
   if (!looksLikeEnvelope(stored)) return stored
 
   const salt = process.env.SALT
-  if (!salt || salt.length < 16) return 'Untitled meeting'
+  if (!salt || salt.length < 16) {
+    warnMissingSaltOnce()
+    return 'Untitled meeting'
+  }
 
   try {
     const parsed = JSON.parse(stored) as Envelope

@@ -13,7 +13,15 @@ import { Label } from '@zntr/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { AuthLayout } from './auth-layout'
 
-export function LoginForm() {
+interface LoginFormProps {
+  /**
+   * Where to go after a successful sign-in. Already resolved against the
+   * allowlist by the page — never take this straight from the query string.
+   */
+  returnTo?: string
+}
+
+export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [revealPassword, setRevealPassword] = useState(false)
@@ -28,6 +36,19 @@ export function LoginForm() {
   )
   const [turnstileToken, setTurnstileToken] = useState('')
   const router = useRouter()
+
+  /**
+   * `returnTo` may point at the sibling meet app, which the Next router
+   * cannot navigate to — it only handles in-app routes. Absolute URLs go
+   * through a full page load instead. Already allowlisted server-side.
+   */
+  const navigateAfterSignIn = () => {
+    if (/^https?:\/\//i.test(returnTo)) {
+      window.location.assign(returnTo)
+      return
+    }
+    router.push(returnTo)
+  }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,7 +86,7 @@ export function LoginForm() {
       return
     }
 
-    router.push('/app')
+    navigateAfterSignIn()
     setIsLoading(false)
   }
 
@@ -82,7 +103,7 @@ export function LoginForm() {
       setIsVerifyingTotp(false)
       return
     }
-    router.push('/app')
+    navigateAfterSignIn()
   }
 
   return (
