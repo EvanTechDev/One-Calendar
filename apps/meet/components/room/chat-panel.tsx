@@ -1,15 +1,92 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Send, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { cn } from '@zntr/utils'
+import { groupChatMessages } from '@/lib/chat-grouping'
+import type { ChatGroup } from '@/lib/chat-grouping'
 import type { RoomChat } from '@/hooks/use-room-chat'
 
 const URL_PATTERN = /https?:\/\/[^\s<>"')]+/g
 
 /** Renders plain text with clickable links. */
+/**
+ * One sender's consecutive run.
+ *
+ * Remote messages are a name + text block rather than a bubble, matching Google
+ * Meet (ADR 0018 makes Google the baseline where no decision says otherwise).
+ * Two reasons beyond parity: a bubble on a 320px panel spends 24px of the
+ * width on padding it does not need, and in a two-party call every second
+ * bubble being grey is noise — who spoke is already on the header line.
+ *
+ * The local side keeps its bubble, because that is the only thing
+ * distinguishing "mine" from "theirs" once the remote side has none.
+ */
+function ChatGroupBlock({ group }: { group: ChatGroup }) {
+  return (
+    // `items-start` / `items-end`, never the default `stretch`. That default
+    // was the actual reported bug: a stretched flex child fills the line, so
+    // `max-w-[85%]` acted as an exact width and a one-word remote reply
+    // rendered a 272px slab. Both alignments make the child hug its text.
+    <div
+      className={cn(
+        'flex flex-col',
+        group.isLocal ? 'items-end' : 'items-start',
+      )}
+    >
+      {/* Sender and time share one line, and only the first message of a run
+          gets one — that is what keeps a timestamp from costing a line each. */}
+      <p
+        className={cn(
+          'mb-1 flex max-w-full items-baseline gap-1.5 px-0.5 text-xs leading-none text-muted-foreground',
+          group.isLocal && 'flex-row-reverse',
+        )}
+      >
+        <span className="min-w-0 truncate font-medium text-foreground/80">
+          {group.senderName}
+        </span>
+        <time
+          className="shrink-0 tabular-nums"
+          dateTime={new Date(group.timestamp).toISOString()}
+        >
+          {formatTime(group.timestamp)}
+        </time>
+      </p>
+      <div
+        className={cn(
+          'flex w-full flex-col gap-1',
+          group.isLocal ? 'items-end' : 'items-start',
+        )}
+      >
+        {group.messages.map((message) => (
+          <div
+            key={message.id}
+            className={cn(
+              // `break-words` alone does not break a 60-character URL, which
+              // is exactly the message that overflows a 320px panel.
+              'max-w-[calc(100%-1.5rem)] break-words text-sm [overflow-wrap:anywhere]',
+              group.isLocal
+                ? 'rounded-2xl bg-primary px-2.5 py-1.5 text-primary-foreground'
+                : 'px-0.5 text-foreground',
+            )}
+          >
+            <LinkifiedText text={message.message} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function formatTime(timestamp: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(timestamp))
+}
+
 function LinkifiedText({ text }: { text: string }) {
   const parts: React.ReactNode[] = []
   let lastIndex = 0
@@ -53,6 +130,7 @@ export function ChatPanel({ onClose, chat, retainMessages }: ChatPanelProps) {
   const { messages, send } = chat
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const groups = useMemo(() => groupChatMessages(messages), [messages])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -87,35 +165,20 @@ export function ChatPanel({ onClose, chat, retainMessages }: ChatPanelProps) {
           ? 'Messages are saved to this meeting’s history'
           : 'Encrypted meeting — messages are not saved'}
       </p>
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-        {messages.length === 0 ? (
+      {/* `space-y-3` between senders, not between messages: a run from one
+          person is one block, so its own messages sit closer together. */}
+      <div
+        ref={scrollRef}
+        className="flex-1 space-y-3 overflow-y-auto px-3 py-4"
+      >
+        {groups.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">
             No messages yet
           </p>
         ) : (
-          messages.map((message) => {
-            const isLocal = message.from?.isLocal ?? false
-            return (
-              <div
-                key={message.id}
-                className={cn('flex flex-col', isLocal && 'items-end')}
-              >
-                <span className="mb-0.5 text-xs text-muted-foreground">
-                  {isLocal
-                    ? 'You'
-                    : message.from?.name || message.from?.identity}
-                </span>
-                <div
-                  className={cn(
-                    'max-w-[85%] break-words rounded-lg px-3 py-2 text-sm',
-                    isLocal ? 'bg-primary text-primary-foreground' : 'bg-muted',
-                  )}
-                >
-                  <LinkifiedText text={message.message} />
-                </div>
-              </div>
-            )
-          })
+          groups.map((group) => (
+            <ChatGroupBlock key={group.key} group={group} />
+          ))
         )}
       </div>
       <form
