@@ -42,6 +42,16 @@ export default async function HomePage() {
               </p>
             </div>
             <HomeActions />
+            {/*
+              A session cookie issued before AUTH_COOKIE_DOMAIN was configured
+              is host-only to the calendar and never reaches this app, so a
+              signed-in user lands here looking anonymous. Nothing about that is
+              guessable from the UI, hence the hint.
+            */}
+            <p className="text-center text-xs text-muted-foreground">
+              Already signed in on Zentra Calendar and still seeing this? Sign
+              out there and back in once, then reload.
+            </p>
           </div>
         </section>
       )}

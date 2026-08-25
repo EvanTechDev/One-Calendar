@@ -123,8 +123,16 @@ export async function GET(request: NextRequest) {
     )
   }
   if (!sessionCookie) {
+    // With the configuration otherwise sound, the overwhelmingly likely cause
+    // is a cookie that predates it: AUTH_COOKIE_DOMAIN only affects cookies
+    // issued after it was set, and no configuration can retroactively widen a
+    // cookie already in a browser.
+    const configLooksRight =
+      Boolean(cookieDomain) && domainsCompatible && databaseReachable
     problems.push(
-      'The browser sent no Better Auth session cookie with this request. Either you are not signed in on the calendar, or the cookie is host-only (see AUTH_COOKIE_DOMAIN) and therefore not sent to this host.',
+      configLooksRight
+        ? 'The browser sent no session cookie, but this deployment is configured correctly — so the cookie in your browser was almost certainly issued BEFORE AUTH_COOKIE_DOMAIN was set, and is therefore host-only to the calendar. Setting the variable cannot widen a cookie that already exists. FIX: sign out on the calendar and sign in again (or clear its cookies), then reload this page.'
+        : 'The browser sent no Better Auth session cookie with this request. Either you are not signed in on the calendar, or the cookie is host-only (see AUTH_COOKIE_DOMAIN) and therefore not sent to this host.',
     )
   } else if (!session) {
     problems.push(
