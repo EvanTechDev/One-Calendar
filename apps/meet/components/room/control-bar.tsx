@@ -108,8 +108,21 @@ export function ControlBar({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
-        <div className="hidden min-w-0 flex-1 items-center gap-2 sm:flex">
+      {/*
+        Three independent regions, so the middle cluster is centred on the
+        viewport rather than on whatever is left over. `minmax(0, 1fr)` on both
+        side tracks is the load-bearing part: a bare `1fr` resolves to
+        `minmax(auto, 1fr)`, which lets a long event title in the left region
+        claim more than its share and push the controls off-centre. With an
+        explicit 0 minimum the two side tracks are always the same width, so
+        the centre track sits exactly in the middle regardless of role
+        (Organiser-only actions live on the right) or event title.
+      */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-t px-4 py-3">
+        <div
+          data-region="left"
+          className="hidden min-w-0 items-center gap-2 sm:flex"
+        >
           <MeetingIdentity roomName={roomName} eventContext={eventContext} />
           <Button
             size="icon"
@@ -122,7 +135,10 @@ export function ControlBar({
           </Button>
         </div>
 
-        <div className="flex flex-1 items-center justify-center gap-2">
+        <div
+          data-region="center"
+          className="flex items-center justify-center gap-2"
+        >
           <ControlButton
             active={isMicrophoneEnabled}
             onClick={() =>
@@ -209,6 +225,18 @@ export function ControlBar({
           >
             <PhoneOff className="size-4" />
           </Button>
+        </div>
+
+        {/*
+          Host controls sit on the right, matching where Google Meet puts
+          them. Keeping "End for all" out of the centre cluster is what stops
+          the centre from shifting between a guest and the Organiser (ADR
+          0016 — ending is the Organiser's explicit act, so only they see it).
+        */}
+        <div
+          data-region="right"
+          className="flex min-w-0 items-center justify-end gap-2"
+        >
           {isOrganiser ? (
             <Button
               variant="destructive"
@@ -223,8 +251,6 @@ export function ControlBar({
             </Button>
           ) : null}
         </div>
-
-        <div className="hidden w-24 sm:block" />
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>

@@ -20,6 +20,14 @@ export default defineConfig({
         __dirname,
         'node_modules/livekit-server-sdk',
       ),
+      // Same reason, and it also makes `vi.mock` work: without the alias the
+      // test file's specifier stays unresolved while the component under test
+      // resolves the real module, so the mock silently never applies.
+      '@livekit/components-react': path.resolve(
+        __dirname,
+        'node_modules/@livekit/components-react',
+      ),
+      'livekit-client': path.resolve(__dirname, 'node_modules/livekit-client'),
     },
   },
   server: {
