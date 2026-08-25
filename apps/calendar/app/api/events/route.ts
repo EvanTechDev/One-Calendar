@@ -63,7 +63,7 @@ import {
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
-import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
+import { deleteMeetingsForEvents, moveMeetingToEvent } from '@zntr/meetings'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
@@ -282,10 +282,11 @@ async function deleteRow(
     await dbx.delete(eventInvites).where(inArray(eventInvites.eventId, rowIds))
     // Event Meetings live in a separate package with no database FK back to
     // this table on purpose (ADR-0017), so their cascade runs here. Deleting
-    // the row is what invalidates the meeting link.
-    for (const rowId of rowIds) {
-      await deleteMeetingsForEvent(dbx, rowId)
-    }
+    // the row is what invalidates the meeting link. One statement for the whole
+    // set, like the eventInvites delete above — meetings only ever attach to
+    // masters, so iterating cost 50 pointless statements on a 50-override
+    // series.
+    await deleteMeetingsForEvents(dbx, rowIds)
     await dbx
       .delete(calendarEvents)
       .where(
@@ -370,11 +371,14 @@ async function applySplitPlan(
 
     // A Series has one Meeting whose link stays stable across occurrences
     // (ADR-0019), so the split's tail — the part participants are still going
-    // to attend — keeps it. Must run before the branch below can delete the
-    // old master, or the meeting would be cascaded away with it.
-    if (split.masterBecomesEmpty) {
-      await moveMeetingToEvent(tx, master.id, newId)
-    }
+    // to attend — keeps it. Unconditional, exactly like the invite carry above:
+    // guarding this on `masterBecomesEmpty` meant the ordinary mid-series
+    // "this and following" split never moved it, so the future segment lost its
+    // meeting while the past segment kept a link nobody would use again.
+    //
+    // Must run before the branch below can delete the old master, or the
+    // meeting would be cascaded away with it.
+    await moveMeetingToEvent(tx, master.id, newId)
 
     if (split.masterBecomesEmpty) {
       // The old series would render nothing after truncation (split at its
@@ -1832,14 +1836,11 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     })
     const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
     if (newMaster) {
-      await getDb()
-        .delete(calendarEvents)
-        .where(
-          and(
-            eq(calendarEvents.id, newMaster.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
+      // Through deleteRow, never a bare delete: the split just re-pointed the
+      // Series' Meeting at this new master (ADR-0019), and the meeting cascade
+      // lives in deleteRow. Deleting the row directly left a joinable room
+      // attached to an event that no longer exists.
+      await deleteRow(user.id, newMaster as unknown as EventRow)
     }
     const seriesEvents = await loadSeriesView(user, [masterRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
@@ -1887,14 +1888,8 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     if (plan.split) {
       const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
       if (newMaster) {
-        await getDb()
-          .delete(calendarEvents)
-          .where(
-            and(
-              eq(calendarEvents.id, newMaster.id),
-              eq(calendarEvents.userId, user.id),
-            ),
-          )
+        // See above: deleteRow carries the meeting cascade.
+        await deleteRow(user.id, newMaster as unknown as EventRow)
       }
       const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })

@@ -18,6 +18,7 @@ import {
   bookmarkedEvents,
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
+import { deleteMeetingsForOrganiser } from '@zntr/meetings'
 
 export const runtime = 'nodejs'
 
@@ -48,6 +49,13 @@ export const DELETE = withEvlog(async function DELETE(request: Request) {
         .delete(calendarCategories)
         .where(eq(calendarCategories.userId, user.id))
       await tx.delete(settings).where(eq(settings.userId, user.id))
+      // Meetings have no FK back to the user or to events (ADR-0017), so the
+      // cascade is explicit. Without it, deleting an account left
+      // never-expiring, still-joinable rooms behind that NOBODY could ever end:
+      // isOrganiser needs either this user's session (gone) or a Creator Token
+      // (null for a signed-in organiser). Runs inside the same transaction, so
+      // a failed account delete cannot destroy the meetings on its own.
+      await deleteMeetingsForOrganiser(tx, user.id)
       await tx.delete(calendarEvents).where(eq(calendarEvents.userId, user.id))
       await tx.delete(sessionTable).where(eq(sessionTable.userId, user.id))
       await tx.delete(accountTable).where(eq(accountTable.userId, user.id))

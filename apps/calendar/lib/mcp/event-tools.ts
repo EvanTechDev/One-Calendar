@@ -7,6 +7,7 @@ import {
 import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
+import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
 import { normalizeColor } from './colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
@@ -628,6 +629,11 @@ async function deleteCalendarEventRow(
   eventId: string,
 ): Promise<void> {
   await db.delete(eventInvites).where(eq(eventInvites.eventId, eventId))
+  // Event Meetings have no database FK back to this table on purpose
+  // (ADR-0017), so the cascade is explicit — exactly as the REST route's
+  // deleteRow does it. This function is the single delete path behind every MCP
+  // delete call site, so omitting it orphaned a joinable room on each one.
+  await deleteMeetingsForEvent(db, eventId)
   await db
     .delete(calendarEvents)
     .where(
@@ -738,6 +744,12 @@ async function applySplitPlan(
     clockSource: split.newSeries.startDate,
     timeZone,
   })
+
+  // The Series' single Meeting follows the tail, the part participants will
+  // actually attend (ADR-0019) — the same unconditional move the REST split
+  // does. Must precede the empty-master delete below, whose cascade would
+  // otherwise take the meeting with it.
+  await moveMeetingToEvent(db, master.id, newId)
 
   if (split.masterBecomesEmpty) {
     // Same as the REST route: a truncated master that renders nothing is
