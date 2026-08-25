@@ -11,7 +11,7 @@ import {
 import { Hand, MicOff, ScreenShare, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { cn } from '@zntr/utils'
-import { HAND_RAISED_ATTRIBUTE } from '@/lib/room-signals'
+import { useRaisedHands } from '@/hooks/use-raised-hands'
 
 /**
  * Who is in the room.
@@ -23,12 +23,13 @@ import { HAND_RAISED_ATTRIBUTE } from '@/lib/room-signals'
  */
 export function PeoplePanel({ onClose }: { onClose: () => void }) {
   const participants = useParticipants()
+  const hands = useRaisedHands()
 
   // Raised hands first, in the order they were raised, then everyone else.
   // Ordering by raise time is what makes a queue a queue.
   const ordered = [...participants].sort((a, b) => {
-    const handA = raisedAt(a)
-    const handB = raisedAt(b)
+    const handA = hands.get(a.identity)
+    const handB = hands.get(b.identity)
     if (handA && handB) return handA - handB
     if (handA) return -1
     if (handB) return 1
@@ -58,18 +59,15 @@ export function PeoplePanel({ onClose }: { onClose: () => void }) {
       </div>
       <ul className="flex-1 overflow-y-auto p-2">
         {ordered.map((participant) => (
-          <PersonRow key={participant.identity} participant={participant} />
+          <PersonRow
+            key={participant.identity}
+            participant={participant}
+            handRaised={hands.has(participant.identity)}
+          />
         ))}
       </ul>
     </aside>
   )
-}
-
-function raisedAt(participant: Participant): number | null {
-  const raw = participant.attributes?.[HAND_RAISED_ATTRIBUTE]
-  if (!raw) return null
-  const parsed = Number(raw)
-  return Number.isFinite(parsed) ? parsed : null
 }
 
 function initials(name: string): string {
@@ -84,7 +82,13 @@ function initials(name: string): string {
   )
 }
 
-function PersonRow({ participant }: { participant: Participant }) {
+function PersonRow({
+  participant,
+  handRaised,
+}: {
+  participant: Participant
+  handRaised: boolean
+}) {
   const isSpeaking = useIsSpeaking(participant)
   const micMuted = useIsMuted({
     participant,
@@ -93,7 +97,6 @@ function PersonRow({ participant }: { participant: Participant }) {
   const sharing = participant
     .getTrackPublications()
     .some((publication) => publication.source === Track.Source.ScreenShare)
-  const handRaised = raisedAt(participant) !== null
   const name = participant.name || participant.identity || 'Participant'
 
   return (

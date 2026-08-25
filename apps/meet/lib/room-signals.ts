@@ -10,13 +10,26 @@
  * - A reaction is an **event**, so it goes over the data channel. It is meant
  *   to be seen once and forgotten; persisting it would mean cleaning it up.
  *
- * The room token already grants `canPublishData`, so neither needs a server or
- * token change.
+ * The two need different token grants, which is easy to get wrong: a reaction
+ * rides `canPublishData`, but an attribute write needs `canUpdateOwnMetadata`,
+ * which is NOT on by default. See app/api/connection-details/route.ts.
  */
 
 export const HAND_RAISED_ATTRIBUTE = 'handRaisedAt'
 
 export const REACTION_TOPIC = 'reaction'
+
+/**
+ * The raise timestamp, or null when the hand is down.
+ *
+ * Attributes are strings on the wire, so every reader has to parse — and a
+ * hand queue ordered by a NaN is not ordered at all.
+ */
+export function parseRaisedAt(raw: string | undefined): number | null {
+  if (!raw) return null
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : null
+}
 
 /** The reactions offered in the control bar, in display order. */
 export const REACTIONS = ['👍', '🎉', '👏', '😂', '😮', '❤️'] as const

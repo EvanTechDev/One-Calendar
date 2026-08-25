@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Track } from 'livekit-client'
 import {
   RoomAudioRenderer,
@@ -17,11 +17,12 @@ import { useElementSize } from '@/hooks/use-element-size'
 import {
   maxFilmstripTiles,
   maxTilesPerPage,
-  prefersCollapsedFilmstrip,
+  filmstripIsOpen,
   videoGridColumns,
 } from '@/lib/video-layout'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { ParticipantTile } from '@/components/room/participant-tile'
+import { useRaisedHands } from '@/hooks/use-raised-hands'
 import { ControlBar } from '@/components/room/control-bar'
 import { ChatPanel } from '@/components/room/chat-panel'
 import { RecordingBanner } from '@/components/room/recording-banner'
@@ -106,6 +107,8 @@ export function MeetingRoom({
     [tracks, focused],
   )
 
+  const hands = useRaisedHands()
+
   const togglePanel = (next: 'chat' | 'people') =>
     setPanel((current) => (current === next ? null : next))
 
@@ -129,17 +132,14 @@ export function MeetingRoom({
     prevPage,
   } = usePagination(pageSize, ordered)
 
-  const [filmstripOpen, setFilmstripOpen] = useState(true)
-  const collapsePreferred = prefersCollapsedFilmstrip(stage)
-  // A portrait phone cannot fit the stage, a strip and the control bar at
-  // once, so the strip starts collapsed there — but only until the viewer
-  // says otherwise, hence the one-shot sync rather than a derived value.
-  const lastCollapsePreference = useRef(collapsePreferred)
-  useEffect(() => {
-    if (lastCollapsePreference.current === collapsePreferred) return
-    lastCollapsePreference.current = collapsePreferred
-    setFilmstripOpen(!collapsePreferred)
-  }, [collapsePreferred])
+  // `null` means the viewer has not chosen, so the stage decides.
+  const [filmstripChoice, setFilmstripChoice] = useState<boolean | null>(null)
+  // A portrait phone cannot fit the stage, a strip and the control bar at once,
+  // so the strip starts collapsed there. Resolved rather than synced into
+  // state: opening a panel narrows the stage enough to cross the phone
+  // threshold, so a sync fired on every panel toggle and clobbered the
+  // viewer's collapse — reported as the strip re-expanding when chat closed.
+  const filmstripOpen = filmstripIsOpen(stage, filmstripChoice)
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -159,6 +159,7 @@ export function MeetingRoom({
                   isFocus
                   isPinned={pinnedKey === trackKey(focused)}
                   onTogglePin={() => togglePin(focused)}
+                  handRaised={hands.has(focused.participant.identity)}
                 />
               </div>
               {others.length > 0 ? (
@@ -173,6 +174,7 @@ export function MeetingRoom({
                           <ParticipantTile
                             trackRef={track}
                             onTogglePin={() => togglePin(track)}
+                            handRaised={hands.has(track.participant.identity)}
                           />
                         </div>
                       ))}
@@ -193,7 +195,7 @@ export function MeetingRoom({
                       size="icon"
                       variant="ghost"
                       className="size-8 shrink-0"
-                      onClick={() => setFilmstripOpen(false)}
+                      onClick={() => setFilmstripChoice(false)}
                       aria-label="Hide participant strip"
                     >
                       <PanelBottomClose className="size-4" />
@@ -204,7 +206,7 @@ export function MeetingRoom({
                     variant="secondary"
                     size="sm"
                     className="shrink-0 self-center rounded-full"
-                    onClick={() => setFilmstripOpen(true)}
+                    onClick={() => setFilmstripChoice(true)}
                   >
                     Show {others.length}{' '}
                     {others.length === 1 ? 'participant' : 'participants'}
@@ -220,6 +222,7 @@ export function MeetingRoom({
                     key={trackKey(track)}
                     trackRef={track}
                     onTogglePin={() => togglePin(track)}
+                    handRaised={hands.has(track.participant.identity)}
                   />
                 ))}
               </VideoGrid>

@@ -136,6 +136,21 @@ export function prefersCollapsedFilmstrip(stage: StageSize): boolean {
   return stageTier(stage.width) === 'phone' && stage.height > stage.width
 }
 
+/**
+ * Whether the filmstrip is open, given the stage and whatever the viewer chose.
+ *
+ * An explicit choice always wins. Opening a side panel narrows the stage past
+ * the phone threshold, so deriving this from the stage alone re-collapsed and
+ * re-expanded the strip on every panel toggle — the viewer's collapse came back
+ * as soon as they closed chat.
+ */
+export function filmstripIsOpen(
+  stage: StageSize,
+  viewerChoice: boolean | null,
+): boolean {
+  return viewerChoice ?? !prefersCollapsedFilmstrip(stage)
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }

@@ -9,7 +9,7 @@ import {
   useIsSpeaking,
 } from '@livekit/components-react'
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
-import { Maximize2, MicOff, Minimize2, ScreenShare } from 'lucide-react'
+import { Hand, Maximize2, MicOff, Minimize2, ScreenShare } from 'lucide-react'
 import { cn } from '@zntr/utils'
 
 interface ParticipantTileProps {
@@ -17,6 +17,12 @@ interface ParticipantTileProps {
   isFocus?: boolean
   isPinned?: boolean
   onTogglePin?: () => void
+  /**
+   * Passed in rather than subscribed here: the room already keeps one
+   * subscription for the whole roster (hooks/use-raised-hands), and one per
+   * tile would be a subscription per participant per render surface.
+   */
+  handRaised?: boolean
 }
 
 function initials(name: string): string {
@@ -36,6 +42,7 @@ export function ParticipantTile({
   isFocus,
   isPinned,
   onTogglePin,
+  handRaised,
 }: ParticipantTileProps) {
   const { participant } = trackRef
   const isScreenShare = trackRef.source === Track.Source.ScreenShare
@@ -109,6 +116,19 @@ export function ParticipantTile({
           ) : (
             <Maximize2 className="size-3.5" />
           )}
+        </div>
+      ) : null}
+      {/*
+        A raised hand belongs on the tile, not only in the People panel — the
+        panel is closed by default, so a hand raised there is a hand nobody in
+        the meeting sees.
+      */}
+      {handRaised && !isScreenShare ? (
+        <div
+          className="absolute left-2 top-2 rounded-md bg-black/60 p-1.5"
+          aria-label={`${displayName} raised their hand`}
+        >
+          <Hand className="size-3.5 text-amber-400" />
         </div>
       ) : null}
       <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-xs text-white">

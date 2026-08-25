@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDataChannel, useLocalParticipant } from '@livekit/components-react'
+import { toast } from 'sonner'
 import {
   HAND_RAISED_ATTRIBUTE,
   REACTION_TOPIC,
@@ -63,7 +64,14 @@ export function useRoomSignals() {
     } else {
       next[HAND_RAISED_ATTRIBUTE] = String(Date.now())
     }
-    await localParticipant.setAttributes(next)
+    try {
+      await localParticipant.setAttributes(next)
+    } catch {
+      // The server rejects this without `canUpdateOwnMetadata`. That was the
+      // original bug and it was invisible, because an awaited rejection in a
+      // click handler surfaces nowhere the viewer can see.
+      toast.error('Could not update your raised hand')
+    }
   }, [handRaised, localParticipant])
 
   const sendReaction = useCallback(

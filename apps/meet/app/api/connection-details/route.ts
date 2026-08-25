@@ -143,6 +143,12 @@ export async function POST(request: NextRequest) {
       canPublish: true,
       canPublishData: true,
       canSubscribe: true,
+      // Raising a hand writes a participant attribute, and the server rejects
+      // `setAttributes` without this grant — "by default, a participant is not
+      // allowed to update its own metadata". Without it the hand silently never
+      // went up. Attributes are the durable half of lib/room-signals; the
+      // transient half rides canPublishData.
+      canUpdateOwnMetadata: true,
     }
 
     const accessToken = new AccessToken(apiKey, apiSecret, tokenOptions)
