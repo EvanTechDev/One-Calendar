@@ -7,9 +7,7 @@ import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { Switch } from '@zntr/ui/switch'
-import { toast } from 'sonner'
-import { encodePassphrase, generatePassphrase } from '@/lib/meet-utils'
-import { storeCreatorToken } from '@/lib/creator-token'
+import { useStartMeeting } from '@/hooks/use-start-meeting'
 
 const ROOM_CODE_PATTERN = /^[a-z0-9]{4}-[a-z0-9]{4}$/
 
@@ -50,33 +48,7 @@ export function HomeActions() {
   const router = useRouter()
   const [joinCode, setJoinCode] = useState('')
   const [e2ee, setE2ee] = useState(false)
-  const [creating, setCreating] = useState(false)
-
-  const startMeeting = async () => {
-    setCreating(true)
-    try {
-      const response = await fetch('/api/meetings', { method: 'POST' })
-      if (!response.ok) {
-        const body = await response.json().catch(() => null)
-        throw new Error(body?.error ?? 'Could not start the meeting')
-      }
-      const { id, joinPath, creatorToken } = (await response.json()) as {
-        id: string
-        joinPath: string
-        creatorToken?: string
-      }
-      // A guest Organiser's authority lives in this token (ADR 0016).
-      if (creatorToken) storeCreatorToken(id, creatorToken)
-      const hash = e2ee ? `#${encodePassphrase(generatePassphrase())}` : ''
-      router.push(`${joinPath}${hash}`)
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Could not start the meeting',
-      )
-    } finally {
-      setCreating(false)
-    }
-  }
+  const { start, starting } = useStartMeeting()
 
   const joinMeeting = () => {
     const roomId = parseRoomInput(joinCode)
@@ -91,11 +63,11 @@ export function HomeActions() {
         <Button
           className="w-full"
           size="lg"
-          onClick={startMeeting}
-          disabled={creating}
+          onClick={() => start({ e2ee })}
+          disabled={starting}
         >
           <Video className="size-4" />
-          {creating ? 'Starting…' : 'Start an instant meeting'}
+          {starting ? 'Starting…' : 'Start an instant meeting'}
         </Button>
         <div className="flex items-center justify-between rounded-lg border px-4 py-3">
           <div className="flex items-center gap-2">

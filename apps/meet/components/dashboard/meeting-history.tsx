@@ -1,15 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  Clock,
-  Copy,
-  History,
-  Search,
-  Trash2,
-  Users,
-  Video,
-} from 'lucide-react'
+import { Clock, Copy, Search, Trash2, Users, Video } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Badge } from '@zntr/ui/badge'
@@ -76,14 +68,12 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
   }
 
   return (
-    <section className="space-y-3">
+    // Named by the Shell's section header, so the search form gets the full
+    // row instead of sharing it with a duplicate heading.
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-medium">
-          <History className="size-4 text-muted-foreground" />
-          Your meetings
-        </h2>
-        <form className="flex gap-2" onSubmit={runSearch}>
-          <div className="relative">
+        <form className="flex flex-1 gap-2" onSubmit={runSearch}>
+          <div className="relative flex-1 sm:max-w-64">
             <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -93,7 +83,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
               }}
               placeholder="Search meetings"
               aria-label="Search meetings"
-              className="h-9 w-56 pl-9"
+              className="h-9 w-full pl-9"
             />
           </div>
           <Button
@@ -177,7 +167,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           ))}
         </ul>
       )}
-    </section>
+    </div>
   )
 }
 

@@ -2,59 +2,64 @@ import Link from 'next/link'
 import { getServerSession } from '@/lib/auth/server'
 import { HomeActions } from '@/components/home-actions'
 import { Dashboard } from '@/components/dashboard/dashboard'
+import { ZentraMark } from '@/components/shell/zentra-mark'
 import { Button } from '@zntr/ui/button'
 
 export default async function HomePage() {
   const session = await getServerSession()
 
+  // A signed-in user gets the Shell, which owns its own header and brand
+  // block; a guest keeps the simple centred column, which has no sections to
+  // navigate and no history to show.
+  if (session) {
+    return (
+      <Dashboard
+        calendarOrigin={calendarOrigin()}
+        identity={
+          <span className="truncate text-sm text-muted-foreground">
+            {session.user.name}
+          </span>
+        }
+      />
+    )
+  }
+
   return (
     <main className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
-            M
-          </div>
+          <ZentraMark className="size-6 shrink-0 brightness-0 dark:invert" />
           <span className="text-sm font-medium">Zentra Meet</span>
         </div>
-        {session ? (
-          <span className="text-sm text-muted-foreground">
-            {session.user.name}
-          </span>
-        ) : (
-          <Button asChild size="sm" variant="ghost">
-            <Link href={signInUrl()}>Sign in</Link>
-          </Button>
-        )}
+        <Button asChild size="sm" variant="ghost">
+          <Link href={signInUrl()}>Sign in</Link>
+        </Button>
       </header>
 
-      {session ? (
-        <Dashboard calendarOrigin={calendarOrigin()} />
-      ) : (
-        <section className="flex flex-1 items-center justify-center px-6">
-          <div className="w-full max-w-md space-y-8">
-            <div className="space-y-2 text-center">
-              <h1 className="text-3xl font-semibold tracking-tight">
-                Meetings for your calendar
-              </h1>
-              <p className="text-muted-foreground">
-                Start an instant meeting or join with a code. No downloads
-                required.
-              </p>
-            </div>
-            <HomeActions />
-            {/*
-              A session cookie issued before AUTH_COOKIE_DOMAIN was configured
-              is host-only to the calendar and never reaches this app, so a
-              signed-in user lands here looking anonymous. Nothing about that is
-              guessable from the UI, hence the hint.
-            */}
-            <p className="text-center text-xs text-muted-foreground">
-              Already signed in on Zentra Calendar and still seeing this? Sign
-              out there and back in once, then reload.
+      <section className="flex flex-1 items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-2 text-center">
+            <h1 className="font-heading text-3xl font-semibold tracking-tight">
+              Meetings for your calendar
+            </h1>
+            <p className="text-muted-foreground">
+              Start an instant meeting or join with a code. No downloads
+              required.
             </p>
           </div>
-        </section>
-      )}
+          <HomeActions />
+          {/*
+            A session cookie issued before AUTH_COOKIE_DOMAIN was configured
+            is host-only to the calendar and never reaches this app, so a
+            signed-in user lands here looking anonymous. Nothing about that is
+            guessable from the UI, hence the hint.
+          */}
+          <p className="text-center text-xs text-muted-foreground">
+            Already signed in on Zentra Calendar and still seeing this? Sign out
+            there and back in once, then reload.
+          </p>
+        </div>
+      </section>
 
       <footer className="px-6 py-4 text-center text-xs text-muted-foreground">
         Part of the Zentra suite

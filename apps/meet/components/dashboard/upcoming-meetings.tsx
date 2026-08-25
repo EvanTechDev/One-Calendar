@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarClock, Video } from 'lucide-react'
+import { Video } from 'lucide-react'
 
 export interface UpcomingRow {
   meetingId: string
@@ -61,11 +61,9 @@ export function UpcomingMeetings({
   }, [calendarOrigin])
 
   return (
-    <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-sm font-medium">
-        <CalendarClock className="size-4 text-muted-foreground" />
-        Next 7 days
-      </h2>
+    // The Shell's section header already names this, so the list carries no
+    // heading of its own.
+    <div className="space-y-3">
       {rows === null ? (
         <ul className="divide-y rounded-lg border" aria-busy="true">
           {[0, 1].map((key) => (
@@ -107,7 +105,7 @@ export function UpcomingMeetings({
           ))}
         </ul>
       )}
-    </section>
+    </div>
   )
 }
 
