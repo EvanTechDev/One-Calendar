@@ -63,7 +63,7 @@ import {
 } from '@/lib/recurrence'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { EventMeetingField } from '@/components/app/event/event-meeting-field'
-import { usePendingMeeting } from '@/hooks/use-pending-meeting'
+import { useEventMeetingDraft } from '@/hooks/use-event-meeting-draft'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -87,11 +87,7 @@ const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
 interface EventEditorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /**
-   * May return the write's promise. Work that needs the row to exist — such
-   * as attaching a Meeting — awaits it rather than firing alongside it.
-   */
-  onEventAdd: (event: CalendarEvent) => void | Promise<unknown>
+  onEventAdd: (event: CalendarEvent) => void
   onEventUpdate: (
     event: CalendarEvent,
     applyTo?: 'single' | 'following' | 'all',
@@ -195,17 +191,37 @@ export default function EventEditor({
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   /**
-   * A Series carries its Meeting on the master row (ADR-0019), so editing an
-   * occurrence still targets the series. Null while the event is a draft.
+   * The id a NEW event will be saved under, decided when the editor opens
+   * rather than at submit time.
+   *
+   * A Meeting attaches to an event id and nothing else (ADR-0019), and the
+   * organiser can now create one before saving — so the id has to exist before
+   * the save does. Regenerated per draft session, so two consecutive drafts
+   * never share a row.
    */
-  const meetingEventId = event ? (event.seriesId ?? event.id) : null
+  const [draftEventId, setDraftEventId] = useState(() => uuid())
   /**
-   * "Add Zentra Meet" pressed on a draft — attached once the event exists.
-   * Owned here, not in the field: the field unmounts with the popover, so a
-   * copy of this state there could disagree with the copy that decides
-   * whether the attachment happens.
+   * A Series carries its Meeting on the master row (ADR-0019), so editing an
+   * occurrence still targets the series. A draft targets the id it will save as.
    */
-  const pendingMeeting = usePendingMeeting(open)
+  const meetingEventId = event ? (event.seriesId ?? event.id) : draftEventId
+  /**
+   * The Meeting already on the event, carried in the event payload rather than
+   * fetched here — see the events route's `meetingsForEvents`.
+   */
+  const savedMeeting = event?.meeting ?? null
+  /**
+   * "Add Zentra Meet" creates the room immediately. Owned here, not in the
+   * field: the field unmounts with the popover, so the state that decides
+   * whether an unsaved room gets cleaned up would die with the very close it
+   * has to react to.
+   */
+  const meetingDraft = useEventMeetingDraft(
+    meetingEventId,
+    savedMeeting,
+    !event,
+    open,
+  )
   const [title, setTitle] = useState('')
   const [color, setColor] = useState(EVENT_COLOR_OPTIONS[0].value)
 
@@ -561,6 +577,19 @@ export default function EventEditor({
     }
   }, [event, calendars, initialDate, initialEndDate, open])
 
+  /**
+   * A fresh id for each draft session, minted on CLOSE rather than on open.
+   *
+   * It has to be its own effect keyed only on `open`: the form-population effect
+   * above re-runs whenever `initialDate` or `calendars` change while the editor
+   * is open, and rotating the id there would strand a room the organiser had
+   * already created against the id it was created for. Minting on close also
+   * means the cleanup effect has already read the outgoing id.
+   */
+  useEffect(() => {
+    if (!open) setDraftEventId(uuid())
+  }, [open])
+
   const resetForm = () => {
     const now = new Date()
     const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000)
@@ -598,10 +627,6 @@ export default function EventEditor({
     setRecMonthlyWeekday('MO')
     setRecYearlyMonth(1)
     setRecYearlyDay(1)
-    // A pending "Add Zentra Meet" belongs to the draft that armed it. Left
-    // set, dismissing that draft and creating an unrelated event silently
-    // attached a meeting to the wrong one.
-    pendingMeeting.setPending(false)
   }
 
   const handleStartDateChange = (newDate: Date | undefined) => {
@@ -832,7 +857,10 @@ export default function EventEditor({
     }
 
     const eventData: CalendarEvent = {
-      id: event?.id || uuid(),
+      // A draft saves under the id its Meeting was already attached to — the
+      // meeting exists before the event does now, so the id cannot be minted
+      // here or the attachment would point at nothing.
+      id: event?.id || draftEventId,
       title: title.trim() || t.untitledInParentheses,
       isAllDay,
       startDate: normalizedStartDate,
@@ -853,6 +881,9 @@ export default function EventEditor({
       color,
       calendarId:
         selectedCalendar === '__uncategorized__' ? '' : selectedCalendar,
+      // The room already exists, so the optimistic row carries it and the
+      // preview shows the link with no gap before the server response lands.
+      meeting: meetingDraft.meeting,
     }
 
     if (event && recurring) {
@@ -884,6 +915,12 @@ export default function EventEditor({
       return
     }
 
+    // Saving is what commits a room created against this draft. Said before the
+    // write starts, because the save closes the editor and the close is what
+    // runs the dismissal cleanup — the two would otherwise race, and the
+    // cleanup could delete the meeting the save was about to keep.
+    meetingDraft.keep()
+
     if (event) {
       const alreadyInvited = invitedEmailsOf(event)
       const newEmails = participantEmails.filter(
@@ -892,9 +929,8 @@ export default function EventEditor({
       onEventUpdate(eventData, recurring ? applyTo : undefined)
       onInvitesAdded(event.id, newEmails)
     } else {
-      const written = onEventAdd(eventData)
+      onEventAdd(eventData)
       onInvitesAdded(eventData.id, participantEmails)
-      void pendingMeeting.attach(eventData.id, written)
     }
   }
 
@@ -919,13 +955,14 @@ export default function EventEditor({
         ? 'single'
         : participantScope
 
+    meetingDraft.keep()
+
     if (event) {
       onEventUpdate(eventData, scope)
       onInvitesAdded(event.id, newEmails, inviteScope)
     } else {
-      const written = onEventAdd(eventData)
+      onEventAdd(eventData)
       onInvitesAdded(eventData.id, newEmails, inviteScope)
-      void pendingMeeting.attach(eventData.id, written)
     }
 
     setSaveScopeOpen(false)
@@ -1308,11 +1345,7 @@ export default function EventEditor({
                   />
                 </div>
 
-                <EventMeetingField
-                  eventId={meetingEventId}
-                  pending={pendingMeeting.pending}
-                  onPendingChange={pendingMeeting.setPending}
-                />
+                <EventMeetingField draft={meetingDraft} />
 
                 <div className="space-y-2">
                   <Label htmlFor="participants">{t.participants}</Label>

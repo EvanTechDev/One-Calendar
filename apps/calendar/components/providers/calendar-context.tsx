@@ -56,6 +56,12 @@ export interface CalendarEvent {
     userName: string | null
     userImage: string | null
   }>
+  /**
+   * The event's Meeting, carried on the event rather than fetched per-surface.
+   * Undefined means "not known here" (a locally constructed event); null means
+   * the server said there is none.
+   */
+  meeting?: { id: string; url: string } | null
 }
 
 function eventDataToCalendarEvent(e: EventData): CalendarEvent {
@@ -81,6 +87,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     viewOnly: e.viewOnly,
     organizer: e.organizer,
     invites: e.invites,
+    meeting: e.meeting ?? null,
   }
 }
 

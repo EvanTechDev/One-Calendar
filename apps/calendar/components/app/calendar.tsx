@@ -158,6 +158,13 @@ export interface CalendarEvent {
     userName: string | null
     userImage: string | null
   }>
+  /**
+   * The event's Meeting, carried on the event rather than fetched per-surface.
+   * Undefined means "not known here" (a locally constructed event); null means
+   * the server said there is none. Mirrors the declaration in
+   * providers/calendar-context.tsx, which this interface duplicates.
+   */
+  meeting?: { id: string; url: string } | null
 }
 
 interface CalendarProps {
@@ -777,19 +784,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     })
   }
 
-  /**
-   * Returns the write's promise so callers can sequence work that needs the
-   * row to exist. Attaching a Meeting used to fire immediately after this
-   * returned, racing the insert and 404-ing more often than not.
-   */
-  const handleEventAdd = (event: CalendarEvent): Promise<unknown> => {
+  const handleEventAdd = (event: CalendarEvent) => {
     const newEvent = {
       ...event,
       id: event.id || uuid(),
     }
 
     setEvents((prevEvents) => [...prevEvents, newEvent])
-    const written = upsertEvent({
+    void upsertEvent({
       id: newEvent.id,
       title: newEvent.title,
       startDate: newEvent.startDate.toISOString(),
@@ -814,7 +816,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setSelectedEvent(null)
     setQuickCreateStartTime(null)
     setQuickCreateEndTime(null)
-    return written
   }
 
   const handleEventUpdate = (

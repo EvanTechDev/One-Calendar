@@ -27,17 +27,36 @@ vi.mock('@/lib/meetings', () => ({
 // The package's operations are exercised against the fake db through these
 // thin wrappers, so the route's ownership and idempotency logic is what the
 // test observes.
-const meetings = new Map<string, { id: string; eventId: string | null }>()
+type FakeMeeting = {
+  id: string
+  eventId: string | null
+  organiserId: string | null
+  /** Non-null marks the row provisional — the event does not exist yet. */
+  expiresAt: Date | null
+}
+const meetings = new Map<string, FakeMeeting>()
+let created = 0
 vi.mock('@zntr/meetings', () => ({
-  generateMeetingId: () => `code-${meetings.size + 1}`,
+  generateMeetingId: () => `code-${created + 1}`,
   getMeeting: async (_db: unknown, id: string) => meetings.get(id) ?? null,
   getMeetingForEvent: async (_db: unknown, eventId: string) =>
     [...meetings.values()].find((m) => m.eventId === eventId) ?? null,
   createMeeting: async (
     _db: unknown,
-    input: { id: string; eventId?: string | null },
+    input: {
+      id: string
+      eventId?: string | null
+      organiserId?: string | null
+      expiresAt?: Date | null
+    },
   ) => {
-    const row = { id: input.id, eventId: input.eventId ?? null }
+    created += 1
+    const row: FakeMeeting = {
+      id: input.id,
+      eventId: input.eventId ?? null,
+      organiserId: input.organiserId ?? null,
+      expiresAt: input.expiresAt ?? null,
+    }
     meetings.set(row.id, row)
     return row
   },
@@ -46,7 +65,38 @@ vi.mock('@zntr/meetings', () => ({
       if (row.eventId === eventId) meetings.delete(id)
     }
   },
+  // Mirrors the real operation's SQL predicates, which are what actually
+  // enforce these rules — see tests/meetings/provisional-meetings.test.ts.
+  deleteProvisionalMeetingForEvent: async (
+    _db: unknown,
+    eventId: string,
+    organiserId: string,
+  ) => {
+    const removed: string[] = []
+    for (const [id, row] of meetings) {
+      if (
+        row.eventId === eventId &&
+        row.organiserId === organiserId &&
+        row.expiresAt !== null
+      ) {
+        meetings.delete(id)
+        removed.push(id)
+      }
+    }
+    return removed
+  },
 }))
+
+vi.mock('@/lib/rate-limit', () => ({
+  checkFixedWindowLimit: async () => ({
+    allowed: rateLimitAllows,
+    retryAfter: 60,
+  }),
+  rateLimitedResponse: (retryAfter: number) =>
+    Response.json({ error: 'Too many requests', retryAfter }, { status: 429 }),
+}))
+
+let rateLimitAllows = true
 
 const { GET, POST, DELETE } = await import('@/app/api/meetings/route')
 
@@ -63,6 +113,8 @@ function req(body?: unknown, url = 'https://cal.test/api/meetings') {
 describe('calendar meetings route', () => {
   beforeEach(() => {
     meetings.clear()
+    created = 0
+    rateLimitAllows = true
     authedUser = { id: OWNER }
     const db = getFakeDb()
     db.reset()
@@ -138,5 +190,117 @@ describe('calendar meetings route', () => {
     const response = await DELETE(req({ eventId: 'evt-1' }))
     expect(response.status).toBe(404)
     expect(meetings.size).toBe(1)
+  })
+})
+
+/**
+ * "Add Zentra Meet" creates the room immediately, so the route must accept an
+ * event id that has no row yet — and must keep that row distinguishable from a
+ * committed Event Meeting, because the editor-close cleanup is allowed to delete
+ * one and never the other.
+ */
+describe('provisional meetings for unsaved events', () => {
+  beforeEach(() => {
+    meetings.clear()
+    created = 0
+    rateLimitAllows = true
+    authedUser = { id: OWNER }
+    const db = getFakeDb()
+    db.reset()
+    db.seed({ id: 'evt-1', userId: OWNER, seriesId: null }, 'calendar_events')
+    db.seed(
+      { id: 'evt-foreign', userId: STRANGER, seriesId: null },
+      'calendar_events',
+    )
+  })
+
+  it('creates a room for an event that does not exist yet', async () => {
+    const response = await POST(req({ eventId: 'draft-1', provisional: true }))
+    expect(response.status).toBe(200)
+    const row = meetings.get('code-1')!
+    expect(row.eventId).toBe('draft-1')
+    // The expiry is what hands the abandoned-tab case to the ADR-0018 sweep.
+    expect(row.expiresAt).toBeInstanceOf(Date)
+    expect(row.expiresAt!.getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it('still 404s for a missing event when provisional is not asked for', async () => {
+    const response = await POST(req({ eventId: 'draft-1' }))
+    expect(response.status).toBe(404)
+    expect(meetings.size).toBe(0)
+  })
+
+  it('creates a COMMITTED room when the event already exists', async () => {
+    await POST(req({ eventId: 'evt-1', provisional: false }))
+    // No expiry: an Event Meeting's lifecycle is its event's (ADR-0018).
+    expect(meetings.get('code-1')!.expiresAt).toBeNull()
+  })
+
+  it('does not let provisional smuggle a room onto a foreign event', async () => {
+    const response = await POST(
+      req({ eventId: 'evt-foreign', provisional: true }),
+    )
+    // The row exists and belongs to somebody else, so ownership decides — the
+    // provisional flag only excuses a MISSING row.
+    expect(response.status).toBe(404)
+    expect(meetings.size).toBe(0)
+  })
+
+  it('rate-limits provisional creation', async () => {
+    // Provisional creation accepts ids no row exists for, so event ownership
+    // cannot bound how many rooms one account mints.
+    rateLimitAllows = false
+    const response = await POST(req({ eventId: 'draft-1', provisional: true }))
+    expect(response.status).toBe(429)
+    expect(meetings.size).toBe(0)
+  })
+
+  it('is idempotent for a draft: add → close → add mints no second room', async () => {
+    const first = await (
+      await POST(req({ eventId: 'draft-1', provisional: true }))
+    ).json()
+    const second = await (
+      await POST(req({ eventId: 'draft-1', provisional: true }))
+    ).json()
+    expect(second.meeting.id).toBe(first.meeting.id)
+    expect(meetings.size).toBe(1)
+  })
+
+  it('deletes a provisional room on editor close', async () => {
+    await POST(req({ eventId: 'draft-1', provisional: true }))
+    const response = await DELETE(
+      req({ eventId: 'draft-1', provisional: true }),
+    )
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ removed: 1 })
+    expect(meetings.size).toBe(0)
+  })
+
+  it('REFUSES to delete a committed meeting on editor close', async () => {
+    // The data-loss guard. An existing event's saved meeting must survive the
+    // editor being dismissed, whatever the client claims.
+    await POST(req({ eventId: 'evt-1', provisional: false }))
+    const response = await DELETE(req({ eventId: 'evt-1', provisional: true }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ removed: 0 })
+    expect(meetings.size).toBe(1)
+  })
+
+  it('refuses another user\u2019s provisional room', async () => {
+    await POST(req({ eventId: 'draft-1', provisional: true }))
+    authedUser = { id: STRANGER }
+    const response = await DELETE(
+      req({ eventId: 'draft-1', provisional: true }),
+    )
+    expect(response.status).toBe(200)
+    expect(meetings.size).toBe(1)
+  })
+
+  it('tolerates a close cleanup for a draft that never had a room', async () => {
+    const response = await DELETE(
+      req({ eventId: 'draft-nothing', provisional: true }),
+    )
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ removed: 0 })
   })
 })

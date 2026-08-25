@@ -1,15 +1,20 @@
 /**
- * The event preview had no meeting display at all (BUG-05): an organiser
- * attached a meeting in the editor, clicked the event, and saw nothing.
+ * The event preview's meeting row.
  *
- * Two failures pinned here beyond "it renders":
+ * Originally there was no meeting display here at all (BUG-05): an organiser
+ * attached a meeting in the editor, clicked the event, and saw nothing. Then it
+ * was added as a per-preview `GET /api/meetings?eventId=` fired from an effect,
+ * which produced two further complaints — the code appeared a beat after the
+ * rest of the popover, and right after a save it did not appear at all until a
+ * manual refresh, because the popover reads the SWR-cached event list and that
+ * cache had no notion a meeting existed.
  *
- * 1. The lookup must key on the SERIES master. An expanded occurrence's `id`
- *    is a synthetic `<seriesId>_<stamp>` instance id that no row exists for,
- *    so `GET /api/meetings` 404s on it — and a Series carries its Meeting on
- *    the master anyway (ADR-0019).
- * 2. A participant's copy of an event is view-only, and the lookup requires
- *    ownership. That must render nothing quietly, not raise an error.
+ * So the meeting now RIDES ALONG with the event (see `meetingsForEvents` in
+ * app/api/events/route.ts). Pinned here:
+ *
+ * 1. No request is made from this surface, on any event. A round trip removed
+ *    is a round trip that cannot be stale or slow.
+ * 2. A participant's view-only copy shows nothing and stays silent.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -43,31 +48,15 @@ vi.mock('@/lib/auth/client', () => ({
 const EventPreview = (await import('@/components/app/event/event-preview'))
   .default
 
-const lookups: string[] = []
-let meetingForEvent: Record<string, { id: string; url: string } | null> = {}
+const requests: string[] = []
 
 beforeEach(() => {
-  lookups.length = 0
-  meetingForEvent = {}
+  requests.length = 0
   toasts.error.mockClear()
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string) => {
-      const url = String(input)
-      if (url.startsWith('/api/meetings?')) {
-        lookups.push(url)
-        const eventId = new URL(url, 'https://cal.test').searchParams.get(
-          'eventId',
-        )!
-        if (!(eventId in meetingForEvent)) {
-          return { ok: false, status: 404, json: async () => ({}) }
-        }
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ meeting: meetingForEvent[eventId] }),
-        }
-      }
+      requests.push(String(input))
       return { ok: true, status: 200, json: async () => ({}) }
     }),
   )
@@ -109,13 +98,17 @@ function renderPreview(event: CalendarEvent) {
   )
 }
 
-describe('event preview meeting row (BUG-05)', () => {
+/** Requests aimed at the meeting lookup this surface must no longer make. */
+const meetingLookups = () =>
+  requests.filter((url) => url.includes('/api/meetings'))
+
+describe('event preview meeting row', () => {
   it('shows the attached meeting code with copy and join', async () => {
-    meetingForEvent['evt-1'] = {
-      id: 'aaaa-bbbb',
-      url: 'https://meet.test/aaaa-bbbb',
-    }
-    renderPreview(makeEvent())
+    renderPreview(
+      makeEvent({
+        meeting: { id: 'aaaa-bbbb', url: 'https://meet.test/aaaa-bbbb' },
+      }),
+    )
 
     expect(await screen.findByText('aaaa-bbbb')).toBeInTheDocument()
     expect(screen.getByLabelText('Copy meeting link')).toBeInTheDocument()
@@ -125,38 +118,61 @@ describe('event preview meeting row (BUG-05)', () => {
     )
   })
 
-  it('looks the meeting up by series master, not the synthetic instance id', async () => {
-    meetingForEvent['evt-master'] = {
-      id: 'cccc-dddd',
-      url: 'https://meet.test/cccc-dddd',
-    }
+  it('makes no meeting request at all — the link came with the event', async () => {
+    renderPreview(
+      makeEvent({
+        meeting: { id: 'aaaa-bbbb', url: 'https://meet.test/aaaa-bbbb' },
+      }),
+    )
+
+    expect(await screen.findByText('aaaa-bbbb')).toBeInTheDocument()
+    expect(meetingLookups()).toHaveLength(0)
+  })
+
+  it('shows a series occurrence the master\u2019s meeting without a lookup', async () => {
+    // A Series carries its Meeting on the master (ADR-0019) and an expanded
+    // occurrence's id is a synthetic `<seriesId>_<stamp>` no row exists for.
+    // Resolving on the server means this surface never has to know that.
     renderPreview(
       makeEvent({
         id: 'evt-master_20260115T100000Z',
         seriesId: 'evt-master',
         recurrenceId: '20260115T100000Z',
+        meeting: { id: 'cccc-dddd', url: 'https://meet.test/cccc-dddd' },
       }),
     )
 
     expect(await screen.findByText('cccc-dddd')).toBeInTheDocument()
-    expect(lookups).toHaveLength(1)
-    expect(lookups[0]).toContain('eventId=evt-master')
+    expect(meetingLookups()).toHaveLength(0)
   })
 
   it('renders nothing and stays silent for a participant view-only event', async () => {
-    renderPreview(makeEvent({ viewOnly: true } as Partial<CalendarEvent>))
+    // The server does not report a meeting to a viewer who does not own the
+    // event; a participant learns the link from their invitation (ADR-0019).
+    renderPreview(
+      makeEvent({ viewOnly: true, meeting: null } as Partial<CalendarEvent>),
+    )
 
     await waitFor(() => expect(screen.getByText('Standup')).toBeInTheDocument())
-    expect(lookups).toHaveLength(0)
+    expect(meetingLookups()).toHaveLength(0)
     expect(toasts.error).not.toHaveBeenCalled()
     expect(screen.queryByLabelText('Copy meeting link')).toBeNull()
   })
 
   it('renders no meeting row when the event has none', async () => {
-    meetingForEvent['evt-1'] = null
+    renderPreview(makeEvent({ meeting: null }))
+
+    await waitFor(() => expect(screen.getByText('Standup')).toBeInTheDocument())
+    expect(screen.queryByLabelText('Copy meeting link')).toBeNull()
+    expect(meetingLookups()).toHaveLength(0)
+  })
+
+  it('renders no meeting row when the payload predates the field', async () => {
+    // Undefined, not null: an event constructed locally (import, duplicate)
+    // knows nothing about meetings and must not crash the popover.
     renderPreview(makeEvent())
 
-    await waitFor(() => expect(lookups).toHaveLength(1))
+    await waitFor(() => expect(screen.getByText('Standup')).toBeInTheDocument())
     expect(screen.queryByLabelText('Copy meeting link')).toBeNull()
   })
 })

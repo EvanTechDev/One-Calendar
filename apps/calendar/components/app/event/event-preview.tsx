@@ -56,11 +56,7 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 import { describeRecurrence } from '@/lib/recurrence/engine'
 import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
-import {
-  MeetingLinkControls,
-  meetingLookupId,
-  useEventMeeting,
-} from '@/components/app/event/event-meeting-link'
+import { MeetingLinkControls } from '@/components/app/event/event-meeting-link'
 import { useMeetingTiming } from '@/hooks/use-meeting-timing'
 import { isJoinUrgent } from '@/lib/meeting-timing'
 
@@ -226,16 +222,14 @@ export default function EventPreview({
     }
   }, [event])
 
-  // An attached Meeting was previously invisible here: the organiser added it
-  // in the editor and then saw nothing when clicking the event. Resolved by
-  // lookup rather than from a column on the event (ADR-0019), keyed on the
-  // series master because an expanded occurrence's id is synthetic. Skipped
-  // for a participant's copy, which cannot own the lookup.
+  // The Meeting arrives with the event, not from a per-preview fetch. It used
+  // to be looked up in an effect here, which cost a visible beat on open and —
+  // because the popover reads the SWR-cached event list — showed nothing at all
+  // until a manual refresh after a save. Still resolved by lookup rather than a
+  // column on the event row (ADR-0019); that lookup just happens once, in the
+  // events query, instead of once per surface.
   const timing = useMeetingTiming(open && event ? event : null)
-  const [meeting] = useEventMeeting(
-    open && event ? meetingLookupId(event) : null,
-    !event?.viewOnly,
-  )
+  const meeting = event?.meeting ?? null
 
   if (!event || !open) return null
 

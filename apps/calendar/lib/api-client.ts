@@ -43,6 +43,13 @@ export type EventData = {
     image: string | null
   } | null
   invites?: EventInviteData[]
+  /**
+   * The event's Meeting, or null when it has none. Rides along with the event
+   * rather than being fetched per-surface: the link used to arrive a round trip
+   * after the event did, and right after a save not at all. Resolved by lookup
+   * on the server — there is no meeting column on the event row (ADR-0019).
+   */
+  meeting?: { id: string; url: string } | null
 }
 
 export type CategoryData = {

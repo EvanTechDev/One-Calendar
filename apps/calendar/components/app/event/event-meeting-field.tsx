@@ -1,30 +1,18 @@
 'use client'
 
-import { useState } from 'react'
 import { Video, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Label } from '@zntr/ui/label'
-import { toast } from 'sonner'
-import {
-  MeetingLinkControls,
-  useEventMeeting,
-} from '@/components/app/event/event-meeting-link'
+import { MeetingLinkControls } from '@/components/app/event/event-meeting-link'
+import type { EventMeetingDraft } from '@/hooks/use-event-meeting-draft'
 
 interface EventMeetingFieldProps {
   /**
-   * The event the meeting attaches to, or null while the event is still a
-   * draft. A draft cannot own a meeting yet, so the control switches to
-   * "create it on save" mode.
+   * The whole lifecycle, owned by the editor rather than here: this component
+   * unmounts with the popover, so cleanup state kept locally would be destroyed
+   * by the very close it needs to react to.
    */
-  eventId: string | null
-  /**
-   * Whether "Add Zentra Meet" is armed on a draft. Owned by the editor, not
-   * here: this component unmounts with the popover, so a local copy and the
-   * editor's copy could disagree — and the editor's copy is what decides
-   * whether a meeting gets attached after the save.
-   */
-  pending: boolean
-  onPendingChange: (pending: boolean) => void
+  draft: EventMeetingDraft
 }
 
 /**
@@ -32,41 +20,15 @@ interface EventMeetingFieldProps {
  * on the event row — it is resolved from the meeting's own record
  * (ADR-0019), so ending, reopening, or deleting a meeting never leaves a
  * stale URL behind on the event.
+ *
+ * The room is created on click, not on save, so the organiser can copy the link
+ * straight away (Google Calendar's behaviour). A room created for an event that
+ * is never saved is deleted when the editor closes.
  */
-export function EventMeetingField({
-  eventId,
-  pending,
-  onPendingChange,
-}: EventMeetingFieldProps) {
-  const [meeting, setMeeting] = useEventMeeting(eventId)
-  const [loading, setLoading] = useState(false)
+export function EventMeetingField({ draft }: EventMeetingFieldProps) {
+  const { meeting, busy, add, remove } = draft
 
-  const attach = async () => {
-    if (!eventId) {
-      onPendingChange(!pending)
-      return
-    }
-    setLoading(true)
-    try {
-      const response = await fetch('/api/meetings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId }),
-      })
-      if (!response.ok) throw new Error('Could not add the meeting')
-      const body = (await response.json()) as {
-        meeting: { id: string; url: string }
-      }
-      setMeeting(body.meeting)
-    } catch {
-      toast.error('Could not add the meeting')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const detach = async () => {
-    if (!eventId) return
+  const confirmRemove = () => {
     // Removing the meeting deletes the room, and holding its link is what
     // admits someone (ADR-0019) — so every participant who already has the
     // link loses access, and re-adding mints a different code. Too destructive
@@ -74,21 +36,7 @@ export function EventMeetingField({
     const confirmed = window.confirm(
       'Remove this meeting? The link stops working for everyone who has it, and adding a meeting again creates a different one.',
     )
-    if (!confirmed) return
-    setLoading(true)
-    try {
-      const response = await fetch('/api/meetings', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId }),
-      })
-      if (!response.ok) throw new Error('Could not remove the meeting')
-      setMeeting(null)
-    } catch {
-      toast.error('Could not remove the meeting')
-    } finally {
-      setLoading(false)
-    }
+    if (confirmed) void remove()
   }
 
   return (
@@ -105,8 +53,8 @@ export function EventMeetingField({
                 size="icon"
                 variant="ghost"
                 className="size-7"
-                onClick={detach}
-                disabled={loading}
+                onClick={confirmRemove}
+                disabled={busy}
                 aria-label="Remove meeting"
               >
                 <X className="size-3.5" />
@@ -119,12 +67,11 @@ export function EventMeetingField({
           type="button"
           variant="outline"
           className="w-full justify-start"
-          onClick={attach}
-          disabled={loading}
-          aria-pressed={pending}
+          onClick={() => void add()}
+          disabled={busy}
         >
           <Video className="size-4" />
-          {pending ? 'Meeting added on save' : 'Add Zentra Meet'}
+          Add Zentra Meet
         </Button>
       )}
       {/*
@@ -134,9 +81,8 @@ export function EventMeetingField({
       */}
       {!meeting ? (
         <p className="text-xs text-muted-foreground">
-          {pending
-            ? 'A room will be created when you save, and its link goes out with the invitations.'
-            : 'Creates a room for this event. Participants get the link in their invitation.'}
+          Creates a room for this event. Participants get the link in their
+          invitation.
         </p>
       ) : null}
     </div>

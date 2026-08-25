@@ -63,7 +63,13 @@ import {
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
-import { deleteMeetingsForEvents, moveMeetingToEvent } from '@zntr/meetings'
+import {
+  commitMeetingForEvent,
+  deleteMeetingsForEvents,
+  getMeetingsForEvents,
+  moveMeetingToEvent,
+} from '@zntr/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 
@@ -449,6 +455,45 @@ async function applySplitPlan(
   return decryptEvent(newMaster)
 }
 
+/**
+ * The Meeting attached to each of these events, keyed by the id the meeting
+ * hangs off — always the SERIES master, because a Series gets one Meeting
+ * (ADR-0019) and an expanded occurrence's id is a synthetic instance id no row
+ * exists for.
+ *
+ * This is the fix for a meeting link that arrived a beat late and, right after
+ * a save, not at all. Every event surface used to resolve it with its own
+ * `GET /api/meetings?eventId=` from an effect — so the link was a second round
+ * trip that had not finished when the popover painted, and the SWR-cached event
+ * list the preview reads had no notion that a meeting had appeared. Riding
+ * along with the event payload removes the request instead of hiding it, and
+ * makes the existing `mutate(DATA_KEYS.events)` after a save the one thing that
+ * has to be right.
+ *
+ * A meeting is only reported to a viewer who OWNS the event. A participant's
+ * shared copy learns the link through their invitation (ADR-0019: the Invite
+ * Token's only meeting role is revealing the link on the invite page), not
+ * through the organiser's list payload.
+ */
+async function meetingsForEvents(
+  events: Array<ReturnType<typeof decryptEvent>>,
+  viewerId: string,
+): Promise<Map<string, { id: string; url: string }>> {
+  const ownerKeys = [
+    ...new Set(
+      events
+        .filter((e) => e.userId === viewerId)
+        .map((e) => (e.seriesId ?? e.id) as string),
+    ),
+  ]
+  const found = await getMeetingsForEvents(getDb(), ownerKeys)
+  const out = new Map<string, { id: string; url: string }>()
+  for (const [eventId, row] of found) {
+    out.set(eventId, { id: row.id, url: meetingUrl(row.id) })
+  }
+  return out
+}
+
 async function enrichEventsWithInvites(
   events: Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>,
   viewerId: string,
@@ -458,6 +503,7 @@ async function enrichEventsWithInvites(
     ReturnType<typeof decryptEvent> & {
       invites: EnrichedInvite[]
       instanceId?: string
+      meeting?: { id: string; url: string } | null
     }
   >
 > {
@@ -467,6 +513,7 @@ async function enrichEventsWithInvites(
 
   const inviteIds = events.map((e) => e.seriesId ?? e.id)
   const idKeys = [...new Set(inviteIds)]
+  const meetings = await meetingsForEvents(events, viewerId)
   const eventOwners = new Map(
     events.map((e) => [(e.seriesId ?? e.id) as string, e.userId]),
   )
@@ -576,7 +623,7 @@ async function enrichEventsWithInvites(
         return enriched
       })
 
-    return { ...e, invites }
+    return { ...e, invites, meeting: meetings.get(key) ?? null }
   })
 }
 
@@ -731,6 +778,8 @@ async function organiserTimeZonesFor(
 type MergedViewEvent = ReturnType<typeof decryptEvent> & {
   instanceId?: string
   invites?: EnrichedInvite[]
+  /** The event's Meeting, resolved by lookup — no column on the row (ADR-0019). */
+  meeting?: { id: string; url: string } | null
   viewOnly?: boolean
   organizer?: {
     name: string
@@ -1708,12 +1757,37 @@ const postHandler = async function POST(request: NextRequest) {
 
   await invalidateEventCache(user.id, body.startDate, body.endDate)
 
+  // The event editor creates a Meeting the moment the organiser asks for one,
+  // before this row exists, so its link is copyable immediately. Such a row is
+  // provisional (it expires) until the event it points at actually saves — which
+  // is here. Committed server-side rather than by a follow-up call from the
+  // client: a client that crashes or loses the network between saving the event
+  // and confirming the meeting would otherwise leave a real Event Meeting
+  // quietly expiring. Idempotent and organiser-scoped, and a no-op for the
+  // events that have no meeting. Never fails the save — the event is written.
+  try {
+    await commitMeetingForEvent(getDb(), id, user.id)
+  } catch (error) {
+    console.error(
+      '[calendar:events] committing the event meeting failed',
+      error,
+    )
+  }
+
   const createdRow = decryptEvent(event)
   if (upsertRrule !== null) {
     const seriesEvents = await loadSeriesView(user, [createdRow.id], timeZone)
     return NextResponse.json({ event: createdRow, seriesEvents })
   }
-  return NextResponse.json({ event: createdRow })
+  const [withMeeting] = await enrichEventsWithInvites(
+    [{ ...createdRow, instanceId: createdRow.id }],
+    user.id,
+    user.email,
+  )
+  // The response is what the SWR cache is patched with, so it must carry the
+  // meeting or the preview would show none until the next full refetch — the
+  // "no link until you refresh" bug.
+  return NextResponse.json({ event: withMeeting })
 }
 
 const deleteHandler = async function DELETE(request: NextRequest) {
