@@ -1,27 +1,49 @@
-import { CalendarClock, Video } from 'lucide-react'
+import { Suspense } from 'react'
+import { History } from 'lucide-react'
 import {
   getEventTitlesForMeetings,
   getMeetingSummaries,
   listRecentMeetings,
-  listUpcomingEventMeetings,
 } from '@zntr/meetings'
 import { getDb } from '@/lib/drizzle'
 import { readEventTitle } from '@/lib/event-title'
 import { HomeActions } from '@/components/home-actions'
 import { MeetingHistory } from '@/components/dashboard/meeting-history'
+import { UpcomingMeetings } from '@/components/dashboard/upcoming-meetings'
 import type { MeetingRow } from '@/components/dashboard/meeting-history'
 
 /**
  * The signed-in home: quick actions on top, then the two lists that make the
- * calendar integration visible — meetings attached to upcoming events, and
- * the user's own meeting history with duration and attendance.
+ * calendar integration visible — meetings attached to upcoming events, and the
+ * user's own meeting history with duration and attendance.
+ *
+ * Quick actions render OUTSIDE the data-dependent sections deliberately.
+ * Previously every query blocked the whole page, so a slow (or failing)
+ * database took "start a meeting" down with it — the one action on this page
+ * that needs no data at all.
  */
-export async function Dashboard({ userId }: { userId: string }) {
+export function Dashboard({ calendarOrigin }: { calendarOrigin: string }) {
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-10 px-6 py-10">
+      <section className="space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Meet</h1>
+        <HomeActions />
+      </section>
+
+      {/* Fetched client-side from the calendar app, which owns recurrence
+          expansion and formats in the visitor's timezone. */}
+      <UpcomingMeetings calendarOrigin={calendarOrigin} />
+
+      <Suspense fallback={<HistorySkeleton />}>
+        <RecentMeetings />
+      </Suspense>
+    </div>
+  )
+}
+
+async function RecentMeetings() {
   const db = getDb()
-  const [upcoming, recent] = await Promise.all([
-    listUpcomingEventMeetings(db, userId, 7),
-    listRecentMeetings(db, userId, 20),
-  ])
+  const recent = await listRecentMeetings(db, await organiserId(), 20)
 
   const ids = recent.map((row) => row.id)
   const [titles, summaries] = await Promise.all([
@@ -43,65 +65,35 @@ export async function Dashboard({ userId }: { userId: string }) {
     attendees: summaries[row.id]?.attendees ?? 0,
   }))
 
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-10 px-6 py-10">
-      <section className="space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Meet</h1>
-        <HomeActions />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 text-sm font-medium">
-          <CalendarClock className="size-4 text-muted-foreground" />
-          Next 7 days
-        </h2>
-        {upcoming.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            No meetings on your calendar yet. Add one from an event in Zentra
-            Calendar.
-          </p>
-        ) : (
-          <ul className="divide-y rounded-lg border">
-            {upcoming.map((item) => (
-              <li
-                key={item.meetingId}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {readEventTitle(item.eventId, item.title)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatWhen(item.startDate, item.endDate)}
-                  </p>
-                </div>
-                <a
-                  href={`/${item.meetingId}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-                >
-                  <Video className="size-3.5" />
-                  Join
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <MeetingHistory rows={rows} />
-    </div>
-  )
+  return <MeetingHistory rows={rows} />
 }
 
-function formatWhen(start: Date, end: Date): string {
-  const date = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(start)
-  const time = new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  return `${date} · ${time.format(start)} – ${time.format(end)}`
+/**
+ * Read inside the suspended subtree so the session lookup does not block the
+ * quick actions either.
+ */
+async function organiserId(): Promise<string> {
+  const { getServerSession } = await import('@/lib/auth/server')
+  const session = await getServerSession()
+  // Dashboard only renders for a signed-in user; this is belt-and-braces.
+  return session?.user.id ?? ''
+}
+
+function HistorySkeleton() {
+  return (
+    <section className="space-y-3" aria-busy="true">
+      <h2 className="flex items-center gap-2 text-sm font-medium">
+        <History className="size-4 text-muted-foreground" />
+        Recent
+      </h2>
+      <ul className="divide-y rounded-lg border">
+        {[0, 1, 2].map((key) => (
+          <li key={key} className="space-y-2 px-4 py-3">
+            <div className="h-4 w-44 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
