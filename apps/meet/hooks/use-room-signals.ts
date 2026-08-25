@@ -1,7 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useDataChannel, useLocalParticipant } from '@livekit/components-react'
+import {
+  useDataChannel,
+  useLocalParticipant,
+  useParticipantAttribute,
+} from '@livekit/components-react'
 import { toast } from 'sonner'
 import {
   HAND_RAISED_ATTRIBUTE,
@@ -30,9 +34,14 @@ export function useRoomSignals() {
   const [reactions, setReactions] = useState<FloatingReaction[]>([])
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  const handRaised = Boolean(
-    localParticipant.attributes?.[HAND_RAISED_ATTRIBUTE],
-  )
+  // Subscribed, not read off `localParticipant.attributes`: an attribute change
+  // does not re-render, so a plain read stayed false after the hand went up and
+  // every further click took the raise branch again — the hand could not be
+  // lowered.
+  const raisedAt = useParticipantAttribute(HAND_RAISED_ATTRIBUTE, {
+    participant: localParticipant,
+  })
+  const handRaised = Boolean(raisedAt)
 
   const show = useCallback((message: ReactionMessage) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -56,16 +65,17 @@ export function useRoomSignals() {
   }, [])
 
   const toggleHand = useCallback(async () => {
-    // Merged, not replaced: attributes are shared with anything else that may
-    // set one, and setAttributes overwrites the whole map.
-    const next = { ...localParticipant.attributes }
-    if (handRaised) {
-      delete next[HAND_RAISED_ATTRIBUTE]
-    } else {
-      next[HAND_RAISED_ATTRIBUTE] = String(Date.now())
-    }
+    // An empty string, not a deleted key: setAttributes "will make updates only
+    // to keys that are present", so omitting the key leaves the old value
+    // standing on the server. Deleting it was the second reason a hand could
+    // not be lowered.
+    //
+    // Only this key is sent, for the same reason — other attributes are left
+    // untouched rather than echoed back.
     try {
-      await localParticipant.setAttributes(next)
+      await localParticipant.setAttributes({
+        [HAND_RAISED_ATTRIBUTE]: handRaised ? '' : String(Date.now()),
+      })
     } catch {
       // The server rejects this without `canUpdateOwnMetadata`. That was the
       // original bug and it was invisible, because an awaited rejection in a
