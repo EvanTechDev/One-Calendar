@@ -4,6 +4,7 @@ import { RoomExperience } from '@/components/room/room-experience'
 import { MeetingClosed } from '@/components/room/meeting-closed'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
+import { isOrganiser } from '@/lib/organiser'
 import { isVideoCodec } from '@/lib/types'
 import type { VideoCodec } from 'livekit-client'
 
@@ -39,9 +40,11 @@ export default async function RoomPage({
     return <MeetingClosed code={code} reason="missing" />
   }
   if (!isJoinable(meeting)) {
-    const viewerIsOrganiser = Boolean(
-      session && meeting.organiserId === session.user.id,
-    )
+    // One predicate everywhere (isOrganiser), rather than a local re-derivation
+    // that only knew about signed-in owners. A guest Organiser's Creator Token
+    // lives in their browser, so the server cannot see it here — the client
+    // resolves that half and the reopen endpoint re-checks it either way.
+    const viewerIsOrganiser = await isOrganiser(meeting)
     return (
       <MeetingClosed
         code={code}

@@ -28,7 +28,7 @@ export default async function HomePage() {
       </header>
 
       {session ? (
-        <Dashboard userId={session.user.id} />
+        <Dashboard calendarOrigin={calendarOrigin()} />
       ) : (
         <section className="flex flex-1 items-center justify-center px-6">
           <div className="w-full max-w-md space-y-8">
@@ -59,11 +59,12 @@ export default async function HomePage() {
  * back here instead of dumping them in the calendar — the calendar validates
  * it against an allowlist, so an unknown origin is simply ignored there.
  */
+function calendarOrigin(): string {
+  return (process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? '').replace(/\/$/, '')
+}
+
 function signInUrl(): string {
-  const origin = (process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? '').replace(
-    /\/$/,
-    '',
-  )
+  const origin = calendarOrigin()
   const self = (process.env.NEXT_PUBLIC_BASE_URL ?? '').replace(/\/$/, '')
   const signIn = `${origin}/sign-in`
   if (!self) return signIn

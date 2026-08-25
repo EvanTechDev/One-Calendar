@@ -49,12 +49,33 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const limit = await checkFixedWindowLimit({
-      name: 'meeting-token',
-      subject: clientAddress(request),
-      limit: 30,
-      windowSeconds: 600,
-    })
+    // Rate limiting on raw IP alone locked out shared-NAT offices: a 31-person
+    // all-hands behind one address exhausted a 30-per-10-minutes budget before
+    // everyone was in. The tight limit is therefore per (meeting, browser),
+    // which is what actually bounds a runaway client, with a much looser IP
+    // backstop that only catches genuine floods.
+    //
+    // The browser is identified by the same stable identity cookie used for the
+    // participant identity below. A caller can clear it to get a fresh bucket —
+    // which is exactly why the IP backstop is still here. This is a brake on
+    // casual abuse, never a security boundary.
+    const browserKey = request.cookies.get(IDENTITY_COOKIE)?.value ?? 'new'
+    const address = clientAddress(request)
+    const [perBrowser, perAddress] = await Promise.all([
+      checkFixedWindowLimit({
+        name: 'meeting-token',
+        subject: `${roomName}:${browserKey}`,
+        limit: 30,
+        windowSeconds: 600,
+      }),
+      checkFixedWindowLimit({
+        name: 'meeting-token-ip',
+        subject: address,
+        limit: 300,
+        windowSeconds: 600,
+      }),
+    ])
+    const limit = !perBrowser.allowed ? perBrowser : perAddress
     if (!limit.allowed) {
       return NextResponse.json(
         { error: 'Too many join attempts — try again shortly' },
@@ -97,19 +118,24 @@ export async function POST(request: NextRequest) {
       ? `user_${session.user.id}`
       : `${participantName}__${suffix}`
 
-    // Organiser authority: the signed-in owner, or a guest presenting the
-    // Creator Token for this Meeting (ADR 0016). Advertised in the token
-    // metadata for the room UI; every privileged endpoint re-checks it
-    // server-side, so this flag is never load-bearing on its own.
-    const isOrganiser = session
-      ? meeting.organiserId === session.user.id
-      : verifyCreatorToken(body.creatorToken, meeting.creatorTokenHash)
+    // Organiser authority: the signed-in owner, OR a guest presenting the
+    // Creator Token for this Meeting (ADR 0016). Both are checked, never one
+    // instead of the other — the previous `session ? … : …` denied authority to
+    // someone who created a meeting as a guest and later signed in, even though
+    // the privileged endpoints (which use isOrganiser) would accept them. The
+    // UI then hid the End button on a meeting the API agreed they owned.
+    //
+    // Advertised in the token metadata for the room UI; every privileged
+    // endpoint re-checks it server-side, so this flag is never load-bearing.
+    const organiser =
+      (session !== null && meeting.organiserId === session.user.id) ||
+      verifyCreatorToken(body.creatorToken, meeting.creatorTokenHash)
 
     const tokenOptions: AccessTokenOptions = {
       identity,
       name: participantName,
       ttl: TOKEN_TTL,
-      metadata: JSON.stringify({ organiser: isOrganiser }),
+      metadata: JSON.stringify({ organiser }),
     }
     const grant: VideoGrant = {
       room: roomName,

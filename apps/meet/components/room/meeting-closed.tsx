@@ -36,11 +36,21 @@ export function MeetingClosed({
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  /** Set once a reopen is refused, so a stale token stops promising a button. */
+  const [refused, setRefused] = useState(false)
   const copy = COPY[reason]
 
-  // A guest Organiser proves authority with the Creator Token they hold.
+  // A guest Organiser proves authority with the Creator Token they hold. The
+  // server already resolved the signed-in half (`canReopen`) with the same
+  // isOrganiser predicate the endpoint uses; the token is the only part it
+  // cannot see, because it never leaves the browser.
+  //
+  // Holding SOME token is not proof it is still valid — a meeting that was
+  // deleted and its code reissued, or a token the organiser rotated, both leave
+  // a stale entry behind. A refusal therefore hides the button rather than
+  // offering a retry that will 403 again.
   const guestToken = reason === 'ended' ? getCreatorToken(code) : undefined
-  const showReopen = canReopen || Boolean(guestToken)
+  const showReopen = !refused && (canReopen || Boolean(guestToken))
 
   const reopen = async () => {
     setBusy(true)
@@ -50,6 +60,11 @@ export function MeetingClosed({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reopen: true, creatorToken: guestToken }),
       })
+      if (response.status === 403) {
+        setRefused(true)
+        toast.error('Only the organiser can reopen this meeting')
+        return
+      }
       if (!response.ok) throw new Error('Reopen failed')
       router.refresh()
     } catch {
