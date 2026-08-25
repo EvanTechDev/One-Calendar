@@ -28,6 +28,17 @@ export default defineConfig({
         'node_modules/@livekit/components-react',
       ),
       'livekit-client': path.resolve(__dirname, 'node_modules/livekit-client'),
+      // Same reason again. Both are dynamically imported by
+      // lib/join-preferences.ts, and without the alias its `vi.mock` no-ops and
+      // the test loads the real Krisp/track-processor bundles.
+      '@livekit/krisp-noise-filter': path.resolve(
+        __dirname,
+        'node_modules/@livekit/krisp-noise-filter',
+      ),
+      '@livekit/track-processors': path.resolve(
+        __dirname,
+        'node_modules/@livekit/track-processors',
+      ),
     },
   },
   server: {

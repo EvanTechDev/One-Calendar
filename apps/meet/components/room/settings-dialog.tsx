@@ -28,37 +28,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
 import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { isLowPowerDevice } from '@/lib/meet-utils'
-
-type BackgroundEffect = 'none' | 'blur' | 'office' | 'mountains'
-
-const BACKGROUND_IMAGES: Record<'office' | 'mountains', string> = {
-  office: '/backgrounds/office.jpg',
-  mountains: '/backgrounds/mountains.jpg',
-}
-
-/**
- * Confirms the background image decodes before a processor is built from it.
- *
- * BackgroundTransformer swallows its own image load failure — it catches and
- * console.errors, then carries on — so `setProcessor` resolves happily with a
- * processor that has no background. Clicking the option did nothing at all and
- * said nothing, which is exactly how two image options stayed broken while the
- * files in public/backgrounds were still git-lfs pointer stubs.
- */
-async function imageIsUsable(url: string): Promise<boolean> {
-  try {
-    const image = new Image()
-    image.crossOrigin = 'Anonymous'
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve()
-      image.onerror = () => reject(new Error(`cannot load ${url}`))
-      image.src = url
-    })
-    return image.naturalWidth > 0
-  } catch {
-    return false
-  }
-}
+import { BACKGROUND_IMAGES } from '@/lib/backgrounds'
+import { imageIsUsable } from '@/lib/join-preferences'
+import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
+import type { BackgroundEffect } from '@/lib/backgrounds'
 
 /**
  * Which background is applied per camera track. LiveKit's processor only
@@ -192,6 +165,10 @@ function BackgroundEffects() {
       if (localVideoTrack.sid) {
         appliedBackgrounds.set(localVideoTrack.sid, next)
       }
+      // Persisted into the same store the dashboard's Preferences tab writes,
+      // so a choice made in-meeting is also the default next join. One answer
+      // to "what is my background", not two.
+      saveUserChoices({ backgroundEffect: next })
       setEffect(next)
     } catch {
       toast.error('That background effect is not supported on this device')
@@ -276,6 +253,14 @@ function NoiseFilterSection() {
       },
     })
 
+  // The hook's state starts false regardless of what is attached to the track,
+  // and applyJoinPreferences may already have attached the filter on connect —
+  // so without this the switch reads "off" while noise IS being suppressed.
+  // The hook's effect is idempotent when the processor is already the Krisp one.
+  useEffect(() => {
+    if (loadUserChoices().noiseFilterEnabled) setNoiseFilterEnabled(true)
+  }, [setNoiseFilterEnabled])
+
   return (
     <div className="flex items-center justify-between">
       <div className="space-y-0.5">
@@ -288,7 +273,12 @@ function NoiseFilterSection() {
         id="noise-filter"
         checked={isNoiseFilterEnabled}
         disabled={isNoiseFilterPending}
-        onCheckedChange={(checked) => setNoiseFilterEnabled(checked)}
+        onCheckedChange={(checked) => {
+          setNoiseFilterEnabled(checked)
+          // Same store as the dashboard's Preferences tab, so this is also the
+          // default on the next join.
+          saveUserChoices({ noiseFilterEnabled: checked })
+        }}
       />
     </div>
   )

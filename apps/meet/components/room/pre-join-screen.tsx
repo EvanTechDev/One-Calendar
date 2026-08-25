@@ -12,7 +12,11 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { cn } from '@zntr/utils'
-import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
+import {
+  defaultUserChoices,
+  loadUserChoices,
+  saveUserChoices,
+} from '@/lib/user-choices'
 import { MeetingWhen } from '@/components/room/meeting-identity'
 import { MicLevel } from '@/components/room/mic-level'
 import type { RoomEventContext } from '@/lib/event-context'
@@ -47,6 +51,17 @@ export function PreJoinScreen({
   const [joining, setJoining] = useState(false)
   const [isE2ee, setIsE2ee] = useState(false)
   const [deviceNotice, setDeviceNotice] = useState<string>()
+  /**
+   * The join preferences this screen shows no control for — noise cancellation
+   * and camera background, set in the dashboard's Preferences tab. Held so
+   * `handleJoin` can hand them to ActiveRoom, which applies them once the
+   * tracks exist. Dropping them here is what would make those settings save
+   * and do nothing.
+   */
+  const [passThrough, setPassThrough] = useState({
+    noiseFilterEnabled: defaultUserChoices.noiseFilterEnabled,
+    backgroundEffect: defaultUserChoices.backgroundEffect,
+  })
 
   // Restore saved choices once on mount.
   useEffect(() => {
@@ -56,6 +71,10 @@ export function PreJoinScreen({
     setAudioEnabled(saved.audioEnabled)
     setVideoDeviceId(saved.videoDeviceId)
     setAudioDeviceId(saved.audioDeviceId)
+    setPassThrough({
+      noiseFilterEnabled: saved.noiseFilterEnabled,
+      backgroundEffect: saved.backgroundEffect,
+    })
     setIsE2ee(window.location.hash.length > 1)
   }, [defaultUsername])
 
@@ -144,7 +163,9 @@ export function PreJoinScreen({
       audioEnabled,
       videoDeviceId,
       audioDeviceId,
+      ...passThrough,
     }
+    // A merging write, so the fields this screen does not own survive.
     saveUserChoices(choices)
     setJoining(true)
     try {

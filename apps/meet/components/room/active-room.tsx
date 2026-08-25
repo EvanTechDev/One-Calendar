@@ -14,6 +14,7 @@ import { RoomContext } from '@livekit/components-react'
 import { toast } from 'sonner'
 import { useE2EE } from '@/hooks/use-e2ee'
 import { useLowCPUOptimizer } from '@/hooks/use-low-cpu-optimizer'
+import { applyJoinPreferences } from '@/lib/join-preferences'
 import { MeetingRoom } from '@/components/room/meeting-room'
 import { RoomFailure } from '@/components/room/room-failure'
 import type { RoomEventContext } from '@/lib/event-context'
@@ -172,19 +173,39 @@ export function ActiveRoom({
         connectionDetails.participantToken,
         { autoSubscribe: true },
       )
-      .then(() => {
+      .then(async () => {
         if (cancelled) return
         setPhase({ state: 'connected' })
-        if (userChoices.videoEnabled) {
-          room.localParticipant
-            .setCameraEnabled(true)
-            .catch(() => toast.error('Could not start your camera'))
-        }
-        if (userChoices.audioEnabled) {
-          room.localParticipant
-            .setMicrophoneEnabled(true)
-            .catch(() => toast.error('Could not start your microphone'))
-        }
+        // Enable both before applying processors: a processor needs the
+        // published track, and awaiting these is what guarantees one exists.
+        const [camera, microphone] = await Promise.all([
+          userChoices.videoEnabled
+            ? room.localParticipant.setCameraEnabled(true).catch(() => {
+                toast.error('Could not start your camera')
+                return undefined
+              })
+            : undefined,
+          userChoices.audioEnabled
+            ? room.localParticipant.setMicrophoneEnabled(true).catch(() => {
+                toast.error('Could not start your microphone')
+                return undefined
+              })
+            : undefined,
+        ])
+        if (cancelled) return
+        // The dashboard's Preferences tab has no room and no track, so it
+        // stores the choice and this is where it takes effect. Without this
+        // call those settings would save and do nothing.
+        await applyJoinPreferences(
+          {
+            audioTrack: microphone?.audioTrack ?? undefined,
+            videoTrack: camera?.videoTrack ?? undefined,
+          },
+          {
+            noiseFilterEnabled: userChoices.noiseFilterEnabled,
+            backgroundEffect: userChoices.backgroundEffect,
+          },
+        )
       })
       .catch((error: Error) => {
         if (cancelled) return
