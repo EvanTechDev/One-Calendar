@@ -17,6 +17,7 @@ import {
   Hand,
   Users,
   Smile,
+  MoreVertical,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@zntr/ui/button'
@@ -25,6 +26,13 @@ import { SettingsDialog } from '@/components/room/settings-dialog'
 import { getCreatorToken } from '@/lib/creator-token'
 import { MeetingIdentity } from '@/components/room/meeting-identity'
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@zntr/ui/dropdown-menu'
 import { REACTIONS } from '@/lib/room-signals'
 import type { Reaction } from '@/lib/room-signals'
 import type { RoomEventContext } from '@/lib/event-context'
@@ -118,12 +126,20 @@ export function ControlBar({
         the centre track sits exactly in the middle regardless of role
         (Organiser-only actions live on the right) or event title.
       */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-t px-4 py-3">
-        <div
-          data-region="left"
-          className="hidden min-w-0 items-center gap-2 sm:flex"
-        >
-          <MeetingIdentity roomName={roomName} eventContext={eventContext} />
+      <div className="border-t">
+        {/*
+          A phone has no room for the identity block beside nine controls, but
+          a room showing nothing at all gives no evidence a calendar exists
+          (the same reason MeetingIdentity exists). Put it on its own line
+          above the controls instead of squeezing it into a side region, where
+          it would be ~75px wide on a 360px viewport.
+        */}
+        <div className="flex items-center gap-2 px-4 pt-2 sm:hidden">
+          <MeetingIdentity
+            roomName={roomName}
+            eventContext={eventContext}
+            className="flex-1"
+          />
           <Button
             size="icon"
             variant="ghost"
@@ -135,121 +151,167 @@ export function ControlBar({
           </Button>
         </div>
 
-        <div
-          data-region="center"
-          className="flex items-center justify-center gap-2"
-        >
-          <ControlButton
-            active={isMicrophoneEnabled}
-            onClick={() =>
-              localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
-            }
-            label={isMicrophoneEnabled ? 'Mute' : 'Unmute'}
-            onIcon={<Mic className="size-4" />}
-            offIcon={<MicOff className="size-4" />}
-          />
-          <ControlButton
-            active={isCameraEnabled}
-            onClick={() => localParticipant.setCameraEnabled(!isCameraEnabled)}
-            label={isCameraEnabled ? 'Turn camera off' : 'Turn camera on'}
-            onIcon={<Video className="size-4" />}
-            offIcon={<VideoOff className="size-4" />}
-          />
-          <Button
-            size="icon"
-            variant={isScreenShareEnabled ? 'default' : 'secondary'}
-            className="rounded-full"
-            onClick={toggleScreenShare}
-            aria-label={
-              isScreenShareEnabled ? 'Stop sharing screen' : 'Share screen'
-            }
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-3">
+          <div
+            data-region="left"
+            className="hidden min-w-0 items-center gap-2 sm:flex"
           >
-            {isScreenShareEnabled ? (
-              <MonitorX className="size-4" />
-            ) : (
-              <MonitorUp className="size-4" />
-            )}
-          </Button>
-          <Button
-            size="icon"
-            variant={handRaised ? 'default' : 'secondary'}
-            className="rounded-full"
-            onClick={onToggleHand}
-            aria-label={handRaised ? 'Lower hand' : 'Raise hand'}
-            aria-pressed={handRaised}
-            title="Raise hand (Ctrl+Alt+H)"
-          >
-            <Hand className="size-4" />
-          </Button>
-          <ReactionPicker onReaction={onReaction} />
-          <Button
-            size="icon"
-            variant={panel === 'people' ? 'default' : 'secondary'}
-            className="rounded-full"
-            onClick={() => onTogglePanel('people')}
-            aria-label="Toggle people"
-            aria-pressed={panel === 'people'}
-            title="People (Ctrl+Alt+P)"
-          >
-            <Users className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant={panel === 'chat' ? 'default' : 'secondary'}
-            className="rounded-full"
-            onClick={() => onTogglePanel('chat')}
-            aria-label="Toggle chat"
-            aria-pressed={panel === 'chat'}
-            title="Chat (Ctrl+Alt+C)"
-          >
-            <MessageSquare className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="rounded-full"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-          >
-            <Settings className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="destructive"
-            className="rounded-full"
-            onClick={() => {
-              onLeaveIntent()
-              room.disconnect()
-            }}
-            aria-label="Leave meeting"
-          >
-            <PhoneOff className="size-4" />
-          </Button>
-        </div>
-
-        {/*
-          Host controls sit on the right, matching where Google Meet puts
-          them. Keeping "End for all" out of the centre cluster is what stops
-          the centre from shifting between a guest and the Organiser (ADR
-          0016 — ending is the Organiser's explicit act, so only they see it).
-        */}
-        <div
-          data-region="right"
-          className="flex min-w-0 items-center justify-end gap-2"
-        >
-          {isOrganiser ? (
+            <MeetingIdentity roomName={roomName} eventContext={eventContext} />
             <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 shrink-0"
+              onClick={copyInvite}
+              aria-label="Copy invite link"
+            >
+              <LinkIcon className="size-3.5" />
+            </Button>
+          </div>
+
+          {/*
+            Mic, camera and leave stay visible at every width; the other six
+            move into an overflow menu below `sm`, because nine 36px round
+            buttons plus gaps need ~400px and a phone viewport is 360.
+          */}
+          <div
+            data-region="center"
+            className="flex items-center justify-center gap-2"
+          >
+            <ControlButton
+              active={isMicrophoneEnabled}
+              onClick={() =>
+                localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+              }
+              label={isMicrophoneEnabled ? 'Mute' : 'Unmute'}
+              onIcon={<Mic className="size-4" />}
+              offIcon={<MicOff className="size-4" />}
+            />
+            <ControlButton
+              active={isCameraEnabled}
+              onClick={() =>
+                localParticipant.setCameraEnabled(!isCameraEnabled)
+              }
+              label={isCameraEnabled ? 'Turn camera off' : 'Turn camera on'}
+              onIcon={<Video className="size-4" />}
+              offIcon={<VideoOff className="size-4" />}
+            />
+
+            <div
+              data-region="center-secondary"
+              className="hidden items-center gap-2 sm:flex"
+            >
+              <Button
+                size="icon"
+                variant={isScreenShareEnabled ? 'default' : 'secondary'}
+                className="rounded-full"
+                onClick={toggleScreenShare}
+                aria-label={
+                  isScreenShareEnabled ? 'Stop sharing screen' : 'Share screen'
+                }
+              >
+                {isScreenShareEnabled ? (
+                  <MonitorX className="size-4" />
+                ) : (
+                  <MonitorUp className="size-4" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant={handRaised ? 'default' : 'secondary'}
+                className="rounded-full"
+                onClick={onToggleHand}
+                aria-label={handRaised ? 'Lower hand' : 'Raise hand'}
+                aria-pressed={handRaised}
+                title="Raise hand (Ctrl+Alt+H)"
+              >
+                <Hand className="size-4" />
+              </Button>
+              <ReactionPicker onReaction={onReaction} />
+              <Button
+                size="icon"
+                variant={panel === 'people' ? 'default' : 'secondary'}
+                className="rounded-full"
+                onClick={() => onTogglePanel('people')}
+                aria-label="Toggle people"
+                aria-pressed={panel === 'people'}
+                title="People (Ctrl+Alt+P)"
+              >
+                <Users className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant={panel === 'chat' ? 'default' : 'secondary'}
+                className="rounded-full"
+                onClick={() => onTogglePanel('chat')}
+                aria-label="Toggle chat"
+                aria-pressed={panel === 'chat'}
+                title="Chat (Ctrl+Alt+C)"
+              >
+                <MessageSquare className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="rounded-full"
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </Button>
+            </div>
+
+            <OverflowMenu
+              className="sm:hidden"
+              panel={panel}
+              onTogglePanel={onTogglePanel}
+              handRaised={handRaised}
+              onToggleHand={onToggleHand}
+              onReaction={onReaction}
+              isScreenShareEnabled={isScreenShareEnabled}
+              onToggleScreenShare={toggleScreenShare}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+
+            <Button
+              size="icon"
               variant="destructive"
               className="rounded-full"
-              onClick={endForAll}
-              disabled={ending}
+              onClick={() => {
+                onLeaveIntent()
+                room.disconnect()
+              }}
+              aria-label="Leave meeting"
             >
-              <CircleSlash className="size-4" />
-              <span className="hidden sm:inline">
-                {ending ? 'Ending…' : 'End for all'}
-              </span>
+              <PhoneOff className="size-4" />
             </Button>
-          ) : null}
+          </div>
+
+          {/*
+            Host controls sit on the right, matching where Google Meet puts
+            them. Keeping "End for all" out of the centre cluster is what stops
+            the centre from shifting between a guest and the Organiser (ADR
+            0016 — ending is the Organiser's explicit act, so only they see it).
+          */}
+          <div
+            data-region="right"
+            className="flex min-w-0 items-center justify-end gap-2"
+          >
+            {isOrganiser ? (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="rounded-full sm:w-auto sm:px-4"
+                onClick={endForAll}
+                disabled={ending}
+                aria-label="End meeting for all"
+              >
+                <CircleSlash className="size-4" />
+                <span className="hidden sm:inline">
+                  {ending ? 'Ending…' : 'End for all'}
+                </span>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
@@ -280,6 +342,93 @@ function ControlButton({
     >
       {active ? onIcon : offIcon}
     </Button>
+  )
+}
+
+/**
+ * The controls that do not fit a phone.
+ *
+ * A dropdown rather than a Sheet: these are one-tap toggles, and a sheet would
+ * cover the video to mute a hand raise. Reactions stay inline here because the
+ * emoji row is the action, not a submenu.
+ */
+function OverflowMenu({
+  className,
+  panel,
+  onTogglePanel,
+  handRaised,
+  onToggleHand,
+  onReaction,
+  isScreenShareEnabled,
+  onToggleScreenShare,
+  onOpenSettings,
+}: {
+  className?: string
+  panel: 'chat' | 'people' | null
+  onTogglePanel: (panel: 'chat' | 'people') => void
+  handRaised: boolean
+  onToggleHand: () => void
+  onReaction: (emoji: Reaction) => void
+  isScreenShareEnabled: boolean
+  onToggleScreenShare: () => void
+  onOpenSettings: () => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          size="icon"
+          variant="secondary"
+          className={cn('rounded-full', className)}
+          aria-label="More controls"
+        >
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" side="top" className="w-52">
+        <div className="flex justify-between px-1 py-1.5">
+          {REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="rounded-md px-1.5 py-1 text-xl transition-transform hover:scale-110 hover:bg-accent"
+              onClick={() => onReaction(emoji)}
+              aria-label={`React with ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onToggleHand}>
+          <Hand className="size-4" />
+          {handRaised ? 'Lower hand' : 'Raise hand'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onToggleScreenShare}>
+          {isScreenShareEnabled ? (
+            <MonitorX className="size-4" />
+          ) : (
+            <MonitorUp className="size-4" />
+          )}
+          {isScreenShareEnabled ? 'Stop sharing' : 'Share screen'}
+        </DropdownMenuItem>
+        {/* The inline buttons show open/closed through their variant; in a
+            menu the same state has to be spelled out. */}
+        <DropdownMenuItem onClick={() => onTogglePanel('people')}>
+          <Users className="size-4" />
+          {panel === 'people' ? 'Hide people' : 'People'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onTogglePanel('chat')}>
+          <MessageSquare className="size-4" />
+          {panel === 'chat' ? 'Hide chat' : 'Chat'}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onOpenSettings}>
+          <Settings className="size-4" />
+          Settings
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

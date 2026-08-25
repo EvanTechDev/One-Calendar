@@ -36,7 +36,9 @@ export function PeoplePanel({ onClose }: { onClose: () => void }) {
   })
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l">
+    // Overlays the stage below `sm` for the same reason as the chat panel: a
+    // fixed 320px column leaves no usable video on a phone.
+    <aside className="absolute inset-0 z-20 flex flex-col border-l bg-background sm:relative sm:inset-auto sm:z-auto sm:w-80 sm:shrink-0">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-sm font-medium">
           People

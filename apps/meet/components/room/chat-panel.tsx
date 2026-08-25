@@ -91,7 +91,9 @@ export function ChatPanel({
   }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l">
+    // A fixed 320px panel beside the stage leaves 40px of video on a 360px
+    // phone, so below `sm` it overlays the stage instead of splitting it.
+    <aside className="absolute inset-0 z-20 flex flex-col border-l bg-background sm:relative sm:inset-auto sm:z-auto sm:w-80 sm:shrink-0">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-sm font-medium">Chat</h2>
         <Button

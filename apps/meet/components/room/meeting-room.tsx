@@ -1,14 +1,25 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Track } from 'livekit-client'
 import {
   RoomAudioRenderer,
   StartAudio,
+  usePagination,
   useTracks,
+  useVisualStableUpdate,
 } from '@livekit/components-react'
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
+import { ChevronLeft, ChevronRight, PanelBottomClose } from 'lucide-react'
+import { Button } from '@zntr/ui/button'
 import { cn } from '@zntr/utils'
+import { useElementSize } from '@/hooks/use-element-size'
+import {
+  maxFilmstripTiles,
+  maxTilesPerPage,
+  prefersCollapsedFilmstrip,
+  videoGridColumns,
+} from '@/lib/video-layout'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { ParticipantTile } from '@/components/room/participant-tile'
 import { ControlBar } from '@/components/room/control-bar'
@@ -58,6 +69,9 @@ export function MeetingRoom({
     onToggleHand: toggleHand,
   })
 
+  const stageRef = useRef<HTMLDivElement>(null)
+  const stage = useElementSize(stageRef)
+
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -100,13 +114,45 @@ export function MeetingRoom({
     setPinnedKey((current) => (current === key ? null : key))
   }
 
+  // A page's worth of tiles, chosen from the stage's own box (see
+  // lib/video-layout). Everything past the page stays unmounted, which is what
+  // drops its subscription — the point of the cap.
+  const pageSize = focused ? maxFilmstripTiles(stage) : maxTilesPerPage(stage)
+  // Keeps a speaker on the first page and stops tiles reshuffling as people
+  // mute or start talking.
+  const ordered = useVisualStableUpdate(others, pageSize)
+  const {
+    tracks: pageTracks,
+    totalPageCount,
+    currentPage,
+    nextPage,
+    prevPage,
+  } = usePagination(pageSize, ordered)
+
+  const [filmstripOpen, setFilmstripOpen] = useState(true)
+  const collapsePreferred = prefersCollapsedFilmstrip(stage)
+  // A portrait phone cannot fit the stage, a strip and the control bar at
+  // once, so the strip starts collapsed there — but only until the viewer
+  // says otherwise, hence the one-shot sync rather than a derived value.
+  const lastCollapsePreference = useRef(collapsePreferred)
+  useEffect(() => {
+    if (lastCollapsePreference.current === collapsePreferred) return
+    lastCollapsePreference.current = collapsePreferred
+    setFilmstripOpen(!collapsePreferred)
+  }, [collapsePreferred])
+
   return (
     <div className="flex h-dvh flex-col bg-background">
       <RecordingBanner />
-      <div className="flex min-h-0 flex-1">
-        <div className="relative flex min-w-0 flex-1 flex-col p-3">
+      {/* `relative` anchors the chat/people panels, which overlay the stage
+          below `sm` rather than splitting it. */}
+      <div className="relative flex min-h-0 flex-1">
+        <div
+          ref={stageRef}
+          className="relative flex min-w-0 flex-1 flex-col p-2 sm:p-3"
+        >
           {focused ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
               <div className="min-h-0 flex-1">
                 <ParticipantTile
                   trackRef={focused}
@@ -116,31 +162,76 @@ export function MeetingRoom({
                 />
               </div>
               {others.length > 0 ? (
-                <div className="flex h-28 gap-2 overflow-x-auto">
-                  {others.map((track) => (
-                    <div
-                      key={trackKey(track)}
-                      className="aspect-video h-full shrink-0"
-                    >
-                      <ParticipantTile
-                        trackRef={track}
-                        onTogglePin={() => togglePin(track)}
-                      />
+                filmstripOpen ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex h-20 flex-1 gap-2 overflow-x-auto sm:h-28">
+                      {pageTracks.map((track) => (
+                        <div
+                          key={trackKey(track)}
+                          className="aspect-video h-full shrink-0"
+                        >
+                          <ParticipantTile
+                            trackRef={track}
+                            onTogglePin={() => togglePin(track)}
+                          />
+                        </div>
+                      ))}
+                      {/* The strip is capped too, so say what is not in it. */}
+                      {totalPageCount > 1 ? (
+                        <button
+                          type="button"
+                          onClick={nextPage}
+                          className="flex aspect-video h-full shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-xs text-muted-foreground transition-colors hover:bg-accent"
+                          aria-label="Show more participants"
+                        >
+                          <ChevronRight className="size-4" />+
+                          {ordered.length - pageTracks.length}
+                        </button>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-8 shrink-0"
+                      onClick={() => setFilmstripOpen(false)}
+                      aria-label="Hide participant strip"
+                    >
+                      <PanelBottomClose className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 self-center rounded-full"
+                    onClick={() => setFilmstripOpen(true)}
+                  >
+                    Show {others.length}{' '}
+                    {others.length === 1 ? 'participant' : 'participants'}
+                  </Button>
+                )
               ) : null}
             </div>
           ) : (
-            <VideoGrid count={others.length}>
-              {others.map((track) => (
-                <ParticipantTile
-                  key={trackKey(track)}
-                  trackRef={track}
-                  onTogglePin={() => togglePin(track)}
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <VideoGrid count={pageTracks.length} stage={stage}>
+                {pageTracks.map((track) => (
+                  <ParticipantTile
+                    key={trackKey(track)}
+                    trackRef={track}
+                    onTogglePin={() => togglePin(track)}
+                  />
+                ))}
+              </VideoGrid>
+              {totalPageCount > 1 ? (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPageCount={totalPageCount}
+                  onPrev={prevPage}
+                  onNext={nextPage}
                 />
-              ))}
-            </VideoGrid>
+              ) : null}
+            </div>
           )}
           <ReactionOverlay reactions={reactions} />
         </div>
@@ -177,21 +268,71 @@ export function MeetingRoom({
 
 function VideoGrid({
   count,
+  stage,
   children,
 }: {
   count: number
+  stage: { width: number; height: number }
   children: React.ReactNode
 }) {
-  const columns = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4
+  const columns = videoGridColumns(count, stage)
   return (
     <div
-      className={cn('grid min-h-0 flex-1 place-content-center gap-3')}
+      // `place-content-stretch` rather than `center`: the rows are already
+      // `1fr` of a min-h-0 flex child, so centring them left the grid
+      // measuring its content and letterboxing every tile.
+      className={cn('grid min-h-0 flex-1 place-content-stretch gap-2 sm:gap-3')}
       style={{
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        gridAutoRows: 'minmax(0, 1fr)',
+        gridTemplateRows: `repeat(${Math.max(1, Math.ceil(count / columns))}, minmax(0, 1fr))`,
       }}
     >
       {children}
+    </div>
+  )
+}
+
+/**
+ * Page controls for rooms bigger than one page. Rendered only when there is a
+ * second page, so a normal call never sees it.
+ */
+function Pagination({
+  currentPage,
+  totalPageCount,
+  onPrev,
+  onNext,
+}: {
+  currentPage: number
+  totalPageCount: number
+  onPrev: () => void
+  onNext: () => void
+}) {
+  return (
+    <div className="flex shrink-0 items-center justify-center gap-2">
+      <Button
+        size="icon"
+        variant="secondary"
+        className="size-8 rounded-full"
+        onClick={onPrev}
+        aria-label="Previous participants"
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+      <span
+        className="text-xs text-muted-foreground tabular-nums"
+        aria-live="polite"
+      >
+        {currentPage} / {totalPageCount}
+      </span>
+      <Button
+        size="icon"
+        variant="secondary"
+        className="size-8 rounded-full"
+        onClick={onNext}
+        aria-label="Next participants"
+      >
+        <ChevronRight className="size-4" />
+      </Button>
     </div>
   )
 }

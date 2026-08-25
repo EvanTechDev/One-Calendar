@@ -58,10 +58,10 @@ function renderBar(options: {
     container.querySelector<HTMLElement>(`[data-region="${name}"]`)
   return {
     container,
-    bar: container.querySelector<HTMLElement>('[data-region="center"]')
-      ?.parentElement as HTMLElement,
+    bar: region('center')?.parentElement as HTMLElement,
     left: region('left'),
     center: region('center'),
+    centerSecondary: region('center-secondary'),
     right: region('right'),
   }
 }
@@ -95,20 +95,33 @@ describe('ControlBar centering', () => {
   it.each(CASES)(
     'keeps the centre cluster identical: $name',
     ({ organiser, eventContext: context }) => {
-      const { center } = renderBar({ organiser, eventContext: context })
+      const { center, centerSecondary } = renderBar({
+        organiser,
+        eventContext: context,
+      })
+      // Whatever the role or title, the centre track holds exactly the same
+      // controls — that is what makes its measured width role-independent.
       const labels = Array.from(center!.children).map((child) =>
         child.getAttribute('aria-label'),
       )
       expect(labels).toEqual([
         'Mute',
         'Turn camera off',
+        null, // the sm-and-up secondary cluster
+        'More controls',
+        'Leave meeting',
+      ])
+      expect(
+        Array.from(centerSecondary!.children).map((child) =>
+          child.getAttribute('aria-label'),
+        ),
+      ).toEqual([
         'Share screen',
         'Raise hand',
         'Send a reaction',
         'Toggle people',
         'Toggle chat',
         'Settings',
-        'Leave meeting',
       ])
     },
   )
@@ -124,6 +137,35 @@ describe('ControlBar centering', () => {
     // An absent third track would hand its width to the centre and shift it.
     expect(right).not.toBeNull()
     expect(right!.textContent).toBe('')
+  })
+
+  it('keeps mic, camera and leave visible at every width', () => {
+    const { center } = renderBar({ organiser: false })
+    // These three are direct children of the centre track, so no breakpoint
+    // class can hide them.
+    for (const label of ['Mute', 'Turn camera off', 'Leave meeting']) {
+      const button = center!.querySelector(`:scope > [aria-label="${label}"]`)
+      expect(button, label).not.toBeNull()
+      expect(button!.className).not.toMatch(/(^|\s)hidden(\s|$)/)
+    }
+  })
+
+  it('swaps the secondary controls for an overflow menu below sm', () => {
+    const { center, centerSecondary } = renderBar({ organiser: false })
+    // Nine round buttons need ~400px; a phone viewport is 360.
+    expect(centerSecondary!.className).toContain('hidden')
+    expect(centerSecondary!.className).toContain('sm:flex')
+    const overflow = center!.querySelector('[aria-label="More controls"]')
+    expect(overflow!.className).toContain('sm:hidden')
+  })
+
+  it('shows a compact identity line only on a phone', () => {
+    const { container } = renderBar({ organiser: false, eventContext })
+    // The sm-and-up identity block lives in the left region; the phone one is
+    // a separate row so it is not squeezed to ~75px on a 360px viewport.
+    const mobileIdentity = container.querySelector('.sm\\:hidden')
+    expect(mobileIdentity).not.toBeNull()
+    expect(container.textContent).toContain(eventContext.title)
   })
 
   it.each(CASES)(
