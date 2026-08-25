@@ -1,4 +1,5 @@
-const SENSITIVE_KEY = /token|authorization|cookie|password|secret|apikey|api_key/i
+const SENSITIVE_KEY =
+  /token|authorization|cookie|password|secret|apikey|api_key/i
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 function maskEmail(value: string): string {

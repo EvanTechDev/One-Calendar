@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Copy, ExternalLink } from 'lucide-react'
+import { Copy, ExternalLink, Video } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { toast } from 'sonner'
 
@@ -74,6 +74,14 @@ interface MeetingLinkControlsProps {
   meeting: MeetingInfo
   /** Surface-specific extras, e.g. the editor's "remove meeting" button. */
   actions?: ReactNode
+  /**
+   * True near the start time and while the meeting is running. Joining then is
+   * the action the user came for, so it stops being a 28px ghost icon that
+   * looks exactly as important as "copy".
+   */
+  urgent?: boolean
+  /** Distinguishes "starting soon" from "happening now" in the label. */
+  live?: boolean
 }
 
 /**
@@ -85,6 +93,8 @@ interface MeetingLinkControlsProps {
 export function MeetingLinkControls({
   meeting,
   actions,
+  urgent = false,
+  live = false,
 }: MeetingLinkControlsProps) {
   const copy = async () => {
     try {
@@ -93,6 +103,41 @@ export function MeetingLinkControls({
     } catch {
       toast.error('Could not copy the meeting link')
     }
+  }
+
+  if (urgent) {
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Button type="button" size="sm" asChild>
+          <a href={meeting.url} target="_blank" rel="noopener noreferrer">
+            <Video className="size-3.5" />
+            {live ? 'Join now' : 'Join meeting'}
+          </a>
+        </Button>
+        {live ? (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-75" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-green-500" />
+            </span>
+            Happening now
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Starting soon</span>
+        )}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="ml-auto size-7 shrink-0"
+          onClick={copy}
+          aria-label="Copy meeting link"
+        >
+          <Copy className="size-3.5" />
+        </Button>
+        {actions}
+      </div>
+    )
   }
 
   return (

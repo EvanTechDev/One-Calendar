@@ -182,7 +182,11 @@ const showToast = async (event: CalendarEvent) => {
   const t = translations[language]
   toast(`${event.title}`, {
     description: event.description || t.noContent,
-    duration: 4000,
+    // A reminder for something starting now is worth more than four seconds.
+    // A Join action belongs here too, but the event objects reaching this
+    // function carry no meeting link yet — that needs the events list to
+    // resolve meetings in bulk, which is deliberately a separate change.
+    duration: 10000,
   })
 }
 

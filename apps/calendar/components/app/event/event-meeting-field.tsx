@@ -67,6 +67,14 @@ export function EventMeetingField({
 
   const detach = async () => {
     if (!eventId) return
+    // Removing the meeting deletes the room, and holding its link is what
+    // admits someone (ADR-0019) — so every participant who already has the
+    // link loses access, and re-adding mints a different code. Too destructive
+    // to fire from a bare icon click.
+    const confirmed = window.confirm(
+      'Remove this meeting? The link stops working for everyone who has it, and adding a meeting again creates a different one.',
+    )
+    if (!confirmed) return
     setLoading(true)
     try {
       const response = await fetch('/api/meetings', {
@@ -119,6 +127,18 @@ export function EventMeetingField({
           {pending ? 'Meeting added on save' : 'Add Zentra Meet'}
         </Button>
       )}
+      {/*
+        Say what the button does. "Add Zentra Meet" alone does not tell a
+        first-time organiser that a room is created and its link travels with
+        the invitation.
+      */}
+      {!meeting ? (
+        <p className="text-xs text-muted-foreground">
+          {pending
+            ? 'A room will be created when you save, and its link goes out with the invitations.'
+            : 'Creates a room for this event. Participants get the link in their invitation.'}
+        </p>
+      ) : null}
     </div>
   )
 }

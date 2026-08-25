@@ -61,6 +61,8 @@ import {
   meetingLookupId,
   useEventMeeting,
 } from '@/components/app/event/event-meeting-link'
+import { useMeetingTiming } from '@/hooks/use-meeting-timing'
+import { isJoinUrgent } from '@/lib/meeting-timing'
 
 export interface EventInvite {
   id: string
@@ -229,6 +231,7 @@ export default function EventPreview({
   // lookup rather than from a column on the event (ADR-0019), keyed on the
   // series master because an expanded occurrence's id is synthetic. Skipped
   // for a participant's copy, which cannot own the lookup.
+  const timing = useMeetingTiming(open && event ? event : null)
   const [meeting] = useEventMeeting(
     open && event ? meetingLookupId(event) : null,
     !event?.viewOnly,
@@ -594,7 +597,11 @@ export default function EventPreview({
             {meeting && (
               <div className="flex items-start">
                 <Video className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                <MeetingLinkControls meeting={meeting} />
+                <MeetingLinkControls
+                  meeting={meeting}
+                  urgent={isJoinUrgent(timing)}
+                  live={timing === 'live'}
+                />
               </div>
             )}
 

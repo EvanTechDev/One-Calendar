@@ -14,6 +14,7 @@ import {
 import { cn } from '@zntr/utils'
 import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
 import { MeetingWhen } from '@/components/room/meeting-identity'
+import { MicLevel } from '@/components/room/mic-level'
 import type { RoomEventContext } from '@/lib/event-context'
 import type { UserChoices } from '@/lib/user-choices'
 
@@ -202,6 +203,7 @@ export function PreJoinScreen({
               </Button>
             </div>
           </div>
+          <MicLevel deviceId={audioDeviceId} enabled={audioEnabled} />
           {deviceNotice ? (
             <p className="text-sm text-muted-foreground">{deviceNotice}</p>
           ) : null}
