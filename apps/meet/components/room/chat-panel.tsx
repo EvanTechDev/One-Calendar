@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useChat } from '@livekit/components-react'
 import { Send, X } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
-import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
+import type { RoomChat } from '@/hooks/use-room-chat'
 
 const URL_PATTERN = /https?:\/\/[^\s<>"')]+/g
 
@@ -36,58 +35,35 @@ function LinkifiedText({ text }: { text: string }) {
 
 interface ChatPanelProps {
   onClose: () => void
-  /** The room this chat belongs to, for retention. */
-  roomName: string
+  /**
+   * Owned by the room, not by this panel: `useChat` accumulates history in its
+   * own state, so mounting it here meant closing the panel threw the history
+   * away along with anything that arrived while it was shut.
+   */
+  chat: RoomChat
   /**
    * Encrypted rooms never retain chat — the server would only ever see
    * ciphertext, and pretending otherwise would weaken the E2EE promise
-   * (ADR 0020).
+   * (ADR 0020). Shown to the viewer so the difference is not a secret.
    */
   retainMessages: boolean
-  /**
-   * The LiveKit join token, sent with each retained message as proof of room
-   * membership. The endpoint reads the sender's identity out of it — a
-   * client-supplied identity would be trivially forgeable.
-   */
-  participantToken: string
 }
 
-export function ChatPanel({
-  onClose,
-  roomName,
-  retainMessages,
-  participantToken,
-}: ChatPanelProps) {
-  const { chatMessages, send } = useChat()
+export function ChatPanel({ onClose, chat, retainMessages }: ChatPanelProps) {
+  const { messages, send } = chat
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
-  }, [chatMessages.length])
+  }, [messages.length])
 
   const sendMessage = async () => {
     const message = draft.trim()
     if (!message) return
-    try {
-      await send(message)
-      // Cleared only once the message is actually out, so a failed send
-      // never silently swallows what the user typed.
-      setDraft('')
-      if (retainMessages) {
-        // Best-effort: the live message already went through, so a failed
-        // retention post must not surface as a send failure.
-        void fetch(`/api/meetings/${roomName}/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          // Identity is derived server-side from this token's claims, so it is
-          // deliberately NOT sent alongside it.
-          body: JSON.stringify({ message, participantToken }),
-        }).catch(() => {})
-      }
-    } catch {
-      toast.error('Message failed to send')
-    }
+    // Cleared only once the message is actually out, so a failed send never
+    // silently swallows what the user typed.
+    if (await send(message)) setDraft('')
   }
 
   return (
@@ -112,12 +88,12 @@ export function ChatPanel({
           : 'Encrypted meeting — messages are not saved'}
       </p>
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-        {chatMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">
             No messages yet
           </p>
         ) : (
-          chatMessages.map((message) => {
+          messages.map((message) => {
             const isLocal = message.from?.isLocal ?? false
             return (
               <div

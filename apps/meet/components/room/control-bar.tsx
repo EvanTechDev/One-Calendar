@@ -46,6 +46,8 @@ interface ControlBarProps {
   onReaction: (emoji: Reaction) => void
   onLeaveIntent: () => void
   eventContext?: RoomEventContext
+  /** Messages that arrived while the chat panel was closed. */
+  unreadChat?: number
 }
 
 export function ControlBar({
@@ -57,6 +59,7 @@ export function ControlBar({
   onReaction,
   onLeaveIntent,
   eventContext,
+  unreadChat = 0,
 }: ControlBarProps) {
   const room = useRoomContext()
   const {
@@ -128,29 +131,13 @@ export function ControlBar({
       */}
       <div className="border-t">
         {/*
-          A phone has no room for the identity block beside nine controls, but
-          a room showing nothing at all gives no evidence a calendar exists
-          (the same reason MeetingIdentity exists). Put it on its own line
-          above the controls instead of squeezing it into a side region, where
-          it would be ~75px wide on a 360px viewport.
+          A phone gets one line, not two. The identity block used to sit on its
+          own row above the controls, which cost ~34px of a 640px-tall viewport
+          and squeezed the row the viewer actually needs — reported as the
+          buttons being cramped and pushed on by the info section. The room code
+          is still reachable: it moved into the overflow menu's header, beside
+          the copy action that is the only thing most viewers want it for.
         */}
-        <div className="flex items-center gap-2 px-4 pt-2 sm:hidden">
-          <MeetingIdentity
-            roomName={roomName}
-            eventContext={eventContext}
-            className="flex-1"
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7 shrink-0"
-            onClick={copyInvite}
-            aria-label="Copy invite link"
-          >
-            <LinkIcon className="size-3.5" />
-          </Button>
-        </div>
-
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-3">
           <div
             data-region="left"
@@ -241,13 +228,23 @@ export function ControlBar({
               <Button
                 size="icon"
                 variant={panel === 'chat' ? 'default' : 'secondary'}
-                className="rounded-full"
+                className="relative rounded-full"
                 onClick={() => onTogglePanel('chat')}
-                aria-label="Toggle chat"
+                aria-label={
+                  unreadChat > 0
+                    ? `Toggle chat, ${unreadChat} unread`
+                    : 'Toggle chat'
+                }
                 aria-pressed={panel === 'chat'}
                 title="Chat (Ctrl+Alt+C)"
               >
                 <MessageSquare className="size-4" />
+                {/*
+                  Chat now outlives the panel, so a message can arrive while it
+                  is closed. Without this the viewer has no way to know, which
+                  is what made the old bug look like a lost message.
+                */}
+                {unreadChat > 0 ? <UnreadDot count={unreadChat} /> : null}
               </Button>
               <Button
                 size="icon"
@@ -270,6 +267,10 @@ export function ControlBar({
               isScreenShareEnabled={isScreenShareEnabled}
               onToggleScreenShare={toggleScreenShare}
               onOpenSettings={() => setSettingsOpen(true)}
+              unreadChat={unreadChat}
+              roomName={roomName}
+              eventContext={eventContext}
+              onCopyInvite={copyInvite}
             />
 
             <Button
@@ -300,7 +301,10 @@ export function ControlBar({
               <Button
                 variant="destructive"
                 size="icon"
-                className="rounded-full sm:w-auto sm:px-4"
+                // `size="icon"` carries no gap (it is square by definition), so
+                // widening it for a label leaves the icon touching the text.
+                // 1.5 is what every non-icon size in @zntr/ui/button uses.
+                className="rounded-full sm:w-auto sm:gap-1.5 sm:px-4"
                 onClick={endForAll}
                 disabled={ending}
                 aria-label="End meeting for all"
@@ -352,6 +356,23 @@ function ControlButton({
  * cover the video to mute a hand raise. Reactions stay inline here because the
  * emoji row is the action, not a submenu.
  */
+/**
+ * An unread count on a round icon button.
+ *
+ * Capped at 9+ because the dot sits on a 36px control and a real number would
+ * outgrow it; the exact count past nine is not what the viewer needs.
+ */
+function UnreadDot({ count }: { count: number }) {
+  return (
+    <span
+      aria-hidden
+      className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium leading-none text-white"
+    >
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 function OverflowMenu({
   className,
   panel,
@@ -362,6 +383,10 @@ function OverflowMenu({
   isScreenShareEnabled,
   onToggleScreenShare,
   onOpenSettings,
+  unreadChat,
+  roomName,
+  eventContext,
+  onCopyInvite,
 }: {
   className?: string
   panel: 'chat' | 'people' | null
@@ -372,6 +397,10 @@ function OverflowMenu({
   isScreenShareEnabled: boolean
   onToggleScreenShare: () => void
   onOpenSettings: () => void
+  unreadChat: number
+  roomName: string
+  eventContext?: RoomEventContext
+  onCopyInvite: () => void
 }) {
   return (
     <DropdownMenu>
@@ -379,13 +408,38 @@ function OverflowMenu({
         <Button
           size="icon"
           variant="secondary"
-          className={cn('rounded-full', className)}
-          aria-label="More controls"
+          className={cn('relative rounded-full', className)}
+          aria-label={
+            unreadChat > 0
+              ? `More controls, ${unreadChat} unread messages`
+              : 'More controls'
+          }
         >
           <MoreVertical className="size-4" />
+          {/* Chat lives behind this menu on a phone, so the count has to
+              surface on the trigger or it is invisible there. */}
+          {unreadChat > 0 ? <UnreadDot count={unreadChat} /> : null}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" side="top" className="w-52">
+      <DropdownMenuContent align="center" side="top" className="w-56">
+        {/* The room code, which no longer has its own row on a phone. */}
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          <MeetingIdentity
+            roomName={roomName}
+            eventContext={eventContext}
+            className="min-w-0 flex-1"
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7 shrink-0"
+            onClick={onCopyInvite}
+            aria-label="Copy invite link"
+          >
+            <LinkIcon className="size-3.5" />
+          </Button>
+        </div>
+        <DropdownMenuSeparator />
         <div className="flex justify-between px-1 py-1.5">
           {REACTIONS.map((emoji) => (
             <button

@@ -23,6 +23,7 @@ import {
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { ParticipantTile } from '@/components/room/participant-tile'
 import { useRaisedHands } from '@/hooks/use-raised-hands'
+import { useRoomChat } from '@/hooks/use-room-chat'
 import { ControlBar } from '@/components/room/control-bar'
 import { ChatPanel } from '@/components/room/chat-panel'
 import { RecordingBanner } from '@/components/room/recording-banner'
@@ -108,6 +109,13 @@ export function MeetingRoom({
   )
 
   const hands = useRaisedHands()
+  // Owned here rather than by the panel so history survives closing it.
+  const chat = useRoomChat({
+    roomName,
+    retainMessages: retainChat,
+    participantToken,
+    isOpen: panel === 'chat',
+  })
 
   const togglePanel = (next: 'chat' | 'people') =>
     setPanel((current) => (current === next ? null : next))
@@ -241,9 +249,8 @@ export function MeetingRoom({
         {panel === 'chat' ? (
           <ChatPanel
             onClose={() => setPanel(null)}
-            roomName={roomName}
+            chat={chat}
             retainMessages={retainChat}
-            participantToken={participantToken}
           />
         ) : null}
         {panel === 'people' ? (
@@ -251,6 +258,7 @@ export function MeetingRoom({
         ) : null}
       </div>
       <ControlBar
+        unreadChat={chat.unread}
         roomName={roomName}
         panel={panel}
         onTogglePanel={togglePanel}
