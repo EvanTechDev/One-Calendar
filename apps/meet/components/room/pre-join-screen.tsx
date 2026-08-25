@@ -13,12 +13,16 @@ import {
 } from '@zntr/ui/select'
 import { cn } from '@zntr/utils'
 import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
+import { MeetingWhen } from '@/components/room/meeting-identity'
+import type { RoomEventContext } from '@/lib/event-context'
 import type { UserChoices } from '@/lib/user-choices'
 
 interface PreJoinScreenProps {
   roomName: string
   defaultUsername?: string
   error?: string
+  /** The calendar event this room belongs to, when it has one. */
+  eventContext?: RoomEventContext
   onJoin: (choices: UserChoices) => Promise<void>
 }
 
@@ -26,6 +30,7 @@ export function PreJoinScreen({
   roomName,
   defaultUsername,
   error,
+  eventContext,
   onJoin,
 }: PreJoinScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -218,14 +223,17 @@ export function PreJoinScreen({
 
         <div className="flex flex-col justify-center space-y-4">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold">Ready to join?</h1>
+            <h1 className="text-xl font-semibold">
+              {eventContext ? eventContext.title : 'Ready to join?'}
+            </h1>
+            {eventContext ? <MeetingWhen eventContext={eventContext} /> : null}
             <p
               className={cn(
                 'flex items-center gap-1.5 text-sm text-muted-foreground',
               )}
             >
               {isE2ee ? <Lock className="size-3.5" /> : null}
-              Room {roomName}
+              {eventContext ? 'Meeting' : 'Room'} {roomName}
               {isE2ee ? ' · encrypted' : ''}
             </p>
             {/* Say plainly what happens to chat either way (ADR 0020). */}

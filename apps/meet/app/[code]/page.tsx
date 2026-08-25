@@ -1,11 +1,17 @@
 import { notFound } from 'next/navigation'
-import { getMeeting, isJoinable } from '@zntr/meetings'
+import {
+  getEventContextForMeeting,
+  getMeeting,
+  isJoinable,
+} from '@zntr/meetings'
 import { RoomExperience } from '@/components/room/room-experience'
 import { MeetingClosed } from '@/components/room/meeting-closed'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
 import { isOrganiser } from '@/lib/organiser'
+import { readEventTitle } from '@/lib/event-title'
 import { isVideoCodec } from '@/lib/types'
+import type { RoomEventContext } from '@/lib/event-context'
 import type { VideoCodec } from 'livekit-client'
 
 /** Room codes are `xxxx-xxxx`, so they can never shadow a reserved path. */
@@ -54,11 +60,30 @@ export default async function RoomPage({
     )
   }
 
+  // Show what this meeting IS, not just its code. Read in-process rather than
+  // over HTTP (ADR-0017), and resolved here so the room never has to ask.
+  let eventContext: RoomEventContext | undefined
+  if (meeting.eventId) {
+    const context = await getEventContextForMeeting(db, code)
+    if (context) {
+      eventContext = {
+        title: readEventTitle(context.eventId, context.title),
+        // A Series' anchor date is not this sitting's time (ADR-0019: one
+        // Meeting per Series), and expanding occurrences belongs to the
+        // calendar's recurrence engine. Better to show no time than a wrong one.
+        startsAt: context.isSeries ? null : context.startDate.toISOString(),
+        endsAt: context.isSeries ? null : context.endDate.toISOString(),
+        recurring: context.isSeries,
+      }
+    }
+  }
+
   return (
     <RoomExperience
       roomName={code}
       options={{ codec, hq, region: query.region }}
       userName={session?.user.name}
+      eventContext={eventContext}
     />
   )
 }

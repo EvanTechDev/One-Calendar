@@ -16,6 +16,7 @@ import { useE2EE } from '@/hooks/use-e2ee'
 import { useLowCPUOptimizer } from '@/hooks/use-low-cpu-optimizer'
 import { MeetingRoom } from '@/components/room/meeting-room'
 import { RoomFailure } from '@/components/room/room-failure'
+import type { RoomEventContext } from '@/lib/event-context'
 import type { ConnectionDetails, RoomPageOptions } from '@/lib/types'
 import type { UserChoices } from '@/lib/user-choices'
 
@@ -24,6 +25,7 @@ interface ActiveRoomProps {
   userChoices: UserChoices
   options: RoomPageOptions
   onRetry: () => void
+  eventContext?: RoomEventContext
 }
 
 type Phase =
@@ -42,6 +44,7 @@ export function ActiveRoom({
   userChoices,
   options,
   onRetry,
+  eventContext,
 }: ActiveRoomProps) {
   const router = useRouter()
   const e2ee = useE2EE()
@@ -237,6 +240,7 @@ export function ActiveRoom({
         roomName={connectionDetails.roomName}
         onLeaveIntent={markLeaving}
         retainChat={!e2ee.enabled}
+        eventContext={eventContext}
         participantToken={connectionDetails.participantToken}
       />
     </RoomContext.Provider>

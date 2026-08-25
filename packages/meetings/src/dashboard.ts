@@ -85,6 +85,61 @@ export async function searchMeetings(
     .limit(limit)
 }
 
+export interface MeetingEventContext {
+  eventId: string
+  title: string
+  startDate: Date
+  endDate: Date
+  /**
+   * True when the event is a Series. Its `startDate` is then the recurrence
+   * anchor rather than this sitting's time, so a caller must not present it as
+   * "when this meeting is".
+   */
+  isSeries: boolean
+}
+
+/**
+ * The calendar event a Meeting belongs to, for showing context inside the
+ * room — a participant should see "Q3 budget review, 14:00" rather than a
+ * room code.
+ *
+ * Read in-process through the read-only events description (ADR-0020), which
+ * ADR-0017 prefers over a network hop on a shared database. No recurrence
+ * expansion happens here and none is needed: the room asks *which event is
+ * this*, not *which occurrences fall in a window*. The title is still
+ * encrypted at rest — the caller decrypts it.
+ */
+export async function getEventContextForMeeting(
+  db: Db,
+  meetingId: string,
+): Promise<MeetingEventContext | null> {
+  const rows = await db
+    .select({
+      eventId: readonlyCalendarEvents.id,
+      title: readonlyCalendarEvents.title,
+      startDate: readonlyCalendarEvents.startDate,
+      endDate: readonlyCalendarEvents.endDate,
+      rrule: readonlyCalendarEvents.rrule,
+    })
+    .from(meeting)
+    .innerJoin(
+      readonlyCalendarEvents,
+      eq(meeting.eventId, readonlyCalendarEvents.id),
+    )
+    .where(eq(meeting.id, meetingId))
+    .limit(1)
+
+  const row = rows[0]
+  if (!row) return null
+  return {
+    eventId: row.eventId,
+    title: row.title,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    isSeries: Boolean(row.rrule && row.rrule.trim().length > 0),
+  }
+}
+
 /** Event titles for the user's meetings, for labelling dashboard rows. */
 export async function getEventTitlesForMeetings(
   db: Db,

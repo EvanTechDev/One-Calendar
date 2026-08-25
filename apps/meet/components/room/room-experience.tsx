@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { PreJoinScreen } from '@/components/room/pre-join-screen'
 import { ActiveRoom } from '@/components/room/active-room'
 import { getCreatorToken } from '@/lib/creator-token'
+import type { RoomEventContext } from '@/lib/event-context'
 import type { ConnectionDetails, RoomPageOptions } from '@/lib/types'
 import type { UserChoices } from '@/lib/user-choices'
 
@@ -11,12 +12,15 @@ interface RoomExperienceProps {
   roomName: string
   options: RoomPageOptions
   userName?: string
+  /** The calendar event this room belongs to, when it has one. */
+  eventContext?: RoomEventContext
 }
 
 export function RoomExperience({
   roomName,
   options,
   userName,
+  eventContext,
 }: RoomExperienceProps) {
   const [choices, setChoices] = useState<UserChoices>()
   const [connection, setConnection] = useState<ConnectionDetails>()
@@ -74,6 +78,7 @@ export function RoomExperience({
       <PreJoinScreen
         roomName={roomName}
         defaultUsername={userName}
+        eventContext={eventContext}
         error={error}
         onJoin={handleJoin}
       />
@@ -86,6 +91,7 @@ export function RoomExperience({
       userChoices={choices}
       options={options}
       onRetry={handleRetry}
+      eventContext={eventContext}
     />
   )
 }

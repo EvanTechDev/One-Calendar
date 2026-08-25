@@ -44,7 +44,9 @@ export {
 } from './sessions'
 export type { Db } from './db'
 export {
+  getEventContextForMeeting,
   getEventTitlesForMeetings,
   getMeetingSummaries,
   searchMeetings,
 } from './dashboard'
+export type { MeetingEventContext } from './dashboard'

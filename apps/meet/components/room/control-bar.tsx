@@ -20,12 +20,15 @@ import { Button } from '@zntr/ui/button'
 import { cn } from '@zntr/utils'
 import { SettingsDialog } from '@/components/room/settings-dialog'
 import { getCreatorToken } from '@/lib/creator-token'
+import { MeetingIdentity } from '@/components/room/meeting-identity'
+import type { RoomEventContext } from '@/lib/event-context'
 
 interface ControlBarProps {
   roomName: string
   chatOpen: boolean
   onToggleChat: () => void
   onLeaveIntent: () => void
+  eventContext?: RoomEventContext
 }
 
 export function ControlBar({
@@ -33,6 +36,7 @@ export function ControlBar({
   chatOpen,
   onToggleChat,
   onLeaveIntent,
+  eventContext,
 }: ControlBarProps) {
   const room = useRoomContext()
   const {
@@ -93,14 +97,12 @@ export function ControlBar({
   return (
     <>
       <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
-        <div className="hidden min-w-0 items-center gap-2 sm:flex">
-          <span className="truncate text-sm text-muted-foreground">
-            {roomName}
-          </span>
+        <div className="hidden min-w-0 flex-1 items-center gap-2 sm:flex">
+          <MeetingIdentity roomName={roomName} eventContext={eventContext} />
           <Button
             size="icon"
             variant="ghost"
-            className="size-7"
+            className="size-7 shrink-0"
             onClick={copyInvite}
             aria-label="Copy invite link"
           >

@@ -14,6 +14,7 @@ import { ParticipantTile } from '@/components/room/participant-tile'
 import { ControlBar } from '@/components/room/control-bar'
 import { ChatPanel } from '@/components/room/chat-panel'
 import { RecordingBanner } from '@/components/room/recording-banner'
+import type { RoomEventContext } from '@/lib/event-context'
 
 interface MeetingRoomProps {
   roomName: string
@@ -21,6 +22,8 @@ interface MeetingRoomProps {
   onLeaveIntent: () => void
   /** False in encrypted rooms, where chat is never retained (ADR 0020). */
   retainChat: boolean
+  /** The calendar event this room belongs to, when it has one. */
+  eventContext?: RoomEventContext
   /**
    * The LiveKit join token, forwarded to chat retention as proof of room
    * membership — the endpoint derives the sender's identity from it rather than
@@ -39,6 +42,7 @@ export function MeetingRoom({
   onLeaveIntent,
   retainChat,
   participantToken,
+  eventContext,
 }: MeetingRoomProps) {
   const [chatOpen, setChatOpen] = useState(false)
   const [pinnedKey, setPinnedKey] = useState<string | null>(null)
@@ -140,6 +144,7 @@ export function MeetingRoom({
         chatOpen={chatOpen}
         onToggleChat={() => setChatOpen((open) => !open)}
         onLeaveIntent={onLeaveIntent}
+        eventContext={eventContext}
       />
       <RoomAudioRenderer />
       <StartAudio
