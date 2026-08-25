@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRoomInput } from '@/components/home-actions'
+import { parseRoomInput } from '@/lib/room-code'
 
 describe('parseRoomInput', () => {
   it('accepts a bare room code', () => {
@@ -36,7 +36,7 @@ describe('parseRoomInput', () => {
 
   it('extracts the code from a URL carrying an E2EE hash', () => {
     // The passphrase itself is carried by the navigation step, not this
-    // parser (see invitePartsFrom in home-actions).
+    // parser (see invitePartsFrom in lib/room-code).
     expect(parseRoomInput('https://meet.example.com/ab3k-x9q2#secret')).toBe(
       'ab3k-x9q2',
     )

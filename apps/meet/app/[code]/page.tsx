@@ -11,11 +11,9 @@ import { getServerSession } from '@/lib/auth/server'
 import { isOrganiser } from '@/lib/organiser'
 import { readEventTitle } from '@/lib/event-title'
 import { isVideoCodec } from '@/lib/types'
+import { isRoomCode } from '@/lib/room-code'
 import type { RoomEventContext } from '@/lib/event-context'
 import type { VideoCodec } from 'livekit-client'
-
-/** Room codes are `xxxx-xxxx`, so they can never shadow a reserved path. */
-const ROOM_CODE_PATTERN = /^[a-z0-9]{4}-[a-z0-9]{4}$/
 
 interface RoomPageProps {
   params: Promise<{ code: string }>
@@ -31,7 +29,9 @@ export default async function RoomPage({
   searchParams,
 }: RoomPageProps) {
   const { code } = await params
-  if (!ROOM_CODE_PATTERN.test(code)) notFound()
+  // Codes always contain a hyphen, so they can never shadow a reserved path
+  // (ADR 0019). One owner of that pattern: lib/room-code.ts.
+  if (!isRoomCode(code)) notFound()
 
   const query = await searchParams
   const codec: VideoCodec =
