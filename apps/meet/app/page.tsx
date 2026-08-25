@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getServerSession } from '@/lib/auth/server'
 import { HomeActions } from '@/components/home-actions'
 import { Dashboard } from '@/components/dashboard/dashboard'
+import { UserAvatarButton } from '@/components/dashboard/user-avatar-button'
 import { ZentraMark } from '@/components/shell/zentra-mark'
 import { Button } from '@zntr/ui/button'
 
@@ -17,9 +18,14 @@ export default async function HomePage() {
         calendarOrigin={calendarOrigin()}
         userName={session.user.name}
         identity={
-          <span className="truncate text-sm text-muted-foreground">
-            {session.user.name}
-          </span>
+          <UserAvatarButton
+            calendarOrigin={calendarOrigin()}
+            user={{
+              name: session.user.name,
+              email: session.user.email,
+              image: session.user.image,
+            }}
+          />
         }
       />
     )
