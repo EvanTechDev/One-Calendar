@@ -13,6 +13,7 @@ import {
   resolveParticipantTarget,
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import type { ApplyTo } from '@/lib/event-service'
 
 export const runtime = 'nodejs'
@@ -150,6 +151,9 @@ export const POST = async function POST(request: NextRequest) {
     inviterName: inviter?.name ?? 'Someone',
     description: decryptField(event.id, event.description) ?? undefined,
     location: decryptField(event.id, event.location) ?? undefined,
+    // A resend is the recovery path for an expired invite link, so it is the
+    // email that most needs the room link in it.
+    meetingUrl: await resolveMeetingUrl(event.id),
     email: invite.email,
     baseUrl,
   })

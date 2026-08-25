@@ -92,6 +92,43 @@ export async function createInvitesForEvent(
   }))
 }
 
+/**
+ * The fields both the first send and the resend need. Extracted because the
+ * two paths built the same payload independently and had already drifted (only
+ * the resend refreshes the link window) — a difference in what the two emails
+ * contain is exactly the bug a participant hits on the recovery path.
+ */
+interface InviteEmailContent {
+  eventTitle: string
+  startDate: string
+  endDate: string
+  isAllDay: boolean
+  inviterName: string
+  description?: string
+  location?: string
+  /** Resolved by the caller from the event's Meeting, when it has one. */
+  meetingUrl?: string
+}
+
+function buildInviteEmailPayload(
+  content: InviteEmailContent,
+  inviteLink: string,
+) {
+  const timeRange = content.isAllDay
+    ? `${content.startDate} (All day)`
+    : `${content.startDate} – ${content.endDate}`
+
+  return {
+    title: content.eventTitle,
+    timeRange,
+    inviterName: content.inviterName,
+    inviteLink,
+    description: content.description,
+    location: content.location,
+    meetingUrl: content.meetingUrl,
+  }
+}
+
 export async function sendInviteEmails(params: {
   eventId: string
   eventTitle: string
@@ -102,6 +139,7 @@ export async function sendInviteEmails(params: {
   inviterEmail?: string
   description?: string
   location?: string
+  meetingUrl?: string
   emails: string[]
   baseUrl: string
 }): Promise<{ sent: number; failed: string[] }> {
@@ -116,21 +154,12 @@ export async function sendInviteEmails(params: {
     const inviteLink = `${params.baseUrl}/invite/${token}`
 
     try {
-      const timeStr = params.isAllDay
-        ? `${params.startDate} (All day)`
-        : `${params.startDate} – ${params.endDate}`
-
       await sendEmail({
         to: email,
         subject: `Invitation: ${params.eventTitle}`,
-        html: await buildInvitationEmail({
-          title: params.eventTitle,
-          timeRange: timeStr,
-          inviterName: params.inviterName,
-          inviteLink,
-          description: params.description,
-          location: params.location,
-        }),
+        html: await buildInvitationEmail(
+          buildInviteEmailPayload(params, inviteLink),
+        ),
       })
       sent++
       await db
@@ -424,6 +453,7 @@ export async function resendInviteEmail(params: {
   inviterName: string
   description?: string
   location?: string
+  meetingUrl?: string
   email: string
   baseUrl: string
 }): Promise<boolean> {
@@ -434,21 +464,12 @@ export async function resendInviteEmail(params: {
   const inviteLink = `${params.baseUrl}/invite/${token}`
 
   try {
-    const timeStr = params.isAllDay
-      ? `${params.startDate} (All day)`
-      : `${params.startDate} – ${params.endDate}`
-
     await sendEmail({
       to: params.email,
       subject: `Invitation: ${params.eventTitle}`,
-      html: await buildInvitationEmail({
-        title: params.eventTitle,
-        timeRange: timeStr,
-        inviterName: params.inviterName,
-        inviteLink,
-        description: params.description,
-        location: params.location,
-      }),
+      html: await buildInvitationEmail(
+        buildInviteEmailPayload(params, inviteLink),
+      ),
     })
     await db
       .update(eventInvites)

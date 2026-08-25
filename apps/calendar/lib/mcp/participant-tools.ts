@@ -16,6 +16,7 @@ import {
   updateOccurrenceRsvp,
 } from '@/lib/invites/invite-service'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import { isSeriesEvent } from '@/lib/recurrence/engine'
 import {
   applyScopedParticipantChange,
@@ -93,6 +94,9 @@ async function buildEmailPayload(event: ReturnType<typeof decryptEvent>) {
     inviterName: inviter?.name ?? 'Someone',
     description: event.description ?? undefined,
     location: event.location ?? undefined,
+    // Both the first send and the resend flow through here, so the meeting
+    // link cannot go missing from one of them.
+    meetingUrl: await resolveMeetingUrl(event.id),
     baseUrl: baseUrl(),
   }
 }

@@ -22,6 +22,14 @@ interface AuthEmailTemplateProps {
   body: string
   actionLabel?: string
   actionUrl?: string
+  /**
+   * A second, quieter action below the primary one. An invitation to an event
+   * with a video meeting has two things the recipient may want — the meeting
+   * itself and the RSVP page — and burying either behind the other costs a
+   * click at the moment it matters.
+   */
+  secondaryActionLabel?: string
+  secondaryActionUrl?: string
   secondary?: string
   code?: string
 }
@@ -37,6 +45,8 @@ function AuthEmailTemplate({
   body,
   actionLabel,
   actionUrl,
+  secondaryActionLabel,
+  secondaryActionUrl,
   secondary,
   code,
 }: AuthEmailTemplateProps) {
@@ -177,6 +187,29 @@ function AuthEmailTemplate({
                   }}
                 >
                   {actionLabel}
+                </Button>
+              </Section>
+            ) : null}
+
+            {secondaryActionLabel && secondaryActionUrl ? (
+              <Section style={{ margin: '-16px 0 32px', textAlign: 'center' }}>
+                <Button
+                  href={secondaryActionUrl}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e4e5e7',
+                    borderRadius: '8px',
+                    color: '#14171e',
+                    display: 'inline-block',
+                    fontSize: '15px',
+                    fontWeight: 500,
+                    letterSpacing: '-0.045px',
+                    lineHeight: '22px',
+                    padding: '11px 24px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {secondaryActionLabel}
                 </Button>
               </Section>
             ) : null}

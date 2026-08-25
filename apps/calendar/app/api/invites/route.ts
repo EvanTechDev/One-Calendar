@@ -21,6 +21,7 @@ import {
   resolveParticipantTarget,
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 import type { ApplyTo } from '@/lib/event-service'
 
@@ -143,6 +144,9 @@ export const POST = async function POST(request: NextRequest) {
           inviterName: inviter?.name ?? 'Someone',
           description: decryptField(event.id, event.description) ?? undefined,
           location: decryptField(event.id, event.location) ?? undefined,
+          // The room link is the participant's durable way in — the invite
+          // link expires, the meeting link does not (ADR-0013/0019).
+          meetingUrl: await resolveMeetingUrl(target.masterId),
           emails: changed.createdEmails,
           baseUrl,
         })
