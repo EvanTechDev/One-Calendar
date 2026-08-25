@@ -17,6 +17,20 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24,
   },
+  async redirects() {
+    return [
+      {
+        // Join URLs moved from /rooms/<code> to /<code> (ADR 0019), which left
+        // every link already shared in a calendar invite or a chat message
+        // 404ing. Safe for encrypted meetings: the E2EE passphrase lives in the
+        // URL hash, which browsers never send to the server and preserve across
+        // a redirect.
+        source: '/rooms/:code',
+        destination: '/:code',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

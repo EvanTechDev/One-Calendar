@@ -40,14 +40,3 @@ export function storeCreatorToken(meetingId: string, token: string): void {
 export function getCreatorToken(meetingId: string): string | undefined {
   return readAll()[meetingId]
 }
-
-export function forgetCreatorToken(meetingId: string): void {
-  if (typeof window === 'undefined') return
-  try {
-    const all = readAll()
-    delete all[meetingId]
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  } catch {
-    // Nothing to do.
-  }
-}

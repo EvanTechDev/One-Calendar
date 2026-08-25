@@ -3,24 +3,10 @@ import {
   decodePassphrase,
   encodePassphrase,
   generatePassphrase,
-  generateRoomId,
   isLowPowerDevice,
   randomString,
   resolveRegionalUrl,
 } from '@/lib/meet-utils'
-
-describe('generateRoomId', () => {
-  it('produces the xxxx-xxxx room code shape', () => {
-    for (let i = 0; i < 100; i++) {
-      expect(generateRoomId()).toMatch(/^[a-z0-9]{4}-[a-z0-9]{4}$/)
-    }
-  })
-
-  it('does not repeat itself in practice', () => {
-    const ids = new Set(Array.from({ length: 500 }, generateRoomId))
-    expect(ids.size).toBeGreaterThan(490)
-  })
-})
 
 describe('randomString', () => {
   it('honours the requested length', () => {

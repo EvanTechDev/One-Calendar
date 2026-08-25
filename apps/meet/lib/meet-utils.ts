@@ -16,10 +16,6 @@ export function randomString(length: number): string {
   return out
 }
 
-export function generateRoomId(): string {
-  return `${randomString(4)}-${randomString(4)}`
-}
-
 export function encodePassphrase(passphrase: string): string {
   return encodeURIComponent(passphrase)
 }

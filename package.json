@@ -4,6 +4,12 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:check": "turbo run lint:check",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
     "build:calendar": "pnpm --filter zentra-calendar build",
     "dev:meet": "pnpm --filter zentra-meet dev",
     "build:meet": "pnpm --filter zentra-meet build",
@@ -44,6 +50,7 @@
     "postcss": "8.5.15",
     "prettier": "3.8.4",
     "tailwindcss": "4.3.1",
+    "turbo": "^2.10.11",
     "typescript": "6.0.3"
   },
   "prettier": {
