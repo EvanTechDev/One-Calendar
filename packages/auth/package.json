@@ -14,7 +14,8 @@
     "./route-policy": "./src/route-policy.ts",
     "./diagnostics": "./src/diagnostics.ts",
     "./verify-token": "./src/verify-token.ts",
-    "./return-to": "./src/return-to.ts"
+    "./return-to": "./src/return-to.ts",
+    "./handoff": "./src/handoff.ts"
   },
   "scripts": {
     "build": "tsc",

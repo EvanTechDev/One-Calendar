@@ -14,6 +14,7 @@ export {
   clientOriginsFromRedirectUris,
   resolvePortalReturnTo,
 } from './return-to'
+export { portalSignInUrl } from './handoff'
 export { createAuthClient } from './client'
 export { createDrizzleAdapter } from './adapter'
 export {
