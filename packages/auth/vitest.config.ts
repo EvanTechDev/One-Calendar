@@ -12,6 +12,12 @@ export default defineConfig({
     // unit test still fails fast.
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // One schema, several suites, and the migration rehearsals must use the REAL
+    // table names -- that is what makes them rehearsals rather than tests of a
+    // renamed copy. So they cannot run concurrently: two suites creating
+    // `account` in the same schema is not a race to fix with a lock, it is two
+    // tests sharing one resource. Serial is the honest answer.
+    fileParallelism: false,
   },
   resolve: {
     alias: {

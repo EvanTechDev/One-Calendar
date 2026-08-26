@@ -83,10 +83,19 @@ describe('the auth portal configuration', () => {
   it('keeps the security plugins the calendar already had', () => {
     // The portal inherits responsibility for credential stuffing, bot blocking
     // and 2FA. Losing one while moving sign-in would be a silent downgrade.
-    build()
+    build({ sentinelApiKey: 'a-key' })
     expect(plugin('two-factor')).toBeDefined()
     expect(plugin('sentinel')).toBeDefined()
     expect(plugin('email-otp')).toBeDefined()
+  })
+
+  it('omits sentinel entirely when it has no API key', () => {
+    // Sentinel calls a hosted service on every sign-in, so mounting it without a
+    // key fails every request with 401 'Missing API key' -- a missing optional
+    // config becoming a total sign-in outage. Omitting it degrades to no abuse
+    // protection, which is recoverable; mounting it broken is not.
+    build({ sentinelApiKey: undefined })
+    expect(plugin('sentinel')).toBeUndefined()
   })
 
   it('sends users to the portal-owned sign-in page', () => {

@@ -83,7 +83,12 @@ export function createAuthPortal(options: CreatePortalOptions) {
 
   return {
     auth: betterAuth({
-      database: createDrizzleAdapter(db, { provider: 'pg' }),
+      // The OAuth tables are opt-in, and the portal is the only caller that opts
+      // in: a client app able to read `oauthClient` could read client secrets.
+      database: createDrizzleAdapter(db, {
+        provider: 'pg',
+        includeOAuthProvider: true,
+      }),
       secret,
       baseURL,
       trustedOrigins,
@@ -129,15 +134,24 @@ export function createAuthPortal(options: CreatePortalOptions) {
           issuer: 'Zentra',
           trustDeviceMaxAge: 60 * 60 * 24 * 7,
         }),
-        sentinel({
-          apiKey: options.sentinelApiKey,
-          security: {
-            credentialStuffing: { enabled: true },
-            compromisedPassword: { enabled: true },
-            botBlocking: { action: 'challenge' },
-            emailValidation: { enabled: true },
-          },
-        }),
+        // Mounted only with an API key. Sentinel calls a hosted service on
+        // every sign-in, so without one it fails every request with 401
+        // 'Missing API key' -- turning a missing optional config into a total
+        // sign-in outage. Omitting it degrades to no abuse protection, which is
+        // recoverable; mounting it broken is not.
+        ...(options.sentinelApiKey
+          ? [
+              sentinel({
+                apiKey: options.sentinelApiKey,
+                security: {
+                  credentialStuffing: { enabled: true },
+                  compromisedPassword: { enabled: true },
+                  botBlocking: { action: 'challenge' },
+                  emailValidation: { enabled: true },
+                },
+              }),
+            ]
+          : []),
         emailOTP({
           changeEmail: { enabled: true },
           // Verification is the OTP's job, not a link's. See the
