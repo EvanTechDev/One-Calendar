@@ -157,9 +157,12 @@ export function generateICSFile(events: IcsEvent[]): string {
     'PRODID:-//Zentra//Zentra Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    // Blank lines group related properties and separate events. Parsers ignore
-    // empty content lines, and it makes an exported file readable by eye.
-    '',
+    // No blank lines anywhere. RFC 5545 §3.1 defines a content line as having a
+    // name and a value, so an empty line is not one -- a previous version
+    // inserted them to group properties for a human reader, on the assumption
+    // that parsers ignore them. Strict importers (Outlook, some CalDAV servers)
+    // reject the file instead, which turns a cosmetic choice into an export
+    // nobody can import.
   ]
 
   const stamp = formatIcsDateTime(new Date())
@@ -180,7 +183,6 @@ export function generateICSFile(events: IcsEvent[]): string {
     lines.push(`DTSTAMP:${stamp}`)
     lines.push(`CREATED:${stamp}`)
     lines.push(`LAST-MODIFIED:${stamp}`)
-    lines.push('')
 
     if (event.isOverride && event.recurrenceId) {
       lines.push(
@@ -197,7 +199,6 @@ export function generateICSFile(events: IcsEvent[]): string {
       lines.push(`DTSTART:${formatIcsDateTime(startDate)}`)
       lines.push(`DTEND:${formatIcsDateTime(endDate)}`)
     }
-    lines.push('')
 
     lines.push(foldIcsLine(`SUMMARY:${escapeIcsText(event.title)}`))
     if (event.description) {
@@ -206,7 +207,6 @@ export function generateICSFile(events: IcsEvent[]): string {
     if (event.location) {
       lines.push(foldIcsLine(`LOCATION:${escapeIcsText(event.location)}`))
     }
-    lines.push('')
 
     // An override describes ONE occurrence, so repeating the parent's rule
     // would make it recur on its own.
@@ -226,7 +226,6 @@ export function generateICSFile(events: IcsEvent[]): string {
       )
     }
     if (carriesRule && (event.rrule || event.exdate?.length)) {
-      lines.push('')
     }
 
     lines.push('STATUS:CONFIRMED')
@@ -234,7 +233,6 @@ export function generateICSFile(events: IcsEvent[]): string {
 
     // A reminder becomes a VALARM so other calendars actually notify.
     if (typeof event.notification === 'number' && event.notification > 0) {
-      lines.push('')
       lines.push('BEGIN:VALARM')
       lines.push(`TRIGGER:-PT${event.notification}M`)
       lines.push('ACTION:DISPLAY')
@@ -242,10 +240,8 @@ export function generateICSFile(events: IcsEvent[]): string {
       lines.push('END:VALARM')
     }
 
-    lines.push('')
     lines.push('END:VEVENT')
     // Separates this event from the next one.
-    lines.push('')
   }
 
   lines.push('END:VCALENDAR')
