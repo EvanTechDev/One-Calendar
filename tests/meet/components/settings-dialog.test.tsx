@@ -31,7 +31,7 @@ const user = {
   image: null,
 }
 
-function open(overrides?: { onSignOut?: () => void }) {
+function open(overrides?: { onSignOut?: () => void; portalOrigin?: string }) {
   const onOpenChange = vi.fn()
   const onSignOut = overrides?.onSignOut ?? vi.fn()
   const view = render(
@@ -39,7 +39,7 @@ function open(overrides?: { onSignOut?: () => void }) {
       open
       onOpenChange={onOpenChange}
       user={user}
-      portalOrigin="https://auth.example.com"
+      portalOrigin={overrides?.portalOrigin ?? 'https://auth.example.com'}
       onSignOut={onSignOut}
     />,
   )
@@ -216,6 +216,19 @@ describe('dashboard SettingsDialog', () => {
     )
     // No mutation surface here at all, so there must be no form.
     expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('says so rather than linking nowhere when no portal is configured', () => {
+    // portalAccountUrl returns '' without a portal origin, and an empty href
+    // means "reload this page" -- a button that looks like it works. This is
+    // also the state a deployment is in before NEXT_PUBLIC_AUTH_ORIGIN is set,
+    // so it has to read as unconfigured rather than broken.
+    open({ portalOrigin: '' })
+    fireEvent.click(
+      within(sectionNav()).getByRole('button', { name: 'Account' }),
+    )
+    expect(screen.queryByRole('link', { name: /Open account/ })).toBeNull()
+    expect(screen.getByText('Not configured')).toBeTruthy()
   })
 
   it('keeps sign-out reachable from the Account tab', () => {

@@ -432,18 +432,30 @@ function AccountSettings({
           title="Manage your account"
           description="Your name, avatar, email, password, and two-factor sign-in live in your Zentra Account."
         >
-          <Button variant="secondary" size="sm" asChild>
-            <a
-              href={portalAccountUrl({
-                portal: portalOrigin,
-                selfOrigin: process.env.NEXT_PUBLIC_BASE_URL,
-                returnTo: '/',
-              })}
-            >
-              Open account
-              <ExternalLink className="size-3.5" />
-            </a>
-          </Button>
+          {/*
+            Without a configured portal there is nowhere to send anyone, and
+            `portalAccountUrl` returns an empty string — which as an href means
+            "reload this page". Saying so beats a button that appears to work.
+            Matches the calendar's account tab.
+          */}
+          {portalOrigin ? (
+            <Button variant="secondary" size="sm" asChild>
+              <a
+                href={portalAccountUrl({
+                  portal: portalOrigin,
+                  selfOrigin: process.env.NEXT_PUBLIC_BASE_URL,
+                  returnTo: '/',
+                })}
+              >
+                Open account
+                <ExternalLink className="size-3.5" />
+              </a>
+            </Button>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              Not configured
+            </span>
+          )}
         </SettingRow>
         <SettingRow
           icon={<LogOut />}
