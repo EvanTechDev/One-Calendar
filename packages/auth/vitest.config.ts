@@ -6,6 +6,12 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['../../tests/auth/**/*.test.ts'],
+    // The integration tests (plan 026 Seam 2) reach a real Postgres in
+    // eu-north-1; a TLS handshake from a phone does not fit the 5s default.
+    // Kept as a per-suite budget rather than a global one so a genuinely hung
+    // unit test still fails fast.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
   },
   resolve: {
     alias: {
@@ -26,6 +32,14 @@ export default defineConfig({
       '@better-auth/sentinel': path.resolve(
         __dirname,
         'node_modules/@better-auth/sentinel',
+      ),
+      // The integration tests (plan 026 Seam 2) need a real Postgres driver.
+      // It is not a dependency of this package -- the calendar owns it -- and
+      // pnpm does not hoist to the repo root, so tests/auth cannot resolve a
+      // bare specifier without this.
+      postgres: path.resolve(
+        __dirname,
+        '../../apps/calendar/node_modules/postgres',
       ),
     },
   },
