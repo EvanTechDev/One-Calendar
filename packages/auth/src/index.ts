@@ -1,5 +1,11 @@
 export { createAuth } from './server'
 export { createAuthPortal } from './portal'
+export {
+  exposedPortalPaths,
+  isAdminOnlyPath,
+  portalPathIsExposed,
+} from './route-policy'
+export { buildPortalDiagnostics } from './diagnostics'
 export { createAuthClient } from './client'
 export { createDrizzleAdapter } from './adapter'
 export {

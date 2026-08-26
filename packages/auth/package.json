@@ -10,7 +10,9 @@
     "./schema": "./src/schema.ts",
     "./adapter": "./src/adapter.ts",
     "./types": "./src/types.ts",
-    "./portal": "./src/portal.ts"
+    "./portal": "./src/portal.ts",
+    "./route-policy": "./src/route-policy.ts",
+    "./diagnostics": "./src/diagnostics.ts"
   },
   "scripts": {
     "build": "tsc",
