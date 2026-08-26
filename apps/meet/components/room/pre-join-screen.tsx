@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { facingModeFromLocalTrack } from 'livekit-client'
 import { Mic, MicOff, Video, VideoOff, Lock } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -47,6 +48,7 @@ export function PreJoinScreen({
   const [videoDeviceId, setVideoDeviceId] = useState<string>()
   const [audioDeviceId, setAudioDeviceId] = useState<string>()
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+  const [mirrored, setMirrored] = useState(true)
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
   const [joining, setJoining] = useState(false)
   const [isE2ee, setIsE2ee] = useState(false)
@@ -125,6 +127,17 @@ export function PreJoinScreen({
         stopStream()
         streamRef.current = stream
         setDeviceNotice(undefined)
+        // Mirror a front camera only. Mirroring serves the intuition of
+        // watching yourself; a rear camera points at the world, where a flip
+        // just reverses it. The SDK reads facingMode where the browser exposes
+        // it and falls back to the device label, so this is "probable" rather
+        // than certain — a wrong guess is a cosmetic flip, not a broken call.
+        const [videoTrack] = stream.getVideoTracks()
+        setMirrored(
+          videoTrack
+            ? facingModeFromLocalTrack(videoTrack).facingMode === 'user'
+            : true,
+        )
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
@@ -186,7 +199,13 @@ export function PreJoinScreen({
                 autoPlay
                 playsInline
                 muted
-                className="size-full -scale-x-100 object-cover"
+                // `object-contain` so the preview shows the frame you will
+                // actually publish: `object-cover` cropped it, so the preview
+                // disagreed with the call.
+                className={cn(
+                  'size-full object-contain',
+                  mirrored && '-scale-x-100',
+                )}
               />
             ) : (
               <div className="flex size-full items-center justify-center text-muted-foreground">

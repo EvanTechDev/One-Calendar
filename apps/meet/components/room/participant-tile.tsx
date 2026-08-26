@@ -11,6 +11,7 @@ import {
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
 import { Hand, Maximize2, MicOff, Minimize2, ScreenShare } from 'lucide-react'
 import { cn } from '@zntr/utils'
+import { useMirrorLocalVideo } from '@/hooks/use-mirror-local-video'
 
 interface ParticipantTileProps {
   trackRef: TrackReferenceOrPlaceholder
@@ -61,6 +62,11 @@ export function ParticipantTile({
     !!trackRef.publication.track &&
     (isScreenShare || !isCameraMuted)
 
+  // Only a front camera is mirrored. Mirroring is for the mirror-intuition of
+  // watching yourself; a rear camera is pointed at the world, where a flip just
+  // reverses it. The old rule tested `isLocal` alone and flipped both.
+  const mirrored = useMirrorLocalVideo(trackRef, isScreenShare)
+
   const displayName = participant.name || participant.identity || 'Participant'
   const interactive = Boolean(onTogglePin)
   const pinLabel = isFocus ? `Shrink ${displayName}` : `Enlarge ${displayName}`
@@ -94,10 +100,7 @@ export function ParticipantTile({
           // more the cell differed from the source the more went missing. The
           // frame is now shown whole; the grid's job is to pick a cell shape
           // that leaves little to letterbox (see lib/video-layout).
-          className={cn(
-            'size-full object-contain',
-            participant.isLocal && !isScreenShare && '-scale-x-100',
-          )}
+          className={cn('size-full object-contain', mirrored && '-scale-x-100')}
         />
       ) : (
         <div className="flex size-full items-center justify-center">
