@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@better-auth/oauth-provider": "1.7.1",
+    "@marsidev/react-turnstile": "1.5.3",
     "@zntr/auth": "workspace:*",
     "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",
