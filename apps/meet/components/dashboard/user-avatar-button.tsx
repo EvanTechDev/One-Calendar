@@ -22,10 +22,10 @@ import type { SettingsUser } from '@/components/dashboard/settings-dialog'
  */
 export function UserAvatarButton({
   user,
-  calendarOrigin,
+  portalOrigin,
 }: {
   user: SettingsUser
-  calendarOrigin: string
+  portalOrigin: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -71,7 +71,7 @@ export function UserAvatarButton({
         open={open}
         onOpenChange={setOpen}
         user={user}
-        calendarOrigin={calendarOrigin}
+        portalOrigin={portalOrigin}
         onSignOut={signOut}
         signingOut={signingOut}
       />

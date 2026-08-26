@@ -19,6 +19,7 @@ import {
 import { Switch } from '@zntr/ui/switch'
 import { Kbd } from '@zntr/ui/kbd'
 import { ScrollArea } from '@zntr/ui/scroll-area'
+import { AccountHandoff } from '@/components/app/settings/account-handoff'
 import { cn } from '@zntr/utils'
 import { useTheme } from 'next-themes'
 import type { ThemeOption } from '@/lib/theme'
@@ -591,10 +592,10 @@ export default function SettingsDialog({
                   <GeneralSettings {...general} />
                 </div>
                 <div hidden={section !== 'account'}>
-                  <UserProfileButton
-                    mode="settings"
-                    focusSection={focusSection}
-                  />
+                  {/* Every account mutation moved to the portal (ADR 0021):
+                      this app cannot write user data, so there is nothing here
+                      for an app-level bug to leak. */}
+                  <AccountHandoff />
                 </div>
                 <div hidden={section !== 'mcp'}>
                   <MCPSettings />

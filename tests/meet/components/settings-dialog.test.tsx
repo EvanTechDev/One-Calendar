@@ -39,7 +39,7 @@ function open(overrides?: { onSignOut?: () => void }) {
       open
       onOpenChange={onOpenChange}
       user={user}
-      calendarOrigin="https://cal.example.com"
+      portalOrigin="https://auth.example.com"
       onSignOut={onSignOut}
     />,
   )
@@ -201,15 +201,20 @@ describe('dashboard SettingsDialog', () => {
     )
   })
 
-  it('sends account changes to the calendar instead of faking a form', () => {
+  it('sends account changes to the portal instead of faking a form', () => {
     open()
     fireEvent.click(
       within(sectionNav()).getByRole('button', { name: 'Account' }),
     )
     expect(screen.getByText('ada@example.com')).toBeTruthy()
-    const link = screen.getByRole('link', { name: /Open calendar/ })
-    expect(link).toHaveAttribute('href', 'https://cal.example.com/app')
-    // Meet's auth route exposes no account mutation, so there must be no form.
+    // The portal owns every mutation now (ADR 0021), so the link points there
+    // rather than at the calendar -- the calendar is a client too and cannot
+    // write user data either.
+    const link = screen.getByRole('link', { name: /Open account/ })
+    expect(link.getAttribute('href') ?? '').toContain(
+      'https://auth.example.com/',
+    )
+    // No mutation surface here at all, so there must be no form.
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 

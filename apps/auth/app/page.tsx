@@ -1,30 +1,27 @@
-import Link from 'next/link'
-import { Button } from '@zntr/ui/button'
+import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import { RETURN_TO_PARAM } from '@zntr/auth/return-to'
+import { AccountDashboard } from '@/components/account/account-dashboard'
+import { getPortal } from '@/lib/auth'
+import type { PortalUser } from '@/components/account/account-sections'
 
 /**
- * The portal's root.
+ * The portal's root is the account dashboard.
  *
- * Not a landing page: nobody arrives here on purpose. A user reaching this URL
- * has either finished a flow, bookmarked it, or been redirected without a
- * client — so it says where they are and offers the one thing they might want,
- * their account.
+ * A visitor with no session is sent to sign-in with a return to here, so the
+ * round trip lands them where they were going rather than on a bare form. This
+ * is also the URL an app's "manage your account" link points at, which is why it
+ * must handle the signed-out case rather than assume a session.
  */
-export default function PortalHome() {
-  return (
-    <main className="flex min-h-dvh items-center justify-center px-6">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="space-y-2">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            Zentra Account
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            One account for Zentra Calendar and Zentra Meet.
-          </p>
-        </div>
-        <Button asChild className="w-full">
-          <Link href="/sign-in">Sign in</Link>
-        </Button>
-      </div>
-    </main>
-  )
+export default async function PortalHome() {
+  const session = await getPortal().auth.api.getSession({
+    headers: await headers(),
+  })
+
+  if (!session) {
+    redirect(`/sign-in?${RETURN_TO_PARAM}=${encodeURIComponent('/')}`)
+  }
+
+  const user = session.user as unknown as PortalUser
+  return <AccountDashboard user={user} />
 }

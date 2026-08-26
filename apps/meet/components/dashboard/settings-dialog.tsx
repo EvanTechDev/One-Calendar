@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
+import { portalAccountUrl } from '@zntr/auth/handoff'
 import { cn } from '@zntr/utils'
 import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
 import { BACKGROUND_EFFECTS, BACKGROUND_LABELS } from '@/lib/backgrounds'
@@ -73,14 +74,14 @@ export function SettingsDialog({
   open,
   onOpenChange,
   user,
-  calendarOrigin,
+  portalOrigin,
   onSignOut,
   signingOut,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: SettingsUser
-  calendarOrigin: string
+  portalOrigin: string
   onSignOut: () => void
   signingOut?: boolean
 }) {
@@ -176,7 +177,7 @@ export function SettingsDialog({
                 <div data-section="account" hidden={section !== 'account'}>
                   <AccountSettings
                     user={user}
-                    calendarOrigin={calendarOrigin}
+                    portalOrigin={portalOrigin}
                     onSignOut={onSignOut}
                     signingOut={signingOut}
                   />
@@ -392,12 +393,12 @@ function PreferencesSettings() {
 
 function AccountSettings({
   user,
-  calendarOrigin,
+  portalOrigin,
   onSignOut,
   signingOut,
 }: {
   user: SettingsUser
-  calendarOrigin: string
+  portalOrigin: string
   onSignOut: () => void
   signingOut?: boolean
 }) {
@@ -419,26 +420,27 @@ function AccountSettings({
       </section>
 
       {/*
-        No editable fields here on purpose. Meet's auth route deliberately
-        exposes only session-read and sign-out, so every account mutation
-        (name, avatar, email, password, 2FA, deletion) is the calendar's to
-        perform. A form here would either need that route widened — bypassing
-        the calendar's captcha, bot blocking, and audit logging — or fake a save
-        that never happens.
+        No editable fields here on purpose (ADR 0021 decision 4): every account
+        mutation happens in the portal, and an app that cannot write user data
+        has nothing for an app-level bug to leak. A form here would need meet's
+        auth route widened, bypassing the portal's captcha, bot blocking and
+        audit logging — or would fake a save that never happens.
       */}
       <SettingsGroup>
         <SettingRow
           icon={<CircleUserRound />}
           title="Manage your account"
-          description="Your name, avatar, email, password, and two-factor sign-in are managed in Zentra Calendar."
+          description="Your name, avatar, email, password, and two-factor sign-in live in your Zentra Account."
         >
           <Button variant="secondary" size="sm" asChild>
             <a
-              href={`${calendarOrigin}/app`}
-              target="_blank"
-              rel="noreferrer noopener"
+              href={portalAccountUrl({
+                portal: portalOrigin,
+                selfOrigin: process.env.NEXT_PUBLIC_BASE_URL,
+                returnTo: '/',
+              })}
             >
-              Open calendar
+              Open account
               <ExternalLink className="size-3.5" />
             </a>
           </Button>

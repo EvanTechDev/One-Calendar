@@ -19,7 +19,7 @@ export default async function HomePage() {
         userName={session.user.name}
         identity={
           <UserAvatarButton
-            calendarOrigin={calendarOrigin()}
+            portalOrigin={portalOrigin()}
             user={{
               name: session.user.name,
               email: session.user.email,
@@ -86,6 +86,15 @@ export default async function HomePage() {
  * back here instead of dumping them in the calendar — the calendar validates
  * it against an allowlist, so an unknown origin is simply ignored there.
  */
+/**
+ * The account portal. Distinct from the calendar origin above: that one is where
+ * meet FETCHES upcoming meetings, this one is where a user MANAGES their
+ * account (ADR 0021). Conflating them was fine while the calendar owned both.
+ */
+function portalOrigin(): string {
+  return (process.env.NEXT_PUBLIC_AUTH_ORIGIN ?? '').replace(/\/$/, '')
+}
+
 function calendarOrigin(): string {
   return (process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? '').replace(/\/$/, '')
 }
