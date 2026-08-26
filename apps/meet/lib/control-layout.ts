@@ -53,11 +53,18 @@ export const PRIMARY_GAP = 2 * TAILWIND_STEP
  */
 export const DESTRUCTIVE_SEPARATION = 4 * TAILWIND_STEP + PRIMARY_GAP
 
-/** Secondary toggles: share, hand, reactions, people, chat, settings. */
-export const SECONDARY_CONTROL_COUNT = 6
+/** Secondary toggles: share, reactions, people, chat, settings. */
+export const SECONDARY_CONTROL_COUNT = 5
 
-/** Primary line: mic, camera, the details menu, and Leave. */
-export const PRIMARY_CONTROL_COUNT = 4
+/**
+ * The phone's single row: mic, camera, hand, More, Leave.
+ *
+ * Five, not eleven. Two rows of identically-sized circles gave every control
+ * the same visual weight — settings looked as important as the mic — and cost
+ * 112px of a 640px viewport to say it. A phone bar is a few large targets with
+ * an obvious primary pair; everything rarer goes behind More.
+ */
+export const MOBILE_CONTROL_COUNT = 5
 
 /**
  * The width a full-bleed row of controls actually gets on a phone.
@@ -95,12 +102,11 @@ export function secondaryRowFits(
 }
 
 /**
- * Width the primary line needs: mic, camera and the details menu together, then
- * Leave held away from them.
+ * Width the phone's row needs: four grouped targets, then Leave held away.
  */
 export function primaryRowWidth(target = TOUCH_TARGET): number {
-  const buttons = PRIMARY_CONTROL_COUNT * target
-  const between = (PRIMARY_CONTROL_COUNT - 2) * PRIMARY_GAP
+  const buttons = MOBILE_CONTROL_COUNT * target
+  const between = (MOBILE_CONTROL_COUNT - 2) * PRIMARY_GAP
   return buttons + between + DESTRUCTIVE_SEPARATION
 }
 
@@ -114,39 +120,28 @@ export function primaryRowFits(
 }
 
 /**
- * Whether the whole bar works at this width — both rows, in the hardest case
- * (an Organiser, who carries the extra End button).
+ * Whether the whole bar works at this width, in the hardest case (an Organiser,
+ * who carries the extra End button).
  */
 export function controlBarFits(viewportWidth: number): boolean {
   return (
-    secondaryRowFits(viewportWidth) &&
-    primaryRowFits(viewportWidth, true) &&
-    primaryRowFits(viewportWidth, false)
+    primaryRowFits(viewportWidth, true) && primaryRowFits(viewportWidth, false)
   )
 }
 
-/** Vertical padding above the secondary row. Rendered as `pt-2`. */
-const SECONDARY_ROW_PADDING_TOP = 2 * TAILWIND_STEP
-
-/** Vertical padding on the primary row, per side. Rendered as `py-2`. */
-const PRIMARY_ROW_PADDING_Y = 2 * TAILWIND_STEP
+/** Vertical padding on the phone's row, per side. Rendered as `py-2.5`. */
+const MOBILE_ROW_PADDING_Y = 2.5 * TAILWIND_STEP
 
 /**
  * The bar's height on a phone.
  *
- * A second row is not free: this went from 56px to 112px, and the identity block
- * was previously taken off its own row precisely because ~34px of a 640px
- * viewport mattered. The trade is deliberate — that row bought back a hidden
- * chat badge and one-tap reactions — but it is a budget, so it is stated and
- * checked rather than assumed (`portraitStageIsUsable`).
+ * One row, so 44 + 20 = 64px. The two-row version cost 112px to give six
+ * secondary toggles the same prominence as the microphone; folding them behind
+ * More returns 48px to the stage, which is why `portraitStageFraction` is now
+ * comfortably clear of its floor rather than sitting just above it.
  */
 export function mobileBarHeight(): number {
-  return (
-    SECONDARY_ROW_PADDING_TOP +
-    TOUCH_TARGET +
-    PRIMARY_ROW_PADDING_Y * 2 +
-    TOUCH_TARGET
-  )
+  return MOBILE_ROW_PADDING_Y * 2 + TOUCH_TARGET
 }
 
 /**

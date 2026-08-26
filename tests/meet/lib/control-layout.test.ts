@@ -82,13 +82,12 @@ describe('secondaryRowFits', () => {
     expect(spare).toBeGreaterThanOrEqual(24)
   })
 
-  it('does not claim a seventh control would fit', () => {
-    // The budget is real, not a rubber stamp — this is what would catch a
-    // future control being added without re-checking the row.
-    expect(secondaryRowFits(SMALL_PHONE, SECONDARY_CONTROL_COUNT + 1)).toBe(
-      true,
-    )
-    expect(secondaryRowFits(SMALL_PHONE, SECONDARY_CONTROL_COUNT + 2)).toBe(
+  it('has a ceiling, so the budget is not a rubber stamp', () => {
+    // What would catch a future control being added without re-checking. The
+    // exact ceiling matters less than there being one: these live in the More
+    // sheet's grid now, which wraps, rather than a single row that overflows.
+    expect(secondaryRowFits(SMALL_PHONE, SECONDARY_CONTROL_COUNT)).toBe(true)
+    expect(secondaryRowFits(SMALL_PHONE, SECONDARY_CONTROL_COUNT + 4)).toBe(
       false,
     )
   })
@@ -146,9 +145,13 @@ describe('portrait height budget', () => {
     )
   })
 
-  it('spends two rows of touch target, and says so', () => {
-    // Both rows plus their padding — not a number guessed from a screenshot.
-    expect(mobileBarHeight()).toBe(2 * TOUCH_TARGET + 24)
+  it('spends one row of touch target, and says so', () => {
+    // One row plus its padding — not a number guessed from a screenshot. The
+    // two-row version cost 2 * TOUCH_TARGET + 24 = 112px to give six secondary
+    // toggles the microphone's prominence; folding them behind More returns
+    // 48px of a 640px viewport to the stage.
+    expect(mobileBarHeight()).toBe(TOUCH_TARGET + 20)
+    expect(mobileBarHeight()).toBeLessThan(2 * TOUCH_TARGET + 24)
   })
 
   it('reports honestly on a viewport too short for the bar to be a bar', () => {

@@ -68,15 +68,19 @@ function renderBar(options: {
     left: region('left'),
     center: region('center'),
     centerSecondary: region('center-secondary'),
-    mobileSecondary: region('mobile-secondary'),
+
     right: region('right'),
   }
 }
 
-/** The six secondary toggles, in the order they are meant to appear. */
+/**
+ * The secondary toggles, in the order they are meant to appear.
+ *
+ * The hand is no longer among them: it was promoted to the phone's own row,
+ * because raising a hand is time-critical in a way that opening Settings is not.
+ */
 const SECONDARY_LABELS = [
   'Share screen',
-  'Raise hand',
   'Send a reaction',
   'Toggle people',
   'Toggle chat',
@@ -141,8 +145,9 @@ describe('ControlBar centering', () => {
       expect(labels).toEqual([
         'Mute',
         'Turn camera off',
+        'Raise hand',
         null, // the sm-and-up secondary cluster
-        'Meeting details',
+        'More',
         'Leave meeting',
       ])
       expect(
@@ -154,19 +159,22 @@ describe('ControlBar centering', () => {
   )
 
   it.each(CASES)(
-    'keeps the phone rows identical too: $name',
+    'keeps the phone row identical too: $name',
     ({ organiser, eventContext: context }) => {
-      const { mobileSecondary } = renderBar({
-        organiser,
-        eventContext: context,
-      })
-      // The phone's secondary row is role-independent for the same reason the
-      // desktop centre track is: End for all is not in it.
-      expect(
-        Array.from(mobileSecondary!.children).map((child) =>
-          child.getAttribute('aria-label'),
-        ),
-      ).toEqual(SECONDARY_LABELS)
+      const { center } = renderBar({ organiser, eventContext: context })
+      // The phone's row is role-independent for the same reason the desktop
+      // centre track is: End for all is not in it. Its visible contents are the
+      // centre track's children minus the `sm`-only secondary cluster.
+      const phoneLabels = Array.from(center!.children)
+        .map((child) => child.getAttribute('aria-label'))
+        .filter((label) => label !== null)
+      expect(phoneLabels).toEqual([
+        'Mute',
+        'Turn camera off',
+        'Raise hand',
+        'More',
+        'Leave meeting',
+      ])
     },
   )
 
@@ -194,47 +202,41 @@ describe('ControlBar centering', () => {
     }
   })
 
-  it('moves the secondary controls to their own row below sm, not into a menu', () => {
-    const { center, centerSecondary, mobileSecondary } = renderBar({
-      organiser: false,
-    })
-    // Exactly one of the two is visible at any width, so no control is ever
-    // duplicated on screen or missing from it.
+  it('shows the secondary toggles inline from sm, behind More below it', () => {
+    const { center, centerSecondary } = renderBar({ organiser: false })
+    // Exactly one route to them at any width, so no control is duplicated on
+    // screen or missing from it.
     expect(centerSecondary!.className).toContain('hidden')
     expect(centerSecondary!.className).toContain('sm:flex')
-    expect(mobileSecondary!.className).toContain('sm:hidden')
-    expect(mobileSecondary!.className).not.toMatch(/(^|\s)hidden(\s|$)/)
 
-    // The details menu no longer hides any control — it holds the room code
-    // only, and the six toggles are all real buttons in the row.
-    const details = center!.querySelector('[aria-label="Meeting details"]')
-    expect(details!.className).toContain('sm:hidden')
+    const more = center!.querySelector('[aria-label="More"]')
+    expect(more!.className).toContain('sm:hidden')
+
+    // The desktop cluster still carries every one of them.
     for (const label of SECONDARY_LABELS) {
       expect(
-        mobileSecondary!.querySelector(`[aria-label="${label}"]`),
+        centerSecondary!.querySelector(`[aria-label="${label}"]`),
         label,
       ).not.toBeNull()
     }
   })
 
   it('renders the touch target lib/control-layout budgets for', () => {
-    const { bar, mobileSecondary } = renderBar({ organiser: false })
+    const { bar, center } = renderBar({ organiser: false })
     // The budget is in pixels and the class must be a literal for Tailwind to
     // emit it, so the two can drift. This is the seam that catches it.
     const sizeClass = `size-${TOUCH_TARGET / TAILWIND_STEP}`
     const paddingClass = `px-${MOBILE_BAR_PADDING / TAILWIND_STEP}`
-    expect(mobileSecondary!.className).toContain(paddingClass)
     expect(bar.className).toContain(paddingClass)
-    expect(mobileSecondary!.firstElementChild!.className).toContain(sizeClass)
+    expect(center!.firstElementChild!.className).toContain(sizeClass)
     // And the arithmetic those classes feed says both target viewports work.
     expect(controlBarFits(360) && controlBarFits(390)).toBe(true)
   })
 
   it('gives every phone control a 44px touch target', () => {
-    const { center, mobileSecondary, right } = renderBar({ organiser: true })
+    const { center, right } = renderBar({ organiser: true })
     // 44px is the iOS minimum; these were 32px. `size-11` is 2.75rem = 44px.
     const phoneTargets = [
-      ...Array.from(mobileSecondary!.children),
       ...Array.from(center!.children).filter(
         (child) => child.getAttribute('aria-label') !== null,
       ),
@@ -265,15 +267,16 @@ describe('ControlBar centering', () => {
   it('keeps the room code reachable on a phone', () => {
     const { center } = renderBar({ organiser: false })
     // ADR 0019: the code is the join link, so losing access to it on a phone
-    // would be a regression whatever the layout.
-    const details = center!.querySelector('[aria-label="Meeting details"]')
-    expect(details).not.toBeNull()
+    // would be a regression whatever the layout. It lives behind More.
+    const more = center!.querySelector('[aria-label="More"]')
+    expect(more).not.toBeNull()
+    expect(more!.className).toContain('sm:hidden')
   })
 
   it('still names the meeting, in the left region from sm up', () => {
     const { left, container } = renderBar({ organiser: false, eventContext })
     // The identity block deliberately has no row of its own — that cost ~34px
-    // of a 640px viewport. On a phone it lives in the details menu instead.
+    // of a 640px viewport. On a phone it lives in the More sheet instead.
     expect(left!.textContent).toContain(eventContext.title)
     expect(container.textContent).toContain(eventContext.title)
   })
