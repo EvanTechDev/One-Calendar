@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
@@ -9,11 +8,11 @@ import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
-import { authClient } from '@/lib/auth/client'
+import { useAuthForm } from './context'
 import { AuthLayout } from './auth-layout'
 
 export function SignUpForm() {
-  const router = useRouter()
+  const { client: authClient, routes, navigate } = useAuthForm()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,8 +32,15 @@ export function SignUpForm() {
   const [turnstileToken, setTurnstileToken] = useState('')
 
   const sendVerificationOtp = async (withResendLoading: boolean) => {
+    const emailOtp = authClient.emailOtp
+    if (!emailOtp) {
+      // Sign-up requires a verifiable address, so a missing plugin is a
+      // configuration error worth surfacing rather than a step to skip.
+      setError('Email verification is not available.')
+      return false
+    }
     if (withResendLoading) setIsResending(true)
-    const otpRes = await authClient.emailOtp.sendVerificationOtp({
+    const otpRes = await emailOtp.sendVerificationOtp({
       email: formData.email,
       type: 'email-verification',
     })
@@ -61,7 +67,7 @@ export function SignUpForm() {
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
       password: formData.password,
-      callbackURL: '/app',
+      callbackURL: routes.home,
       turnstileToken,
     } as SignUpEmailInput & { turnstileToken: string })
 
@@ -81,7 +87,12 @@ export function SignUpForm() {
     if (!otp.trim()) return
     setIsVerifying(true)
     setError('')
-    const verifyRes = await authClient.emailOtp.verifyEmail({
+    const emailOtp = authClient.emailOtp
+    if (!emailOtp) {
+      setError('Email verification is not available.')
+      return
+    }
+    const verifyRes = await emailOtp.verifyEmail({
       email: formData.email,
       otp: otp.trim(),
     })
@@ -94,8 +105,7 @@ export function SignUpForm() {
       return
     }
     void fetch('/api/account/send-welcome-email', { method: 'POST' })
-    router.push('/sign-in')
-    router.refresh()
+    navigate(routes.signIn)
   }
 
   const handleResend = async () => {
@@ -115,7 +125,7 @@ export function SignUpForm() {
       footer={
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <a href="/sign-in" className="text-primary underline">
+          <a href={routes.signIn} className="text-primary underline">
             Sign in
           </a>
         </p>

@@ -9,6 +9,7 @@ import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
 import {
+  captchaIsGuarded,
   isTurnstileConfigured,
   verifyTurnstile,
   type TurnstileVerifyResult,
@@ -104,9 +105,18 @@ async function handleAuth(request: Request) {
   const action = authAction(pathname)
   const body = await readAuthBody(request)
 
-  const captchaGuarded =
-    request.method === 'POST' &&
-    (action === 'auth.login' || action === 'auth.register')
+  // Which paths are guarded is the package's decision now, so meet enforces the
+  // identical set (ADR 0022). This widens the calendar's coverage: it used to
+  // guard only sign-in and sign-up, leaving `forget-password` and the OTP
+  // request open — unthrottled recovery is a way to send mail to arbitrary
+  // addresses on our sending reputation.
+  //
+  // `action` stays for the audit log, which names the four events it records
+  // rather than every path that carries a challenge.
+  const captchaGuarded = captchaIsGuarded(
+    request.method,
+    pathname.replace(/^.*\/api\/auth/, ''),
+  )
 
   // Skipped entirely when Turnstile is not configured. The client already omits
   // the widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent, and demanding a
@@ -133,7 +143,7 @@ async function handleAuth(request: Request) {
     try {
       captchaResult = await verifyTurnstile(
         turnstileToken,
-        action === 'auth.register' ? 'register' : 'login',
+        pathname.includes('/sign-up') ? 'register' : 'login',
       )
     } catch (error) {
       console.error('CAPTCHA service unavailable', error)

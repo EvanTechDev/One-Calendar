@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
@@ -10,7 +9,7 @@ import { Checkbox } from '@zntr/ui/checkbox'
 import { Input } from '@zntr/ui/input'
 import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
-import { authClient } from '@/lib/auth/client'
+import { useAuthForm } from './context'
 import { AuthLayout } from './auth-layout'
 
 interface LoginFormProps {
@@ -21,7 +20,11 @@ interface LoginFormProps {
   returnTo?: string
 }
 
-export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
+export function LoginForm({ returnTo }: LoginFormProps) {
+  const { client: authClient, routes, navigate } = useAuthForm()
+  // Falls back to the app's own home rather than a literal '/app': meet has no
+  // such route, and a shared component cannot know either app's landing page.
+  const destination = returnTo ?? routes.home
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [revealPassword, setRevealPassword] = useState(false)
@@ -35,7 +38,6 @@ export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
   )
   const [turnstileToken, setTurnstileToken] = useState('')
-  const router = useRouter()
 
   /**
    * `returnTo` may point at the sibling meet app, which the Next router
@@ -43,11 +45,11 @@ export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
    * through a full page load instead. Already allowlisted server-side.
    */
   const navigateAfterSignIn = () => {
-    if (/^https?:\/\//i.test(returnTo)) {
-      window.location.assign(returnTo)
+    if (/^https?:\/\//i.test(destination)) {
+      window.location.assign(destination)
       return
     }
-    router.push(returnTo)
+    navigate(destination)
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -92,6 +94,13 @@ export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
 
   const handleVerifyTotp = async () => {
     if (totp.length < 6) return
+    if (!authClient.twoFactor) {
+      // Reached only if the app prompted for a code without loading the plugin,
+      // which is a configuration error rather than a user error — so it says so
+      // instead of silently doing nothing.
+      setError('Two-factor authentication is not available.')
+      return
+    }
     setIsVerifyingTotp(true)
     setError('')
     const res = await authClient.twoFactor.verifyTotp({
@@ -121,11 +130,11 @@ export function LoginForm({ returnTo = '/app' }: LoginFormProps) {
           <div className="flex items-baseline justify-between gap-4 text-sm">
             <p className="whitespace-nowrap text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <a href="/sign-up" className="text-primary underline">
+              <a href={routes.signUp} className="text-primary underline">
                 Sign up
               </a>
             </p>
-            <a href="/reset-password" className="text-primary underline">
+            <a href={routes.resetPassword} className="text-primary underline">
               Forgot password?
             </a>
           </div>

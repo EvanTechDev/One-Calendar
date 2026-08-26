@@ -1,11 +1,10 @@
 'use client'
 
+import { useAuthForm, type AuthFormBrand } from './context'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { ChevronLeftIcon, MailIcon, ShuffleIcon } from 'lucide-react'
-import Image from 'next/image'
 import { Button } from '@zntr/ui/button'
 import { Separator } from '@zntr/ui/separator'
-import { useRouter } from 'next/navigation'
 
 type Palette = {
   name: string
@@ -308,10 +307,9 @@ function MeshShader({ palette }: { palette: Palette }) {
   )
 }
 
-function LeftPanel() {
+function LeftPanel({ brand }: { brand: AuthFormBrand }) {
   const [paletteIndex, setPaletteIndex] = useState(1)
   const palette = PALETTES[paletteIndex]
-  const router = useRouter()
 
   const _shuffle = () => {
     setPaletteIndex((current) => {
@@ -343,7 +341,7 @@ function LeftPanel() {
             type="button"
             onClick={(e) => {
               e.preventDefault()
-              router.back()
+              window.history.back()
             }}
             className="inline-flex items-center gap-2 text-sm font-medium text-white/75 transition hover:text-white"
           >
@@ -357,7 +355,7 @@ function LeftPanel() {
             className="font-heading text-3xl font-semibold leading-tight md:text-4xl"
             style={{ textShadow: '0 1px 24px rgba(0,0,0,0.55)' }}
           >
-            <span className="text-white">Zentra.</span>
+            <span className="text-white">{brand.appName}.</span>
             <br />
             <span className="text-white/55">
               The Open Source workspace
@@ -369,7 +367,7 @@ function LeftPanel() {
             className="mt-5 max-w-sm text-sm leading-relaxed text-white/65"
             style={{ textShadow: '0 1px 16px rgba(0,0,0,0.55)' }}
           >
-            Zentra is a free and open source workspace that helps you.
+            {brand.blurb}
           </p>
         </div>
       </div>
@@ -377,12 +375,14 @@ function LeftPanel() {
   )
 }
 
-function BrandMark() {
+function BrandMark({ appName }: { appName: string }) {
   return (
     <div className="flex items-center justify-center">
-      <Image
+      {/* A plain img, not next/image: the logo is a static SVG on the app's own
+          origin, so there is nothing to optimise and one less host requirement. */}
+      <img
         src="/icon.svg"
-        alt="Zentra Calendar"
+        alt={appName}
         width={16}
         height={16}
         className="size-8"
@@ -560,15 +560,16 @@ export function AuthLayout({
   children,
   footer,
 }: AuthLayoutProps) {
+  const { brand } = useAuthForm()
   return (
     <div className="relative min-h-svh bg-background text-foreground">
       <PageBackdrop />
       <div className="relative mx-auto flex min-h-svh max-w-[1440px] items-stretch p-4 md:p-10 lg:p-16">
         <div className="relative grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-foreground/10 lg:grid-cols-[1fr_minmax(440px,560px)]">
-          <LeftPanel />
+          <LeftPanel brand={brand} />
           <div className="relative flex min-h-[680px] flex-col overflow-y-auto bg-card text-foreground">
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
-              <BrandMark />
+              <BrandMark appName={brand.appName} />
               <Heading title={title} description={description} />
               <div className="mt-6">{children}</div>
               {footer ? <div className="mt-5">{footer}</div> : null}

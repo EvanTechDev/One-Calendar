@@ -3,9 +3,13 @@ import path from 'path'
 
 export default defineConfig({
   test: {
+    // node by default: the migration rehearsals talk to a real Postgres and jose
+    // rejects jsdom's separate-realm Uint8Array. Component tests opt into jsdom
+    // with a @vitest-environment pragma at the top of the file.
     environment: 'node',
+    setupFiles: ['./vitest-setup.ts'],
     globals: true,
-    include: ['../../tests/auth/**/*.test.ts'],
+    include: ['../../tests/auth/**/*.test.ts', '../../tests/auth/**/*.test.tsx'],
     // The integration tests (plan 026 Seam 2) reach a real Postgres in
     // eu-north-1; a TLS handshake from a phone does not fit the 5s default.
     // Kept as a per-suite budget rather than a global one so a genuinely hung

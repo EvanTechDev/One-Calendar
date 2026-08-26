@@ -12,7 +12,9 @@
     "./types": "./src/types.ts",
     "./email-brand": "./src/email-brand.ts",
     "./email-template": "./src/email-template.tsx",
-    "./email": "./src/email.ts"
+    "./email": "./src/email.ts",
+    "./turnstile": "./src/turnstile.ts",
+    "./forms": "./src/forms/index.ts"
   },
   "scripts": {
     "build": "tsc",
@@ -29,13 +31,23 @@
     "better-auth": "1.7.1",
     "drizzle-orm": "^0.45.2",
     "react-email": "6.6.4",
-    "resend": "6.14.0"
+    "resend": "6.14.0",
+    "@zntr/ui": "workspace:*",
+    "@zntr/utils": "workspace:*",
+    "@zntr/i18n": "workspace:*",
+    "lucide-react": "1.21.0",
+    "@marsidev/react-turnstile": "1.5.3",
+    "sonner": "2.0.7",
+    "qr-code-styling": "latest"
   },
   "devDependencies": {
     "vitest": "^4.1.10",
     "react": "19.2.7",
     "@types/react": "19.2.2",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "jsdom": "^29.1.1"
   },
   "peerDependencies": {
     "react": "^19.2.7",

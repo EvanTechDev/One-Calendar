@@ -1,7 +1,6 @@
 'use client'
 
 import { Turnstile } from '@marsidev/react-turnstile'
-import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type React from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
@@ -9,12 +8,24 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { authClient } from '@/lib/auth/client'
+import { useAuthForm } from './context'
 import { AuthLayout } from './auth-layout'
 
-export function ResetPasswordForm() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+export interface ResetPasswordFormProps {
+  /**
+   * The reset token from the emailed link, read by the page.
+   *
+   * A prop rather than a `useSearchParams()` call: the hook has no meaning
+   * outside a Next app router, and reading it here would make the component
+   * untestable and unusable in any other host (ADR 0022).
+   *
+   * Absent means "ask for a code", present means "set a new password".
+   */
+  token?: string | null
+}
+
+export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
+  const { client: authClient, routes } = useAuthForm()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -109,7 +120,7 @@ export function ResetPasswordForm() {
       description={getDescription()}
       footer={
         <p className="text-center text-sm text-muted-foreground">
-          <a href="/sign-in" className="text-primary underline">
+          <a href={routes.signIn} className="text-primary underline">
             Back to sign in
           </a>
         </p>
