@@ -14,7 +14,8 @@
     "./email-template": "./src/email-template.tsx",
     "./email": "./src/email.ts",
     "./turnstile": "./src/turnstile.ts",
-    "./forms": "./src/forms/index.ts"
+    "./forms": "./src/forms/index.ts",
+    "./account": "./src/account/index.ts"
   },
   "scripts": {
     "build": "tsc",

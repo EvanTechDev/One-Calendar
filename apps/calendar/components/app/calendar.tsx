@@ -25,9 +25,8 @@ import {
   House,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import UserProfileButton, {
-  type UserProfileSection,
-} from '@/components/app/profile/user-profile-button'
+import UserProfileButton from '@/components/app/profile/user-profile-button'
+import type { AccountSection } from '@zntr/auth/account'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
@@ -226,7 +225,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     null,
   )
   const [focusUserProfileSection, setFocusUserProfileSection] =
-    useState<UserProfileSection | null>(null)
+    useState<AccountSection | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
   const [pendingDeleteEvent, setPendingDeleteEvent] =
@@ -648,12 +647,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   const handleViewChange = (newView: ViewType) => {
     setView(newView)
-  }
-
-  const handleUserProfileSectionNavigate = (section: UserProfileSection) => {
-    setSettingsOpen(true)
-    setFocusUserProfileSection(null)
-    setTimeout(() => setFocusUserProfileSection(section), 0)
   }
 
   const handleNavigateToView = (target: 'analytics' | 'settings') => {
@@ -1582,7 +1575,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <UserProfileButton
                 variant="outline"
                 className="rounded-full h-8 w-8"
-                _onNavigateToSettings={handleUserProfileSectionNavigate}
                 onNavigateToView={handleNavigateToView}
               />
             </div>

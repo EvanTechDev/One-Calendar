@@ -44,9 +44,8 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react'
-import UserProfileButton, {
-  type UserProfileSection,
-} from '@/components/app/profile/user-profile-button'
+import { AccountPanel, type AccountSection } from '@zntr/auth/account'
+import { AccountHost } from '@/components/app/profile/account-host'
 import BuildInfoCard from '@/components/app/analytics/build-info-card'
 import ImportExport from '@/components/app/analytics/import-export'
 import MCPSettings from '@/components/app/settings/mcp-settings'
@@ -80,7 +79,7 @@ interface GeneralSettingsProps {
 interface SettingsDialogProps extends GeneralSettingsProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  focusSection?: UserProfileSection | null
+  focusSection?: AccountSection | null
   onFocusSectionHandled?: () => void
   events: CalendarEvent[]
   onImportEvents: (events: CalendarEvent[]) => void
@@ -591,10 +590,9 @@ export default function SettingsDialog({
                   <GeneralSettings {...general} />
                 </div>
                 <div hidden={section !== 'account'}>
-                  <UserProfileButton
-                    mode="settings"
-                    focusSection={focusSection}
-                  />
+                  <AccountHost>
+                    <AccountPanel focusSection={focusSection} />
+                  </AccountHost>
                 </div>
                 <div hidden={section !== 'mcp'}>
                   <MCPSettings />
