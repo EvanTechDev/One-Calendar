@@ -42,8 +42,47 @@ const LIMITS: Record<StageTier, TierLimits> = {
   wide: { maxTiles: 16, maxColumns: 5, maxRows: 4 },
 }
 
-/** Camera tiles are 16:9; the grid aims to keep them near it. */
+/**
+ * The aspect a cell aims for when nothing better is known.
+ *
+ * A real publication's `dimensions` is preferred — a phone publishing portrait
+ * is not 16:9, and assuming it was is what letterboxed or cropped it. This is
+ * only the fallback for a track whose dimensions have not arrived yet.
+ */
 const TARGET_TILE_ASPECT = 16 / 9
+
+/**
+ * The aspect ratio a grid of `count` tiles should aim its cells at.
+ *
+ * Takes the sources' own aspects so a room of portrait phones gets portrait
+ * cells instead of 16:9 cells with bars down both sides. The median, not the
+ * mean: one screen-share-shaped outlier should not drag every camera cell.
+ */
+export function targetCellAspect(aspects: readonly number[]): number {
+  const usable = aspects
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b)
+  if (usable.length === 0) return TARGET_TILE_ASPECT
+  const middle = Math.floor(usable.length / 2)
+  return usable.length % 2 === 1
+    ? usable[middle]!
+    : (usable[middle - 1]! + usable[middle]!) / 2
+}
+
+/**
+ * The fraction of a cell a frame of `sourceAspect` actually covers when it is
+ * fitted whole (never cropped) into a cell of `cellAspect`.
+ *
+ * 1 means a perfect fit. Lower means letterbox bars, which is the cost of not
+ * cropping — this is what the column search minimises, rather than hiding the
+ * mismatch by cutting the frame's edges off.
+ */
+export function fitCoverage(sourceAspect: number, cellAspect: number): number {
+  if (!(sourceAspect > 0) || !(cellAspect > 0)) return 0
+  return sourceAspect > cellAspect
+    ? cellAspect / sourceAspect
+    : sourceAspect / cellAspect
+}
 
 export function stageTier(width: number): StageTier {
   if (width < 640) return 'phone'
@@ -70,13 +109,22 @@ export function maxTilesPerPage(stage: StageSize): number {
 /**
  * Columns for `count` tiles on a stage of this size.
  *
- * Chooses the column count whose resulting tile shape is closest to 16:9,
+ * Chooses the column count whose cells come closest to the sources' own aspect,
  * within the tier's column and row caps. Scoring the shape rather than
  * hard-coding a count is what stops the two pathologies the maintainer hit:
  * absurd letterboxing at extreme stage ratios, and a phone splitting 360px
  * into four columns.
+ *
+ * `cellAspect` is the shape to aim at — pass the sources' median (see
+ * `targetCellAspect`) so a room of portrait phones is not judged against 16:9.
+ * Since frames are fitted whole rather than cropped, the cell shape is the only
+ * lever left for reducing letterbox area.
  */
-export function videoGridColumns(count: number, stage: StageSize): number {
+export function videoGridColumns(
+  count: number,
+  stage: StageSize,
+  cellAspect: number = TARGET_TILE_ASPECT,
+): number {
   if (count <= 1) return 1
 
   const limits = LIMITS[stageTier(stage.width)]
@@ -93,6 +141,8 @@ export function videoGridColumns(count: number, stage: StageSize): number {
     Math.max(1, Math.ceil(count / limits.maxRows)),
   )
 
+  const target = cellAspect > 0 ? cellAspect : TARGET_TILE_ASPECT
+
   // Degenerate sizes (a stage measured before layout) have no meaningful
   // aspect; fall back to the squarest arrangement the caps allow.
   if (stage.width <= 0 || stage.height <= 0) {
@@ -106,7 +156,7 @@ export function videoGridColumns(count: number, stage: StageSize): number {
     const tileAspect = stage.width / columns / (stage.height / rows)
     // Log-space distance, so "twice as wide" and "half as wide" are equally
     // wrong. A linear difference would quietly prefer the squashed side.
-    const score = Math.abs(Math.log(tileAspect / TARGET_TILE_ASPECT))
+    const score = Math.abs(Math.log(tileAspect / target))
     // Strict improvement only, so a tie keeps the fewer columns — and with
     // them the larger tiles.
     if (score < bestScore) {

@@ -18,6 +18,7 @@ import {
   maxFilmstripTiles,
   maxTilesPerPage,
   filmstripIsOpen,
+  targetCellAspect,
   videoGridColumns,
 } from '@/lib/video-layout'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
@@ -224,7 +225,7 @@ export function MeetingRoom({
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2">
-              <VideoGrid count={pageTracks.length} stage={stage}>
+              <VideoGrid tracks={pageTracks} stage={stage}>
                 {pageTracks.map((track) => (
                   <ParticipantTile
                     key={trackKey(track)}
@@ -278,15 +279,26 @@ export function MeetingRoom({
 }
 
 function VideoGrid({
-  count,
+  tracks,
   stage,
   children,
 }: {
-  count: number
+  tracks: TrackReferenceOrPlaceholder[]
   stage: { width: number; height: number }
   children: React.ReactNode
 }) {
-  const columns = videoGridColumns(count, stage)
+  const count = tracks.length
+  // The sources' own shape, so a room of portrait phones gets portrait cells.
+  // Frames are fitted whole rather than cropped, so cell shape is the only
+  // lever left for keeping letterbox area small.
+  const cellAspect = targetCellAspect(
+    tracks.map((track) => {
+      const dimensions = track.publication?.dimensions
+      if (!dimensions || !dimensions.height) return Number.NaN
+      return dimensions.width / dimensions.height
+    }),
+  )
+  const columns = videoGridColumns(count, stage, cellAspect)
   return (
     <div
       // `place-content-stretch` rather than `center`: the rows are already

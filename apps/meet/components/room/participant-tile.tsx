@@ -88,9 +88,14 @@ export function ParticipantTile({
       {hasVideo ? (
         <VideoTrack
           trackRef={trackRef}
+          // `object-contain` for camera video too, not just screen share.
+          // `object-cover` scaled the frame up and cut its edges off to fill a
+          // cell whose shape the grid decided — faces lost their sides, and the
+          // more the cell differed from the source the more went missing. The
+          // frame is now shown whole; the grid's job is to pick a cell shape
+          // that leaves little to letterbox (see lib/video-layout).
           className={cn(
-            'size-full',
-            isScreenShare ? 'object-contain' : 'object-cover',
+            'size-full object-contain',
             participant.isLocal && !isScreenShare && '-scale-x-100',
           )}
         />
