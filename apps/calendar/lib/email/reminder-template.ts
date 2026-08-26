@@ -1,4 +1,5 @@
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
+import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 
 interface ReminderEmailParams {
   title: string
@@ -16,6 +17,7 @@ export async function buildReminderEmail(
   params: ReminderEmailParams,
 ): Promise<string> {
   return renderAuthEmailTemplate({
+    brand: CALENDAR_EMAIL_BRAND,
     preview: `Reminder: ${params.title}`,
     title: params.title,
     body: 'This event is coming up.',

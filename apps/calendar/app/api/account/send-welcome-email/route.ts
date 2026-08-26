@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 import { getAuthedUser } from '@/lib/api-helpers'
@@ -32,6 +33,7 @@ export async function POST() {
       to: currentUser.email,
       subject: 'Welcome to Zentra Calendar!',
       html: await renderAuthEmailTemplate({
+    brand: CALENDAR_EMAIL_BRAND,
         preview: 'Welcome to Zentra Calendar',
         title: 'Welcome to Zentra Calendar!',
         body: "We're thrilled to have you here. Zentra Calendar is the next gen calendar powered by AI agent: plan your week in conversation and stay organized.",

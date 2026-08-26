@@ -16,7 +16,15 @@ import {
   render,
 } from 'react-email'
 
+import type { EmailBrand } from './email-brand'
+
 interface AuthEmailTemplateProps {
+  /**
+   * Which product this mail is from. Was hard-coded to 'Zentra Calendar' in six
+   * places; meet now has its own sign-up surface, and mail signed by another
+   * product is a phishing signal to the recipient (ADR 0022).
+   */
+  brand: EmailBrand
   preview: string
   title: string
   body: string
@@ -34,12 +42,12 @@ interface AuthEmailTemplateProps {
   code?: string
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 const fontFamily =
   'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif'
 
 function AuthEmailTemplate({
+  brand,
   preview,
   title,
   body,
@@ -50,6 +58,7 @@ function AuthEmailTemplate({
   secondary,
   code,
 }: AuthEmailTemplateProps) {
+  const { appName, tagline, baseUrl, logoUrl } = brand
   return (
     <Html lang="en">
       <Head />
@@ -77,8 +86,8 @@ function AuthEmailTemplate({
             <Row>
               <Column style={{ verticalAlign: 'middle' }}>
                 <Img
-                  src={`${baseUrl}/icon.svg`}
-                  alt="Zentra Calendar"
+                  src={logoUrl}
+                  alt={appName}
                   width={23}
                   height={23}
                   style={{ display: 'block' }}
@@ -95,7 +104,7 @@ function AuthEmailTemplate({
                     margin: 0,
                   }}
                 >
-                  Zentra Calendar
+                  {appName}
                 </Text>
               </Column>
             </Row>
@@ -111,8 +120,8 @@ function AuthEmailTemplate({
             }}
           >
             <Img
-              src={`${baseUrl}/icon.svg`}
-              alt="Zentra Calendar"
+              src={logoUrl}
+              alt={appName}
               width={48}
               height={48}
               style={{ display: 'block', margin: '0 auto 20px' }}
@@ -244,7 +253,7 @@ function AuthEmailTemplate({
                 maxWidth: '280px',
               }}
             >
-              A privacy-first calendar that keeps your data yours.
+              {tagline}
             </Text>
 
             <Text
@@ -289,7 +298,7 @@ function AuthEmailTemplate({
                 margin: 0,
               }}
             >
-              © {new Date().getFullYear()} Zentra Calendar
+              © {new Date().getFullYear()} {appName}
             </Text>
           </Section>
         </Container>

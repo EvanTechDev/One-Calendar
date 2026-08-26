@@ -1,4 +1,5 @@
 import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
+import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 
 interface InvitationEmailParams {
   title: string
@@ -27,6 +28,7 @@ export async function buildInvitationEmail(
   const hasMeeting = Boolean(params.meetingUrl)
 
   return renderAuthEmailTemplate({
+    brand: CALENDAR_EMAIL_BRAND,
     preview: `Invitation: ${params.title}`,
     title: params.title,
     body: `${params.inviterName} invited you to this event. Let them know if you can make it.`,
