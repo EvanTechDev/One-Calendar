@@ -1,6 +1,6 @@
 <img width="1500" height="500" alt="Zentra banner" src="https://github.com/user-attachments/assets/44bc5cd4-4776-4db2-9cca-84d2855f6014" />
 
-## Zntr
+## Zentra
 
 Zntr builds fully open-source, self-hostable cloud products. This monorepo contains all of them: Zentra Calendar (the next gen calendar powered by AI agent), Zentra Meet (video meetings), the desktop client, and the shared packages behind them.
 

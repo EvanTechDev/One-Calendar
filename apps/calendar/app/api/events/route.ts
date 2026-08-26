@@ -14,6 +14,8 @@ import {
   getCachedEvents,
   setCachedEvents,
   invalidateEventCache,
+  filterCachedByCategory,
+  resolveEventSource,
   groupByMonth,
 } from '@/lib/cache/events'
 import { fullMonthRange } from '@/lib/cache/keys'
@@ -971,11 +973,24 @@ export const GET = async function GET(request: NextRequest) {
   const filters = [eq(calendarEvents.userId, currentUser.id)]
 
   let decrypted: ReturnType<typeof decryptEvent>[] = []
+  // Tracked separately from `decrypted.length`, which conflates a cache MISS
+  // with a cache hit on an empty month. Testing the length meant every request
+  // for an empty month queried the database -- and since the date filters are
+  // only pushed on the miss branch, that query ran UNFILTERED, reading the
+  // user's whole history and writing it back into per-month cache keys.
+  let source: 'cache' | 'database' = 'database'
 
   if (startDate && endDate) {
     const cached = await getCachedEvents(currentUser.id, startDate, endDate)
+    source = resolveEventSource(cached)
     if (cached) {
-      decrypted = cached.map(decryptEvent)
+      // The cache is keyed by user and month, so a cached month holds every
+      // category. The categoryId filter below only reaches the database query,
+      // so without this a category-filtered request got the whole month.
+      decrypted = filterCachedByCategory(
+        cached,
+        categoryIds ? categoryIds.split(',') : null,
+      ).map(decryptEvent)
     } else {
       const range = fullMonthRange(startDate, endDate)
       filters.push(gte(calendarEvents.startDate, range.start))
@@ -987,7 +1002,7 @@ export const GET = async function GET(request: NextRequest) {
     filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
   }
 
-  if (decrypted.length === 0) {
+  if (source === 'database') {
     const query = getDb()
       .select()
       .from(calendarEvents)
