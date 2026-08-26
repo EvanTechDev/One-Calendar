@@ -1,4 +1,5 @@
 export { createAuth } from './server'
+export { createAuthPortal } from './portal'
 export { createAuthClient } from './client'
 export { createDrizzleAdapter } from './adapter'
 export {
@@ -29,11 +30,13 @@ export type {
   AuthSession,
   CreateAuthClientOptions,
   CreateAuthOptions,
+  CreatePortalOptions,
   EmailCallbacks,
   EmailOTPOptions,
   EnabledPlugins,
   PluginOptions,
   PasswordHashOptions,
+  PortalInstance,
   SentinelOptions,
   SessionData,
   SessionUser,

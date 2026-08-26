@@ -9,7 +9,8 @@
     "./client": "./src/client.ts",
     "./schema": "./src/schema.ts",
     "./adapter": "./src/adapter.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./portal": "./src/portal.ts"
   },
   "scripts": {
     "build": "tsc",

@@ -103,6 +103,36 @@ export interface AdvancedOptions {
   cookiePrefix?: string
 }
 
+/**
+ * What the portal needs. Distinct from `CreateAuthOptions` on purpose: a client
+ * app cannot be handed a portal configuration, and vice versa (ADR 0021).
+ */
+export interface CreatePortalOptions {
+  db: any
+  /** Signs every token the portal issues. Required. */
+  secret: string
+  /** The OAuth issuer. Required — it appears in every token's `iss` claim. */
+  baseURL: string
+  /** Client origins allowed to start an authorization flow. */
+  trustedOrigins: string[]
+  advanced?: AdvancedOptions
+  emailCallbacks: EmailCallbacks
+  password: PasswordHashOptions
+  sentinelApiKey?: string
+  isDev?: boolean
+}
+
+/**
+ * The portal's own instance type, inferred from `createAuthPortal`.
+ *
+ * Not hand-written: `betterAuth()` parameterises its return by the exact plugin
+ * list, so declaring `{ auth: AuthInstance }` erases every plugin endpoint the
+ * portal exists to expose.
+ */
+export type PortalInstance = ReturnType<
+  typeof import('./portal').createAuthPortal
+>
+
 export interface CreateAuthOptions {
   db: any
   baseURL?: string
