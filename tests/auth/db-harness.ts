@@ -52,15 +52,23 @@ export function databaseIsAvailable(): boolean {
 /**
  * Asserts a connection is confined to the test schema.
  *
- * Two independent checks, because either alone is insufficient:
+ * Three independent checks, because each alone is insufficient:
  *
  * 1. `current_schema()` is the test schema — proves writes land there.
- * 2. The real user tables are not resolvable — proves an unqualified query
- *    cannot reach production data even if `search_path` were wrong.
+ * 2. The effective `search_path` names ONLY the test schema — proves nothing
+ *    else is reachable unqualified, whatever this schema happens to contain.
+ * 3. No forbidden table name resolves outside the test schema — a direct check
+ *    on the property we actually care about.
  *
- * The second is the one that matters. A `search_path` of
- * `auth_test, public` would pass the first check while leaving every real user
- * table one unqualified `select` away.
+ * Check 2 is the load-bearing one, and it has to be separate from check 3. Once
+ * this schema holds its own `account` replica (which is how a migration gets
+ * rehearsed), a `search_path` of `auth_test, public` resolves `account` to the
+ * replica — so check 3 passes while every OTHER real table is still one
+ * unqualified `select` away. Inspecting the path itself does not have that blind
+ * spot.
+ *
+ * Check 3 compares the resolved relation's SCHEMA rather than merely whether the
+ * name resolves, so a legitimate replica is not mistaken for the real table.
  */
 export async function assertIsolated(sql: Sql): Promise<void> {
   const [schema] = await sql<{ current_schema: string | null }[]>`
@@ -74,15 +82,33 @@ export async function assertIsolated(sql: Sql): Promise<void> {
     )
   }
 
+  const [path] = await sql<{ search_path: string }[]>`
+    show search_path
+  `
+  const entries = (path?.search_path ?? '')
+    .split(',')
+    .map((entry) => entry.trim().replace(/^"|"$/g, ''))
+    .filter((entry) => entry.length > 0)
+  const unexpected = entries.filter((entry) => entry !== TEST_SCHEMA)
+  if (unexpected.length > 0) {
+    throw new Error(
+      `auth test harness search_path exposes ${unexpected.join(', ')}; ` +
+        `it must name only ${TEST_SCHEMA}`,
+    )
+  }
+
   for (const table of FORBIDDEN_TABLES) {
-    const [resolved] = await sql<{ oid: number | null }[]>`
-      select to_regclass(${table}) as oid
+    const [resolved] = await sql<{ resolved_schema: string | null }[]>`
+      select n.nspname as resolved_schema
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where c.oid = to_regclass(${table})
     `
-    if (resolved?.oid !== null) {
+    const schemaName = resolved?.resolved_schema ?? null
+    if (schemaName !== null && schemaName !== TEST_SCHEMA) {
       throw new Error(
-        `auth test harness can resolve the real "${table}" table; ` +
-          'search_path must expose only ' +
-          TEST_SCHEMA,
+        `auth test harness resolves "${table}" to schema "${schemaName}"; ` +
+          `search_path must expose only ${TEST_SCHEMA}`,
       )
     }
   }
@@ -120,20 +146,25 @@ export async function connectIsolated(): Promise<Sql | null> {
 }
 
 /**
- * Empties the test schema between tests.
+ * Empties one named table the caller owns.
  *
- * Re-asserts isolation first. Truncation is the one operation where a
- * misconfigured connection would be catastrophic rather than merely wrong, so
- * the check is repeated at the call site rather than trusted from setup.
+ * Deliberately NOT a whole-schema truncate. Suites run in parallel against a
+ * single schema, so emptying everything would delete another suite's fixtures
+ * mid-run and produce failures unrelated to the code under test.
+ *
+ * Re-asserts isolation first, and rejects a qualified name. Truncation is the
+ * one operation where a misconfigured connection is catastrophic rather than
+ * merely wrong, so the check is repeated here rather than trusted from setup,
+ * and a caller cannot reach outside the test schema by passing `public.user`.
  */
-export async function truncateAll(sql: Sql): Promise<void> {
+export async function truncateOwn(sql: Sql, table: string): Promise<void> {
   await assertIsolated(sql)
 
-  const tables = await sql<{ tablename: string }[]>`
-    select tablename from pg_tables where schemaname = ${TEST_SCHEMA}
-  `
-  if (tables.length === 0) return
+  if (!/^[a-z_][a-z0-9_]*$/i.test(table)) {
+    throw new Error(
+      `refusing to truncate "${table}": pass a bare table name in ${TEST_SCHEMA}`,
+    )
+  }
 
-  const names = tables.map((row) => `${TEST_SCHEMA}."${row.tablename}"`)
-  await sql.unsafe(`truncate table ${names.join(', ')} cascade`)
+  await sql.unsafe(`truncate table ${TEST_SCHEMA}."${table}" cascade`)
 }

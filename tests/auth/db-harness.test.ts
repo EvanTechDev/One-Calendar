@@ -4,7 +4,7 @@ import {
   assertIsolated,
   connectIsolated,
   databaseIsAvailable,
-  truncateAll,
+  truncateOwn,
 } from './db-harness'
 import type { Sql } from 'postgres'
 
@@ -45,23 +45,24 @@ describe.skipIf(!available)('auth test database harness', () => {
     expect(row?.schema).toBe(TEST_SCHEMA)
   })
 
-  it('cannot resolve the real user table', async () => {
+  it('never resolves a user table outside the test schema', async () => {
     const sql = connection ?? (await connectIsolated())!
-    // The property that matters. `search_path` excludes `public`, so an
-    // unqualified reference to a production table resolves to nothing.
-    const [row] = await sql<{ oid: number | null }[]>`
-      select to_regclass('user') as oid
-    `
-    expect(row?.oid).toBeNull()
-  })
-
-  it('cannot resolve the real session or account tables', async () => {
-    const sql = connection ?? (await connectIsolated())!
-    for (const table of ['session', 'account', 'verification']) {
-      const [row] = await sql<{ oid: number | null }[]>`
-        select to_regclass(${table}) as oid
+    // The property that matters: `search_path` excludes `public`, so an
+    // unqualified reference cannot reach production. Asserted as "resolves to
+    // nothing, or to the test schema" rather than "resolves to nothing" —
+    // rehearsing a migration means creating a replica under the real name, and
+    // that must stay distinguishable from seeing the real table.
+    for (const table of ['user', 'session', 'account', 'verification']) {
+      const [row] = await sql<{ resolved_schema: string | null }[]>`
+        select n.nspname as resolved_schema
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where c.oid = to_regclass(${table})
       `
-      expect(row?.oid, table).toBeNull()
+      const schema = row?.resolved_schema ?? null
+      if (schema !== null) {
+        expect(schema, table).toBe(TEST_SCHEMA)
+      }
     }
   })
 
@@ -81,6 +82,11 @@ describe.skipIf(!available)('auth test database harness', () => {
     // The exact misconfiguration `assertIsolated` exists to catch: a
     // `search_path` of `auth_test, public` sets `current_schema` correctly while
     // leaving every real table one unqualified select away.
+    //
+    // Caught by inspecting the path itself rather than by probing table names.
+    // Once this schema holds its own `account` replica, a name probe resolves
+    // `account` to the replica and the leak goes undetected — which is exactly
+    // the blind spot this rehearsal exposed.
     const postgres = (await import('postgres')).default
     const fs = await import('node:fs')
     const path = await import('node:path')
@@ -97,7 +103,9 @@ describe.skipIf(!available)('auth test database harness', () => {
       connect_timeout: 20,
     })
     try {
-      await expect(assertIsolated(leaky)).rejects.toThrow(/can resolve/)
+      await expect(assertIsolated(leaky)).rejects.toThrow(
+        /search_path exposes public/,
+      )
     } finally {
       await leaky.end()
     }
@@ -121,27 +129,33 @@ describe.skipIf(!available)('auth test database harness', () => {
     }
   })
 
-  it('truncates only the test schema, leaving real data intact', async () => {
+  it('empties a table it owns, leaving real data intact', async () => {
     const sql = connection ?? (await connectIsolated())!
 
-    await sql`create table if not exists probe (id text primary key)`
-    await sql`insert into probe (id) values ('one') on conflict do nothing`
+    // Scoped to one table this test owns rather than `truncateAll`. Suites run
+    // in parallel against one schema, so a whole-schema truncate would delete
+    // another suite's fixtures mid-run — the sort of cross-test coupling that
+    // produces failures with no relation to the code under test.
+    await sql`create table if not exists harness_probe (id text primary key)`
+    await sql`
+      insert into harness_probe (id) values ('one') on conflict do nothing
+    `
 
-    const before = await sql<{ count: number }[]>`
+    const [before] = await sql<{ count: number }[]>`
       select count(*)::int as count from public."user"
     `
-    await truncateAll(sql)
-    const after = await sql<{ count: number }[]>`
+    await truncateOwn(sql, 'harness_probe')
+    const [after] = await sql<{ count: number }[]>`
       select count(*)::int as count from public."user"
     `
 
     const [probe] = await sql<{ count: number }[]>`
-      select count(*)::int as count from probe
+      select count(*)::int as count from harness_probe
     `
     expect(probe!.count).toBe(0)
     // The load-bearing assertion: truncation did not reach production.
-    expect(after![0]?.count ?? after[0]!.count).toBe(before[0]!.count)
+    expect(after!.count).toBe(before!.count)
 
-    await sql`drop table if exists probe`
+    await sql`drop table if exists harness_probe`
   })
 })

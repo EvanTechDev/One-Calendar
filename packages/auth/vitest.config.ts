@@ -28,6 +28,29 @@ export default defineConfig({
         __dirname,
         'node_modules/better-auth/dist/plugins/index.mjs',
       ),
+      // Subpaths must be listed before the bare specifier: vite matches the
+      // first alias that prefixes the request, so a bare `better-auth` entry
+      // would swallow `better-auth/react` and resolve it to a directory.
+      'better-auth/react': path.resolve(
+        __dirname,
+        'node_modules/better-auth/dist/client/react/index.mjs',
+      ),
+      'better-auth/client/plugins': path.resolve(
+        __dirname,
+        'node_modules/better-auth/dist/client/plugins/index.mjs',
+      ),
+      'better-auth/db': path.resolve(
+        __dirname,
+        'node_modules/better-auth/dist/db/index.mjs',
+      ),
+      'better-auth/cookies': path.resolve(
+        __dirname,
+        'node_modules/better-auth/dist/cookies/index.mjs',
+      ),
+      'better-auth/next-js': path.resolve(
+        __dirname,
+        'node_modules/better-auth/dist/integrations/next-js.mjs',
+      ),
       'better-auth': path.resolve(__dirname, 'node_modules/better-auth'),
       '@better-auth/sentinel': path.resolve(
         __dirname,

@@ -50,6 +50,19 @@ export const account = pgTable(
   'account',
   {
     id: text('id').primaryKey(),
+    /**
+     * Which authority vouches for this account, required since Better Auth 1.7.
+     *
+     * 1.7 identifies an external account by the unique pair
+     * `(issuer, accountId)` rather than `(providerId, accountId)`: `providerId`
+     * is the local provider *configuration*, which can be renamed or duplicated,
+     * while the issuer is the authority itself. Two provider configurations
+     * pointing at one OIDC authority must therefore share an issuer.
+     *
+     * Credential accounts have no external authority, so they take the
+     * synthetic `local:credential`.
+     */
+    issuer: text('issuer').notNull(),
     accountId: text('accountId').notNull(),
     providerId: text('providerId').notNull(),
     userId: text('userId')
@@ -78,8 +91,18 @@ export const account = pgTable(
     }).notNull(),
   },
   (table) => ({
+    /**
+     * The pre-1.7 key, kept because dropping it is a separate decision from
+     * adding the new one — and because it still usefully prevents one provider
+     * configuration holding two rows for the same provider-side account.
+     */
     accountUnique: uniqueIndex('Account_providerId_accountId_key').on(
       table.providerId,
+      table.accountId,
+    ),
+    /** The 1.7 identity key. One external identity, one account row. */
+    accountIdentityUnique: uniqueIndex('account_issuer_accountId_uidx').on(
+      table.issuer,
       table.accountId,
     ),
   }),
