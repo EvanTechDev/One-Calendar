@@ -6,6 +6,14 @@ export {
   portalPathIsExposed,
 } from './route-policy'
 export { buildPortalDiagnostics } from './diagnostics'
+export { verifyPortalToken } from './verify-token'
+export type { PortalSession } from './verify-token'
+export {
+  PORTAL_DEFAULT_PATH,
+  RETURN_TO_PARAM,
+  clientOriginsFromRedirectUris,
+  resolvePortalReturnTo,
+} from './return-to'
 export { createAuthClient } from './client'
 export { createDrizzleAdapter } from './adapter'
 export {

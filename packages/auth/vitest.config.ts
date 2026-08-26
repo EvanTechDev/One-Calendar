@@ -66,6 +66,10 @@ export default defineConfig({
       // It is not a dependency of this package -- the calendar owns it -- and
       // pnpm does not hoist to the repo root, so tests/auth cannot resolve a
       // bare specifier without this.
+      // JWT verification is core client behaviour, so jose is a real dependency
+      // of this package rather than test-only -- but tests/auth still needs the
+      // alias, since pnpm does not hoist to the repo root.
+      jose: path.resolve(__dirname, 'node_modules/jose'),
       postgres: path.resolve(
         __dirname,
         '../../apps/calendar/node_modules/postgres',

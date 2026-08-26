@@ -12,7 +12,9 @@
     "./types": "./src/types.ts",
     "./portal": "./src/portal.ts",
     "./route-policy": "./src/route-policy.ts",
-    "./diagnostics": "./src/diagnostics.ts"
+    "./diagnostics": "./src/diagnostics.ts",
+    "./verify-token": "./src/verify-token.ts",
+    "./return-to": "./src/return-to.ts"
   },
   "scripts": {
     "build": "tsc",
@@ -28,7 +30,8 @@
     "@better-auth/infra": "0.4.3",
     "@better-auth/oauth-provider": "1.7.1",
     "better-auth": "1.7.1",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "jose": "6.2.10"
   },
   "devDependencies": {
     "vitest": "^4.1.10"
