@@ -103,3 +103,41 @@ export function groupByMonth(
   }
   return grouped
 }
+
+/**
+ * Whether a cache lookup answered the question.
+ *
+ * Exists because the distinction is easy to lose at a call site: `getCachedEvents`
+ * returns `null` for a miss and `[]` for "cached, and that range is genuinely
+ * empty". Testing the array's LENGTH conflates them, which made every request
+ * for an empty month hit the database -- and, because the date filters are only
+ * added on the miss branch, made that fallback query run unfiltered and write
+ * the user's whole history back into per-month keys.
+ *
+ * A named predicate rather than an inline `!== null` so the two states have to
+ * be thought about, and so the reason can live next to it.
+ */
+export function resolveEventSource(
+  cached: CachedEvent[] | null | undefined,
+): 'cache' | 'database' {
+  return cached ? 'cache' : 'database'
+}
+
+/**
+ * Applies a category filter to events that came from the cache.
+ *
+ * The cache is keyed by user and month only, so a cached month holds every
+ * category. The route pushes `categoryId` into the database filters, which does
+ * nothing on a cache hit -- a request filtered by category was answered with the
+ * whole month. Filtering here keeps the two paths returning the same thing.
+ */
+export function filterCachedByCategory(
+  events: CachedEvent[],
+  categoryIds: string[] | null,
+): CachedEvent[] {
+  if (!categoryIds || categoryIds.length === 0) return events
+  const wanted = new Set(categoryIds)
+  return events.filter(
+    (event) => event.categoryId !== null && wanted.has(event.categoryId),
+  )
+}

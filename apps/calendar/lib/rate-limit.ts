@@ -7,6 +7,28 @@ export interface RateLimitResult {
 }
 
 /**
+ * Whether the absence of Redis has already been reported.
+ *
+ * Without `REDIS_URL` every limit below silently allows everything, which is the
+ * intended posture but must not be invisible: a production deployment that lost
+ * the variable looks identical to one that never had abuse traffic. Logged once
+ * rather than per request, so it is findable without drowning the log.
+ */
+let missingRedisReported = false
+
+function reportMissingRedisOnce() {
+  if (missingRedisReported) return
+  missingRedisReported = true
+  if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+    console.warn(
+      '[rate-limit] REDIS_URL is not set in production: every rate limit is ' +
+        'allowing all requests. Invites, user lookup, meeting tokens and chat ' +
+        'retention are unthrottled.',
+    )
+  }
+}
+
+/**
  * Fixed-window counter, one Redis key per (name, subject, window).
  *
  * Fails OPEN: if Redis is unavailable the request is allowed, matching the
@@ -24,6 +46,7 @@ export async function checkFixedWindowLimit(options: {
   windowSeconds: number
 }): Promise<RateLimitResult> {
   const { name, subject, limit, windowSeconds } = options
+  reportMissingRedisOnce()
   const nowSeconds = Math.floor(Date.now() / 1000)
   const bucket = Math.floor(nowSeconds / windowSeconds)
   const key = `rl:${name}:${subject}:${bucket}`
