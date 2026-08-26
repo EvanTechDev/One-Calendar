@@ -17,3 +17,5 @@ allowBuilds:
 onlyBuiltDependencies:
   - sharp
   - esbuild
+minimumReleaseAgeExclude:
+  - '@better-auth/infra@0.4.3'
