@@ -9,6 +9,17 @@ export {
   verification,
   twoFactor,
 } from './schema'
+export {
+  oauthProviderSchema,
+  jwks,
+  oauthClient,
+  oauthResource,
+  oauthClientResource,
+  oauthRefreshToken,
+  oauthAccessToken,
+  oauthConsent,
+  oauthClientAssertion,
+} from './schema'
 export { getSessionCookie } from 'better-auth/cookies'
 export { toNextJsHandler } from 'better-auth/next-js'
 export { crossAppAuthConfig } from './cross-app'
