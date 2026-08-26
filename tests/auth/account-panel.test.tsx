@@ -26,9 +26,7 @@ const refetchSession = vi.fn(async () => {})
 const navigate = vi.fn()
 const deleteAccount = vi.fn(async () => ({ ok: true as const }))
 
-const value = (
-  over?: Partial<AccountContextValue>,
-): AccountContextValue => ({
+const value = (over?: Partial<AccountContextValue>): AccountContextValue => ({
   copy: selectAuthCopy('en'),
   user: {
     id: 'u1',
@@ -129,7 +127,9 @@ describe('AccountPanel', () => {
     // Both apps mount this; a language that worked in one and not the other would
     // be a difference between two mounts of one component.
     mount({ copy: selectAuthCopy('de') })
-    expect(screen.getByRole('button', { name: /speichern|profil/i })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /speichern|profil/i }),
+    ).toBeTruthy()
   })
 
   it('does not offer a 2FA control when the plugin is absent', () => {
@@ -142,8 +142,6 @@ describe('AccountPanel', () => {
         emailOtp: { requestEmailChange, changeEmail },
       } as unknown as AccountContextValue['client'],
     })
-    expect(
-      screen.queryByRole('button', { name: /two-factor|2fa/i }),
-    ).toBeNull()
+    expect(screen.queryByRole('button', { name: /two-factor|2fa/i })).toBeNull()
   })
 })

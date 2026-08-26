@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { AccountPanel } from '@zntr/auth/account'
+import { AccountHost } from '@/components/auth/account-host'
 import {
   CircleUserRound,
-  ExternalLink,
   Info,
   Image as ImageIcon,
-  LogOut,
   Mic,
   Monitor,
   Palette,
@@ -72,17 +72,9 @@ export interface SettingsUser {
 export function SettingsDialog({
   open,
   onOpenChange,
-  user,
-  calendarOrigin,
-  onSignOut,
-  signingOut,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: SettingsUser
-  calendarOrigin: string
-  onSignOut: () => void
-  signingOut?: boolean
 }) {
   const [section, setSection] = useState<SettingsSection>('preferences')
 
@@ -174,12 +166,12 @@ export function SettingsDialog({
                   <PreferencesSettings />
                 </div>
                 <div data-section="account" hidden={section !== 'account'}>
-                  <AccountSettings
-                    user={user}
-                    calendarOrigin={calendarOrigin}
-                    onSignOut={onSignOut}
-                    signingOut={signingOut}
-                  />
+                  {/* The same panel the calendar mounts. Meet used to show a card
+                      linking there, because every mutation needed the CAPTCHA and
+                      audit logging that only lived in that app (ADR 0022). */}
+                  <AccountHost>
+                    <AccountPanel />
+                  </AccountHost>
                 </div>
                 <div data-section="about" hidden={section !== 'about'}>
                   <AboutSettings />
@@ -386,78 +378,6 @@ function PreferencesSettings() {
           browser has granted permission and can name them.
         </p>
       </section>
-    </div>
-  )
-}
-
-function AccountSettings({
-  user,
-  calendarOrigin,
-  onSignOut,
-  signingOut,
-}: {
-  user: SettingsUser
-  calendarOrigin: string
-  onSignOut: () => void
-  signingOut?: boolean
-}) {
-  return (
-    <div className="space-y-6">
-      <section className="flex items-start gap-4" aria-label="Your account">
-        <img
-          src={user.image || '/user.png'}
-          alt="avatar"
-          width={64}
-          height={64}
-          className="size-16 shrink-0 rounded-full border object-cover"
-          referrerPolicy="no-referrer"
-        />
-        <div className="min-w-0 flex-1 space-y-1 pt-1">
-          <p className="truncate text-sm font-medium">{user.name}</p>
-          <p className="truncate text-sm text-muted-foreground">{user.email}</p>
-        </div>
-      </section>
-
-      {/*
-        No editable fields here on purpose. Meet's auth route deliberately
-        exposes only session-read and sign-out, so every account mutation
-        (name, avatar, email, password, 2FA, deletion) is the calendar's to
-        perform. A form here would either need that route widened — bypassing
-        the calendar's captcha, bot blocking, and audit logging — or fake a save
-        that never happens.
-      */}
-      <SettingsGroup>
-        <SettingRow
-          icon={<CircleUserRound />}
-          title="Manage your account"
-          description="Your name, avatar, email, password, and two-factor sign-in are managed in Zentra Calendar."
-        >
-          <Button variant="secondary" size="sm" asChild>
-            <a
-              href={`${calendarOrigin}/app`}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              Open calendar
-              <ExternalLink className="size-3.5" />
-            </a>
-          </Button>
-        </SettingRow>
-        <SettingRow
-          icon={<LogOut />}
-          title="Sign out"
-          description="Signs you out of Zentra Meet on this device."
-        >
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onSignOut}
-            disabled={signingOut}
-          >
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </Button>
-        </SettingRow>
-      </SettingsGroup>
     </div>
   )
 }

@@ -1,10 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { Button } from '@zntr/ui/button'
-import { authClient } from '@/lib/auth/client'
 import { SettingsDialog } from '@/components/dashboard/settings-dialog'
 import type { SettingsUser } from '@/components/dashboard/settings-dialog'
 
@@ -20,31 +17,8 @@ import type { SettingsUser } from '@/components/dashboard/settings-dialog'
  * The trigger's classes are the calendar's (user-profile-button.tsx) verbatim so
  * the two apps' headers are the same object.
  */
-export function UserAvatarButton({
-  user,
-  calendarOrigin,
-}: {
-  user: SettingsUser
-  calendarOrigin: string
-}) {
-  const router = useRouter()
+export function UserAvatarButton({ user }: { user: SettingsUser }) {
   const [open, setOpen] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
-
-  const signOut = async () => {
-    setSigningOut(true)
-    try {
-      await authClient.signOut()
-      // Refresh rather than push: the session is read on the server, so the
-      // guest page only appears once this request re-runs with the cookie gone.
-      router.refresh()
-      setOpen(false)
-    } catch {
-      toast.error('Could not sign you out')
-    } finally {
-      setSigningOut(false)
-    }
-  }
 
   return (
     <>
@@ -67,14 +41,9 @@ export function UserAvatarButton({
           referrerPolicy="no-referrer"
         />
       </Button>
-      <SettingsDialog
-        open={open}
-        onOpenChange={setOpen}
-        user={user}
-        calendarOrigin={calendarOrigin}
-        onSignOut={signOut}
-        signingOut={signingOut}
-      />
+      {/* Sign-out lives in the panel's Account tab now, so this component no
+          longer owns one — the shared panel signs out and navigates itself. */}
+      <SettingsDialog open={open} onOpenChange={setOpen} />
     </>
   )
 }

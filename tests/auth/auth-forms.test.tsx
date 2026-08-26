@@ -21,8 +21,14 @@ import {
  * what, and which destination each app lands on. Not the markup — jsdom has no
  * layout engine and a test that pretends to measure pixels is worse than none.
  */
-const signInEmail = vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null }))
-const signUpEmail = vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null }))
+const signInEmail = vi.fn(async () => ({
+  data: { user: { id: 'u1' } },
+  error: null,
+}))
+const signUpEmail = vi.fn(async () => ({
+  data: { user: { id: 'u1' } },
+  error: null,
+}))
 const requestPasswordReset = vi.fn(async () => ({ data: {}, error: null }))
 const resetPassword = vi.fn(async () => ({ data: {}, error: null }))
 const sendVerificationOtp = vi.fn(async () => ({ data: {}, error: null }))
@@ -123,7 +129,9 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() =>
-      expect(assign).toHaveBeenCalledWith('https://meettest.xyehr.cn/dashboard'),
+      expect(assign).toHaveBeenCalledWith(
+        'https://meettest.xyehr.cn/dashboard',
+      ),
     )
     expect(navigate).not.toHaveBeenCalled()
   })
@@ -224,7 +232,9 @@ describe('ResetPasswordForm', () => {
     for (const field of fields) {
       fireEvent.change(field, { target: { value: 'newpassword22' } })
     }
-    fireEvent.click(screen.getByRole('button', { name: /reset|save|update|set/i }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /reset|save|update|set/i }),
+    )
 
     await waitFor(() => expect(resetPassword).toHaveBeenCalledTimes(1))
     const arg = resetPassword.mock.calls[0][0] as Record<string, unknown>

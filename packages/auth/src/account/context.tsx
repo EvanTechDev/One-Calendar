@@ -26,14 +26,14 @@ export type AccountUser = {
 }
 
 export type AccountClient = {
-  updateUser: (args: {
-    name?: string
-    image?: string
-  }) => Promise<AuthResult>
+  updateUser: (args: { name?: string; image?: string }) => Promise<AuthResult>
   signOut: () => Promise<AuthResult>
   emailOtp?: {
     requestEmailChange: (args: { newEmail: string }) => Promise<AuthResult>
-    changeEmail: (args: { newEmail: string; otp: string }) => Promise<AuthResult>
+    changeEmail: (args: {
+      newEmail: string
+      otp: string
+    }) => Promise<AuthResult>
     sendVerificationOtp?: (args: {
       email: string
       type: string
@@ -49,7 +49,9 @@ export type AccountClient = {
    * entirely — offering a toggle that cannot work is worse than not offering one.
    */
   twoFactor?: {
-    enable: (args: { password: string }) => Promise<AuthResult<{ totpURI: string }>>
+    enable: (args: {
+      password: string
+    }) => Promise<AuthResult<{ totpURI: string }>>
     disable: (args: { password: string }) => Promise<AuthResult>
     /**
      * `trustDevice` is passed when confirming a fresh 2FA setup: the browser that

@@ -15,7 +15,9 @@
     "./email": "./src/email.ts",
     "./turnstile": "./src/turnstile.ts",
     "./forms": "./src/forms/index.ts",
-    "./account": "./src/account/index.ts"
+    "./account": "./src/account/index.ts",
+    "./return-to": "./src/return-to.ts",
+    "./route-policy": "./src/route-policy.ts"
   },
   "scripts": {
     "build": "tsc",

@@ -57,10 +57,7 @@ export function resendSender(): EmailSender {
 type MinimalUser = { email?: string | null }
 
 export type AuthEmailCallbacks = {
-  sendResetPassword: (args: {
-    user: MinimalUser
-    url: string
-  }) => Promise<void>
+  sendResetPassword: (args: { user: MinimalUser; url: string }) => Promise<void>
   sendVerificationEmail: (args: {
     user: MinimalUser
     url: string

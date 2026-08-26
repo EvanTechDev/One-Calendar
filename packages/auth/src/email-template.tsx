@@ -42,7 +42,6 @@ interface AuthEmailTemplateProps {
   code?: string
 }
 
-
 const fontFamily =
   'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif'
 

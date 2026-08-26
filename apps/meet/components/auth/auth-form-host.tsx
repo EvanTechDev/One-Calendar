@@ -8,10 +8,10 @@ import { authClient } from '@/lib/auth/client'
 /**
  * This app's half of the shared auth forms.
  *
- * The forms themselves live in `@zntr/auth` and are identical in both apps; what
- * differs is the Better Auth client, the four routes, and the brand (ADR 0022).
- * Supplying them here is what keeps the package free of any `next/navigation`
- * import — which is also what makes the forms testable.
+ * The forms live in `@zntr/auth` and are byte-identical to the calendar's; only
+ * the client, the routes and the brand differ (ADR 0022). `home` is the dashboard
+ * rather than the calendar's `/app` — the literal that used to be hard-coded in
+ * the form would have sent every new meet user to a route this app does not have.
  */
 export function AuthFormHost({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -26,7 +26,7 @@ export function AuthFormHost({ children }: { children: ReactNode }) {
           blurb: 'Zentra is a free and open source workspace that helps you.',
         },
         routes: {
-          home: '/app',
+          home: '/',
           signIn: '/sign-in',
           signUp: '/sign-up',
           resetPassword: '/reset-password',

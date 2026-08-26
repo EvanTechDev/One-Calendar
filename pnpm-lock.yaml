@@ -275,6 +275,9 @@ importers:
       '@zntr/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@zntr/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@zntr/meetings':
         specifier: workspace:*
         version: link:../../packages/meetings

@@ -14,7 +14,36 @@ import {
  *
  * next-themes is faked so the theme row can be asserted without a provider —
  * the real one needs `matchMedia`, which jsdom does not supply.
+ *
+ * next/navigation is faked because the account section now mounts the shared
+ * panel from @zntr/auth (ADR 0022), whose host reads the router to navigate after
+ * sign-out.
  */
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+}))
+
+// The shared account panel reads the session from the client rather than taking
+// it as a prop, which is what lets it render under either app's client.
+vi.mock('@/lib/auth/client', () => ({
+  authClient: {
+    useSession: () => ({
+      data: {
+        user: {
+          id: 'u1',
+          name: 'Ada Lovelace',
+          email: 'ada@example.com',
+          image: null,
+          emailVerified: true,
+        },
+      },
+    }),
+    updateUser: vi.fn(async () => ({ data: {}, error: null })),
+    signOut: vi.fn(async () => ({ data: {}, error: null })),
+    $store: { atoms: { session: { get: () => ({ refetch: async () => {} }) } } },
+  },
+}))
 
 const theme = { value: 'system', setTheme: vi.fn() }
 vi.mock('next-themes', () => ({
@@ -201,25 +230,21 @@ describe('dashboard SettingsDialog', () => {
     )
   })
 
-  it('sends account changes to the calendar instead of faking a form', () => {
+  it('mounts the shared account panel rather than a link to the calendar', () => {
+    // This used to assert the opposite — a card linking out, and NO form —
+    // because meet's auth route exposed no account mutation and every change had
+    // to happen where the CAPTCHA and audit logging lived. Both moved into
+    // @zntr/auth, so meet performs them itself now (ADR 0022).
     open()
     fireEvent.click(
       within(sectionNav()).getByRole('button', { name: 'Account' }),
     )
-    expect(screen.getByText('ada@example.com')).toBeTruthy()
-    const link = screen.getByRole('link', { name: /Open calendar/ })
-    expect(link).toHaveAttribute('href', 'https://cal.example.com/app')
-    // Meet's auth route exposes no account mutation, so there must be no form.
-    expect(screen.queryByRole('textbox')).toBeNull()
-  })
-
-  it('keeps sign-out reachable from the Account tab', () => {
-    const { onSignOut } = open()
-    fireEvent.click(
-      within(sectionNav()).getByRole('button', { name: 'Account' }),
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(onSignOut).toHaveBeenCalledOnce()
+    const account = panelFor('account')
+    // An editable field is the point: the panel is real, not a redirect.
+    expect(within(account).queryAllByRole('textbox').length).toBeGreaterThan(0)
+    expect(
+      within(account).queryByRole('link', { name: /Open calendar/ }),
+    ).toBeNull()
   })
 
   it('reports build facts on About without inventing any', () => {

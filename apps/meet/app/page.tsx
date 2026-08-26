@@ -19,7 +19,6 @@ export default async function HomePage() {
         userName={session.user.name}
         identity={
           <UserAvatarButton
-            calendarOrigin={calendarOrigin()}
             user={{
               name: session.user.name,
               email: session.user.email,

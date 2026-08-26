@@ -4,8 +4,4 @@
 export { AccountPanel } from './account-panel'
 export type { AccountSection } from './account-panel'
 export { AccountProvider, useAccount } from './context'
-export type {
-  AccountContextValue,
-  AccountClient,
-  AccountUser,
-} from './context'
+export type { AccountContextValue, AccountClient, AccountUser } from './context'
