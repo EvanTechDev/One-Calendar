@@ -22,6 +22,7 @@
     "prepare": "husky",
     "lint:calendar": "pnpm --filter zentra-calendar lint",
     "tc:calendar": "pnpm --filter zentra-calendar type-check",
+    "build:auth": "pnpm --filter zentra-auth build",
     "lint:auth": "pnpm --filter @zntr/auth lint",
     "tc:auth": "pnpm --filter @zntr/auth type-check",
     "test:calendar": "pnpm --filter zentra-calendar test",
