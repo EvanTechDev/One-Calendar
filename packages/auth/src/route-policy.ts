@@ -45,6 +45,7 @@ const EXPOSED_POST = new Set([
 ])
 
 const EXPOSED_OAUTH_GET = new Set([
+  '.well-known/oauth-authorization-server',
   'oauth2/authorize',
   'oauth2/public-client',
   'oauth2/userinfo',

@@ -105,6 +105,7 @@ describe('calendar auth surface', () => {
     for (const [method, path] of [
       ['GET', 'oauth2/authorize'],
       ['GET', 'oauth2/public-client'],
+      ['GET', '.well-known/oauth-authorization-server'],
       ['POST', 'oauth2/token'],
       ['POST', 'oauth2/register'],
       ['POST', 'device/code'],
