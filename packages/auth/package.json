@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
     "./client": "./src/client.ts",
+    "./cimd-fetch": "./src/cimd-fetch.ts",
     "./schema": "./src/schema.ts",
     "./adapter": "./src/adapter.ts",
     "./types": "./src/types.ts",
@@ -30,6 +31,7 @@
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.2",
+    "@better-auth/core": "1.7.2",
     "@better-auth/drizzle-adapter": "1.7.2",
     "@better-auth/infra": "0.4.3",
     "@better-auth/mcp": "1.7.2",

@@ -3,9 +3,9 @@ import { twoFactor, emailOTP } from 'better-auth/plugins'
 import { jwt } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
 import { cimd } from '@better-auth/cimd'
-import { fetchClientMetadataResource } from '@better-auth/cimd/node'
 import { mcp } from '@better-auth/mcp'
 import { oauthDeviceAuthorization } from '@better-auth/oauth-provider'
+import { fetchCimdResource } from './cimd-fetch'
 
 export { oauthProviderAuthServerMetadata } from '@better-auth/oauth-provider'
 export { requireMcpAuth } from '@better-auth/mcp'
@@ -135,7 +135,7 @@ export function createAuth(options: CreateAuthOptions): {
         interval: '5s',
       }),
       cimd({
-        fetchClientMetadataResource,
+        fetchClientMetadataResource: fetchCimdResource,
         metadataProfile: 'mcp-2026-07-28',
         metadataRevalidationInterval: '60m',
         metadataFetchPolicy: {
