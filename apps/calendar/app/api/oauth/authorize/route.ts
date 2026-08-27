@@ -32,6 +32,48 @@ export async function GET(request: NextRequest) {
   }
 
   const userCode = request.nextUrl.searchParams.get('user_code')
+  const clientId = request.nextUrl.searchParams.get('client_id')
+  const redirectUri = request.nextUrl.searchParams.get('redirect_uri')
+
+  if (clientId && redirectUri) {
+    const db = await getDb()
+    const [client] = await db
+      .select({
+        isRevoked: mcpOauthClients.isRevoked,
+        redirectUris: mcpOauthClients.redirectUris,
+      })
+      .from(mcpOauthClients)
+      .where(eq(mcpOauthClients.id, clientId))
+
+    if (!client || client.isRevoked) {
+      return NextResponse.json(
+        {
+          error: 'invalid_client',
+          error_description: 'Unknown or revoked client_id',
+        },
+        { status: 400 },
+      )
+    }
+
+    const registeredRedirectUri = (client.redirectUris as string[]).find(
+      (registered) => registered === redirectUri,
+    )
+    if (
+      !registeredRedirectUri ||
+      !redirectUriAllowed(client.redirectUris as string[], redirectUri)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'invalid_request',
+          error_description: 'redirect_uri not registered for this client',
+        },
+        { status: 400 },
+      )
+    }
+
+    return NextResponse.json({ redirect_uri: registeredRedirectUri })
+  }
+
   if (!userCode) {
     return NextResponse.json(
       { error: 'invalid_request', error_description: 'Missing user_code' },

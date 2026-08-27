@@ -20,6 +20,7 @@ type Cond =
   | { __op: 'or'; conds: Cond[] }
   | { __op: 'inArray'; col: string; vals: unknown[] }
   | { __op: 'isNotNull'; col: string }
+  | { __op: 'isNull'; col: string }
   | { __op: 'gte'; col: string; val: unknown }
   | { __op: 'lte'; col: string; val: unknown }
   | { __op: 'gt'; col: string; val: unknown }
@@ -63,6 +64,7 @@ export const drizzleOperatorsMock = {
     vals,
   }),
   isNotNull: (col: unknown): Cond => ({ __op: 'isNotNull', col: colKey(col) }),
+  isNull: (col: unknown): Cond => ({ __op: 'isNull', col: colKey(col) }),
   gte: (col: unknown, val: unknown): Cond => ({
     __op: 'gte',
     col: colKey(col),
@@ -99,6 +101,8 @@ function matches(cond: Cond | undefined, row: FakeRow): boolean {
       return cond.vals.includes(row[cond.col])
     case 'isNotNull':
       return row[cond.col] !== null && row[cond.col] !== undefined
+    case 'isNull':
+      return row[cond.col] === null || row[cond.col] === undefined
     case 'gte':
       return (row[cond.col] as never) >= (cond.val as never)
     case 'lte':

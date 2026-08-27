@@ -25,10 +25,11 @@ process.env.LIVEKIT_API_SECRET = API_SECRET
 
 const retained: Record<string, unknown>[] = []
 let meetingExists = true
+let retainsChat = true
 
 vi.mock('@zntr/meetings', () => ({
   getMeeting: async (_db: unknown, id: string) =>
-    meetingExists ? { id, organiserId: 'u1' } : null,
+    meetingExists ? { id, organiserId: 'u1', retainsChat } : null,
   getOpenSession: async () => ({ id: 'session-1' }),
   retainChatMessage: async (_db: unknown, input: Record<string, unknown>) => {
     retained.push(input)
@@ -79,6 +80,7 @@ function post(body: unknown, id = ROOM) {
 beforeEach(() => {
   retained.length = 0
   meetingExists = true
+  retainsChat = true
 })
 
 describe('chat retention requires proof of room membership', () => {
@@ -168,6 +170,24 @@ describe('chat retention requires proof of room membership', () => {
       senderName: 'Ada',
       message: 'hello everyone',
     })
+  })
+
+  it('refuses retention for E2EE even from a genuine participant', async () => {
+    retainsChat = false
+    const response = await post({
+      message: 'must not be stored',
+      participantToken: await joinToken({
+        room: ROOM,
+        identity: 'user_1',
+        name: 'Ada',
+      }),
+    })
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: 'Chat retention is disabled for this meeting',
+    })
+    expect(retained).toHaveLength(0)
   })
 
   it('takes the sender from the token, ignoring the body entirely', async () => {

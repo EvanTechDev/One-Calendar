@@ -37,6 +37,7 @@ import {
   clientIpFrom,
   rateLimitedResponse,
 } from '@/lib/rate-limit'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
@@ -100,15 +101,12 @@ export const GET = async function GET(
     .from(user)
     .where(eq(user.id, event.userId))
 
-  const [participant] = invite.email
-    ? await getDb()
-        .select({ id: user.id, name: user.name })
-        .from(user)
-        .where(eq(user.email, invite.email.toLowerCase().trim()))
-        .limit(1)
-    : []
+  const currentUser = await getAuthedUser()
+  const isMatchingParticipant =
+    !!currentUser?.email &&
+    currentUser.email.toLowerCase().trim() === invite.email.toLowerCase().trim()
 
-  const participantCategories = participant
+  const participantCategories = isMatchingParticipant
     ? await getDb()
         .select({
           id: calendarCategories.id,
@@ -116,7 +114,7 @@ export const GET = async function GET(
           color: calendarCategories.color,
         })
         .from(calendarCategories)
-        .where(eq(calendarCategories.userId, participant.id))
+        .where(eq(calendarCategories.userId, currentUser.id))
         .orderBy(calendarCategories.sortOrder)
     : []
 
@@ -226,7 +224,7 @@ export const GET = async function GET(
       inviter: owner
         ? { name: owner.name, image: owner.image }
         : { name: 'Someone' },
-      isRegisteredUser: !!participant,
+      isRegisteredUser: isMatchingParticipant,
       categories: participantCategories.map((cat) => ({
         id: cat.id,
         name: decryptField(cat.id, cat.name) ?? cat.name,
@@ -287,26 +285,18 @@ export const PATCH = async function PATCH(
   }
 
   if (categoryId !== undefined) {
-    const [event] = await getDb()
-      .select({ userId: calendarEvents.userId })
-      .from(calendarEvents)
-      .where(eq(calendarEvents.id, invite.eventId))
-
-    if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
-    }
-
-    const [participant] = await getDb()
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.email, invite.email.toLowerCase().trim()))
-      .limit(1)
-
-    if (!participant) {
+    const currentUser = await getAuthedUser()
+    if (!currentUser?.email) {
       return NextResponse.json(
-        { error: 'Participant is not a registered user' },
-        { status: 400 },
+        { error: 'Authentication required' },
+        { status: 401 },
       )
+    }
+    if (
+      currentUser.email.toLowerCase().trim() !==
+      invite.email.toLowerCase().trim()
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     if (categoryId === '__uncategorized__') {
@@ -320,7 +310,7 @@ export const PATCH = async function PATCH(
       .where(
         and(
           eq(calendarCategories.id, categoryId),
-          eq(calendarCategories.userId, participant.id),
+          eq(calendarCategories.userId, currentUser.id),
         ),
       )
 

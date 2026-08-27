@@ -3,6 +3,10 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { eventInvites, eventInviteOccurrences } from '@/lib/drizzle/schema'
 import { shiftExdates } from '@/lib/recurrence/engine'
+import {
+  decryptInviteToken,
+  protectInviteToken,
+} from '@/lib/invites/invite-token'
 
 /**
  * Either the singleton connection or a transaction executor. The split runs
@@ -80,15 +84,17 @@ export async function carryInvitesAcrossSplit(
 
     if (!baselineReachesTail && tailExceptions.length === 0) continue
 
+    const carriedId = crypto.randomUUID()
+    const rawToken = decryptInviteToken(invite)
     const [carried] = await tx
       .insert(eventInvites)
       .values({
-        id: crypto.randomUUID(),
+        id: carriedId,
         eventId: newMasterId,
         email: invite.email,
         status: invite.status,
-        // The same token, so the participant's existing link keeps working.
-        inviteToken: invite.inviteToken,
+        // Same raw token, re-encrypted for the destination row id.
+        ...protectInviteToken(carriedId, rawToken),
         emailSent: invite.emailSent,
         addedToCalendar: invite.addedToCalendar,
         categoryId: invite.categoryId,

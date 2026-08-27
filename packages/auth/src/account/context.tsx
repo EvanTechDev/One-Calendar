@@ -37,6 +37,11 @@ export type AccountClient = {
     sendVerificationOtp?: (args: {
       email: string
       type: string
+      turnstileToken?: string
+    }) => Promise<AuthResult>
+    requestPasswordReset?: (args: {
+      email: string
+      turnstileToken?: string
     }) => Promise<AuthResult>
     resetPassword?: (args: {
       email: string

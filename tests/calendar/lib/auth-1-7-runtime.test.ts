@@ -51,6 +51,9 @@ beforeAll(() => {
   // Only needs to be present and stable for construction; no cookie issued here
   // is ever presented to a real app.
   process.env.BETTER_AUTH_SECRET ||= 'probe-secret-long-enough-for-hs256-0000'
+  // This local integration target presents a self-signed chain. Production must
+  // keep the verified default; the named opt-out exists for development probes.
+  process.env.DATABASE_SSL = 'no-verify'
 })
 
 // Reaching a real Postgres in eu-north-1 does not fit the 5s default. Scoped to

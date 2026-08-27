@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { toNextJsHandler } from '@zntr/auth'
+import { authRouteIsExposed, authRoutePath } from '@zntr/auth/route-policy'
 import { auth } from '@/lib/auth'
 import {
   invalidateCachedSession,
@@ -15,8 +16,38 @@ import {
   type TurnstileVerifyResult,
 } from '@/lib/turnstile'
 import { eq } from 'drizzle-orm'
+import {
+  checkFixedWindowLimit,
+  clientIpFrom,
+  rateLimitedResponse,
+} from '@/lib/rate-limit'
 
 const authHandlers = toNextJsHandler(auth)
+
+const LIMITS: Record<string, { limit: number; windowSeconds: number }> = {
+  'sign-in/email': { limit: 10, windowSeconds: 60 },
+  'sign-up/email': { limit: 5, windowSeconds: 300 },
+  'forget-password': { limit: 3, windowSeconds: 300 },
+  'email-otp/send-verification-otp': { limit: 3, windowSeconds: 300 },
+  'email-otp/request-password-reset': { limit: 3, windowSeconds: 300 },
+  'email-otp/request-email-change': { limit: 3, windowSeconds: 300 },
+}
+
+function notFound() {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 })
+}
+
+async function authRateLimit(request: Request, path: string) {
+  const budget = LIMITS[path]
+  if (!budget) return null
+
+  const result = await checkFixedWindowLimit({
+    name: `auth:${path}`,
+    subject: clientIpFrom(request),
+    ...budget,
+  })
+  return result.allowed ? null : rateLimitedResponse(result.retryAfter)
+}
 
 type AuthAuditSubject = {
   actor:
@@ -100,8 +131,14 @@ async function resolveAuthSubject(
 }
 
 async function handleAuth(request: Request) {
-  const log = useLogger()
   const pathname = new URL(request.url).pathname
+  const path = authRoutePath(request.url)
+  if (!authRouteIsExposed(request.method, path)) return notFound()
+
+  const throttled = await authRateLimit(request, path)
+  if (throttled) return throttled
+
+  const log = useLogger()
   const action = authAction(pathname)
   const body = await readAuthBody(request)
 

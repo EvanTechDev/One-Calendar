@@ -36,6 +36,8 @@ vi.mock('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
   decryptField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
 vi.mock('@/lib/cache/events', () => ({

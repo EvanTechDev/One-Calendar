@@ -5,6 +5,15 @@ import { meetingsSchema } from '@zntr/meetings'
 
 let _db: ReturnType<typeof drizzle> | null = null
 
+export function resolveDbSsl(
+  env: Record<string, string | undefined> = process.env,
+): 'verify-full' | 'require' | false {
+  const mode = env.DATABASE_SSL?.trim().toLowerCase()
+  if (mode === 'no-verify') return 'require'
+  if (mode === 'disable') return false
+  return 'verify-full'
+}
+
 export function getDb() {
   if (!_db) {
     const connectionString =
@@ -19,7 +28,7 @@ export function getDb() {
     }
     const client = postgres(connectionString, {
       prepare: false,
-      ssl: 'require',
+      ssl: resolveDbSsl(),
     })
     _db = drizzle(client, { schema: { ...authSchema, ...meetingsSchema } })
   }

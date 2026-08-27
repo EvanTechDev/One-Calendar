@@ -22,7 +22,11 @@ export function useStartMeeting() {
     async (options?: { e2ee?: boolean }) => {
       setStarting(true)
       try {
-        const response = await fetch('/api/meetings', { method: 'POST' })
+        const response = await fetch('/api/meetings', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ e2ee: options?.e2ee === true }),
+        })
         if (!response.ok) {
           const body = await response.json().catch(() => null)
           throw new Error(body?.error ?? 'Could not start the meeting')

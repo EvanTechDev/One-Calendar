@@ -459,6 +459,12 @@ export default function InvitePage() {
                     Add to My Calendar
                   </Button>
                 )}
+                {canAddToCalendar && !isRegisteredUser && (
+                  <p className="w-full text-left text-sm text-muted-foreground">
+                    Sign in with the invited account to add this event and
+                    choose a category.
+                  </p>
+                )}
               </>
             )}
           </CardFooter>

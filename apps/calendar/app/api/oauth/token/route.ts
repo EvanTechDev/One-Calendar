@@ -1,154 +1,106 @@
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
+import { and, eq, gte } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getDb } from '@/lib/drizzle/client'
 import {
-  mcpDeviceCodes,
-  mcpTokens,
   mcpAuthRequests,
+  mcpDeviceCodes,
   mcpOauthClients,
+  mcpTokens,
 } from '@/lib/drizzle/schema'
-import { eq, and, gte } from 'drizzle-orm'
 import {
   generateAccessToken,
   generateCodeChallenge,
   generateRefreshToken,
+  getUserNameAndEmail,
   hashAuthorizationCode,
   hashToken,
-  verifyOAuthClientSecret,
-  getUserNameAndEmail,
 } from '@/lib/mcp/auth'
-import crypto from 'crypto'
 
 export const runtime = 'nodejs'
 
 const ACCESS_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
+const REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
-async function parseBody(
-  request: NextRequest,
-): Promise<Record<string, string>> {
-  const ct = request.headers.get('content-type') || ''
-  if (ct.includes('application/x-www-form-urlencoded')) {
-    const text = await request.text()
-    const params = new URLSearchParams(text)
-    return Object.fromEntries(params.entries())
-  }
-  return request.json().catch(() => ({}))
-}
+const tokenRequestSchema = z
+  .object({
+    grant_type: z.string().min(1),
+    device_code: z.string().min(1).optional(),
+    code: z.string().min(1).optional(),
+    code_verifier: z.string().min(1).optional(),
+    redirect_uri: z.string().min(1).optional(),
+    client_id: z.string().min(1).optional(),
+    client_secret: z.string().optional(),
+    refresh_token: z.string().min(1).optional(),
+  })
+  .passthrough()
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await parseBody(request)
-    const grantType = body.grant_type
+type TokenRequest = z.infer<typeof tokenRequestSchema>
+type TokenWriter = Pick<Awaited<ReturnType<typeof getDb>>, 'insert'>
 
-    // --- Device Code Grant ---
-    if (grantType === 'urn:ietf:params:oauth:grant-type:device_code') {
-      return handleDeviceCodeGrant(body)
-    }
-
-    // --- Authorization Code Grant (PKCE) ---
-    if (grantType === 'authorization_code') {
-      return handleAuthorizationCodeGrant(body, request)
-    }
-
-    // --- Refresh Token Grant ---
-    if (grantType === 'refresh_token') {
-      return handleRefreshTokenGrant(body)
-    }
-
-    return NextResponse.json(
-      { error: 'unsupported_grant_type' },
-      { status: 400 },
-    )
-  } catch {
-    return NextResponse.json(
-      { error: 'server_error', error_description: 'Internal server error' },
-      { status: 500 },
-    )
-  }
-}
-
-async function handleDeviceCodeGrant(body: Record<string, unknown>) {
-  const deviceCode = body.device_code as string | undefined
-  if (!deviceCode) {
-    return NextResponse.json(
-      { error: 'invalid_request', error_description: 'Missing device_code' },
-      { status: 400 },
-    )
-  }
-
-  const hashedDeviceCode = hashToken(deviceCode)
-  const db = await getDb()
-
-  const [record] = await db
-    .select()
-    .from(mcpDeviceCodes)
-    .where(eq(mcpDeviceCodes.deviceCode, hashedDeviceCode))
-
-  if (!record) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'Invalid device code' },
-      { status: 400 },
-    )
-  }
-
-  if (record.expiresAt < new Date()) {
-    return NextResponse.json(
-      { error: 'expired_token', error_description: 'Device code expired' },
-      { status: 400 },
-    )
-  }
-
-  if (record.status === 'pending') {
-    return NextResponse.json(
-      { error: 'authorization_pending' },
-      { status: 400 },
-    )
-  }
-
-  if (record.status !== 'approved' || !record.userId) {
-    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
-  }
-
-  const result = await issueTokens(
-    record.userId,
-    record.scopes as string[],
-    record.clientId,
-    record.clientName,
+function oauthError(error: string, errorDescription?: string, status = 400) {
+  return NextResponse.json(
+    {
+      error,
+      ...(errorDescription ? { error_description: errorDescription } : {}),
+    },
+    { status },
   )
-
-  await db
-    .update(mcpDeviceCodes)
-    .set({ status: 'used' })
-    .where(eq(mcpDeviceCodes.id, record.id))
-
-  return result
 }
 
-async function handleAuthorizationCodeGrant(
-  body: Record<string, unknown>,
-  request: NextRequest,
-) {
-  const code = body.code as string | undefined
-  const codeVerifier = body.code_verifier as string | undefined
-  const redirectUri = body.redirect_uri as string | undefined
-  const clientId = body.client_id as string | undefined
-
-  if (!code) {
-    return NextResponse.json(
-      { error: 'invalid_request', error_description: 'Missing code' },
-      { status: 400 },
-    )
+async function parseBody(request: NextRequest): Promise<TokenRequest | null> {
+  try {
+    const contentType = request.headers.get('content-type') ?? ''
+    let input: unknown
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      input = Object.fromEntries(new URLSearchParams(await request.text()))
+    } else {
+      input = await request.json()
+    }
+    const parsed = tokenRequestSchema.safeParse(input)
+    return parsed.success ? parsed.data : null
+  } catch {
+    return null
   }
+}
 
-  if (!clientId) {
-    return NextResponse.json(
-      { error: 'invalid_client', error_description: 'Missing client_id' },
-      { status: 400 },
-    )
+function basicCredentials(request: NextRequest) {
+  const authorization = request.headers.get('authorization') ?? ''
+  const match = /^Basic\s+([^\s]+)$/i.exec(authorization)
+  if (!match) return null
+
+  try {
+    const decoded = Buffer.from(match[1]!, 'base64').toString('utf8')
+    const separator = decoded.indexOf(':')
+    if (separator < 0) return null
+    return {
+      clientId: decodeURIComponent(decoded.slice(0, separator)),
+      clientSecret: decodeURIComponent(decoded.slice(separator + 1)),
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Authenticates the request against the client bound to the stored grant. */
+async function authenticateClient(
+  storedClientId: string,
+  request: NextRequest,
+  bodyClientId?: string,
+  bodyClientSecret?: string,
+): Promise<boolean> {
+  const basic = basicCredentials(request)
+  if (
+    (bodyClientId && bodyClientId !== storedClientId) ||
+    (basic && basic.clientId !== storedClientId)
+  ) {
+    return false
   }
 
   const db = await getDb()
-
   const [client] = await db
     .select({
       clientSecretHash: mcpOauthClients.clientSecretHash,
@@ -156,221 +108,266 @@ async function handleAuthorizationCodeGrant(
     .from(mcpOauthClients)
     .where(
       and(
-        eq(mcpOauthClients.id, clientId),
+        eq(mcpOauthClients.id, storedClientId),
         eq(mcpOauthClients.isRevoked, false),
       ),
     )
 
-  if (!client) {
-    return NextResponse.json(
-      {
-        error: 'invalid_client',
-        error_description: 'Unknown or revoked client_id',
-      },
-      { status: 400 },
-    )
+  if (!client) return false
+  if (!client.clientSecretHash) return true
+
+  const secret = basic?.clientSecret ?? bodyClientSecret
+  return typeof secret === 'string'
+    ? bcrypt.compare(secret, client.clientSecretHash)
+    : false
+}
+
+async function issueTokens(
+  db: TokenWriter,
+  input: {
+    userId: string
+    scopes: string[]
+    clientId: string
+    clientName: string
+    user: { name: string; email: string }
+  },
+) {
+  const accessToken = generateAccessToken()
+  const refreshToken = generateRefreshToken()
+
+  await db.insert(mcpTokens).values({
+    id: crypto.randomUUID(),
+    userId: input.userId,
+    tokenHash: hashToken(accessToken),
+    refreshTokenHash: hashToken(refreshToken),
+    tokenType: 'bearer',
+    scopes: input.scopes,
+    clientId: input.clientId,
+    clientName: input.clientName,
+    expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
+    refreshExpiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+  })
+
+  return {
+    access_token: accessToken,
+    token_type: 'bearer',
+    expires_in: ACCESS_TOKEN_TTL_SECONDS,
+    refresh_token: refreshToken,
+    scope: input.scopes.join(' '),
+    user: { id: input.userId, ...input.user },
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await parseBody(request)
+    if (!body) return oauthError('invalid_request', 'Malformed token request')
+
+    if (body.grant_type === 'urn:ietf:params:oauth:grant-type:device_code') {
+      return handleDeviceCodeGrant(body, request)
+    }
+    if (body.grant_type === 'authorization_code') {
+      return handleAuthorizationCodeGrant(body, request)
+    }
+    if (body.grant_type === 'refresh_token') {
+      return handleRefreshTokenGrant(body, request)
+    }
+    return oauthError('unsupported_grant_type')
+  } catch {
+    return oauthError('server_error', 'Internal server error', 500)
+  }
+}
+
+async function handleDeviceCodeGrant(body: TokenRequest, request: NextRequest) {
+  if (!body.device_code) {
+    return oauthError('invalid_request', 'Missing device_code')
   }
 
-  if (client.clientSecretHash) {
-    let secret = body.client_secret as string | undefined
-    const authHeader = request.headers.get('authorization') || ''
-    if (authHeader.startsWith('Basic ')) {
-      try {
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString(
-          'utf8',
-        )
-        secret = decoded.includes(':') ? decoded.split(':')[1] : undefined
-      } catch {
-        secret = undefined
-      }
-    }
+  const db = await getDb()
+  const [record] = await db
+    .select()
+    .from(mcpDeviceCodes)
+    .where(eq(mcpDeviceCodes.deviceCode, hashToken(body.device_code)))
 
-    if (!(await verifyOAuthClientSecret(clientId, secret))) {
-      return NextResponse.json(
-        {
-          error: 'invalid_client',
-          error_description: 'Invalid client secret',
-        },
-        { status: 400 },
+  if (!record) return oauthError('invalid_grant', 'Invalid device code')
+  if (
+    !(await authenticateClient(
+      record.clientId,
+      request,
+      body.client_id,
+      body.client_secret,
+    ))
+  ) {
+    return oauthError('invalid_client', 'Client authentication failed')
+  }
+  if (record.expiresAt < new Date()) {
+    return oauthError('expired_token', 'Device code expired')
+  }
+  if (record.status === 'pending') return oauthError('authorization_pending')
+  if (record.status !== 'approved' || !record.userId) {
+    return oauthError('invalid_grant')
+  }
+
+  const user = await getUserNameAndEmail(record.userId)
+  const result = await db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .update(mcpDeviceCodes)
+      .set({ status: 'used' })
+      .where(
+        and(
+          eq(mcpDeviceCodes.id, record.id),
+          eq(mcpDeviceCodes.status, 'approved'),
+          gte(mcpDeviceCodes.expiresAt, new Date()),
+        ),
       )
-    }
-  }
+      .returning({ id: mcpDeviceCodes.id })
+    if (!claimed) return null
 
-  const codeHash = hashAuthorizationCode(code)
+    return issueTokens(tx, {
+      userId: record.userId!,
+      scopes: record.scopes as string[],
+      clientId: record.clientId,
+      clientName: record.clientName,
+      user,
+    })
+  })
 
+  return result
+    ? NextResponse.json(result)
+    : oauthError('invalid_grant', 'Device code already redeemed')
+}
+
+async function handleAuthorizationCodeGrant(
+  body: TokenRequest,
+  request: NextRequest,
+) {
+  if (!body.code) return oauthError('invalid_request', 'Missing code')
+
+  const db = await getDb()
   const [record] = await db
     .select()
     .from(mcpAuthRequests)
     .where(
       and(
-        eq(mcpAuthRequests.authorizationCode, codeHash),
+        eq(mcpAuthRequests.authorizationCode, hashAuthorizationCode(body.code)),
         eq(mcpAuthRequests.status, 'approved'),
         gte(mcpAuthRequests.codeExpiresAt, new Date()),
       ),
     )
 
   if (!record) {
-    return NextResponse.json(
-      {
-        error: 'invalid_grant',
-        error_description: 'Invalid or expired authorization code',
-      },
-      { status: 400 },
-    )
+    return oauthError('invalid_grant', 'Invalid or expired authorization code')
   }
-
-  if (record.clientId !== clientId) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'client_id mismatch' },
-      { status: 400 },
-    )
+  if (
+    !(await authenticateClient(
+      record.clientId,
+      request,
+      body.client_id,
+      body.client_secret,
+    ))
+  ) {
+    return oauthError('invalid_client', 'Client authentication failed')
   }
-
-  if (!redirectUri || redirectUri !== record.redirectUri) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'redirect_uri mismatch' },
-      { status: 400 },
-    )
+  if (!body.redirect_uri || body.redirect_uri !== record.redirectUri) {
+    return oauthError('invalid_grant', 'redirect_uri mismatch')
   }
-
-  if (!record.codeChallenge) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'PKCE not required' },
-      { status: 400 },
-    )
+  if (!record.codeChallenge || !body.code_verifier) {
+    return oauthError('invalid_grant', 'Missing PKCE verifier')
   }
-
-  if (!codeVerifier) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'Missing code_verifier' },
-      { status: 400 },
-    )
-  }
-
   const expectedChallenge = generateCodeChallenge(
-    codeVerifier,
+    body.code_verifier,
     record.codeChallengeMethod ?? 'S256',
   )
   if (expectedChallenge !== record.codeChallenge) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'code_verifier mismatch' },
-      { status: 400 },
-    )
+    return oauthError('invalid_grant', 'code_verifier mismatch')
   }
+  if (!record.userId) return oauthError('invalid_grant', 'No user associated')
 
-  // Atomically claim the code: the WHERE includes the current status, so of two
-  // concurrent redemptions exactly one row is updated and the loser gets
-  // invalid_grant instead of a second valid token pair.
-  const [claimed] = await db
-    .update(mcpAuthRequests)
-    .set({ status: 'used' })
-    .where(
-      and(
-        eq(mcpAuthRequests.id, record.id),
-        eq(mcpAuthRequests.status, 'approved'),
-      ),
-    )
-    .returning({ id: mcpAuthRequests.id })
+  const user = await getUserNameAndEmail(record.userId)
+  const result = await db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .update(mcpAuthRequests)
+      .set({ status: 'used' })
+      .where(
+        and(
+          eq(mcpAuthRequests.id, record.id),
+          eq(mcpAuthRequests.status, 'approved'),
+          gte(mcpAuthRequests.codeExpiresAt, new Date()),
+        ),
+      )
+      .returning({ id: mcpAuthRequests.id })
+    if (!claimed) return null
 
-  if (!claimed) {
-    return NextResponse.json(
-      {
-        error: 'invalid_grant',
-        error_description: 'Authorization code already redeemed',
-      },
-      { status: 400 },
-    )
-  }
+    return issueTokens(tx, {
+      userId: record.userId!,
+      scopes: record.scopes as string[],
+      clientId: record.clientId,
+      clientName: `${record.clientId.slice(0, 12)}...`,
+      user,
+    })
+  })
 
-  if (!record.userId) {
-    return NextResponse.json(
-      { error: 'invalid_grant', error_description: 'No user associated' },
-      { status: 400 },
-    )
-  }
-
-  return issueTokens(
-    record.userId,
-    record.scopes as string[],
-    record.clientId,
-    record.clientId.slice(0, 12) + '...',
-  )
+  return result
+    ? NextResponse.json(result)
+    : oauthError('invalid_grant', 'Authorization code already redeemed')
 }
 
-async function handleRefreshTokenGrant(body: Record<string, unknown>) {
-  const refreshToken = body.refresh_token as string | undefined
-  const clientId = body.client_id as string | undefined
-
-  if (!refreshToken) {
-    return NextResponse.json(
-      { error: 'invalid_request', error_description: 'Missing refresh_token' },
-      { status: 400 },
-    )
+async function handleRefreshTokenGrant(
+  body: TokenRequest,
+  request: NextRequest,
+) {
+  if (!body.refresh_token) {
+    return oauthError('invalid_request', 'Missing refresh_token')
   }
 
-  const refreshTokenHash = hashToken(refreshToken)
   const db = await getDb()
-
   const [record] = await db
     .select()
     .from(mcpTokens)
-    .where(eq(mcpTokens.refreshTokenHash, refreshTokenHash))
+    .where(eq(mcpTokens.refreshTokenHash, hashToken(body.refresh_token)))
 
-  if (!record || record.isRevoked) {
-    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+  if (!record || record.isRevoked) return oauthError('invalid_grant')
+  if (
+    !(await authenticateClient(
+      record.clientId,
+      request,
+      body.client_id,
+      body.client_secret,
+    ))
+  ) {
+    return oauthError('invalid_client', 'Client authentication failed')
   }
-
   if (record.refreshExpiresAt && record.refreshExpiresAt < new Date()) {
-    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
+    return oauthError('invalid_grant')
   }
 
-  if (clientId && clientId !== record.clientId) {
-    return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
-  }
+  const user = await getUserNameAndEmail(record.userId)
+  const result = await db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .update(mcpTokens)
+      .set({ isRevoked: true })
+      .where(
+        and(
+          eq(mcpTokens.id, record.id),
+          eq(mcpTokens.isRevoked, false),
+          record.refreshExpiresAt
+            ? gte(mcpTokens.refreshExpiresAt, new Date())
+            : undefined,
+        ),
+      )
+      .returning({ id: mcpTokens.id })
+    if (!claimed) return null
 
-  await db
-    .update(mcpTokens)
-    .set({ isRevoked: true })
-    .where(eq(mcpTokens.id, record.id))
-
-  return issueTokens(
-    record.userId,
-    record.scopes as string[],
-    record.clientId,
-    record.clientName,
-  )
-}
-
-async function issueTokens(
-  userId: string,
-  scopes: string[],
-  clientId: string,
-  clientName: string,
-) {
-  const accessToken = generateAccessToken()
-  const refreshToken = generateRefreshToken()
-  const userInfo = await getUserNameAndEmail(userId)
-
-  const db = await getDb()
-  await db.insert(mcpTokens).values({
-    id: crypto.randomUUID(),
-    userId,
-    tokenHash: hashToken(accessToken),
-    refreshTokenHash: hashToken(refreshToken),
-    tokenType: 'bearer',
-    scopes,
-    clientId,
-    clientName,
-    expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
-    refreshExpiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    return issueTokens(tx, {
+      userId: record.userId,
+      scopes: record.scopes as string[],
+      clientId: record.clientId,
+      clientName: record.clientName,
+      user,
+    })
   })
 
-  return NextResponse.json({
-    access_token: accessToken,
-    token_type: 'bearer',
-    expires_in: ACCESS_TOKEN_TTL_SECONDS,
-    refresh_token: refreshToken,
-    scope: scopes.join(' '),
-    user: { id: userId, name: userInfo.name, email: userInfo.email },
-  })
+  return result
+    ? NextResponse.json(result)
+    : oauthError('invalid_grant', 'Refresh token already redeemed')
 }

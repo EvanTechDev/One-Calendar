@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 /**
  * A Meeting: a video conference room, stored as its own row. May stand
@@ -33,6 +33,8 @@ export const meeting = pgTable(
     eventId: text('event_id'),
     /** Always 'open' in v1; reserved for invite-only mode (ADR 0019). */
     accessPolicy: text('access_policy').default('open').notNull(),
+    /** Server-enforced chat retention policy; false for E2EE Meetings. */
+    retainsChat: boolean('retains_chat').default(true).notNull(),
     /**
      * Set by End Meeting, cleared by reopen. An ended Meeting refuses
      * token minting; the link itself never changes (ADR 0016/0019).

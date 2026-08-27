@@ -17,6 +17,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Turnstile } from '@marsidev/react-turnstile'
 import {
   LogOut,
   Trash2,
@@ -95,6 +96,8 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [twoFactorUri, setTwoFactorUri] = useState('')
   const [twoFactorQrCode, setTwoFactorQrCode] = useState('')
+  const [passwordTurnstileToken, setPasswordTurnstileToken] = useState('')
+  const [passwordCaptchaVersion, setPasswordCaptchaVersion] = useState(0)
   const twoFactorQrCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -265,10 +268,26 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
 
   async function sendPasswordResetOtp() {
     if (!user?.email) return
+    const requestPasswordReset = authClient.emailOtp?.requestPasswordReset
+    if (!requestPasswordReset) {
+      toast(t.sendVerificationCodeFailed)
+      return
+    }
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !passwordTurnstileToken) {
+      toast('Please complete the CAPTCHA verification.')
+      return
+    }
     setTwoFactorPending(true)
-    const res = await (authClient as any).emailOtp.requestPasswordReset({
+    const res = await requestPasswordReset({
       email: user.email,
+      ...(passwordTurnstileToken
+        ? { turnstileToken: passwordTurnstileToken }
+        : {}),
     })
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+      setPasswordTurnstileToken('')
+      setPasswordCaptchaVersion((value) => value + 1)
+    }
     if (res.error) {
       toast(res.error.message || t.sendVerificationCodeFailed)
       setTwoFactorPending(false)
@@ -569,7 +588,8 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
                             },
                           ]
                         : []),
-                      ...(authClient.emailOtp
+                      ...(authClient.emailOtp?.requestPasswordReset &&
+                      authClient.emailOtp.resetPassword
                         ? [
                             {
                               key: 'password' as const,
@@ -786,10 +806,39 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
                                 <p className="text-xs text-muted-foreground">
                                   {t.changePasswordDescription}
                                 </p>
+                                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                                  <Turnstile
+                                    key={passwordCaptchaVersion}
+                                    siteKey={
+                                      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+                                    }
+                                    options={{ size: 'flexible' }}
+                                    onSuccess={setPasswordTurnstileToken}
+                                    onExpire={() => {
+                                      setPasswordTurnstileToken('')
+                                      toast(
+                                        'CAPTCHA expired. Please complete it again.',
+                                      )
+                                    }}
+                                    onError={() => {
+                                      setPasswordTurnstileToken('')
+                                      toast(
+                                        'CAPTCHA initialization failed. Please try again.',
+                                      )
+                                    }}
+                                  />
+                                ) : null}
                                 <Button
                                   size="sm"
                                   onClick={sendPasswordResetOtp}
-                                  disabled={twoFactorPending}
+                                  disabled={
+                                    twoFactorPending ||
+                                    (Boolean(
+                                      process.env
+                                        .NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+                                    ) &&
+                                      !passwordTurnstileToken)
+                                  }
                                 >
                                   {t.next}
                                 </Button>

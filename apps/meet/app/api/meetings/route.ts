@@ -37,6 +37,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    let body: { e2ee?: boolean } = {}
+    const text = await request.text()
+    if (text) {
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        return NextResponse.json(
+          { error: 'Malformed request' },
+          { status: 400 },
+        )
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return NextResponse.json(
+          { error: 'Malformed request' },
+          { status: 400 },
+        )
+      }
+      const e2ee = (parsed as Record<string, unknown>).e2ee
+      if (e2ee !== undefined && typeof e2ee !== 'boolean') {
+        return NextResponse.json(
+          { error: 'Invalid e2ee value' },
+          { status: 400 },
+        )
+      }
+      body = { e2ee }
+    }
+
+    const retainsChat = body.e2ee !== true
+
     const db = getDb()
     const session = await getServerSession()
 
@@ -48,7 +78,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (session) {
-      await createMeeting(db, { id, organiserId: session.user.id })
+      await createMeeting(db, {
+        id,
+        organiserId: session.user.id,
+        retainsChat,
+      })
       return NextResponse.json({ id, joinPath: `/${id}` })
     }
 
@@ -57,6 +91,7 @@ export async function POST(request: NextRequest) {
       id,
       creatorTokenHash: hashCreatorToken(creatorToken),
       expiresAt: new Date(Date.now() + GUEST_TTL_MS),
+      retainsChat,
     })
     // The only time the raw token leaves the server.
     return NextResponse.json({ id, joinPath: `/${id}`, creatorToken })

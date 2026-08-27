@@ -17,6 +17,12 @@ export const runtime = 'nodejs'
  * config-mismatch reasoning, which is the point.
  */
 export async function GET(request: NextRequest) {
+  const isProduction = process.env.NODE_ENV === 'production'
+  const productionSession = isProduction ? await getServerSession() : null
+  if (isProduction && !productionSession?.user) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const cookieHeader = request.headers.get('cookie') ?? ''
   const cookieNames = cookieHeader
     .split(';')
@@ -56,10 +62,10 @@ export async function GET(request: NextRequest) {
     calendarRegistrable !== null &&
     selfRegistrable === calendarRegistrable
 
-  let session: Awaited<ReturnType<typeof getServerSession>> = null
+  let session: Awaited<ReturnType<typeof getServerSession>> = productionSession
   let sessionError: string | null = null
   try {
-    session = await getServerSession()
+    if (!session) session = await getServerSession()
   } catch (error) {
     sessionError = error instanceof Error ? error.message : 'unknown'
   }
@@ -146,6 +152,41 @@ export async function GET(request: NextRequest) {
   }
   if (!process.env.LIVEKIT_URL || !process.env.LIVEKIT_API_KEY) {
     problems.push('LiveKit is not configured; no meeting can be joined.')
+  }
+
+  if (isProduction) {
+    const checks = {
+      sessionResolved: Boolean(session),
+      databaseReachable,
+      calendarOriginConfigured: Boolean(calendarOrigin),
+      baseUrlConfigured: Boolean(selfOrigin),
+      cookieDomainConfigured: Boolean(cookieDomain),
+      registrableDomainsMatch: domainsCompatible,
+      authConfigured: Boolean(process.env.BETTER_AUTH_SECRET),
+      encryptionConfigured: Boolean(process.env.SALT),
+      liveKitConfigured: Boolean(
+        process.env.LIVEKIT_URL &&
+        process.env.LIVEKIT_API_KEY &&
+        process.env.LIVEKIT_API_SECRET,
+      ),
+    }
+    const remediation = [
+      ...(!checks.databaseReachable ? ['check-database'] : []),
+      ...(!checks.calendarOriginConfigured
+        ? ['configure-calendar-origin']
+        : []),
+      ...(!checks.baseUrlConfigured ? ['configure-base-url'] : []),
+      ...(!checks.cookieDomainConfigured ? ['configure-cookie-domain'] : []),
+      ...(!checks.registrableDomainsMatch ? ['align-registered-domains'] : []),
+      ...(!checks.authConfigured ? ['configure-auth'] : []),
+      ...(!checks.encryptionConfigured ? ['configure-encryption'] : []),
+      ...(!checks.liveKitConfigured ? ['configure-livekit'] : []),
+    ]
+    return NextResponse.json({
+      ready: Object.values(checks).every(Boolean),
+      checks,
+      remediation,
+    })
   }
 
   return NextResponse.json({

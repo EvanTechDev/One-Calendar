@@ -17,11 +17,11 @@ function AuthorizeForm() {
   const { data: session, isPending: sessionLoading } = authClient.useSession()
 
   const [status, setStatus] = useState<
-    'ready' | 'authorizing' | 'success' | 'error'
-  >('ready')
+    'validating' | 'ready' | 'authorizing' | 'success' | 'error'
+  >('validating')
   const [errorMsg, setErrorMsg] = useState('')
   const [flow, setFlow] = useState<Flow>(null)
-  const [redirectUri, setRedirectUri] = useState('')
+  const [redirectUri, setRedirectUri] = useState<string | null>(null)
   const [scopes, setScopes] = useState<string[]>([])
   const [clientName, setClientName] = useState('')
 
@@ -31,13 +31,34 @@ function AuthorizeForm() {
 
     if (responseType === 'code') {
       setFlow('auth_code')
-      setRedirectUri(searchParams.get('redirect_uri') ?? '')
       setScopes((searchParams.get('scope') ?? '').split(' ').filter(Boolean))
-      if (!searchParams.get('redirect_uri')) {
+      const clientId = searchParams.get('client_id')
+      const requestedRedirectUri = searchParams.get('redirect_uri')
+      if (!clientId || !requestedRedirectUri) {
         setStatus('error')
-        setErrorMsg('Missing redirect_uri parameter.')
+        setErrorMsg('Missing client_id or redirect_uri parameter.')
         return
       }
+
+      const validationParams = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: requestedRedirectUri,
+      })
+      fetch(`/api/oauth/authorize?${validationParams.toString()}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Invalid authorization request')
+          return res.json()
+        })
+        .then((data: { redirect_uri?: string }) => {
+          if (!data.redirect_uri)
+            throw new Error('Invalid authorization request')
+          setRedirectUri(data.redirect_uri)
+          setStatus('ready')
+        })
+        .catch(() => {
+          setStatus('error')
+          setErrorMsg('Invalid authorization request.')
+        })
     } else if (deviceUserCode) {
       setFlow('device_code')
       fetch(
@@ -50,6 +71,7 @@ function AuthorizeForm() {
         .then((data: { client_name?: string; scopes?: string[] }) => {
           setScopes(data.scopes ?? [])
           setClientName(data.client_name ?? '')
+          setStatus('ready')
         })
         .catch(() => {
           setStatus('error')
@@ -62,7 +84,7 @@ function AuthorizeForm() {
   }, [searchParams])
 
   const handleDeny = () => {
-    if (flow === 'auth_code') {
+    if (flow === 'auth_code' && redirectUri) {
       try {
         const url = new URL(redirectUri)
         url.searchParams.set('error', 'access_denied')
@@ -97,7 +119,7 @@ function AuthorizeForm() {
         }
         setStatus('success')
         setTimeout(() => window.close(), 2000)
-      } else if (flow === 'auth_code') {
+      } else if (flow === 'auth_code' && redirectUri) {
         const res = await fetch('/api/oauth/authorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,7 +182,7 @@ function AuthorizeForm() {
     ]
   })()
 
-  if (sessionLoading) {
+  if (sessionLoading || status === 'validating') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner className="h-8 w-8 animate-spin text-muted-foreground" />

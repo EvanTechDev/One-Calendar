@@ -10,6 +10,7 @@ import {
   getOccurrencesForInvites,
   baselineOf,
   removeParticipantFromCalendar,
+  readInviteToken,
 } from '@/lib/invites/invite-service'
 import {
   canParticipantSeeOccurrence,
@@ -223,22 +224,32 @@ export const GET = async function GET(request: NextRequest) {
   )
 
   const now = new Date()
-  const enrichedInvites = invites.map((invite) => ({
-    ...invite,
-    // RSVP is per-occurrence for a series; the invite row's own status only
-    // answers for a non-recurring event (ADR-0012).
-    status:
-      stamp === null
-        ? invite.status
-        : rsvpForOccurrence(occurrencesByInvite.get(invite.id) ?? [], stamp),
-    userName: userMap[invite.email]?.name ?? null,
-    userImage: userMap[invite.email]?.image ?? null,
-    // True exactly when the participant can no longer act: the link is dead
-    // AND they never established the permanent grant. Prompts a resend, which
-    // mints a fresh link window (ADR-0013).
-    inviteExpired:
-      !invite.addedToCalendar && !!invite.expiresAt && invite.expiresAt <= now,
-  }))
+  const enrichedInvites = invites.map((invite) => {
+    const {
+      inviteToken: _storedToken,
+      inviteTokenHash: _tokenHash,
+      ...publicInvite
+    } = invite
+    return {
+      ...publicInvite,
+      inviteToken: readInviteToken(invite),
+      // RSVP is per-occurrence for a series; the invite row's own status only
+      // answers for a non-recurring event (ADR-0012).
+      status:
+        stamp === null
+          ? invite.status
+          : rsvpForOccurrence(occurrencesByInvite.get(invite.id) ?? [], stamp),
+      userName: userMap[invite.email]?.name ?? null,
+      userImage: userMap[invite.email]?.image ?? null,
+      // True exactly when the participant can no longer act: the link is dead
+      // AND they never established the permanent grant. Prompts a resend, which
+      // mints a fresh link window (ADR-0013).
+      inviteExpired:
+        !invite.addedToCalendar &&
+        !!invite.expiresAt &&
+        invite.expiresAt <= now,
+    }
+  })
 
   return NextResponse.json({ invites: enrichedInvites })
 }
@@ -269,7 +280,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
   }
 
-  await removeParticipantFromCalendar(invite.inviteToken)
+  await removeParticipantFromCalendar(readInviteToken(invite))
 
   return NextResponse.json({ success: true })
 }

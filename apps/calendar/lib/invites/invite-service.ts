@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, isNull } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { eventInvites, eventInviteOccurrences } from '@/lib/drizzle/schema'
 import { sendAuthEmail } from '@/lib/auth/send-auth-email'
@@ -11,6 +11,12 @@ import {
   type ParticipantChangePlan,
   type BaselineKind,
 } from '@/lib/invites/visibility'
+import {
+  decryptInviteToken,
+  generateInviteToken,
+  hashInviteToken,
+  protectInviteToken,
+} from '@/lib/invites/invite-token'
 
 async function sendEmail(payload: {
   to: string
@@ -57,22 +63,28 @@ export async function createInvitesForEvent(
   if (participants.length === 0) return []
 
   const db = getDb()
-  const rows = participants.map((p) => ({
-    id: crypto.randomUUID(),
-    eventId,
-    email: p.email.toLowerCase().trim(),
-    status: 'pending' as const,
-    inviteToken: crypto.randomUUID(),
-    emailSent: false,
-    addedToCalendar: false,
-    categoryId: null,
-    baselineKind: baseline.baselineKind,
-    fromStamp: baseline.fromStamp,
-    untilStamp: baseline.untilStamp,
-    expiresAt: new Date(Date.now() + INVITE_LINK_TTL_MS),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }))
+  const rawTokens = new Map<string, string>()
+  const rows = participants.map((p) => {
+    const id = crypto.randomUUID()
+    const rawToken = generateInviteToken()
+    rawTokens.set(id, rawToken)
+    return {
+      id,
+      eventId,
+      email: p.email.toLowerCase().trim(),
+      status: 'pending' as const,
+      ...protectInviteToken(id, rawToken),
+      emailSent: false,
+      addedToCalendar: false,
+      categoryId: null,
+      baselineKind: baseline.baselineKind,
+      fromStamp: baseline.fromStamp,
+      untilStamp: baseline.untilStamp,
+      expiresAt: new Date(Date.now() + INVITE_LINK_TTL_MS),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  })
 
   const inserted = await db
     .insert(eventInvites)
@@ -87,7 +99,7 @@ export async function createInvitesForEvent(
   return inserted.map((r) => ({
     id: r.id,
     email: r.email,
-    token: r.inviteToken,
+    token: rawTokens.get(r.id)!,
     status: r.status as RsvpStatus,
   }))
 }
@@ -193,7 +205,7 @@ export async function getInviteToken(
         eq(eventInvites.email, email.toLowerCase().trim()),
       ),
     )
-  return invite?.inviteToken ?? null
+  return invite ? decryptInviteToken(invite) : null
 }
 
 /**
@@ -223,10 +235,44 @@ export async function getInvitesByToken(token: string) {
  */
 export async function getGrantsByToken(token: string) {
   const db = getDb()
-  const rows = await db
+  const tokenHash = hashInviteToken(token)
+  let rows = await db
     .select()
     .from(eventInvites)
-    .where(eq(eventInvites.inviteToken, token))
+    .where(eq(eventInvites.inviteTokenHash, tokenHash))
+
+  const legacyRows = await db
+    .select()
+    .from(eventInvites)
+    .where(
+      and(
+        isNull(eventInvites.inviteTokenHash),
+        eq(eventInvites.inviteToken, token),
+      ),
+    )
+
+  if (legacyRows.length > 0) {
+    for (const legacy of legacyRows) {
+      await db
+        .update(eventInvites)
+        .set({
+          ...protectInviteToken(legacy.id, token),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(eventInvites.id, legacy.id),
+            isNull(eventInvites.inviteTokenHash),
+            eq(eventInvites.inviteToken, token),
+          ),
+        )
+    }
+
+    rows = await db
+      .select()
+      .from(eventInvites)
+      .where(eq(eventInvites.inviteTokenHash, tokenHash))
+  }
   return rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
 }
 
@@ -245,10 +291,11 @@ export async function updateRsvp(
   status: 'pending' | 'accepted' | 'maybe' | 'declined',
 ) {
   const db = getDb()
+  await getGrantsByToken(token)
   await db
     .update(eventInvites)
     .set({ status, updatedAt: new Date() })
-    .where(eq(eventInvites.inviteToken, token))
+    .where(eq(eventInvites.inviteTokenHash, hashInviteToken(token)))
 }
 
 /**
@@ -261,14 +308,16 @@ export async function addParticipantToCalendar(
   categoryId: string | null,
 ) {
   const db = getDb()
+  await getGrantsByToken(token)
   await db
     .update(eventInvites)
     .set({ addedToCalendar: true, categoryId, updatedAt: new Date() })
-    .where(eq(eventInvites.inviteToken, token))
+    .where(eq(eventInvites.inviteTokenHash, hashInviteToken(token)))
 }
 
 export async function removeParticipantFromCalendar(token: string) {
   const db = getDb()
+  await getGrantsByToken(token)
   await db
     .update(eventInvites)
     .set({
@@ -276,7 +325,7 @@ export async function removeParticipantFromCalendar(token: string) {
       categoryId: null,
       updatedAt: new Date(),
     })
-    .where(eq(eventInvites.inviteToken, token))
+    .where(eq(eventInvites.inviteTokenHash, hashInviteToken(token)))
 }
 
 export async function deleteInvitesForEvent(eventId: string) {
@@ -286,8 +335,14 @@ export async function deleteInvitesForEvent(eventId: string) {
 
 export async function deleteInviteByToken(token: string) {
   const db = getDb()
-  await db.delete(eventInvites).where(eq(eventInvites.inviteToken, token))
+  await getGrantsByToken(token)
+  await db
+    .delete(eventInvites)
+    .where(eq(eventInvites.inviteTokenHash, hashInviteToken(token)))
 }
+
+/** Reveals a token only after its caller has established response authorization. */
+export const readInviteToken = decryptInviteToken
 
 export async function getInvitesForEvent(eventId: string) {
   const db = getDb()

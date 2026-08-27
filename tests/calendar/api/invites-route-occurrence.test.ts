@@ -106,6 +106,8 @@ vi.mock('drizzle-orm', async (importOriginal) => {
 
 vi.mock('@/lib/field-crypto', () => ({
   decryptField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
 vi.mock('@/lib/rate-limit', () => ({

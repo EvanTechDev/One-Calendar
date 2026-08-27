@@ -30,6 +30,14 @@ export function SignUpForm() {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
   )
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [captchaVersion, setCaptchaVersion] = useState(0)
+
+  const consumeCaptcha = () => {
+    if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return
+    setTurnstileToken('')
+    setIsCaptchaCompleted(false)
+    setCaptchaVersion((value) => value + 1)
+  }
 
   const sendVerificationOtp = async (withResendLoading: boolean) => {
     const emailOtp = authClient.emailOtp
@@ -40,10 +48,17 @@ export function SignUpForm() {
       return false
     }
     if (withResendLoading) setIsResending(true)
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError('Please complete the CAPTCHA verification again.')
+      if (withResendLoading) setIsResending(false)
+      return false
+    }
     const otpRes = await emailOtp.sendVerificationOtp({
       email: formData.email,
       type: 'email-verification',
+      ...(turnstileToken ? { turnstileToken } : {}),
     })
+    consumeCaptcha()
     if (withResendLoading) setIsResending(false)
     if (otpRes.error) {
       setError(otpRes.error.message || 'Failed to send verification code.')
@@ -70,6 +85,7 @@ export function SignUpForm() {
       callbackURL: routes.home,
       turnstileToken,
     } as SignUpEmailInput & { turnstileToken: string })
+    consumeCaptcha()
 
     if (signUpRes.error) {
       setError(
@@ -142,6 +158,28 @@ export function SignUpForm() {
             />
           </div>
           {error && <div className="text-sm text-red-500">{error}</div>}
+          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+            <Turnstile
+              key={captchaVersion}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              options={{ size: 'flexible' }}
+              onSuccess={(token) => {
+                setTurnstileToken(token)
+                setIsCaptchaCompleted(true)
+                setError('')
+              }}
+              onExpire={() => {
+                setTurnstileToken('')
+                setIsCaptchaCompleted(false)
+                setError('CAPTCHA expired. Please complete it again.')
+              }}
+              onError={() => {
+                setTurnstileToken('')
+                setIsCaptchaCompleted(false)
+                setError('CAPTCHA initialization failed. Please try again.')
+              }}
+            />
+          )}
           <Button
             type="button"
             className="w-full"
@@ -156,7 +194,12 @@ export function SignUpForm() {
             variant="outline"
             className="w-full"
             onClick={handleResend}
-            disabled={isResending || isVerifying}
+            disabled={
+              isResending ||
+              isVerifying ||
+              (Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) &&
+                !isCaptchaCompleted)
+            }
             size="lg"
           >
             {isResending ? 'Resending...' : 'Resend code'}
@@ -239,6 +282,7 @@ export function SignUpForm() {
           </div>
           {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
             <Turnstile
+              key={captchaVersion}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
               options={{ size: 'flexible' }}
               onSuccess={(token) => {
@@ -248,6 +292,7 @@ export function SignUpForm() {
               onExpire={() => {
                 setTurnstileToken('')
                 setIsCaptchaCompleted(false)
+                setError('CAPTCHA expired. Please complete it again.')
               }}
               onError={() => {
                 setTurnstileToken('')

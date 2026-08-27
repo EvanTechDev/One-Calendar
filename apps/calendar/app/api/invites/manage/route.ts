@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
 import {
   deleteInviteByToken,
+  readInviteToken,
   resendInviteEmail,
 } from '@/lib/invites/invite-service'
 import {
@@ -69,7 +70,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   // 'all' on a non-recurring event is just "remove them", which the old path
   // did directly; keep that cheap and avoid loading the series machinery.
   if (scope === 'all' && occurrenceId === null) {
-    await deleteInviteByToken(invite.inviteToken)
+    await deleteInviteByToken(readInviteToken(invite))
     return NextResponse.json({ success: true })
   }
 

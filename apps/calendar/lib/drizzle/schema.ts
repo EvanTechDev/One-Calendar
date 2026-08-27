@@ -227,6 +227,8 @@ export const eventInvites = pgTable(
      * resolve to at most one row per event and are always scoped by email.
      */
     inviteToken: text('invite_token').notNull(),
+    /** SHA-256 lookup key; nullable only during the bounded legacy transition. */
+    inviteTokenHash: text('invite_token_hash'),
     emailSent: boolean('email_sent').default(false).notNull(),
     addedToCalendar: boolean('added_to_calendar').default(false).notNull(),
     categoryId: text('category_id'),
@@ -270,10 +272,17 @@ export const eventInvites = pgTable(
     eventIdIdx: index('idx_event_invites_event_id').on(table.eventId),
     emailIdx: index('idx_event_invites_email').on(table.email),
     tokenIdx: index('idx_event_invites_token').on(table.inviteToken),
+    tokenHashIdx: index('idx_event_invites_token_hash').on(
+      table.inviteTokenHash,
+    ),
     // One row per (event, token). A token may appear on several masters after a
     // split, but never twice on the same one.
     tokenEventUq: uniqueIndex('uq_event_invites_token_event').on(
       table.inviteToken,
+      table.eventId,
+    ),
+    tokenHashEventUq: uniqueIndex('uq_event_invites_token_hash_event').on(
+      table.inviteTokenHash,
       table.eventId,
     ),
     // One invite per participant per event. Concurrent adds previously raced,

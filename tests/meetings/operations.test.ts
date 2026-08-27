@@ -127,6 +127,24 @@ describe('isJoinable', () => {
   })
 })
 
+describe('chat retention policy', () => {
+  it('persists an explicit no-retention policy', async () => {
+    await createMeeting(db, {
+      id: 'e2ee-001',
+      organiserId: OWNER,
+      retainsChat: false,
+    })
+
+    expect((await getMeeting(db, 'e2ee-001'))?.retainsChat).toBe(false)
+  })
+
+  it('defaults new meetings to retaining chat', async () => {
+    await createMeeting(db, { id: 'plain-01', organiserId: OWNER })
+
+    expect((await getMeeting(db, 'plain-01'))?.retainsChat).toBe(true)
+  })
+})
+
 describe('event cascades (ADR 0017 — application-level, no FK)', () => {
   beforeEach(async () => {
     await createMeeting(db, {

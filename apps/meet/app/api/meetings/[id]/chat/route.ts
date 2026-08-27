@@ -16,10 +16,8 @@ interface Body {
 /**
  * Retains one chat message for a meeting's history.
  *
- * Only rooms without end-to-end encryption post here — an encrypted room's
- * messages never leave the client in readable form, and both behaviors are
- * declared on the join screen (ADR 0020). The gate is necessarily client-side
- * because the server cannot tell an encrypted room from a plain one.
+ * The client avoids posting for encrypted rooms, and the server independently
+ * enforces the Meeting-owned retention policy (ADR 0020).
  *
  * Membership is PROVEN, not asserted. The sender's identity and name are read
  * from the verified LiveKit token's claims and the body's own values are
@@ -76,6 +74,12 @@ export async function POST(
     const meeting = await getMeeting(db, id)
     if (!meeting) {
       return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
+    }
+    if (!meeting.retainsChat) {
+      return NextResponse.json(
+        { error: 'Chat retention is disabled for this meeting' },
+        { status: 409 },
+      )
     }
 
     const session = await getOpenSession(db, id)

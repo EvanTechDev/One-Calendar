@@ -53,10 +53,14 @@ describe('the public invite endpoint', () => {
     expect(source).toContain('canParticipantSeeOccurrence')
   })
 
-  it('stays anonymous — no session lookup', () => {
-    // Plan 012's invariant: the invite link is credential-bearing, not
-    // session-bearing.
-    expect(source).not.toContain('getAuthedUser')
+  it('uses an optional session only to protect private category data', () => {
+    // RSVP remains token-authorized. Session identity is additive and only
+    // unlocks the matching participant's private category list/actions.
+    expect(source).toContain('getAuthedUser')
+    expect(source).toContain('isMatchingParticipant')
+    expect(source.indexOf('if (status)')).toBeLessThan(
+      source.indexOf('if (categoryId !== undefined)'),
+    )
     expect(source).not.toContain('getServerSession')
   })
 

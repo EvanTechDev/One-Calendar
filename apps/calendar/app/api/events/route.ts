@@ -63,6 +63,7 @@ import {
 import {
   baselineOf,
   getOccurrencesForInvites,
+  readInviteToken,
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
@@ -527,6 +528,7 @@ async function enrichEventsWithInvites(
       email: eventInvites.email,
       status: eventInvites.status,
       inviteToken: eventInvites.inviteToken,
+      inviteTokenHash: eventInvites.inviteTokenHash,
       emailSent: eventInvites.emailSent,
       addedToCalendar: eventInvites.addedToCalendar,
       expiresAt: eventInvites.expiresAt,
@@ -609,7 +611,7 @@ async function enrichEventsWithInvites(
           // Only the organiser or the invitee themselves get a usable token.
           inviteToken:
             eventOwners.get(invite.eventId) === viewerId || isOwnInvite
-              ? invite.inviteToken
+              ? readInviteToken(invite)
               : '',
           emailSent: invite.emailSent,
           addedToCalendar: invite.addedToCalendar,

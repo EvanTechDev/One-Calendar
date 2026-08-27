@@ -68,6 +68,7 @@ export interface CreateMeetingInput {
   creatorTokenHash?: string | null
   eventId?: string | null
   expiresAt?: Date | null
+  retainsChat?: boolean
 }
 
 export async function createMeeting(
@@ -82,6 +83,7 @@ export async function createMeeting(
       creatorTokenHash: input.creatorTokenHash ?? null,
       eventId: input.eventId ?? null,
       expiresAt: input.expiresAt ?? null,
+      retainsChat: input.retainsChat ?? true,
     })
     .returning()
   return row

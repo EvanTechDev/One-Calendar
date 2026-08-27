@@ -35,6 +35,8 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [notice, setNotice] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [captchaVersion, setCaptchaVersion] = useState(0)
   const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
   )
@@ -46,20 +48,24 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
     setIsLoading(true)
     setError('')
     setNotice('')
-    const res = await authClient.requestPasswordReset({
+    const requestBody = {
       email,
       redirectTo: '/reset-password',
-    } as never)
+      ...(turnstileToken ? { turnstileToken } : {}),
+    }
+    const res = await authClient.requestPasswordReset(requestBody)
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+      setTurnstileToken('')
+      setIsCaptchaCompleted(false)
+      setCaptchaVersion((value) => value + 1)
+    }
     if (!res.error) {
       setDone(true)
       setNotice('Reset email sent. Please check your inbox.')
       setIsLoading(false)
       return
     }
-    const fallbackBody = JSON.stringify({
-      email,
-      redirectTo: '/reset-password',
-    })
+    const fallbackBody = JSON.stringify(requestBody)
     const fallbackEndpoints = [
       '/api/auth/forget-password',
       '/api/auth/forgot-password',
@@ -207,11 +213,20 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
         )}
         {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
           <Turnstile
+            key={captchaVersion}
             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             options={{ size: 'flexible' }}
-            onSuccess={() => setIsCaptchaCompleted(true)}
-            onExpire={() => setIsCaptchaCompleted(false)}
+            onSuccess={(solvedToken) => {
+              setTurnstileToken(solvedToken)
+              setIsCaptchaCompleted(true)
+            }}
+            onExpire={() => {
+              setTurnstileToken('')
+              setIsCaptchaCompleted(false)
+              setError('CAPTCHA expired. Please complete it again.')
+            }}
             onError={() => {
+              setTurnstileToken('')
               setIsCaptchaCompleted(false)
               setError('CAPTCHA initialization failed. Please try again.')
             }}

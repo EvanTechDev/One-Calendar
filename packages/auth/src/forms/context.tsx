@@ -42,7 +42,11 @@ export type AuthFormClient = {
       turnstileToken?: string
     }>
   }
-  requestPasswordReset: AuthCall<{ email: string; redirectTo?: string }>
+  requestPasswordReset: AuthCall<{
+    email: string
+    redirectTo?: string
+    turnstileToken?: string
+  }>
   resetPassword: AuthCall<{ newPassword: string; token: string }>
   /**
    * Optional because both are plugins. A form that needs one checks first — an
@@ -53,7 +57,11 @@ export type AuthFormClient = {
     verifyTotp: AuthCall<{ code: string; trustDevice?: boolean }>
   }
   emailOtp?: {
-    sendVerificationOtp: AuthCall<{ email: string; type: string }>
+    sendVerificationOtp: AuthCall<{
+      email: string
+      type: string
+      turnstileToken?: string
+    }>
     verifyEmail: AuthCall<{ email: string; otp: string }>
     resetPassword?: AuthCall<{
       email: string

@@ -13,6 +13,7 @@ import {
   baselineOf,
   getInviteOccurrences,
   getOccurrencesForInvites,
+  readInviteToken,
   updateOccurrenceRsvp,
 } from '@/lib/invites/invite-service'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
@@ -412,7 +413,7 @@ export async function listMyEventInvites(
               )
           : null,
         added_to_calendar: invite.addedToCalendar,
-        invite_link: `${baseUrl()}/invite/${invite.inviteToken}`,
+        invite_link: `${baseUrl()}/invite/${readInviteToken(invite)}`,
         expires_at: invite.expiresAt,
       }
     })

@@ -30,6 +30,8 @@ vi.mock('@/lib/api-helpers', () => ({
 vi.mock('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
 import { updateEvent } from '@/lib/mcp/event-tools'
