@@ -28,18 +28,41 @@ import {
 
 const authHandlers = toNextJsHandler(auth)
 
-const LIMITS: Record<string, { limit: number; windowSeconds: number }> = {
+type AuthLimit = {
+  limit: number
+  windowSeconds: number
+  failClosed?: boolean
+  globalLimit?: number
+}
+
+const LIMITS: Record<string, AuthLimit> = {
   'sign-in/email': { limit: 10, windowSeconds: 60 },
   'sign-up/email': { limit: 5, windowSeconds: 300 },
   'forget-password': { limit: 3, windowSeconds: 300 },
   'email-otp/send-verification-otp': { limit: 3, windowSeconds: 300 },
   'email-otp/request-password-reset': { limit: 3, windowSeconds: 300 },
   'email-otp/request-email-change': { limit: 3, windowSeconds: 300 },
-  'oauth2/register': { limit: 20, windowSeconds: 3600 },
+  'oauth2/authorize': {
+    limit: 30,
+    windowSeconds: 60,
+    failClosed: true,
+    globalLimit: 600,
+  },
+  'oauth2/register': {
+    limit: 20,
+    windowSeconds: 3600,
+    failClosed: true,
+    globalLimit: 100,
+  },
   'oauth2/token': { limit: 30, windowSeconds: 60 },
   'oauth2/introspect': { limit: 60, windowSeconds: 60 },
   'oauth2/revoke': { limit: 60, windowSeconds: 60 },
-  'device/code': { limit: 10, windowSeconds: 60 },
+  'device/code': {
+    limit: 10,
+    windowSeconds: 60,
+    failClosed: true,
+    globalLimit: 300,
+  },
 }
 
 function notFound() {
@@ -49,13 +72,29 @@ function notFound() {
 async function authRateLimit(request: Request, path: string) {
   const budget = LIMITS[path]
   if (!budget) return null
+  const failClosed = budget.failClosed && process.env.NODE_ENV === 'production'
 
   const result = await checkFixedWindowLimit({
     name: `auth:${path}`,
     subject: clientIpFrom(request),
-    ...budget,
+    limit: budget.limit,
+    windowSeconds: budget.windowSeconds,
+    ...(failClosed ? { failClosed: true } : {}),
   })
-  return result.allowed ? null : rateLimitedResponse(result.retryAfter)
+  if (!result.allowed) return rateLimitedResponse(result.retryAfter)
+
+  if (budget.globalLimit) {
+    const global = await checkFixedWindowLimit({
+      name: `auth:${path}:global`,
+      subject: 'all',
+      limit: budget.globalLimit,
+      windowSeconds: budget.windowSeconds,
+      ...(failClosed ? { failClosed: true } : {}),
+    })
+    if (!global.allowed) return rateLimitedResponse(global.retryAfter)
+  }
+
+  return null
 }
 
 type AuthAuditSubject = {

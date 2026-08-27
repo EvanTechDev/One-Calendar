@@ -50,7 +50,7 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
     setNotice('')
     const requestBody = {
       email,
-      redirectTo: '/reset-password',
+      redirectTo: routes.resetPassword,
       ...(turnstileToken ? { turnstileToken } : {}),
     }
     const res = await authClient.requestPasswordReset(requestBody)

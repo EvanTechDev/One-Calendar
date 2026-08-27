@@ -74,6 +74,16 @@ describe('Connected Apps consent model', () => {
   })
 
   it('deletes consent and revokes its token family atomically', async () => {
+    getFakeDb().seed(
+      {
+        id: 'consent-duplicate',
+        clientId: 'client-1',
+        userId: 'user-1',
+        scopes: ['events:read'],
+        resources: ['https://calendar.example/api/mcp'],
+      },
+      'oauthConsent',
+    )
     const response = await DELETE(
       new NextRequest('https://calendar.example/api/mcp/authorized-apps', {
         method: 'DELETE',

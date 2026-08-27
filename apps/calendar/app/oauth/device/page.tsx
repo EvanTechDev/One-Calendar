@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
@@ -14,7 +14,7 @@ type DeviceRequest = {
   resource?: string | string[]
 }
 
-export default function OAuthDevicePage() {
+function OAuthDeviceForm() {
   const searchParams = useSearchParams()
   const { data: session, isPending } = authClient.useSession()
   const suppliedCode = searchParams.get('user_code') ?? ''
@@ -153,5 +153,13 @@ export default function OAuthDevicePage() {
         ) : null}
       </Card>
     </div>
+  )
+}
+
+export default function OAuthDevicePage() {
+  return (
+    <Suspense>
+      <OAuthDeviceForm />
+    </Suspense>
   )
 }

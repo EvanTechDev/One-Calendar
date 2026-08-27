@@ -106,6 +106,9 @@ SALT=your_backup_salt_here
 BETTER_AUTH_SECRET=your_auth_secret_here
 BETTER_AUTH_URL=http://localhost:3000
 
+# Required in production for OAuth authorization and registration limits
+REDIS_URL=redis://localhost:6379
+
 # Optional
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/calendar
 BETTER_AUTH_API_KEY=your_api_key_here

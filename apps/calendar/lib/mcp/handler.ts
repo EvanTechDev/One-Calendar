@@ -2,20 +2,29 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   WebStandardStreamableHTTPServerTransport,
   type AuthInfo,
+  validateHostHeader,
 } from '@modelcontextprotocol/server'
 import { createServer } from './server'
 import { logAudit } from './audit'
 import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
 import { McpAuthError } from './types'
+import { getMcpPublicOrigin } from './oauth-config'
 
 function allowedOrigins(): string[] {
-  const appOrigin = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
   const configured = (process.env.MCP_ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-  return [appOrigin, ...configured]
+  return [...new Set([getMcpPublicOrigin(), ...configured].flatMap(originOf))]
+}
+
+function originOf(value: string): string[] {
+  try {
+    return [new URL(value).origin]
+  } catch {
+    return []
+  }
 }
 
 function allowedHosts(): string[] {
@@ -38,8 +47,8 @@ export async function handleMcpRequest(
     if (origin && list.length > 0 && !list.includes(origin)) {
       return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
     }
-    const host = request.headers.get('host')?.split(':')[0]
-    if (!host || !allowedHosts().includes(host)) {
+    const host = validateHostHeader(request.headers.get('host'), allowedHosts())
+    if (!host.ok) {
       return Response.json({ error: 'host_not_allowed' }, { status: 403 })
     }
 

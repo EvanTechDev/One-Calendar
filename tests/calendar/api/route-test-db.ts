@@ -368,15 +368,20 @@ export function makeFakeDb(): FakeDb {
       return {
         where(cond: Cond) {
           const doDelete = () => {
+            const deleted: FakeRow[] = []
             for (const [id, row] of [...tbl(name).entries()]) {
               if (!matches(cond, row)) continue
               tbl(name).delete(id)
               logWrite('delete', name, id)
+              deleted.push({ ...row })
             }
+            return deleted
           }
           return {
+            returning: async (projection?: Record<string, unknown>) =>
+              doDelete().map((row) => project(row, projection)),
             then(
-              onFulfilled: (value: void) => unknown,
+              onFulfilled: (value: FakeRow[]) => unknown,
               onRejected?: (err: unknown) => unknown,
             ) {
               return Promise.resolve()

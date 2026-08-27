@@ -6,11 +6,15 @@ const mocks = vi.hoisted(() => ({
   consent: vi.fn(),
 }))
 
+const query = vi.hoisted(() => ({
+  scope: 'events:read events:write offline_access',
+}))
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () =>
     new URLSearchParams({
       client_id: 'client-1',
-      scope: 'events:read events:write offline_access',
+      scope: query.scope,
       resource: 'https://calendar.example/api/mcp',
       sig: 'signed-query',
       exp: '9999999999',
@@ -34,8 +38,13 @@ import OAuthConsentPage from '@/app/oauth/consent/page'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  query.scope = 'events:read events:write offline_access'
   mocks.publicClient.mockResolvedValue({
-    data: { client_id: 'client-1', client_name: 'Trusted CLI' },
+    data: {
+      client_id: 'https://linear.app/oauth/client.json',
+      client_name: 'Trusted CLI',
+      client_uri: 'https://linear.app',
+    },
     error: null,
   })
   mocks.consent.mockResolvedValue({
@@ -56,10 +65,20 @@ describe('OAuth consent page', () => {
     expect(screen.getByText('READ+WRITE')).toBeInTheDocument()
     expect(screen.getByText('Offline access')).toBeInTheDocument()
     expect(screen.getByText('LONG-LIVED')).toBeInTheDocument()
+    expect(screen.getByText('Client origin: linear.app')).toBeInTheDocument()
     expect(mocks.publicClient).toHaveBeenCalledWith({
       client_id: 'client-1',
       oauth_query: expect.stringContaining('sig=signed-query'),
     })
+  })
+
+  it('discloses a write-only scope instead of silently hiding it', async () => {
+    query.scope = 'events:write'
+    render(<OAuthConsentPage />)
+
+    await screen.findByText('Events')
+    expect(screen.getByText('WRITE')).toBeInTheDocument()
+    expect(screen.queryByText('READ+WRITE')).toBeNull()
   })
 
   it('returns the complete signed query to Better Auth on consent', async () => {

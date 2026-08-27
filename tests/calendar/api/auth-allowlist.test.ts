@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
   rateAllowed: true,
@@ -82,6 +82,10 @@ beforeEach(() => {
   state.retryAfter = 17
 })
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe('calendar auth surface', () => {
   it('delegates shared GET and POST endpoints', async () => {
     expect((await GET(request('GET', '/api/auth/get-session'))).status).toBe(
@@ -126,6 +130,7 @@ describe('calendar auth surface', () => {
   })
 
   it('rate limits dynamic client registration before delegation', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
     state.rateAllowed = false
     const response = await POST(request('POST', '/api/auth/oauth2/register'))
 
@@ -136,6 +141,28 @@ describe('calendar auth surface', () => {
       subject: '203.0.113.8',
       limit: 20,
       windowSeconds: 3600,
+      failClosed: true,
+    })
+  })
+
+  it('applies an additional global budget to persistent anonymous writes', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const response = await POST(request('POST', '/api/auth/device/code'))
+
+    expect(response.status).toBe(200)
+    expect(mocks.limiter).toHaveBeenNthCalledWith(1, {
+      name: 'auth:device/code',
+      subject: '203.0.113.8',
+      limit: 10,
+      windowSeconds: 60,
+      failClosed: true,
+    })
+    expect(mocks.limiter).toHaveBeenNthCalledWith(2, {
+      name: 'auth:device/code:global',
+      subject: 'all',
+      limit: 300,
+      windowSeconds: 60,
+      failClosed: true,
     })
   })
 

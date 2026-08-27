@@ -9,6 +9,7 @@ import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
 import { Spinner } from '@zntr/ui/spinner'
 import { oauthAuthClient } from '@/lib/auth/oauth-client'
+import { groupMcpPermissions } from '@/lib/mcp/types'
 
 type PublicClient = {
   client_id: string
@@ -62,36 +63,14 @@ function ConsentForm() {
     window.location.assign(target)
   }
 
-  const permissionGroups = (() => {
-    const grouped: Record<string, { read: boolean; write: boolean }> = {}
-    for (const scope of scopes) {
-      const [resource, action] = scope.split(':')
-      if (!resource || !action) continue
-      grouped[resource] ??= { read: false, write: false }
-      if (action === 'read') grouped[resource].read = true
-      if (action === 'write') grouped[resource].write = true
+  const permissionGroups = groupMcpPermissions(scopes)
+  const clientIdentity = (() => {
+    if (!client) return { label: 'Client ID', value: '' }
+    try {
+      return { label: 'Client origin', value: new URL(client.client_id).host }
+    } catch {
+      return { label: 'Client ID', value: client.client_id }
     }
-
-    const label = (value: string) =>
-      value.charAt(0).toUpperCase() + value.slice(1)
-    const readWrite = Object.entries(grouped)
-      .filter(([, access]) => access.read && access.write)
-      .map(([resource]) => label(resource))
-      .sort()
-    const readOnly = Object.entries(grouped)
-      .filter(([, access]) => access.read && !access.write)
-      .map(([resource]) => label(resource))
-      .sort()
-
-    return [
-      ...(readWrite.length
-        ? [{ resources: readWrite, badge: 'READ+WRITE' }]
-        : []),
-      ...(readOnly.length ? [{ resources: readOnly, badge: 'READ' }] : []),
-      ...(scopes.includes('offline_access')
-        ? [{ resources: ['Offline access'], badge: 'LONG-LIVED' }]
-        : []),
-    ]
   })()
 
   if (error && !client) {
@@ -131,6 +110,9 @@ function ConsentForm() {
             <p className="text-sm text-muted-foreground">
               {client.client_name ?? 'This application'} wants access to your
               calendar
+            </p>
+            <p className="mt-1 break-all text-xs text-muted-foreground">
+              {clientIdentity.label}: {clientIdentity.value}
             </p>
           </div>
         </CardHeader>

@@ -338,7 +338,7 @@ export const oauthConsent = pgTable(
   (table) => ({
     clientIdIdx: index('oauthConsent_clientId_idx').on(table.clientId),
     userIdIdx: index('oauthConsent_userId_idx').on(table.userId),
-    userClientIdx: index('oauthConsent_userId_clientId_idx').on(
+    userClientUq: uniqueIndex('oauthConsent_userId_clientId_uidx').on(
       table.userId,
       table.clientId,
     ),
@@ -388,6 +388,7 @@ export const deviceCode = pgTable(
       table.deviceCode,
     ),
     userCodeUq: uniqueIndex('deviceCode_userCode_uidx').on(table.userCode),
+    expiresAtIdx: index('deviceCode_expiresAt_idx').on(table.expiresAt),
   }),
 )
 

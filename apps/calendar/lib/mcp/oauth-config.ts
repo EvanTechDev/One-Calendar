@@ -1,8 +1,12 @@
-const publicOrigin = (
-  process.env.NEXT_PUBLIC_BASE_URL ??
-  process.env.BETTER_AUTH_URL ??
-  'http://localhost:3000'
-).replace(/\/$/, '')
+export function getMcpPublicOrigin(): string {
+  const configured =
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    process.env.BETTER_AUTH_URL ??
+    'http://localhost:3000'
+  return new URL(configured).origin
+}
+
+const publicOrigin = getMcpPublicOrigin()
 
 export const MCP_RESOURCE = `${publicOrigin}/api/mcp`
 export const MCP_ISSUER = `${publicOrigin}/api/auth`

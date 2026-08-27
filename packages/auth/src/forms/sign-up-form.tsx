@@ -10,6 +10,7 @@ import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
 import { useAuthForm } from './context'
 import { AuthLayout } from './auth-layout'
+import { authResultRedirect } from './result'
 
 export function SignUpForm() {
   const { client: authClient, routes, navigate } = useAuthForm()
@@ -121,7 +122,7 @@ export function SignUpForm() {
       return
     }
     void fetch('/api/account/send-welcome-email', { method: 'POST' })
-    navigate(routes.signIn)
+    navigate(authResultRedirect(verifyRes) ?? routes.signIn)
   }
 
   const handleResend = async () => {

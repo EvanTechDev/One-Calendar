@@ -10,6 +10,7 @@ import { SwrProvider } from '@/components/providers/swr-provider'
 import type { Metadata } from 'next'
 import type React from 'react'
 import { AVAILABLE_THEMES } from '@/lib/theme'
+import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -19,9 +20,6 @@ const instrumentSans = Instrument_Sans({
   subsets: ['latin'],
   variable: '--font-instrument-sans',
 })
-
-export const APP_TITLE = 'Zentra Calendar'
-export const APP_SUBTITLE = 'The next gen calendar powered by AI agent'
 
 export const metadata: Metadata = {
   title: APP_TITLE,

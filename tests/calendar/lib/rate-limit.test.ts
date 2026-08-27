@@ -74,6 +74,14 @@ describe('checkFixedWindowLimit', () => {
     }
   })
 
+  it('fails closed for persistent anonymous writes when Redis is unavailable', async () => {
+    fake.failOpen.value = true
+
+    const result = await checkFixedWindowLimit({ ...OPTS, failClosed: true })
+
+    expect(result.allowed).toBe(false)
+  })
+
   it('does not share a budget across subjects', async () => {
     for (let i = 0; i < OPTS.limit + 1; i++) {
       await checkFixedWindowLimit({ ...OPTS, subject: 'a' })

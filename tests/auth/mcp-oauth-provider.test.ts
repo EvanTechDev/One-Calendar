@@ -79,7 +79,7 @@ describe('Better Auth MCP OAuth provider', () => {
     }
   })
 
-  it('matches the timezone-less timestamps in the core auth tables', () => {
+  it('matches the timezone-less timestamps in the live auth tables', () => {
     expect(session.expiresAt.withTimezone).toBe(false)
     expect(verification.expiresAt.withTimezone).toBe(false)
   })

@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { APP_SUBTITLE, APP_TITLE } from '@/app/layout'
+import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
 
 export const size = {
   width: 1200,

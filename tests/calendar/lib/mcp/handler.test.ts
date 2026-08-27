@@ -29,6 +29,12 @@ vi.mock('@/lib/mcp/server', () => ({
 
 vi.mock('@modelcontextprotocol/server', () => ({
   SUPPORTED_PROTOCOL_VERSIONS: ['2025-11-25', '2025-06-18'],
+  validateHostHeader: (host: string | null, allowed: string[]) => {
+    const hostname = host?.replace(/:\d+$/, '') ?? ''
+    return allowed.includes(hostname)
+      ? { ok: true, hostname }
+      : { ok: false, errorCode: 'invalid_host', message: 'Invalid host' }
+  },
   WebStandardStreamableHTTPServerTransport: class {
     handleRequest(...args: unknown[]) {
       return mocks.handleRequest(...args)
@@ -134,5 +140,22 @@ describe('handleMcpRequest', () => {
 
     expect(res.status).toBe(403)
     expect(mocks.handleRequest).not.toHaveBeenCalled()
+  })
+
+  it('uses the same canonical origin as OAuth metadata', async () => {
+    process.env.NEXT_PUBLIC_BASE_URL = 'https://canonical.example/'
+    process.env.BETTER_AUTH_URL = 'https://stale.example'
+
+    const res = await handleMcpRequest(
+      new Request('https://canonical.example/api/mcp', {
+        method: 'POST',
+        headers: { host: 'canonical.example' },
+      }),
+      AUTH,
+    )
+
+    expect(res.status).toBe(200)
+    delete process.env.NEXT_PUBLIC_BASE_URL
+    process.env.BETTER_AUTH_URL = 'https://app.example.com'
   })
 })

@@ -221,7 +221,29 @@ describe('ResetPasswordForm', () => {
     )
 
     await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledTimes(1))
+    expect(requestPasswordReset).toHaveBeenCalledWith(
+      expect.objectContaining({ redirectTo: '/reset-password' }),
+    )
     expect(resetPassword).not.toHaveBeenCalled()
+  })
+
+  it('preserves an OAuth continuation in the reset callback', async () => {
+    mount(<ResetPasswordForm />, {
+      resetPassword: '/oauth/reset-password?sig=signed-query',
+    })
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'a@example.com' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: /send|continue|reset|request/i }),
+    )
+
+    await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledTimes(1))
+    expect(requestPasswordReset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        redirectTo: '/oauth/reset-password?sig=signed-query',
+      }),
+    )
   })
 
   it('sets a new password when it has one', async () => {

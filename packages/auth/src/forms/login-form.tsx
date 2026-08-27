@@ -11,6 +11,7 @@ import { InputOTP } from '@zntr/ui/input-otp'
 import { Label } from '@zntr/ui/label'
 import { useAuthForm } from './context'
 import { AuthLayout } from './auth-layout'
+import { authResultRedirect } from './result'
 
 interface LoginFormProps {
   /**
@@ -45,14 +46,9 @@ export function LoginForm({ returnTo }: LoginFormProps) {
    * through a full page load instead. Already allowlisted server-side.
    */
   const navigateAfterSignIn = (result?: unknown) => {
-    const oauthResult = result as
-      | { data?: { redirect?: unknown; url?: unknown } | null }
-      | undefined
-    if (
-      oauthResult?.data?.redirect === true &&
-      typeof oauthResult.data.url === 'string'
-    ) {
-      window.location.assign(oauthResult.data.url)
+    const oauthRedirect = authResultRedirect(result)
+    if (oauthRedirect) {
+      navigate(oauthRedirect)
       return
     }
     if (/^https?:\/\//i.test(destination)) {

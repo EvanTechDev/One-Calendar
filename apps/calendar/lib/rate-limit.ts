@@ -9,10 +9,9 @@ export interface RateLimitResult {
 /**
  * Whether the absence of Redis has already been reported.
  *
- * Without `REDIS_URL` every limit below silently allows everything, which is the
- * intended posture but must not be invisible: a production deployment that lost
- * the variable looks identical to one that never had abuse traffic. Logged once
- * rather than per request, so it is findable without drowning the log.
+ * Without `REDIS_URL`, ordinary limits allow requests while persistent anonymous
+ * write paths can opt into fail-closed behavior. Logged once rather than per
+ * request, so either degraded posture is findable without drowning the log.
  */
 let missingRedisReported = false
 
@@ -21,9 +20,8 @@ function reportMissingRedisOnce() {
   missingRedisReported = true
   if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
     console.warn(
-      '[rate-limit] REDIS_URL is not set in production: every rate limit is ' +
-        'allowing all requests. Invites, user lookup, meeting tokens and chat ' +
-        'retention are unthrottled.',
+      '[rate-limit] REDIS_URL is not set in production: ordinary limits are ' +
+        'allowing requests, while fail-closed registration limits reject them.',
     )
   }
 }
@@ -44,8 +42,9 @@ export async function checkFixedWindowLimit(options: {
   subject: string
   limit: number
   windowSeconds: number
+  failClosed?: boolean
 }): Promise<RateLimitResult> {
-  const { name, subject, limit, windowSeconds } = options
+  const { name, subject, limit, windowSeconds, failClosed = false } = options
   reportMissingRedisOnce()
   const nowSeconds = Math.floor(Date.now() / 1000)
   const bucket = Math.floor(nowSeconds / windowSeconds)
@@ -61,7 +60,7 @@ export async function checkFixedWindowLimit(options: {
       }
       return { allowed: count <= limit, retryAfter }
     },
-    async () => ({ allowed: true, retryAfter }),
+    async () => ({ allowed: !failClosed, retryAfter }),
   )
 }
 

@@ -70,52 +70,7 @@ import {
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
-
-/**
- * Scopes grouped by the resource they govern, so the picker reads as
- * "what can this agent touch" instead of a flat 12-item checkbox wall.
- * `read` is always listed before `write` inside a group.
- */
-const SCOPE_GROUPS = [
-  {
-    resource: 'events',
-    label: 'Events',
-    description: 'Calendar events and recurrence',
-    scopes: ['events:read', 'events:write'],
-  },
-  {
-    resource: 'categories',
-    label: 'Categories',
-    description: 'Calendar categories',
-    scopes: ['categories:read', 'categories:write'],
-  },
-  {
-    resource: 'countdowns',
-    label: 'Countdowns',
-    description: 'Countdown widgets',
-    scopes: ['countdowns:read', 'countdowns:write'],
-  },
-  {
-    resource: 'bookmarks',
-    label: 'Bookmarks',
-    description: 'Bookmarked events',
-    scopes: ['bookmarks:read', 'bookmarks:write'],
-  },
-  {
-    resource: 'settings',
-    label: 'Settings',
-    description: 'Preferences and timezone',
-    scopes: ['settings:read', 'settings:write'],
-  },
-  {
-    resource: 'profile',
-    label: 'Profile',
-    description: 'Name, email and avatar',
-    scopes: ['profile:read'],
-  },
-] as const
-
-const ALL_SCOPES = SCOPE_GROUPS.flatMap((g) => g.scopes as readonly string[])
+import { ALL_SCOPES, MCP_SCOPE_GROUPS } from '@/lib/mcp/types'
 
 const READ_ONLY_SCOPES = ALL_SCOPES.filter((s) => s.endsWith(':read'))
 
@@ -267,7 +222,7 @@ function Section({
 function ScopeSummary({ scopes }: { scopes: string[] }) {
   const groups = useMemo(() => {
     const names: string[] = []
-    for (const group of SCOPE_GROUPS) {
+    for (const group of MCP_SCOPE_GROUPS) {
       const owned = group.scopes.filter((s) => scopes.includes(s))
       if (owned.length === 0) continue
       const writable = owned.some((s) => s.endsWith(':write'))
@@ -346,7 +301,7 @@ function ScopePicker({
       </div>
 
       <div className="divide-y rounded-md border">
-        {SCOPE_GROUPS.map((group) => {
+        {MCP_SCOPE_GROUPS.map((group) => {
           const readScope = group.scopes.find((s) => s.endsWith(':read'))
           const writeScope = group.scopes.find((s) => s.endsWith(':write'))
           return (

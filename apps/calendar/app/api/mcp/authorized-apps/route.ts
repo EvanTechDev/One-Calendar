@@ -109,7 +109,10 @@ export async function DELETE(request: NextRequest) {
     await tx
       .delete(oauthConsent)
       .where(
-        and(eq(oauthConsent.id, consent.id), eq(oauthConsent.userId, user.id)),
+        and(
+          eq(oauthConsent.clientId, consent.clientId),
+          eq(oauthConsent.userId, user.id),
+        ),
       )
   })
 

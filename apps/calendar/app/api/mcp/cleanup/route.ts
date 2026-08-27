@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cleanupAuditLogs } from '@/lib/mcp/audit'
 import { parseRetentionDays, secretMatches } from '@/lib/mcp/cleanup-config'
+import { cleanupExpiredOAuthState } from '@/lib/mcp/oauth-cleanup'
 
 export const runtime = 'nodejs'
 
@@ -23,8 +24,11 @@ export async function GET(request: Request) {
   console.info('MCP audit cleanup cron invoked', { schedule, retentionDays })
 
   try {
-    const deleted = await cleanupAuditLogs(retentionDays)
-    return NextResponse.json({ deleted })
+    const [deleted, oauth] = await Promise.all([
+      cleanupAuditLogs(retentionDays),
+      cleanupExpiredOAuthState(),
+    ])
+    return NextResponse.json({ deleted, oauth })
   } catch (error) {
     console.error('MCP audit cleanup failed:', error)
     return NextResponse.json(

@@ -4,20 +4,73 @@ import { jwt } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
 import { cimd } from '@better-auth/cimd'
 import { mcp } from '@better-auth/mcp'
-import { oauthDeviceAuthorization } from '@better-auth/oauth-provider'
+import {
+  oauthDeviceAuthorization,
+  oauthProviderAuthServerMetadata as providerAuthServerMetadata,
+} from '@better-auth/oauth-provider'
 import { fetchCimdResource } from './cimd-fetch'
-
-export { oauthProviderAuthServerMetadata } from '@better-auth/oauth-provider'
-export { requireMcpAuth } from '@better-auth/mcp'
 import { createDrizzleAdapter } from './adapter'
 import type {
   CreateAuthOptions,
   EmailOTPOptions,
   EnabledPlugins,
+  McpOAuthOptions,
   PluginOptions,
   SentinelOptions,
   TwoFactorOptions,
 } from './types'
+
+export { requireMcpAuth } from '@better-auth/mcp'
+
+export function oauthProviderAuthServerMetadata(
+  auth: ReturnType<typeof betterAuth>,
+) {
+  return providerAuthServerMetadata(
+    auth as unknown as Parameters<typeof providerAuthServerMetadata>[0],
+  )
+}
+
+export function createMcpOAuthPlugins(oauth: McpOAuthOptions) {
+  return [
+    jwt(),
+    mcp({
+      resource: oauth.resource,
+      loginPage: oauth.loginPage,
+      consentPage: oauth.consentPage,
+      scopes: oauth.scopes,
+      accessTokenExpiresIn: oauth.accessTokenExpiresIn ?? 15 * 60,
+      refreshTokenExpiresIn: oauth.refreshTokenExpiresIn ?? 90 * 24 * 60 * 60,
+      refreshTokenReuseInterval: 0,
+      grantTypes: ['authorization_code', 'refresh_token'],
+      allowPublicClientPrelogin: true,
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      clientRegistrationRequirePKCE: true,
+      clientRegistrationDefaultScopes: oauth.scopes,
+      clientRegistrationAllowedScopes: oauth.scopes,
+      storeClientSecret: 'hashed',
+      storeTokens: 'hashed',
+    }),
+    oauthDeviceAuthorization({
+      verificationUri: oauth.verificationUri,
+      expiresIn: '5m',
+      interval: '5s',
+    }),
+    cimd({
+      fetchClientMetadataResource: fetchCimdResource,
+      metadataProfile: 'mcp-2026-07-28',
+      metadataRevalidationInterval: '60m',
+      metadataFetchPolicy: {
+        minimumFetchInterval: '1s',
+        maximumConcurrentFetches: 16,
+        maximumConcurrentFetchesPerOrigin: 4,
+        maximumFetchesPerMinute: 120,
+        maximumFetchesPerOriginPerMinute: 30,
+      },
+      maxCacheEntries: 1000,
+    }),
+  ]
+}
 
 function resolveTwoFactorPlugin(options: PluginOptions) {
   const value = options.twoFactor
@@ -108,46 +161,7 @@ export function createAuth(options: CreateAuthOptions): {
   }
 
   if (plugins.mcpOAuth) {
-    const oauth = plugins.mcpOAuth
-    resolvedPlugins.push(
-      jwt(),
-      mcp({
-        resource: oauth.resource,
-        loginPage: oauth.loginPage,
-        consentPage: oauth.consentPage,
-        scopes: oauth.scopes,
-        accessTokenExpiresIn: oauth.accessTokenExpiresIn ?? 15 * 60,
-        refreshTokenExpiresIn: oauth.refreshTokenExpiresIn ?? 90 * 24 * 60 * 60,
-        refreshTokenReuseInterval: 0,
-        grantTypes: ['authorization_code', 'refresh_token'],
-        allowPublicClientPrelogin: true,
-        allowDynamicClientRegistration: true,
-        allowUnauthenticatedClientRegistration: true,
-        clientRegistrationRequirePKCE: true,
-        clientRegistrationDefaultScopes: oauth.scopes,
-        clientRegistrationAllowedScopes: oauth.scopes,
-        storeClientSecret: 'hashed',
-        storeTokens: 'hashed',
-      }),
-      oauthDeviceAuthorization({
-        verificationUri: oauth.verificationUri,
-        expiresIn: '5m',
-        interval: '5s',
-      }),
-      cimd({
-        fetchClientMetadataResource: fetchCimdResource,
-        metadataProfile: 'mcp-2026-07-28',
-        metadataRevalidationInterval: '60m',
-        metadataFetchPolicy: {
-          minimumFetchInterval: '1s',
-          maximumConcurrentFetches: 16,
-          maximumConcurrentFetchesPerOrigin: 4,
-          maximumFetchesPerMinute: 120,
-          maximumFetchesPerOriginPerMinute: 30,
-        },
-        maxCacheEntries: 1000,
-      }),
-    )
+    resolvedPlugins.push(...createMcpOAuthPlugins(plugins.mcpOAuth))
     enabledPlugins.mcpOAuth = true
   }
 
