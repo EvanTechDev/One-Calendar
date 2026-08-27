@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { toNextJsHandler } from '@zntr/auth'
-import { authRouteIsExposed, authRoutePath } from '@zntr/auth/route-policy'
+import {
+  authRouteIsExposed,
+  authRoutePath,
+  oauthRouteIsExposed,
+} from '@zntr/auth/route-policy'
 import { auth } from '@/lib/auth'
 import {
   invalidateCachedSession,
@@ -31,6 +35,11 @@ const LIMITS: Record<string, { limit: number; windowSeconds: number }> = {
   'email-otp/send-verification-otp': { limit: 3, windowSeconds: 300 },
   'email-otp/request-password-reset': { limit: 3, windowSeconds: 300 },
   'email-otp/request-email-change': { limit: 3, windowSeconds: 300 },
+  'oauth2/register': { limit: 20, windowSeconds: 3600 },
+  'oauth2/token': { limit: 30, windowSeconds: 60 },
+  'oauth2/introspect': { limit: 60, windowSeconds: 60 },
+  'oauth2/revoke': { limit: 60, windowSeconds: 60 },
+  'device/code': { limit: 10, windowSeconds: 60 },
 }
 
 function notFound() {
@@ -133,7 +142,12 @@ async function resolveAuthSubject(
 async function handleAuth(request: Request) {
   const pathname = new URL(request.url).pathname
   const path = authRoutePath(request.url)
-  if (!authRouteIsExposed(request.method, path)) return notFound()
+  if (
+    !authRouteIsExposed(request.method, path) &&
+    !oauthRouteIsExposed(request.method, path)
+  ) {
+    return notFound()
+  }
 
   const throttled = await authRateLimit(request, path)
   if (throttled) return throttled
@@ -208,7 +222,7 @@ async function handleAuth(request: Request) {
   }
 
   const email = typeof body?.email === 'string' ? body.email : undefined
-  let subject = await resolveAuthSubject(request, email)
+  let subject = action ? await resolveAuthSubject(request, email) : null
   const response =
     await authHandlers[request.method as keyof typeof authHandlers](request)
 
@@ -219,14 +233,14 @@ async function handleAuth(request: Request) {
 
   if (action) {
     const success = response.status < 400
-    if (success && subject.target.id === 'unknown') {
+    if (success && subject?.target.id === 'unknown') {
       subject = await resolveAuthSubject(request, email)
     }
 
     log.audit?.({
       action,
-      actor: subject.actor,
-      target: subject.target,
+      actor: subject?.actor ?? anonymousAuditActor,
+      target: subject?.target ?? { type: 'auth_identity', id: 'unknown' },
       outcome: success ? 'success' : 'failure',
       reason: success
         ? 'Better Auth request completed'

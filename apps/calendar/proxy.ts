@@ -55,10 +55,6 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/sign-up', request.url))
   }
 
-  if (!isLoggedIn && pathname.startsWith('/oauth/authorize')) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
-  }
-
   if (isCspExemptPath(pathname)) {
     return NextResponse.next()
   }

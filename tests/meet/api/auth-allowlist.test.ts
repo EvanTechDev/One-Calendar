@@ -90,6 +90,10 @@ describe('meet auth surface', () => {
       'admin/set-role',
       'admin/list-users',
       'api-key/create',
+      'oauth2/authorize',
+      'oauth2/token',
+      'oauth2/register',
+      'device/code',
     ]) {
       const response = await POST(req(`/api/auth/${path}`, {}))
       expect(response.status).toBe(404)

@@ -1,7 +1,8 @@
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import {
+  WebStandardStreamableHTTPServerTransport,
+  type AuthInfo,
+} from '@modelcontextprotocol/server'
 import { createServer } from './server'
-import { getMcpAuth } from './auth-helpers'
 import { logAudit } from './audit'
 import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
@@ -16,26 +17,29 @@ function allowedOrigins(): string[] {
   return [appOrigin, ...configured]
 }
 
-export async function handleMcpRequest(request: Request): Promise<Response> {
-  try {
-    const auth = await getMcpAuth(request)
-
-    if (!auth) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
-      )
+function allowedHosts(): string[] {
+  return allowedOrigins().flatMap((origin) => {
+    try {
+      return [new URL(origin).hostname]
+    } catch {
+      return []
     }
+  })
+}
 
-    // GET opens the SSE stream. The SDK only rejects a *present* mismatching
-    // Origin, so this check is defence-in-depth on top of the bearer token
-    // above — not a substitute for it.
-    if (request.method === 'GET') {
-      const origin = request.headers.get('origin')
-      const list = allowedOrigins()
-      if (origin && list.length > 0 && !list.includes(origin)) {
-        return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
-      }
+export async function handleMcpRequest(
+  request: Request,
+  auth: { user: import('./types').McpAuthUser; token: string },
+): Promise<Response> {
+  try {
+    const origin = request.headers.get('origin')
+    const list = allowedOrigins()
+    if (origin && list.length > 0 && !list.includes(origin)) {
+      return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
+    }
+    const host = request.headers.get('host')?.split(':')[0]
+    if (!host || !allowedHosts().includes(host)) {
+      return Response.json({ error: 'host_not_allowed' }, { status: 403 })
     }
 
     const settings = await getMcpSettings(auth.user.userId)
@@ -97,6 +101,9 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
       allowedOrigins: allowedOrigins(),
+      allowedHosts: allowedHosts(),
+      enableDnsRebindingProtection: true,
+      supportedProtocolVersions: ['2026-07-28'],
     })
 
     await server.connect(transport)

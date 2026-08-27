@@ -1,17 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { handleMcpRequest } from '@/lib/mcp/handler'
 
+process.env.BETTER_AUTH_URL = 'https://app.example.com'
+
 const mocks = vi.hoisted(() => ({
-  getMcpAuth: vi.fn(),
   getMcpSettings: vi.fn(),
   checkRateLimit: vi.fn(),
   logAudit: vi.fn(),
   handleRequest: vi.fn(),
   connect: vi.fn(),
-}))
-
-vi.mock('@/lib/mcp/auth-helpers', () => ({
-  getMcpAuth: mocks.getMcpAuth,
 }))
 
 vi.mock('@/lib/mcp/settings', () => ({
@@ -30,16 +27,13 @@ vi.mock('@/lib/mcp/server', () => ({
   createServer: () => ({ connect: mocks.connect }),
 }))
 
-vi.mock(
-  '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js',
-  () => ({
-    WebStandardStreamableHTTPServerTransport: class {
-      handleRequest(...args: unknown[]) {
-        return mocks.handleRequest(...args)
-      }
-    },
-  }),
-)
+vi.mock('@modelcontextprotocol/server', () => ({
+  WebStandardStreamableHTTPServerTransport: class {
+    handleRequest(...args: unknown[]) {
+      return mocks.handleRequest(...args)
+    }
+  },
+}))
 
 const AUTH = {
   token: 'tok-123',
@@ -53,14 +47,16 @@ const AUTH = {
   },
 }
 
-function req(method: 'GET' | 'POST', headers: Record<string, string> = {}) {
-  return new Request('https://app.example.com/api/mcp', { method, headers })
+function req(headers: Record<string, string> = {}) {
+  return new Request('https://app.example.com/api/mcp', {
+    method: 'POST',
+    headers: { host: 'app.example.com', ...headers },
+  })
 }
 
 describe('handleMcpRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.getMcpAuth.mockResolvedValue(AUTH)
     mocks.getMcpSettings.mockResolvedValue({ enabled: true, rateLimitRpm: 60 })
     mocks.checkRateLimit.mockResolvedValue({
       allowed: true,
@@ -71,33 +67,23 @@ describe('handleMcpRequest', () => {
     mocks.connect.mockResolvedValue(undefined)
   })
 
-  it('rejects an unauthenticated GET with 401 and never opens a transport', async () => {
-    mocks.getMcpAuth.mockResolvedValue(null)
-
-    const res = await handleMcpRequest(req('GET'))
-
-    expect(res.status).toBe(401)
-    expect(res.headers.get('WWW-Authenticate')).toBe('Bearer')
-    expect(mocks.handleRequest).not.toHaveBeenCalled()
-  })
-
-  it('rejects a GET when MCP is disabled for the account', async () => {
+  it('rejects a request when MCP is disabled for the account', async () => {
     mocks.getMcpSettings.mockResolvedValue({ enabled: false, rateLimitRpm: 60 })
 
-    const res = await handleMcpRequest(req('GET'))
+    const res = await handleMcpRequest(req(), AUTH)
 
     expect(res.status).toBe(403)
     expect(mocks.handleRequest).not.toHaveBeenCalled()
   })
 
-  it('rejects a GET over the rate limit and audits it', async () => {
+  it('rejects a request over the rate limit and audits it', async () => {
     mocks.checkRateLimit.mockResolvedValue({
       allowed: false,
       remaining: 0,
       resetAt: Date.now() + 30_000,
     })
 
-    const res = await handleMcpRequest(req('GET'))
+    const res = await handleMcpRequest(req(), AUTH)
 
     expect(res.status).toBe(429)
     expect(mocks.handleRequest).not.toHaveBeenCalled()
@@ -107,12 +93,13 @@ describe('handleMcpRequest', () => {
     })
   })
 
-  it('serves an authorized GET with the rich authInfo', async () => {
+  it('serves an authorized request with the rich authInfo', async () => {
     const res = await handleMcpRequest(
-      req('GET', {
+      req({
         'cf-connecting-ip': '203.0.113.7',
         'user-agent': 'test-agent',
       }),
+      AUTH,
     )
 
     expect(res.status).toBe(200)
@@ -130,7 +117,7 @@ describe('handleMcpRequest', () => {
   })
 
   it('still serves an authorized POST and writes one request audit row', async () => {
-    const res = await handleMcpRequest(req('POST'))
+    const res = await handleMcpRequest(req(), AUTH)
 
     expect(res.status).toBe(200)
     expect(mocks.handleRequest).toHaveBeenCalledTimes(1)
@@ -139,5 +126,12 @@ describe('handleMcpRequest', () => {
       entryType: 'request',
       action: 'mcp_request',
     })
+  })
+
+  it('rejects an unexpected host before opening a transport', async () => {
+    const res = await handleMcpRequest(req({ host: 'evil.example' }), AUTH)
+
+    expect(res.status).toBe(403)
+    expect(mocks.handleRequest).not.toHaveBeenCalled()
   })
 })

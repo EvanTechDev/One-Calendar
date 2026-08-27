@@ -44,6 +44,25 @@ const EXPOSED_POST = new Set([
   'change-password',
 ])
 
+const EXPOSED_OAUTH_GET = new Set([
+  'oauth2/authorize',
+  'oauth2/public-client',
+  'oauth2/userinfo',
+  'device',
+])
+
+const EXPOSED_OAUTH_POST = new Set([
+  'oauth2/token',
+  'oauth2/register',
+  'oauth2/consent',
+  'oauth2/introspect',
+  'oauth2/revoke',
+  'oauth2/public-client-prelogin',
+  'device/code',
+  'device/approve',
+  'device/deny',
+])
+
 /**
  * Whether `path` — the segments after `/api/auth/` — is exposed for `method`.
  *
@@ -59,6 +78,14 @@ export function authRouteIsExposed(method: string, path: string): boolean {
   const verb = method.toUpperCase()
   if (verb === 'GET') return EXPOSED_GET.has(path)
   if (verb === 'POST') return EXPOSED_POST.has(path)
+  return false
+}
+
+/** OAuth Provider routes exposed only by the Calendar auth host. */
+export function oauthRouteIsExposed(method: string, path: string): boolean {
+  const verb = method.toUpperCase()
+  if (verb === 'GET') return EXPOSED_OAUTH_GET.has(path)
+  if (verb === 'POST') return EXPOSED_OAUTH_POST.has(path)
   return false
 }
 

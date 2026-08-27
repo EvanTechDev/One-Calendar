@@ -152,9 +152,8 @@ interface AuthorizedApp {
   clientId: string
   clientName: string
   scopes: string[]
+  resources: string[]
   createdAt: string
-  expiresAt: string
-  isRevoked: boolean
 }
 
 type AuditEntryType = 'request' | 'tool_call'
@@ -930,9 +929,6 @@ function MCPOAuthApps() {
                 </span>
                 <p className="text-xs text-muted-foreground">
                   Authorized {new Date(app.createdAt).toLocaleDateString()}
-                  {app.expiresAt
-                    ? ` · expires ${new Date(app.expiresAt).toLocaleDateString()}`
-                    : ''}
                 </p>
                 <ScopeSummary scopes={app.scopes} />
               </div>

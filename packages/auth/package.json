@@ -29,28 +29,31 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.7.1",
+    "@better-auth/cimd": "1.7.2",
+    "@better-auth/drizzle-adapter": "1.7.2",
     "@better-auth/infra": "0.4.3",
-    "better-auth": "1.7.1",
-    "drizzle-orm": "^0.45.2",
-    "react-email": "6.6.4",
-    "resend": "6.14.0",
+    "@better-auth/mcp": "1.7.2",
+    "@better-auth/oauth-provider": "1.7.2",
+    "@marsidev/react-turnstile": "1.5.3",
+    "@zntr/i18n": "workspace:*",
     "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",
-    "@zntr/i18n": "workspace:*",
+    "better-auth": "1.7.2",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "1.21.0",
-    "@marsidev/react-turnstile": "1.5.3",
-    "sonner": "2.0.7",
-    "qr-code-styling": "latest"
+    "qr-code-styling": "latest",
+    "react-email": "6.6.4",
+    "resend": "6.14.0",
+    "sonner": "2.0.7"
   },
   "devDependencies": {
-    "vitest": "^4.1.10",
-    "react": "19.2.7",
-    "@types/react": "19.2.2",
-    "react-dom": "19.2.7",
-    "@testing-library/react": "^16.3.2",
     "@testing-library/jest-dom": "^6.9.1",
-    "jsdom": "^29.1.1"
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "19.2.2",
+    "jsdom": "^29.1.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "react": "^19.2.7",

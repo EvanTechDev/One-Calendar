@@ -1,5 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import { McpServer, type AuthInfo } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import {
   COLOR_HEX_LIST,
@@ -155,43 +154,59 @@ function respondMessage(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }] }
 }
 
+type LegacyToolServer = McpServer & {
+  tool<S extends z.ZodRawShape>(
+    name: string,
+    description: string,
+    shape: S,
+    handler: (
+      params: z.infer<z.ZodObject<S>>,
+      extra: { authInfo?: AuthInfo },
+    ) => Promise<unknown>,
+  ): unknown
+}
+
 /**
  * Wraps `server.tool` so every registration gets audit logging without
  * touching the 27 call sites (CORE-128). Intercepting here also guarantees a
  * tool added later is audited by default rather than silently escaping the
  * log.
  */
-function withAuditedTools(server: McpServer): McpServer {
-  const originalTool = server.tool.bind(server)
-  const patched = ((...args: unknown[]) => {
-    const name = args[0]
-    const handlerIndex = args.length - 1
-    const handler = args[handlerIndex]
-    if (typeof name === 'string' && typeof handler === 'function') {
-      const wrapped = withToolAudit(
-        name,
-        handler as (
-          params: Record<string, unknown>,
-          extra: { authInfo?: AuthInfo },
-        ) => Promise<unknown>,
-      )
-      const next = [...args]
-      next[handlerIndex] = wrapped
-      return (originalTool as (...a: unknown[]) => unknown)(...next)
-    }
-    return (originalTool as (...a: unknown[]) => unknown)(...args)
-  }) as typeof server.tool
-  server.tool = patched
-  return server
+function withAuditedTools(server: McpServer): LegacyToolServer {
+  const legacy = server as LegacyToolServer
+  legacy.tool = ((
+    name: string,
+    description: string,
+    shape: z.ZodRawShape,
+    handler: (
+      params: Record<string, unknown>,
+      extra: { authInfo?: AuthInfo },
+    ) => Promise<unknown>,
+  ) => {
+    const audited = withToolAudit(name, handler)
+    return server.registerTool(
+      name,
+      { description, inputSchema: shape } as never,
+      ((params: Record<string, unknown>, context: unknown) => {
+        const http = (context as { http?: { authInfo?: AuthInfo } }).http
+        return audited(params, { authInfo: http?.authInfo })
+      }) as never,
+    )
+  }) as LegacyToolServer['tool']
+  return legacy
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer(
-    { name: 'Zentra Calendar MCP', version: '1.0.0' },
-    { capabilities: { tools: {} } },
+  const server = withAuditedTools(
+    new McpServer(
+      { name: 'Zentra Calendar MCP', version: '2.0.0' },
+      {
+        capabilities: { tools: {} },
+        supportedProtocolVersions: ['2026-07-28'],
+        enforceStrictCapabilities: true,
+      },
+    ),
   )
-
-  withAuditedTools(server)
 
   registerEventTools(server)
   registerEventParticipantTools(server)
@@ -204,7 +219,7 @@ export function createServer(): McpServer {
   return server
 }
 
-function registerEventTools(server: McpServer): void {
+function registerEventTools(server: LegacyToolServer): void {
   server.tool(
     'list_events',
     `List calendar events with structured filtering, full-text search, sorting,
@@ -480,7 +495,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
   )
 }
 
-function registerEventParticipantTools(server: McpServer): void {
+function registerEventParticipantTools(server: LegacyToolServer): void {
   server.tool(
     'add_event_participants',
     'Invite participants to an event. Sends invitation emails by default. For a recurring event, accepts an occurrence id and an apply_to scope; re-adding someone previously removed reuses their original invite link and sends no new email.',
@@ -688,7 +703,7 @@ function registerEventParticipantTools(server: McpServer): void {
   )
 }
 
-function registerCategoryTools(server: McpServer): void {
+function registerCategoryTools(server: LegacyToolServer): void {
   server.tool(
     'list_categories',
     'List all categories',
@@ -767,7 +782,7 @@ function registerCategoryTools(server: McpServer): void {
   )
 }
 
-function registerCountdownTools(server: McpServer): void {
+function registerCountdownTools(server: LegacyToolServer): void {
   server.tool(
     'list_countdown_icons',
     `List the icon names accepted by create_countdown and update_countdown,
@@ -884,7 +899,7 @@ grouped by occasion. Any other value is rejected.`,
   )
 }
 
-function registerSettingsTools(server: McpServer): void {
+function registerSettingsTools(server: LegacyToolServer): void {
   server.tool(
     'get_settings',
     'Get user settings',
@@ -929,7 +944,7 @@ function registerSettingsTools(server: McpServer): void {
   )
 }
 
-function registerProfileTool(server: McpServer): void {
+function registerProfileTool(server: LegacyToolServer): void {
   server.tool(
     'get_profile',
     'Get current user info (name, email, etc.)',
@@ -947,7 +962,7 @@ function registerProfileTool(server: McpServer): void {
   )
 }
 
-function registerBookmarkTools(server: McpServer): void {
+function registerBookmarkTools(server: LegacyToolServer): void {
   server.tool(
     'bookmark_event',
     'Bookmark an event so it can be found quickly later',

@@ -22,16 +22,17 @@ vi.mock('better-auth', () => ({
   },
 }))
 
-vi.mock('better-auth/adapters/drizzle', () => ({
+vi.mock('@better-auth/drizzle-adapter', () => ({
   drizzleAdapter: () => ({}),
 }))
 
 vi.mock('better-auth/plugins', () => ({
   twoFactor: (options?: unknown) => ({ id: 'two-factor', options }),
   emailOTP: (options?: unknown) => ({ id: 'email-otp', options }),
+  jwt: (options?: unknown) => ({ id: 'jwt', options }),
 }))
 
-vi.mock('@better-auth/sentinel', () => ({
+vi.mock('@better-auth/infra', () => ({
   sentinel: (options?: unknown) => ({ id: 'sentinel', options }),
 }))
 
@@ -42,7 +43,7 @@ const sendVerificationOTP = vi.fn()
 
 function build(emailOTP: unknown) {
   return createAuth({
-    database: {} as never,
+    db: {} as never,
     secret: 'a-secret-long-enough-to-be-plausible-000',
     emailCallbacks: {
       sendVerificationEmail,
@@ -124,7 +125,7 @@ describe('email verification ownership', () => {
     // so dropping this would break email changes rather than de-duplicate them.
     const sendChangeEmailVerification = vi.fn()
     createAuth({
-      database: {} as never,
+      db: {} as never,
       secret: 'a-secret-long-enough-to-be-plausible-000',
       emailCallbacks: {
         sendVerificationEmail,

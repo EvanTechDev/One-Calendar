@@ -4,6 +4,8 @@ import { getDb } from '@/lib/drizzle/client'
 import bcrypt from 'bcryptjs'
 import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 import { authEmailCallbacks, resendSender } from '@zntr/auth/email'
+import { ALL_SCOPES } from '@/lib/mcp/types'
+import { MCP_RESOURCE } from '@/lib/mcp/oauth-config'
 
 const baseURL = process.env.NEXT_PUBLIC_BASE_URL
 
@@ -51,6 +53,19 @@ const { auth } = createAuth({
       changeEmail: { enabled: true },
       overrideDefaultEmailVerification: true,
     },
+    ...(process.env.NODE_ENV === 'test'
+      ? {}
+      : {
+          mcpOAuth: {
+            resource: MCP_RESOURCE,
+            loginPage: '/oauth/sign-in',
+            consentPage: '/oauth/consent',
+            verificationUri: '/oauth/device',
+            scopes: ['offline_access', ...ALL_SCOPES],
+            accessTokenExpiresIn: 15 * 60,
+            refreshTokenExpiresIn: 90 * 24 * 60 * 60,
+          },
+        }),
   },
   isDev: process.env.NODE_ENV !== 'production',
 })

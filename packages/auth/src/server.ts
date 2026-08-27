@@ -1,6 +1,14 @@
 import { betterAuth } from 'better-auth'
 import { twoFactor, emailOTP } from 'better-auth/plugins'
+import { jwt } from 'better-auth/plugins'
 import { sentinel } from '@better-auth/infra'
+import { cimd } from '@better-auth/cimd'
+import { fetchClientMetadataResource } from '@better-auth/cimd/node'
+import { mcp } from '@better-auth/mcp'
+import { oauthDeviceAuthorization } from '@better-auth/oauth-provider'
+
+export { oauthProviderAuthServerMetadata } from '@better-auth/oauth-provider'
+export { requireMcpAuth } from '@better-auth/mcp'
 import { createDrizzleAdapter } from './adapter'
 import type {
   CreateAuthOptions,
@@ -97,6 +105,50 @@ export function createAuth(options: CreateAuthOptions): {
     }
     resolvedPlugins.push(emailOTPFn(emailCallbacks.sendVerificationOTP))
     enabledPlugins.emailOTP = true
+  }
+
+  if (plugins.mcpOAuth) {
+    const oauth = plugins.mcpOAuth
+    resolvedPlugins.push(
+      jwt(),
+      mcp({
+        resource: oauth.resource,
+        loginPage: oauth.loginPage,
+        consentPage: oauth.consentPage,
+        scopes: oauth.scopes,
+        accessTokenExpiresIn: oauth.accessTokenExpiresIn ?? 15 * 60,
+        refreshTokenExpiresIn: oauth.refreshTokenExpiresIn ?? 90 * 24 * 60 * 60,
+        refreshTokenReuseInterval: 0,
+        grantTypes: ['authorization_code', 'refresh_token'],
+        allowPublicClientPrelogin: true,
+        allowDynamicClientRegistration: true,
+        allowUnauthenticatedClientRegistration: true,
+        clientRegistrationRequirePKCE: true,
+        clientRegistrationDefaultScopes: oauth.scopes,
+        clientRegistrationAllowedScopes: oauth.scopes,
+        storeClientSecret: 'hashed',
+        storeTokens: 'hashed',
+      }),
+      oauthDeviceAuthorization({
+        verificationUri: oauth.verificationUri,
+        expiresIn: '5m',
+        interval: '5s',
+      }),
+      cimd({
+        fetchClientMetadataResource,
+        metadataProfile: 'mcp-2026-07-28',
+        metadataRevalidationInterval: '60m',
+        metadataFetchPolicy: {
+          minimumFetchInterval: '1s',
+          maximumConcurrentFetches: 16,
+          maximumConcurrentFetchesPerOrigin: 4,
+          maximumFetchesPerMinute: 120,
+          maximumFetchesPerOriginPerMinute: 30,
+        },
+        maxCacheEntries: 1000,
+      }),
+    )
+    enabledPlugins.mcpOAuth = true
   }
 
   /**

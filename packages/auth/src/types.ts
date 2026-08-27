@@ -73,10 +73,21 @@ export interface EmailOTPOptions {
   expiresIn?: number
 }
 
+export interface McpOAuthOptions {
+  resource: string
+  loginPage: string
+  consentPage: string
+  verificationUri: string
+  scopes: string[]
+  accessTokenExpiresIn?: number
+  refreshTokenExpiresIn?: number
+}
+
 export interface PluginOptions {
   twoFactor?: boolean | TwoFactorOptions
   sentinel?: boolean | SentinelOptions
   emailOTP?: boolean | EmailOTPOptions
+  mcpOAuth?: McpOAuthOptions
 }
 
 export interface PasswordHashOptions {
@@ -120,6 +131,7 @@ export type EnabledPlugins = {
   twoFactor?: boolean
   sentinel?: boolean
   emailOTP?: boolean
+  mcpOAuth?: boolean
 }
 
 export interface CreateAuthClientOptions {

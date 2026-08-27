@@ -44,7 +44,17 @@ export function LoginForm({ returnTo }: LoginFormProps) {
    * cannot navigate to — it only handles in-app routes. Absolute URLs go
    * through a full page load instead. Already allowlisted server-side.
    */
-  const navigateAfterSignIn = () => {
+  const navigateAfterSignIn = (result?: unknown) => {
+    const oauthResult = result as
+      | { data?: { redirect?: unknown; url?: unknown } | null }
+      | undefined
+    if (
+      oauthResult?.data?.redirect === true &&
+      typeof oauthResult.data.url === 'string'
+    ) {
+      window.location.assign(oauthResult.data.url)
+      return
+    }
     if (/^https?:\/\//i.test(destination)) {
       window.location.assign(destination)
       return
@@ -88,7 +98,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       return
     }
 
-    navigateAfterSignIn()
+    navigateAfterSignIn(res)
     setIsLoading(false)
   }
 
@@ -112,7 +122,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       setIsVerifyingTotp(false)
       return
     }
-    navigateAfterSignIn()
+    navigateAfterSignIn(res)
   }
 
   return (

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   handler: vi.fn(async () => new Response('delegated', { status: 200 })),
   invalidate: vi.fn(async () => {}),
   limiter: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
+  getSession: vi.fn(async () => null),
 }))
 
 vi.mock('@zntr/auth', () => ({
@@ -17,7 +18,7 @@ vi.mock('@zntr/auth', () => ({
 }))
 
 vi.mock('@/lib/auth', () => ({
-  auth: { api: { getSession: vi.fn(async () => null) } },
+  auth: { api: { getSession: mocks.getSession } },
 }))
 
 vi.mock('@/lib/cache/session', () => ({
@@ -71,6 +72,7 @@ function request(method: 'GET' | 'POST', path: string) {
 beforeEach(() => {
   mocks.handler.mockClear()
   mocks.invalidate.mockClear()
+  mocks.getSession.mockClear()
   mocks.limiter.mockReset()
   mocks.limiter.mockImplementation(async () => ({
     allowed: state.rateAllowed,
@@ -97,6 +99,43 @@ describe('calendar auth surface', () => {
     expect(response.status).toBe(404)
     expect(mocks.handler).not.toHaveBeenCalled()
     expect(mocks.limiter).not.toHaveBeenCalled()
+  })
+
+  it('delegates only the public OAuth protocol endpoints', async () => {
+    for (const [method, path] of [
+      ['GET', 'oauth2/authorize'],
+      ['GET', 'oauth2/public-client'],
+      ['POST', 'oauth2/token'],
+      ['POST', 'oauth2/register'],
+      ['POST', 'device/code'],
+      ['POST', 'device/approve'],
+    ] as const) {
+      const response =
+        method === 'GET'
+          ? await GET(request(method, `/api/auth/${path}`))
+          : await POST(request(method, `/api/auth/${path}`))
+      expect(response.status).toBe(200)
+    }
+    expect(mocks.getSession).not.toHaveBeenCalled()
+
+    const admin = await POST(
+      request('POST', '/api/auth/admin/oauth2/create-client'),
+    )
+    expect(admin.status).toBe(404)
+  })
+
+  it('rate limits dynamic client registration before delegation', async () => {
+    state.rateAllowed = false
+    const response = await POST(request('POST', '/api/auth/oauth2/register'))
+
+    expect(response.status).toBe(429)
+    expect(mocks.handler).not.toHaveBeenCalled()
+    expect(mocks.limiter).toHaveBeenCalledWith({
+      name: 'auth:oauth2/register',
+      subject: '203.0.113.8',
+      limit: 20,
+      windowSeconds: 3600,
+    })
   })
 
   it('rate limits credential routes before delegation', async () => {
