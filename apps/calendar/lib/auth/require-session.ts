@@ -17,7 +17,7 @@ import type { AuthSession } from '@zntr/auth'
  * is the same bug with better timing, and it leaks the shape of a signed-in page
  * to someone who is not.
  *
- * Fails CLOSED: an error reading the session redirects rather than continuing.
+ * Fails CLOSED: an error reading the session throws rather than continuing.
  * That is the opposite of the CAPTCHA check's posture, for the opposite reason —
  * there, failing open costs a bot defence; here, failing open costs access
  * control.
@@ -30,8 +30,10 @@ export async function requireAppSession(
     session = (await auth.api.getSession({
       headers: await headers(),
     })) as AuthSession | null
-  } catch {
-    session = null
+  } catch (error) {
+    // A storage outage is not evidence that the visitor is anonymous. Redirecting
+    // it to sign-in loops with any existing cookie and hides the real incident.
+    throw new Error('Session service unavailable', { cause: error })
   }
 
   // Checked for a user, not just a session: Better Auth can return a session

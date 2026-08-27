@@ -55,14 +55,16 @@ describe('requireAppSession', () => {
     expect(redirect).toHaveBeenCalledWith('/sign-in')
   })
 
-  it('redirects when reading the session throws', async () => {
+  it('fails closed without redirecting when the session store throws', async () => {
     // A database outage must not open the door. Failing closed on an auth check is
     // the opposite trade from the CAPTCHA check, and for the opposite reason:
     // there the fallback is "no bot defence", here it is "no access control".
     getSession.mockRejectedValueOnce(new Error('connection refused'))
 
-    await expect(requireAppSession()).rejects.toThrow(/NEXT_REDIRECT/)
-    expect(redirect).toHaveBeenCalledWith('/sign-in')
+    await expect(requireAppSession()).rejects.toThrow(
+      /Session service unavailable/,
+    )
+    expect(redirect).not.toHaveBeenCalled()
   })
 
   it('carries a return path so sign-in sends the user back', async () => {

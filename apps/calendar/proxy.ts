@@ -47,10 +47,6 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/app', request.url))
   }
 
-  if (isLoggedIn && ['/sign-in', '/sign-up'].includes(pathname)) {
-    return NextResponse.redirect(new URL('/app', request.url))
-  }
-
   if (!isLoggedIn && pathname === '/landing') {
     return NextResponse.redirect(new URL('/', request.url))
   }

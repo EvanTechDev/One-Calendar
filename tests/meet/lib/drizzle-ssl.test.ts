@@ -2,11 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { resolveDbSsl } from '@/lib/drizzle'
 
 describe('meet database TLS policy', () => {
-  it('verifies the certificate and hostname by default', () => {
-    expect(resolveDbSsl({})).toBe('verify-full')
+  const pem = [
+    '-----BEGIN CERTIFICATE-----',
+    'test-ca-body',
+    '-----END CERTIFICATE-----',
+  ].join('\n')
+
+  it('requires an encrypted connection by default', () => {
+    expect(resolveDbSsl({})).toBe('require')
   })
 
-  it('allows only the named local development exceptions', () => {
+  it('supports explicit verification and local development exceptions', () => {
+    expect(resolveDbSsl({ DATABASE_SSL: 'verify-full' })).toBe('verify-full')
+    expect(resolveDbSsl({ DATABASE_SSL: 'require' })).toBe('require')
     expect(resolveDbSsl({ DATABASE_SSL: 'no-verify' })).toBe('require')
     expect(resolveDbSsl({ DATABASE_SSL: 'disable' })).toBe(false)
   })
@@ -16,8 +24,26 @@ describe('meet database TLS policy', () => {
     expect(resolveDbSsl({ DATABASE_SSL: ' DISABLE ' })).toBe(false)
   })
 
-  it('fails safely for unknown values', () => {
-    expect(resolveDbSsl({ DATABASE_SSL: 'require' })).toBe('verify-full')
-    expect(resolveDbSsl({ DATABASE_SSL: 'anything-else' })).toBe('verify-full')
+  it('uses the deployment-compatible default for unknown values', () => {
+    expect(resolveDbSsl({ DATABASE_SSL: 'anything-else' })).toBe('require')
+  })
+
+  it('uses an explicit CA without disabling peer verification', () => {
+    expect(resolveDbSsl({ DATABASE_SSL_CA: pem })).toEqual({
+      ca: pem,
+      rejectUnauthorized: true,
+    })
+    expect(
+      resolveDbSsl({ DATABASE_SSL_CA: pem.replace(/\n/g, '\\n') }),
+    ).toEqual({
+      ca: pem,
+      rejectUnauthorized: true,
+    })
+  })
+
+  it('rejects malformed CA configuration', () => {
+    expect(() =>
+      resolveDbSsl({ DATABASE_SSL_CA: 'not a certificate' }),
+    ).toThrow(/PEM certificate/)
   })
 })

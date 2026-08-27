@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { describe, expect, it } from 'vitest'
-import { getCsp, isCspExemptPath } from '@/proxy'
+import { NextRequest } from 'next/server'
+import proxy, { getCsp, isCspExemptPath } from '@/proxy'
 
 // The contract under test: Next extracts the nonce from the request CSP header
 // with exactly this regex (see get-script-nonce-from-header.js).
@@ -56,5 +57,20 @@ describe('CSP policy invariants', () => {
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("base-uri 'self'")
     expect(csp).toContain("default-src 'self'")
+  })
+})
+
+describe('authentication redirects', () => {
+  it('does not treat a cookie as a validated session on sign-in', () => {
+    const request = new NextRequest('https://calendar.example/sign-in', {
+      headers: {
+        cookie: 'better-auth.session_token=stale-or-unreadable',
+      },
+    })
+
+    const response = proxy(request)
+
+    expect(response.headers.get('location')).toBeNull()
+    expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 })
