@@ -37,9 +37,14 @@ export default async function HomePage() {
           <ZentraMark className="size-6 shrink-0 brightness-0 dark:invert" />
           <span className="text-sm font-medium">Zentra Meet</span>
         </div>
-        <Button asChild size="sm" variant="ghost">
-          <Link href={signInUrl()}>Sign in</Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/sign-up">Sign up</Link>
+          </Button>
+        </div>
       </header>
 
       {/*
@@ -80,19 +85,16 @@ export default async function HomePage() {
 }
 
 /**
- * Sign-in lives in the calendar app; meet only reads the session (its own auth
- * route deliberately exposes nothing else). The return URL brings the user
- * back here instead of dumping them in the calendar — the calendar validates
- * it against an allowlist, so an unknown origin is simply ignored there.
+ * The calendar's origin, for reading data it owns — not for navigation.
+ *
+ * Sign-in used to be built from this: meet had no auth pages, so a signed-out
+ * visitor was sent to the calendar with a return URL. It has its own pages now
+ * (ADR 0022) and links to them relatively, which also means the flow no longer
+ * depends on a build-time variable being present.
+ *
+ * Upcoming meetings are still read from the calendar, because it owns recurrence
+ * expansion (ADR 0017).
  */
 function calendarOrigin(): string {
   return (process.env.NEXT_PUBLIC_CALENDAR_ORIGIN ?? '').replace(/\/$/, '')
-}
-
-function signInUrl(): string {
-  const origin = calendarOrigin()
-  const self = (process.env.NEXT_PUBLIC_BASE_URL ?? '').replace(/\/$/, '')
-  const signIn = `${origin}/sign-in`
-  if (!self) return signIn
-  return `${signIn}?redirect=${encodeURIComponent(`${self}/`)}`
 }
