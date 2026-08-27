@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { AccountPanel } from '@zntr/auth/account'
+import { formatDeployAge } from '@/lib/deploy-age'
 import { AccountHost } from '@/components/auth/account-host'
 import {
   CircleUserRound,
@@ -383,19 +384,17 @@ function PreferencesSettings() {
 }
 
 function AboutSettings() {
-  const [deployedAt, setDeployedAt] = useState<string | null>(null)
-  // Formatted after mount: an absolute timestamp rendered on the server is
-  // formatted in the server's locale and timezone (UTC on Vercel).
+  const [deployedAge, setDeployedAge] = useState<string | null>(null)
+  // Computed after mount, and re-computed every minute, because it is relative to
+  // now: rendering it on the server would freeze the age at build time.
+  //
+  // Phrased as the calendar phrases it — meet used to show an absolute timestamp,
+  // so the two apps reported one fact in two formats (ADR 0022).
   useEffect(() => {
-    const parsed = new Date(BUILD_TIME)
-    setDeployedAt(
-      Number.isNaN(parsed.getTime())
-        ? null
-        : new Intl.DateTimeFormat(undefined, {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          }).format(parsed),
-    )
+    const update = () => setDeployedAge(formatDeployAge(BUILD_TIME))
+    update()
+    const timer = window.setInterval(update, 60000)
+    return () => window.clearInterval(timer)
   }, [])
 
   return (
@@ -407,7 +406,7 @@ function AboutSettings() {
           <Fact label="Commit" value={COMMIT_HASH} mono />
           {/* Only rendered when there is a real value: an "unknown" row here
               would look like a bug rather than an unset build variable. */}
-          {deployedAt ? <Fact label="Deployed" value={deployedAt} /> : null}
+          {deployedAge ? <Fact label="Deployed" value={deployedAge} /> : null}
         </dl>
       </div>
 

@@ -45,7 +45,10 @@ export function AccountHost({ children }: { children: ReactNode }) {
             .get()
             .refetch()
         },
-        navigate: (to) => router.push(to),
+        // replace, not push: after a sign-out or a deletion the previous entry
+        // is a page the user can no longer see, and Back would land them on a
+        // server-guarded route that only bounces them here again.
+        navigate: (to) => router.replace(to),
         // DELETE /api/account removes calendar_events, settings, categories,
         // countdowns and bookmarks alongside the user. That list is this app's
         // and nothing in the package should know it.
