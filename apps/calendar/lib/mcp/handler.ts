@@ -1,4 +1,5 @@
 import {
+  SUPPORTED_PROTOCOL_VERSIONS,
   WebStandardStreamableHTTPServerTransport,
   type AuthInfo,
 } from '@modelcontextprotocol/server'
@@ -103,7 +104,7 @@ export async function handleMcpRequest(
       allowedOrigins: allowedOrigins(),
       allowedHosts: allowedHosts(),
       enableDnsRebindingProtection: true,
-      supportedProtocolVersions: ['2026-07-28'],
+      supportedProtocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
     })
 
     await server.connect(transport)

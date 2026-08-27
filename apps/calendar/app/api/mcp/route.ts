@@ -40,7 +40,7 @@ const handleOAuthRequest = requireMcpAuth(
   },
 )
 
-export async function POST(request: Request) {
+async function dispatch(request: Request) {
   const authorization = request.headers.get('authorization') ?? ''
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1] ?? ''
   if (!token.startsWith('zc_')) return handleOAuthRequest(request)
@@ -49,3 +49,6 @@ export async function POST(request: Request) {
   if (!apiKey) return unauthorized()
   return handleMcpRequest(request, apiKey)
 }
+
+export const GET = dispatch
+export const POST = dispatch

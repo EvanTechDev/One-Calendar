@@ -1,4 +1,8 @@
-import { McpServer, type AuthInfo } from '@modelcontextprotocol/server'
+import {
+  McpServer,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type AuthInfo,
+} from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import {
   COLOR_HEX_LIST,
@@ -202,7 +206,7 @@ export function createServer(): McpServer {
       { name: 'Zentra Calendar MCP', version: '2.0.0' },
       {
         capabilities: { tools: {} },
-        supportedProtocolVersions: ['2026-07-28'],
+        supportedProtocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
         enforceStrictCapabilities: true,
       },
     ),

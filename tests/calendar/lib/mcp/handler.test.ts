@@ -28,6 +28,7 @@ vi.mock('@/lib/mcp/server', () => ({
 }))
 
 vi.mock('@modelcontextprotocol/server', () => ({
+  SUPPORTED_PROTOCOL_VERSIONS: ['2025-11-25', '2025-06-18'],
   WebStandardStreamableHTTPServerTransport: class {
     handleRequest(...args: unknown[]) {
       return mocks.handleRequest(...args)

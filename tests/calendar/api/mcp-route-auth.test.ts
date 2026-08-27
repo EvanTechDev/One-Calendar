@@ -25,7 +25,7 @@ vi.mock('@/lib/mcp/auth-helpers', () => ({
 }))
 vi.mock('@/lib/mcp/handler', () => ({ handleMcpRequest: mocks.handle }))
 
-const { POST } = await import('@/app/api/mcp/route')
+const { GET, POST } = await import('@/app/api/mcp/route')
 
 const user = {
   userId: 'user-1',
@@ -40,6 +40,13 @@ function request(token: string) {
   return new Request('https://calendar.example/api/mcp', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
+  })
+}
+
+function getRequest(token = '') {
+  return new Request('https://calendar.example/api/mcp', {
+    method: 'GET',
+    headers: token ? { authorization: `Bearer ${token}` } : {},
   })
 }
 
@@ -79,5 +86,22 @@ describe('MCP route authentication dispatch', () => {
       'resource_metadata=',
     )
     expect(mocks.handle).not.toHaveBeenCalled()
+  })
+
+  it('returns an OAuth discovery challenge for unauthenticated GET', async () => {
+    mocks.getOAuth.mockResolvedValue(null)
+    const response = await GET(getRequest())
+
+    expect(response.status).toBe(401)
+    expect(response.headers.get('WWW-Authenticate')).toContain(
+      'resource_metadata=',
+    )
+  })
+
+  it('keeps authenticated GET available for compatible SSE clients', async () => {
+    const response = await GET(getRequest('ey.jwt.token'))
+
+    expect(response.status).toBe(200)
+    expect(mocks.handle).toHaveBeenCalled()
   })
 })
