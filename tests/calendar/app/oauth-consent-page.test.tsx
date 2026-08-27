@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () =>
     new URLSearchParams({
       client_id: 'client-1',
-      scope: 'events:read offline_access',
+      scope: 'events:read events:write offline_access',
       resource: 'https://calendar.example/api/mcp',
       sig: 'signed-query',
       exp: '9999999999',
@@ -19,6 +19,10 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/auth/oauth-client', () => ({
   oauthAuthClient: {
+    useSession: () => ({
+      data: { user: { name: 'Ada', image: null } },
+      isPending: false,
+    }),
     oauth2: {
       publicClientPrelogin: mocks.publicClient,
       consent: mocks.consent,
@@ -45,9 +49,13 @@ describe('OAuth consent page', () => {
     render(<OAuthConsentPage />)
 
     expect(screen.queryByRole('button', { name: 'Authorize' })).toBeNull()
-    await screen.findByText('Authorize Trusted CLI')
+    await screen.findByText(/Trusted CLI wants access to your calendar/)
     expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled()
     expect(screen.getByText(/calendar\.example\/api\/mcp/)).toBeInTheDocument()
+    expect(screen.getByText('Events')).toBeInTheDocument()
+    expect(screen.getByText('READ+WRITE')).toBeInTheDocument()
+    expect(screen.getByText('Offline access')).toBeInTheDocument()
+    expect(screen.getByText('LONG-LIVED')).toBeInTheDocument()
     expect(mocks.publicClient).toHaveBeenCalledWith({
       client_id: 'client-1',
       oauth_query: expect.stringContaining('sig=signed-query'),
@@ -56,7 +64,7 @@ describe('OAuth consent page', () => {
 
   it('returns the complete signed query to Better Auth on consent', async () => {
     render(<OAuthConsentPage />)
-    await screen.findByText('Authorize Trusted CLI')
+    await screen.findByText(/Trusted CLI wants access to your calendar/)
 
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }))
 

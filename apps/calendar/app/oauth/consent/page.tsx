@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ShieldCheck, XCircle } from 'lucide-react'
+import { ShieldAlert, XCircle } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@zntr/ui/avatar'
+import { Badge } from '@zntr/ui/badge'
 import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
 import { Spinner } from '@zntr/ui/spinner'
@@ -23,6 +25,8 @@ function ConsentForm() {
   const [client, setClient] = useState<PublicClient | null>(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { data: session, isPending: sessionLoading } =
+    oauthAuthClient.useSession()
 
   useEffect(() => {
     if (!clientId || !oauthQuery) {
@@ -58,6 +62,38 @@ function ConsentForm() {
     window.location.assign(target)
   }
 
+  const permissionGroups = (() => {
+    const grouped: Record<string, { read: boolean; write: boolean }> = {}
+    for (const scope of scopes) {
+      const [resource, action] = scope.split(':')
+      if (!resource || !action) continue
+      grouped[resource] ??= { read: false, write: false }
+      if (action === 'read') grouped[resource].read = true
+      if (action === 'write') grouped[resource].write = true
+    }
+
+    const label = (value: string) =>
+      value.charAt(0).toUpperCase() + value.slice(1)
+    const readWrite = Object.entries(grouped)
+      .filter(([, access]) => access.read && access.write)
+      .map(([resource]) => label(resource))
+      .sort()
+    const readOnly = Object.entries(grouped)
+      .filter(([, access]) => access.read && !access.write)
+      .map(([resource]) => label(resource))
+      .sort()
+
+    return [
+      ...(readWrite.length
+        ? [{ resources: readWrite, badge: 'READ+WRITE' }]
+        : []),
+      ...(readOnly.length ? [{ resources: readOnly, badge: 'READ' }] : []),
+      ...(scopes.includes('offline_access')
+        ? [{ resources: ['Offline access'], badge: 'LONG-LIVED' }]
+        : []),
+    ]
+  })()
+
   if (error && !client) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -70,7 +106,7 @@ function ConsentForm() {
     )
   }
 
-  if (!client) {
+  if (!client || sessionLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner className="size-8" />
@@ -80,41 +116,79 @@ function ConsentForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3 text-center">
-          <ShieldCheck className="mx-auto size-12 text-primary" />
-          <div>
-            <h1 className="text-xl font-semibold">
-              Authorize {client.client_name ?? 'this application'}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Review the calendar access this application requested.
+      <Card className="w-full max-w-sm rounded-lg">
+        <CardHeader className="flex flex-col items-center gap-3">
+          <Avatar size="lg" className="size-32">
+            <AvatarImage src={session?.user?.image ?? ''} />
+            <AvatarFallback className="text-2xl">
+              {(session?.user?.name ?? 'U').charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-center">
+            <p className="text-lg font-semibold">
+              {session?.user?.name ?? 'Zentra user'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {client.client_name ?? 'This application'} wants access to your
+              calendar
             </p>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {scopes.map((scope) => (
-            <div key={scope} className="rounded-md border px-3 py-2 text-sm">
-              {scope}
+
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/20">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+              Make sure you trust this application. It receives only the
+              permissions listed below, and you can revoke access at any time
+              from MCP settings.
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Permissions
+            </p>
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {permissionGroups.map((group) => (
+                <div
+                  key={group.badge}
+                  className="flex items-center justify-between px-3 py-2.5"
+                >
+                  <span className="text-sm text-foreground">
+                    {group.resources.join(', ')}
+                  </span>
+                  <Badge variant="secondary" className="ml-2 shrink-0">
+                    {group.badge}
+                  </Badge>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
           {resources.length > 0 ? (
-            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Resource: {resources.join(', ')}
-            </div>
+            <p className="break-all text-xs text-muted-foreground">
+              Access target: {resources.join(', ')}
+            </p>
           ) : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </CardContent>
-        <CardFooter className="grid grid-cols-2 gap-3">
+        <CardFooter className="flex gap-3 border-t-0 bg-transparent px-4 pb-4 pt-2">
           <Button
             variant="outline"
+            className="flex-1"
             disabled={submitting}
             onClick={() => void decide(false)}
           >
             Deny
           </Button>
-          <Button disabled={submitting} onClick={() => void decide(true)}>
-            {submitting ? 'Authorizing...' : 'Authorize'}
+          <Button
+            className="flex-1"
+            disabled={submitting}
+            onClick={() => void decide(true)}
+          >
+            {submitting ? <Spinner className="mr-2 size-4" /> : null}
+            Authorize
           </Button>
         </CardFooter>
       </Card>
