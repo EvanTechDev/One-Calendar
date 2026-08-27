@@ -68,6 +68,17 @@ export type AccountClient = {
 export type AccountContextValue = {
   copy: AuthCopy
   user: AccountUser | null
+  /**
+   * Whether the session is still being read.
+   *
+   * Without this the panel had two states where it needed three: `useSession()`
+   * returns `undefined` data while it resolves, so a signed-in user saw the
+   * signed-out panel — Sign in and Sign up buttons — until the request landed.
+   *
+   * Optional, defaulting to resolved, because every caller that does not know
+   * about loading would otherwise render a skeleton forever.
+   */
+  isLoading?: boolean
   client: AccountClient
   /** Re-reads the session after a change the client cannot reflect locally. */
   refetchSession: () => Promise<void>

@@ -52,6 +52,8 @@ const COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT ?? 'unknown'
 const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? ''
 
 export interface SettingsUser {
+  /** The real user id. Needed so the account panel can act, not just display. */
+  id: string
   name: string
   email: string
   image?: string | null
@@ -73,9 +75,12 @@ export interface SettingsUser {
 export function SettingsDialog({
   open,
   onOpenChange,
+  user,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Read on the server, so the account panel is right on first paint. */
+  user?: SettingsUser
 }) {
   const [section, setSection] = useState<SettingsSection>('preferences')
 
@@ -170,7 +175,18 @@ export function SettingsDialog({
                   {/* The same panel the calendar mounts. Meet used to show a card
                       linking there, because every mutation needed the CAPTCHA and
                       audit logging that only lived in that app (ADR 0022). */}
-                  <AccountHost>
+                  <AccountHost
+                    initialUser={
+                      user
+                        ? {
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            image: user.image ?? null,
+                          }
+                        : null
+                    }
+                  >
                     <AccountPanel />
                   </AccountHost>
                 </div>

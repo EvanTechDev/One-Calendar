@@ -21,13 +21,17 @@ import { authClient } from '@/lib/auth/client'
 export function AccountHost({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [language] = useLanguage()
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession()
 
   return (
     <AccountProvider
       value={{
         copy: selectAuthCopy(language),
         user: (session?.user as AccountUser | undefined) ?? null,
+        // Passed through so the panel can tell "reading the session" apart from
+        // "signed out". Without it a signed-in user saw the Sign in and Sign up
+        // buttons until the request landed.
+        isLoading: isPending,
         client: authClient as unknown as AccountClient,
         // Better Auth's session store is the source of truth for the header
         // avatar and the guard on every server component, so a change made in

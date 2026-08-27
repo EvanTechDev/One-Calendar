@@ -21,15 +21,33 @@ import { authClient } from '@/lib/auth/client'
  * English for now: meet has no language picker, and the shared copy falls back to
  * English for any key a locale has not reached, so this reads the same as it did.
  */
-export function AccountHost({ children }: { children: ReactNode }) {
+export function AccountHost({
+  children,
+  initialUser,
+}: {
+  children: ReactNode
+  /**
+   * The user this page already read on the server.
+   *
+   * Meet renders its header from a server session, so the panel does not need to
+   * discover the same fact over the network before it can show anything. Without
+   * this the panel spent one request knowing less than the page around it did, and
+   * rendered its signed-out state in the meantime.
+   */
+  initialUser?: AccountUser | null
+}) {
   const router = useRouter()
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession()
 
   return (
     <AccountProvider
       value={{
         copy: selectAuthCopy('en'),
-        user: (session?.user as AccountUser | undefined) ?? null,
+        user: (session?.user as AccountUser | undefined) ?? initialUser ?? null,
+        // Passed through so the panel can tell "reading the session" apart from
+        // "signed out". Without it a signed-in user saw the Sign in and Sign up
+        // buttons until the request landed.
+        isLoading: isPending,
         client: authClient as unknown as AccountClient,
         refetchSession: async () => {
           await (

@@ -35,15 +35,19 @@ export default function UserProfileButton({
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession()
   const user = session?.user
   const isSignedIn = Boolean(user)
+  // The same three-state distinction the account panel needs: useSession returns
+  // no user while it is in flight, so "no user yet" and "no account" are different
+  // answers. Conflating them offered Sign in to a signed-in user for a beat.
+  const isResolving = !user && isPending
   const router = useRouter()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {isSignedIn ? (
+        {isSignedIn || isResolving ? (
           <Button
             variant={variant}
             size="icon"
@@ -70,7 +74,7 @@ export default function UserProfileButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        {!isSignedIn ? (
+        {!isSignedIn && !isResolving ? (
           <>
             <DropdownMenuItem onClick={() => router.push('/sign-in')}>
               {t.signIn}

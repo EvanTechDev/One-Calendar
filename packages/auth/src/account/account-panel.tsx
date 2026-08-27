@@ -55,6 +55,7 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
   const {
     copy: t,
     user,
+    isLoading,
     client: authClient,
     refetchSession,
     navigate,
@@ -62,6 +63,10 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
     signInHref,
   } = useAccount()
   const isAnySignedIn = Boolean(user)
+  // Distinguished from signed-out deliberately: the session read returns no user
+  // while it is in flight, and treating that as "signed out" is what showed a
+  // signed-in user the Sign in and Sign up buttons for a beat.
+  const isResolving = !user && isLoading === true
 
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
@@ -425,7 +430,25 @@ export function AccountPanel({ focusSection = null }: AccountPanelProps) {
   return (
     <>
       <div className="space-y-6">
-        {isAnySignedIn ? (
+        {isResolving ? (
+          <div data-account-loading className="space-y-6" aria-busy="true">
+            <div className="flex items-start gap-4">
+              <div className="h-16 w-16 shrink-0 animate-pulse rounded-full bg-muted" />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="h-9 animate-pulse rounded-md bg-muted" />
+                  <div className="h-9 animate-pulse rounded-md bg-muted" />
+                </div>
+                <div className="h-9 w-28 animate-pulse rounded-md bg-muted" />
+              </div>
+            </div>
+            <div className="divide-y rounded-lg border">
+              <div className="h-14 animate-pulse bg-muted/40" />
+              <div className="h-14 animate-pulse bg-muted/40" />
+              <div className="h-14 animate-pulse bg-muted/40" />
+            </div>
+          </div>
+        ) : isAnySignedIn ? (
           <>
             {/* Identity: the avatar IS the upload control and the name is
                   edited in place — no separate "basic info" tab to find. */}

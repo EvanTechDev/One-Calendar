@@ -43,7 +43,7 @@ export function UserAvatarButton({ user }: { user: SettingsUser }) {
       </Button>
       {/* Sign-out lives in the panel's Account tab now, so this component no
           longer owns one — the shared panel signs out and navigates itself. */}
-      <SettingsDialog open={open} onOpenChange={setOpen} />
+      <SettingsDialog open={open} onOpenChange={setOpen} user={user} />
     </>
   )
 }

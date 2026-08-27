@@ -20,6 +20,7 @@ export default async function HomePage() {
         identity={
           <UserAvatarButton
             user={{
+              id: session.user.id,
               name: session.user.name,
               email: session.user.email,
               image: session.user.image,
