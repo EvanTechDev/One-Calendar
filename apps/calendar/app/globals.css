@@ -373,6 +373,13 @@ html {
       height: 100%;
     }
 
+    /*
+      No transform/animation reset here: the element has no static transform
+      of its own (the wrapper above carries Radix's positioning), and the
+      enter/exit keyframes animate `transform` — an !important reset would
+      beat the keyframes and leave the overlay snapping open with no motion.
+      The slide-up itself is spelled as max-md: utilities on the component.
+    */
     .mobile-fullscreen {
       position: fixed !important;
       inset: 0 !important;
@@ -381,13 +388,12 @@ html {
       height: 100% !important;
       max-height: none !important;
       border-radius: 0 !important;
-      transform: none !important;
       /* Tailwind v4 compiles -translate-x-1/2 to the `translate` property,
-         not `transform` — the centered Dialog needs this reset too or it
-         sits half a screen up-left of the now-fullscreen box. */
+         not `transform` — a centered Dialog needs this reset or it sits half
+         a screen up-left of the now-fullscreen box. Keyframes animate
+         `transform`, a different property, so motion is unaffected. */
       translate: none !important;
       scale: none !important;
-      animation: none !important;
     }
   }
 }

@@ -1097,7 +1097,9 @@ export default function EventEditor({
             className={cn(
               // `mobile-fullscreen`: below 768px the editor becomes a
               // full-screen overlay (ADR-0019); the rule lives in globals.css.
-              'mobile-fullscreen flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0',
+              // There the desktop zoom entrance reads as a jump on a
+              // full-screen surface, so the mobile variant slides up instead.
+              'mobile-fullscreen flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0 max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200',
               replacesPreview && 'data-open:animate-none',
             )}
             onOpenAutoFocus={(e) => e.preventDefault()}

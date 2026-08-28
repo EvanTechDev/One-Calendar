@@ -530,7 +530,9 @@ export default function SettingsDialog({
         // (ADR-0019), spelled out as plain max-md: utilities: the dialog's
         // centering (top/left-1/2 + translate) and size caps are each
         // overridden at the breakpoint, and nothing changes at md and up.
-        className="max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl max-md:top-0 max-md:left-0 max-md:h-dvh max-md:max-h-none max-md:w-dvw max-md:max-w-none max-md:translate-none max-md:rounded-none"
+        // The zoom entrance reads as a jump on a full-screen surface, so the
+        // mobile variant slides up instead (zoom-*-100 neutralises the base).
+        className="max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl max-md:top-0 max-md:left-0 max-md:h-dvh max-md:max-h-none max-md:w-dvw max-md:max-w-none max-md:translate-none max-md:rounded-none max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200"
       >
         {/* max-md:h-dvh, not h-full: the fullscreen DialogContent is a grid
             with an auto row, where a child's percentage height does not
@@ -583,7 +585,14 @@ export default function SettingsDialog({
             </nav>
           </aside>
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          {/* max-md:min-h-0: on mobile the shell is a COLUMN, so this pane's
+              flex-1 runs along the vertical axis where the default
+              min-height:auto refuses to shrink below the content — the pane
+              silently overflows the h-dvh shell and the ScrollArea inside
+              never gets a scrollable height. In the desktop ROW layout the
+              height comes from cross-axis stretch, so this class is inert
+              there. */}
+          <div className="flex min-w-0 flex-1 flex-col max-md:min-h-0">
             <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-5">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="text-muted-foreground [&_svg]:size-4">

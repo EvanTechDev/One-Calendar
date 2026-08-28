@@ -1748,7 +1748,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               universal mobile overlay rule (ADR-0019). md:hidden guarantees
               it can never exist on desktop even while open. */}
           {mobileSearchOpen && (
-            <div className="fixed inset-0 z-[100] flex flex-col bg-background md:hidden">
+            <div className="fixed inset-0 z-[100] flex flex-col bg-background md:hidden animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
               <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                 <Button
                   variant="ghost"

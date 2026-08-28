@@ -496,7 +496,9 @@ export default function EventPreview({
           // (Radix subtracts browser chrome), scroll inside.
           // `mobile-fullscreen`: below 768px this popover becomes a
           // full-screen overlay (ADR-0019); the rule lives in globals.css.
-          className="mobile-fullscreen w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0"
+          // There the desktop zoom entrance reads as a jump on a full-screen
+          // surface, so the mobile variant slides up instead.
+          className="mobile-fullscreen w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0 max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
             if (Date.now() < ignoreOutsideUntilRef.current) {
