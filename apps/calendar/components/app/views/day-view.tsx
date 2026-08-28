@@ -15,7 +15,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
-import { isMobileViewport } from '@/lib/mobile-viewport'
+import { isTouchInteraction } from '@/lib/mobile-viewport'
 import {
   EventRenderer,
   AllDayEventRenderer,
@@ -274,10 +274,14 @@ export default function DayView({
       e.stopPropagation()
       return
     }
-    // Mobile Form (ADR-0019): dragging events to move them is disabled below
-    // the md breakpoint — it fights touch scrolling. Time changes go through
-    // the edit form; a tap still opens the preview via onClick.
-    if (isMobileViewport()) return
+    // Touch (ADR-0019): dragging events with a finger fights scrolling, so
+    // it is disabled — but the mousedown must not bubble to the grid, or the
+    // tap-to-create path fires underneath and buries the preview the
+    // subsequent click opens. Mouse drags keep working at every width.
+    if (isTouchInteraction()) {
+      e.stopPropagation()
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
 
@@ -334,10 +338,10 @@ export default function DayView({
 
     const startMinute = getMinutesFromMousePosition(event.clientY)
 
-    // Mobile Form (ADR-0019): drag-to-select is disabled below the md
-    // breakpoint; a tap on an empty slot creates a default-length draft at
-    // that time instead (the same path mouseup takes when nothing moved).
-    if (isMobileViewport()) {
+    // Touch (ADR-0019): a finger on an empty slot must scroll, not start a
+    // selection — a tap creates a default-length draft at that time instead.
+    // Mouse drag-to-create keeps working at every width.
+    if (isTouchInteraction()) {
       const startDate = new Date(date)
       startDate.setHours(0, startMinute, 0, 0)
       const endDate = new Date(date)

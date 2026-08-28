@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import type { CalendarEvent } from '@/components/app/calendar'
-import { isMobileViewport } from '@/lib/mobile-viewport'
+import { isTouchInteraction } from '@/lib/mobile-viewport'
 
 export interface EventResizeState {
   event: CalendarEvent
@@ -55,9 +55,14 @@ export function useEventResize({
     endMinutes: number,
   ) => {
     if (event.viewOnly) return
-    // Mobile Form (ADR-0019): resize handles are drag interactions, disabled
-    // below the md breakpoint — duration changes go through the edit form.
-    if (isMobileViewport()) return
+    // Touch (ADR-0019): resizing with a finger fights scrolling, so it is
+    // disabled — duration changes go through the edit form. The mousedown
+    // still must not bubble, or the grid underneath starts its own gesture.
+    // Mouse resizing keeps working at every width.
+    if (isTouchInteraction()) {
+      e.stopPropagation()
+      return
+    }
     e.stopPropagation()
     gestureRef.current = {
       event,

@@ -530,7 +530,10 @@ export default function SettingsDialog({
         // full-screen overlay (ADR-0019); the rule lives in globals.css.
         className="mobile-fullscreen max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl"
       >
-        <div className="flex h-[min(86vh,46rem)] max-md:h-full flex-col overflow-hidden sm:flex-row">
+        {/* max-md:h-dvh, not h-full: the fullscreen DialogContent is a grid
+            with an auto row, where a child's percentage height does not
+            resolve; dvh measures the viewport the overlay now fills. */}
+        <div className="flex h-[min(86vh,46rem)] max-md:h-dvh flex-col overflow-hidden sm:flex-row">
           <aside className="flex shrink-0 flex-col border-b bg-muted/30 sm:w-56 sm:border-r sm:border-b-0 sm:bg-card/40">
             {/* Same height and type scale as the content header on the right,
                 so the two tops line up instead of stepping. */}

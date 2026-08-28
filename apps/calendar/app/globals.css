@@ -382,6 +382,11 @@ html {
       max-height: none !important;
       border-radius: 0 !important;
       transform: none !important;
+      /* Tailwind v4 compiles -translate-x-1/2 to the `translate` property,
+         not `transform` — the centered Dialog needs this reset too or it
+         sits half a screen up-left of the now-fullscreen box. */
+      translate: none !important;
+      scale: none !important;
       animation: none !important;
     }
   }
