@@ -297,7 +297,10 @@ export default function Sidebar({
       <div className="p-4">
         <div className="mb-3 flex items-center">
           {/* Decorative: the <h1> beside it already names the brand. */}
-          <ZentraLogo decorative className="mr-2 h-6 w-6 shrink-0" />
+          {/* size-7 (28px), one step over the 24px it replaced: the artwork has
+              a gradient plate with padding baked in, so it reads smaller than
+              the old bare glyph did at the same box. */}
+          <ZentraLogo decorative className="mr-2 size-7 shrink-0" />
           <h1 className="text-lg font-semibold">Zentra Calendar</h1>
         </div>
 
