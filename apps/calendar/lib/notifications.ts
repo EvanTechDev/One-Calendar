@@ -234,8 +234,12 @@ const showSystemNotification = async (event: CalendarEvent) => {
   const options: NotificationOptions = {
     body,
     tag,
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    // `/favicon.ico` was pointed at a file this repo has never contained, so
+    // every notification fell back to the browser's generic bell. The light
+    // variant is the fixed choice because a notification is drawn by the OS,
+    // which does not consult the page's theme.
+    icon: '/logo-light.svg',
+    badge: '/logo-light.svg',
     silent: true,
   }
 

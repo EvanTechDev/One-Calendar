@@ -82,6 +82,6 @@ export const config = {
      * CSP covers pages like /invite/[token], /privacy and /terms, which the
      * previous explicit path list silently left unprotected.
      */
-    '/((?!api/|_next/static/|_next/image/|favicon.ico|icons/|manifest.webmanifest|sw.js|icon.svg|user.png).*)',
+    '/((?!api/|_next/static/|_next/image/|favicon.ico|icons/|manifest.webmanifest|sw.js|icon.svg|logo-light.svg|logo-dark.svg|user.png).*)',
   ],
 }

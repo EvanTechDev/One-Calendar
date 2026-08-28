@@ -47,7 +47,7 @@ describe('authEmailBrand', () => {
   })
 
   it('strips a trailing slash from baseUrl', () => {
-    // The template interpolates `${baseUrl}/icon.svg`, so a trailing slash
+    // The template interpolates `${baseUrl}/logo-light.svg`, so a trailing slash
     // produces a double slash — which some mail clients refuse to load.
     const brand = authEmailBrand({
       appName: 'A',
@@ -65,8 +65,10 @@ describe('authEmailBrand', () => {
   })
 
   it('exposes a logo url under the app origin', () => {
+    // The light variant, not `/icon.svg`: that file switches artwork on
+    // `prefers-color-scheme`, and the email card is a fixed white.
     const brand = authEmailBrand({ ...CALENDAR })
-    expect(brand.logoUrl).toBe('https://precal.xyehr.cn/icon.svg')
+    expect(brand.logoUrl).toBe('https://precal.xyehr.cn/logo-light.svg')
   })
 
   it('accepts an explicit logo url, for an app whose icon is elsewhere', () => {

@@ -35,7 +35,7 @@ export default async function HomePage() {
     <main className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
-          <ZentraMark className="size-6 shrink-0 brightness-0 dark:invert" />
+          <ZentraMark decorative className="size-6 shrink-0" />
           <span className="text-sm font-medium">Zentra Meet</span>
         </div>
         <div className="flex items-center gap-1">

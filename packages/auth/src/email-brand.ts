@@ -60,6 +60,10 @@ export function authEmailBrand(input: EmailBrandInput): EmailBrand {
     tagline: input.tagline,
     baseUrl,
     sender: input.sender?.trim() || `${appName} <${DEFAULT_MAILBOX}>`,
-    logoUrl: input.logoUrl?.trim() || `${baseUrl}/icon.svg`,
+    // The light variant explicitly, not `/icon.svg`. That file picks its artwork
+    // with `prefers-color-scheme`, which mail clients apply inconsistently or
+    // not at all — and the template's card is a fixed white, so a client that
+    // did honour a dark preference would paint the dark logo onto white.
+    logoUrl: input.logoUrl?.trim() || `${baseUrl}/logo-light.svg`,
   }
 }

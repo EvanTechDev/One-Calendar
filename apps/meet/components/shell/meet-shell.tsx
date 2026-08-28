@@ -125,7 +125,8 @@ function SidebarBody({
   return (
     <div className="p-4">
       <div className="mb-3 flex items-center">
-        <ZentraMark className="mr-2 size-6 shrink-0 brightness-0 dark:invert" />
+        {/* Decorative: the brand name sits beside it. */}
+        <ZentraMark decorative className="mr-2 size-6 shrink-0" />
         <span className="text-lg font-semibold">Zentra Meet</span>
       </div>
 

@@ -378,14 +378,18 @@ function LeftPanel({ brand }: { brand: AuthFormBrand }) {
 function BrandMark({ appName }: { appName: string }) {
   return (
     <div className="flex items-center justify-center">
-      {/* A plain img, not next/image: the logo is a static SVG on the app's own
-          origin, so there is nothing to optimise and one less host requirement. */}
+      {/* Plain imgs, not next/image: the logo is a static SVG on the app's own
+          origin, so there is nothing to optimise and one less host requirement.
+
+          Two files toggled with `dark:` rather than the one `/icon.svg`, which
+          switches on `prefers-color-scheme` and so ignores the in-app theme —
+          a user on a dark OS who chose the light theme got the dark artwork on
+          a white card. Both host apps serve these paths from their own public/. */}
+      <img src="/logo-light.svg" alt={appName} className="size-8 dark:hidden" />
       <img
-        src="/icon.svg"
+        src="/logo-dark.svg"
         alt={appName}
-        width={16}
-        height={16}
-        className="size-8"
+        className="hidden size-8 dark:block"
       />
     </div>
   )
