@@ -214,6 +214,7 @@ export function createServer(): McpServer {
 
   registerEventTools(server)
   registerEventParticipantTools(server)
+  registerAnalyticsTools(server)
   registerCategoryTools(server)
   registerCountdownTools(server)
   registerSettingsTools(server)
@@ -221,6 +222,123 @@ export function createServer(): McpServer {
   registerBookmarkTools(server)
 
   return server
+}
+
+const ANALYTICS_RANGE_SHAPE = {
+  days: z
+    .number()
+    .optional()
+    .describe(
+      'Relative window: the last N days including today (1-366, default 30). Mutually exclusive with start_date/end_date.',
+    ),
+  start_date: z
+    .string()
+    .optional()
+    .describe('Absolute range start (ISO 8601); requires end_date'),
+  end_date: z
+    .string()
+    .optional()
+    .describe('Absolute range end (ISO 8601); requires start_date'),
+  timezone: z
+    .string()
+    .optional()
+    .describe(
+      'IANA timezone for day/hour bucketing (defaults to the user settings timezone)',
+    ),
+}
+
+function registerAnalyticsTools(server: LegacyToolServer): void {
+  server.tool(
+    'get_analytics_summary',
+    `Get aggregated schedule statistics for a date range: total events,
+scheduled hours, busy days, average event length, per-category breakdown,
+and (by default) a comparison against the immediately preceding period of
+the same length. Recurring series are counted per occurrence. Use this
+instead of listing events when the user asks "how busy was I", "how much
+time did I spend on X", or wants trends.`,
+    {
+      ...ANALYTICS_RANGE_SHAPE,
+      compare_previous_period: z
+        .boolean()
+        .optional()
+        .describe(
+          'Include deltas vs the preceding period of equal length (default true)',
+        ),
+      include_category_names: z
+        .boolean()
+        .optional()
+        .describe(
+          'Resolve category ids to names (requires the categories:read scope)',
+        ),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      if (params.include_category_names) {
+        requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
+      }
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getAnalyticsSummary } = await import('./analytics-tools')
+        return respond(await getAnalyticsSummary(userId, params))
+      } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'get_time_distribution',
+    `Get how events distribute across weekdays and hours of the day for a
+date range: per-weekday counts and scheduled hours (weekday 0 = Monday),
+a 24-bucket start-hour histogram, a 7x24 punch-card matrix, and the densest
+2-hour start window. All-day events count toward weekdays but not hours.`,
+    ANALYTICS_RANGE_SHAPE,
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getTimeDistribution } = await import('./analytics-tools')
+        return respond(await getTimeDistribution(userId, params))
+      } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'get_analytics_insights',
+    `Get rule-based schedule insights for a date range, each with a type,
+severity (warning | info | positive) and structured data: volume trends vs
+the previous period, overloaded days, busy-day streaks, missing rest days,
+schedule fragmentation, category share shifts, peak hours, consistently
+free weekdays, and planning lead time. Ideal for answering "how is my
+schedule looking" or generating a weekly review.`,
+    {
+      ...ANALYTICS_RANGE_SHAPE,
+      include_category_names: z
+        .boolean()
+        .optional()
+        .describe(
+          'Resolve category ids to names (requires the categories:read scope)',
+        ),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      if (params.include_category_names) {
+        requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
+      }
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getAnalyticsInsights } = await import('./analytics-tools')
+        return respond(await getAnalyticsInsights(userId, params))
+      } catch (err) {
+        if (err instanceof InvalidEventQueryError) return respondCliError(err)
+        return respondError(err)
+      }
+    },
+  )
 }
 
 function registerEventTools(server: LegacyToolServer): void {

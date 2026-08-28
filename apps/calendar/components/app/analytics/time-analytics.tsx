@@ -1,15 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { differenceInCalendarDays, format, getDay } from 'date-fns'
+import { getDay } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
 import type { CalendarCategory } from '../sidebar/sidebar'
 import {
   addDurationByDayCategory,
   calculateDaySpanInHours,
   filterEventsInRange,
-  formatHourRange,
-  generateRangeDays,
   getChartColorOrderIndex,
   getMonthDays,
   groupDayKey,
@@ -19,6 +17,15 @@ import {
   resolveDateRange,
   type AnalyticsRangePreset,
 } from '@/lib/analytics/utils'
+import {
+  compareSummaries,
+  computeDistribution,
+  computeInsights,
+  computeSummary,
+  previousRange,
+  UNCATEGORIZED_ID,
+  type AnalyticsEngineEvent,
+} from '@/lib/analytics/engine'
 import {
   Select,
   SelectContent,
@@ -31,7 +38,9 @@ import { YearHeatmapChart } from './charts/year-heatmap-chart'
 import { CategoryDonutChart } from './charts/category-donut-chart'
 import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
 import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
-import { AnalyticsMetricsGrid } from './metrics/analytics-metrics-grid'
+import { HourDistributionChart } from './charts/hour-distribution-chart'
+import { AnalyticsTrendKpis } from './metrics/analytics-trend-kpis'
+import { AnalyticsInsightsPanel } from './insights/analytics-insights-panel'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
 
@@ -68,15 +77,6 @@ export default function TimeAnalyticsComponent({
 
   const now = useMemo(() => new Date(), [])
   const dateRange = useMemo(() => resolveDateRange(preset, now), [preset, now])
-  const futureDateRange = useMemo(
-    () => ({
-      start: now,
-      end: new Date(
-        now.getTime() + (dateRange.end.getTime() - dateRange.start.getTime()),
-      ),
-    }),
-    [dateRange.end, dateRange.start, now],
-  )
 
   const normalizedEvents = useMemo(
     () => mapEventsToAnalyticsEvents(events),
@@ -86,9 +86,53 @@ export default function TimeAnalyticsComponent({
     () => filterEventsInRange(normalizedEvents, dateRange),
     [normalizedEvents, dateRange],
   )
-  const futureRangeEvents = useMemo(
-    () => filterEventsInRange(normalizedEvents, futureDateRange),
-    [futureDateRange, normalizedEvents],
+
+  // Engine-facing event list. Includes ALL events (both periods) so the
+  // engine can compare the current range against the previous one.
+  const engineEvents = useMemo<AnalyticsEngineEvent[]>(() => {
+    return events
+      .map((event) => {
+        const raw = event as CalendarEvent & { createdAt?: string | Date }
+        const createdAt = raw.createdAt ? new Date(raw.createdAt) : undefined
+        return {
+          id: event.id,
+          start:
+            event.startDate instanceof Date
+              ? event.startDate
+              : new Date(event.startDate),
+          end:
+            event.endDate instanceof Date
+              ? event.endDate
+              : new Date(event.endDate),
+          categoryId: event.calendarId || null,
+          isAllDay: event.isAllDay,
+          createdAt:
+            createdAt && !Number.isNaN(createdAt.getTime())
+              ? createdAt
+              : undefined,
+        }
+      })
+      .filter(
+        (event) =>
+          !Number.isNaN(event.start.getTime()) &&
+          !Number.isNaN(event.end.getTime()),
+      )
+  }, [events])
+
+  const comparison = useMemo(() => {
+    const current = computeSummary(engineEvents, dateRange)
+    const previous = computeSummary(engineEvents, previousRange(dateRange))
+    return compareSummaries(current, previous)
+  }, [dateRange, engineEvents])
+
+  const distribution = useMemo(
+    () => computeDistribution(engineEvents, dateRange),
+    [dateRange, engineEvents],
+  )
+
+  const insights = useMemo(
+    () => computeInsights(engineEvents, dateRange),
+    [dateRange, engineEvents],
   )
 
   const categoryMeta = useMemo(() => {
@@ -298,153 +342,6 @@ export default function TimeAnalyticsComponent({
     return { data, series }
   }, [categoryMeta, rangeEvents, resolveCategoryLabel, weekdayLabels])
 
-  const metrics = useMemo(() => {
-    if (rangeEvents.length === 0) {
-      const futureLeadTimes = futureRangeEvents.map((event) =>
-        Math.max(
-          (event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-          0,
-        ),
-      )
-      const futureAvgLead =
-        futureLeadTimes.length === 0
-          ? 0
-          : futureLeadTimes.reduce((sum, value) => sum + value, 0) /
-            futureLeadTimes.length
-      return [
-        {
-          title: t.analyticsMetricLongestStreak,
-          value: `0 ${t.analyticsDayUnit}`,
-          subtitle: t.analyticsNoScheduleInRange,
-        },
-        {
-          title: t.analyticsMetricBusiestWeekday,
-          value: t.analyticsNone,
-          subtitle: t.analyticsNoScheduleInRange,
-        },
-        {
-          title: t.analyticsMetricAvgLeadDays,
-          value: `${futureAvgLead.toFixed(1)} ${t.analyticsDayUnit}`,
-          subtitle: t.analyticsLeadDaysHint,
-        },
-        {
-          title: t.analyticsMetricPeakTimeWindow,
-          value: t.analyticsNone,
-          subtitle: t.analyticsNoScheduleInRange,
-        },
-      ]
-    }
-
-    const days = generateRangeDays(dateRange)
-    const activeSet = new Set(
-      rangeEvents.map((event) => groupDayKey(event.start)),
-    )
-
-    let bestStreak = 0
-    let currentStreak = 0
-    let bestStart = days[0]
-    let bestEnd = days[0]
-    let currentStart = days[0]
-
-    days.forEach((day) => {
-      const key = groupDayKey(day)
-      if (activeSet.has(key)) {
-        if (currentStreak === 0) currentStart = day
-        currentStreak += 1
-        if (currentStreak > bestStreak) {
-          bestStreak = currentStreak
-          bestStart = currentStart
-          bestEnd = day
-        }
-      } else {
-        currentStreak = 0
-      }
-    })
-
-    const weekdayMap = new Map<string, number>()
-    rangeEvents.forEach((event) => {
-      const label = dayName(event.start)
-      weekdayMap.set(label, (weekdayMap.get(label) ?? 0) + 1)
-    })
-
-    const totalWeeks = Math.max(
-      (differenceInCalendarDays(dateRange.end, dateRange.start) + 1) / 7,
-      1,
-    )
-    const weekdayAverages = weekdayLabels.map((label) => ({
-      day: label,
-      avg: (weekdayMap.get(label) ?? 0) / totalWeeks,
-    }))
-
-    const busiestDay = weekdayAverages.reduce(
-      (max, current) => (current.avg > max.avg ? current : max),
-      weekdayAverages[0],
-    )
-    const overallAvg = rangeEvents.length / 7
-    const uplift =
-      overallAvg === 0 ? 0 : ((busiestDay.avg - overallAvg) / overallAvg) * 100
-
-    const leadTimes = futureRangeEvents.map((event) =>
-      Math.max(
-        (event.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-        0,
-      ),
-    )
-    const avgLead =
-      leadTimes.length === 0
-        ? 0
-        : leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length
-
-    const hourCounts = Array.from({ length: 24 }).map(() => 0)
-    rangeEvents.forEach((event) => {
-      hourCounts[event.start.getHours()] += 1
-    })
-
-    let bestWindowHour = 0
-    let bestWindowCount = 0
-    for (let i = 0; i < 24; i += 1) {
-      const count = hourCounts[i] + hourCounts[(i + 1) % 24]
-      if (count > bestWindowCount) {
-        bestWindowCount = count
-        bestWindowHour = i
-      }
-    }
-
-    const concentrationRatio =
-      rangeEvents.length === 0
-        ? 0
-        : (bestWindowCount / rangeEvents.length) * 100
-
-    return [
-      {
-        title: t.analyticsMetricLongestStreak,
-        value: `${bestStreak} ${t.analyticsDayUnit}`,
-        subtitle: `${format(bestStart, 'yyyy-MM-dd')} ${t.analyticsTo} ${format(bestEnd, 'yyyy-MM-dd')}`,
-      },
-      {
-        title: t.analyticsMetricBusiestWeekday,
-        value: busiestDay.day,
-        subtitle: t.analyticsBusiestWeekdaySubtitle
-          .replace('{avg}', busiestDay.avg.toFixed(1))
-          .replace('{pct}', uplift.toFixed(1))
-          .replace('{unit}', t.analyticsScheduleUnit),
-      },
-      {
-        title: t.analyticsMetricAvgLeadDays,
-        value: `${avgLead.toFixed(1)} ${t.analyticsDayUnit}`,
-        subtitle: t.analyticsLeadDaysHint,
-      },
-      {
-        title: t.analyticsMetricPeakTimeWindow,
-        value: formatHourRange(bestWindowHour),
-        subtitle: t.analyticsPeakWindowSubtitle.replace(
-          '{pct}',
-          concentrationRatio.toFixed(1),
-        ),
-      },
-    ]
-  }, [dateRange, futureRangeEvents, now, rangeEvents, t, weekdayLabels])
-
   return (
     <div className="space-y-6 rounded-lg border p-4">
       <div className="flex items-center justify-between">
@@ -464,9 +361,18 @@ export default function TimeAnalyticsComponent({
         </Select>
       </div>
 
-      <AnalyticsMetricsGrid items={metrics} />
+      <AnalyticsTrendKpis comparison={comparison} />
 
-      <div className={cn(isSidebarTransitioning && 'hidden')}>
+      <AnalyticsInsightsPanel
+        insights={insights}
+        resolveCategoryLabel={(categoryId) =>
+          categoryId === UNCATEGORIZED_ID
+            ? t.uncategorized
+            : resolveCategoryLabel(categoryId)
+        }
+      />
+
+      <div className={cn('space-y-4', isSidebarTransitioning && 'hidden')}>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <DailyMonthlyCountChart
             dailyData={countChart.dailyData}
@@ -479,12 +385,17 @@ export default function TimeAnalyticsComponent({
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <CategoryAverageDurationChart data={categoryAvgDurationData} />
+          <HourDistributionChart
+            data={distribution.byHour}
+            peakWindow={distribution.peakWindow}
+          />
           <WeekdayStackedDurationChart
             data={weekdayStacked.data}
             series={weekdayStacked.series}
           />
         </div>
+
+        <CategoryAverageDurationChart data={categoryAvgDurationData} />
 
         <YearHeatmapChart data={heatmapData} />
       </div>
