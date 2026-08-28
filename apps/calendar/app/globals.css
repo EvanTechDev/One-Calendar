@@ -353,4 +353,36 @@ html {
     pointer-events: none;
     z-index: 1;
   }
+
+  /*
+    Mobile Form (ADR-0019): a popover/dialog marked with this class becomes a
+    full-screen overlay below the 768px breakpoint. Radix positions popovers
+    with an inline transform on a wrapper element, so the content alone
+    cannot escape it — the wrapper's transform has to be neutralised in the
+    same media query. Above 768px neither rule exists, so the desktop
+    popover behaviour is untouched (the pixel-frozen guarantee of ADR-0018).
+  */
+  @media (width < 48rem) {
+    [data-radix-popper-content-wrapper]:has(> .mobile-fullscreen) {
+      transform: none !important;
+      inset: 0 !important;
+      /* Radix sets min-width: max-content, which would let a wide popover
+         overflow the now-fixed wrapper. */
+      min-width: 0 !important;
+      width: 100%;
+      height: 100%;
+    }
+
+    .mobile-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      max-width: none !important;
+      height: 100% !important;
+      max-height: none !important;
+      border-radius: 0 !important;
+      transform: none !important;
+      animation: none !important;
+    }
+  }
 }

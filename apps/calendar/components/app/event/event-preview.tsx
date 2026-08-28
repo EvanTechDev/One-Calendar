@@ -494,7 +494,9 @@ export default function EventPreview({
           collisionPadding={12}
           // Same height discipline as the editor: cap at what actually fits
           // (Radix subtracts browser chrome), scroll inside.
-          className="w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0"
+          // `mobile-fullscreen`: below 768px this popover becomes a
+          // full-screen overlay (ADR-0019); the rule lives in globals.css.
+          className="mobile-fullscreen w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => {
             if (Date.now() < ignoreOutsideUntilRef.current) {

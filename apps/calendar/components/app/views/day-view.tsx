@@ -15,6 +15,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
+import { isMobileViewport } from '@/lib/mobile-viewport'
 import {
   EventRenderer,
   AllDayEventRenderer,
@@ -273,6 +274,10 @@ export default function DayView({
       e.stopPropagation()
       return
     }
+    // Mobile Form (ADR-0019): dragging events to move them is disabled below
+    // the md breakpoint — it fights touch scrolling. Time changes go through
+    // the edit form; a tap still opens the preview via onClick.
+    if (isMobileViewport()) return
     e.preventDefault()
     e.stopPropagation()
 
@@ -328,6 +333,19 @@ export default function DayView({
     if (event.button !== 0 || draggingEvent) return
 
     const startMinute = getMinutesFromMousePosition(event.clientY)
+
+    // Mobile Form (ADR-0019): drag-to-select is disabled below the md
+    // breakpoint; a tap on an empty slot creates a default-length draft at
+    // that time instead (the same path mouseup takes when nothing moved).
+    if (isMobileViewport()) {
+      const startDate = new Date(date)
+      startDate.setHours(0, startMinute, 0, 0)
+      const endDate = new Date(date)
+      endDate.setHours(0, Math.min(startMinute + 30, 24 * 60), 0, 0)
+      onTimeSlotClick(startDate, endDate)
+      return
+    }
+
     createStartMinuteRef.current = startMinute
     isCreatingRef.current = true
     setCreateSelection({ startMinute, endMinute: startMinute })
@@ -412,8 +430,10 @@ export default function DayView({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[84px_1fr] border-b relative z-30 bg-background">
+    // Mobile Form (ADR-0019): a narrower time gutter reclaims width for the
+    // single day column. Desktop keeps the 84px constant untouched.
+    <div className="flex flex-col h-full max-md:[--wv-gutter:3rem]">
+      <div className="grid grid-cols-[var(--wv-gutter,84px)_1fr] border-b relative z-30 bg-background">
         <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}
@@ -459,15 +479,15 @@ export default function DayView({
       </div>
 
       <div
-        className="flex-1 grid grid-cols-[84px_1fr] overflow-auto select-none"
+        className="flex-1 grid grid-cols-[var(--wv-gutter,84px)_1fr] overflow-auto select-none"
         ref={scrollContainerRef}
       >
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground max-md:text-[10px]">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative">
               <span
                 className={cn(
-                  'absolute right-3',
+                  'absolute right-3 max-md:right-1.5',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >

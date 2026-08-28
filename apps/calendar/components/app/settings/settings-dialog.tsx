@@ -526,9 +526,11 @@ export default function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl"
+        // `mobile-fullscreen`: below 768px the settings dialog becomes a
+        // full-screen overlay (ADR-0019); the rule lives in globals.css.
+        className="mobile-fullscreen max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl"
       >
-        <div className="flex h-[min(86vh,46rem)] flex-col overflow-hidden sm:flex-row">
+        <div className="flex h-[min(86vh,46rem)] max-md:h-full flex-col overflow-hidden sm:flex-row">
           <aside className="flex shrink-0 flex-col border-b bg-muted/30 sm:w-56 sm:border-r sm:border-b-0 sm:bg-card/40">
             {/* Same height and type scale as the content header on the right,
                 so the two tops line up instead of stepping. */}

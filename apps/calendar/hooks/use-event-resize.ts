@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import type { CalendarEvent } from '@/components/app/calendar'
+import { isMobileViewport } from '@/lib/mobile-viewport'
 
 export interface EventResizeState {
   event: CalendarEvent
@@ -54,6 +55,9 @@ export function useEventResize({
     endMinutes: number,
   ) => {
     if (event.viewOnly) return
+    // Mobile Form (ADR-0019): resize handles are drag interactions, disabled
+    // below the md breakpoint — duration changes go through the edit form.
+    if (isMobileViewport()) return
     e.stopPropagation()
     gestureRef.current = {
       event,

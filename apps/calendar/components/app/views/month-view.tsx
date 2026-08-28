@@ -20,6 +20,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
+import { isMobileViewport } from '@/lib/mobile-viewport'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   isBannerEvent,
@@ -29,6 +30,7 @@ import {
 import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
 
 interface RemainingPopoverState {
@@ -140,6 +142,25 @@ export default function MonthView({
 
   const remainingPopoverListRef = useRef<HTMLDivElement>(null)
 
+  // Mobile Form (ADR-0019): tapping a day cell opens a bottom sheet listing
+  // that day's events — dots replace the event bars, which are too small to
+  // read or tap. State is harmless on desktop: nothing sets it there because
+  // the tap target only exists below the md breakpoint.
+  const [daySheet, setDaySheet] = useState<{
+    day: Date
+    events: CalendarEvent[]
+  } | null>(null)
+
+  const openDaySheet = useCallback(
+    (day: Date) => {
+      const dayEvents = events.filter((event) =>
+        shouldShowEventOnDay(event, day),
+      )
+      setDaySheet({ day, events: dayEvents })
+    },
+    [events],
+  )
+
   const orderedDays = [
     ...t.weekdays.slice(firstDayOfWeek.value),
     ...t.weekdays.slice(0, firstDayOfWeek.value),
@@ -195,6 +216,12 @@ export default function MonthView({
                   selectionAnchorDay !== null &&
                   isSameDay(day, selectionAnchorDay)
 
+                const bannerEvents = events.filter(
+                  (event) =>
+                    isBannerEvent(event) && shouldShowEventOnDay(event, day),
+                )
+                const dotEvents = [...bannerEvents, ...timedEvents]
+
                 return (
                   <div
                     key={day.toString()}
@@ -203,14 +230,22 @@ export default function MonthView({
                       ? { 'data-create-selection': true }
                       : {})}
                     className={cn(
-                      'min-h-[100px] p-2',
+                      'min-h-[100px] p-2 max-md:min-h-[72px] max-md:p-1',
                       dayIndex < 6 && 'border-r',
                       isCreateTarget &&
                         'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
                     )}
+                    // Mobile Form: the whole cell is the tap target for the
+                    // bottom sheet. Guarded by matchMedia so a desktop click
+                    // on the cell background stays a no-op, exactly as today.
+                    onClick={() => {
+                      if (isMobileViewport()) {
+                        openDaySheet(day)
+                      }
+                    }}
                   >
                     <div
-                      className="flex items-center"
+                      className="flex items-center max-md:justify-center"
                       style={{ height: DAY_NUMBER_BLOCK_HEIGHT - 12 + 'px' }}
                     >
                       <span
@@ -226,12 +261,29 @@ export default function MonthView({
                       </span>
                     </div>
 
+                    {/* Mobile Form: dots instead of event bars (ADR-0019).
+                        Up to three, one per event, in the event's accent. */}
+                    <div className="mt-1 hidden items-center justify-center gap-1 max-md:flex">
+                      {dotEvents.slice(0, 3).map((event) => (
+                        <span
+                          key={event.id}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{
+                            backgroundColor: getEventAccentColor(event.color),
+                          }}
+                        />
+                      ))}
+                    </div>
+
                     {/* Space reserved for the all-day bars overlaying the row */}
                     {lanesHeight > 0 && (
-                      <div style={{ height: lanesHeight + 'px' }} />
+                      <div
+                        className="max-md:hidden"
+                        style={{ height: lanesHeight + 'px' }}
+                      />
                     )}
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-md:hidden">
                       {visibleEvents.map((event) => (
                         <div
                           key={event.id}
@@ -307,7 +359,9 @@ export default function MonthView({
                     key={`allday-${event.id}`}
                     data-event-id={event.id}
                     className={cn(
-                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs',
+                      // max-md:hidden: on the Mobile Form banner events are
+                      // dots in the cell like everything else (ADR-0019).
+                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs max-md:hidden',
                       event.color,
                       segment.continuesLeft && 'rounded-l-none',
                       segment.continuesRight && 'rounded-r-none',
@@ -446,6 +500,65 @@ export default function MonthView({
           </PopoverContent>
         )}
       </Popover>
+
+      {/* Mobile Form (ADR-0019): bottom sheet listing a tapped day's events.
+          Only openable from the mobile tap target, so it never appears on
+          desktop. Tapping an event routes through the same onEventClick the
+          bars use, which the mobile overlay rule then renders full-screen. */}
+      <Sheet
+        open={!!daySheet}
+        onOpenChange={(open) => {
+          if (!open) setDaySheet(null)
+        }}
+      >
+        <SheetContent side="bottom" className="max-h-[60dvh] gap-0 p-0">
+          <SheetHeader className="border-b p-4">
+            <SheetTitle>
+              {daySheet ? format(daySheet.day, 'yyyy-MM-dd') : ''}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4">
+            {daySheet && daySheet.events.length > 0 ? (
+              daySheet.events.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  className="relative w-full cursor-pointer truncate rounded-sm p-2 pl-3.5 text-left text-sm"
+                  style={{
+                    backgroundColor: isDark
+                      ? EVENT_BG_TO_DARK[event.color]
+                      : getEventBackgroundColor(event.color, false),
+                  }}
+                  onClick={(e) => {
+                    setDaySheet(null)
+                    onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                  }}
+                >
+                  <div
+                    className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
+                    style={{
+                      backgroundColor:
+                        EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                    }}
+                  />
+                  <div
+                    className="truncate"
+                    style={{
+                      color: EVENT_BG_TO_ACCENT[event.color] ?? DEFAULT_ACCENT,
+                    }}
+                  >
+                    {event.title}
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="py-4 text-center text-sm text-muted-foreground">
+                {t.noEventsFound}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </RemoveScroll>
   )
 }

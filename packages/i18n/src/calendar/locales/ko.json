@@ -508,5 +508,6 @@
   "recurrenceYearlyMonth": "{n}월",
   "copyInviteLink": "초대 링크 복사",
   "inviteLinkCopied": "초대 링크 복사됨",
-  "shortcutsDialogDesc": "캘린더에서 사용할 수 있는 키보드 단축키."
+  "shortcutsDialogDesc": "캘린더에서 사용할 수 있는 키보드 단축키.",
+  "menu": "메뉴"
 }

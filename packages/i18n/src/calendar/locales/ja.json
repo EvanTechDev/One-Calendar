@@ -516,5 +516,6 @@
   "recurrenceYearlyMonth": "{n}月",
   "copyInviteLink": "招待リンクをコピー",
   "inviteLinkCopied": "招待リンクをコピーしました",
-  "shortcutsDialogDesc": "カレンダー全体で使用可能なキーボードショートカットです"
+  "shortcutsDialogDesc": "カレンダー全体で使用可能なキーボードショートカットです",
+  "menu": "メニュー"
 }

@@ -225,7 +225,7 @@ export default function TimeAnalyticsComponent({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="text-sm text-muted-foreground tabular-nums max-md:min-w-0 max-md:truncate">
           {dayKeyOf(dateRange.start)} {t.analyticsTo} {dayKeyOf(dateRange.end)}
         </span>
         <Select

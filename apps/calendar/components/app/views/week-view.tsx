@@ -24,6 +24,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
 } from '@/lib/event-colors'
+import { isMobileViewport } from '@/lib/mobile-viewport'
 import {
   EventLayoutEngine as EventLayoutEngineClass,
   isBannerEvent,
@@ -90,7 +91,11 @@ export default function WeekView({
     : eachDayOfInterval({ start: weekStart, end: weekEnd })
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const TIME_GUTTER_WIDTH = 84
-  const gridTemplateColumns = `${TIME_GUTTER_WIDTH}px repeat(${weekDays.length}, minmax(0, 1fr))`
+  // The gutter is a CSS variable with the desktop constant as fallback: on
+  // desktop the variable is never set, so the resolved value is 84px exactly
+  // as before. The Mobile Form sets --wv-gutter on the root (ADR-0019) to
+  // reclaim width for the seven day columns.
+  const gridTemplateColumns = `var(--wv-gutter, ${TIME_GUTTER_WIDTH}px) repeat(${weekDays.length}, minmax(0, 1fr))`
   const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
@@ -346,6 +351,10 @@ export default function WeekView({
       e.stopPropagation()
       return
     }
+    // Mobile Form (ADR-0019): dragging events to move them is disabled below
+    // the md breakpoint — it fights touch scrolling. Time changes go through
+    // the edit form; a tap still opens the preview via onClick.
+    if (isMobileViewport()) return
     e.preventDefault()
     e.stopPropagation()
 
@@ -402,6 +411,22 @@ export default function WeekView({
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
     if (event.button !== 0 || draggingEvent) return
+
+    // Mobile Form (ADR-0019): drag-to-select is disabled below the md
+    // breakpoint; a tap on an empty slot creates a default-length draft at
+    // that time instead (the same path mouseup takes when nothing moved).
+    if (isMobileViewport()) {
+      const day = weekDays[dayIndex]
+      if (day) {
+        const startMinute = getMinutesFromMousePosition(event.clientY)
+        const startDate = new Date(day)
+        startDate.setHours(0, startMinute, 0, 0)
+        const endDate = new Date(day)
+        endDate.setHours(0, Math.min(startMinute + 30, 24 * 60), 0, 0)
+        onTimeSlotClick(startDate, endDate)
+      }
+      return
+    }
 
     const startMinute = getMinutesFromMousePosition(event.clientY)
     createStartRef.current = { dayIndex, minute: startMinute }
@@ -556,7 +581,7 @@ export default function WeekView({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-md:[--wv-gutter:3rem] max-md:text-xs">
       <div
         className="relative z-30 bg-background border-b"
         style={{ paddingRight: scrollbarWidth + 'px' }}
@@ -565,10 +590,10 @@ export default function WeekView({
             the divide-x lines run through both and always match. */}
         <div className="relative">
           <div className="grid divide-x" style={{ gridTemplateColumns }}>
-            <div className="relative text-sm text-muted-foreground">
+            <div className="relative text-sm text-muted-foreground max-md:text-[10px]">
               {allDayRowHeight > 0 && (
                 <span
-                  className="absolute right-3"
+                  className="absolute right-3 max-md:right-1.5 max-md:truncate max-md:max-w-full"
                   style={{ bottom: allDayRowHeight - 20 + 'px' }}
                 >
                   {t.allDay}
@@ -577,8 +602,13 @@ export default function WeekView({
             </div>
             {weekDays.map((day) => (
               <div key={day.toString()}>
-                <div className="p-2 text-center">
-                  <div>{t.weekdays[day.getDay()]}</div>
+                <div className="p-2 text-center max-md:p-1">
+                  {/* Mobile Form: the localized weekday label truncates into
+                      its narrow column instead of overflowing; the date
+                      number below stays the primary identifier. */}
+                  <div className="max-md:truncate">
+                    {t.weekdays[day.getDay()]}
+                  </div>
                   <div
                     className={cn(
                       'mx-auto flex h-6 w-6 items-center justify-center text-sm',
@@ -600,7 +630,7 @@ export default function WeekView({
             <div
               className="absolute bottom-0 right-0"
               style={{
-                left: TIME_GUTTER_WIDTH + 'px',
+                left: `var(--wv-gutter, ${TIME_GUTTER_WIDTH}px)`,
                 height: allDayRowHeight + 'px',
               }}
             >
@@ -615,12 +645,12 @@ export default function WeekView({
         style={{ gridTemplateColumns }}
         ref={scrollContainerRef}
       >
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground max-md:text-[10px]">
           {hours.map((hour) => (
             <div key={hour} className="h-[60px] relative border-gray-200">
               <span
                 className={cn(
-                  'absolute right-3',
+                  'absolute right-3 max-md:right-1.5',
                   hour === 0 ? 'top-0' : 'top-0 -translate-y-1/2',
                 )}
               >

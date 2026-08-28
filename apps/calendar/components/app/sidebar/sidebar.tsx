@@ -80,18 +80,24 @@ const CALENDAR_COLOR_MAP = Object.fromEntries(
   CALENDAR_COLOR_OPTIONS.map((option) => [option.value, option.hex]),
 )
 
-export default function Sidebar({
+/**
+ * The sidebar's contents without the desktop column shell. The desktop
+ * `Sidebar` and the mobile drawer both render this, so the two surfaces can
+ * never drift apart. All state lives here; the desktop wrapper only owns the
+ * collapse transition.
+ */
+export function SidebarBody({
   onCreateEvent,
   onDateSelect,
   onViewChange: _onViewChange,
   language = 'zh-CN',
   selectedDate,
-  isCollapsed = false,
-  onToggleCollapse: _onToggleCollapse,
   selectedCategoryFilters = [],
   onCategoryFilterChange,
-  onCollapseTransitionEnd,
-}: SidebarProps) {
+}: Omit<
+  SidebarProps,
+  'isCollapsed' | 'onToggleCollapse' | 'onCollapseTransitionEnd'
+>) {
   const {
     calendars,
     events,
@@ -279,25 +285,7 @@ export default function Sidebar({
   }
 
   return (
-    <div
-      style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
-      className={cn(
-        // `shrink-0`: without it a narrow window flex-shrinks the sidebar
-        // below 247px and the fixed-cell mini calendar overflows its edge.
-        // At comfortable widths flex never shrinks it, so this is inert —
-        // the main area (`min-w-0 flex-1`) is the side that gives way.
-        'shrink-0 border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
-        isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
-      )}
-      onTransitionEnd={(event) => {
-        if (
-          event.target === event.currentTarget &&
-          event.propertyName === 'width'
-        ) {
-          onCollapseTransitionEnd?.()
-        }
-      }}
-    >
+    <>
       <div className="p-4">
         <div className="mb-3 flex items-center">
           {/* Decorative: the <h1> beside it already names the brand. */}
@@ -602,6 +590,38 @@ export default function Sidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+
+export default function Sidebar({
+  isCollapsed = false,
+  onCollapseTransitionEnd,
+  ...bodyProps
+}: SidebarProps) {
+  return (
+    <div
+      style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
+      className={cn(
+        // `shrink-0`: without it a narrow window flex-shrinks the sidebar
+        // below 247px and the fixed-cell mini calendar overflows its edge.
+        // At comfortable widths flex never shrinks it, so this is inert —
+        // the main area (`min-w-0 flex-1`) is the side that gives way.
+        // `max-md:hidden`: below the 768px breakpoint the drawer (see
+        // MobileSidebarDrawer) is the sidebar's only surface (ADR-0018).
+        'max-md:hidden shrink-0 border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
+        isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
+      )}
+      onTransitionEnd={(event) => {
+        if (
+          event.target === event.currentTarget &&
+          event.propertyName === 'width'
+        ) {
+          onCollapseTransitionEnd?.()
+        }
+      }}
+    >
+      <SidebarBody {...bodyProps} />
     </div>
   )
 }

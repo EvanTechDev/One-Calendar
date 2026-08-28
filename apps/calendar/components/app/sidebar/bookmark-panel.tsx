@@ -60,11 +60,18 @@ function getDarkerColorClass(color: string) {
   return colorMapping[color] || '#3A3A3A'
 }
 
-export default function BookmarkPanel({
-  open,
-  onOpenChange,
+/**
+ * The bookmark list without its Sheet shell. The desktop right-rail panel and
+ * the mobile drawer tab both render this; `onRequestClose` is however the
+ * hosting surface dismisses itself before navigating to a clicked event.
+ */
+export function BookmarkPanelBody({
   onEventClick,
-}: BookmarkPanelProps) {
+  onRequestClose,
+}: {
+  onEventClick: (event: any) => void
+  onRequestClose: () => void
+}) {
   const [language] = useLanguage()
   const t = translations[language]
   const { bookmarks: serverBookmarks, deleteBookmark } = useBookmarks()
@@ -107,7 +114,7 @@ export default function BookmarkPanel({
   }
 
   const handleEventClick = (event: BookmarkedEvent) => {
-    onOpenChange(false)
+    onRequestClose()
     onEventClick({ ...event, id: event.eventId })
   }
 
@@ -119,6 +126,87 @@ export default function BookmarkPanel({
   )
 
   return (
+    <div className="p-4">
+      <div className="mb-4">
+        <InputGroup>
+          <InputGroupAddon>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="search"
+            placeholder={t.searchBookmarks}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
+      </div>
+
+      <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+        {filteredBookmarks.length === 0 ? (
+          <Empty className="h-32 border-0 p-0">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Bookmark className="h-4 w-4" />
+              </EmptyMedia>
+              <EmptyTitle>{t.bookmarks}</EmptyTitle>
+              <EmptyDescription>
+                {searchTerm ? t.noMatchingBookmarks : t.noBookmarks}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="space-y-3">
+            {filteredBookmarks.map((bookmark) => (
+              <div
+                key={bookmark.id}
+                className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
+                onClick={() => handleEventClick(bookmark)}
+              >
+                <div
+                  className={cn('w-1.5 self-stretch rounded-full mr-3')}
+                  style={{
+                    backgroundColor: getDarkerColorClass(bookmark.color),
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium truncate">{bookmark.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {formatEventDate(bookmark.startDate)}
+                  </p>
+                  {bookmark.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {bookmark.description}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  // max-md:opacity-100: hover cannot reveal it on touch, so on
+                  // the Mobile Form the delete affordance is always visible.
+                  className="opacity-0 group-hover:opacity-100 transition-opacity max-md:opacity-100"
+                  onClick={(e) => removeBookmark(bookmark.id, e)}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  )
+}
+
+export default function BookmarkPanel({
+  open,
+  onOpenChange,
+  onEventClick,
+}: BookmarkPanelProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
+
+  return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <SheetHeader className="p-4 border-b">
@@ -128,73 +216,10 @@ export default function BookmarkPanel({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="p-4">
-          <div className="mb-4">
-            <InputGroup>
-              <InputGroupAddon>
-                <Search className="h-4 w-4 text-muted-foreground" />
-              </InputGroupAddon>
-              <InputGroupInput
-                type="search"
-                placeholder={t.searchBookmarks}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </InputGroup>
-          </div>
-
-          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
-            {filteredBookmarks.length === 0 ? (
-              <Empty className="h-32 border-0 p-0">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <Bookmark className="h-4 w-4" />
-                  </EmptyMedia>
-                  <EmptyTitle>{t.bookmarks}</EmptyTitle>
-                  <EmptyDescription>
-                    {searchTerm ? t.noMatchingBookmarks : t.noBookmarks}
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <div className="space-y-3">
-                {filteredBookmarks.map((bookmark) => (
-                  <div
-                    key={bookmark.id}
-                    className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
-                    onClick={() => handleEventClick(bookmark)}
-                  >
-                    <div
-                      className={cn('w-1.5 self-stretch rounded-full mr-3')}
-                      style={{
-                        backgroundColor: getDarkerColorClass(bookmark.color),
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium truncate">{bookmark.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {formatEventDate(bookmark.startDate)}
-                      </p>
-                      {bookmark.description && (
-                        <p className="text-xs text-muted-foreground truncate mt-1">
-                          {bookmark.description}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => removeBookmark(bookmark.id, e)}
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
+        <BookmarkPanelBody
+          onEventClick={onEventClick}
+          onRequestClose={() => onOpenChange(false)}
+        />
       </SheetContent>
     </Sheet>
   )

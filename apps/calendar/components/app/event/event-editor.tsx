@@ -1095,7 +1095,9 @@ export default function EventEditor({
             // `--radix-popover-content-available-height` is what actually
             // fits between the anchor and the collision boundary.
             className={cn(
-              'flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0',
+              // `mobile-fullscreen`: below 768px the editor becomes a
+              // full-screen overlay (ADR-0019); the rule lives in globals.css.
+              'mobile-fullscreen flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0',
               replacesPreview && 'data-open:animate-none',
             )}
             onOpenAutoFocus={(e) => e.preventDefault()}

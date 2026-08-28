@@ -99,7 +99,11 @@ const toDateString = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
-export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
+/**
+ * The countdown list/detail/edit stack without its Sheet shell. The desktop
+ * right-rail tool and the mobile drawer tab both render this.
+ */
+export function CountdownBody() {
   const {
     countdowns: serverCountdowns,
     createCountdown,
@@ -734,14 +738,22 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   )
 
   return (
+    <>
+      {view === 'list' && renderCountdownListView()}
+      {view === 'detail' && renderCountdownDetailView()}
+      {view === 'edit' && renderCountdownEditView()}
+    </>
+  )
+}
+
+export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
+  return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         className="w-[360px] sm:w-[420px] p-0 [&_button:hover]:text-inherit"
       >
-        {view === 'list' && renderCountdownListView()}
-        {view === 'detail' && renderCountdownDetailView()}
-        {view === 'edit' && renderCountdownEditView()}
+        <CountdownBody />
       </SheetContent>
     </Sheet>
   )

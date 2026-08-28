@@ -150,7 +150,7 @@
   "confirmYourPassword": "Confirm your password",
   "passwordsDoNotMatch": "Passwords do not match",
   "passwordRequired": "Password is required",
-  "unknownError": "An unknown error occurred",
+  "unknownError": "Unknown error",
   "backup": "Backup",
   "autoBackupEnabled": "Auto-Backup Enabled",
   "autoBackupDisabled": "Auto-Backup Disabled",
@@ -549,7 +549,6 @@
   "help": "Help",
   "send": "Send",
   "notNow": "Not now",
-  "unknownError": "Unknown error",
   "recurrenceDayOfMonth": "Day {n}",
   "selectTime": "Select time",
   "hourAbbrev": "Hour",
@@ -702,5 +701,6 @@
   "mcpLogChangeScope": "scope: {scope}",
   "mcpLogChangeParticipants": "{n} participant(s)",
   "mcpLogChangeExclusions": "{n} exclusion(s)",
-  "mcpLogChangeRepeatRule": "repeat rule"
+  "mcpLogChangeRepeatRule": "repeat rule",
+  "menu": "Menu"
 }

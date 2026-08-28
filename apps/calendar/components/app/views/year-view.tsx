@@ -168,7 +168,9 @@ export default function YearView({
   return (
     <RemoveScroll enabled={!!popover} shards={[popoverListRef]}>
       <div className="p-3 md:p-4" ref={containerRef}>
-        <div className="grid gap-y-4 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
+        {/* Mobile Form (ADR-0019): two columns of compact month grids below
+            768px. The desktop auto-fit layout is untouched from md up. */}
+        <div className="grid gap-y-4 max-md:grid-cols-2 max-md:gap-x-3 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
           {months.map((month) => (
             <section key={month.label} className="space-y-1">
               <h2 className="text-lg font-semibold tracking-tight">

@@ -23,6 +23,10 @@ import {
   FileText,
   ScrollText,
   House,
+  Menu,
+  CalendarCheck,
+  ArrowLeft,
+  Plus,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import UserProfileButton from '@/components/app/profile/user-profile-button'
@@ -44,6 +48,7 @@ import EventPreview, {
 } from '@/components/app/event/event-preview'
 import EventEditor from '@/components/app/event/event-editor'
 import Sidebar from '@/components/app/sidebar/sidebar'
+import MobileSidebarDrawer from '@/components/app/sidebar/mobile-sidebar-drawer'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
 import { useTheme } from 'next-themes'
@@ -174,6 +179,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
+  // Mobile Form only (ADR-0019): the left drawer holding the sidebar content.
+  // Opened by the hamburger button, which exists only below the md breakpoint.
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  // Mobile Form only: search lives behind a magnifier icon and opens as a
+  // full-screen overlay (the universal mobile overlay rule, ADR-0019).
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventEditorOpen, setEventEditorOpen] = useState(false)
@@ -1394,6 +1405,31 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onCollapseTransitionEnd={() => setIsSidebarTransitioning(false)}
         />
 
+        <MobileSidebarDrawer
+          open={mobileDrawerOpen}
+          onOpenChange={setMobileDrawerOpen}
+          onCreateEvent={() => {
+            setSelectedEvent(null)
+            handleTimeRangeSelect(new Date())
+          }}
+          onDateSelect={handleDateSelect}
+          onViewChange={handleViewChange}
+          onEventClick={(event) => {
+            handleNavigateAndPreview(event)
+          }}
+          language={language}
+          selectedDate={sidebarDate}
+          selectedCategoryFilters={selectedCategoryFilters}
+          onCategoryFilterChange={(categoryId, checked) => {
+            setSelectedCategoryFilters((prev) => {
+              if (checked) {
+                return prev.includes(categoryId) ? prev : [...prev, categoryId]
+              }
+              return prev.filter((id) => id !== categoryId)
+            })
+          }}
+        />
+
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {' '}
           {/*
@@ -1406,7 +1442,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             cannot clip them.
           */}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background overflow-x-auto">
-            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
+            {/* Cover strip for the right rail's slice of the header border.
+                The rail has no mobile surface, so neither does this. */}
+            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background max-md:hidden" />
             {/*
               `min-w-0` on the left cluster and `shrink-0` on the controls
               inside it. The header is one fixed-height non-wrapping row, so
@@ -1415,26 +1453,54 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               row too, and the long date beside it is the part that should give
               way, not the navigation.
             */}
-            <div className="flex min-w-0 items-center space-x-4">
+            <div className="flex min-w-0 items-center space-x-4 max-md:space-x-2">
+              {/*
+                Two mutually exclusive leading buttons: the desktop collapse
+                toggle and the mobile hamburger that opens the drawer
+                (ADR-0019). Swapped by breakpoint, never both visible.
+              */}
               <Button
                 variant="outline"
                 onClick={toggleSidebar}
                 size="sm"
-                className="shrink-0"
+                className="shrink-0 max-md:hidden"
               >
                 <PanelLeft />
               </Button>
               <Button
                 variant="outline"
+                onClick={() => setMobileDrawerOpen(true)}
+                size="sm"
+                className="shrink-0 md:hidden"
+                aria-label={t.menu}
+              >
+                <Menu />
+              </Button>
+              {/*
+                The Mobile Form's top bar is a single iconified row: "today"
+                becomes an icon and the prev/next arrows disappear —
+                navigation happens via "today" and the drawer's mini calendar.
+              */}
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleTodayClick}
-                className="shrink-0"
+                className="shrink-0 max-md:hidden"
               >
                 {t.today}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTodayClick}
+                className="shrink-0 md:hidden"
+                aria-label={t.today}
+              >
+                <CalendarCheck />
+              </Button>
               {view !== 'analytics' && (
                 <>
-                  <div className="flex shrink-0 items-center space-x-1">
+                  <div className="flex shrink-0 items-center space-x-1 max-md:hidden">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1446,7 +1512,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <span className="min-w-0 truncate text-lg">
+                  <span className="min-w-0 truncate text-lg max-md:text-base">
                     {formatDateDisplay(date)}
                   </span>
                 </>
@@ -1516,7 +1582,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 exactly as before. At ≥1280px none of these classes apply.
               */}
               <div
-                className="relative z-50 max-xl:w-48 max-xl:min-w-28 max-xl:shrink"
+                className="relative z-50 max-xl:w-48 max-xl:min-w-28 max-xl:shrink max-md:hidden"
                 ref={searchInputRef}
               >
                 <InputGroup className="w-48 max-xl:w-full">
@@ -1609,12 +1675,26 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     document.body,
                   )}
               </div>
+              {/* Mobile Form: search collapses to an icon that opens the
+                  full-screen overlay rendered after the header. */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-8 w-8 md:hidden"
+                aria-label={t.searchEvents}
+                onClick={() => setMobileSearchOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
+                  {/* Not part of the Mobile Form's single-row top bar
+                      (ADR-0019): hamburger, date, today, view, search,
+                      profile. Help stays desktop-only. */}
                   <Button
                     variant="outline"
                     size="icon"
-                    className="rounded-full h-8 w-8"
+                    className="rounded-full h-8 w-8 max-md:hidden"
                     aria-label={t.help}
                   >
                     <CircleHelp className="h-4 w-4" />
@@ -1664,8 +1744,91 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               />
             </div>
           </header>
+          {/* Mobile Form: full-screen search overlay with a back arrow — the
+              universal mobile overlay rule (ADR-0019). md:hidden guarantees
+              it can never exist on desktop even while open. */}
+          {mobileSearchOpen && (
+            <div className="fixed inset-0 z-[100] flex flex-col bg-background md:hidden">
+              <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t.back}
+                  onClick={() => {
+                    setMobileSearchOpen(false)
+                    setSearchTerm('')
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <InputGroup className="flex-1">
+                  <InputGroupAddon>
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    type="text"
+                    placeholder={t.searchEvents}
+                    value={searchTerm}
+                    autoFocus
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchResultEvents.length > 0) {
+                        handleNavigateAndPreview(searchResultEvents[0])
+                        setSearchTerm('')
+                        setMobileSearchOpen(false)
+                      }
+                    }}
+                  />
+                </InputGroup>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                {searchTerm ? (
+                  searchResultEvents.length > 0 ? (
+                    <div className="space-y-1">
+                      {searchResultEvents.map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          className="flex w-full cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent"
+                          onClick={() => {
+                            handleNavigateAndPreview(event)
+                            setSearchTerm('')
+                            setMobileSearchOpen(false)
+                          }}
+                        >
+                          <div
+                            className="mt-0.5 h-4 w-1 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: getEventAccentColor(event.color),
+                            }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium leading-none">
+                              {event.title || t.unnamedEvent}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {formatDateDisplay(new Date(event.startDate))}
+                            </div>
+                            {event.location && (
+                              <div className="truncate text-xs text-muted-foreground">
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                      {t.noMatchingEvents}
+                    </div>
+                  )
+                ) : null}
+              </div>
+            </div>
+          )}
           <div
-            className="relative flex-1 overflow-auto pr-14"
+            className="relative flex-1 overflow-auto pr-14 max-md:pr-0"
             ref={calendarRef}
           >
             {view === 'day' && (
@@ -1748,6 +1911,24 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             )}
           </div>
         </div>
+
+        {/* Mobile Form (ADR-0019): the floating create button — the mobile
+            stand-in for the sidebar's Create Event button and drag-to-create,
+            both of which have no surface below the md breakpoint. Hidden on
+            the analytics report, which has its own create affordance. */}
+        {view !== 'analytics' && (
+          <Button
+            size="icon"
+            className="fixed right-4 bottom-4 z-40 hidden size-12 rounded-full shadow-lg max-md:flex"
+            aria-label={t.createEvent}
+            onClick={() => {
+              setSelectedEvent(null)
+              handleTimeRangeSelect(new Date())
+            }}
+          >
+            <Plus className="size-5" />
+          </Button>
+        )}
 
         {}
         <RightSidebar
