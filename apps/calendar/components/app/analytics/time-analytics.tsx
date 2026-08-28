@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import { YearHeatmapChart } from './charts/year-heatmap-chart'
 import { WeekPunchCard } from './charts/week-punch-card'
 import {
@@ -46,27 +47,14 @@ interface TimeAnalyticsProps {
   isSidebarTransitioning?: boolean
 }
 
-/**
- * Editorial section: an uppercase eyebrow with a hairline instead of a
- * boxed card, so the page reads as one report rather than a widget grid.
- */
-function Section({
-  eyebrow,
-  children,
-}: {
-  eyebrow: string
-  children: ReactNode
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section>
-      <div className="mb-4 flex items-center gap-3">
-        <h3 className="shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          {eyebrow}
-        </h3>
-        <div className="h-px flex-1 bg-foreground/[0.08]" />
-      </div>
-      {children}
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
   )
 }
 
@@ -235,7 +223,7 @@ export default function TimeAnalyticsComponent({
   }, [normalizedEvents, now])
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-muted-foreground tabular-nums">
           {dayKeyOf(dateRange.start)} {t.analyticsTo} {dayKeyOf(dateRange.end)}
@@ -255,25 +243,29 @@ export default function TimeAnalyticsComponent({
         </Select>
       </div>
 
-      <AnalyticsHero comparison={comparison} rhythm={rhythm} />
+      <Card>
+        <CardContent>
+          <AnalyticsHero comparison={comparison} rhythm={rhythm} />
+        </CardContent>
+      </Card>
 
-      <Section eyebrow={t.analyticsInsightsTitle}>
+      <Section title={t.analyticsInsightsTitle}>
         <AnalyticsInsightsPanel
           insights={insights}
           resolveCategoryLabel={resolveCategoryLabel}
         />
       </Section>
 
-      <div className={cn('space-y-10', isSidebarTransitioning && 'hidden')}>
-        <Section eyebrow={t.analyticsSectionWeek}>
+      <div className={cn('space-y-6', isSidebarTransitioning && 'hidden')}>
+        <Section title={t.analyticsSectionWeek}>
           <WeekPunchCard distribution={distribution} />
         </Section>
 
-        <Section eyebrow={t.analyticsSectionCategories}>
+        <Section title={t.analyticsSectionCategories}>
           <CategoryLedger data={categoryLedger} />
         </Section>
 
-        <Section eyebrow={t.analyticsSectionYear}>
+        <Section title={t.analyticsSectionYear}>
           <YearHeatmapChart data={heatmapData} />
         </Section>
       </div>
