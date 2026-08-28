@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useSWR, { type SWRConfiguration } from 'swr'
 import { fetchJson } from '@/lib/fetch-json'
 import { removeById } from '@/lib/array-mutations'
@@ -67,6 +67,8 @@ import {
   SlidersHorizontal,
   ScrollText,
   Plug,
+  Search,
+  Clock,
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
@@ -78,12 +80,14 @@ const MCP_KEYS = {
   settings: '/api/mcp/settings',
   apiKeys: '/api/mcp/api-keys',
   authorizedApps: '/api/mcp/authorized-apps',
-  auditLogs: (page: number, filters: AuditFilters) => {
+  auditLogs: (page: number, filters: AuditFilters, search: string) => {
     const params = new URLSearchParams({ page: String(page), limit: '20' })
     if (filters.entryType !== 'all') params.set('entryType', filters.entryType)
     if (filters.mutationsOnly) params.set('mutationsOnly', 'true')
     if (filters.failuresOnly) params.set('failuresOnly', 'true')
     if (filters.toolName !== 'all') params.set('toolName', filters.toolName)
+    if (filters.window !== 'all') params.set('window', filters.window)
+    if (search) params.set('search', search)
     return `/api/mcp/audit-logs?${params.toString()}`
   },
 } as const
@@ -156,11 +160,14 @@ interface AuditLog {
   createdAt: string
 }
 
+type AuditWindow = 'all' | '1h' | '24h' | '7d' | '30d'
+
 interface AuditFilters {
   entryType: AuditEntryType | 'all'
   mutationsOnly: boolean
   failuresOnly: boolean
   toolName: string
+  window: AuditWindow
 }
 
 const DEFAULT_AUDIT_FILTERS: AuditFilters = {
@@ -168,6 +175,7 @@ const DEFAULT_AUDIT_FILTERS: AuditFilters = {
   mutationsOnly: false,
   failuresOnly: false,
   toolName: 'all',
+  window: 'all',
 }
 
 function endpointUrl(): string {
@@ -1045,11 +1053,24 @@ function AuditChangeSummary({ log }: { log: AuditLog }) {
   )
 }
 
+const AUDIT_WINDOWS: AuditWindow[] = ['all', '1h', '24h', '7d', '30d']
+
 function MCPAuditLogs() {
   const t = useMcpTranslations()
   const [language] = useLanguage()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<AuditFilters>(DEFAULT_AUDIT_FILTERS)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+
+  // Debounce the search box so typing does not fire a request per keystroke.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchInput])
 
   // Any filter change invalidates the current offset.
   const updateFilters = (patch: Partial<AuditFilters>) => {
@@ -1061,15 +1082,24 @@ function MCPAuditLogs() {
     logs: AuditLog[]
     toolNames?: string[]
     pagination?: { totalPages: number }
-  }>(MCP_KEYS.auditLogs(page, filters), { keepPreviousData: true })
+  }>(MCP_KEYS.auditLogs(page, filters, search), { keepPreviousData: true })
   const logs = data?.logs ?? []
   const toolNames = data?.toolNames ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
+  const windowLabels: Record<AuditWindow, string> = {
+    all: t.mcpFilterWindowAll,
+    '1h': t.mcpFilterWindow1h,
+    '24h': t.mcpFilterWindow24h,
+    '7d': t.mcpFilterWindow7d,
+    '30d': t.mcpFilterWindow30d,
+  }
   const filtersActive =
     filters.entryType !== 'all' ||
     filters.mutationsOnly ||
     filters.failuresOnly ||
-    filters.toolName !== 'all'
+    filters.toolName !== 'all' ||
+    filters.window !== 'all' ||
+    search !== ''
 
   return (
     <Section
@@ -1104,84 +1134,133 @@ function MCPAuditLogs() {
         ) : null
       }
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={filters.entryType}
-          onValueChange={(value) =>
-            updateFilters({ entryType: value as AuditFilters['entryType'] })
-          }
-        >
-          {/*
-            `min-w-` not `w-`: these two triggers show the SELECTED filter, so
-            clipping them hides which filter is active. The row already wraps,
-            so letting them grow costs nothing. Both keep their old width as a
-            floor so the controls stay aligned when the labels are short.
-          */}
-          <SelectTrigger size="sm" className="min-w-[9.5rem]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.mcpFilterAllEntries}</SelectItem>
-            <SelectItem value="tool_call">{t.mcpFilterToolCalls}</SelectItem>
-            <SelectItem value="request">{t.mcpFilterRequests}</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[12rem] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t.mcpFilterSearchPlaceholder}
+              className="h-8 pl-8 text-xs"
+              aria-label={t.mcpFilterSearchPlaceholder}
+            />
+            {searchInput ? (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={t.mcpPermissionsClear}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
 
-        <Select
-          value={filters.toolName}
-          onValueChange={(value) => updateFilters({ toolName: value })}
-          disabled={toolNames.length === 0}
-        >
-          <SelectTrigger size="sm" className="min-w-[11rem]">
-            <SelectValue placeholder={t.mcpFilterAllTools} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.mcpFilterAllTools}</SelectItem>
-            {toolNames.map((name) => (
-              <SelectItem key={name} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            value={filters.window}
+            onValueChange={(value) =>
+              updateFilters({ window: value as AuditWindow })
+            }
+          >
+            <SelectTrigger size="sm" className="min-w-[8rem]">
+              <Clock className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AUDIT_WINDOWS.map((window) => (
+                <SelectItem key={window} value={window}>
+                  {windowLabels[window]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Button
-          variant={filters.mutationsOnly ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs"
-          aria-pressed={filters.mutationsOnly}
-          onClick={() =>
-            updateFilters({ mutationsOnly: !filters.mutationsOnly })
-          }
-        >
-          <Pencil className="mr-1 h-3.5 w-3.5 shrink-0" />
-          {t.mcpFilterDataChanges}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filters.entryType}
+            onValueChange={(value) =>
+              updateFilters({ entryType: value as AuditFilters['entryType'] })
+            }
+          >
+            {/*
+              `min-w-` not `w-`: these two triggers show the SELECTED filter,
+              so clipping them hides which filter is active. The row already
+              wraps, so letting them grow costs nothing. Both keep their old
+              width as a floor so the controls stay aligned when the labels
+              are short.
+            */}
+            <SelectTrigger size="sm" className="min-w-[9.5rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.mcpFilterAllEntries}</SelectItem>
+              <SelectItem value="tool_call">{t.mcpFilterToolCalls}</SelectItem>
+              <SelectItem value="request">{t.mcpFilterRequests}</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Button
-          variant={filters.failuresOnly ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs"
-          aria-pressed={filters.failuresOnly}
-          onClick={() => updateFilters({ failuresOnly: !filters.failuresOnly })}
-        >
-          <X className="mr-1 h-3.5 w-3.5 shrink-0" />
-          {t.mcpFilterFailures}
-        </Button>
+          <Select
+            value={filters.toolName}
+            onValueChange={(value) => updateFilters({ toolName: value })}
+            disabled={toolNames.length === 0}
+          >
+            <SelectTrigger size="sm" className="min-w-[11rem]">
+              <SelectValue placeholder={t.mcpFilterAllTools} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.mcpFilterAllTools}</SelectItem>
+              {toolNames.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {filtersActive ? (
           <Button
-            variant="ghost"
+            variant={filters.mutationsOnly ? 'secondary' : 'outline'}
             size="sm"
             className="h-8 text-xs"
-            onClick={() => {
-              setFilters(DEFAULT_AUDIT_FILTERS)
-              setPage(1)
-            }}
+            aria-pressed={filters.mutationsOnly}
+            onClick={() =>
+              updateFilters({ mutationsOnly: !filters.mutationsOnly })
+            }
           >
-            {t.mcpPermissionsClear}
+            <Pencil className="mr-1 h-3.5 w-3.5 shrink-0" />
+            {t.mcpFilterDataChanges}
           </Button>
-        ) : null}
+
+          <Button
+            variant={filters.failuresOnly ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs"
+            aria-pressed={filters.failuresOnly}
+            onClick={() =>
+              updateFilters({ failuresOnly: !filters.failuresOnly })
+            }
+          >
+            <X className="mr-1 h-3.5 w-3.5 shrink-0" />
+            {t.mcpFilterFailures}
+          </Button>
+
+          {filtersActive ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => {
+                setFilters(DEFAULT_AUDIT_FILTERS)
+                setSearchInput('')
+                setSearch('')
+                setPage(1)
+              }}
+            >
+              {t.mcpPermissionsClear}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {isLoading ? (

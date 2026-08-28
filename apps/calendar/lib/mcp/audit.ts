@@ -1,6 +1,17 @@
 import { getDb } from '@/lib/drizzle/client'
 import { mcpAuditLogs } from '@/lib/drizzle/schema'
-import { eq, desc, sql, lt, and, isNotNull, type SQL } from 'drizzle-orm'
+import {
+  eq,
+  desc,
+  sql,
+  lt,
+  gte,
+  and,
+  or,
+  ilike,
+  isNotNull,
+  type SQL,
+} from 'drizzle-orm'
 import crypto from 'crypto'
 import type { AuditEntry, AuditEntryType } from './types'
 
@@ -37,6 +48,18 @@ export interface AuditLogFilters {
   /** Only failures. */
   failuresOnly?: boolean
   toolName?: string
+  /** Only rows created at or after this instant. */
+  since?: Date
+  /**
+   * Case-insensitive substring match over tool name, action, resource type,
+   * resource id and error message.
+   */
+  search?: string
+}
+
+/** Escapes LIKE wildcards so a user-typed `%` matches a literal `%`. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
 }
 
 function auditFilterConditions(userId: string, filters: AuditLogFilters = {}) {
@@ -52,6 +75,20 @@ function auditFilterConditions(userId: string, filters: AuditLogFilters = {}) {
   }
   if (filters.toolName) {
     conditions.push(eq(mcpAuditLogs.toolName, filters.toolName))
+  }
+  if (filters.since) {
+    conditions.push(gte(mcpAuditLogs.createdAt, filters.since))
+  }
+  if (filters.search) {
+    const needle = `%${escapeLike(filters.search)}%`
+    const searchCondition = or(
+      ilike(mcpAuditLogs.toolName, needle),
+      ilike(mcpAuditLogs.action, needle),
+      ilike(mcpAuditLogs.resourceType, needle),
+      ilike(mcpAuditLogs.resourceId, needle),
+      ilike(mcpAuditLogs.errorMessage, needle),
+    )
+    if (searchCondition) conditions.push(searchCondition)
   }
   return and(...conditions)
 }

@@ -1136,6 +1136,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     // the user's cursor.
     if (endTime === undefined) setDate(startTime)
 
+    // Those same entry points also exist on non-calendar screens (analytics,
+    // settings), where the editor would open over a page with no grid to
+    // anchor to. Return to the user's preferred calendar view so the
+    // selection box and the created event are visible.
+    if (!isCalendarView(view)) {
+      setView(isCalendarView(defaultView) ? defaultView : 'week')
+    }
+
     setSelectedEvent(null)
     setEditorAnchorEl(null)
     setEditorAnchorRect(null)
@@ -1677,10 +1685,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'analytics' && (
               <AnalyticsView
                 events={events}
-                onCreateEvent={(_startDate, _endDate) => {
+                onCreateEvent={(startDate) => {
                   setSelectedEvent(null)
-                  setQuickCreateStartTime(_startDate)
-                  setEventEditorOpen(true)
+                  // Route through the shared quick-create path: it switches
+                  // back to the user's calendar view and navigates to the
+                  // period containing the draft, so the editor has a visible
+                  // grid to anchor to instead of opening over the report.
+                  handleTimeRangeSelect(startDate)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
                 isSidebarTransitioning={isSidebarTransitioning}
