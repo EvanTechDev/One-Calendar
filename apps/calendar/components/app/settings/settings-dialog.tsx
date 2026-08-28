@@ -526,9 +526,11 @@ export default function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        // `mobile-fullscreen`: below 768px the settings dialog becomes a
-        // full-screen overlay (ADR-0019); the rule lives in globals.css.
-        className="mobile-fullscreen max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl"
+        // Below 768px the settings dialog becomes a full-screen overlay
+        // (ADR-0019), spelled out as plain max-md: utilities: the dialog's
+        // centering (top/left-1/2 + translate) and size caps are each
+        // overridden at the breakpoint, and nothing changes at md and up.
+        className="max-w-[calc(100vw-1rem)] p-0 sm:max-w-3xl max-md:top-0 max-md:left-0 max-md:h-dvh max-md:max-h-none max-md:w-dvw max-md:max-w-none max-md:translate-none max-md:rounded-none"
       >
         {/* max-md:h-dvh, not h-full: the fullscreen DialogContent is a grid
             with an auto row, where a child's percentage height does not

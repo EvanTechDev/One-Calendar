@@ -77,9 +77,11 @@ export default function MobileSidebarDrawer({
         if (!next) setTab('calendar')
       }}
     >
-      {/* w-[247px]: the same width as the desktop sidebar column, so the
-          drawer is the sidebar, not a re-layout of it. */}
-      <SheetContent side="left" className="flex w-[247px] flex-col gap-0 p-0">
+      {/* w-[247px]!: the same fixed width as the desktop sidebar column, so
+          the drawer IS the sidebar, not a re-layout of it. The `!` is load-
+          bearing — the sheet's own data-[side=left]:w-3/4 compiles to a
+          two-class selector that out-specifies a plain width utility. */}
+      <SheetContent side="left" className="flex w-[247px]! flex-col gap-0 p-0">
         <SheetTitle className="sr-only">Zentra Calendar</SheetTitle>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
