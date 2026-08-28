@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@zntr/ui/card'
 import {
   addDays,
   differenceInDays,
@@ -21,12 +20,14 @@ interface YearHeatmapChartProps {
   data: HeatmapDatum[]
 }
 
+// Single-hue ink ramp: matches the punch card and rhythm strip, which both
+// draw with `primary`, so the whole report reads in one material.
 const intensityClasses = [
-  'bg-muted',
-  'bg-emerald-100 dark:bg-emerald-900',
-  'bg-emerald-300 dark:bg-emerald-700',
-  'bg-emerald-500 dark:bg-emerald-600',
-  'bg-emerald-700 dark:bg-emerald-500',
+  'bg-foreground/[0.06]',
+  'bg-primary/25',
+  'bg-primary/45',
+  'bg-primary/70',
+  'bg-primary',
 ]
 
 export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
@@ -79,84 +80,79 @@ export function YearHeatmapChart({ data }: YearHeatmapChartProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.analyticsYearHeatmapTitle}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto pb-2">
-          <div
-            className="relative"
-            style={{
-              minWidth: `${Math.max(totalWeeks * 16 + 72, 760)}px`,
-              paddingTop: '20px',
-            }}
-          >
-            <div className="absolute left-12 right-0 top-0">
-              {monthLabels.map((month) => (
+    <div>
+      <div className="overflow-x-auto pb-2">
+        <div
+          className="relative"
+          style={{
+            minWidth: `${Math.max(totalWeeks * 16 + 72, 760)}px`,
+            paddingTop: '20px',
+          }}
+        >
+          <div className="absolute left-12 right-0 top-0">
+            {monthLabels.map((month) => (
+              <div
+                key={`${month.label}-${month.weekIndex}`}
+                className="absolute text-xs text-muted-foreground"
+                style={{ left: `${month.weekIndex * 16}px` }}
+              >
+                {month.label}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex">
+            <div className="flex w-10 flex-col pr-2">
+              {weekdayLabels.map((day, index) => (
                 <div
-                  key={`${month.label}-${month.weekIndex}`}
-                  className="absolute text-xs text-muted-foreground"
-                  style={{ left: `${month.weekIndex * 16}px` }}
+                  key={day}
+                  className="mb-1 h-3 text-right text-xs leading-3 text-muted-foreground"
                 >
-                  {month.label}
+                  {index % 2 === 0 ? day : ''}
                 </div>
               ))}
             </div>
 
-            <div className="flex">
-              <div className="flex w-10 flex-col pr-2">
-                {weekdayLabels.map((day, index) => (
-                  <div
-                    key={day}
-                    className="mb-1 h-3 text-right text-xs leading-3 text-muted-foreground"
-                  >
-                    {index % 2 === 0 ? day : ''}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-1">
-                {Array.from({ length: totalWeeks }).map((_, weekIndex) => (
-                  <div key={`week-${weekIndex}`} className="space-y-1">
-                    {Array.from({ length: 7 }).map((_, dayIndex) => {
-                      const date = allDates[weekIndex * 7 + dayIndex]
-                      const isCurrentYear = date.getFullYear() === selectedYear
-                      const key = format(date, 'yyyy-MM-dd')
-                      const count = isCurrentYear ? (countMap.get(key) ?? 0) : 0
-                      return (
-                        <div
-                          key={key}
-                          className={`h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-ring ${
-                            isCurrentYear
-                              ? intensityClasses[getLevel(count)]
-                              : 'bg-transparent'
-                          }`}
-                          title={
-                            isCurrentYear
-                              ? `${key}: ${count} ${t.analyticsScheduleUnit}`
-                              : ''
-                          }
-                        />
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
+            <div className="flex gap-1">
+              {Array.from({ length: totalWeeks }).map((_, weekIndex) => (
+                <div key={`week-${weekIndex}`} className="space-y-1">
+                  {Array.from({ length: 7 }).map((_, dayIndex) => {
+                    const date = allDates[weekIndex * 7 + dayIndex]
+                    const isCurrentYear = date.getFullYear() === selectedYear
+                    const key = format(date, 'yyyy-MM-dd')
+                    const count = isCurrentYear ? (countMap.get(key) ?? 0) : 0
+                    return (
+                      <div
+                        key={key}
+                        className={`h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-ring ${
+                          isCurrentYear
+                            ? intensityClasses[getLevel(count)]
+                            : 'bg-transparent'
+                        }`}
+                        title={
+                          isCurrentYear
+                            ? `${key}: ${count} ${t.analyticsScheduleUnit}`
+                            : ''
+                        }
+                      />
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-3 flex items-center text-xs text-muted-foreground">
-          <span className="mr-2">{t.less}</span>
-          <div className="flex gap-1">
-            {intensityClasses.map((cls) => (
-              <div key={cls} className={`h-3 w-3 rounded-sm ${cls}`} />
-            ))}
-          </div>
-          <span className="ml-2">{t.more}</span>
+      <div className="mt-3 flex items-center text-xs text-muted-foreground">
+        <span className="mr-2">{t.less}</span>
+        <div className="flex gap-1">
+          {intensityClasses.map((cls) => (
+            <div key={cls} className={`h-3 w-3 rounded-sm ${cls}`} />
+          ))}
         </div>
-      </CardContent>
-    </Card>
+        <span className="ml-2">{t.more}</span>
+      </div>
+    </div>
   )
 }

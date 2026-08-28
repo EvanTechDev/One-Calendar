@@ -46,14 +46,12 @@ export default function AnalyticsView({
   }, [])
 
   return (
-    <div className="space-y-8 p-4 md:p-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t.analytics}</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onBackToCalendar?.()}
-        >
+    <div className="mx-auto max-w-5xl space-y-8 p-4 md:p-8">
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          {t.analytics}
+        </h1>
+        <Button variant="ghost" size="sm" onClick={() => onBackToCalendar?.()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t.back}
         </Button>

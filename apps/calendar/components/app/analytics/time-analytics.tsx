@@ -1,20 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { getDay } from 'date-fns'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { CalendarEvent } from '../calendar'
 import type { CalendarCategory } from '../sidebar/sidebar'
 import {
-  addDurationByDayCategory,
-  calculateDaySpanInHours,
-  filterEventsInRange,
-  getChartColorOrderIndex,
-  getMonthDays,
-  groupDayKey,
-  groupMonthKey,
   mapEventsToAnalyticsEvents,
+  filterEventsInRange,
   normalizeChartColor,
   resolveDateRange,
+  calculateDaySpanInHours,
   type AnalyticsRangePreset,
 } from '@/lib/analytics/utils'
 import {
@@ -22,6 +16,7 @@ import {
   computeDistribution,
   computeInsights,
   computeSummary,
+  dayKeyOf,
   previousRange,
   UNCATEGORIZED_ID,
   type AnalyticsEngineEvent,
@@ -33,13 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { DailyMonthlyCountChart } from './charts/daily-monthly-count-chart'
 import { YearHeatmapChart } from './charts/year-heatmap-chart'
-import { CategoryDonutChart } from './charts/category-donut-chart'
-import { CategoryAverageDurationChart } from './charts/category-average-duration-chart'
-import { WeekdayStackedDurationChart } from './charts/weekday-stacked-duration-chart'
-import { HourDistributionChart } from './charts/hour-distribution-chart'
-import { AnalyticsTrendKpis } from './metrics/analytics-trend-kpis'
+import { WeekPunchCard } from './charts/week-punch-card'
+import {
+  CategoryLedger,
+  type CategoryLedgerRow,
+} from './charts/category-ledger'
+import { AnalyticsHero, type RhythmDay } from './metrics/analytics-hero'
 import { AnalyticsInsightsPanel } from './insights/analytics-insights-panel'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
@@ -51,6 +46,30 @@ interface TimeAnalyticsProps {
   isSidebarTransitioning?: boolean
 }
 
+/**
+ * Editorial section: an uppercase eyebrow with a hairline instead of a
+ * boxed card, so the page reads as one report rather than a widget grid.
+ */
+function Section({
+  eyebrow,
+  children,
+}: {
+  eyebrow: string
+  children: ReactNode
+}) {
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-3">
+        <h3 className="shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          {eyebrow}
+        </h3>
+        <div className="h-px flex-1 bg-foreground/[0.08]" />
+      </div>
+      {children}
+    </section>
+  )
+}
+
 export default function TimeAnalyticsComponent({
   events,
   calendars = [],
@@ -58,22 +77,7 @@ export default function TimeAnalyticsComponent({
 }: TimeAnalyticsProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const weekdayLabels = [
-    t.weekdays[1],
-    t.weekdays[2],
-    t.weekdays[3],
-    t.weekdays[4],
-    t.weekdays[5],
-    t.weekdays[6],
-    t.weekdays[0],
-  ]
-  const dayName = (date: Date): string => {
-    const day = getDay(date)
-    if (day === 0) return weekdayLabels[6]
-    return weekdayLabels[day - 1]
-  }
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
-  const [countMode, setCountMode] = useState<'day' | 'month'>('day')
 
   const now = useMemo(() => new Date(), [])
   const dateRange = useMemo(() => resolveDateRange(preset, now), [preset, now])
@@ -135,6 +139,28 @@ export default function TimeAnalyticsComponent({
     [dateRange, engineEvents],
   )
 
+  // One thin bar per day of the range for the hero rhythm strip.
+  const rhythm = useMemo<RhythmDay[]>(() => {
+    const counts = new Map<string, number>()
+    for (const event of engineEvents) {
+      if (event.start < dateRange.start || event.start > dateRange.end) {
+        continue
+      }
+      const key = dayKeyOf(event.start)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    const days: RhythmDay[] = []
+    for (
+      let cursor = dateRange.start.getTime();
+      cursor <= dateRange.end.getTime();
+      cursor += 86_400_000
+    ) {
+      const key = dayKeyOf(new Date(cursor))
+      days.push({ key, count: counts.get(key) ?? 0 })
+    }
+    return days
+  }, [dateRange, engineEvents])
+
   const categoryMeta = useMemo(() => {
     return new Map(
       calendars.map((calendar) => [
@@ -148,204 +174,72 @@ export default function TimeAnalyticsComponent({
   }, [calendars])
 
   const resolveCategoryLabel = (categoryId: string): string => {
-    if (categoryId === 'uncategorized') return t.uncategorized
+    if (categoryId === UNCATEGORIZED_ID) return t.uncategorized
     return categoryMeta.get(categoryId)?.name ?? categoryId
   }
 
-  const resolveCategoryColor = (
-    categoryId: string,
-    fallbackColor: string,
-  ): string => {
-    if (categoryId === 'uncategorized') return '#64748b'
-    return categoryMeta.get(categoryId)?.color ?? fallbackColor
-  }
-
-  const resolveColorName = (color: string): string => {
-    const normalized = color.toLowerCase()
-    if (normalized === '#3b82f6') return t.colorBlue
-    if (normalized === '#10b981') return t.colorGreen
-    if (normalized === '#f59e0b') return t.colorYellow
-    if (normalized === '#ef4444') return t.colorRed
-    if (normalized === '#8b5cf6') return t.colorPurple
-    if (normalized === '#ec4899') return t.colorPink
-    if (normalized === '#14b8a6') return t.colorTeal
-    if (normalized === '#6366f1') return t.colorIndigo
-    if (normalized === '#fb923c') return t.colorOrange
-    return color
-  }
-
-  const countChart = useMemo(() => {
-    const seriesMeta = new Map<
+  const categoryLedger = useMemo<CategoryLedgerRow[]>(() => {
+    const buckets = new Map<
       string,
-      { label: string; color: string; totalCount: number }
+      { count: number; totalHours: number; color: string }
     >()
-    const dailyBuckets = new Map<string, Record<string, number>>()
-    const monthlyBuckets = new Map<string, Record<string, number>>()
-
     rangeEvents.forEach((event) => {
-      const seriesColor = event.color
-      const seriesKey = seriesColor
-      const seriesLabel = resolveColorName(seriesColor)
-      const previous = seriesMeta.get(seriesKey)
-      seriesMeta.set(seriesKey, {
-        label: previous?.label ?? seriesLabel,
-        color: seriesColor,
-        totalCount: (previous?.totalCount ?? 0) + 1,
-      })
-
-      const dayKey = groupDayKey(event.start)
-      const monthKey = groupMonthKey(event.start)
-
-      const dayBucket = dailyBuckets.get(dayKey) ?? {}
-      dayBucket[seriesKey] = (dayBucket[seriesKey] ?? 0) + 1
-      dailyBuckets.set(dayKey, dayBucket)
-
-      const monthBucket = monthlyBuckets.get(monthKey) ?? {}
-      monthBucket[seriesKey] = (monthBucket[seriesKey] ?? 0) + 1
-      monthlyBuckets.set(monthKey, monthBucket)
+      const bucket = buckets.get(event.category) ?? {
+        count: 0,
+        totalHours: 0,
+        color:
+          event.category === UNCATEGORIZED_ID
+            ? '#64748b'
+            : (categoryMeta.get(event.category)?.color ?? event.color),
+      }
+      bucket.count += 1
+      bucket.totalHours += Math.min(
+        calculateDaySpanInHours(event.start, event.end),
+        24,
+      )
+      buckets.set(event.category, bucket)
     })
-
-    const series = Array.from(seriesMeta.entries())
-      .sort((a, b) => {
-        const colorOrder =
-          getChartColorOrderIndex(a[1].color) -
-          getChartColorOrderIndex(b[1].color)
-        if (colorOrder !== 0) return colorOrder
-        return b[1].totalCount - a[1].totalCount
-      })
-      .map(([key, value]) => ({
-        key,
-        label: value.label,
-        color: value.color,
+    const total = rangeEvents.length
+    if (total === 0) return []
+    return Array.from(buckets.entries())
+      .map(([categoryId, bucket]) => ({
+        category: resolveCategoryLabel(categoryId),
+        color: bucket.color,
+        count: bucket.count,
+        percent: (bucket.count / total) * 100,
+        avgHours: bucket.totalHours / bucket.count,
       }))
-
-    const dailyData = Array.from(dailyBuckets.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, values]) => ({ label, ...values }))
-
-    const monthlyData = Array.from(monthlyBuckets.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, values]) => ({ label, ...values }))
-
-    return { series, dailyData, monthlyData }
-  }, [categoryMeta, rangeEvents, resolveColorName])
+      .sort((a, b) => b.count - a.count)
+  }, [categoryMeta, rangeEvents, t])
 
   const heatmapData = useMemo(() => {
     const currentYear = now.getFullYear()
-    const days = getMonthDays(currentYear)
     const counts = new Map<string, number>()
     normalizedEvents.forEach((event) => {
       if (event.start.getFullYear() !== currentYear) return
-      const key = groupDayKey(event.start)
+      const key = dayKeyOf(event.start)
       counts.set(key, (counts.get(key) ?? 0) + 1)
     })
-
-    return days.map((date) => ({
-      date,
-      count: counts.get(groupDayKey(date)) ?? 0,
-    }))
+    const days: { date: Date; count: number }[] = []
+    for (
+      let cursor = new Date(currentYear, 0, 1);
+      cursor.getFullYear() === currentYear;
+      cursor = new Date(cursor.getTime() + 86_400_000)
+    ) {
+      days.push({
+        date: cursor,
+        count: counts.get(dayKeyOf(cursor)) ?? 0,
+      })
+    }
+    return days
   }, [normalizedEvents, now])
 
-  const categoryDonutData = useMemo(() => {
-    const categoryCounts = new Map<string, { count: number; color: string }>()
-    rangeEvents.forEach((event) => {
-      const label = resolveCategoryLabel(event.category)
-      const prev = categoryCounts.get(label)
-      categoryCounts.set(label, {
-        count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
-      })
-    })
-
-    const total = rangeEvents.length
-    if (total === 0) return []
-
-    return Array.from(categoryCounts.entries())
-      .filter(([, value]) => value.count > 0)
-      .map(([category, value]) => ({
-        category,
-        count: value.count,
-        percent: (value.count / total) * 100,
-        color: value.color,
-      }))
-      .sort((a, b) => b.count - a.count)
-  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
-
-  const categoryAvgDurationData = useMemo(() => {
-    const categoryDuration = new Map<
-      string,
-      { total: number; count: number; color: string }
-    >()
-    rangeEvents.forEach((event) => {
-      const duration = calculateDaySpanInHours(event.start, event.end)
-      const label = resolveCategoryLabel(event.category)
-      const prev = categoryDuration.get(label)
-      categoryDuration.set(label, {
-        total: (prev?.total ?? 0) + duration,
-        count: (prev?.count ?? 0) + 1,
-        color: prev?.color ?? resolveCategoryColor(event.category, event.color),
-      })
-    })
-
-    return Array.from(categoryDuration.entries())
-      .map(([category, value]) => ({
-        category,
-        hours: Number((value.total / value.count).toFixed(1)),
-        color: value.color,
-      }))
-      .sort((a, b) => b.hours - a.hours)
-  }, [categoryMeta, rangeEvents, resolveCategoryLabel])
-
-  const weekdayStacked = useMemo(() => {
-    const buckets: Record<
-      string,
-      Record<string, { hours: number; color: string }>
-    > = {}
-
-    rangeEvents.forEach((event) => {
-      const label = dayName(event.start)
-      const categoryLabel = resolveCategoryLabel(event.category)
-      const color = resolveCategoryColor(event.category, event.color)
-      const hours = calculateDaySpanInHours(event.start, event.end)
-      addDurationByDayCategory(buckets, label, categoryLabel, color, hours)
-    })
-
-    const categoryColors = new Map<string, string>()
-    Object.values(buckets).forEach((value) => {
-      Object.entries(value).forEach(([category, item]) => {
-        if (!categoryColors.has(category)) {
-          categoryColors.set(category, item.color)
-        }
-      })
-    })
-
-    const data = weekdayLabels.map((label) => {
-      const row: { day: string; [category: string]: string | number } = {
-        day: label,
-      }
-      const values = buckets[label] ?? {}
-      categoryColors.forEach((_, category) => {
-        row[category] = Number((values[category]?.hours ?? 0).toFixed(1))
-      })
-      return row
-    })
-
-    const series = Array.from(categoryColors.entries())
-      .sort(
-        (a, b) => getChartColorOrderIndex(a[1]) - getChartColorOrderIndex(b[1]),
-      )
-      .map(([key, color]) => ({
-        key,
-        color,
-      }))
-
-    return { data, series }
-  }, [categoryMeta, rangeEvents, resolveCategoryLabel, weekdayLabels])
-
   return (
-    <div className="space-y-6 rounded-lg border p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">{t.analyticsOverviewTitle}</h2>
+    <div className="space-y-10">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {dayKeyOf(dateRange.start)} {t.analyticsTo} {dayKeyOf(dateRange.end)}
+        </span>
         <Select
           value={preset}
           onValueChange={(value) => setPreset(value as AnalyticsRangePreset)}
@@ -361,43 +255,27 @@ export default function TimeAnalyticsComponent({
         </Select>
       </div>
 
-      <AnalyticsTrendKpis comparison={comparison} />
+      <AnalyticsHero comparison={comparison} rhythm={rhythm} />
 
-      <AnalyticsInsightsPanel
-        insights={insights}
-        resolveCategoryLabel={(categoryId) =>
-          categoryId === UNCATEGORIZED_ID
-            ? t.uncategorized
-            : resolveCategoryLabel(categoryId)
-        }
-      />
+      <Section eyebrow={t.analyticsInsightsTitle}>
+        <AnalyticsInsightsPanel
+          insights={insights}
+          resolveCategoryLabel={resolveCategoryLabel}
+        />
+      </Section>
 
-      <div className={cn('space-y-4', isSidebarTransitioning && 'hidden')}>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <DailyMonthlyCountChart
-            dailyData={countChart.dailyData}
-            monthlyData={countChart.monthlyData}
-            series={countChart.series}
-            mode={countMode}
-            onModeChange={setCountMode}
-          />
-          <CategoryDonutChart data={categoryDonutData} />
-        </div>
+      <div className={cn('space-y-10', isSidebarTransitioning && 'hidden')}>
+        <Section eyebrow={t.analyticsSectionWeek}>
+          <WeekPunchCard distribution={distribution} />
+        </Section>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <HourDistributionChart
-            data={distribution.byHour}
-            peakWindow={distribution.peakWindow}
-          />
-          <WeekdayStackedDurationChart
-            data={weekdayStacked.data}
-            series={weekdayStacked.series}
-          />
-        </div>
+        <Section eyebrow={t.analyticsSectionCategories}>
+          <CategoryLedger data={categoryLedger} />
+        </Section>
 
-        <CategoryAverageDurationChart data={categoryAvgDurationData} />
-
-        <YearHeatmapChart data={heatmapData} />
+        <Section eyebrow={t.analyticsSectionYear}>
+          <YearHeatmapChart data={heatmapData} />
+        </Section>
       </div>
     </div>
   )
