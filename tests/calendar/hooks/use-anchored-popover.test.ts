@@ -92,12 +92,13 @@ describe('anchorRectForClick', () => {
     expect(anchorRectForClick(block, 350, 900).top).toBe(800)
   })
 
-  // THE DAY-VIEW CONTRACT: a block leaving no meaningful room on either
-  // side (day view spans nearly the whole grid) must NOT judge sides from
-  // its own edges — that forced the popover above/below the block. The
-  // anchor collapses to a narrow strip around the click's X, so the popover
-  // opens beside the cursor and overlaps the wide block instead.
-  describe('full-width blocks (day view)', () => {
+  // THE DAY-VIEW CONTRACT: a block wider than half the viewport (day view
+  // spans most of the grid) must NOT judge sides from its own edges — that
+  // forced the popover above/below the block. The anchor collapses to a
+  // narrow strip around the click's X, so the popover opens beside the
+  // cursor and overlaps the wide block instead.
+  describe('wide blocks (day view)', () => {
+    // 1300px block in a 1440px viewport → 90% > 50% → narrow anchor.
     const wideBlock = rect(64, 200, 1300, 48)
 
     it('collapses the anchor to a strip around the click', () => {
@@ -122,8 +123,19 @@ describe('anchorRectForClick', () => {
       expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).toBe('right')
     })
 
-    it('still uses the block extent when one side has room', () => {
-      // Week-view-like block: 960px free to the right — the old contract.
+    it('triggers even when the sidebar makes blockRect.left large', () => {
+      // Sidebar expanded: block starts at x=364 but is still 900px wide
+      // (62.5% of a 1440px viewport) — the old sideRoom check missed this
+      // because blockRect.left (364) exceeded the threshold.
+      setViewport(1440, 900)
+      const blockWithSidebar = rect(364, 200, 900, 48)
+      const anchored = anchorRectForClick(blockWithSidebar, 800, 220)
+      expect(anchored.width).toBe(80)
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).not.toBe('top')
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).not.toBe('bottom')
+    })
+
+    it('still uses the block extent when the block is narrow (week view)', () => {
       setViewport(1440, 900)
       const anchored = anchorRectForClick(rect(300, 200, 180, 600), 350, 750)
       expect(anchored.left).toBe(300)

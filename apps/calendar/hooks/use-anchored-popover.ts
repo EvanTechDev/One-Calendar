@@ -203,14 +203,16 @@ export function clampRectToViewport(rect: DOMRect): DOMRect {
 }
 
 /**
- * Below this much free space beside the block, no horizontal placement can
- * show a meaningful part of the popover (see `pickPopoverSide`'s half-width
- * rule against the preview's 460px estimate) — the block is effectively
- * full-width and the anchor collapses to the click.
+ * When the event block is wider than this fraction of the viewport, no
+ * horizontal side can hold the popover from the block's own edges (the
+ * remaining space is split too thin). The anchor then collapses to a
+ * click-centred strip so the popover opens beside the cursor and overlaps
+ * the wide block, instead of flipping above/below and covering the
+ * neighbouring rows.
  */
-const MIN_SIDE_ROOM = 240
+const WIDE_BLOCK_RATIO = 0.5
 
-/** Width of the click-centred anchor strip used for full-width blocks. */
+/** Width of the click-centred anchor strip used for wide blocks. */
 const CLICK_ANCHOR_WIDTH = 80
 
 /**
@@ -222,11 +224,11 @@ const CLICK_ANCHOR_WIDTH = 80
  * judges free space from the block's true horizontal extent.
  *
  * EXCEPT for a block so wide that no side of it could hold the popover (day
- * view, where a block spans nearly the whole grid; month view's multi-day
- * bars). Judging space from those edges forced the popover above/below the
- * block, covering the very rows the user is reading. There the anchor
- * becomes a narrow strip around the click's X, so the popover opens beside
- * the cursor and overlaps the wide block instead.
+ * view, where a block spans most of the grid; month view's multi-day bars).
+ * Judging space from those edges forced the popover above/below the block,
+ * covering the very rows the user is reading. There the anchor becomes a
+ * narrow strip around the click's X, so the popover opens beside the cursor
+ * and overlaps the wide block instead.
  */
 export function anchorRectForClick(
   blockRect: DOMRect,
@@ -236,8 +238,9 @@ export function anchorRectForClick(
   const y = Math.min(Math.max(clientY, blockRect.top), blockRect.bottom)
   const viewportWidth = typeof window === 'undefined' ? 0 : window.innerWidth
 
-  const sideRoom = Math.max(blockRect.left, viewportWidth - blockRect.right)
-  if (sideRoom < MIN_SIDE_ROOM) {
+  // Sidebar-independent: a block wider than half the viewport leaves neither
+  // side enough room for the popover, regardless of where the sidebar sits.
+  if (blockRect.width > viewportWidth * WIDE_BLOCK_RATIO) {
     const width = Math.min(CLICK_ANCHOR_WIDTH, blockRect.width)
     const x = Math.min(Math.max(clientX, blockRect.left), blockRect.right)
     const left = Math.min(
