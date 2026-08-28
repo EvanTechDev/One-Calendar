@@ -183,8 +183,13 @@ html {
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
     /* The sidebar's create-event button. Its own token rather than --secondary,
-       which is shared by every secondary button in the app. */
-    --cal-create: #e1e1e2;
+       which is shared by every secondary button in the app.
+
+       Deliberately the same value as --cal-today below, not a reference to it:
+       they match today by request, but a button fill and the today badge are
+       unrelated decisions, and aliasing them would silently move one whenever
+       the other is retuned. */
+    --cal-create: #e5e5e5;
     /* Calendar accent for the chrome (now line, create selection).
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
@@ -201,7 +206,7 @@ html {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #404040;
     --cal-now: #a3a3a3;
-    --cal-create: #232325;
+    --cal-create: #404040;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
