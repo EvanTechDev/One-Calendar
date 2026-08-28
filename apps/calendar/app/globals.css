@@ -42,7 +42,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar-panel: var(--sidebar-panel);
   --color-cal-create: var(--cal-create);
   --color-cal-accent: var(--cal-accent);
   --color-cal-today: var(--cal-today);
@@ -183,13 +182,8 @@ html {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    /* The LEFT SIDEBAR only — not the toolbar, the grid, or the right rail.
-       Those stay --background, so the sidebar reads as a distinct panel beside
-       the white calendar rather than the whole app turning gray. */
-    --sidebar-panel: #efeff0;
-    /* The sidebar's create-event button. It sits ON --sidebar-panel rather than
-       on --background, so --secondary (which is tuned against white) read as
-       almost the same color as the panel behind it. */
+    /* The sidebar's create-event button. Its own token rather than --secondary,
+       which is shared by every secondary button in the app. */
     --cal-create: #e1e1e2;
     /* Calendar accent for the chrome (now line, create selection).
        Monochrome by request: ink on light, paper on dark — the hierarchy
@@ -207,11 +201,6 @@ html {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #404040;
     --cal-now: #a3a3a3;
-    /* Dark mode leaves the sidebar equal to the page: the light theme's gray
-       exists to separate the panel from a white calendar, but here the page is
-       already the darkest layer, so tinting it would have to go below black.
-       Only the create button takes a dark value. */
-    --sidebar-panel: var(--background);
     --cal-create: #232325;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
