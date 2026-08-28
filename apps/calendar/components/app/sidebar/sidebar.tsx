@@ -282,7 +282,7 @@ export default function Sidebar({
     <div
       style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
       className={cn(
-        'border-r bg-app-shell overflow-y-auto transition-all duration-300 ease-in-out',
+        'border-r bg-sidebar-panel overflow-y-auto transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
       )}
       onTransitionEnd={(event) => {
@@ -329,7 +329,9 @@ export default function Sidebar({
               setLocalSelectedDate(date)
               if (date) onDateSelect(date)
             }}
-            className="rounded-lg border"
+            // `bg-transparent` overrides the Calendar's own `bg-background`,
+            // which is why it stayed a white card once the sidebar went gray.
+            className="rounded-lg border bg-transparent"
             captionLayout="dropdown"
           />
         </div>

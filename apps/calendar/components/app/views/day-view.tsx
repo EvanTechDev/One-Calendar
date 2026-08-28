@@ -413,7 +413,7 @@ export default function DayView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[84px_1fr] border-b relative z-30 bg-app-shell">
+      <div className="grid grid-cols-[84px_1fr] border-b relative z-30 bg-background">
         <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">
             {t.weekdays[date.getDay()]}

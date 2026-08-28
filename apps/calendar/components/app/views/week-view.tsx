@@ -558,7 +558,7 @@ export default function WeekView({
   return (
     <div className="flex flex-col h-full">
       <div
-        className="relative z-30 bg-app-shell border-b"
+        className="relative z-30 bg-background border-b"
         style={{ paddingRight: scrollbarWidth + 'px' }}
       >
         {/* One grid holds both the weekday header and the all-day area, so

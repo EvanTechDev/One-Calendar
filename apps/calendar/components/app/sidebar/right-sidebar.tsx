@@ -22,9 +22,7 @@ export default function RightSidebar({
 
   return (
     <>
-      {/* Same shell color as the left sidebar and the toolbar: it is the same
-          chrome, and the two rails flanking a gray canvas cannot be white. */}
-      <div className="w-14 bg-app-shell border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
+      <div className="w-14 bg-background border-l flex flex-col items-center py-4 absolute right-0 top-16 bottom-0 z-30">
         <div className="flex flex-col items-center space-y-6 flex-1">
           <Button
             variant="secondary"

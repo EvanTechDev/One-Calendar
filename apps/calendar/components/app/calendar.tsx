@@ -1338,7 +1338,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   return (
     <div className={className}>
-      <div className="relative flex h-dvh overflow-hidden bg-app-shell">
+      <div className="relative flex h-dvh overflow-hidden bg-background">
         {}
         <Sidebar
           onCreateEvent={() => {
@@ -1367,12 +1367,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {' '}
-          {/* The toolbar and the strip that hides the right rail's border are
-              opaque on purpose (the grid scrolls under them), so they take the
-              shell color — left on bg-background they became white bands across
-              the gray page. */}
-          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-app-shell">
-            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-app-shell" />
+          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
+            <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
             {/*
               `min-w-0` on the left cluster and `shrink-0` on the controls
               inside it. The header is one fixed-height non-wrapping row, so
