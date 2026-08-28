@@ -282,7 +282,11 @@ export default function Sidebar({
     <div
       style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
       className={cn(
-        'border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
+        // `shrink-0`: without it a narrow window flex-shrinks the sidebar
+        // below 247px and the fixed-cell mini calendar overflows its edge.
+        // At comfortable widths flex never shrinks it, so this is inert —
+        // the main area (`min-w-0 flex-1`) is the side that gives way.
+        'shrink-0 border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
       )}
       onTransitionEnd={(event) => {

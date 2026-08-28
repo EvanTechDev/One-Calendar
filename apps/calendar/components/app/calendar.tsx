@@ -1396,7 +1396,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {' '}
-          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
+          {/*
+            `overflow-x-auto` is the last-resort defence: when the window is
+            narrower than the header's shrink floors (nav controls + compressed
+            search + icon buttons), the row scrolls instead of clipping the
+            trailing buttons out of reach. With no overflow it renders nothing —
+            no scrollbar, no layout change. Every popup in here (select, search
+            results, menus) is portalled to <body>, so the overflow container
+            cannot clip them.
+          */}
+          <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background overflow-x-auto">
             <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
             {/*
               `min-w-0` on the left cluster and `shrink-0` on the controls
@@ -1444,7 +1453,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               )}
             </div>
 
-            <div className="ml-auto flex shrink-0 items-center space-x-2">
+            {/*
+              `max-xl:shrink`: below the 1280px reference width the cluster may
+              give up width — the search box (the only shrinkable child, see
+              its min-w floor) compresses before the header falls back to
+              scrolling. At ≥1280px `shrink-0` still wins, so wide desktops
+              cannot re-distribute space differently than before, even in
+              locales whose long date string already truncates there.
+            */}
+            <div className="ml-auto flex shrink-0 max-xl:shrink items-center space-x-2">
               <div className="relative z-50 shrink-0">
                 <Select
                   value={
@@ -1490,8 +1507,19 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="relative z-50" ref={searchInputRef}>
-                <InputGroup className="w-48">
+              {/*
+                The search box is the one child of this cluster allowed to
+                compress. Below the 1280px reference width the wrapper takes
+                the same 12rem basis the InputGroup always had but may shrink
+                to a 7rem floor; a flex item never shrinks unless the row is
+                actually short of space, so an uncompressed window renders
+                exactly as before. At ≥1280px none of these classes apply.
+              */}
+              <div
+                className="relative z-50 max-xl:w-48 max-xl:min-w-28 max-xl:shrink"
+                ref={searchInputRef}
+              >
+                <InputGroup className="w-48 max-xl:w-full">
                   <InputGroupAddon>
                     <Search className="h-5 w-5 text-gray-400" />
                   </InputGroupAddon>
