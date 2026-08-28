@@ -577,11 +577,32 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
       switch (e.key) {
         case 'n':
-        case 'N':
+        case 'N': {
           e.preventDefault()
+          // An open dialog/sheet would sit on top of the editor this
+          // shortcut opens (and its overlay would swallow the clicks), so
+          // dismiss any open Radix layer first. A synthetic Escape reuses
+          // each surface's own close path (onOpenChange, focus restore)
+          // instead of this component reaching into their open states.
+          const openOverlay = document.querySelector(
+            '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
+          )
+          if (openOverlay) {
+            document.dispatchEvent(
+              new KeyboardEvent('keydown', {
+                key: 'Escape',
+                bubbles: true,
+                cancelable: true,
+              }),
+            )
+          }
           setSelectedEvent(null)
+          // Shared quick-create path: leaves non-calendar views (analytics,
+          // settings) for the user's default view and navigates to the
+          // period containing the draft.
           handleTimeRangeSelect(new Date())
           break
+        }
         case '/': {
           e.preventDefault()
 
