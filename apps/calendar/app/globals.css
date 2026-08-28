@@ -42,6 +42,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-app-shell: var(--app-shell);
+  --color-cal-create: var(--cal-create);
   --color-cal-accent: var(--cal-accent);
   --color-cal-today: var(--cal-today);
   --color-cal-today-foreground: var(--cal-today-foreground);
@@ -181,6 +183,19 @@ html {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* The app shell: the sidebar, the toolbar, and the canvas the calendar grid
+       sits on. A light gray rather than white, so white surfaces drawn over it
+       (event popovers, dialogs, the create-event box) read as raised rather than
+       dissolving into the page.
+
+       One token for both the sidebar and the grid canvas because they are the
+       same surface — the border between them is the only thing dividing them,
+       and giving each its own value is how they drift apart. */
+    --app-shell: #efeff0;
+    /* The sidebar's create-event button. It sits ON --app-shell rather than on
+       --background, so --secondary (which is tuned against white) read as almost
+       the same color as the panel behind it. */
+    --cal-create: #e1e1e2;
     /* Calendar accent for the chrome (now line, create selection).
        Monochrome by request: ink on light, paper on dark — the hierarchy
        comes from opacity steps, not hue. */
@@ -197,6 +212,12 @@ html {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #404040;
     --cal-now: #a3a3a3;
+    /* Dark mode keeps the shell equal to the page: the light theme lifts white
+       surfaces off a gray page, but here the page is already the darkest layer,
+       so tinting the shell would push it *below* black and there is nowhere to
+       go. Only the create button was given a dark value. */
+    --app-shell: var(--background);
+    --cal-create: #232325;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

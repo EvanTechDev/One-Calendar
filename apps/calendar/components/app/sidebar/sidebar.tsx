@@ -282,7 +282,7 @@ export default function Sidebar({
     <div
       style={{ '--sidebar-calendar-width': '17rem' } as CSSProperties}
       className={cn(
-        'border-r bg-background overflow-y-auto transition-all duration-300 ease-in-out',
+        'border-r bg-app-shell overflow-y-auto transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[247px] opacity-100',
       )}
       onTransitionEnd={(event) => {
@@ -304,8 +304,13 @@ export default function Sidebar({
           <h1 className="text-lg font-semibold">Zentra Calendar</h1>
         </div>
 
+        {/*
+          The hover is overridden too, not just the base. `variant="secondary"`
+          derives its hover from `--secondary` via color-mix, so setting only the
+          background would make the button jump back to the stock gray on hover.
+        */}
         <Button
-          className="mx-auto mb-4 h-10 w-full justify-center"
+          className="mx-auto mb-4 h-10 w-full justify-center bg-cal-create hover:bg-[color-mix(in_oklch,var(--cal-create),var(--foreground)_5%)]"
           onClick={onCreateEvent}
           variant="secondary"
         >
