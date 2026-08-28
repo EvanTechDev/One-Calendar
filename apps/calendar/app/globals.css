@@ -198,14 +198,15 @@ html {
        reads against the white grid. */
     --cal-today: #e5e5e5;
     --cal-today-foreground: var(--secondary-foreground);
-    /* The now line: a deep neutral, clearly darker than the grid lines. */
-    --cal-now: #737373;
+    /* The now line and its dot: near-ink, so the one piece of chrome that says
+       "you are here" outranks the grid lines and every event block on it. */
+    --cal-now: #1a1a1a;
   }
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
     --cal-today: #404040;
-    --cal-now: #a3a3a3;
+    --cal-now: #f2f2f2;
     --cal-create: #404040;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
