@@ -92,6 +92,27 @@ function useMcpQuery<T>(key: string, config?: SWRConfiguration<T>) {
   return useSWR<T>(key, (k) => fetchJson<T>(k as string), config)
 }
 
+/**
+ * The translation table for the active language.
+ *
+ * Each block in this file is its own component (they own independent SWR
+ * queries), so rather than thread `t` down as a prop from `MCPSettings` every
+ * one of them reads it here. This whole surface — the master switch, the API
+ * keys, the OAuth consent list, the audit log — used to be hardcoded English
+ * while the settings dialog around it was translated into 35 languages.
+ */
+function useMcpTranslations() {
+  const [language] = useLanguage()
+  return translations[language]
+}
+
+/** Substitutes `{name}`-style placeholders in a translated string. */
+const fill = (template: string, values: Record<string, string | number>) =>
+  Object.entries(values).reduce(
+    (out, [key, value]) => out.replace(`{${key}}`, String(value)),
+    template,
+  )
+
 interface ApiKey {
   id: string
   name: string
@@ -155,28 +176,44 @@ function endpointUrl(): string {
     : '/api/mcp'
 }
 
-async function copyToClipboard(value: string, message: string) {
+type McpTranslations = ReturnType<typeof useMcpTranslations>
+
+async function copyToClipboard(
+  value: string,
+  message: string,
+  failure: string,
+) {
   try {
     await navigator.clipboard.writeText(value)
     toast.success(message)
   } catch {
-    toast.error('Failed to copy')
+    toast.error(failure)
   }
 }
 
-function formatRelative(iso: string | null): string | null {
+/**
+ * Both the relative buckets and the absolute fallback are localised: the
+ * fallback previously called `toLocaleDateString()` with no argument, which
+ * follows the BROWSER's locale rather than the language chosen in settings —
+ * so a user who set Norwegian in a US-configured browser saw an American date.
+ */
+function formatRelative(
+  iso: string | null,
+  t: McpTranslations,
+  language: string,
+): string | null {
   if (!iso) return null
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return null
   const diff = Date.now() - then
   const minutes = Math.round(diff / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1) return t.relativeJustNow
+  if (minutes < 60) return fill(t.relativeMinutesAgo, { n: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return fill(t.relativeHoursAgo, { n: hours })
   const days = Math.round(hours / 24)
-  if (days < 30) return `${days}d ago`
-  return new Date(iso).toLocaleDateString()
+  if (days < 30) return fill(t.relativeDaysAgo, { n: days })
+  return new Date(iso).toLocaleDateString(language)
 }
 
 /**
@@ -220,19 +257,28 @@ function Section({
 
 /** Compact scope summary: "Events, Settings +2" rather than 12 raw badges. */
 function ScopeSummary({ scopes }: { scopes: string[] }) {
+  const t = useMcpTranslations()
   const groups = useMemo(() => {
     const names: string[] = []
     for (const group of MCP_SCOPE_GROUPS) {
       const owned = group.scopes.filter((s) => scopes.includes(s))
       if (owned.length === 0) continue
       const writable = owned.some((s) => s.endsWith(':write'))
-      names.push(writable ? `${group.label} (write)` : group.label)
+      names.push(
+        writable
+          ? fill(t.mcpScopeWritable, { name: group.label })
+          : group.label,
+      )
     }
     return names
-  }, [scopes])
+  }, [scopes, t])
 
   if (groups.length === 0) {
-    return <span className="text-xs text-muted-foreground">No access</span>
+    return (
+      <span className="text-xs text-muted-foreground">
+        {t.mcpScopeNoAccess}
+      </span>
+    )
   }
 
   const shown = groups.slice(0, 3)
@@ -272,13 +318,22 @@ function ScopePicker({
     )
   }
 
+  const t = useMcpTranslations()
   const allSelected = ALL_SCOPES.every((s) => value.includes(s))
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium">Permissions</Label>
-        <div className="flex items-center gap-1">
+      {/*
+        `flex-wrap` and a truncating label. This row is a label plus two preset
+        buttons whose text triples in length once translated ("Read only" →
+        "Vain luku" is short, but "Select all" → "Изберете ги сите"), and in a
+        `max-w-lg` dialog the presets were pushed past the edge.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label className="min-w-0 truncate text-xs font-medium">
+          {t.mcpPermissions}
+        </Label>
+        <div className="flex flex-wrap items-center gap-1">
           <Button
             type="button"
             variant="ghost"
@@ -286,7 +341,7 @@ function ScopePicker({
             className="h-6 px-2 text-xs"
             onClick={() => onChange([...READ_ONLY_SCOPES])}
           >
-            Read only
+            {t.mcpPermissionsReadOnly}
           </Button>
           <Button
             type="button"
@@ -295,7 +350,7 @@ function ScopePicker({
             className="h-6 px-2 text-xs"
             onClick={() => onChange(allSelected ? [] : [...ALL_SCOPES])}
           >
-            {allSelected ? 'Clear' : 'Select all'}
+            {allSelected ? t.mcpPermissionsClear : t.mcpPermissionsSelectAll}
           </Button>
         </div>
       </div>
@@ -317,26 +372,33 @@ function ScopePicker({
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 {readScope ? (
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs">
+                  <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-xs">
                     <Checkbox
                       checked={value.includes(readScope)}
                       onCheckedChange={() => toggle(readScope)}
-                      aria-label={`${group.label} read`}
+                      aria-label={fill(t.mcpPermissionReadFor, {
+                        name: group.label,
+                      })}
                     />
-                    Read
+                    {t.mcpPermissionRead}
                   </label>
                 ) : null}
                 {writeScope ? (
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs">
+                  <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-xs">
                     <Checkbox
                       checked={value.includes(writeScope)}
                       onCheckedChange={() => toggle(writeScope)}
-                      aria-label={`${group.label} write`}
+                      aria-label={fill(t.mcpPermissionWriteFor, {
+                        name: group.label,
+                      })}
                     />
-                    Write
+                    {t.mcpPermissionWrite}
                   </label>
                 ) : (
-                  <span className="w-[3.25rem]" aria-hidden />
+                  // Spacer aligning the read column when a group has no write
+                  // scope. `min-w-` because "Write" is "Skriving"/"Kirjoita"
+                  // elsewhere, and a hard 3.25rem misaligned those columns.
+                  <span className="min-w-[3.25rem]" aria-hidden />
                 )}
               </div>
             </div>
@@ -345,7 +407,10 @@ function ScopePicker({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {value.length} of {ALL_SCOPES.length} permissions granted
+        {fill(t.mcpPermissionsGranted, {
+          granted: value.length,
+          total: ALL_SCOPES.length,
+        })}
       </p>
     </div>
   )
@@ -362,8 +427,7 @@ function SectionSkeleton({ rows = 2 }: { rows?: number }) {
 }
 
 export default function MCPSettings() {
-  const [language] = useLanguage()
-  const t = translations[language]
+  const t = useMcpTranslations()
 
   // `rounded-lg border p-4` matches the import/export and build-info panels, so
   // switching settings tabs no longer changes the visual container.
@@ -398,6 +462,7 @@ export default function MCPSettings() {
  * these were three separate Cards including a static "Quick Start" list.
  */
 function MCPConnection() {
+  const t = useMcpTranslations()
   const { data, isLoading, mutate } = useMcpQuery<{
     settings?: { enabled?: boolean }
   }>(MCP_KEYS.settings)
@@ -419,32 +484,38 @@ function MCPConnection() {
       } else {
         mutate()
       }
-      toast.error('Failed to update MCP settings')
+      toast.error(t.mcpUpdateSettingsFailed)
     }
   }
 
   return (
     <Section
       icon={Plug}
-      title="Connection"
-      description="Let AI agents read and manage this calendar over MCP."
+      title={t.mcpConnection}
+      description={t.mcpConnectionDesc}
       action={
         isLoading ? (
           <Spinner className="h-4 w-4 animate-spin text-muted-foreground" />
         ) : (
           <div className="flex items-center gap-2">
+            {/*
+              `truncate` with a `max-w`: this label sits in `Section`'s
+              `shrink-0` action slot, so a long word ("Deaktivert",
+              "Оневозможено") widened the slot and squeezed the section title
+              beside it instead of yielding.
+            */}
             <span
               className={cn(
-                'text-xs',
+                'max-w-[8rem] truncate text-xs',
                 enabled ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
-              {enabled ? 'Enabled' : 'Disabled'}
+              {enabled ? t.mcpEnabled : t.mcpDisabled}
             </span>
             <Switch
               checked={enabled}
               onCheckedChange={toggleMcp}
-              aria-label="Enable MCP"
+              aria-label={t.mcpEnableLabel}
             />
           </div>
         )
@@ -456,24 +527,32 @@ function MCPConnection() {
           !enabled && 'opacity-60',
         )}
       >
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs text-muted-foreground">
-            Server endpoint
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <Label className="min-w-0 truncate text-xs text-muted-foreground">
+            {t.mcpServerEndpoint}
           </Label>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 gap-1.5 px-2 text-xs"
-            onClick={() => copyToClipboard(url, 'Endpoint copied')}
+            className="h-6 shrink-0 gap-1.5 px-2 text-xs"
+            onClick={() =>
+              copyToClipboard(url, t.mcpEndpointCopied, t.copyFailed)
+            }
           >
-            <ClipboardCopy className="h-3.5 w-3.5" />
-            Copy
+            <ClipboardCopy className="h-3.5 w-3.5 shrink-0" />
+            {t.copy}
           </Button>
         </div>
         <code className="mt-1 block break-all font-mono text-sm">{url}</code>
+        {/*
+          One sentence, not prose with a `<span className="font-medium">` in the
+          middle. "Bearer" is the literal scheme name, so emphasising it meant
+          the sentence had to be split into two translatable fragments around a
+          fixed English word — which is exactly the shape that produces
+          ungrammatical output in languages that order the clause differently.
+        */}
         <p className="mt-2 text-xs text-muted-foreground">
-          Authenticate with <span className="font-medium">Bearer</span> using an
-          API key below, or authorize an app over OAuth.
+          {t.mcpAuthenticateHint}
         </p>
       </div>
     </Section>
@@ -481,6 +560,8 @@ function MCPConnection() {
 }
 
 function MCPApiKeys() {
+  const t = useMcpTranslations()
+  const [language] = useLanguage()
   const [showCreate, setShowCreate] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyScopes, setNewKeyScopes] = useState<string[]>(['events:read'])
@@ -518,7 +599,7 @@ function MCPApiKeys() {
       resetCreateForm()
       mutate()
     } catch {
-      toast.error('Failed to create API key')
+      toast.error(t.mcpCreateKeyFailed)
     } finally {
       setIsCreating(false)
     }
@@ -535,10 +616,10 @@ function MCPApiKeys() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: deletingKey.id }),
       })
-      toast.success('API key deleted')
+      toast.success(t.mcpApiKeyDeleted)
     } catch {
       mutate({ keys: prev }, { revalidate: false })
-      toast.error('Failed to delete API key')
+      toast.error(t.mcpDeleteKeyFailed)
     }
     setDeletingKey(null)
     setIsDeletingKey(false)
@@ -553,11 +634,11 @@ function MCPApiKeys() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingKey.id, scopes: editingScopes }),
       })
-      toast.success('Permissions updated')
+      toast.success(t.mcpPermissionsUpdated)
       setEditingKey(null)
       mutate()
     } catch {
-      toast.error('Failed to update permissions')
+      toast.error(t.mcpUpdatePermissionsFailed)
     } finally {
       setIsSavingScopes(false)
     }
@@ -566,12 +647,12 @@ function MCPApiKeys() {
   return (
     <Section
       icon={Key}
-      title="API keys"
-      description="Long-lived credentials for agents you configure yourself."
+      title={t.mcpApiKeys}
+      description={t.mcpApiKeysDesc}
       action={
         <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Plus className="mr-1 h-4 w-4" />
-          New key
+          <Plus className="mr-1 h-4 w-4 shrink-0" />
+          <span className="truncate">{t.mcpNewKey}</span>
         </Button>
       }
     >
@@ -583,22 +664,20 @@ function MCPApiKeys() {
             <EmptyMedia variant="icon">
               <Key />
             </EmptyMedia>
-            <EmptyTitle>No API keys</EmptyTitle>
-            <EmptyDescription>
-              Create a key to connect an agent such as Claude or ChatGPT.
-            </EmptyDescription>
+            <EmptyTitle>{t.mcpNoApiKeys}</EmptyTitle>
+            <EmptyDescription>{t.mcpNoApiKeysDesc}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="mr-1 h-4 w-4" />
-              Create your first key
+              <Plus className="mr-1 h-4 w-4 shrink-0" />
+              <span className="truncate">{t.mcpCreateFirstKey}</span>
             </Button>
           </EmptyContent>
         </Empty>
       ) : (
         <ul className="divide-y rounded-md border">
           {keys.map((key) => {
-            const lastUsed = formatRelative(key.lastUsedAt)
+            const lastUsed = formatRelative(key.lastUsedAt, t, language)
             return (
               <li
                 key={key.id}
@@ -610,15 +689,22 @@ function MCPApiKeys() {
                       {key.name}
                     </span>
                     {!key.isActive ? (
-                      <Badge variant="outline" className="font-normal">
-                        Inactive
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 whitespace-nowrap font-normal"
+                      >
+                        {t.mcpKeyInactive}
                       </Badge>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <code className="font-mono">{key.keyPrefix}…</code>
                     <span aria-hidden>·</span>
-                    <span>{lastUsed ? `Used ${lastUsed}` : 'Never used'}</span>
+                    <span>
+                      {lastUsed
+                        ? fill(t.mcpKeyUsed, { when: lastUsed })
+                        : t.mcpKeyNeverUsed}
+                    </span>
                   </div>
                   <ScopeSummary scopes={key.scopes} />
                 </div>
@@ -629,7 +715,7 @@ function MCPApiKeys() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 shrink-0"
-                      aria-label={`Manage ${key.name}`}
+                      aria-label={fill(t.mcpManageKey, { name: key.name })}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
@@ -641,16 +727,16 @@ function MCPApiKeys() {
                         setEditingScopes(key.scopes)
                       }}
                     >
-                      <SlidersHorizontal className="mr-2 h-4 w-4" />
-                      Edit permissions
+                      <SlidersHorizontal className="mr-2 h-4 w-4 shrink-0" />
+                      {t.mcpEditPermissions}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeletingKey(key)}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete key
+                      <Trash2 className="mr-2 h-4 w-4 shrink-0" />
+                      {t.mcpDeleteKey}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -670,18 +756,15 @@ function MCPApiKeys() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>New API key</DialogTitle>
-            <DialogDescription>
-              Name the agent and choose what it may access. You can change
-              permissions later.
-            </DialogDescription>
+            <DialogTitle>{t.mcpNewApiKeyTitle}</DialogTitle>
+            <DialogDescription>{t.mcpNewApiKeyDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="mcp-key-name">Name</Label>
+              <Label htmlFor="mcp-key-name">{t.mcpKeyNameLabel}</Label>
               <Input
                 id="mcp-key-name"
-                placeholder="My Claude agent"
+                placeholder={t.mcpKeyNamePlaceholder}
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 autoFocus
@@ -695,7 +778,7 @@ function MCPApiKeys() {
                 isCreating || !newKeyName.trim() || newKeyScopes.length === 0
               }
             >
-              {isCreating ? 'Creating…' : 'Create key'}
+              {isCreating ? t.mcpCreatingKey : t.mcpCreateKey}
             </Button>
           </div>
         </DialogContent>
@@ -713,10 +796,8 @@ function MCPApiKeys() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Key created</DialogTitle>
-            <DialogDescription>
-              Copy it now — this is the only time it is shown.
-            </DialogDescription>
+            <DialogTitle>{t.mcpKeyCreatedTitle}</DialogTitle>
+            <DialogDescription>{t.mcpKeyCreatedDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
@@ -729,7 +810,7 @@ function MCPApiKeys() {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
-                aria-label={revealCreatedKey ? 'Hide key' : 'Reveal key'}
+                aria-label={revealCreatedKey ? t.mcpHideKey : t.mcpRevealKey}
                 onClick={() => setRevealCreatedKey((v) => !v)}
               >
                 {revealCreatedKey ? (
@@ -742,9 +823,10 @@ function MCPApiKeys() {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
-                aria-label="Copy key"
+                aria-label={t.mcpCopyKey}
                 onClick={() =>
-                  createdKey && copyToClipboard(createdKey, 'API key copied')
+                  createdKey &&
+                  copyToClipboard(createdKey, t.mcpApiKeyCopied, t.copyFailed)
                 }
               >
                 <ClipboardCopy className="h-4 w-4" />
@@ -757,7 +839,7 @@ function MCPApiKeys() {
                 setRevealCreatedKey(false)
               }}
             >
-              Done
+              {t.mcpDone}
             </Button>
           </div>
         </DialogContent>
@@ -772,7 +854,7 @@ function MCPApiKeys() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Permissions</DialogTitle>
+            <DialogTitle>{t.mcpPermissions}</DialogTitle>
             <DialogDescription>{editingKey?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -782,7 +864,7 @@ function MCPApiKeys() {
               onClick={saveScopes}
               disabled={isSavingScopes}
             >
-              {isSavingScopes ? 'Saving…' : 'Save permissions'}
+              {isSavingScopes ? t.mcpSavingPermissions : t.mcpSavePermissions}
             </Button>
           </div>
         </DialogContent>
@@ -797,14 +879,13 @@ function MCPApiKeys() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete API key?</AlertDialogTitle>
+            <AlertDialogTitle>{t.mcpDeleteKeyTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deletingKey?.name}” stops working immediately and any agent
-              using it loses access. This cannot be undone.
+              {fill(t.mcpDeleteKeyDesc, { name: deletingKey?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -813,7 +894,7 @@ function MCPApiKeys() {
               }}
               disabled={isDeletingKey}
             >
-              {isDeletingKey ? 'Deleting…' : 'Delete key'}
+              {isDeletingKey ? t.mcpDeletingKey : t.mcpDeleteKey}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -823,6 +904,8 @@ function MCPApiKeys() {
 }
 
 function MCPOAuthApps() {
+  const t = useMcpTranslations()
+  const [language] = useLanguage()
   const [revoking, setRevoking] = useState<AuthorizedApp | null>(null)
   const [isRevoking, setIsRevoking] = useState(false)
 
@@ -842,10 +925,10 @@ function MCPOAuthApps() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: revoking.id }),
       })
-      toast.success('Access revoked')
+      toast.success(t.mcpAccessRevoked)
     } catch {
       mutate({ apps: prev }, { revalidate: false })
-      toast.error('Failed to revoke access')
+      toast.error(t.mcpRevokeAccessFailed)
     }
     setRevoking(null)
     setIsRevoking(false)
@@ -854,8 +937,8 @@ function MCPOAuthApps() {
   return (
     <Section
       icon={Globe}
-      title="Connected apps"
-      description="Apps you authorized over OAuth."
+      title={t.mcpConnectedApps}
+      description={t.mcpConnectedAppsDesc}
     >
       {isLoading ? (
         <SectionSkeleton rows={1} />
@@ -865,10 +948,8 @@ function MCPOAuthApps() {
             <EmptyMedia variant="icon">
               <Globe />
             </EmptyMedia>
-            <EmptyTitle>No connected apps</EmptyTitle>
-            <EmptyDescription>
-              Apps appear here after you approve an OAuth request.
-            </EmptyDescription>
+            <EmptyTitle>{t.mcpNoConnectedApps}</EmptyTitle>
+            <EmptyDescription>{t.mcpNoConnectedAppsDesc}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -882,8 +963,15 @@ function MCPOAuthApps() {
                 <span className="truncate text-sm font-medium">
                   {app.clientName}
                 </span>
+                {/*
+                  `toLocaleDateString(language)`, not the bare call: with no
+                  argument this followed the browser's locale rather than the
+                  language chosen in settings.
+                */}
                 <p className="text-xs text-muted-foreground">
-                  Authorized {new Date(app.createdAt).toLocaleDateString()}
+                  {fill(t.mcpAppAuthorizedOn, {
+                    date: new Date(app.createdAt).toLocaleDateString(language),
+                  })}
                 </p>
                 <ScopeSummary scopes={app.scopes} />
               </div>
@@ -893,7 +981,7 @@ function MCPOAuthApps() {
                 className="shrink-0"
                 onClick={() => setRevoking(app)}
               >
-                Revoke
+                {t.mcpRevoke}
               </Button>
             </li>
           ))}
@@ -908,14 +996,13 @@ function MCPOAuthApps() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke access?</AlertDialogTitle>
+            <AlertDialogTitle>{t.mcpRevokeTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{revoking?.clientName}” loses access to your calendar
-              immediately. You can authorize it again later.
+              {fill(t.mcpRevokeDesc, { name: revoking?.clientName ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -924,7 +1011,7 @@ function MCPOAuthApps() {
               }}
               disabled={isRevoking}
             >
-              {isRevoking ? 'Revoking…' : 'Revoke access'}
+              {isRevoking ? t.mcpRevoking : t.mcpRevokeAccess}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -934,27 +1021,33 @@ function MCPOAuthApps() {
 }
 
 function AuditChangeSummary({ log }: { log: AuditLog }) {
+  const t = useMcpTranslations()
   const changes = log.changes
   if (!changes) return null
   const bits: string[] = []
   if (changes.fields?.length) bits.push(changes.fields.join(', '))
-  if (changes.apply_to) bits.push(`scope: ${changes.apply_to}`)
+  if (changes.apply_to) {
+    bits.push(fill(t.mcpLogChangeScope, { scope: changes.apply_to }))
+  }
   if (typeof changes.emailCount === 'number') {
-    bits.push(`${changes.emailCount} participant(s)`)
+    bits.push(fill(t.mcpLogChangeParticipants, { n: changes.emailCount }))
   }
   if (typeof changes.exdateCount === 'number') {
-    bits.push(`${changes.exdateCount} exclusion(s)`)
+    bits.push(fill(t.mcpLogChangeExclusions, { n: changes.exdateCount }))
   }
-  if (changes.rruleChanged) bits.push('repeat rule')
+  if (changes.rruleChanged) bits.push(t.mcpLogChangeRepeatRule)
   if (bits.length === 0) return null
   return (
     <p className="mt-0.5 text-xs text-muted-foreground">
-      Changed: <span className="text-foreground">{bits.join(' · ')}</span>
+      {t.mcpLogChanged}{' '}
+      <span className="text-foreground">{bits.join(' · ')}</span>
     </p>
   )
 }
 
 function MCPAuditLogs() {
+  const t = useMcpTranslations()
+  const [language] = useLanguage()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<AuditFilters>(DEFAULT_AUDIT_FILTERS)
 
@@ -981,8 +1074,8 @@ function MCPAuditLogs() {
   return (
     <Section
       icon={ScrollText}
-      title="Activity"
-      description="Tool calls and data changes made through MCP."
+      title={t.mcpActivity}
+      description={t.mcpActivityDesc}
       action={
         totalPages > 1 ? (
           <div className="flex items-center gap-1">
@@ -993,7 +1086,7 @@ function MCPAuditLogs() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              Prev
+              {t.mcpPrevPage}
             </Button>
             <span className="px-1 text-xs text-muted-foreground">
               {page}/{totalPages}
@@ -1005,7 +1098,7 @@ function MCPAuditLogs() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t.mcpNextPage}
             </Button>
           </div>
         ) : null
@@ -1018,13 +1111,19 @@ function MCPAuditLogs() {
             updateFilters({ entryType: value as AuditFilters['entryType'] })
           }
         >
-          <SelectTrigger size="sm" className="w-[9.5rem]">
+          {/*
+            `min-w-` not `w-`: these two triggers show the SELECTED filter, so
+            clipping them hides which filter is active. The row already wraps,
+            so letting them grow costs nothing. Both keep their old width as a
+            floor so the controls stay aligned when the labels are short.
+          */}
+          <SelectTrigger size="sm" className="min-w-[9.5rem]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All entries</SelectItem>
-            <SelectItem value="tool_call">Tool calls</SelectItem>
-            <SelectItem value="request">Requests</SelectItem>
+            <SelectItem value="all">{t.mcpFilterAllEntries}</SelectItem>
+            <SelectItem value="tool_call">{t.mcpFilterToolCalls}</SelectItem>
+            <SelectItem value="request">{t.mcpFilterRequests}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -1033,11 +1132,11 @@ function MCPAuditLogs() {
           onValueChange={(value) => updateFilters({ toolName: value })}
           disabled={toolNames.length === 0}
         >
-          <SelectTrigger size="sm" className="w-[11rem]">
-            <SelectValue placeholder="All tools" />
+          <SelectTrigger size="sm" className="min-w-[11rem]">
+            <SelectValue placeholder={t.mcpFilterAllTools} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All tools</SelectItem>
+            <SelectItem value="all">{t.mcpFilterAllTools}</SelectItem>
             {toolNames.map((name) => (
               <SelectItem key={name} value={name}>
                 {name}
@@ -1055,8 +1154,8 @@ function MCPAuditLogs() {
             updateFilters({ mutationsOnly: !filters.mutationsOnly })
           }
         >
-          <Pencil className="mr-1 h-3.5 w-3.5" />
-          Data changes
+          <Pencil className="mr-1 h-3.5 w-3.5 shrink-0" />
+          {t.mcpFilterDataChanges}
         </Button>
 
         <Button
@@ -1066,8 +1165,8 @@ function MCPAuditLogs() {
           aria-pressed={filters.failuresOnly}
           onClick={() => updateFilters({ failuresOnly: !filters.failuresOnly })}
         >
-          <X className="mr-1 h-3.5 w-3.5" />
-          Failures
+          <X className="mr-1 h-3.5 w-3.5 shrink-0" />
+          {t.mcpFilterFailures}
         </Button>
 
         {filtersActive ? (
@@ -1080,7 +1179,7 @@ function MCPAuditLogs() {
               setPage(1)
             }}
           >
-            Clear
+            {t.mcpPermissionsClear}
           </Button>
         ) : null}
       </div>
@@ -1094,12 +1193,12 @@ function MCPAuditLogs() {
               <ScrollText />
             </EmptyMedia>
             <EmptyTitle>
-              {filtersActive ? 'No matching activity' : 'No activity yet'}
+              {filtersActive ? t.mcpNoMatchingActivity : t.mcpNoActivityYet}
             </EmptyTitle>
             <EmptyDescription>
               {filtersActive
-                ? 'Try clearing the filters.'
-                : 'Operations show up here once an agent connects.'}
+                ? t.mcpNoMatchingActivityDesc
+                : t.mcpNoActivityYetDesc}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -1114,7 +1213,7 @@ function MCPAuditLogs() {
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
                     : 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400',
                 )}
-                aria-label={log.success ? 'Succeeded' : 'Failed'}
+                aria-label={log.success ? t.mcpLogSucceeded : t.mcpLogFailed}
               >
                 {log.success ? (
                   <Check className="h-2.5 w-2.5" />
@@ -1130,9 +1229,9 @@ function MCPAuditLogs() {
                   {log.isMutation ? (
                     <Badge
                       variant="secondary"
-                      className="h-4 px-1 py-0 text-[10px] font-normal"
+                      className="h-4 shrink-0 px-1 py-0 text-[10px] font-normal"
                     >
-                      write
+                      {t.mcpLogWriteBadge}
                     </Badge>
                   ) : null}
                   {log.resourceType ? (
@@ -1142,7 +1241,7 @@ function MCPAuditLogs() {
                     </span>
                   ) : null}
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                    {formatRelative(log.createdAt)}
+                    {formatRelative(log.createdAt, t, language)}
                   </span>
                 </div>
                 <AuditChangeSummary log={log} />
@@ -1152,7 +1251,7 @@ function MCPAuditLogs() {
                   </p>
                 ) : null}
                 <span className="text-xs text-muted-foreground">
-                  via {log.authType}
+                  {fill(t.mcpLogVia, { authType: log.authType })}
                   {typeof log.durationMs === 'number'
                     ? ` · ${log.durationMs}ms`
                     : ''}

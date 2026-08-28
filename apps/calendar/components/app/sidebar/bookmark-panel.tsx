@@ -13,7 +13,6 @@ import {
   InputGroupInput,
 } from '@zntr/ui/input-group'
 import { format } from 'date-fns'
-import { zhCN, enUS } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import {
@@ -23,7 +22,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@zntr/ui/empty'
-import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { dateLocale } from '@/lib/date-locale'
 import { useBookmarks } from '@/components/providers/data-provider'
 import { useCalendar } from '@/components/providers/calendar-context'
 
@@ -67,7 +67,6 @@ export default function BookmarkPanel({
 }: BookmarkPanelProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const isZh = isZhLanguage(language)
   const { bookmarks: serverBookmarks, deleteBookmark } = useBookmarks()
   const { events } = useCalendar()
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
@@ -93,7 +92,7 @@ export default function BookmarkPanel({
 
   const formatEventDate = (dateString: string | Date) => {
     const date = new Date(dateString)
-    return format(date, 'yyyy-MM-dd HH:mm', { locale: isZh ? zhCN : enUS })
+    return format(date, 'yyyy-MM-dd HH:mm', { locale: dateLocale(language) })
   }
 
   const removeBookmark = async (id: string, e: React.MouseEvent) => {

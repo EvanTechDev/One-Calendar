@@ -781,9 +781,39 @@ describe('describeRecurrence', () => {
   })
 
   it('describes interval + count (en)', () => {
+    // Abbreviated weekdays, because they now come from the locale file's
+    // `weekdays` array rather than a hardcoded English long-form list. That
+    // array is what every other weekday surface renders, and it is the only
+    // weekday list translated in all 35 locales — the long-form one existed
+    // in English alone, which is why 33 languages read this line in English.
     expect(
       describeRecurrence('FREQ=WEEKLY;INTERVAL=2;BYDAY=SU,TH;COUNT=8', false),
-    ).toBe('Every 2 weeks · Thursday, Sunday · 8 times')
+    ).toBe('Every 2 weeks · Thu, Sun · 8 times')
+  })
+
+  it('describes a rule in a language that is neither English nor Chinese', () => {
+    // The regression this guards: `describeRecurrence` took an `isZh` boolean,
+    // so every one of the other 33 locales fell through to English.
+    const nb = describeRecurrence('FREQ=WEEKLY;BYDAY=MO,TU', 'nb')
+    expect(nb).toBe('Ukentlig · Man, Tir')
+    expect(nb).not.toContain('Weekly')
+
+    // An unknown tag still degrades to English rather than throwing or
+    // rendering "undefined", matching the i18n barrel's own fallback.
+    expect(
+      describeRecurrence('FREQ=WEEKLY;BYDAY=MO', 'not-a-locale' as never),
+    ).toBe('Weekly · Mon')
+  })
+
+  it('avoids English ordinal suffixes outside English', () => {
+    // "15th" is English grammar. Appending it to a Norwegian sentence was the
+    // bug; other locales get the `recurrenceDayOfMonth` template instead.
+    expect(describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=15', false)).toBe(
+      'Monthly · 15th',
+    )
+    const nb = describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=15', 'nb')
+    expect(nb).not.toContain('15th')
+    expect(nb).toContain('15')
   })
 
   it('describes monthly by setpos (zh)', () => {

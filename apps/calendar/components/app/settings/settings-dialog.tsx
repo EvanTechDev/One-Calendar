@@ -550,14 +550,26 @@ export default function SettingsDialog({
                     onClick={() => setSection(s.id)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                      'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors sm:w-full sm:min-w-0',
                       active
                         ? 'bg-accent font-medium text-accent-foreground'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                     )}
                   >
-                    <span className="[&_svg]:size-4">{s.icon}</span>
-                    <span className="whitespace-nowrap">{s.label}</span>
+                    <span className="shrink-0 [&_svg]:size-4">{s.icon}</span>
+                    {/*
+                      On the desktop layout this rail is a fixed `sm:w-56`
+                      column, so a bare `whitespace-nowrap` label pushed past
+                      its own border — "O programu" (sl) and "Tietoja" (fi) are
+                      fine, but "Parapëlime" and "Преференции" are not. Wrapping
+                      is wrong here (it would break the 8px row rhythm against
+                      the header on the right), so it truncates instead. The
+                      horizontal scroller on mobile keeps `nowrap`, which is
+                      what makes it scrollable rather than squashed.
+                    */}
+                    <span className="whitespace-nowrap sm:min-w-0 sm:truncate">
+                      {s.label}
+                    </span>
                   </button>
                 )
               })}

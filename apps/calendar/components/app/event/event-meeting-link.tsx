@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Copy, ExternalLink, Video } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { toast } from 'sonner'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import type { MeetingInfo } from '@/hooks/use-event-meeting-draft'
 
 interface MeetingLinkControlsProps {
@@ -32,34 +33,46 @@ export function MeetingLinkControls({
   urgent = false,
   live = false,
 }: MeetingLinkControlsProps) {
+  const [language] = useLanguage()
+  const t = translations[language]
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(meeting.url)
-      toast.success('Meeting link copied')
+      toast.success(t.meetingLinkCopied)
     } catch {
-      toast.error('Could not copy the meeting link')
+      toast.error(t.copyMeetingLinkFailed)
     }
   }
 
   if (urgent) {
+    // `flex-wrap`, and the status caption is allowed to truncate: the join label
+    // and the caption are both sentences in most locales ("Bli med nå" + "Skjer
+    // nå", "Συμμετοχή τώρα" + "Συμβαίνει τώρα"), and on one line they pushed the
+    // copy button out of the row. Wrapping keeps every control reachable instead
+    // of clipping the last one.
     return (
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <Button type="button" size="sm" asChild>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <Button type="button" size="sm" className="min-w-0" asChild>
           <a href={meeting.url} target="_blank" rel="noopener noreferrer">
-            <Video className="size-3.5" />
-            {live ? 'Join now' : 'Join meeting'}
+            <Video className="size-3.5 shrink-0" />
+            <span className="truncate">
+              {live ? t.joinMeetingNow : t.joinMeeting}
+            </span>
           </a>
         </Button>
         {live ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span className="relative flex size-1.5">
+          <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <span className="relative flex size-1.5 shrink-0">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-75" />
               <span className="relative inline-flex size-1.5 rounded-full bg-green-500" />
             </span>
-            Happening now
+            <span className="truncate">{t.meetingHappeningNow}</span>
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">Starting soon</span>
+          <span className="min-w-0 truncate text-xs text-muted-foreground">
+            {t.meetingStartingSoon}
+          </span>
         )}
         <Button
           type="button"
@@ -67,7 +80,7 @@ export function MeetingLinkControls({
           variant="ghost"
           className="ml-auto size-7 shrink-0"
           onClick={copy}
-          aria-label="Copy meeting link"
+          aria-label={t.copyMeetingLink}
         >
           <Copy className="size-3.5" />
         </Button>
@@ -97,9 +110,9 @@ export function MeetingLinkControls({
         type="button"
         size="icon"
         variant="ghost"
-        className="size-7"
+        className="size-7 shrink-0"
         onClick={copy}
-        aria-label="Copy meeting link"
+        aria-label={t.copyMeetingLink}
       >
         <Copy className="size-3.5" />
       </Button>
@@ -107,9 +120,9 @@ export function MeetingLinkControls({
         type="button"
         size="icon"
         variant="ghost"
-        className="size-7"
+        className="size-7 shrink-0"
         asChild
-        aria-label="Join meeting"
+        aria-label={t.joinMeeting}
       >
         <a href={meeting.url} target="_blank" rel="noopener noreferrer">
           <ExternalLink className="size-3.5" />

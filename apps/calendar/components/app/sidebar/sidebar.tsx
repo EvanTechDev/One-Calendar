@@ -143,10 +143,13 @@ export default function Sidebar({
     toastSuccess: t.categoryDeleted,
     toastDescription: t.categoryDeletedDescription,
   }
-  const deleteCategoryEventsLabel =
-    t.deleteCategoryEvents || '同时删除此分类下的所有日程'
-  const moveUpText = t['moveUp'] || 'Move up'
-  const moveDownText = t['moveDown'] || 'Move down'
+  // No `|| '…'` fallbacks: `translations` already spreads `en` beneath every
+  // locale, so a key missing from a translation resolves to English rather than
+  // undefined. The old Chinese fallbacks were unreachable, and being unreachable
+  // they were never translated either.
+  const deleteCategoryEventsLabel = t.deleteCategoryEvents
+  const moveUpText = t.moveUp
+  const moveDownText = t.moveDown
 
   useEffect(() => {
     if (selectedDate) {
@@ -174,11 +177,11 @@ export default function Sidebar({
         setNewCategoryColor('bg-blue-500')
         setShowAddCategory(false)
         setManageCategoriesOpen(false)
-        toast(t.categoryAdded || '分类已添加', {
-          description: `${t.categoryAddedDesc || '已成功添加'} "${name}" ${t.category || '分类'}`,
+        toast(t.categoryAdded, {
+          description: `${t.categoryAddedDesc} "${name}" ${t.category}`,
         })
       } catch {
-        toast.error('Failed to create category')
+        toast.error(t.createCategoryFailed)
       }
     }
   }
@@ -208,9 +211,9 @@ export default function Sidebar({
       updateCategoryInStore(id, { name, color })
       setEditDialogOpen(false)
       setEditingCategoryId(null)
-      toast(t.categoryUpdated || '分类已更新')
+      toast(t.categoryUpdated)
     } catch {
-      toast.error('Failed to update category')
+      toast.error(t.updateCategoryFailed)
     }
   }
 
@@ -238,10 +241,7 @@ export default function Sidebar({
     })
 
     toast(direction === 'up' ? moveUpText : moveDownText, {
-      description:
-        direction === 'up'
-          ? t['categoryMovedUp'] || 'Category moved up'
-          : t['categoryMovedDown'] || 'Category moved down',
+      description: direction === 'up' ? t.categoryMovedUp : t.categoryMovedDown,
     })
   }
 
@@ -439,11 +439,11 @@ export default function Sidebar({
               <Input
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder={t.categoryName || '新日历名称'}
+                placeholder={t.categoryName}
                 className="text-sm"
               />
               <Button size="sm" onClick={addCategory}>
-                {t.addCategory || '添加'}
+                {t.addCategory}
               </Button>
             </div>
           ) : (
@@ -509,7 +509,7 @@ export default function Sidebar({
                 id="category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Name"
+                placeholder={t.categoryName}
               />
             </div>
             <div className="space-y-2">

@@ -36,8 +36,8 @@ import { icons as lucideIcons } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
 import { cn } from '@zntr/utils'
 import { format } from 'date-fns'
-import { zhCN, enUS } from 'date-fns/locale'
-import { isZhLanguage, translations, useLanguage } from '@zntr/i18n/calendar'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
+import { dateLocale } from '@/lib/date-locale'
 import { toast } from 'sonner'
 import { ClockDashed } from '@/components/icons/clock-dashed'
 import {
@@ -116,7 +116,6 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   const [view, setView] = useState<'list' | 'detail' | 'edit'>('list')
   const [language] = useLanguage()
   const t = translations[language]
-  const isZh = isZhLanguage(language)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -156,6 +155,13 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
     return <IconComponent size={size} style={{ color: iconColor }} />
   }
 
+  /**
+   * Both formatters take the active language tag, not a zh/en choice.
+   *
+   * Every entry in `supportedLanguages` is a BCP 47 tag that Intl already knows
+   * how to format, so narrowing to two of them meant 33 locales read an English
+   * date underneath translated labels.
+   */
   const formatDate = (dateStr: string) => {
     const date = parseDateString(dateStr)
     const options: Intl.DateTimeFormatOptions = {
@@ -163,7 +169,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       month: 'short',
       day: 'numeric',
     }
-    return date.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', options)
+    return date.toLocaleDateString(language, options)
   }
 
   const formatDateLong = (dateStr: string) => {
@@ -173,7 +179,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
       month: 'long',
       day: 'numeric',
     }
-    return date.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', options)
+    return date.toLocaleDateString(language, options)
   }
 
   const calculateDaysLeft = (dateStr: string, repeat: Countdown['repeat']) => {
@@ -634,7 +640,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? (
                     format(selectedDate, 'PPP', {
-                      locale: isZh ? zhCN : enUS,
+                      locale: dateLocale(language),
                     })
                   ) : (
                     <span>{t.countdownSelectDate}</span>
@@ -649,7 +655,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
                     setSelectedDate(date)
                     setCalendarOpen(false)
                   }}
-                  locale={isZh ? zhCN : enUS}
+                  locale={dateLocale(language)}
                 />
               </PopoverContent>
             </Popover>

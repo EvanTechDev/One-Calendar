@@ -1582,32 +1582,28 @@ function toUntilStamp(date: Date): string {
   return toRfcStamp(date, atMidnight)
 }
 
-const ZH_WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const ZH_WEEKDAY_SHORT = ['一', '二', '三', '四', '五', '六', '日']
-const EN_WEEKDAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-]
-const EN_MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
 
+/**
+ * `t.weekdays` / `t.months` are Sunday-first and January-first — the same arrays
+ * the month grid renders, translated in all 35 locales. `DAY_INDEX` is
+ * Monday-first because that is RFC 5545's BYDAY order, so the index is rotated
+ * here rather than a second weekday list being kept per locale.
+ *
+ * These are the ABBREVIATED forms on purpose. A recurrence summary is a one-line
+ * chip beside an event, and spelling the day out is what overflowed it in the
+ * languages with long weekday names (fi "keskiviikko", lt "trečiadienis").
+ */
+const weekdayName = (names: readonly string[], mondayIndex: number) =>
+  names[(mondayIndex + 1) % 7]
+
+/**
+ * English ordinals ("15th"), used only when the active locale is English.
+ *
+ * Every other locale gets `recurrenceDayOfMonth` instead: the -st/-nd/-rd/-th
+ * rule is English grammar, and appending it to a Norwegian or Greek summary
+ * produced "15th" inside an otherwise translated sentence.
+ */
 function ordinal(n: number): string {
   const suffix =
     n % 10 === 1 && n % 100 !== 11
@@ -1620,7 +1616,27 @@ function ordinal(n: number): string {
   return `${n}${suffix}`
 }
 
-export function describeRecurrence(rule: string, isZh: boolean): string {
+/**
+ * A locale tag, or the legacy `isZh` boolean.
+ *
+ * The boolean is what every caller passed originally, and it is why a Norwegian
+ * or Greek user read an English recurrence summary underneath fully translated
+ * surroundings: two languages were reachable out of the 35 that ship. It stays
+ * accepted so route handlers that genuinely want the source language can say
+ * `false`, but a tag is the form to pass from the UI.
+ */
+type RecurrenceLocale = keyof typeof localeTranslations | boolean
+
+const resolveRecurrenceLocale = (locale: RecurrenceLocale) => {
+  if (locale === true) return localeTranslations['zh-CN']
+  if (locale === false) return localeTranslations.en
+  return localeTranslations[locale] ?? localeTranslations.en
+}
+
+export function describeRecurrence(
+  rule: string,
+  locale: RecurrenceLocale,
+): string {
   let parts: RruleParts
   try {
     parts = rruleToParts(rule)
@@ -1632,8 +1648,14 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
   // surface as "undefined" inside the sentence.
   const t = {
     ...localeTranslations.en,
-    ...(isZh ? localeTranslations['zh-CN'] : {}),
+    ...resolveRecurrenceLocale(locale),
   }
+  // Chinese joins list items with an ideographic comma and writes "第 n 个周六"
+  // rather than "week n Saturday", so those two rules stay keyed on the script.
+  // Everything else now comes out of the locale file.
+  const tag = typeof locale === 'string' ? locale : ''
+  const isZh = locale === true || tag.startsWith('zh') || tag.startsWith('yue')
+  const isEn = locale === false || tag.startsWith('en')
   const {
     freq,
     interval,
@@ -1661,9 +1683,7 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
       const days = dayNames
         .slice()
         .sort((a, b) => DAY_INDEX[a] - DAY_INDEX[b])
-        .map((d) =>
-          isZh ? ZH_WEEKDAYS[DAY_INDEX[d]] : EN_WEEKDAYS[DAY_INDEX[d]],
-        )
+        .map((d) => weekdayName(t.weekdays, DAY_INDEX[d]))
         .join(isZh ? '、' : ', ')
       if (days.length > 0) label += ` · ${days}`
     }
@@ -1682,7 +1702,7 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
           : t.recurrenceNthWeek.replace('{n}', String(setPos))
       const day = isZh
         ? ZH_WEEKDAY_SHORT[DAY_INDEX[firstWeekday.day]]
-        : EN_WEEKDAYS[DAY_INDEX[firstWeekday.day]]
+        : weekdayName(t.weekdays, DAY_INDEX[firstWeekday.day])
       label += isZh ? ` · ${ord}周${day}` : ` · ${ord} ${day}`
     } else if (bymonthday !== null && bymonthday.length > 0) {
       const d = bymonthday[0]
@@ -1691,7 +1711,9 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
           ? ` · ${t.recurrenceLastDay}`
           : isZh
             ? ` · ${d} 日`
-            : ` · ${ordinal(d)}`
+            : isEn
+              ? ` · ${ordinal(d)}`
+              : ` · ${t.recurrenceDayOfMonth.replace('{n}', String(d))}`
     }
   } else {
     label = i > 1 ? everyYears : t.repeatFrequencyYearly
@@ -1700,7 +1722,7 @@ export function describeRecurrence(rule: string, isZh: boolean): string {
       const day = bymonthday?.[0] ?? 1
       label += isZh
         ? ` · ${month} 月 ${day} 日`
-        : ` · ${EN_MONTHS[month - 1]} ${day}`
+        : ` · ${t.months[month - 1]} ${day}`
     }
   }
   if (until !== null) {

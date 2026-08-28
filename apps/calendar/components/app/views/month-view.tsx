@@ -387,13 +387,15 @@ export default function MonthView({
             sideOffset={8}
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
           >
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">{t.events}</div>
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="min-w-0 truncate text-sm font-medium">
+                {t.events}
+              </div>
               <button
                 type="button"
                 onClick={closeRemainingPopover}
-                className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                aria-label="Close"
+                className="text-muted-foreground hover:text-foreground ml-2 shrink-0 text-xs"
+                aria-label={t.close}
               >
                 ✕
               </button>

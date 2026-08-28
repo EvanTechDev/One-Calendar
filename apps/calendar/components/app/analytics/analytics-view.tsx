@@ -55,7 +55,7 @@ export default function AnalyticsView({
           onClick={() => onBackToCalendar?.()}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {t.back || 'Back'}
+          {t.back}
         </Button>
       </div>
       <TimeAnalyticsComponent

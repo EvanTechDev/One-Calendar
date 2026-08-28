@@ -18,6 +18,7 @@ import {
   type SettingsData,
 } from '@/lib/api-client'
 import { toast } from 'sonner'
+import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   adaptRuleToStart,
@@ -101,6 +102,17 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  /**
+   * Held in a ref, not read directly, because every mutation below is a
+   * `useCallback` with an empty dep list — reading `t` from the closure would
+   * pin these toasts to whatever language was active when the provider first
+   * mounted, and changing language in settings would not move them. The ref is
+   * re-pointed on each render, so a toast fired after the switch is translated.
+   */
+  const [language] = useLanguage()
+  const tRef = useRef(translations[language])
+  tRef.current = translations[language]
+
   const eventsReq = useSWR(DATA_KEYS.events, () =>
     api.events.list({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -232,8 +244,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           } as SettingsData)
           migrated.push(settingKey)
         } catch (e) {
-          toast.error('Migration failed', {
-            description: `${settingKey}: ${e instanceof Error ? e.message : 'Unknown'}`,
+          toast.error(tRef.current.settingsMigrationFailed, {
+            description: `${settingKey}: ${e instanceof Error ? e.message : tRef.current.unknownError}`,
           })
         }
       }
@@ -382,8 +394,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return res.event
       } catch (e) {
-        toast.error('Failed to save event', {
-          description: e instanceof Error ? e.message : 'Unknown',
+        toast.error(tRef.current.saveEventFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
       }
@@ -433,8 +446,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
-        toast.error('Failed to delete event', {
-          description: e instanceof Error ? e.message : 'Unknown',
+        toast.error(tRef.current.deleteEventFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
       }
@@ -456,8 +470,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         )
         return res.category
       } catch (e) {
-        toast.error('Failed to create category', {
-          description: e instanceof Error ? e.message : 'Unknown',
+        toast.error(tRef.current.createCategoryFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
       }
@@ -480,8 +495,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { categories: prev },
         { revalidate: false },
       )
-      toast.error('Failed to delete category', {
-        description: e instanceof Error ? e.message : 'Unknown',
+      toast.error(tRef.current.deleteCategoryFailed, {
+        description: e instanceof Error ? e.message : tRef.current.unknownError,
       })
       throw e
     }
@@ -501,8 +516,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         )
         return res.countdown
       } catch (e) {
-        toast.error('Failed to create countdown', {
-          description: e instanceof Error ? e.message : 'Unknown',
+        toast.error(tRef.current.createCountdownFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
       }
@@ -525,8 +541,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { countdowns: prev },
         { revalidate: false },
       )
-      toast.error('Failed to delete countdown', {
-        description: e instanceof Error ? e.message : 'Unknown',
+      toast.error(tRef.current.deleteCountdownFailed, {
+        description: e instanceof Error ? e.message : tRef.current.unknownError,
       })
       throw e
     }
@@ -559,8 +575,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (e) {
-        toast.error('Failed to create bookmark', {
-          description: e instanceof Error ? e.message : 'Unknown',
+        toast.error(tRef.current.createBookmarkFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
       }
@@ -583,8 +600,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { bookmarks: prev },
         { revalidate: false },
       )
-      toast.error('Failed to delete bookmark', {
-        description: e instanceof Error ? e.message : 'Unknown',
+      toast.error(tRef.current.deleteBookmarkFailed, {
+        description: e instanceof Error ? e.message : tRef.current.unknownError,
       })
       throw e
     }
@@ -605,8 +622,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { bookmarks: prev },
         { revalidate: false },
       )
-      toast.error('Failed to delete bookmark', {
-        description: e instanceof Error ? e.message : 'Unknown',
+      toast.error(tRef.current.deleteBookmarkFailed, {
+        description: e instanceof Error ? e.message : tRef.current.unknownError,
       })
       throw e
     }
@@ -621,8 +638,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { revalidate: false },
       )
     } catch (e) {
-      toast.error('Failed to update settings', {
-        description: e instanceof Error ? e.message : 'Unknown',
+      toast.error(tRef.current.updateSettingsFailed, {
+        description: e instanceof Error ? e.message : tRef.current.unknownError,
       })
       throw e
     }

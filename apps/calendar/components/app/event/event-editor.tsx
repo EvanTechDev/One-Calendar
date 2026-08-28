@@ -33,7 +33,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
 import { Calendar as CalendarIcon, Clock, X } from 'lucide-react'
-import { isZhLanguage, translations } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { requestNotificationPermission } from '@/lib/notifications'
 import { Checkbox } from '@zntr/ui/checkbox'
@@ -297,8 +297,8 @@ export default function EventEditor({
 
   const calendarSelectValue =
     selectedCalendar || (calendars.length > 0 ? '__uncategorized__' : '')
-  const isZh = isZhLanguage(config.language.code as any)
-  const t = translations[config.language.code as keyof typeof translations]
+  const languageCode = config.language.code as keyof typeof translations
+  const t = translations[languageCode]
 
   const getEventColorByCalendarId = (calendarId: string) => {
     const calendar = calendars.find((item) => item.id === calendarId)
@@ -758,6 +758,17 @@ export default function EventEditor({
   const weekdayOfDate = (d: Date) =>
     WEEKDAY_ORDER[d.getDay() === 0 ? 6 : d.getDay() - 1]
 
+  /**
+   * The label for a BYDAY token, from the locale's own weekday list.
+   *
+   * `t.weekdays` is Sunday-first (the month grid renders the same array) while
+   * WEEKDAY_ORDER is Monday-first per RFC 5545, hence the rotation. Previously
+   * this was Chinese characters or the raw two-letter token, so 33 locales
+   * showed "MO"/"TU" — unreadable in scripts that are not Latin at all.
+   */
+  const weekdayLabel = (token: string) =>
+    t.weekdays[(WEEKDAY_ORDER.indexOf(token) + 1) % 7] ?? token
+
   const buildRruleParts = (): RruleParts | null => {
     const base: RruleParts = emptyRruleParts(recFreq, recInterval)
     if (recFreq === 'WEEKLY') {
@@ -993,8 +1004,8 @@ export default function EventEditor({
               !displayTime && 'text-muted-foreground',
             )}
           >
-            <Clock className="mr-2 h-4 w-4" />
-            {displayTime || (isZh ? '选择时间' : 'Select time')}
+            <Clock className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">{displayTime || t.selectTime}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -1004,8 +1015,8 @@ export default function EventEditor({
                 value={value.hours}
                 onValueChange={(newHour) => onChange(newHour, value.minutes)}
               >
-                <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={isZh ? '时' : 'Hour'} />
+                <SelectTrigger className="min-w-[70px]">
+                  <SelectValue placeholder={t.hourAbbrev} />
                 </SelectTrigger>
                 <SelectContent>
                   {hourOptions.map((option) => (
@@ -1022,8 +1033,8 @@ export default function EventEditor({
                 value={value.minutes}
                 onValueChange={(newMinute) => onChange(value.hours, newMinute)}
               >
-                <SelectTrigger className="w-[70px]">
-                  <SelectValue placeholder={isZh ? '分' : 'Min'} />
+                <SelectTrigger className="min-w-[70px]">
+                  <SelectValue placeholder={t.minuteAbbrev} />
                 </SelectTrigger>
                 <SelectContent>
                   {minuteOptions.map((option) => (
@@ -1036,9 +1047,7 @@ export default function EventEditor({
             </div>
 
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="custom-time">
-                {isZh ? '自定义时间 (HH:mm)' : 'Custom time (HH:mm)'}
-              </Label>
+              <Label htmlFor="custom-time">{t.customTimeFormatLabel}</Label>
               <Input
                 id="custom-time"
                 value={value.isCustomInput ? value.rawInput : ''}
@@ -1048,9 +1057,7 @@ export default function EventEditor({
               />
               {hasError && (
                 <p className="text-xs text-red-500">
-                  {isZh
-                    ? '请使用正确的格式 (HH:mm)'
-                    : 'Please use the correct format (HH:mm)'}
+                  {t.customTimeFormatError}
                 </p>
               )}
             </div>
@@ -1448,11 +1455,7 @@ export default function EventEditor({
                                 )
                               }
                             >
-                              {isZh
-                                ? ['一', '二', '三', '四', '五', '六', '日'][
-                                    WEEKDAY_ORDER.indexOf(d)
-                                  ]
-                                : d}
+                              {weekdayLabel(d)}
                             </Button>
                           )
                         })}
@@ -1538,17 +1541,7 @@ export default function EventEditor({
                               <SelectContent>
                                 {WEEKDAY_ORDER.map((d) => (
                                   <SelectItem key={d} value={d}>
-                                    {isZh
-                                      ? [
-                                          '一',
-                                          '二',
-                                          '三',
-                                          '四',
-                                          '五',
-                                          '六',
-                                          '日',
-                                        ][WEEKDAY_ORDER.indexOf(d)]
-                                      : d}
+                                    {weekdayLabel(d)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1692,7 +1685,7 @@ export default function EventEditor({
                     <div className="space-y-2 rounded-md border p-3">
                       <Label>{t.repeatRule}</Label>
                       <p className="text-sm text-muted-foreground">
-                        {describeRecurrence(seriesRule, isZh)}
+                        {describeRecurrence(seriesRule, languageCode)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {t.repeatRuleEditHint}

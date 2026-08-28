@@ -42,11 +42,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { zhCN, enUS } from 'date-fns/locale'
 import { format } from 'date-fns'
 import type { CalendarEvent } from '../calendar'
 import type { Language } from '@zntr/i18n/calendar'
-import { isZhLanguage, translations } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
+import { dateLocale } from '@/lib/date-locale'
 import { cn } from '@zntr/utils'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { useBookmarks } from '@/components/providers/data-provider'
@@ -125,9 +125,8 @@ export default function EventPreview({
   onCategoryChange,
 }: EventPreviewProps) {
   const { calendars, events } = useCalendar()
-  const isZh = isZhLanguage(language)
   const _t = translations[language]
-  const locale = isZh ? zhCN : enUS
+  const locale = dateLocale(language)
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [invites, setInvites] = useState<EventInvite[]>(event?.invites ?? [])
@@ -262,10 +261,12 @@ export default function EventPreview({
   const seriesMaster = event.seriesId
     ? events.find((e) => e.id === event.seriesId)
     : undefined
+  // The active locale, not `isZh`: passing the boolean meant every language
+  // except Chinese read this one line in English.
   const recurrenceSummary = event.rrule
-    ? describeRecurrence(event.rrule, isZh)
+    ? describeRecurrence(event.rrule, language)
     : seriesMaster?.rrule
-      ? describeRecurrence(seriesMaster.rrule, isZh)
+      ? describeRecurrence(seriesMaster.rrule, language)
       : null
 
   const _getInitials = (name: string) => name.charAt(0).toUpperCase()
@@ -296,18 +297,14 @@ export default function EventPreview({
         await deleteBookmark(bm.id)
       }
       setIsBookmarked(false)
-      toast(isZh ? '已取消收藏' : 'Removed from bookmarks', {
-        description: isZh
-          ? '事件已从收藏夹中移除'
-          : 'Event has been removed from your bookmarks',
+      toast(_t.bookmarkRemoved, {
+        description: _t.eventRemovedFromBookmarks,
       })
     } else {
       await createBookmark({ eventId: event.id })
       setIsBookmarked(true)
-      toast(isZh ? '已收藏' : 'Bookmarked', {
-        description: isZh
-          ? '事件已添加到收藏夹'
-          : 'Event has been added to your bookmarks',
+      toast(_t.bookmarkAdded, {
+        description: _t.eventAddedToBookmarks,
       })
     }
   }
@@ -325,9 +322,9 @@ export default function EventPreview({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteId }),
       })
-      toast.success('Invitation sent')
+      toast.success(_t.invitationSent)
     } catch {
-      toast.error('Failed to send invitation')
+      toast.error(_t.invitationSendFailed)
     }
   }
 
@@ -360,12 +357,12 @@ export default function EventPreview({
       // occurrence being viewed, which is what this list shows. The 15-second
       // poll reconciles the grant's remaining occurrences.
       setInvites((prev) => prev.filter((i) => i.id !== inviteId))
-      toast.success('Participant removed')
+      toast.success(_t.participantRemoved)
     } catch (error) {
       toast.error(
         error instanceof Error && error.message !== 'failed'
           ? error.message
-          : 'Failed to remove participant',
+          : _t.participantRemoveFailed,
       )
     }
   }
@@ -382,7 +379,7 @@ export default function EventPreview({
       toast.success(_t.inviteLinkCopied)
     } catch {
       // Clipboard access can be denied (insecure context, permission policy).
-      toast.error('Failed to copy invite link')
+      toast.error(_t.copyInviteLinkFailed)
     }
   }
 
@@ -428,7 +425,7 @@ export default function EventPreview({
       toast.error(
         error instanceof Error && error.message !== 'failed'
           ? error.message
-          : 'Failed to update RSVP',
+          : _t.rsvpUpdateFailed,
       )
     }
   }
@@ -463,7 +460,7 @@ export default function EventPreview({
       })
       onCategoryChange?.(event.id, value)
     } catch {
-      toast.error(isZh ? '移动失败' : 'Failed to move event')
+      toast.error(_t.moveEventFailed)
     }
   }
 
@@ -602,17 +599,23 @@ export default function EventPreview({
             {invites.length > 0 && (
               <div className="flex items-start">
                 <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    className="flex min-w-0 items-center justify-between gap-2 cursor-pointer"
                     onClick={toggleParticipants}
                   >
-                    <p>
-                      {invites.length} {isZh ? '参与者' : 'participants'}
+                    {/* `min-w-0 truncate`: a locale that spells this out (e.g.
+                        Swahili "washiriki", Greek "συμμετέχοντες") pushed the
+                        chevron out of the popover without it. */}
+                    <p className="min-w-0 truncate">
+                      {_t.participantsCount.replace(
+                        '{count}',
+                        String(invites.length),
+                      )}
                     </p>
                     <ChevronDown
                       className={cn(
-                        'h-4 w-4 transition-transform duration-200',
+                        'h-4 w-4 shrink-0 transition-transform duration-200',
                         participantsOpen ? 'transform rotate-180' : '',
                       )}
                     />
@@ -698,8 +701,11 @@ export default function EventPreview({
                               // The link died before they joined — they cannot
                               // act until the organiser resends (ADR-0013).
                               <span className="ml-1.5 shrink-0">
-                                <Badge variant="outline">
-                                  {isZh ? '邀请已过期' : 'Invite expired'}
+                                <Badge
+                                  variant="outline"
+                                  className="whitespace-nowrap"
+                                >
+                                  {_t.inviteExpired}
                                 </Badge>
                               </span>
                             ) : null}
@@ -728,8 +734,8 @@ export default function EventPreview({
                                       handleResendInvite(invite.id)
                                     }
                                   >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Send Invite
+                                    <Send className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.sendInvite}
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
@@ -737,8 +743,8 @@ export default function EventPreview({
                                       handleResendInvite(invite.id)
                                     }
                                   >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Resend Invite
+                                    <Send className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.resendInvite}
                                   </DropdownMenuItem>
                                 )}
                                 {invite.inviteToken ? (
@@ -747,7 +753,7 @@ export default function EventPreview({
                                       handleCopyInviteLink(invite.inviteToken)
                                     }
                                   >
-                                    <ClipboardCopy className="mr-2 h-4 w-4" />
+                                    <ClipboardCopy className="mr-2 h-4 w-4 shrink-0" />
                                     {_t.copyInviteLink}
                                   </DropdownMenuItem>
                                 ) : null}
@@ -762,10 +768,8 @@ export default function EventPreview({
                                         )
                                       }
                                     >
-                                      <UserMinus className="mr-2 h-4 w-4" />
-                                      {isZh
-                                        ? '移除（仅此日程）'
-                                        : 'Remove (this event)'}
+                                      <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                      {_t.removeParticipantThisEvent}
                                     </DropdownMenuItem>
                                     {canAllScope ? (
                                       <DropdownMenuItem
@@ -777,10 +781,8 @@ export default function EventPreview({
                                           )
                                         }
                                       >
-                                        <UserMinus className="mr-2 h-4 w-4" />
-                                        {isZh
-                                          ? '移除（所有日程）'
-                                          : 'Remove (all events)'}
+                                        <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                        {_t.removeParticipantAllEvents}
                                       </DropdownMenuItem>
                                     ) : (
                                       <DropdownMenuItem
@@ -792,10 +794,8 @@ export default function EventPreview({
                                           )
                                         }
                                       >
-                                        <UserMinus className="mr-2 h-4 w-4" />
-                                        {isZh
-                                          ? '移除（此日程及后续）'
-                                          : 'Remove (this and following)'}
+                                        <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                        {_t.removeParticipantThisAndFollowing}
                                       </DropdownMenuItem>
                                     )}
                                   </>
@@ -806,8 +806,8 @@ export default function EventPreview({
                                       handleRemoveParticipant(invite.id, 'all')
                                     }
                                   >
-                                    <UserMinus className="mr-2 h-4 w-4" />
-                                    Remove
+                                    <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.removeParticipant}
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
@@ -917,9 +917,7 @@ export default function EventPreview({
 
             {event.viewOnly && userInvite && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">
-                  {isZh ? '您的回复' : 'Your response'}
-                </p>
+                <p className="text-sm font-medium">{_t.yourResponse}</p>
                 {/*
                   Each occurrence is answered independently, so say which one
                   this is. Without it the buttons look like they set a single
@@ -927,33 +925,43 @@ export default function EventPreview({
                 */}
                 {isRecurring && (
                   <p className="text-xs text-muted-foreground">
-                    {isZh ? '仅适用于此日期' : 'Applies to this date only'}
+                    {_t.responseAppliesToThisDateOnly}
                   </p>
                 )}
-                <ButtonGroup orientation="horizontal">
+                {/*
+                  `w-full` plus `flex-1` per button, not ButtonGroup's default
+                  `w-fit`: "Yes/Maybe/No" is three short words in English and
+                  three long ones almost everywhere else (nb "Kanskje", el
+                  "Ίσως", lt "Galbūt"), so a fit-width group grew past the
+                  popover instead of dividing the width it already has.
+                */}
+                <ButtonGroup orientation="horizontal" className="w-full">
                   <Button
                     variant={
                       userInvite.status === 'accepted' ? 'default' : 'outline'
                     }
+                    className="min-w-0 flex-1"
                     onClick={() => handleViewOnlyRsvp('accepted')}
                   >
-                    Yes
+                    <span className="truncate">{_t.yes}</span>
                   </Button>
                   <Button
                     variant={
                       userInvite.status === 'maybe' ? 'default' : 'outline'
                     }
+                    className="min-w-0 flex-1"
                     onClick={() => handleViewOnlyRsvp('maybe')}
                   >
-                    Maybe
+                    <span className="truncate">{_t.maybe}</span>
                   </Button>
                   <Button
                     variant={
                       userInvite.status === 'declined' ? 'default' : 'outline'
                     }
+                    className="min-w-0 flex-1"
                     onClick={() => handleViewOnlyRsvp('declined')}
                   >
-                    No
+                    <span className="truncate">{_t.no}</span>
                   </Button>
                 </ButtonGroup>
               </div>

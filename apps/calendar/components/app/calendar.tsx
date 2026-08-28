@@ -1173,12 +1173,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         throw new Error(message ?? 'failed')
       }
       await refreshEventInvites(eventId)
-      toast.success('Invitations sent')
+      toast.success(t.invitationsSent)
     } catch (error) {
       toast.error(
         error instanceof Error && error.message !== 'failed'
           ? error.message
-          : 'Failed to send invitations',
+          : t.invitationSendFailed,
       )
     }
   }
@@ -1196,7 +1196,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       if (!response.ok) throw new Error('failed')
       await refreshEventInvites(eventId)
     } catch {
-      toast.error('Failed to add participants')
+      toast.error(t.addParticipantsFailed)
     }
   }
 
@@ -1369,16 +1369,34 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           {' '}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background">
             <div className="pointer-events-none absolute right-0 bottom-0 h-px w-14 bg-background" />
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={toggleSidebar} size="sm">
+            {/*
+              `min-w-0` on the left cluster and `shrink-0` on the controls
+              inside it. The header is one fixed-height non-wrapping row, so
+              whichever child could not shrink pushed the rest out: "Today" is
+              "I dag" in Norwegian but "Секојдневно"-length words live in this
+              row too, and the long date beside it is the part that should give
+              way, not the navigation.
+            */}
+            <div className="flex min-w-0 items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={toggleSidebar}
+                size="sm"
+                className="shrink-0"
+              >
                 <PanelLeft />
               </Button>
-              <Button variant="outline" size="sm" onClick={handleTodayClick}>
-                {t.today || '今天'}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTodayClick}
+                className="shrink-0"
+              >
+                {t.today}
               </Button>
               {view !== 'analytics' && (
                 <>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex shrink-0 items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1390,13 +1408,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <span className="text-lg">{formatDateDisplay(date)}</span>
+                  <span className="min-w-0 truncate text-lg">
+                    {formatDateDisplay(date)}
+                  </span>
                 </>
               )}
             </div>
 
-            <div className="ml-auto flex items-center space-x-2">
-              <div className="relative z-50">
+            <div className="ml-auto flex shrink-0 items-center space-x-2">
+              <div className="relative z-50 shrink-0">
                 <Select
                   value={
                     view === 'day' ||
@@ -1419,7 +1439,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-[100px]">
+                  {/*
+                    `min-w-` not `w-`: the longest option is "Four Days" in
+                    English but "Τέσσερις Ημέρες" in Greek and "Секоја година"
+                    in Macedonian. At a fixed 100px the trigger clipped the
+                    selected view — the one label the user needs to read to know
+                    which view they are in. 100px stays the floor so the control
+                    does not shrink to the width of "Day".
+                  */}
+                  <SelectTrigger className="min-w-[100px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1530,7 +1558,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     variant="outline"
                     size="icon"
                     className="rounded-full h-8 w-8"
-                    aria-label="Help"
+                    aria-label={t.help}
                   >
                     <CircleHelp className="h-4 w-4" />
                   </Button>
@@ -1539,7 +1567,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   {isSignedIn ? (
                     <DropdownMenuItem onClick={() => router.push('/landing')}>
                       <House className="mr-2 h-4 w-4" />
-                      {t.home || 'Home'}
+                      {t.home}
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuItem
@@ -1747,20 +1775,25 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Send Invitations?</DialogTitle>
+              <DialogTitle>{t.sendInvitationsTitle}</DialogTitle>
             </DialogHeader>
+            {/*
+              One interpolated sentence, not English pluralisation glued
+              together in JSX. The `+ 's'` branch produced "1 participants" in
+              every locale that does not form plurals that way, which is most
+              of them.
+            */}
             <p className="text-sm text-muted-foreground">
-              {pendingInvites?.emails.length} participant
-              {pendingInvites && pendingInvites.emails.length !== 1
-                ? 's'
-                : ''}{' '}
-              added. Send invitation emails now?
+              {t.sendInvitationsDescription.replace(
+                '{count}',
+                String(pendingInvites?.emails.length ?? 0),
+              )}
             </p>
             <DialogFooter>
               <Button variant="outline" onClick={handleSkipInvites}>
-                Not now
+                {t.notNow}
               </Button>
-              <Button onClick={handleSendInvites}>Send</Button>
+              <Button onClick={handleSendInvites}>{t.send}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

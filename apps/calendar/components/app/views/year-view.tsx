@@ -8,7 +8,7 @@ import {
   isSameMonth,
   startOfWeek,
 } from 'date-fns'
-import { isZhLanguage, translations } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
@@ -262,24 +262,30 @@ export default function YearView({
               sideOffset={8}
               className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             >
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  {popover.day.toLocaleDateString(
-                    isZhLanguage(config.language.code as any)
-                      ? 'zh-CN'
-                      : 'en-US',
-                    {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    },
-                  )}
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                {/*
+                  The active language tag straight to Intl, not a zh/en choice.
+                  Every tag in `supportedLanguages` is a BCP 47 tag the platform
+                  already formats, so picking between two of them was throwing
+                  away 33 correct date formats — a Norwegian user read
+                  "March 4, 2026" rather than "4. mars 2026".
+
+                  `min-w-0 truncate`: "September" is long in several locales
+                  (el "Σεπτεμβρίου", lt "rugsėjo mėn.") and this popover is a
+                  fixed `w-72`, so the close button was pushed off the edge.
+                */}
+                <div className="min-w-0 truncate text-sm font-medium">
+                  {popover.day.toLocaleDateString(config.language.code, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </div>
                 <button
                   type="button"
                   onClick={closePopover}
-                  className="text-muted-foreground hover:text-foreground ml-2 text-xs"
-                  aria-label="Close"
+                  className="text-muted-foreground hover:text-foreground ml-2 shrink-0 text-xs"
+                  aria-label={t.close}
                 >
                   ✕
                 </button>

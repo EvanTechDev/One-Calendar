@@ -299,7 +299,7 @@ export default function ImportExport({
       toast(
         t.exportSuccess.replace('{count}', filteredEvents.length.toString()),
         {
-          description: `${filteredEvents.length} ${t.events || 'events'}`,
+          description: `${filteredEvents.length} ${t.events}`,
         },
       )
 
@@ -363,7 +363,7 @@ export default function ImportExport({
           // recurrence overrides carry seriesId/recurrenceId), so the store
           // needs real Dates and defaulted fields.
           importedEvents = parseICS(rawContent, {
-            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+            fallbackTitle: t.unnamedEvent,
           }).map((event) => normalizeImportedEvent(event))
         } else if (fileExt === 'json') {
           const parsedResult = await parseJsonEvents(rawContent)
@@ -376,7 +376,7 @@ export default function ImportExport({
         } else if (fileExt === 'csv') {
           importedEvents = parseCSV(rawContent)
         } else {
-          throw new Error(t.unsupportedFormat || 'Unsupported file format')
+          throw new Error(t.unsupportedFormat)
         }
       } else if (importTab === 'url' && importUrl) {
         const response = await fetch(importUrl)
@@ -387,7 +387,7 @@ export default function ImportExport({
           // recurrence overrides carry seriesId/recurrenceId), so the store
           // needs real Dates and defaulted fields.
           importedEvents = parseICS(rawContent, {
-            fallbackTitle: t.unnamedEvent || 'Unnamed Event',
+            fallbackTitle: t.unnamedEvent,
           }).map((event) => normalizeImportedEvent(event))
         } else if (importUrl.endsWith('.json')) {
           const parsedResult = await parseJsonEvents(rawContent)
@@ -398,14 +398,14 @@ export default function ImportExport({
           extraBookmarks = parsedResult.bookmarks
           extraSettings = parsedResult.settings
         } else {
-          throw new Error(t.unsupportedUrlFormat || 'Unsupported URL format')
+          throw new Error(t.unsupportedUrlFormat)
         }
       }
 
       if (debugMode) {
-        setDebugInfo(`${t.parsedEvents || 'Parsed'} ${importedEvents.length} ${t.events || 'events'}
+        setDebugInfo(`${t.parsedEvents} ${importedEvents.length} ${t.events}
 
-${t.rawContentPreview || 'Raw content preview'}:
+${t.rawContentPreview}:
 ${rawContent.substring(0, 500)}...`)
       }
 
@@ -457,7 +457,7 @@ ${rawContent.substring(0, 500)}...`)
       toast(
         t.importSuccess.replace('{count}', importedEvents.length.toString()),
         {
-          description: `${importedEvents.length} ${t.events || 'events'}`,
+          description: `${importedEvents.length} ${t.events}`,
         },
       )
 
@@ -466,7 +466,7 @@ ${rawContent.substring(0, 500)}...`)
       }
       if (debugMode && importedEvents.length > 0) {
         const firstEvent = importedEvents[0]
-        setDebugInfo(`${t.parsedEvents || 'Parsed'} ${importedEvents.length} ${t.events || 'events'}
+        setDebugInfo(`${t.parsedEvents} ${importedEvents.length} ${t.events}
 
 First event details:
 Title: ${firstEvent.title}
@@ -475,14 +475,12 @@ End: ${new Date(firstEvent.endDate).toLocaleString()} (Local)
 UTC Start: ${new Date(firstEvent.startDate).toUTCString()}
 UTC End: ${new Date(firstEvent.endDate).toUTCString()}
 
-${t.rawContentPreview || 'Raw content preview'}:
+${t.rawContentPreview}:
 ${rawContent.substring(0, 500)}...`)
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : t.unknownError || 'Unknown error'
+        error instanceof Error ? error.message : t.unknownError
       toast.error(t.importError.replace('{error}', errorMessage), {
         description: errorMessage,
       })
@@ -581,7 +579,7 @@ ${rawContent.substring(0, 500)}...`)
       }
     }
 
-    throw new Error(t.unsupportedFormat || 'Unsupported file format')
+    throw new Error(t.unsupportedFormat)
   }
 
   /**
@@ -625,7 +623,7 @@ ${rawContent.substring(0, 500)}...`)
 
     return {
       id: input.id || `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
-      title: input.title || t.unnamedEvent || 'Unnamed Event',
+      title: input.title || t.unnamedEvent,
       startDate: start,
       endDate: end,
       isAllDay: Boolean(input.isAllDay),
@@ -747,7 +745,7 @@ ${rawContent.substring(0, 500)}...`)
         const title =
           titleIndex >= 0 && titleIndex < values.length
             ? values[titleIndex]
-            : t.unnamedEvent || 'Unnamed Event'
+            : t.unnamedEvent
         const startDate =
           startDateIndex >= 0 && startDateIndex < values.length
             ? new Date(values[startDateIndex])
@@ -851,8 +849,7 @@ ${rawContent.substring(0, 500)}...`)
           <div>
             <h2 className="text-base font-semibold">{t.importExport}</h2>
             <p className="text-sm text-muted-foreground">
-              {t.importExportDesc ||
-                'Exchange data with other calendar applications'}
+              {t.importExportDesc}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -903,9 +900,21 @@ ${rawContent.substring(0, 500)}...`)
             onValueChange={setImportTab}
             className="flex-col"
           >
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="file">{t.fileImport}</TabsTrigger>
-              <TabsTrigger value="url">{t.urlImport}</TabsTrigger>
+            {/*
+              `w-full` plus a truncating span per trigger. TabsTrigger carries
+              `whitespace-nowrap` and a fixed `h-8`, so in a bare `grid-cols-2`
+              a label like lt "Failo importavimas" or mk "Увоз од датотека"
+              ran straight out of this `max-w-md` dialog. The span is what
+              actually clips — the trigger is an inline-flex box, so `truncate`
+              on it alone does nothing to the text inside.
+            */}
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file" className="min-w-0">
+                <span className="truncate">{t.fileImport}</span>
+              </TabsTrigger>
+              <TabsTrigger value="url" className="min-w-0">
+                <span className="truncate">{t.urlImport}</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="file" className="space-y-4 pt-4">
