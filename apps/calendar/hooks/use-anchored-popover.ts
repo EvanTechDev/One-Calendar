@@ -203,19 +203,50 @@ export function clampRectToViewport(rect: DOMRect): DOMRect {
 }
 
 /**
+ * Below this much free space beside the block, no horizontal placement can
+ * show a meaningful part of the popover (see `pickPopoverSide`'s half-width
+ * rule against the preview's 460px estimate) — the block is effectively
+ * full-width and the anchor collapses to the click.
+ */
+const MIN_SIDE_ROOM = 240
+
+/** Width of the click-centred anchor strip used for full-width blocks. */
+const CLICK_ANCHOR_WIDTH = 80
+
+/**
  * The rect the popover anchors to when the user clicked INSIDE an event
  * block: zero-height at the click's Y (clamped onto the block), spanning the
  * block's full width. A side popover then attaches level with the cursor
  * instead of the block's midpoint — which for a tall week-view event could be
  * half a screen away from where the user clicked — while side-picking still
  * judges free space from the block's true horizontal extent.
+ *
+ * EXCEPT for a block so wide that no side of it could hold the popover (day
+ * view, where a block spans nearly the whole grid; month view's multi-day
+ * bars). Judging space from those edges forced the popover above/below the
+ * block, covering the very rows the user is reading. There the anchor
+ * becomes a narrow strip around the click's X, so the popover opens beside
+ * the cursor and overlaps the wide block instead.
  */
 export function anchorRectForClick(
   blockRect: DOMRect,
-  _clientX: number,
+  clientX: number,
   clientY: number,
 ): DOMRect {
   const y = Math.min(Math.max(clientY, blockRect.top), blockRect.bottom)
+  const viewportWidth = typeof window === 'undefined' ? 0 : window.innerWidth
+
+  const sideRoom = Math.max(blockRect.left, viewportWidth - blockRect.right)
+  if (sideRoom < MIN_SIDE_ROOM) {
+    const width = Math.min(CLICK_ANCHOR_WIDTH, blockRect.width)
+    const x = Math.min(Math.max(clientX, blockRect.left), blockRect.right)
+    const left = Math.min(
+      Math.max(x - width / 2, blockRect.left),
+      blockRect.right - width,
+    )
+    return DOMRect.fromRect({ x: left, y, width, height: 0 })
+  }
+
   return DOMRect.fromRect({
     x: blockRect.left,
     y,

@@ -73,20 +73,62 @@ describe('anchorRectForClick', () => {
   const block = rect(300, 200, 180, 600)
 
   it('pins the vertical position to the click', () => {
+    setViewport(1440, 900)
     const anchored = anchorRectForClick(block, 350, 750)
     expect(anchored.top).toBe(750)
     expect(anchored.height).toBe(0)
   })
 
   it('keeps the block horizontal extent so side space is judged correctly', () => {
+    setViewport(1440, 900)
     const anchored = anchorRectForClick(block, 350, 750)
     expect(anchored.left).toBe(300)
     expect(anchored.width).toBe(180)
   })
 
   it('clamps a click outside the block back onto it', () => {
+    setViewport(1440, 900)
     expect(anchorRectForClick(block, 350, 150).top).toBe(200)
     expect(anchorRectForClick(block, 350, 900).top).toBe(800)
+  })
+
+  // THE DAY-VIEW CONTRACT: a block leaving no meaningful room on either
+  // side (day view spans nearly the whole grid) must NOT judge sides from
+  // its own edges — that forced the popover above/below the block. The
+  // anchor collapses to a narrow strip around the click's X, so the popover
+  // opens beside the cursor and overlaps the wide block instead.
+  describe('full-width blocks (day view)', () => {
+    const wideBlock = rect(64, 200, 1300, 48)
+
+    it('collapses the anchor to a strip around the click', () => {
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(wideBlock, 700, 220)
+      expect(anchored.width).toBe(80)
+      expect(anchored.left).toBe(660) // centred on the click X
+      expect(anchored.top).toBe(220)
+    })
+
+    it('keeps the strip inside the block for clicks near its edges', () => {
+      setViewport(1440, 900)
+      const nearLeft = anchorRectForClick(wideBlock, 70, 220)
+      expect(nearLeft.left).toBe(64)
+      const nearRight = anchorRectForClick(wideBlock, 1360, 220)
+      expect(nearRight.left + nearRight.width).toBeCloseTo(1364)
+    })
+
+    it('lets pickPopoverSide choose a horizontal side from the strip', () => {
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(wideBlock, 700, 220)
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).toBe('right')
+    })
+
+    it('still uses the block extent when one side has room', () => {
+      // Week-view-like block: 960px free to the right — the old contract.
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(rect(300, 200, 180, 600), 350, 750)
+      expect(anchored.left).toBe(300)
+      expect(anchored.width).toBe(180)
+    })
   })
 })
 
