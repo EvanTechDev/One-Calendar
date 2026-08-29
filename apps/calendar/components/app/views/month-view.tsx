@@ -463,7 +463,13 @@ export default function MonthView({
                   <button
                     key={event.id}
                     type="button"
-                    className="relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs"
+                    // `event.color` supplies the light-mode pastel background
+                    // (the same way the year view's popover rows do); the
+                    // inline style overrides it with the dark palette.
+                    className={cn(
+                      'relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs',
+                      event.color,
+                    )}
                     style={{
                       backgroundColor: isDark
                         ? EVENT_BG_TO_DARK[event.color]
@@ -523,11 +529,16 @@ export default function MonthView({
                 <button
                   key={event.id}
                   type="button"
-                  className="relative w-full cursor-pointer truncate rounded-sm p-2 pl-3.5 text-left text-sm"
+                  // `event.color` supplies the light-mode pastel background;
+                  // the inline style overrides it with the dark palette.
+                  className={cn(
+                    'relative w-full cursor-pointer truncate rounded-sm p-2 pl-3.5 text-left text-sm',
+                    event.color,
+                  )}
                   style={{
                     backgroundColor: isDark
                       ? EVENT_BG_TO_DARK[event.color]
-                      : getEventBackgroundColor(event.color, false),
+                      : undefined,
                   }}
                   onClick={(e) => {
                     setDaySheet(null)

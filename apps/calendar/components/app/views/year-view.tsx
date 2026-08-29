@@ -15,7 +15,9 @@ import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
+import { isMobileViewport } from '@/lib/mobile-viewport'
 
 interface YearViewProps {
   date: Date
@@ -151,10 +153,21 @@ export default function YearView({
     [currentYear, config.firstDayOfWeek.value, t.months],
   )
 
+  // Mobile Form (ADR-0019): a tapped day's events open in a bottom sheet,
+  // like the month view — the anchored popover is a desktop surface.
+  const [daySheet, setDaySheet] = useState<{
+    day: Date
+    dayEvents: CalendarEvent[]
+  } | null>(null)
+
   const handleDayClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, day: Date, dayKey: string) => {
       const rect = e.currentTarget.getBoundingClientRect()
       const dayEvents = eventsByDayKey.get(dayKey) ?? []
+      if (isMobileViewport()) {
+        setDaySheet({ day, dayEvents })
+        return
+      }
       const key = `${day.getMonth()}-${dayKey}`
       setPopover({ key, anchorRect: rect, day, dayEvents })
     },
@@ -341,6 +354,69 @@ export default function YearView({
             </PopoverContent>
           )}
         </Popover>
+
+        {/* Mobile Form (ADR-0019): bottom sheet for a tapped day, mirroring
+            the month view. Only openable below the md breakpoint. */}
+        <Sheet
+          open={!!daySheet}
+          onOpenChange={(open) => {
+            if (!open) setDaySheet(null)
+          }}
+        >
+          <SheetContent side="bottom" className="max-h-[60dvh] gap-0 p-0">
+            <SheetHeader className="border-b p-4">
+              <SheetTitle>
+                {daySheet
+                  ? daySheet.day.toLocaleDateString(config.language.code, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : ''}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4">
+              {daySheet && daySheet.dayEvents.length > 0 ? (
+                daySheet.dayEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    // `event.color` supplies the light-mode pastel
+                    // background; the inline style overrides it in dark.
+                    className={cn(
+                      'relative w-full cursor-pointer truncate rounded-sm p-2 pl-3.5 text-left text-sm',
+                      event.color,
+                    )}
+                    style={{
+                      backgroundColor: isDark
+                        ? getDarkBg(event.color)
+                        : undefined,
+                    }}
+                    onClick={(e) => {
+                      setDaySheet(null)
+                      onEventClick(event, e.currentTarget, e.clientX, e.clientY)
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full w-1 rounded-l-sm"
+                      style={{ backgroundColor: getAccent(event.color) }}
+                    />
+                    <div
+                      style={{ color: getAccent(event.color) }}
+                      className="truncate"
+                    >
+                      {event.title || t.unnamedEvent}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  {t.noEventsFound}
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </RemoveScroll>
   )
