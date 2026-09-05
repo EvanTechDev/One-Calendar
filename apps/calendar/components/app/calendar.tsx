@@ -2271,6 +2271,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             open={aiPaletteOpen}
             onOpenChange={setAiPaletteOpen}
             onEventsMutated={() => void refreshEvents()}
+            actions={{
+              setView: (v) => setView(v),
+              goToToday: handleTodayClick,
+              createEvent: () => {
+                setSelectedEvent(null)
+                handleTimeRangeSelect(new Date())
+              },
+              openAnalytics: () => handleNavigateToView('analytics'),
+              openSettings: () => handleNavigateToView('settings'),
+            }}
           />
         )}
       </div>

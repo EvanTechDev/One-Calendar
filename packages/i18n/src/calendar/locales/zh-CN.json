@@ -523,5 +523,8 @@
   "aiAssistantHint": "询问日程、创建事件或查找空闲时间",
   "aiAssistantEnterToAsk": "按回车键提问",
   "aiAssistantThinking": "思考中…",
-  "aiAssistantError": "出错了，请重试。"
+  "aiAssistantError": "出错了，请重试。",
+  "aiPalettePlaceholder": "输入命令或提问…",
+  "aiAssistantAsk": "问 AI",
+  "aiAssistantBack": "返回命令"
 }

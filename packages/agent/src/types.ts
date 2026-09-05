@@ -10,13 +10,6 @@
  * trust their scope).
  */
 
-export type AgentTimePreset =
-  | 'today'
-  | 'this_week'
-  | 'next_week'
-  | 'upcoming'
-  | 'past'
-
 export interface AgentEventSummary {
   id: string
   title: string
@@ -31,12 +24,16 @@ export interface AgentEventSummary {
   recurrenceSummary?: string | null
 }
 
+/**
+ * Always a concrete instant range: named presets ("today", "next_week")
+ * are resolved BEFORE the port, in src/presets.ts, so implementations
+ * never re-derive calendar boundaries.
+ */
 export interface AgentListEventsInput {
-  /** ISO date-time lower bound; mutually exclusive with preset. */
+  /** ISO date-time lower bound. */
   start?: string
-  /** ISO date-time upper bound; mutually exclusive with preset. */
+  /** ISO date-time upper bound. */
   end?: string
-  preset?: AgentTimePreset
   /** Free-text search over title/description/location. */
   query?: string
   categoryIds?: string[]
@@ -115,7 +112,6 @@ export interface CalendarToolkit {
   getAnalyticsSummary(input: {
     start?: string
     end?: string
-    preset?: 'this_week' | 'this_month' | 'last_week' | 'last_month'
   }): Promise<AgentAnalyticsSummary>
   /** IANA timezone of the user, e.g. Asia/Shanghai. */
   getTimezone(): Promise<string>

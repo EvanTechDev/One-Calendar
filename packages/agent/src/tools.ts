@@ -17,27 +17,40 @@ import {
   timezoneOffsetMs,
   type BusyInterval,
 } from './scheduling'
-
-const timePreset = z.enum([
-  'today',
-  'this_week',
-  'next_week',
-  'upcoming',
-  'past',
-])
+import { normalizePreset, resolvePreset, PRESET_NAMES } from './presets'
 
 const applyTo = z.enum(['all', 'single', 'following'])
 
 const isoHint = 'ISO 8601 date-time with offset, e.g. 2026-09-05T14:00:00+08:00'
+
+const presetHint = `One of: ${PRESET_NAMES.join(', ')}. Mutually exclusive with start/end.`
+
+/**
+ * Presets are validated HERE, not in the JSON schema. Groq validates tool
+ * arguments server-side against the schema, and a model that invents a
+ * preset used to 400 the entire stream. A plain string keeps the gateway
+ * happy; an unknown value becomes an error result the model can correct.
+ */
+async function resolvePresetInput(
+  toolkit: CalendarToolkit,
+  preset: string,
+): Promise<{ start?: string; end?: string } | { error: string }> {
+  const normalized = normalizePreset(preset)
+  if (!normalized) {
+    return {
+      error: `Unknown preset "${preset}". Valid presets: ${PRESET_NAMES.join(', ')}. Or pass explicit start/end instead.`,
+    }
+  }
+  const timezone = await toolkit.getTimezone()
+  return resolvePreset(normalized, new Date(), timezone)
+}
 
 export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_events = defineTool({
     description:
       "List the user's calendar events. Filter by a time preset OR an explicit start/end range, and optionally by free-text query. Returns id, title, times, location and category of each event.",
     inputSchema: z.object({
-      preset: timePreset
-        .optional()
-        .describe('Named time range; mutually exclusive with start/end'),
+      preset: z.string().optional().describe(presetHint),
       start: z.string().optional().describe(`Range start. ${isoHint}`),
       end: z.string().optional().describe(`Range end. ${isoHint}`),
       query: z
@@ -47,7 +60,20 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
       limit: z.number().int().min(1).max(50).optional(),
     }),
     async execute(input) {
-      return toolkit.listEvents(input)
+      let range: { start?: string; end?: string } = {
+        start: input.start,
+        end: input.end,
+      }
+      if (input.preset) {
+        const resolved = await resolvePresetInput(toolkit, input.preset)
+        if ('error' in resolved) return resolved
+        range = resolved
+      }
+      return toolkit.listEvents({
+        ...range,
+        query: input.query,
+        limit: input.limit,
+      })
     },
   })
 
@@ -127,14 +153,19 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
     description:
       "Summarize the user's schedule: totals, busiest periods and category breakdown for a period. Use for questions like 'how busy am I this week' or 'where does my time go'.",
     inputSchema: z.object({
-      preset: z
-        .enum(['this_week', 'this_month', 'last_week', 'last_month'])
-        .optional(),
+      preset: z.string().optional().describe(presetHint),
       start: z.string().optional().describe(isoHint),
       end: z.string().optional().describe(isoHint),
     }),
     async execute(input) {
-      return toolkit.getAnalyticsSummary(input)
+      // Same plain-string-plus-resolve pattern as list_events: an invented
+      // preset must correct the model, not 400 the stream at the gateway.
+      if (input.preset) {
+        const resolved = await resolvePresetInput(toolkit, input.preset)
+        if ('error' in resolved) return resolved
+        return toolkit.getAnalyticsSummary(resolved)
+      }
+      return toolkit.getAnalyticsSummary({ start: input.start, end: input.end })
     },
   })
 

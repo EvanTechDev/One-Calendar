@@ -515,5 +515,8 @@
   "aiAssistantHint": "詢問日程、建立事件或尋找空閒時間",
   "aiAssistantEnterToAsk": "按 Enter 鍵提問",
   "aiAssistantThinking": "思考中…",
-  "aiAssistantError": "發生錯誤，請重試。"
+  "aiAssistantError": "發生錯誤，請重試。",
+  "aiPalettePlaceholder": "輸入命令或提問…",
+  "aiAssistantAsk": "問 AI",
+  "aiAssistantBack": "返回命令"
 }

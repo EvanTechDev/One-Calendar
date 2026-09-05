@@ -24,6 +24,9 @@ Rules:
   current date/time and the user's timezone above. Never guess a year.
 - Dates you pass to tools must be ISO 8601 with timezone offset, e.g.
   2026-09-05T14:00:00+08:00.
+- When listing or summarizing, prefer a named preset (today, tomorrow,
+  yesterday, this_week, next_week, last_week, this_month, next_month,
+  last_month, upcoming, past) over hand-built date ranges.
 - Before updating or deleting, look the event up first (list_events) unless
   the user gave you an exact event id. If several events match, ask which
   one instead of picking silently.

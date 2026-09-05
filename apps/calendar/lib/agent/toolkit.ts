@@ -14,7 +14,6 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
-  type TimePreset,
 } from '@/lib/mcp/event-tools'
 import { listCategories } from '@/lib/mcp/category-tools'
 import { getAnalyticsSummary } from '@/lib/mcp/analytics-tools'
@@ -65,56 +64,13 @@ function toSummary(row: ToolEventRow): AgentEventSummary {
   }
 }
 
-function presetToMcp(
-  preset: 'this_week' | 'this_month' | 'last_week' | 'last_month',
-): { start_date: string; end_date: string } {
-  const now = new Date()
-  const day = 86_400_000
-  const startOfDay = (d: Date) =>
-    new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
-  const today = startOfDay(now)
-  // Monday-based weeks, matching the analytics engine's weekday legend.
-  const weekday = (today.getUTCDay() + 6) % 7
-  const thisWeekStart = new Date(today.getTime() - weekday * day)
-  const thisMonthStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  )
-  switch (preset) {
-    case 'this_week':
-      return {
-        start_date: thisWeekStart.toISOString(),
-        end_date: new Date(thisWeekStart.getTime() + 7 * day).toISOString(),
-      }
-    case 'last_week':
-      return {
-        start_date: new Date(thisWeekStart.getTime() - 7 * day).toISOString(),
-        end_date: thisWeekStart.toISOString(),
-      }
-    case 'this_month':
-      return {
-        start_date: thisMonthStart.toISOString(),
-        end_date: new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
-        ).toISOString(),
-      }
-    case 'last_month':
-      return {
-        start_date: new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
-        ).toISOString(),
-        end_date: thisMonthStart.toISOString(),
-      }
-  }
-}
-
 export function createAppToolkit(userId: string): CalendarToolkit {
   return {
     async listEvents(input) {
+      // Presets were already resolved to instants in @zntr/agent/presets.
       const events = await listEvents(userId, {
         filter: {
-          time: input.preset
-            ? { preset: input.preset as TimePreset }
-            : { start: input.start, end: input.end },
+          time: { start: input.start, end: input.end },
           category_ids: input.categoryIds,
         },
         ...(input.query ? { search: { text: input.query } } : {}),
@@ -170,11 +126,9 @@ export function createAppToolkit(userId: string): CalendarToolkit {
     },
 
     async getAnalyticsSummary(input) {
-      const range = input.preset
-        ? presetToMcp(input.preset)
-        : { start_date: input.start, end_date: input.end }
       const summary = await getAnalyticsSummary(userId, {
-        ...range,
+        start_date: input.start,
+        end_date: input.end,
         include_category_names: true,
       })
       return summary as unknown as AgentAnalyticsSummary

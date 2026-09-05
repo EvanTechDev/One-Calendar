@@ -166,5 +166,9 @@ export function timezoneOffsetMs(at: Date, timeZone: string): number {
     get('minute'),
     get('second'),
   )
-  return asUtc - at.getTime()
+  // formatToParts has second granularity while `at` has milliseconds, so
+  // the raw difference carries up to ±1s of noise. Real UTC offsets are
+  // whole minutes; snap to them.
+  const MINUTE = 60_000
+  return Math.round((asUtc - at.getTime()) / MINUTE) * MINUTE
 }

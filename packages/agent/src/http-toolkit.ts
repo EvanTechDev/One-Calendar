@@ -10,12 +10,7 @@
  * authorization decision stays inside the app, which is the same trust
  * boundary the browser sits behind.
  */
-import type {
-  AgentCategory,
-  AgentEventSummary,
-  AgentListEventsInput,
-  CalendarToolkit,
-} from './types'
+import type { AgentCategory, AgentEventSummary, CalendarToolkit } from './types'
 
 export interface HttpToolkitConfig {
   baseUrl: string
@@ -81,46 +76,13 @@ function toSummary(e: ApiEvent): AgentEventSummary {
   }
 }
 
-function presetRange(preset: AgentListEventsInput['preset']): {
-  start?: string
-  end?: string
-} {
-  const now = new Date()
-  const day = 86_400_000
-  switch (preset) {
-    case 'today':
-      return {
-        start: new Date(now.getTime() - day).toISOString(),
-        end: new Date(now.getTime() + day).toISOString(),
-      }
-    case 'this_week':
-      return {
-        start: new Date(now.getTime() - 7 * day).toISOString(),
-        end: new Date(now.getTime() + 7 * day).toISOString(),
-      }
-    case 'next_week':
-      return {
-        start: now.toISOString(),
-        end: new Date(now.getTime() + 14 * day).toISOString(),
-      }
-    case 'upcoming':
-      return { start: now.toISOString() }
-    case 'past':
-      return { end: now.toISOString() }
-    default:
-      return {}
-  }
-}
-
 export function createHttpToolkit(config: HttpToolkitConfig): CalendarToolkit {
   return {
     async listEvents(input) {
-      const range = input.preset
-        ? presetRange(input.preset)
-        : { start: input.start, end: input.end }
+      // Presets were already resolved to instants in ./presets.
       const params = new URLSearchParams()
-      if (range.start) params.set('startDate', range.start)
-      if (range.end) params.set('endDate', range.end)
+      if (input.start) params.set('startDate', input.start)
+      if (input.end) params.set('endDate', input.end)
       if (input.categoryIds?.length)
         params.set('categoryIds', input.categoryIds.join(','))
       const { events } = await request<{ events: ApiEvent[] }>(

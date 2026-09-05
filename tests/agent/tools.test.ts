@@ -111,14 +111,40 @@ describe('buildCalendarTools', () => {
     ])
   })
 
-  it('list_events passes filters through to the toolkit', async () => {
+  it('list_events resolves presets to concrete instants before the toolkit', async () => {
     const { toolkit, calls } = makeFakeToolkit()
     const tools = buildCalendarTools(toolkit)
     await exec(tools.list_events, { preset: 'today', query: 'stand' })
-    expect(calls[0]).toEqual({
-      method: 'listEvents',
-      input: { preset: 'today', query: 'stand' },
-    })
+    // getTimezone is consulted to resolve the preset, then listEvents gets
+    // a concrete range — never the preset name.
+    const listCall = calls.find((c) => c.method === 'listEvents')!
+    const input = listCall.input as {
+      start?: string
+      end?: string
+      query?: string
+    }
+    expect(input.query).toBe('stand')
+    expect(input.start).toMatch(/T00:00:00\.000Z$/)
+    expect(input.end).toMatch(/T00:00:00\.000Z$/)
+    expect((input as Record<string, unknown>).preset).toBeUndefined()
+  })
+
+  it('list_events turns an unknown preset into an error result, not a schema failure', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.list_events, {
+      preset: 'sometime_soon',
+    })) as { error?: string }
+    expect(result.error).toContain('Unknown preset "sometime_soon"')
+    expect(result.error).toContain('today')
+    expect(calls.find((c) => c.method === 'listEvents')).toBeUndefined()
+  })
+
+  it('list_events accepts preset aliases like "week"', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, { preset: 'week' })
+    expect(calls.find((c) => c.method === 'listEvents')).toBeDefined()
   })
 
   it('update_event surfaces a not-found as an error value, not a throw', async () => {

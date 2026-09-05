@@ -708,5 +708,8 @@
   "aiAssistantHint": "Ask about your schedule, create events, or find free time",
   "aiAssistantEnterToAsk": "Press Enter to ask",
   "aiAssistantThinking": "Thinking…",
-  "aiAssistantError": "Something went wrong. Try again."
+  "aiAssistantError": "Something went wrong. Try again.",
+  "aiPalettePlaceholder": "Type a command or ask anything…",
+  "aiAssistantAsk": "Ask AI",
+  "aiAssistantBack": "Back to commands"
 }

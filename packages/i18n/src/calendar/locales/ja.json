@@ -523,5 +523,8 @@
   "aiAssistantHint": "予定の確認、イベント作成、空き時間の検索ができます",
   "aiAssistantEnterToAsk": "Enter キーで質問",
   "aiAssistantThinking": "考え中…",
-  "aiAssistantError": "エラーが発生しました。もう一度お試しください。"
+  "aiAssistantError": "エラーが発生しました。もう一度お試しください。",
+  "aiPalettePlaceholder": "コマンドを入力するか質問…",
+  "aiAssistantAsk": "AI に質問",
+  "aiAssistantBack": "コマンドに戻る"
 }
