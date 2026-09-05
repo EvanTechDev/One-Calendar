@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    // Presence flag only — the key itself never reaches the client. Inlined
+    // at build time, so the AI palette trigger and Cmd/Ctrl+K are hidden on
+    // deployments that never configured Groq instead of 503ing on use.
+    NEXT_PUBLIC_AI_ENABLED: process.env.GROQ_API_KEY ? '1' : '',
   },
   async headers() {
     return [

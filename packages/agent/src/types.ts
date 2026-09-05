@@ -95,6 +95,22 @@ export interface AgentFreeSlot {
   durationMinutes: number
 }
 
+export interface AgentBookmark {
+  id: string
+  eventId: string
+  eventTitle?: string | null
+  eventStartDate?: string | null
+}
+
+export interface AgentCountdown {
+  id: string
+  name: string
+  targetDate: string
+  description?: string | null
+  color?: string | null
+  icon?: string | null
+}
+
 /**
  * Port implemented by the host app. Every method may throw; the adapter
  * converts thrown errors into tool-result error strings so the model can
@@ -115,4 +131,15 @@ export interface CalendarToolkit {
   }): Promise<AgentAnalyticsSummary>
   /** IANA timezone of the user, e.g. Asia/Shanghai. */
   getTimezone(): Promise<string>
+  listBookmarks(): Promise<AgentBookmark[]>
+  bookmarkEvent(input: { eventId: string }): Promise<AgentBookmark>
+  removeBookmark(input: { eventId: string }): Promise<void>
+  listCountdowns(): Promise<AgentCountdown[]>
+  createCountdown(input: {
+    name: string
+    targetDate: string
+    description?: string
+    color?: string
+  }): Promise<AgentCountdown>
+  deleteCountdown(input: { countdownId: string }): Promise<void>
 }

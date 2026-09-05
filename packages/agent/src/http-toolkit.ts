@@ -185,5 +185,95 @@ export function createHttpToolkit(config: HttpToolkitConfig): CalendarToolkit {
       }>(config, '/api/settings')
       return settings?.timezone ?? 'UTC'
     },
+
+    async listBookmarks() {
+      const { bookmarks } = await request<{
+        bookmarks: Array<{
+          id: string
+          eventId: string
+          event?: { title?: string; startDate?: string } | null
+        }>
+      }>(config, '/api/bookmarks')
+      return bookmarks.map((b) => ({
+        id: b.id,
+        eventId: b.eventId,
+        eventTitle: b.event?.title ?? null,
+        eventStartDate: b.event?.startDate ?? null,
+      }))
+    },
+
+    async bookmarkEvent(input) {
+      const { bookmark } = await request<{
+        bookmark: { id: string; eventId: string }
+      }>(config, '/api/bookmarks', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: input.eventId }),
+      })
+      return { id: bookmark.id, eventId: bookmark.eventId }
+    },
+
+    async removeBookmark(input) {
+      await request(config, '/api/bookmarks', {
+        method: 'DELETE',
+        body: JSON.stringify({ eventId: input.eventId }),
+      })
+    },
+
+    async listCountdowns() {
+      const { countdowns } = await request<{
+        countdowns: Array<{
+          id: string
+          name: string
+          targetDate: string
+          description?: string | null
+          color?: string | null
+          icon?: string | null
+        }>
+      }>(config, '/api/countdowns')
+      return countdowns.map((c) => ({
+        id: c.id,
+        name: c.name,
+        targetDate: c.targetDate,
+        description: c.description ?? null,
+        color: c.color ?? null,
+        icon: c.icon ?? null,
+      }))
+    },
+
+    async createCountdown(input) {
+      const { countdown } = await request<{
+        countdown: {
+          id: string
+          name: string
+          targetDate: string
+          description?: string | null
+          color?: string | null
+          icon?: string | null
+        }
+      }>(config, '/api/countdowns', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: input.name,
+          targetDate: input.targetDate,
+          description: input.description ?? null,
+          color: input.color ?? null,
+        }),
+      })
+      return {
+        id: countdown.id,
+        name: countdown.name,
+        targetDate: countdown.targetDate,
+        description: countdown.description ?? null,
+        color: countdown.color ?? null,
+        icon: countdown.icon ?? null,
+      }
+    },
+
+    async deleteCountdown(input) {
+      await request(config, '/api/countdowns', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: input.countdownId }),
+      })
+    },
   }
 }

@@ -23,12 +23,26 @@ function errorMessage(error: unknown): string {
   return String(error)
 }
 
-export function toAiTools(eveTools: Record<string, EveToolLike>): ToolSet {
+export interface ToAiToolsOptions {
+  /**
+   * Tools that must pause for human confirmation before executing (the AI
+   * SDK's needsApproval flow). The palette renders approve/deny buttons on
+   * the `approval-requested` part state.
+   */
+  needsApproval?: readonly string[]
+}
+
+export function toAiTools(
+  eveTools: Record<string, EveToolLike>,
+  options: ToAiToolsOptions = {},
+): ToolSet {
+  const approvalSet = new Set(options.needsApproval ?? [])
   const out: Record<string, Tool> = {}
   for (const [name, def] of Object.entries(eveTools)) {
     out[name] = tool({
       description: def.description,
       inputSchema: def.inputSchema,
+      ...(approvalSet.has(name) ? { needsApproval: true } : {}),
       execute: async (input, options) => {
         try {
           return await def.execute(input as never, options as never)

@@ -18,7 +18,18 @@ import {
 import { listCategories } from '@/lib/mcp/category-tools'
 import { getAnalyticsSummary } from '@/lib/mcp/analytics-tools'
 import { getSettings } from '@/lib/mcp/settings-tools'
+import {
+  bookmarkEvent,
+  listBookmarkedEvents,
+  removeBookmark,
+} from '@/lib/mcp/bookmark-tools'
+import {
+  createCountdown,
+  deleteCountdown,
+  listCountdowns,
+} from '@/lib/mcp/countdown-tools'
 import { COLOR_HEX_VALUES } from '@/lib/mcp/colors'
+import { DEFAULT_COUNTDOWN_ICON } from '@/lib/countdown-icons'
 import type {
   AgentAnalyticsSummary,
   AgentEventSummary,
@@ -140,6 +151,65 @@ export function createAppToolkit(userId: string): CalendarToolkit {
       return typeof timezone === 'string' && timezone.length > 0
         ? timezone
         : 'UTC'
+    },
+
+    async listBookmarks() {
+      const { bookmarks } = await listBookmarkedEvents(userId, { limit: 50 })
+      return bookmarks.map((b) => {
+        const event = b.event as {
+          title?: string
+          startDate?: Date | string
+        } | null
+        return {
+          id: b.id,
+          eventId: b.eventId,
+          eventTitle: event?.title ?? null,
+          eventStartDate: event?.startDate ? toIso(event.startDate) : null,
+        }
+      })
+    },
+
+    async bookmarkEvent(input) {
+      const row = await bookmarkEvent(userId, { eventId: input.eventId })
+      return { id: row.id, eventId: row.eventId }
+    },
+
+    async removeBookmark(input) {
+      await removeBookmark(userId, { eventId: input.eventId })
+    },
+
+    async listCountdowns() {
+      const { items } = await listCountdowns(userId, 1, 50)
+      return items.map((c) => ({
+        id: c.id,
+        name: c.name,
+        targetDate: toIso(c.targetDate),
+        description: c.description ?? null,
+        color: c.color ?? null,
+        icon: c.icon ?? null,
+      }))
+    },
+
+    async createCountdown(input) {
+      const created = await createCountdown(userId, {
+        name: input.name,
+        target_date: input.targetDate,
+        description: input.description ?? null,
+        color: input.color ?? COLOR_HEX_VALUES[0],
+        icon: DEFAULT_COUNTDOWN_ICON,
+      })
+      return {
+        id: created.id,
+        name: created.name,
+        targetDate: toIso(created.targetDate),
+        description: created.description ?? null,
+        color: created.color ?? null,
+        icon: created.icon ?? null,
+      }
+    },
+
+    async deleteCountdown(input) {
+      await deleteCountdown(userId, input.countdownId)
     },
   }
 }

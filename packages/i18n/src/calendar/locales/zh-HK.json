@@ -518,5 +518,9 @@
   "aiAssistantError": "發生錯誤，請重試。",
   "aiPalettePlaceholder": "輸入命令或提問…",
   "aiAssistantAsk": "問 AI",
-  "aiAssistantBack": "返回命令"
+  "aiAssistantBack": "返回命令",
+  "aiAssistantConfirmAction": "確認操作",
+  "aiAssistantApprove": "批准",
+  "aiAssistantDeny": "拒絕",
+  "aiAssistantDenied": "已拒絕"
 }

@@ -27,6 +27,12 @@ function unconfigured(): CalendarToolkit {
     listCategories: fail,
     getAnalyticsSummary: fail,
     getTimezone: fail,
+    listBookmarks: fail,
+    bookmarkEvent: fail,
+    removeBookmark: fail,
+    listCountdowns: fail,
+    createCountdown: fail,
+    deleteCountdown: fail,
   }
 }
 

@@ -8,7 +8,12 @@ import {
   type UIMessage,
 } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
-import { buildCalendarTools, toAiTools, buildInstructions } from '@zntr/agent'
+import {
+  buildCalendarTools,
+  toAiTools,
+  buildInstructions,
+  DESTRUCTIVE_TOOL_NAMES,
+} from '@zntr/agent'
 import { createAppToolkit } from '@/lib/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit } from '@/lib/rate-limit'
@@ -83,6 +88,10 @@ export async function POST(request: NextRequest) {
   const toolkit = createAppToolkit(user.id)
   const tools = toAiTools(
     buildCalendarTools(toolkit) as unknown as Parameters<typeof toAiTools>[0],
+    // Destructive tools pause for an in-palette confirmation (approve/deny
+    // buttons) before executing — a prompt-injected model cannot delete
+    // anything on its own.
+    { needsApproval: DESTRUCTIVE_TOOL_NAMES },
   )
   const timezone = await toolkit.getTimezone()
 

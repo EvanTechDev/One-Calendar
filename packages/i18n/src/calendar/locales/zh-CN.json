@@ -526,5 +526,9 @@
   "aiAssistantError": "出错了，请重试。",
   "aiPalettePlaceholder": "输入命令或提问…",
   "aiAssistantAsk": "问 AI",
-  "aiAssistantBack": "返回命令"
+  "aiAssistantBack": "返回命令",
+  "aiAssistantConfirmAction": "确认操作",
+  "aiAssistantApprove": "批准",
+  "aiAssistantDeny": "拒绝",
+  "aiAssistantDenied": "已拒绝"
 }

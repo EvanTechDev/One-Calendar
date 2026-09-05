@@ -711,5 +711,9 @@
   "aiAssistantError": "Something went wrong. Try again.",
   "aiPalettePlaceholder": "Type a command or ask anything…",
   "aiAssistantAsk": "Ask AI",
-  "aiAssistantBack": "Back to commands"
+  "aiAssistantBack": "Back to commands",
+  "aiAssistantConfirmAction": "Confirm action",
+  "aiAssistantApprove": "Approve",
+  "aiAssistantDeny": "Deny",
+  "aiAssistantDenied": "denied"
 }

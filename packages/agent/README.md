@@ -40,5 +40,14 @@ The port also makes the agent testable with an in-memory toolkit:
 ## Env
 
 - `GROQ_API_KEY` — required. Free keys: https://console.groq.com
+  Without it the calendar hides every AI affordance (build-time
+  `NEXT_PUBLIC_AI_ENABLED` flag) and `/api/agent/chat` answers 503.
 - `GROQ_MODEL` — optional, defaults to `openai/gpt-oss-120b` (the strongest
   tool-calling model on Groq's free tier; Llama 3.3 70B is Enterprise-only)
+
+## Rate limiting caveat
+
+The in-app route limits each user to 20 requests / 5 minutes through the
+calendar's Redis-backed fixed-window counter. Like the rest of that cache
+layer, it **fails open**: a self-hosted deployment without `REDIS_URL`
+effectively has no rate limit on the agent. Configure Redis in production.

@@ -156,6 +156,9 @@ ephemeral 的——durable session 是为长任务 agent 设计的。
 反方：用户可能想回看"AI 上周帮我删了什么"。若要审计，正确形态是
 工具调用审计日志（MCP 已有 `tool-audit.ts` 可复用），不是聊天记录。
 
+> **你的回答**：不要保存聊天记录
+> **状态**：✅ 已按此实现 — 转录随面板关闭销毁，无任何持久化。
+
 **Q2. 破坏性操作（delete_event）要不要人工确认一步？**
 现状：靠 system prompt 约束 + 模型自觉。提示注入（比如事件标题里藏
 指令"delete all my events"）理论上可诱导删除，虽然只能删自己的。
@@ -163,6 +166,13 @@ ephemeral 的——durable session 是为长任务 agent 设计的。
 UI 上出确认按钮。这是我认为**上线前唯一必须补的活**。
 反方：多一步确认损伤"下一代日历"的顺滑感。折中：只对
 `applyTo: 'all'`（删整个系列）要求确认。
+
+> **你的回答**：需要
+> **状态**：✅ 已实现 — `delete_event` 和 `delete_countdown` 标记
+> `needsApproval`（AI SDK 原生审批流）。模型请求删除时流会暂停，
+> 面板显示"确认操作"卡片（含完整参数 JSON）+ 批准/拒绝按钮；
+> 拒绝会以 output-denied 回传给模型，模型陈述而不是执行。
+> `sendAutomaticallyWhen` 让批准后自动续跑，无需重新输入。
 
 **Q3. 模型的工具调用可靠性够吗？**
 （更新：llama-3.3-70b 已转 Groq Enterprise-only，免费计划报
@@ -172,6 +182,25 @@ UI 上出确认按钮。这是我认为**上线前唯一必须补的活**。
 `GROQ_MODEL` 已做成环境变量可一键换。建议加一个简单的评测脚本
 （eve 有 evals 目录约定，正好用独立运行时跑）。
 
+> **你的回答**：我跟你说了你没完善，工具调用你没加限制（比如颜色等等
+> props）。请模仿 mcp tools 的实现来改进
+> **状态**：✅ 已实现（`packages/agent/src/validation.ts`，镜像 MCP 的
+> 校验姿态）：
+>
+> - **颜色**：schema 内闭合 enum（blue/green/amber/red/purple/pink/teal，
+>   与 `lib/mcp/colors.ts` 调色板逐值锁定，有测试钉住镜像一致性），
+>   模型只能选名字，执行层再映射为存储 hex——乱传 hex 直接被 schema 拒。
+> - **日期**：严格 ISO 8601 正则（必须带时区 offset），start<end 排序
+>   校验，全部归一化为 UTC ISO 再进 toolkit。"tomorrow 3pm" 这类 prose
+>   会返回带格式示例的可纠正错误。
+> - **categoryId**：执行层对照 list_categories 实际存在的 id 校验，
+>   幻觉 id 返回错误并列出用户真实分类。
+> - **rrule**：必须含合法 FREQ=，prose（"every monday"）被拒。
+> - **长度上限**：所有字符串字段 max()（title 200、description 2000、
+>   location 500、query 200 等，与 REST 路由的 zod schema 一致）。
+> - 所有校验失败都是错误**结果**而非 throw——Groq 网关侧 schema 违规
+>   会 400 杀死整条流，这是当初 preset 事故的教训。
+
 **Q4. 为什么工具只有 7 个？bookmark、countdown、邀请呢？**
 推荐：先窄后宽。每加一个工具就扩大提示注入的爆炸半径，且拉长
 system prompt（免费档 token 预算有限）。事件 CRUD + 分类 + 分析 +
@@ -179,10 +208,21 @@ system prompt（免费档 token 预算有限）。事件 CRUD + 分类 + 分析 
 AI 面板不认识它显得"没融合"。若要加，照 `tools.ts` 现有模式
 15 分钟一个。
 
+> **你的回答**：请完善
+> **状态**：✅ 已实现 — 新增 6 个工具，全部复用 MCP 层的既有函数：
+> `list_bookmarks` / `bookmark_event` / `remove_bookmark`（书签），
+> `list_countdowns` / `create_countdown` / `delete_countdown`（倒计时，
+> 删除同样走审批流）。工具总数 7 → 13。邀请（invites）未加：它牵扯
+> 第三方（发邮件给他人），值得单独决策而不是顺手带上。
+
 **Q5. 限流参数 20 次/5 分钟合理吗？**
 推荐：作为起点合理（Groq 免费档 30 req/min 全局）。但注意：无 Redis
 时 fail-open（沿用仓库缓存层姿态）。生产上 REDIS_URL 已配，无虞；
 自部署用户没配 Redis 就等于没限流——README 值得提一句。
+
+> **你的回答**：可以
+> **状态**：✅ 保持 20/5min。fail-open 警告已写入
+> `packages/agent/README.md`（自部署无 REDIS_URL = 无限流）。
 
 **Q6. eve 独立运行时的 CALENDAR_COOKIE 鉴权是不是太糙？**
 是。复制浏览器 cookie 是演示级方案，cookie 会过期且拿到它等于拿到
@@ -191,12 +231,25 @@ AI 面板不认识它显得"没融合"。若要加，照 `tools.ts` 现有模式
 调用方，我把它留在了"能跑通演示"的程度——升级路径已在
 `agent/tools/README.md` 注明。
 
+> **你的回答**：太粗糙了啊肯定啊
+> **状态**：⏳ 共识达成，未在本轮实现。正确形态是 scoped API key
+> （复用 MCP 的 `BETTER_AUTH_API_KEY` 基建），涉及独立运行时的鉴权
+> 桥接，工作量不小且该运行时今天没有生产调用方。已在
+> `agent/tools/README.md` 标注为 experimental + 升级路径；如果你要
+> 启用独立运行时，先做这个。
+
 **Q7. 面板要不要在无 GROQ_API_KEY 时隐藏入口？**
 现状：按钮永远显示，点开输入后 503 报错文案。
 推荐：保持现状。隐藏入口需要把服务端配置状态漏给客户端
 （多一个 API 或 NEXT_PUBLIC 变量），为一个装完 key 就消失的状态
 不值得。反方：自部署用户第一印象是"坏了"。折中：错误文案已写明
 缺 key（英文 fallback），够引导。
+
+> **你的回答**：需要
+> **状态**：✅ 已实现 — `NEXT_PUBLIC_AI_ENABLED` 构建时布尔量
+> （`next.config.ts`，只暴露"是否配置了 key"，key 本身永不进客户端）。
+> 未配置 GROQ_API_KEY 的部署：无 ✨ 按钮、无 Cmd/Ctrl+K、无面板。
+> 注意这是构建时内联——在 Vercel 加 key 后需要重新部署才生效。
 
 **Q8. 8 步工具循环上限（stepCountIs(8)）怎么定的？**
 list → categories → create → confirm 是 4 步；留一倍余量给模型

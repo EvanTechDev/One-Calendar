@@ -526,5 +526,9 @@
   "aiAssistantError": "エラーが発生しました。もう一度お試しください。",
   "aiPalettePlaceholder": "コマンドを入力するか質問…",
   "aiAssistantAsk": "AI に質問",
-  "aiAssistantBack": "コマンドに戻る"
+  "aiAssistantBack": "コマンドに戻る",
+  "aiAssistantConfirmAction": "操作の確認",
+  "aiAssistantApprove": "承認",
+  "aiAssistantDeny": "拒否",
+  "aiAssistantDenied": "拒否されました"
 }

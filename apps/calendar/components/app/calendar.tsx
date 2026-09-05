@@ -129,6 +129,11 @@ const SettingsDialog = dynamic(loadSettingsDialog)
 // interaction; there is nothing meaningful to render on the server.
 const AiCommandPalette = dynamic(loadAiCommandPalette, { ssr: false })
 
+// Build-time presence flag (next.config.ts): deployments without a Groq
+// key get no AI affordances at all — no trigger, no shortcut — instead of
+// an entry point that 503s on use.
+const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
+
 export interface CalendarEvent {
   id: string
   title: string
@@ -594,6 +599,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // that is the universal command-palette convention, so it lives outside
   // the plain-key shortcut handler below (which correctly defers to inputs).
   useEffect(() => {
+    if (!AI_ENABLED) return
     const handlePaletteKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
@@ -1707,16 +1713,19 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   )}
               </div>
               {/* AI palette trigger: one affordance on every form factor.
-                  Desktop users also reach it via Cmd/Ctrl+K. */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full h-8 w-8"
-                aria-label={t.aiAssistant}
-                onClick={openAiPalette}
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
+                  Desktop users also reach it via Cmd/Ctrl+K. Hidden when
+                  the deployment has no Groq key. */}
+              {AI_ENABLED && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-8 w-8"
+                  aria-label={t.aiAssistant}
+                  onClick={openAiPalette}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              )}
               {/* Mobile Form: search collapses to an icon that opens the
                   full-screen overlay rendered after the header. */}
               <Button

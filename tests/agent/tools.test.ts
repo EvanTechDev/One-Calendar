@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCalendarTools } from '@zntr/agent/tools'
+import { buildCalendarTools, DESTRUCTIVE_TOOL_NAMES } from '@zntr/agent/tools'
 import { toAiTools } from '@zntr/agent/adapter'
 import type {
   AgentCreateEventInput,
@@ -80,6 +80,47 @@ function makeFakeToolkit(overrides: Partial<CalendarToolkit> = {}): {
       calls.push({ method: 'getTimezone', input: undefined })
       return 'UTC'
     },
+    async listBookmarks() {
+      calls.push({ method: 'listBookmarks', input: undefined })
+      return [
+        {
+          id: 'bm-1',
+          eventId: 'evt-1',
+          eventTitle: 'Standup',
+          eventStartDate: '2026-09-07T09:00:00.000Z',
+        },
+      ]
+    },
+    async bookmarkEvent(input) {
+      calls.push({ method: 'bookmarkEvent', input })
+      return { id: 'bm-new', eventId: input.eventId }
+    },
+    async removeBookmark(input) {
+      calls.push({ method: 'removeBookmark', input })
+    },
+    async listCountdowns() {
+      calls.push({ method: 'listCountdowns', input: undefined })
+      return [
+        {
+          id: 'cd-1',
+          name: 'Launch',
+          targetDate: '2026-12-31T00:00:00.000Z',
+        },
+      ]
+    },
+    async createCountdown(input) {
+      calls.push({ method: 'createCountdown', input })
+      return {
+        id: 'cd-new',
+        name: input.name,
+        targetDate: input.targetDate,
+        description: input.description ?? null,
+        color: input.color ?? null,
+      }
+    },
+    async deleteCountdown(input) {
+      calls.push({ method: 'deleteCountdown', input })
+    },
     ...overrides,
   }
   return { toolkit, calls }
@@ -101,14 +142,130 @@ describe('buildCalendarTools', () => {
     const { toolkit } = makeFakeToolkit()
     const tools = buildCalendarTools(toolkit)
     expect(Object.keys(tools).sort()).toEqual([
+      'bookmark_event',
+      'create_countdown',
       'create_event',
+      'delete_countdown',
       'delete_event',
       'find_free_time',
       'get_schedule_summary',
+      'list_bookmarks',
       'list_categories',
+      'list_countdowns',
       'list_events',
+      'remove_bookmark',
       'update_event',
     ])
+  })
+
+  it('create_event rejects a non-ISO start as an error result', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Meeting',
+      start: 'tomorrow 3pm',
+      end: '2026-09-08T16:00:00+08:00',
+    })) as { error?: string }
+    expect(result.error).toContain('ISO 8601')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('create_event rejects end before start', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T16:00:00+08:00',
+      end: '2026-09-08T15:00:00+08:00',
+    })) as { error?: string }
+    expect(result.error).toContain('must be after')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('create_event rejects a prose rrule', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Standup',
+      start: '2026-09-08T09:00:00Z',
+      end: '2026-09-08T09:30:00Z',
+      rrule: 'every monday',
+    })) as { error?: string }
+    expect(result.error).toContain('FREQ=')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('create_event rejects a hallucinated categoryId, naming the real ones', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T15:00:00Z',
+      end: '2026-09-08T16:00:00Z',
+      categoryId: 'made-up',
+    })) as { error?: string }
+    expect(result.error).toContain('Unknown categoryId "made-up"')
+    expect(result.error).toContain('cat-1')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('create_event maps a palette color name to its stored hex', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T15:00:00Z',
+      end: '2026-09-08T16:00:00Z',
+      color: 'green',
+    })
+    const created = calls.find((c) => c.method === 'createEvent')!
+    expect((created.input as { color?: string }).color).toBe('#10B981')
+  })
+
+  it('create_event normalizes instants to UTC ISO before the toolkit', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T15:00:00+08:00',
+      end: '2026-09-08T16:00:00+08:00',
+    })
+    const created = calls.find((c) => c.method === 'createEvent')!
+    const input = created.input as { start: string; end: string }
+    expect(input.start).toBe('2026-09-08T07:00:00.000Z')
+    expect(input.end).toBe('2026-09-08T08:00:00.000Z')
+  })
+
+  it('countdown tools round-trip through the toolkit', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const created = (await exec(tools.create_countdown, {
+      name: 'Launch',
+      targetDate: '2026-12-31T00:00:00Z',
+      color: 'red',
+    })) as { id: string }
+    expect(created.id).toBe('cd-new')
+    expect(
+      (
+        calls.find((c) => c.method === 'createCountdown')!.input as {
+          color?: string
+        }
+      ).color,
+    ).toBe('#EF4444')
+
+    const deleted = await exec(tools.delete_countdown, {
+      countdownId: 'cd-1',
+    })
+    expect(deleted).toEqual({ deleted: true, countdownId: 'cd-1' })
+  })
+
+  it('bookmark tools round-trip through the toolkit', async () => {
+    const { toolkit } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const bookmarks = (await exec(tools.list_bookmarks, {})) as unknown[]
+    expect(bookmarks).toHaveLength(1)
+    const removed = await exec(tools.remove_bookmark, { eventId: 'evt-1' })
+    expect(removed).toEqual({ removed: true, eventId: 'evt-1' })
   })
 
   it('list_events resolves presets to concrete instants before the toolkit', async () => {
@@ -196,7 +353,7 @@ describe('buildCalendarTools', () => {
       end: '2026-09-07T14:00:00.000Z',
       durationMinutes: 60,
     })
-    expect(result).toEqual({ error: 'Invalid start or end date' })
+    expect((result as { error: string }).error).toContain('ISO 8601')
   })
 })
 
@@ -235,5 +392,25 @@ describe('toAiTools', () => {
     expect(aiTools.create_event.inputSchema).toBe(
       eveTools.create_event.inputSchema,
     )
+  })
+
+  it('marks only the requested tools as needing approval', () => {
+    const { toolkit } = makeFakeToolkit()
+    const aiTools = toAiTools(
+      buildCalendarTools(toolkit) as unknown as Parameters<typeof toAiTools>[0],
+      { needsApproval: DESTRUCTIVE_TOOL_NAMES },
+    )
+    expect(
+      (aiTools.delete_event as { needsApproval?: boolean }).needsApproval,
+    ).toBe(true)
+    expect(
+      (aiTools.delete_countdown as { needsApproval?: boolean }).needsApproval,
+    ).toBe(true)
+    expect(
+      (aiTools.list_events as { needsApproval?: boolean }).needsApproval,
+    ).toBeUndefined()
+    expect(
+      (aiTools.create_event as { needsApproval?: boolean }).needsApproval,
+    ).toBeUndefined()
   })
 })
