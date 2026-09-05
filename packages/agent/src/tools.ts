@@ -9,13 +9,19 @@
  * SDK tools through `toAiTools` in adapter.ts. One authoring surface, two
  * runtimes, zero drift.
  *
- * Validation posture (mirrors the MCP server): closed vocabularies live in
- * the schema so the model sees legal values up front (colors are an enum,
- * applyTo is an enum); everything a JSON schema cannot express — real ISO
- * instants, start<end ordering, existing category ids, RRULE shape — is
- * checked in execute and returned as an error RESULT the model can read
- * and correct. Never throw for bad model input: at the Groq gateway a
- * schema violation kills the whole stream, and locally a throw would too.
+ * SCHEMA POSTURE — read before "fixing" these schemas:
+ * Groq's gateway validates every tool call against the JSON schema and a
+ * violation 400s the ENTIRE stream. In production the model repeatedly
+ * killed conversations by omitting a required field ("missing properties:
+ * 'end'"), inventing an enum value ("/preset must be one of …"), or going
+ * out of numeric range. The schemas below are therefore deliberately
+ * permissive: every property optional, no enums, no min/max, and
+ * z.looseObject so extra properties are ignored (z.object emits
+ * additionalProperties:false — one hallucinated extra field would 400) —
+ * constraints live in the DESCRIPTIONS for the model to read, and are
+ * enforced in execute via the guards in validation.ts, which return error
+ * RESULTS the model can read and correct on its next step. Tightening
+ * these schemas reintroduces the dead-stream bug.
  */
 import { defineTool } from 'eve/tools'
 import { z } from 'zod'
@@ -27,25 +33,27 @@ import {
 } from './scheduling'
 import { normalizePreset, resolvePreset, PRESET_NAMES } from './presets'
 import {
+  APPLY_TO_VALUES,
   COLOR_DESCRIPTION,
-  colorNameToHex,
-  colorSchema,
+  clampInt,
   parseInstantRange,
   parseIsoInstant,
+  requireFields,
+  validateApplyTo,
+  validateColor,
+  validateMaxLength,
   validateRrule,
 } from './validation'
-
-const applyTo = z.enum(['all', 'single', 'following'])
 
 const isoHint = 'ISO 8601 date-time with offset, e.g. 2026-09-05T14:00:00+08:00'
 
 const presetHint = `One of: ${PRESET_NAMES.join(', ')}. Mutually exclusive with start/end.`
 
+const applyToHint = `For recurring events: one of ${APPLY_TO_VALUES.join(', ')}. Omit for non-recurring events.`
+
 /**
- * Presets are validated HERE, not in the JSON schema. Groq validates tool
- * arguments server-side against the schema, and a model that invents a
- * preset used to 400 the entire stream. A plain string keeps the gateway
- * happy; an unknown value becomes an error result the model can correct.
+ * Presets are validated in execute, not in the JSON schema — see the
+ * schema-posture note above.
  */
 async function resolvePresetInput(
   toolkit: CalendarToolkit,
@@ -83,18 +91,21 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_events = defineTool({
     description:
       "List the user's calendar events. Filter by a time preset OR an explicit start/end range, and optionally by free-text query. Returns id, title, times, location and category of each event.",
-    inputSchema: z.object({
+    inputSchema: z.looseObject({
       preset: z.string().optional().describe(presetHint),
       start: z.string().optional().describe(`Range start. ${isoHint}`),
       end: z.string().optional().describe(`Range end. ${isoHint}`),
       query: z
         .string()
-        .max(200)
         .optional()
-        .describe('Free-text search over title, description and location'),
-      limit: z.number().int().min(1).max(50).optional(),
+        .describe(
+          'Free-text search over title, description and location. Max 200 chars.',
+        ),
+      limit: z.number().optional().describe('Max results, 1-50 (default 20)'),
     }),
     async execute(input) {
+      const tooLong = validateMaxLength(input, { query: 200 })
+      if (tooLong) return tooLong
       let range: { start?: string; end?: string } = {}
       if (input.preset) {
         const resolved = await resolvePresetInput(toolkit, input.preset)
@@ -115,39 +126,55 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
       return toolkit.listEvents({
         ...range,
         query: input.query,
-        limit: input.limit,
+        limit: clampInt(input.limit, 1, 50),
       })
     },
   })
 
   const create_event = defineTool({
     description:
-      'Create a calendar event. Times must be ISO 8601 with offset in the user timezone. Use rrule (RFC 5545) for recurring events.',
-    inputSchema: z.object({
-      title: z.string().min(1).max(200),
-      start: z.string().describe(`Event start. ${isoHint}`),
-      end: z.string().describe(`Event end, after start. ${isoHint}`),
-      description: z.string().max(2000).optional(),
-      location: z.string().max(500).optional(),
+      'Create a calendar event. REQUIRED: title, start, end. Times must be ISO 8601 with offset in the user timezone. Use rrule (RFC 5545) for recurring events.',
+    inputSchema: z.looseObject({
+      title: z
+        .string()
+        .optional()
+        .describe('Event title. Required. Max 200 chars.'),
+      start: z
+        .string()
+        .optional()
+        .describe(`Event start. Required. ${isoHint}`),
+      end: z
+        .string()
+        .optional()
+        .describe(`Event end, after start. Required. ${isoHint}`),
+      description: z.string().optional().describe('Max 2000 chars'),
+      location: z.string().optional().describe('Max 500 chars'),
       isAllDay: z.boolean().optional(),
       categoryId: z
         .string()
-        .max(100)
         .optional()
         .describe(
           'Category id from list_categories. Omit unless the user asked for a category.',
         ),
-      color: colorSchema.optional().describe(COLOR_DESCRIPTION),
+      color: z.string().optional().describe(COLOR_DESCRIPTION),
       rrule: z
         .string()
-        .max(500)
         .optional()
         .describe(
           'RFC 5545 recurrence rule with FREQ=, e.g. FREQ=WEEKLY;BYDAY=MO,WE. Omit for a one-off event.',
         ),
     }),
     async execute(input) {
-      const range = parseInstantRange(input.start, input.end)
+      const missing = requireFields(input, ['title', 'start', 'end'])
+      if (missing) return missing
+      const tooLong = validateMaxLength(input, {
+        title: 200,
+        description: 2000,
+        location: 500,
+        rrule: 500,
+      })
+      if (tooLong) return tooLong
+      const range = parseInstantRange(input.start!, input.end!)
       if ('error' in range) return range
       if (input.rrule) {
         const rruleError = validateRrule(input.rrule)
@@ -157,16 +184,17 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         const bad = await checkCategoryId(toolkit, input.categoryId)
         if (bad) return bad
       }
-      const hex = input.color ? colorNameToHex(input.color) : null
+      const color = validateColor(input.color)
+      if ('error' in color) return color
       return toolkit.createEvent({
-        title: input.title,
+        title: input.title!,
         start: range.start.iso,
         end: range.end.iso,
         description: input.description,
         location: input.location,
         isAllDay: input.isAllDay,
         categoryId: input.categoryId,
-        color: hex ?? undefined,
+        color: color.hex,
         rrule: input.rrule,
       })
     },
@@ -174,24 +202,34 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 
   const update_event = defineTool({
     description:
-      'Update an existing event. Provide the event id from list_events and only the fields that change. For recurring events pass applyTo (single|following|all).',
-    inputSchema: z.object({
-      eventId: z.string().min(1).max(120),
-      title: z.string().min(1).max(200).optional(),
+      'Update an existing event. REQUIRED: eventId (from list_events). Pass only the fields that change. For recurring events pass applyTo.',
+    inputSchema: z.looseObject({
+      eventId: z
+        .string()
+        .optional()
+        .describe('Event id from list_events. Required.'),
+      title: z.string().optional().describe('Max 200 chars'),
       start: z.string().optional().describe(isoHint),
       end: z.string().optional().describe(isoHint),
-      description: z.string().max(2000).optional(),
-      location: z.string().max(500).optional(),
+      description: z.string().optional().describe('Max 2000 chars'),
+      location: z.string().optional().describe('Max 500 chars'),
       isAllDay: z.boolean().optional(),
       categoryId: z
         .string()
-        .max(100)
         .optional()
         .describe('Category id from list_categories'),
-      color: colorSchema.optional().describe(COLOR_DESCRIPTION),
-      applyTo: applyTo.optional(),
+      color: z.string().optional().describe(COLOR_DESCRIPTION),
+      applyTo: z.string().optional().describe(applyToHint),
     }),
     async execute(input) {
+      const missing = requireFields(input, ['eventId'])
+      if (missing) return missing
+      const tooLong = validateMaxLength(input, {
+        title: 200,
+        description: 2000,
+        location: 500,
+      })
+      if (tooLong) return tooLong
       let startIso: string | undefined
       let endIso: string | undefined
       if (input.start !== undefined && input.end !== undefined) {
@@ -212,9 +250,12 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         const bad = await checkCategoryId(toolkit, input.categoryId)
         if (bad) return bad
       }
-      const hex = input.color ? colorNameToHex(input.color) : null
+      const color = validateColor(input.color)
+      if ('error' in color) return color
+      const applyTo = validateApplyTo(input.applyTo)
+      if ('error' in applyTo) return applyTo
       const updated = await toolkit.updateEvent({
-        eventId: input.eventId,
+        eventId: input.eventId!,
         title: input.title,
         start: startIso,
         end: endIso,
@@ -222,8 +263,8 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         location: input.location,
         isAllDay: input.isAllDay,
         categoryId: input.categoryId,
-        color: hex ?? undefined,
-        applyTo: input.applyTo,
+        color: color.hex,
+        applyTo: applyTo.applyTo,
       })
       if (!updated) return { error: 'Event not found' }
       return updated
@@ -232,13 +273,23 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 
   const delete_event = defineTool({
     description:
-      'Delete an event by id. Destructive — only call when the user clearly asked for a deletion. For recurring events pass applyTo. The user is asked to confirm before this runs.',
-    inputSchema: z.object({
-      eventId: z.string().min(1).max(120),
-      applyTo: applyTo.optional(),
+      'Delete an event. REQUIRED: eventId. Destructive — only call when the user clearly asked for a deletion. For recurring events pass applyTo. The user is asked to confirm before this runs.',
+    inputSchema: z.looseObject({
+      eventId: z
+        .string()
+        .optional()
+        .describe('Event id from list_events. Required.'),
+      applyTo: z.string().optional().describe(applyToHint),
     }),
     async execute(input) {
-      await toolkit.deleteEvent(input)
+      const missing = requireFields(input, ['eventId'])
+      if (missing) return missing
+      const applyTo = validateApplyTo(input.applyTo)
+      if ('error' in applyTo) return applyTo
+      await toolkit.deleteEvent({
+        eventId: input.eventId!,
+        applyTo: applyTo.applyTo,
+      })
       return { deleted: true, eventId: input.eventId }
     },
   })
@@ -246,7 +297,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_categories = defineTool({
     description:
       "List the user's calendar categories (id, name, color). Use before assigning categoryId on create/update.",
-    inputSchema: z.object({}),
+    inputSchema: z.looseObject({}),
     async execute() {
       return toolkit.listCategories()
     },
@@ -255,14 +306,12 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
   const get_schedule_summary = defineTool({
     description:
       "Summarize the user's schedule: totals, busiest periods and category breakdown for a period. Use for questions like 'how busy am I this week' or 'where does my time go'.",
-    inputSchema: z.object({
+    inputSchema: z.looseObject({
       preset: z.string().optional().describe(presetHint),
       start: z.string().optional().describe(isoHint),
       end: z.string().optional().describe(isoHint),
     }),
     async execute(input) {
-      // Same plain-string-plus-resolve pattern as list_events: an invented
-      // preset must correct the model, not 400 the stream at the gateway.
       if (input.preset) {
         const resolved = await resolvePresetInput(toolkit, input.preset)
         if ('error' in resolved) return resolved
@@ -282,34 +331,40 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 
   const find_free_time = defineTool({
     description:
-      'Find free slots in the user calendar between two instants, respecting existing events. Returns up to maxSlots gaps of at least durationMinutes, clamped to working hours.',
-    inputSchema: z.object({
-      start: z.string().describe(`Search window start. ${isoHint}`),
-      end: z.string().describe(`Search window end. ${isoHint}`),
+      'Find free slots in the user calendar between two instants, respecting existing events. REQUIRED: start, end, durationMinutes. Returns gaps clamped to working hours.',
+    inputSchema: z.looseObject({
+      start: z
+        .string()
+        .optional()
+        .describe(`Search window start. Required. ${isoHint}`),
+      end: z
+        .string()
+        .optional()
+        .describe(`Search window end. Required. ${isoHint}`),
       durationMinutes: z
         .number()
-        .int()
-        .min(5)
-        .max(24 * 60)
-        .describe('Minimum length of a usable slot'),
+        .optional()
+        .describe('Minimum usable slot length in minutes. Required. 5-1440.'),
       workdayStartHour: z
         .number()
-        .int()
-        .min(0)
-        .max(23)
         .optional()
-        .describe('Earliest local hour to suggest (default 9)'),
+        .describe('Earliest local hour to suggest, 0-23 (default 9)'),
       workdayEndHour: z
         .number()
-        .int()
-        .min(1)
-        .max(24)
         .optional()
-        .describe('Latest local hour to suggest (default 18)'),
-      maxSlots: z.number().int().min(1).max(20).optional(),
+        .describe('Latest local hour to suggest, 1-24 (default 18)'),
+      maxSlots: z.number().optional().describe('Max slots, 1-20 (default 10)'),
     }),
     async execute(input) {
-      const range = parseInstantRange(input.start, input.end)
+      const missing = requireFields(input, ['start', 'end'])
+      if (missing) return missing
+      if (typeof input.durationMinutes !== 'number') {
+        return {
+          error:
+            'Missing required field: durationMinutes (minimum slot length in minutes, 5-1440).',
+        }
+      }
+      const range = parseInstantRange(input.start!, input.end!)
       if ('error' in range) return range
       const windowStart = range.start.date
       const windowEnd = range.end.date
@@ -339,10 +394,10 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
           startMs: b.startMs + offset,
           endMs: b.endMs + offset,
         })),
-        minDurationMinutes: input.durationMinutes,
-        dayStartHourUtc: input.workdayStartHour ?? 9,
-        dayEndHourUtc: input.workdayEndHour ?? 18,
-        maxSlots: input.maxSlots ?? 10,
+        minDurationMinutes: clampInt(input.durationMinutes, 5, 1440) ?? 30,
+        dayStartHourUtc: clampInt(input.workdayStartHour, 0, 23) ?? 9,
+        dayEndHourUtc: clampInt(input.workdayEndHour, 1, 24) ?? 18,
+        maxSlots: clampInt(input.maxSlots, 1, 20) ?? 10,
       })
       return {
         timezone,
@@ -358,7 +413,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_bookmarks = defineTool({
     description:
       "List the user's bookmarked events (id, event id, event title).",
-    inputSchema: z.object({}),
+    inputSchema: z.looseObject({}),
     async execute() {
       return toolkit.listBookmarks()
     },
@@ -366,22 +421,32 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 
   const bookmark_event = defineTool({
     description:
-      'Bookmark an event so it appears in the sidebar bookmark panel. Pass the event id from list_events.',
-    inputSchema: z.object({
-      eventId: z.string().min(1).max(120),
+      'Bookmark an event so it appears in the sidebar bookmark panel. REQUIRED: eventId (from list_events).',
+    inputSchema: z.looseObject({
+      eventId: z
+        .string()
+        .optional()
+        .describe('Event id from list_events. Required.'),
     }),
     async execute(input) {
-      return toolkit.bookmarkEvent(input)
+      const missing = requireFields(input, ['eventId'])
+      if (missing) return missing
+      return toolkit.bookmarkEvent({ eventId: input.eventId! })
     },
   })
 
   const remove_bookmark = defineTool({
-    description: 'Remove a bookmark from an event by event id.',
-    inputSchema: z.object({
-      eventId: z.string().min(1).max(120),
+    description: 'Remove a bookmark from an event. REQUIRED: eventId.',
+    inputSchema: z.looseObject({
+      eventId: z
+        .string()
+        .optional()
+        .describe('Event id whose bookmark to remove. Required.'),
     }),
     async execute(input) {
-      await toolkit.removeBookmark(input)
+      const missing = requireFields(input, ['eventId'])
+      if (missing) return missing
+      await toolkit.removeBookmark({ eventId: input.eventId! })
       return { removed: true, eventId: input.eventId }
     },
   })
@@ -389,7 +454,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_countdowns = defineTool({
     description:
       "List the user's countdowns (id, name, target date) shown in the sidebar.",
-    inputSchema: z.object({}),
+    inputSchema: z.looseObject({}),
     async execute() {
       return toolkit.listCountdowns()
     },
@@ -397,34 +462,53 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 
   const create_countdown = defineTool({
     description:
-      'Create a countdown to a future date, e.g. a birthday, launch or exam. Shows in the calendar sidebar.',
-    inputSchema: z.object({
-      name: z.string().min(1).max(100),
-      targetDate: z.string().describe(`Countdown target. ${isoHint}`),
-      description: z.string().max(1000).optional(),
-      color: colorSchema.optional().describe(COLOR_DESCRIPTION),
+      'Create a countdown to a future date, e.g. a birthday, launch or exam. REQUIRED: name, targetDate. Shows in the calendar sidebar.',
+    inputSchema: z.looseObject({
+      name: z
+        .string()
+        .optional()
+        .describe('Countdown name. Required. Max 100 chars.'),
+      targetDate: z
+        .string()
+        .optional()
+        .describe(`Countdown target. Required. ${isoHint}`),
+      description: z.string().optional().describe('Max 1000 chars'),
+      color: z.string().optional().describe(COLOR_DESCRIPTION),
     }),
     async execute(input) {
-      const parsed = parseIsoInstant(input.targetDate, 'targetDate')
+      const missing = requireFields(input, ['name', 'targetDate'])
+      if (missing) return missing
+      const tooLong = validateMaxLength(input, {
+        name: 100,
+        description: 1000,
+      })
+      if (tooLong) return tooLong
+      const parsed = parseIsoInstant(input.targetDate!, 'targetDate')
       if ('error' in parsed) return parsed
-      const hex = input.color ? colorNameToHex(input.color) : null
+      const color = validateColor(input.color)
+      if ('error' in color) return color
       return toolkit.createCountdown({
-        name: input.name,
+        name: input.name!,
         targetDate: parsed.iso,
         description: input.description,
-        color: hex ?? undefined,
+        color: color.hex,
       })
     },
   })
 
   const delete_countdown = defineTool({
     description:
-      'Delete a countdown by id (from list_countdowns). Destructive — the user is asked to confirm before this runs.',
-    inputSchema: z.object({
-      countdownId: z.string().min(1).max(100),
+      'Delete a countdown. REQUIRED: countdownId (from list_countdowns). Destructive — the user is asked to confirm before this runs.',
+    inputSchema: z.looseObject({
+      countdownId: z
+        .string()
+        .optional()
+        .describe('Countdown id from list_countdowns. Required.'),
     }),
     async execute(input) {
-      await toolkit.deleteCountdown(input)
+      const missing = requireFields(input, ['countdownId'])
+      if (missing) return missing
+      await toolkit.deleteCountdown({ countdownId: input.countdownId! })
       return { deleted: true, countdownId: input.countdownId }
     },
   })

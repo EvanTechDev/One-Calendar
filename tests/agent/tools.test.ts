@@ -158,6 +158,87 @@ describe('buildCalendarTools', () => {
     ])
   })
 
+  it('every schema is gateway-safe: no required, no enum, no bounds, extra props allowed', () => {
+    // Groq 400s the WHOLE stream on any schema violation, so the published
+    // JSON schemas must be unable to fail: models forget required fields
+    // ("missing properties: 'end'"), invent enum values, exceed bounds and
+    // add extra properties. This test pins the posture for every tool.
+    const { toolkit } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const { toJSONSchema } = require('zod') as typeof import('zod')
+    for (const [name, def] of Object.entries(tools)) {
+      const schema = toJSONSchema(
+        (def as { inputSchema: Parameters<typeof toJSONSchema>[0] })
+          .inputSchema,
+      ) as Record<string, unknown>
+      expect(schema.required, `${name} must not have required`).toBeUndefined()
+      expect(
+        schema.additionalProperties,
+        `${name} must allow extra properties`,
+      ).not.toBe(false)
+      const props = (schema.properties ?? {}) as Record<
+        string,
+        Record<string, unknown>
+      >
+      for (const [prop, propSchema] of Object.entries(props)) {
+        expect(
+          propSchema.enum,
+          `${name}.${prop} must not be an enum`,
+        ).toBeUndefined()
+        expect(
+          propSchema.minimum ?? propSchema.maximum ?? propSchema.maxLength,
+          `${name}.${prop} must not carry numeric/length bounds`,
+        ).toBeUndefined()
+      }
+    }
+  })
+
+  it('create_event reports missing required fields as an error result (the "missing properties: end" bug)', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T15:00:00Z',
+      // end omitted — this used to 400 the whole stream at the gateway.
+    })) as { error?: string }
+    expect(result.error).toContain('Missing required field')
+    expect(result.error).toContain('end')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('update_event turns an invented applyTo into an error result', async () => {
+    const { toolkit } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.update_event, {
+      eventId: 'evt-1',
+      title: 'New title',
+      applyTo: 'everything',
+    })) as { error?: string }
+    expect(result.error).toContain('Invalid applyTo "everything"')
+    expect(result.error).toContain('all, single, following')
+  })
+
+  it('create_event turns an invented color into an error result', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.create_event, {
+      title: 'Meeting',
+      start: '2026-09-08T15:00:00Z',
+      end: '2026-09-08T16:00:00Z',
+      color: 'magenta',
+    })) as { error?: string }
+    expect(result.error).toContain('Invalid color "magenta"')
+    expect(calls.find((c) => c.method === 'createEvent')).toBeUndefined()
+  })
+
+  it('list_events clamps an out-of-range limit instead of failing', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, { preset: 'today', limit: 5000 })
+    const listCall = calls.find((c) => c.method === 'listEvents')!
+    expect((listCall.input as { limit?: number }).limit).toBe(50)
+  })
+
   it('create_event rejects a non-ISO start as an error result', async () => {
     const { toolkit, calls } = makeFakeToolkit()
     const tools = buildCalendarTools(toolkit)

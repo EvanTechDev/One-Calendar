@@ -11,8 +11,6 @@
  * boundary); if the app palette changes, update this list in lockstep —
  * tests in tests/agent/ pin the values.
  */
-import { z } from 'zod'
-
 export const EVENT_COLOR_OPTIONS = [
   { name: 'blue', hex: '#3B82F6' },
   { name: 'green', hex: '#10B981' },
@@ -31,14 +29,7 @@ const HEX_BY_NAME = new Map<string, string>(
 const NAME_SET = new Set<string>(EVENT_COLOR_NAMES)
 const HEX_SET = new Set<string>(EVENT_COLOR_OPTIONS.map((c) => c.hex))
 
-export const COLOR_DESCRIPTION = `Event color, one of: ${EVENT_COLOR_NAMES.join(', ')}`
-
-/**
- * Closed enum in the schema — the model picks a NAME, never free-form hex.
- * (The MCP server also accepts hex because scripted clients send it; a
- * model has no reason to, and a closed enum is what stops invention.)
- */
-export const colorSchema = z.enum(EVENT_COLOR_NAMES as [string, ...string[]])
+export const COLOR_DESCRIPTION = `Color name, one of: ${EVENT_COLOR_NAMES.join(', ')}. No other value is accepted.`
 
 /** Name → stored hex. Accepts a known hex as passthrough for robustness. */
 export function colorNameToHex(value: string): string | null {
@@ -114,6 +105,84 @@ export function validateRrule(value: string): string | null {
   const trimmed = value.trim().replace(/^RRULE:/i, '')
   if (!RRULE_FREQ_RE.test(trimmed)) {
     return `rrule must be an RFC 5545 rule containing FREQ=, e.g. FREQ=WEEKLY;BYDAY=MO (got "${value}")`
+  }
+  return null
+}
+
+/**
+ * Execute-layer guards replacing what the JSON schema can no longer say.
+ *
+ * Groq's gateway validates tool-call arguments against the schema and a
+ * violation 400s the WHOLE stream — a missing required field, an invented
+ * enum value, an out-of-range number all killed conversations dead. So the
+ * published schemas are deliberately permissive (everything optional, no
+ * enums, no bounds; constraints live in the descriptions) and these guards
+ * re-impose them as error RESULTS the model reads and corrects.
+ */
+
+/** Missing/blank required string → error naming every absent field. */
+export function requireFields(
+  input: Record<string, unknown>,
+  fields: string[],
+): { error: string } | null {
+  const missing = fields.filter((f) => {
+    const v = input[f]
+    return v === undefined || v === null || (typeof v === 'string' && !v.trim())
+  })
+  if (missing.length === 0) return null
+  return {
+    error: `Missing required field${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. Provide ${missing.length > 1 ? 'them' : 'it'} and call the tool again.`,
+  }
+}
+
+export const APPLY_TO_VALUES = ['all', 'single', 'following'] as const
+export type ApplyToValue = (typeof APPLY_TO_VALUES)[number]
+
+export function validateApplyTo(
+  value: string | undefined,
+): { error: string } | { applyTo: ApplyToValue | undefined } {
+  if (value === undefined) return { applyTo: undefined }
+  const normalized = value.trim().toLowerCase()
+  if ((APPLY_TO_VALUES as readonly string[]).includes(normalized)) {
+    return { applyTo: normalized as ApplyToValue }
+  }
+  return {
+    error: `Invalid applyTo "${value}". Use one of: ${APPLY_TO_VALUES.join(', ')}.`,
+  }
+}
+
+export function validateColor(
+  value: string | undefined,
+): { error: string } | { hex: string | undefined } {
+  if (value === undefined) return { hex: undefined }
+  const hex = colorNameToHex(value)
+  if (hex) return { hex }
+  return {
+    error: `Invalid color "${value}". ${COLOR_DESCRIPTION}`,
+  }
+}
+
+/** Clamp a number into [min, max]; non-numbers become undefined. */
+export function clampInt(
+  value: unknown,
+  min: number,
+  max: number,
+): number | undefined {
+  if (typeof value !== 'number' || Number.isNaN(value)) return undefined
+  return Math.min(Math.max(Math.round(value), min), max)
+}
+
+export function validateMaxLength(
+  input: Record<string, unknown>,
+  limits: Record<string, number>,
+): { error: string } | null {
+  for (const [field, max] of Object.entries(limits)) {
+    const v = input[field]
+    if (typeof v === 'string' && v.length > max) {
+      return {
+        error: `${field} is too long (${v.length} chars; max ${max}). Shorten it.`,
+      }
+    }
   }
   return null
 }
