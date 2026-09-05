@@ -19,7 +19,9 @@ const groq = createGroq({
 })
 
 export default defineAgent({
-  model: groq(process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile'),
+  // Keep in step with the in-app route's default (apps/calendar/app/api/
+  // agent/chat/route.ts): Llama 3.3 70B became Enterprise-only on Groq.
+  model: groq(process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b'),
   limits: {
     // A calendar session is a handful of short tool calls, not an
     // open-ended coding session. Groq's free tier is also rate-limited,

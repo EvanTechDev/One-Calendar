@@ -87,7 +87,10 @@ export async function POST(request: NextRequest) {
   const timezone = await toolkit.getTimezone()
 
   const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
-  const model = groq(process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile')
+  // Default: GPT-OSS 120B — Groq moved the Llama 3.3 70B model to
+  // Enterprise-only, and this is the strongest tool-calling model on the
+  // free/developer tier (250K TPM / 1K RPM).
+  const model = groq(process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b')
 
   const result = streamText({
     model,

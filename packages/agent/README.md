@@ -13,7 +13,7 @@ src/
   instructions.ts  System prompt builder shared by both runtimes
   http-toolkit.ts  Toolkit implemented against a running calendar's REST API
 agent/             eve app root (filesystem-first agent)
-  agent.ts         Model config: Groq llama via @ai-sdk/groq
+  agent.ts         Model config: Groq gpt-oss-120b via @ai-sdk/groq
   instructions.md  eve's always-on prompt (mirror of src/instructions.ts)
   tools/*.ts       One-per-file re-exports of src/tools.ts, HTTP-bound
 ```
@@ -40,4 +40,5 @@ The port also makes the agent testable with an in-memory toolkit:
 ## Env
 
 - `GROQ_API_KEY` — required. Free keys: https://console.groq.com
-- `GROQ_MODEL` — optional, defaults to `llama-3.3-70b-versatile`
+- `GROQ_MODEL` — optional, defaults to `openai/gpt-oss-120b` (the strongest
+  tool-calling model on Groq's free tier; Llama 3.3 70B is Enterprise-only)

@@ -15,7 +15,7 @@
 | Agent 包                 | `packages/agent/`                                        | eve `defineTool` 编写的 7 个工具 + `CalendarToolkit` 端口 + 纯函数空闲时间算法 + 共享 system prompt |
 | eve app（独立运行时）    | `packages/agent/agent/`                                  | `eve dev` 可直接发现运行；工具经 HTTP toolkit 绑定到运行中的日历实例                                |
 | DB toolkit               | `apps/calendar/lib/agent/toolkit.ts`                     | 复用 `lib/mcp/*-tools.ts` 的 userId-scoped 函数（与 MCP server 同一条写路径）                       |
-| API 路由                 | `apps/calendar/app/api/agent/chat/route.ts`              | Groq llama + AI SDK streamText，8 步工具循环，限流 20 次/5 分钟                                     |
+| API 路由                 | `apps/calendar/app/api/agent/chat/route.ts`              | Groq gpt-oss-120b + AI SDK streamText，8 步工具循环，限流 20 次/5 分钟                              |
 | 命令面板 UI              | `apps/calendar/components/app/ai/ai-command-palette.tsx` | cmdk 对话框，第一栏输入 + 回车提问，流式回答，工具调用行内可见                                      |
 | 接入                     | `components/app/calendar.tsx`                            | Cmd/Ctrl+K 全局快捷键 + 头部 ✨ 按钮；写操作后自动 `refreshEvents()`                                |
 | 测试                     | `tests/agent/`                                           | 22 个单测（调度算法 + 工具集 + 适配器错误边界），全部通过                                           |
@@ -79,18 +79,18 @@
 
 ## Code Review — 轴二：Spec（对照你的原始需求）
 
-| #   | 需求                                              | 状态    | 备注                                                                                                            |
-| --- | ------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| 1   | cmdk 面板"和 shadcn 一模一样"，手动添加，不用 CLI | ✅      | `command.tsx` 与 shadcn/ui 当前源码逐行对应（含 sr-only DialogHeader 的 a11y 结构），仅 import 路径换成本仓库的 |
-| 2   | 第一栏搜索栏输入问题 + 回车 → AI agent 处理       | ✅      | `CommandInput` 即提问框；Enter（含中文输入法 composing 保护）发送                                               |
-| 3   | `packages/agent` 存放 agents 实现                 | ✅      | 见上表                                                                                                          |
-| 4   | 使用 eve 框架（Vercel）                           | ⚠️ 部分 | **最重要的诚实披露**，见下文"eve 的真实使用程度"                                                                |
-| 5   | Groq 免费 llama                                   | ✅      | `llama-3.3-70b-versatile`，`GROQ_MODEL` 可换                                                                    |
-| 6   | Termux 环境适配 + 内存 ≤2GB                       | ✅      | 全程 `--max-old-space-size≤1792`；发现并绕过两个 Termux 坑（见下）                                              |
-| 7   | 6 小时时限                                        | ✅      | 约 3.5 小时                                                                                                     |
-| 8   | grilling + code-review 写入 md                    | ✅      | 本文件                                                                                                          |
-| 9   | context7 / supabase MCP                           | ✅      | eve、AI SDK 文档均经 context7 核对；schema 经 supabase MCP 查询                                                 |
-| 10  | 不用 sub-agents                                   | ✅      | 全程主线程                                                                                                      |
+| #   | 需求                                              | 状态    | 备注                                                                                                                                                   |
+| --- | ------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | cmdk 面板"和 shadcn 一模一样"，手动添加，不用 CLI | ✅      | `command.tsx` 与 shadcn/ui 当前源码逐行对应（含 sr-only DialogHeader 的 a11y 结构），仅 import 路径换成本仓库的                                        |
+| 2   | 第一栏搜索栏输入问题 + 回车 → AI agent 处理       | ✅      | `CommandInput` 即提问框；Enter（含中文输入法 composing 保护）发送                                                                                      |
+| 3   | `packages/agent` 存放 agents 实现                 | ✅      | 见上表                                                                                                                                                 |
+| 4   | 使用 eve 框架（Vercel）                           | ⚠️ 部分 | **最重要的诚实披露**，见下文"eve 的真实使用程度"                                                                                                       |
+| 5   | Groq 免费 llama                                   | ⚠️→✅   | 原定 `llama-3.3-70b-versatile` 上线后发现已转 Enterprise-only，免费计划不可用；已改为免费档的 `openai/gpt-oss-120b`（工具调用更强），`GROQ_MODEL` 可换 |
+| 6   | Termux 环境适配 + 内存 ≤2GB                       | ✅      | 全程 `--max-old-space-size≤1792`；发现并绕过两个 Termux 坑（见下）                                                                                     |
+| 7   | 6 小时时限                                        | ✅      | 约 3.5 小时                                                                                                                                            |
+| 8   | grilling + code-review 写入 md                    | ✅      | 本文件                                                                                                                                                 |
+| 9   | context7 / supabase MCP                           | ✅      | eve、AI SDK 文档均经 context7 核对；schema 经 supabase MCP 查询                                                                                        |
+| 10  | 不用 sub-agents                                   | ✅      | 全程主线程                                                                                                                                             |
 
 ### eve 的真实使用程度（Spec #4 的详细披露）
 
@@ -164,10 +164,12 @@ UI 上出确认按钮。这是我认为**上线前唯一必须补的活**。
 反方：多一步确认损伤"下一代日历"的顺滑感。折中：只对
 `applyTo: 'all'`（删整个系列）要求确认。
 
-**Q3. llama-3.3-70b 的工具调用可靠性够吗？**
-推荐：够用但要观察。它是 Groq 免费档里工具调用最稳的；但复杂多步
-（"把下周所有会议挪到下下周"）可能翻车。`GROQ_MODEL` 已做成环境变量，
-可一键换 `moonshotai/kimi-k2-instruct` 等。建议加一个简单的评测脚本
+**Q3. 模型的工具调用可靠性够吗？**
+（更新：llama-3.3-70b 已转 Groq Enterprise-only，免费计划报
+`model does not exist or you do not have access`，默认模型已改为
+`openai/gpt-oss-120b`——免费档限额 250K TPM / 1K RPM，工具调用能力
+反而更强。）复杂多步（"把下周所有会议挪到下下周"）仍可能翻车。
+`GROQ_MODEL` 已做成环境变量可一键换。建议加一个简单的评测脚本
 （eve 有 evals 目录约定，正好用独立运行时跑）。
 
 **Q4. 为什么工具只有 7 个？bookmark、countdown、邀请呢？**

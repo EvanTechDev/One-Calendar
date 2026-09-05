@@ -113,7 +113,8 @@ byte-identical `BETTER_AUTH_SECRET`. See `packages/auth/src/cross-app.ts`.
 
 Cmd/Ctrl+K opens an AI command palette (`components/app/ai/ai-command-palette.tsx`,
 shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
-`POST /api/agent/chat`: Groq llama via the AI SDK, multi-step tool loop capped
+`POST /api/agent/chat`: Groq `openai/gpt-oss-120b` via the AI SDK (override
+with `GROQ_MODEL`), multi-step tool loop capped
 at 8 steps, per-user rate limit 20/5min. Requires `GROQ_API_KEY` (503 without).
 
 Tools are authored ONCE in `packages/agent/src/tools.ts` with eve's
