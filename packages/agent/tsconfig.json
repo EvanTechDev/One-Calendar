@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "agent/**/*.ts"],
+  "exclude": ["node_modules"]
+}

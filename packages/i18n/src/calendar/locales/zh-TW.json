@@ -509,5 +509,11 @@
   "copyInviteLink": "複製邀請連結",
   "inviteLinkCopied": "邀請連結已複製",
   "shortcutsDialogDesc": "日曆中可用的鍵盤快速鍵。",
-  "menu": "選單"
+  "menu": "選單",
+  "aiAssistant": "AI 助手",
+  "aiAssistantPlaceholder": "向你的日曆提問…",
+  "aiAssistantHint": "詢問日程、建立事件或尋找空閒時間",
+  "aiAssistantEnterToAsk": "按 Enter 鍵提問",
+  "aiAssistantThinking": "思考中…",
+  "aiAssistantError": "發生錯誤，請重試。"
 }

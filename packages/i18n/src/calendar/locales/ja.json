@@ -517,5 +517,11 @@
   "copyInviteLink": "招待リンクをコピー",
   "inviteLinkCopied": "招待リンクをコピーしました",
   "shortcutsDialogDesc": "カレンダー全体で使用可能なキーボードショートカットです",
-  "menu": "メニュー"
+  "menu": "メニュー",
+  "aiAssistant": "AI アシスタント",
+  "aiAssistantPlaceholder": "カレンダーに質問…",
+  "aiAssistantHint": "予定の確認、イベント作成、空き時間の検索ができます",
+  "aiAssistantEnterToAsk": "Enter キーで質問",
+  "aiAssistantThinking": "考え中…",
+  "aiAssistantError": "エラーが発生しました。もう一度お試しください。"
 }

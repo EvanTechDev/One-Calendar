@@ -517,5 +517,11 @@
   "copyInviteLink": "复制邀请链接",
   "inviteLinkCopied": "邀请链接已复制",
   "shortcutsDialogDesc": "日历中可用的键盘快捷键。",
-  "menu": "菜单"
+  "menu": "菜单",
+  "aiAssistant": "AI 助手",
+  "aiAssistantPlaceholder": "向你的日历提问…",
+  "aiAssistantHint": "询问日程、创建事件或查找空闲时间",
+  "aiAssistantEnterToAsk": "按回车键提问",
+  "aiAssistantThinking": "思考中…",
+  "aiAssistantError": "出错了，请重试。"
 }

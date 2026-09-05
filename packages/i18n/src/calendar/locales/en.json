@@ -702,5 +702,11 @@
   "mcpLogChangeParticipants": "{n} participant(s)",
   "mcpLogChangeExclusions": "{n} exclusion(s)",
   "mcpLogChangeRepeatRule": "repeat rule",
-  "menu": "Menu"
+  "menu": "Menu",
+  "aiAssistant": "AI Assistant",
+  "aiAssistantPlaceholder": "Ask your calendar anything…",
+  "aiAssistantHint": "Ask about your schedule, create events, or find free time",
+  "aiAssistantEnterToAsk": "Press Enter to ask",
+  "aiAssistantThinking": "Thinking…",
+  "aiAssistantError": "Something went wrong. Try again."
 }

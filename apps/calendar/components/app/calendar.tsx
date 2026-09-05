@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Sparkles,
   PanelLeft,
   CircleHelp,
   ShieldCheck,
@@ -109,6 +110,10 @@ const loadAnalyticsView = () =>
   import('@/components/app/analytics/analytics-view')
 const loadSettingsDialog = () =>
   import('@/components/app/settings/settings-dialog')
+const loadAiCommandPalette = () =>
+  import('@/components/app/ai/ai-command-palette').then(
+    (m) => m.AiCommandPalette,
+  )
 import {
   defaultExpansionWindow,
   optimisticFollowingSplit,
@@ -120,6 +125,9 @@ const MonthView = dynamic(loadMonthView)
 const YearView = dynamic(loadYearView)
 const AnalyticsView = dynamic(loadAnalyticsView)
 const SettingsDialog = dynamic(loadSettingsDialog)
+// ssr: false — the palette carries the chat transport and is pure client
+// interaction; there is nothing meaningful to render on the server.
+const AiCommandPalette = dynamic(loadAiCommandPalette, { ssr: false })
 
 export interface CalendarEvent {
   id: string
@@ -185,6 +193,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // Mobile Form only: search lives behind a magnifier icon and opens as a
   // full-screen overlay (the universal mobile overlay rule, ADR-0019).
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  // Deferred mount: the palette chunk is only fetched the first time the
+  // user opens it, and stays mounted afterwards to keep its conversation.
+  const [aiPaletteOpen, setAiPaletteOpen] = useState(false)
+  const [aiPaletteMounted, setAiPaletteMounted] = useState(false)
+  const openAiPalette = useCallback(() => {
+    setAiPaletteMounted(true)
+    setAiPaletteOpen(true)
+  }, [])
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('week')
   const [eventEditorOpen, setEventEditorOpen] = useState(false)
@@ -572,6 +588,21 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
     const timeoutId = globalThis.setTimeout(prefetch, 800)
     return () => globalThis.clearTimeout(timeoutId)
+  }, [])
+
+  // Cmd/Ctrl+K opens the AI palette from anywhere, including inside inputs —
+  // that is the universal command-palette convention, so it lives outside
+  // the plain-key shortcut handler below (which correctly defers to inputs).
+  useEffect(() => {
+    const handlePaletteKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        setAiPaletteMounted(true)
+        setAiPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handlePaletteKey)
+    return () => window.removeEventListener('keydown', handlePaletteKey)
   }, [])
 
   useEffect(() => {
@@ -1675,6 +1706,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     document.body,
                   )}
               </div>
+              {/* AI palette trigger: one affordance on every form factor.
+                  Desktop users also reach it via Cmd/Ctrl+K. */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                aria-label={t.aiAssistant}
+                onClick={openAiPalette}
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
               {/* Mobile Form: search collapses to an icon that opens the
                   full-screen overlay rendered after the header. */}
               <Button
@@ -2221,6 +2263,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Mounted on first open only (chunk is lazy); kept mounted after so
+            the conversation survives close/reopen within the session. */}
+        {aiPaletteMounted && (
+          <AiCommandPalette
+            open={aiPaletteOpen}
+            onOpenChange={setAiPaletteOpen}
+            onEventsMutated={() => void refreshEvents()}
+          />
+        )}
       </div>
     </div>
   )

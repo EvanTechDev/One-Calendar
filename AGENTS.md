@@ -11,6 +11,7 @@ apps/
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
+  agent/           @zntr/agent — AI calendar copilot: eve tool defs + AI SDK adapter
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
   meetings/        @zntr/meetings — meeting/session/attendance/chat schema + operations
   ui/              @zntr/ui — shadcn/ui components (radix-nova style)
@@ -107,6 +108,22 @@ Meet has no sign-in surface of its own: it reads the session the calendar
 established and links there to authenticate. That requires `AUTH_COOKIE_DOMAIN`
 set identically in both apps (both must be subdomains of it) and a
 byte-identical `BETTER_AUTH_SECRET`. See `packages/auth/src/cross-app.ts`.
+
+## AI assistant (command palette)
+
+Cmd/Ctrl+K opens an AI command palette (`components/app/ai/ai-command-palette.tsx`,
+shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
+`POST /api/agent/chat`: Groq llama via the AI SDK, multi-step tool loop capped
+at 8 steps, per-user rate limit 20/5min. Requires `GROQ_API_KEY` (503 without).
+
+Tools are authored ONCE in `packages/agent/src/tools.ts` with eve's
+`defineTool`, against the `CalendarToolkit` port (`src/types.ts`). Two
+bindings exist: the app's database toolkit (`apps/calendar/lib/agent/toolkit.ts`,
+built from the SAME `lib/mcp/*-tools.ts` functions the MCP server uses — one
+write path, shared cache invalidation and reminder reconciliation) and an HTTP
+toolkit for the standalone eve runtime (`packages/agent/agent/`, run with
+`eve dev`). Keep `packages/agent/agent/instructions.md` in step with
+`src/instructions.ts`. Tests: `tests/agent/` (node env).
 
 ## Commit conventions
 
