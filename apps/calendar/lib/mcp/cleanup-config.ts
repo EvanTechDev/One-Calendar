@@ -1,9 +1,6 @@
 import crypto from 'crypto'
 
-export function parseRetentionDays(
-  raw: string | null,
-  fallback = 30,
-): number {
+export function parseRetentionDays(raw: string | null, fallback = 30): number {
   if (!raw) return fallback
   const n = Number(raw)
   if (!Number.isFinite(n) || !Number.isInteger(n)) return fallback
