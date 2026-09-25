@@ -5,7 +5,10 @@ import bcrypt from 'bcryptjs'
 import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 import { authEmailCallbacks, resendSender } from '@zntr/auth/email'
 import { ALL_SCOPES } from '@/lib/mcp/types'
-import { MCP_RESOURCE } from '@/lib/mcp/oauth-config'
+import {
+  MCP_ACCESS_TOKEN_TTL_SECONDS,
+  MCP_RESOURCE,
+} from '@/lib/mcp/oauth-config'
 
 const baseURL = process.env.NEXT_PUBLIC_BASE_URL
 
@@ -62,7 +65,7 @@ const { auth } = createAuth({
             consentPage: '/oauth/consent',
             verificationUri: '/oauth/device',
             scopes: ['offline_access', ...ALL_SCOPES],
-            accessTokenExpiresIn: 15 * 60,
+            accessTokenExpiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
             refreshTokenExpiresIn: 90 * 24 * 60 * 60,
           },
         }),
