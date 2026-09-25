@@ -185,19 +185,27 @@ html {
     /* The sidebar's create-event button. Its own token rather than --secondary,
        which is shared by every secondary button in the app.
 
-       Deliberately the same value as --cal-today below, not a reference to it:
-       they match today by request, but a button fill and the today badge are
-       unrelated decisions, and aliasing them would silently move one whenever
-       the other is retuned. */
+       No longer kept equal to --cal-today below: the today badge is pinned to
+       one value across both themes (see its comment), while the button follows
+       the surface it sits on, because a `variant="secondary"` label is
+       `text-secondary-foreground` and inverting to near-white on a light fill
+       would be unreadable. Aliasing them would silently move one whenever the
+       other is retuned, so they stay separate by design. */
     --cal-create: #e5e5e5;
-    /* Calendar accent for the chrome (now line, create selection).
-       Monochrome by request: ink on light, paper on dark — the hierarchy
-       comes from opacity steps, not hue. */
+    /* Calendar accent for the chrome (now line, create selection), and the data
+       ink of the analytics report. Monochrome by request: ink on light, paper
+       on dark — the hierarchy comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
     /* Today's date badge: one step deeper than the panel grays so it
-       reads against the white grid. */
+       reads against the white grid.
+
+       This is the value in BOTH themes, deliberately: a date badge that
+       changes colour with the mode is a badge the reader has to re-learn every
+       time they switch. So no theme block below re-tunes it, and the
+       foreground is a literal ink rather than `var(--secondary-foreground)`,
+       which flips to near-white in dark mode and would vanish on this fill. */
     --cal-today: #e5e5e5;
-    --cal-today-foreground: var(--secondary-foreground);
+    --cal-today-foreground: oklch(0.205 0 0);
     /* The now line and its dot. Halfway between the old #737373 (lost among the
        grid lines) and near-ink #1a1a1a (pulled the eye off the events): still
        clearly the darkest chrome, without competing for attention. */
@@ -206,7 +214,6 @@ html {
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
-    --cal-today: #404040;
     --cal-now: #cbcbcb;
     --cal-create: #404040;
     --background: oklch(0.145 0 0);
@@ -285,46 +292,37 @@ html {
     --cal-today-foreground: #581c87;
   }
 
+  /* Dark variants retune the accent and the now line, but never the today
+     badge: `--cal-today` and `--cal-today-foreground` are inherited from the
+     light blocks above, so a date looks identical in both modes. */
   .dark[data-calendar-color='orange'] {
     --cal-accent: #fb923c;
     --cal-now: #fb923c;
-    --cal-today: #ffedd5;
-    --cal-today-foreground: #7c2d12;
   }
 
   .dark[data-calendar-color='yellow'] {
     --cal-accent: #fde047;
     --cal-now: #facc15;
-    --cal-today: #fef9c3;
-    --cal-today-foreground: #713f12;
   }
 
   .dark[data-calendar-color='blue'] {
     --cal-accent: #60a5fa;
     --cal-now: #60a5fa;
-    --cal-today: #dbeafe;
-    --cal-today-foreground: #1e3a8a;
   }
 
   .dark[data-calendar-color='green'] {
     --cal-accent: #4ade80;
     --cal-now: #4ade80;
-    --cal-today: #dcfce7;
-    --cal-today-foreground: #14532d;
   }
 
   .dark[data-calendar-color='pink'] {
     --cal-accent: #f472b6;
     --cal-now: #f472b6;
-    --cal-today: #fce7f3;
-    --cal-today-foreground: #831843;
   }
 
   .dark[data-calendar-color='purple'] {
     --cal-accent: #c084fc;
     --cal-now: #c084fc;
-    --cal-today: #f3e8ff;
-    --cal-today-foreground: #581c87;
   }
 
   * {
