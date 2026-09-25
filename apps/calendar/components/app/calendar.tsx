@@ -32,7 +32,14 @@ import {
 import dynamic from 'next/dynamic'
 import UserProfileButton from '@/components/app/profile/user-profile-button'
 import type { AccountSection } from '@zntr/auth/account'
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 import {
@@ -505,7 +512,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   useEffect(() => () => applyCalendarColor(undefined), [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (settingsInitializedRef.current) return
     if (Object.keys(settings).length === 0) return
     settingsInitializedRef.current = true
