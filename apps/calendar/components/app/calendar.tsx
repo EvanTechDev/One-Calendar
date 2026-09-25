@@ -233,7 +233,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
-  const { settings, updateSettings } = useSettings()
+  const { settings, loading: settingsLoading, updateSettings } = useSettings()
   const { setTheme } = useTheme()
   const { upsertEvent, deleteEvent, refreshEvents } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
@@ -1425,6 +1425,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [filteredEvents, searchTerm])
 
   useNotifications(events)
+
+  // Settings are fetched after the calendar mounts. Do not render the default
+  // week view while that request is in flight, otherwise users briefly see a
+  // week grid before their saved view is applied.
+  if (settingsLoading === 'loading') {
+    return <div className={className} aria-busy="true" />
+  }
 
   return (
     <div className={className}>
