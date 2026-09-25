@@ -606,15 +606,12 @@ importers:
 
   packages/utils:
     dependencies:
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
+      cn:
+        specifier: ^0.4.0
+        version: 0.4.0
       react:
         specifier: 19.2.7
         version: 19.2.7
-      tailwind-merge:
-        specifier: 3.6.0
-        version: 3.6.0
     devDependencies:
       vitest:
         specifier: ^4.1.10
