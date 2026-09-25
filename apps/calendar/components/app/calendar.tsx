@@ -459,6 +459,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   )
   const handleDefaultViewChange = (view: CalendarViewTypeValue) => {
     setDefaultView(view)
+    setView(view)
     updateSettings({ defaultView: view })
   }
   const [enableShortcuts, setEnableShortcuts] = useState<boolean>(
@@ -500,11 +501,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     [firstDayOfWeekObj, timezone, timeFormatObj, languageObj, date, view],
   )
 
-  useEffect(() => {
-    setView(isCalendarView(defaultView) ? defaultView : 'week')
-  }, [defaultView])
-
   const settingsInitializedRef = useRef(false)
+  const [settingsViewReady, setSettingsViewReady] = useState(false)
 
   useEffect(() => {
     applyCalendarColor(settings.calendarColor)
@@ -513,8 +511,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   useEffect(() => () => applyCalendarColor(undefined), [])
 
   useLayoutEffect(() => {
-    if (settingsInitializedRef.current) return
-    if (Object.keys(settings).length === 0) return
+    if (settingsLoading === 'loading' || settingsInitializedRef.current) return
     settingsInitializedRef.current = true
 
     const settingsSync: Array<() => void> = [
@@ -553,7 +550,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       },
     ]
     settingsSync.forEach((fn) => fn())
-  }, [settings])
+    setSettingsViewReady(true)
+  }, [settings, settingsLoading])
 
   useEffect(() => {
     const handleTimezoneEvent = (event: Event) => {
@@ -1436,7 +1434,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // Settings are fetched after the calendar mounts. Do not render the default
   // week view while that request is in flight, otherwise users briefly see a
   // week grid before their saved view is applied.
-  if (settingsLoading === 'loading') {
+  if (!settingsViewReady) {
     return <div className={className} aria-busy="true" />
   }
 
