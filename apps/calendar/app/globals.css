@@ -288,43 +288,43 @@ html {
   .dark[data-calendar-color='orange'] {
     --cal-accent: #fb923c;
     --cal-now: #fb923c;
-    --cal-today: #431407;
-    --cal-today-foreground: #fff7ed;
+    --cal-today: #fdba74;
+    --cal-today-foreground: #7c2d12;
   }
 
   .dark[data-calendar-color='yellow'] {
     --cal-accent: #fde047;
     --cal-now: #facc15;
-    --cal-today: #422006;
-    --cal-today-foreground: #fefce8;
+    --cal-today: #fde68a;
+    --cal-today-foreground: #713f12;
   }
 
   .dark[data-calendar-color='blue'] {
     --cal-accent: #60a5fa;
     --cal-now: #60a5fa;
-    --cal-today: #1e3a8a;
-    --cal-today-foreground: #dbeafe;
+    --cal-today: #93c5fd;
+    --cal-today-foreground: #1e3a8a;
   }
 
   .dark[data-calendar-color='green'] {
     --cal-accent: #4ade80;
     --cal-now: #4ade80;
-    --cal-today: #052e16;
-    --cal-today-foreground: #f0fdf4;
+    --cal-today: #86efac;
+    --cal-today-foreground: #14532d;
   }
 
   .dark[data-calendar-color='pink'] {
     --cal-accent: #f472b6;
     --cal-now: #f472b6;
-    --cal-today: #500724;
-    --cal-today-foreground: #fdf2f8;
+    --cal-today: #f9a8d4;
+    --cal-today-foreground: #831843;
   }
 
   .dark[data-calendar-color='purple'] {
     --cal-accent: #c084fc;
     --cal-now: #c084fc;
-    --cal-today: #3b0764;
-    --cal-today-foreground: #faf5ff;
+    --cal-today: #d8b4fe;
+    --cal-today-foreground: #581c87;
   }
 
   * {
