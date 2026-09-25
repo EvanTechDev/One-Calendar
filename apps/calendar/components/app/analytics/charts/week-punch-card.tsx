@@ -90,7 +90,7 @@ export function WeekPunchCard({ distribution }: WeekPunchCardProps) {
                         <span className="h-1 w-1 rounded-full bg-foreground/[0.07]" />
                       ) : (
                         <span
-                          className="rounded-full bg-primary"
+                          className="rounded-full bg-cal-accent"
                           style={{
                             width: `${7 + ratio * 11}px`,
                             height: `${7 + ratio * 11}px`,
@@ -104,7 +104,7 @@ export function WeekPunchCard({ distribution }: WeekPunchCardProps) {
                 <div className="flex items-center gap-1.5 pl-3">
                   <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/[0.07]">
                     <div
-                      className="h-full rounded-full bg-primary/60"
+                      className="h-full rounded-full bg-cal-accent/60"
                       style={{
                         width:
                           maxHours === 0

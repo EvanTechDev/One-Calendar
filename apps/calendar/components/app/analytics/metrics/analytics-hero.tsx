@@ -100,7 +100,11 @@ function RhythmStrip({ rhythm }: { rhythm: RhythmDay[] }) {
                   'w-full rounded-[2px] transition-colors',
                   day.count === 0
                     ? 'bg-foreground/10 group-hover:bg-foreground/20'
-                    : 'bg-primary group-hover:bg-primary/70',
+                    : // `cal-accent` rather than `primary`: the bars are the
+                      // report's data ink, so they follow the calendar color
+                      // the user picked. `primary` is fixed monochrome, which
+                      // is exactly what the grey theme sets `cal-accent` to.
+                      'bg-cal-accent group-hover:bg-cal-accent/70',
                 )}
                 style={{
                   height: day.count === 0 ? '3px' : `${18 + ratio * 82}%`,
