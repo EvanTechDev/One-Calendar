@@ -17,8 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
-    "tailwind-merge": "3.6.0",
+    "cn": "^0.4.0",
     "react": "19.2.7"
   },
   "devDependencies": {
