@@ -37,6 +37,7 @@
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.4.0",
     "cobe": "0.6.4",
     "date-fns": "4.4.0",
     "drizzle-orm": "^0.45.2",
