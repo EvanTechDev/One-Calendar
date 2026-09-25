@@ -243,6 +243,90 @@ html {
     --sidebar-ring: oklch(0.556 0 0);
   }
 
+  :root[data-calendar-color='orange'] {
+    --cal-accent: #c2410c;
+    --cal-now: #ea580c;
+    --cal-today: #ffedd5;
+    --cal-today-foreground: #7c2d12;
+  }
+
+  :root[data-calendar-color='yellow'] {
+    --cal-accent: #a16207;
+    --cal-now: #ca8a04;
+    --cal-today: #fef9c3;
+    --cal-today-foreground: #713f12;
+  }
+
+  :root[data-calendar-color='blue'] {
+    --cal-accent: #1d4ed8;
+    --cal-now: #2563eb;
+    --cal-today: #dbeafe;
+    --cal-today-foreground: #1e3a8a;
+  }
+
+  :root[data-calendar-color='green'] {
+    --cal-accent: #15803d;
+    --cal-now: #16a34a;
+    --cal-today: #dcfce7;
+    --cal-today-foreground: #14532d;
+  }
+
+  :root[data-calendar-color='pink'] {
+    --cal-accent: #be185d;
+    --cal-now: #db2777;
+    --cal-today: #fce7f3;
+    --cal-today-foreground: #831843;
+  }
+
+  :root[data-calendar-color='purple'] {
+    --cal-accent: #7e22ce;
+    --cal-now: #9333ea;
+    --cal-today: #f3e8ff;
+    --cal-today-foreground: #581c87;
+  }
+
+  .dark[data-calendar-color='orange'] {
+    --cal-accent: #fb923c;
+    --cal-now: #fb923c;
+    --cal-today: #431407;
+    --cal-today-foreground: #fed7aa;
+  }
+
+  .dark[data-calendar-color='yellow'] {
+    --cal-accent: #facc15;
+    --cal-now: #facc15;
+    --cal-today: #422006;
+    --cal-today-foreground: #fef08a;
+  }
+
+  .dark[data-calendar-color='blue'] {
+    --cal-accent: #60a5fa;
+    --cal-now: #60a5fa;
+    --cal-today: #172554;
+    --cal-today-foreground: #bfdbfe;
+  }
+
+  .dark[data-calendar-color='green'] {
+    --cal-accent: #4ade80;
+    --cal-now: #4ade80;
+    --cal-today: #052e16;
+    --cal-today-foreground: #bbf7d0;
+  }
+
+  .dark[data-calendar-color='pink'] {
+    --cal-accent: #f472b6;
+    --cal-now: #f472b6;
+    --cal-today: #500724;
+    --cal-today-foreground: #fbcfe8;
+  }
+
+  .dark[data-calendar-color='purple'] {
+    --cal-accent: #c084fc;
+    --cal-now: #c084fc;
+    --cal-today: #3b0764;
+    --cal-today-foreground: #e9d5ff;
+  }
+
   * {
     @apply border-border outline-ring/50;
     scrollbar-width: none;

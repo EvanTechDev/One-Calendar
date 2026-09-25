@@ -23,6 +23,7 @@ import type { CalendarEvent } from '../calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
+import type { CalendarColor } from '@/lib/calendar-colors'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -59,6 +60,7 @@ interface AppSettingsSnapshot {
   enableShortcuts?: boolean
   timeFormat?: '24h' | '12h'
   theme?: string
+  calendarColor?: CalendarColor
 }
 
 /**
@@ -285,6 +287,7 @@ export default function ImportExport({
               enableShortcuts: settings.enableShortcuts,
               timeFormat: settings.timeFormat,
               theme: settings.theme,
+              calendarColor: settings.calendarColor,
             },
           },
         }

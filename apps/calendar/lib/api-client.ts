@@ -1,4 +1,5 @@
 import { fetchJson } from '@/lib/fetch-json'
+import type { CalendarColor } from '@/lib/calendar-colors'
 
 export type EventInviteData = {
   id: string
@@ -87,6 +88,7 @@ export type SettingsData = {
   defaultView?: 'day' | 'week' | 'month' | 'year' | 'four-day'
   timeFormat?: '24h' | '12h'
   theme?: 'light' | 'dark' | 'system'
+  calendarColor?: CalendarColor
   enableShortcuts?: boolean
   skipLanding?: boolean
 }

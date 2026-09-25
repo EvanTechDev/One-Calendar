@@ -22,6 +22,10 @@ import { ScrollArea } from '@zntr/ui/scroll-area'
 import { cn } from '@zntr/utils'
 import { useTheme } from 'next-themes'
 import type { ThemeOption } from '@/lib/theme'
+import {
+  CALENDAR_COLOR_OPTIONS,
+  normalizeCalendarColor,
+} from '@/lib/calendar-colors'
 import { useSettings } from '@/components/providers/data-provider'
 import {
   getLanguageAutonym,
@@ -159,7 +163,7 @@ function GeneralSettings({
   setTimeFormat,
 }: GeneralSettingsProps) {
   const { theme, setTheme } = useTheme()
-  const { updateSettings } = useSettings()
+  const { settings, updateSettings } = useSettings()
   const langCode = language as keyof typeof translations
   const t = translations[langCode]
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -228,6 +232,7 @@ function GeneralSettings({
   }
 
   const selectClass = 'w-40 sm:w-48'
+  const calendarColor = normalizeCalendarColor(settings.calendarColor)
 
   return (
     <div className="space-y-6">
@@ -253,6 +258,44 @@ function GeneralSettings({
               <SelectItem value="system">{t.themeSystem}</SelectItem>
             </SelectContent>
           </Select>
+        </SettingRow>
+
+        <SettingRow icon={<Palette />} title={t.color}>
+          <div
+            className="flex items-center gap-1.5"
+            role="radiogroup"
+            aria-label={t.color}
+          >
+            {CALENDAR_COLOR_OPTIONS.map((option) => {
+              const selected = option.value === calendarColor
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`${t.color}: ${option.label}`}
+                  title={option.label}
+                  onClick={() => {
+                    updateSettings({ calendarColor: option.value }).catch(
+                      () => {},
+                    )
+                  }}
+                  className={cn(
+                    'flex size-6 items-center justify-center rounded-full border transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    selected
+                      ? 'border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-background'
+                      : 'border-border hover:ring-2 hover:ring-muted-foreground/40',
+                  )}
+                >
+                  <span
+                    className="size-4 rounded-full"
+                    style={{ backgroundColor: option.color }}
+                  />
+                </button>
+              )
+            })}
+          </div>
         </SettingRow>
 
         <SettingRow

@@ -52,6 +52,7 @@ import Sidebar from '@/components/app/sidebar/sidebar'
 import MobileSidebarDrawer from '@/components/app/sidebar/mobile-sidebar-drawer'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { THEME_OPTIONS, type ThemeOption } from '@/lib/theme'
+import { applyCalendarColor } from '@/lib/calendar-colors'
 import { useTheme } from 'next-themes'
 import { Button } from '@zntr/ui/button'
 import {
@@ -497,6 +498,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [defaultView])
 
   const settingsInitializedRef = useRef(false)
+
+  useEffect(() => {
+    applyCalendarColor(settings.calendarColor)
+  }, [settings.calendarColor])
+
+  useEffect(() => () => applyCalendarColor(undefined), [])
 
   useEffect(() => {
     if (settingsInitializedRef.current) return

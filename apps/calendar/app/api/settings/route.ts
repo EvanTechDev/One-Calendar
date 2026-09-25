@@ -3,6 +3,7 @@ import { getDb } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { getAuthedUser } from '@/lib/api-helpers'
+import type { CalendarColor } from '@/lib/calendar-colors'
 
 export const runtime = 'nodejs'
 
@@ -13,6 +14,7 @@ export type SettingsData = {
   defaultView?: 'day' | 'week' | 'month' | 'year' | 'four-day'
   timeFormat?: '24h' | '12h'
   theme?: 'light' | 'dark' | 'system'
+  calendarColor?: CalendarColor
   enableShortcuts?: boolean
   skipLanding?: boolean
 }
