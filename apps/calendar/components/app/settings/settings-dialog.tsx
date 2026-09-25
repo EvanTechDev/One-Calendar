@@ -101,6 +101,15 @@ interface SettingsDialogProps extends GeneralSettingsProps {
  * `px-4 py-3` padding, and the control held flush right. The two sections sit
  * side by side in the same dialog, so a divergence here reads as "a different
  * kind of screen" rather than "another tab".
+ *
+ * One deliberate difference: the control is `shrink` rather than the account
+ * row's implicit fixed sizing, and the row carries no `w-full`. The account
+ * rows hold a chevron, but these hold selects and a swatch strip, and a
+ * `shrink-0` control that cannot fit the row escapes it — out through the
+ * group's border and past the dialog edge. `w-full` is a percentage width, and
+ * every row here sits inside Radix's `display: table` content wrapper, where
+ * percentage widths are folded back into the intrinsic size; on a `div` row it
+ * buys nothing anyway.
  */
 function SettingRow({
   icon,
@@ -116,7 +125,7 @@ function SettingRow({
   className?: string
 }) {
   return (
-    <div className={cn('flex w-full items-center gap-3 px-4 py-3', className)}>
+    <div className={cn('flex items-center gap-3 px-4 py-3', className)}>
       {icon ? (
         // `[&_svg]:size-4` sizes whatever lucide icon the caller passes, the
         // way the account rows hard-code `h-4 w-4` on theirs.
@@ -132,7 +141,9 @@ function SettingRow({
           </span>
         ) : null}
       </span>
-      <div className="flex shrink-0 items-center gap-2">{children}</div>
+      <div className="flex min-w-0 shrink items-center justify-end gap-2">
+        {children}
+      </div>
     </div>
   )
 }
@@ -241,7 +252,9 @@ function GeneralSettings({
     setLanguage(newLang)
   }
 
-  const selectClass = 'w-40 sm:w-48'
+  // `max-w-full` so the fixed widths yield to a row that is genuinely narrow,
+  // rather than pushing past the group's border (see SettingRow).
+  const selectClass = 'w-40 max-w-full sm:w-48'
   const calendarColor = selectedCalendarColor
 
   return (
@@ -276,7 +289,7 @@ function GeneralSettings({
           description={t.calendarColorDesc}
         >
           <div
-            className="flex items-center gap-2"
+            className="flex flex-wrap items-center justify-end gap-2"
             role="radiogroup"
             aria-label={t.color}
           >
@@ -446,6 +459,7 @@ function GeneralSettings({
           </Button>
           <Switch
             id="enable-shortcuts"
+            className="shrink-0"
             checked={enableShortcuts}
             onCheckedChange={setEnableShortcuts}
           />
