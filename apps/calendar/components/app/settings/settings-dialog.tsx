@@ -104,12 +104,11 @@ interface SettingsDialogProps extends GeneralSettingsProps {
  *
  * One deliberate difference: the control is `shrink` rather than the account
  * row's implicit fixed sizing, and the row carries no `w-full`. The account
- * rows hold a chevron, but these hold selects and a swatch strip, and a
- * `shrink-0` control that cannot fit the row escapes it — out through the
- * group's border and past the dialog edge. `w-full` is a percentage width, and
- * every row here sits inside Radix's `display: table` content wrapper, where
- * percentage widths are folded back into the intrinsic size; on a `div` row it
- * buys nothing anyway.
+ * rows hold a chevron, but these hold 192px selects, and a `shrink-0` control
+ * that cannot fit the row escapes it — out through the group's border and past
+ * the dialog edge. `w-full` is a percentage width, and every row here sits
+ * inside Radix's `display: table` content wrapper, where percentage widths are
+ * folded back into the intrinsic size; on a `div` row it buys nothing anyway.
  */
 function SettingRow({
   icon,
@@ -288,46 +287,38 @@ function GeneralSettings({
           title={t.calendarColor}
           description={t.calendarColorDesc}
         >
-          <div
-            className="flex flex-wrap items-center justify-end gap-2"
-            role="radiogroup"
-            aria-label={t.color}
+          {/* A select, not a swatch strip: seven circles side by side were the
+              widest control in the panel, and every other colour in the app
+              (the category create and edit dialogs) already picks one from a
+              list. The circle rides along on the item so the trigger shows the
+              colour it has selected, not just its name. */}
+          <Select
+            value={calendarColor}
+            onValueChange={(value: CalendarColor) => {
+              // Paint immediately; persistence can follow without making
+              // the visual interaction wait on the network.
+              setSelectedCalendarColor(value)
+              applyCalendarColor(value)
+              updateSettings({ calendarColor: value }).catch(() => {})
+            }}
           >
-            {CALENDAR_COLOR_OPTIONS.map((option) => {
-              const selected = option.value === calendarColor
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={`${t.calendarColor}: ${option.label}`}
-                  title={option.label}
-                  onClick={() => {
-                    // Paint immediately; persistence can follow without making
-                    // the visual interaction wait on the network.
-                    setSelectedCalendarColor(option.value)
-                    applyCalendarColor(option.value)
-                    updateSettings({ calendarColor: option.value }).catch(
-                      () => {},
-                    )
-                  }}
-                  className={cn(
-                    'relative flex size-6 items-center justify-center rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    selected ? 'scale-110' : 'hover:scale-105',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'block size-5 rounded-full shadow-sm ring-1 ring-black/10 dark:ring-white/15',
-                      selected && 'scale-110 shadow-md',
-                    )}
-                    style={{ backgroundColor: option.color }}
-                  />
-                </button>
-              )
-            })}
-          </div>
+            <SelectTrigger id="calendar-color" className={selectClass}>
+              <SelectValue placeholder={t.selectColor} />
+            </SelectTrigger>
+            <SelectContent>
+              {CALENDAR_COLOR_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="size-4 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
+                      style={{ backgroundColor: option.color }}
+                    />
+                    {option.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </SettingRow>
 
         <SettingRow
