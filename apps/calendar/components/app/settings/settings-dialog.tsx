@@ -92,6 +92,16 @@ interface SettingsDialogProps extends GeneralSettingsProps {
   onImportEvents: (events: CalendarEvent[]) => void
 }
 
+/**
+ * The preferences row.
+ *
+ * Deliberately the same shape as the account panel's rows (see
+ * packages/auth/src/account/account-panel.tsx): a 16px muted icon with no
+ * chip behind it, a single-line truncated summary under the title, symmetric
+ * `px-4 py-3` padding, and the control held flush right. The two sections sit
+ * side by side in the same dialog, so a divergence here reads as "a different
+ * kind of screen" rather than "another tab".
+ */
 function SettingRow({
   icon,
   title,
@@ -106,32 +116,28 @@ function SettingRow({
   className?: string
 }) {
   return (
-    <div
-      className={cn(
-        'flex items-center justify-between gap-4 py-3.5 pl-4 pr-3',
-        className,
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        {icon ? (
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4">
-            {icon}
+    <div className={cn('flex w-full items-center gap-3 px-4 py-3', className)}>
+      {icon ? (
+        // `[&_svg]:size-4` sizes whatever lucide icon the caller passes, the
+        // way the account rows hard-code `h-4 w-4` on theirs.
+        <span className="shrink-0 text-muted-foreground [&_svg]:size-4">
+          {icon}
+        </span>
+      ) : null}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium">{title}</span>
+        {description ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            {description}
           </span>
         ) : null}
-        <div className="min-w-0">
-          <div className="text-sm leading-snug font-medium">{title}</div>
-          {description ? (
-            <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              {description}
-            </div>
-          ) : null}
-        </div>
-      </div>
+      </span>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>
   )
 }
 
+/** The bordered, divided card the rows sit in. Matches the account groups. */
 function SettingsGroup({
   className,
   children,
@@ -140,12 +146,7 @@ function SettingsGroup({
   children: React.ReactNode
 }) {
   return (
-    <div
-      className={cn(
-        'divide-y divide-border rounded-xl border bg-card',
-        className,
-      )}
-    >
+    <div className={cn('divide-y rounded-lg border', className)}>
       {children}
     </div>
   )
