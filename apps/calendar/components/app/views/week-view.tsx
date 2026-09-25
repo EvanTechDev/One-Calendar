@@ -828,14 +828,14 @@ export default function WeekView({
               {createSelection && createSelection.dayIndex === dayIndex && (
                 <div
                   data-create-selection
-                  className="absolute left-0 right-0 rounded-md border border-cal-accent/40 bg-cal-accent/10 pointer-events-none"
+                  className="absolute left-0 right-0 rounded-md border border-cal-accent bg-cal-accent pointer-events-none"
                   style={{
                     top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
                     height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                  <div className="px-2 pt-1 text-xs font-medium text-foreground">
                     {formatSelectionRange(
                       createSelection.startMinute,
                       createSelection.endMinute,
@@ -866,14 +866,14 @@ export default function WeekView({
                   return (
                     <div
                       {...(isFirstDay ? { 'data-create-selection': true } : {})}
-                      className="absolute left-0 right-0 rounded-md border border-cal-accent/40 bg-cal-accent/10 pointer-events-none"
+                      className="absolute left-0 right-0 rounded-md border border-cal-accent bg-cal-accent pointer-events-none"
                       style={{
                         top: `${startMinute}px`,
                         height: `${Math.max(endMinute - startMinute, 15)}px`,
                         zIndex: 5,
                       }}
                     >
-                      <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                      <div className="px-2 pt-1 text-xs font-medium text-foreground">
                         {formatSelectionRange(
                           startMinute,
                           endMinute,

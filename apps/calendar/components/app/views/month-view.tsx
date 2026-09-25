@@ -233,7 +233,7 @@ export default function MonthView({
                       'min-h-[100px] p-2 max-md:min-h-[72px] max-md:p-1',
                       dayIndex < 6 && 'border-r',
                       isCreateTarget &&
-                        'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
+                        'bg-cal-accent ring-1 ring-inset ring-cal-accent',
                     )}
                     // Mobile Form: the whole cell is the tap target for the
                     // bottom sheet. Guarded by matchMedia so a desktop click
