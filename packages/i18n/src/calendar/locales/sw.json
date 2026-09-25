@@ -43,6 +43,8 @@
   "settingsGeneral": "Mapendekezo",
   "settingsGeneralDesc": "Mwonekano wa kalenda, lugha na tabia.",
   "settingsThemeDesc": "Chagua jinsi programu inavyoonekana.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Chagua lugha inayotumika katika Zentra Calendar.",
   "settingsFirstDayDesc": "Chagua siku ambayo inaanza wiki ya kalenda.",
   "settingsDefaultViewDesc": "Mwonekano unaoonyeshwa wakati unapofungua kalenda.",

@@ -43,6 +43,8 @@
   "settingsGeneral": "Nastavitve",
   "settingsGeneralDesc": "Videz kalendarja, jezik in vedenje.",
   "settingsThemeDesc": "Izberite, kako bo aplikacija izgledala.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Izberite jezik, ki se uporablja v celotnem Zentra Calendarju.",
   "settingsFirstDayDesc": "Izberite, kateri dan je prvi dan v tednu v koledarju.",
   "settingsDefaultViewDesc": "Pogled, ki se prikaže, ko odprete koledar.",

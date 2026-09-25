@@ -43,6 +43,8 @@
   "settingsGeneral": "वरीयताएँ",
   "settingsGeneralDesc": "कैलेंडर दिखावट, भाषा और व्यवहार।",
   "settingsThemeDesc": "ऐप कैसा दिखे, चुनें।",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Zentra Calendar में प्रयुक्त भाषा चुनें।",
   "settingsFirstDayDesc": "कैलेंडर सप्ताह किस दिन से शुरू होता है, चुनें।",
   "settingsDefaultViewDesc": "जब आप कैलेंडर खोलेंगे तो दिखने वाला दृश्य।",

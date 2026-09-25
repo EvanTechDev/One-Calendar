@@ -43,6 +43,8 @@
   "settingsGeneral": "Stilltæki",
   "settingsGeneralDesc": "Útlit dagatal, tungumál og hegðun.",
   "settingsThemeDesc": "Veldu hvernig forritið lítur út.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Veldu tungumál sem notað er í Zentra Calendar.",
   "settingsFirstDayDesc": "Veldu hvaða dagur byrjar vikuna í dagatalinu.",
   "settingsDefaultViewDesc": "Skoðan sem birtist þegar þú opnar dagatalinu.",

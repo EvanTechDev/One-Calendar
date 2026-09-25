@@ -43,6 +43,8 @@
   "settingsGeneral": "Iestatījumi",
   "settingsGeneralDesc": "Kalendāra izskats, valoda un darbība.",
   "settingsThemeDesc": "Izvēlieties, kā aplikācija izskatāsies.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Izvēlieties valodu, ko izmantos Zentra Calendar.",
   "settingsFirstDayDesc": "Izvēlieties, kurš diena sāk kalendāra nedēļu.",
   "settingsDefaultViewDesc": "Skats, kurš tiek parādīts, kad atverat kalendāru.",

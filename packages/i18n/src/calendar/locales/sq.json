@@ -43,6 +43,8 @@
   "settingsGeneral": "Parapëlime",
   "settingsGeneralDesc": "Pamja e kalendarit, gjuha dhe sjellja.",
   "settingsThemeDesc": "Zgjidhni si duket aplikacioni.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Zgjidhni gjuhën e përdorur në Zentra Calendar.",
   "settingsFirstDayDesc": "Zgjidhni cili ditë nis javën e kalendarit.",
   "settingsDefaultViewDesc": "Pamja e shfaqur kur hapni kalendarin.",

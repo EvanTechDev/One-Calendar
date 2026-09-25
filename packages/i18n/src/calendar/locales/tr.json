@@ -43,6 +43,8 @@
   "settingsGeneral": "Tercihler",
   "settingsGeneralDesc": "Takvim görünümü, dil ve davranış.",
   "settingsThemeDesc": "Uygulamanın nasıl görüneceğini seçin.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Zentra Calendar'da kullanılacak dili seçin.",
   "settingsFirstDayDesc": "Takvim haftasının hangi günle başlayacağını seçin.",
   "settingsDefaultViewDesc": "Takvimi açtığınızda gösterilen görünüm.",

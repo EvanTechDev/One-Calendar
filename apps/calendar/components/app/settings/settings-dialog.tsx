@@ -24,6 +24,7 @@ import { useTheme } from 'next-themes'
 import type { ThemeOption } from '@/lib/theme'
 import {
   CALENDAR_COLOR_OPTIONS,
+  applyCalendarColor,
   normalizeCalendarColor,
 } from '@/lib/calendar-colors'
 import { useSettings } from '@/components/providers/data-provider'
@@ -263,8 +264,8 @@ function GeneralSettings({
 
         <SettingRow
           icon={<Paintbrush />}
-          title={t.color}
-          description={t.selectColor}
+          title={t.calendarColor}
+          description={t.calendarColorDesc}
         >
           <div
             className="flex items-center gap-2"
@@ -279,9 +280,12 @@ function GeneralSettings({
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  aria-label={`${t.color}: ${option.label}`}
+                  aria-label={`${t.calendarColor}: ${option.label}`}
                   title={option.label}
                   onClick={() => {
+                    // Paint immediately; persistence can follow without making
+                    // the visual interaction wait on the network.
+                    applyCalendarColor(option.value)
                     updateSettings({ calendarColor: option.value }).catch(
                       () => {},
                     )

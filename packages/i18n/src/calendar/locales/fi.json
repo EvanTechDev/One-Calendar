@@ -43,6 +43,8 @@
   "settingsGeneral": "Asetukset",
   "settingsGeneralDesc": "Kalenterin ulkoasu, kieli ja toiminta.",
   "settingsThemeDesc": "Valitse sovelluksen ulkoasu.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Valitse Zentra Calendarin käyttämä kieli.",
   "settingsFirstDayDesc": "Valitse, mikä päivä aloittaa kalenteriviikon.",
   "settingsDefaultViewDesc": "Näkymä, joka avautuu, kun kalenteri avataan.",

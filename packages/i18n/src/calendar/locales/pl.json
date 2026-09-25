@@ -43,6 +43,8 @@
   "settingsGeneral": "Preferencje",
   "settingsGeneralDesc": "Wygląd kalendarza, język i zachowanie.",
   "settingsThemeDesc": "Wybierz, jak aplikacja będzie wyglądać.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Wybierz język używany w Zentra Calendar.",
   "settingsFirstDayDesc": "Wybierz dzień rozpoczynający tydzień w kalendarzu.",
   "settingsDefaultViewDesc": "Widok pokazywany po otwarciu kalendarza.",

@@ -43,6 +43,8 @@
   "settingsGeneral": "Προτιμήσεις",
   "settingsGeneralDesc": "Εμφάνιση ημερολογίου, γλώσσα και συμπεριφορά.",
   "settingsThemeDesc": "Επιλέξτε πως εμφανίζεται η εφαρμογή.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Επιλέξτε τη γλώσσα που χρησιμοποιείται στο Zentra Calendar.",
   "settingsFirstDayDesc": "Επιλέξτε ποια ημέρα ξεκινάει η εβδομάδα στο ημερολόγιο.",
   "settingsDefaultViewDesc": "Η προβολή που εμφανίζεται όταν ανοίγετε το ημερολόγιο.",

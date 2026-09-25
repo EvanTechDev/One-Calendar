@@ -43,6 +43,8 @@
   "settingsGeneral": "Nuostatos",
   "settingsGeneralDesc": "Kalendoriaus išvaizda, kalba ir elgesys.",
   "settingsThemeDesc": "Pasirinkite, kaip programa atrodo.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Pasirinkite kalbą, naudojamą „Zentra Calendar“.",
   "settingsFirstDayDesc": "Pasirinkite, kuris savaitės diena pradeda kalendoriaus savaitę.",
   "settingsDefaultViewDesc": "Rodinys, rodomas atidarius kalendorių.",

@@ -43,6 +43,8 @@
   "settingsGeneral": "通用",
   "settingsGeneralDesc": "日历外观、语言与行为。",
   "settingsThemeDesc": "选择应用的外观。",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "选择 Zentra Calendar 使用的语言。",
   "settingsFirstDayDesc": "选择一周从星期几开始。",
   "settingsDefaultViewDesc": "打开日历时默认显示的视图。",

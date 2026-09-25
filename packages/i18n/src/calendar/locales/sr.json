@@ -43,6 +43,8 @@
   "settingsGeneral": "Postavke",
   "settingsGeneralDesc": "Izgled kalendara, jezik i ponašanje.",
   "settingsThemeDesc": "Izaberite kako će aplikacija izgledati.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Izaberite jezik koji će se koristiti u One Kalendaru.",
   "settingsFirstDayDesc": "Izaberite koji dan započinje kalendarsku nedelju.",
   "settingsDefaultViewDesc": "Prikaz koji se vidi kada otvorite kalendar.",

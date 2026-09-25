@@ -43,6 +43,8 @@
   "settingsGeneral": "Tùy chọn",
   "settingsGeneralDesc": "Giao diện, ngôn ngữ và hành vi của lịch.",
   "settingsThemeDesc": "Chọn giao diện ứng dụng.",
+  "calendarColor": "Calendar color",
+  "calendarColorDesc": "Choose a color for today and calendar highlights.",
   "settingsLanguageDesc": "Chọn ngôn ngữ sử dụng trong Zentra Calendar.",
   "settingsFirstDayDesc": "Chọn ngày bắt đầu tuần trong lịch.",
   "settingsDefaultViewDesc": "Chế độ hiển thị khi mở lịch.",
