@@ -26,6 +26,7 @@ import {
   CALENDAR_COLOR_OPTIONS,
   applyCalendarColor,
   normalizeCalendarColor,
+  type CalendarColor,
 } from '@/lib/calendar-colors'
 import { useSettings } from '@/components/providers/data-provider'
 import {
@@ -166,9 +167,15 @@ function GeneralSettings({
 }: GeneralSettingsProps) {
   const { theme, setTheme } = useTheme()
   const { settings, updateSettings } = useSettings()
+  const [selectedCalendarColor, setSelectedCalendarColor] =
+    useState<CalendarColor>(normalizeCalendarColor(settings.calendarColor))
   const langCode = language as keyof typeof translations
   const t = translations[langCode]
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+
+  useEffect(() => {
+    setSelectedCalendarColor(normalizeCalendarColor(settings.calendarColor))
+  }, [settings.calendarColor])
 
   const gmtTimezones = useMemo(() => {
     const timezones = Intl.supportedValuesOf('timeZone')
@@ -234,7 +241,7 @@ function GeneralSettings({
   }
 
   const selectClass = 'w-40 sm:w-48'
-  const calendarColor = normalizeCalendarColor(settings.calendarColor)
+  const calendarColor = selectedCalendarColor
 
   return (
     <div className="space-y-6">
@@ -285,6 +292,7 @@ function GeneralSettings({
                   onClick={() => {
                     // Paint immediately; persistence can follow without making
                     // the visual interaction wait on the network.
+                    setSelectedCalendarColor(option.value)
                     applyCalendarColor(option.value)
                     updateSettings({ calendarColor: option.value }).catch(
                       () => {},
