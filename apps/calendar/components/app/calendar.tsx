@@ -55,6 +55,7 @@ import EventPreview, {
   type EventInvite,
 } from '@/components/app/event/event-preview'
 import EventEditor from '@/components/app/event/event-editor'
+import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import MobileSidebarDrawer from '@/components/app/sidebar/mobile-sidebar-drawer'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
@@ -1435,7 +1436,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // week view while that request is in flight, otherwise users briefly see a
   // week grid before their saved view is applied.
   if (!settingsViewReady) {
-    return <div className={className} aria-busy="true" />
+    return <AuthWaitingLoading />
   }
 
   return (
