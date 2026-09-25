@@ -239,9 +239,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     string[]
   >([])
   const calendarRef = useRef<HTMLDivElement>(null)
-  // Scroll offset to restore once the sidebar's collapse transition ends. See
-  // toggleSidebar for why the report loses it in the first place.
-  const pendingScrollRestore = useRef<number | null>(null)
   const [language, setLanguage] = useLanguage()
   const t = translations[language]
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
@@ -727,30 +724,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents, view])
 
   const toggleSidebar = () => {
-    // Collapsing the sidebar parks `isSidebarTransitioning` on the analytics
-    // report, which hides the chart sections for the length of the width
-    // animation (see time-analytics.tsx). A hidden subtree leaves the layout,
-    // so the scroll container's content collapses to the page header and the
-    // browser clamps scrollTop to 0 — the report threw the reader back to the
-    // top every time the sidebar moved. Read the position off the live node
-    // here, before React commits the hidden class, and put it back when the
-    // transition ends.
-    if (calendarRef.current) {
-      pendingScrollRestore.current = calendarRef.current.scrollTop
-    }
     setIsSidebarTransitioning(true)
     setIsSidebarCollapsed((prev) => !prev)
-  }
-
-  const handleCollapseTransitionEnd = () => {
-    setIsSidebarTransitioning(false)
-    const saved = pendingScrollRestore.current
-    pendingScrollRestore.current = null
-    // Assigning past the new maximum is a no-op rather than an error: the
-    // widened container simply clamps, which is the honest position anyway.
-    if (saved !== null && calendarRef.current) {
-      calendarRef.current.scrollTop = saved
-    }
   }
 
   const handleDateSelect = (date: Date) => {
@@ -1490,7 +1465,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               return prev.filter((id) => id !== categoryId)
             })
           }}
-          onCollapseTransitionEnd={handleCollapseTransitionEnd}
+          onCollapseTransitionEnd={() => setIsSidebarTransitioning(false)}
         />
 
         <MobileSidebarDrawer

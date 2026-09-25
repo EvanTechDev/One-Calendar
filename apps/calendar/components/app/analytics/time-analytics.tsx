@@ -256,7 +256,22 @@ export default function TimeAnalyticsComponent({
         />
       </Section>
 
-      <div className={cn('space-y-6', isSidebarTransitioning && 'hidden')}>
+      {/*
+        `invisible`, not `hidden`. The charts must not be watched re-measuring
+        while the sidebar's width animates, but `display: none` also takes them
+        out of the layout: the scroll container's content collapses to the page
+        header, the browser clamps scrollTop to 0, and the report threw the
+        reader back to the top every time the sidebar moved. `visibility:
+        hidden` hides just as much and leaves the boxes — and the scroll
+        position — exactly where they were. `pointer-events-none` because
+        invisible content is still clickable.
+      */}
+      <div
+        className={cn(
+          'space-y-6',
+          isSidebarTransitioning && 'invisible pointer-events-none',
+        )}
+      >
         <Section title={t.analyticsSectionWeek}>
           <WeekPunchCard distribution={distribution} />
         </Section>
