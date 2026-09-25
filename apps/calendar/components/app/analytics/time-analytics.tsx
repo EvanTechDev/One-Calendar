@@ -38,13 +38,11 @@ import {
 import { AnalyticsHero, type RhythmDay } from './metrics/analytics-hero'
 import { AnalyticsInsightsPanel } from './insights/analytics-insights-panel'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import { cn } from '@zntr/utils'
 
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
   key?: string
-  isSidebarTransitioning?: boolean
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -61,7 +59,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function TimeAnalyticsComponent({
   events,
   calendars = [],
-  isSidebarTransitioning = false,
 }: TimeAnalyticsProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -256,22 +253,7 @@ export default function TimeAnalyticsComponent({
         />
       </Section>
 
-      {/*
-        `invisible`, not `hidden`. The charts must not be watched re-measuring
-        while the sidebar's width animates, but `display: none` also takes them
-        out of the layout: the scroll container's content collapses to the page
-        header, the browser clamps scrollTop to 0, and the report threw the
-        reader back to the top every time the sidebar moved. `visibility:
-        hidden` hides just as much and leaves the boxes — and the scroll
-        position — exactly where they were. `pointer-events-none` because
-        invisible content is still clickable.
-      */}
-      <div
-        className={cn(
-          'space-y-6',
-          isSidebarTransitioning && 'invisible pointer-events-none',
-        )}
-      >
+      <div className="space-y-6">
         <Section title={t.analyticsSectionWeek}>
           <WeekPunchCard distribution={distribution} />
         </Section>

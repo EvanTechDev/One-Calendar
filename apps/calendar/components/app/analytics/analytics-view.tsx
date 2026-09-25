@@ -12,13 +12,11 @@ interface AnalyticsViewProps {
   events: CalendarEvent[]
   onCreateEvent: (startDate: Date, endDate: Date) => void
   onBackToCalendar?: () => void
-  isSidebarTransitioning?: boolean
 }
 
 export default function AnalyticsView({
   events,
   onBackToCalendar,
-  isSidebarTransitioning = false,
 }: AnalyticsViewProps) {
   const { calendars } = useCalendar()
   const [language] = useLanguage()
@@ -60,7 +58,6 @@ export default function AnalyticsView({
         events={events}
         calendars={calendars}
         key={`time-analytics-${language}-${_forceUpdate}`}
-        isSidebarTransitioning={isSidebarTransitioning}
       />
     </div>
   )

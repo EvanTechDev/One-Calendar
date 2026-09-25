@@ -206,7 +206,6 @@ interface CalendarProps {
 export default function Calendar({ className, ..._props }: CalendarProps) {
   const router = useRouter()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isSidebarTransitioning, setIsSidebarTransitioning] = useState(false)
   // Mobile Form only (ADR-0019): the left drawer holding the sidebar content.
   // Opened by the hamburger button, which exists only below the md breakpoint.
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
@@ -724,7 +723,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }, [enableShortcuts, t.searchEvents, view])
 
   const toggleSidebar = () => {
-    setIsSidebarTransitioning(true)
     setIsSidebarCollapsed((prev) => !prev)
   }
 
@@ -1465,7 +1463,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               return prev.filter((id) => id !== categoryId)
             })
           }}
-          onCollapseTransitionEnd={() => setIsSidebarTransitioning(false)}
         />
 
         <MobileSidebarDrawer
@@ -1998,7 +1995,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                   handleTimeRangeSelect(startDate)
                 }}
                 onBackToCalendar={() => setView(defaultView)}
-                isSidebarTransitioning={isSidebarTransitioning}
               />
             )}
           </div>
