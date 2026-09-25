@@ -44,6 +44,7 @@ import {
   Keyboard,
   Languages,
   Monitor,
+  Paintbrush,
   Palette,
   SlidersHorizontal,
   X,
@@ -260,9 +261,13 @@ function GeneralSettings({
           </Select>
         </SettingRow>
 
-        <SettingRow icon={<Palette />} title={t.color}>
+        <SettingRow
+          icon={<Paintbrush />}
+          title={t.color}
+          description={t.selectColor}
+        >
           <div
-            className="flex items-center gap-1.5"
+            className="flex items-center gap-2"
             role="radiogroup"
             aria-label={t.color}
           >
@@ -282,14 +287,15 @@ function GeneralSettings({
                     )
                   }}
                   className={cn(
-                    'flex size-6 items-center justify-center rounded-full border transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    selected
-                      ? 'border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-background'
-                      : 'border-border hover:ring-2 hover:ring-muted-foreground/40',
+                    'relative flex size-6 items-center justify-center rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    selected ? 'scale-110' : 'hover:scale-105',
                   )}
                 >
                   <span
-                    className="size-4 rounded-full"
+                    className={cn(
+                      'block size-5 rounded-full shadow-sm ring-1 ring-black/10 dark:ring-white/15',
+                      selected && 'scale-110 shadow-md',
+                    )}
                     style={{ backgroundColor: option.color }}
                   />
                 </button>

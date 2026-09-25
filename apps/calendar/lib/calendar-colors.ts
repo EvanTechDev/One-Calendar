@@ -1,7 +1,7 @@
 export const CALENDAR_COLOR_OPTIONS = [
   { value: 'black-white', label: 'Black & white', color: '#737373' },
   { value: 'orange', label: 'Orange', color: '#f97316' },
-  { value: 'yellow', label: 'Yellow', color: '#eab308' },
+  { value: 'yellow', label: 'Yellow', color: '#facc15' },
   { value: 'blue', label: 'Blue', color: '#3b82f6' },
   { value: 'green', label: 'Green', color: '#22c55e' },
   { value: 'pink', label: 'Pink', color: '#ec4899' },
