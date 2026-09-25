@@ -572,14 +572,14 @@ export function SelectionRenderer({
 
   return (
     <div
-      className="absolute left-0 right-0 rounded-md border border-cal-accent bg-cal-accent pointer-events-none"
+      className="absolute left-0 right-0 rounded-md bg-cal-accent/10 border border-cal-accent/40 pointer-events-none"
       style={{
         top: `${Math.min(createSelection.startMinute, createSelection.endMinute)}px`,
         height: `${Math.max(Math.abs(createSelection.endMinute - createSelection.startMinute), 15)}px`,
         zIndex: 5,
       }}
     >
-      <div className="px-2 pt-1 text-xs font-medium text-foreground">
+      <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
         {formatSelectionRange(
           createSelection.startMinute,
           createSelection.endMinute,
