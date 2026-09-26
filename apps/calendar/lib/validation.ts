@@ -12,17 +12,17 @@ const hexColor = '#[0-9a-fA-F]{6}'
 const paletteColor =
   'bg-(blue|green|yellow|red|purple|pink|teal|indigo|orange)-500'
 
-export const colorRegex = new RegExp(
+const colorRegex = new RegExp(
   `^(?:${hexColor}|${paletteColor}|bg-\\[${hexColor}\\])$`,
 )
 
-export const dateTimeString = z
+const dateTimeString = z
   .string()
   .datetime({ offset: true })
   .or(z.string().datetime())
 
 // Countdowns POST targetDate as "YYYY-MM-DD" (no time component).
-export const dateOnlyString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+const dateOnlyString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 export const eventSchema = z.object({
   id: z.string().min(1).max(100).optional(),
@@ -136,8 +136,6 @@ export const RSVP_STATUSES = [
   'maybe',
   'declined',
 ] as const
-
-export type RsvpStatus = (typeof RSVP_STATUSES)[number]
 
 /**
  * Body of `PATCH /api/invite/[token]`. Both fields are optional — the client

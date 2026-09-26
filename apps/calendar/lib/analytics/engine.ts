@@ -25,7 +25,7 @@ export interface AnalyticsRange {
   end: Date
 }
 
-export interface CategoryBreakdown {
+interface CategoryBreakdown {
   categoryId: string
   count: number
   hours: number

@@ -54,16 +54,7 @@ function normalizeEmails(emails: string[]): string[] {
   return unique
 }
 
-export async function getUserEmail(userId: string): Promise<string> {
-  const db = await getDb()
-  const [row] = await db
-    .select({ email: user.email })
-    .from(user)
-    .where(eq(user.id, userId))
-  return row?.email?.toLowerCase() ?? ''
-}
-
-export async function getOwnedEvent(userId: string, eventId: string) {
+async function getOwnedEvent(userId: string, eventId: string) {
   const db = await getDb()
   const [row] = await db
     .select()

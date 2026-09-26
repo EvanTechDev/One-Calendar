@@ -334,12 +334,4 @@ export const isCalendarView = (view: string): view is CalendarViewTypeValue => {
   return ['day', 'week', 'four-day', 'month', 'year'].includes(view)
 }
 
-export const calendarViews = [
-  'day',
-  'week',
-  'four-day',
-  'month',
-  'year',
-] as const
-
 export type ViewType = CalendarViewTypeValue | 'analytics' | 'settings'

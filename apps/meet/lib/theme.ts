@@ -16,9 +16,4 @@
 export const AVAILABLE_THEMES = ['light', 'dark'] as const
 export const THEME_OPTIONS = [...AVAILABLE_THEMES, 'system'] as const
 
-export type AvailableTheme = (typeof AVAILABLE_THEMES)[number]
 export type ThemeOption = (typeof THEME_OPTIONS)[number]
-
-export function isThemeOption(value: unknown): value is ThemeOption {
-  return THEME_OPTIONS.includes(value as ThemeOption)
-}

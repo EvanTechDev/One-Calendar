@@ -43,7 +43,7 @@ type LoadingState = 'loading' | 'loaded' | 'error'
 
 // Keys are the API URLs — the global SWR cache dedupes across remounts,
 // so re-entering the app or switching tabs within a session reuses cached data.
-export const DATA_KEYS = {
+const DATA_KEYS = {
   events: '/api/events',
   categories: '/api/categories',
   countdowns: '/api/countdowns',

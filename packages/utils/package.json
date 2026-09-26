@@ -17,8 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "cn": "^0.4.0",
-    "react": "19.2.7"
+    "cn": "^0.4.0"
   },
   "devDependencies": {
     "vitest": "^4.1.10"

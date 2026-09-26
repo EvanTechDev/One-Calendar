@@ -154,7 +154,7 @@ function matches(row: Row, condition: unknown): boolean {
 }
 
 /** Case-insensitive LIKE with `\` escaping, matching Postgres' ILIKE. */
-export function likeMatches(value: string, pattern: string): boolean {
+function likeMatches(value: string, pattern: string): boolean {
   let regex = ''
   for (let i = 0; i < pattern.length; i++) {
     const char = pattern[i]!

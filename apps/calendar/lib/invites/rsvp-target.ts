@@ -69,7 +69,7 @@ function parseRfcStampSafe(stamp: string): Date | null {
  * never generates. Without this check a participant could create an RSVP row for
  * a date that does not exist, which then renders as a phantom occurrence.
  */
-export async function grantHasOccurrence(
+async function grantHasOccurrence(
   grant: { eventId: string },
   stamp: string,
 ): Promise<boolean> {

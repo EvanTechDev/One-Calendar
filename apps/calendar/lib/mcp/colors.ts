@@ -1,4 +1,4 @@
-export const COLOR_OPTIONS = [
+const COLOR_OPTIONS = [
   { name: 'blue', value: 'bg-[#E6F6FD]', hex: '#3B82F6' },
   { name: 'green', value: 'bg-[#E7F8F2]', hex: '#10B981' },
   { name: 'amber', value: 'bg-[#FEF5E6]', hex: '#F59E0B' },
@@ -19,7 +19,7 @@ export const COLOR_HEX_LIST = COLOR_HEX_VALUES.join(', ')
 // Countdowns (and the UI palette) store Tailwind palette classes such as
 // "bg-blue-500" instead of the light event-style backgrounds. Names and hex
 // codes accepted by MCP are mapped to this palette.
-export const COUNTDOWN_COLOR_OPTIONS = [
+const COUNTDOWN_COLOR_OPTIONS = [
   { name: 'blue', value: 'bg-blue-500', hex: '#3B82F6' },
   { name: 'green', value: 'bg-green-500', hex: '#22C55E' },
   { name: 'yellow', value: 'bg-yellow-500', hex: '#EAB308' },

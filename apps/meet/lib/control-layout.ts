@@ -39,7 +39,7 @@ export const TOUCH_TARGET = 11 * TAILWIND_STEP
 export const MOBILE_BAR_PADDING = 3 * TAILWIND_STEP
 
 /** Minimum space kept between two neighbouring buttons. Rendered as `gap-0.5`. */
-export const MIN_GAP = 0.5 * TAILWIND_STEP
+const MIN_GAP = 0.5 * TAILWIND_STEP
 
 /** Gap between the primary buttons. Rendered as `gap-2`. */
 export const PRIMARY_GAP = 2 * TAILWIND_STEP

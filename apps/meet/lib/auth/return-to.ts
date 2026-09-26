@@ -10,7 +10,7 @@ import { createReturnToResolver, RETURN_TO_PARAM } from '@zntr/auth/return-to'
 export { RETURN_TO_PARAM }
 
 /** Where signed-in users land with no return request: the dashboard. */
-export const DEFAULT_SIGNED_IN_PATH = '/'
+const DEFAULT_SIGNED_IN_PATH = '/'
 
 export const resolveReturnTo = createReturnToResolver({
   defaultPath: DEFAULT_SIGNED_IN_PATH,

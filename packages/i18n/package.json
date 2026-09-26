@@ -22,7 +22,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@zntr/utils": "workspace:*",
     "react": "19.2.7"
   },
   "devDependencies": {

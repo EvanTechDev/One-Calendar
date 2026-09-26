@@ -7,12 +7,7 @@ import {
   Track,
   VideoQuality,
 } from 'livekit-client'
-import type {
-  LocalTrackPublication,
-  RemoteTrackPublication,
-  RemoteTrack,
-  Room,
-} from 'livekit-client'
+import type { RemoteTrackPublication, RemoteTrack, Room } from 'livekit-client'
 
 function lowerRemoteQuality(room: Room) {
   for (const participant of room.remoteParticipants.values()) {
@@ -70,5 +65,3 @@ export function useLowCPUOptimizer(room: Room) {
 
   return lowPowerMode
 }
-
-export type { LocalTrackPublication }

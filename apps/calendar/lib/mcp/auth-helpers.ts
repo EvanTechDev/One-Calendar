@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { type McpAuthUser, McpAuthError } from './types'
+import type { McpAuthUser } from './types'
 import { getUserNameAndEmail, verifyApiKey } from './auth'
 import { getDb } from '@/lib/drizzle/client'
 import { oauthClient, oauthConsent } from '@zntr/auth/schema'
@@ -79,14 +79,4 @@ export async function getMcpOAuthAuth(
     authType: 'oauth',
     keyId: clientId,
   }
-}
-
-export async function requireMcpAuth(
-  request: Request,
-): Promise<{ user: McpAuthUser; token: string }> {
-  const result = await getMcpApiKeyAuth(request)
-  if (!result) {
-    throw new McpAuthError('Unauthorized', 401)
-  }
-  return result
 }

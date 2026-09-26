@@ -43,11 +43,7 @@ import { RRule } from 'rrule'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
-export const EVENT_STATUSES: EventStatus[] = [
-  'confirmed',
-  'tentative',
-  'cancelled',
-]
+const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
 
 export type TimePreset =
   | 'today'
@@ -55,15 +51,11 @@ export type TimePreset =
   | 'next_week'
   | 'upcoming'
   | 'past'
-export type EventSortField =
-  | 'start_date'
-  | 'end_date'
-  | 'created_at'
-  | 'updated_at'
-export type EventSearchField = 'title' | 'description' | 'location'
+type EventSortField = 'start_date' | 'end_date' | 'created_at' | 'updated_at'
+type EventSearchField = 'title' | 'description' | 'location'
 export type ParticipantMode = 'any' | 'all'
 
-export const EVENT_FIELD_WHITELIST = [
+const EVENT_FIELD_WHITELIST = [
   'id',
   'title',
   'description',
@@ -172,7 +164,7 @@ const EVENT_COLOR_VALUES = new Set([
 // Pure helpers (unit-testable)
 // ---------------------------------------------------------------------------
 
-export function tzOffsetMs(date: Date, timeZone: string): number {
+function tzOffsetMs(date: Date, timeZone: string): number {
   try {
     const dtf = new Intl.DateTimeFormat('en-US', {
       timeZone,

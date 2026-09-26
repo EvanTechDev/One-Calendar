@@ -37,7 +37,7 @@ import type { ThemeOption } from '@/lib/theme'
 
 export type SettingsSection = 'preferences' | 'account' | 'about'
 
-export const SETTINGS_SECTIONS: {
+const SETTINGS_SECTIONS: {
   id: SettingsSection
   label: string
   icon: React.ReactNode

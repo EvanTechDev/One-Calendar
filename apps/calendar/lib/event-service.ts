@@ -227,7 +227,7 @@ export function resolveInstance(
   return override ? mergeOverride(base, override) : base
 }
 
-export interface OverrideUpsert {
+interface OverrideUpsert {
   id: string
   seriesId: string
   recurrenceId: string
@@ -235,7 +235,7 @@ export interface OverrideUpsert {
   fields: Record<string, unknown>
 }
 
-export interface SplitPlan {
+interface SplitPlan {
   masterUntil: string
   masterExdate: string[]
   /**

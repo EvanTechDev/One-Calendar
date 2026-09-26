@@ -113,7 +113,7 @@ export function summarizeChanges(
   return Object.keys(summary).length > 0 ? summary : undefined
 }
 
-export interface ToolAuditContext {
+interface ToolAuditContext {
   userId: string
   authType: 'api_key' | 'oauth'
   keyId?: string
@@ -122,7 +122,7 @@ export interface ToolAuditContext {
 }
 
 /** Reads the audit context the transport put on `authInfo.extra`. */
-export function auditContextFrom(
+function auditContextFrom(
   authInfo: AuthInfo | undefined,
 ): ToolAuditContext | null {
   const extra = authInfo?.extra as Record<string, unknown> | undefined
@@ -144,7 +144,7 @@ export function auditContextFrom(
  * Writes one 'tool_call' audit row. Never throws: a failed audit write must not
  * turn a successful calendar operation into an error for the agent.
  */
-export async function logToolCall(options: {
+async function logToolCall(options: {
   authInfo: AuthInfo | undefined
   toolName: string
   params: Record<string, unknown>

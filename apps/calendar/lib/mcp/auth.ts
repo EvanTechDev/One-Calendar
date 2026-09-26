@@ -62,7 +62,7 @@ export async function getUserNameAndEmail(
   return row ?? { email: '', name: '' }
 }
 
-export async function isMcpEnabled(userId: string): Promise<boolean> {
+async function isMcpEnabled(userId: string): Promise<boolean> {
   const db = await getDb()
   const [row] = await db
     .select({ enabled: mcpSettings.enabled })

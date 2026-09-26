@@ -114,7 +114,7 @@ export function parseWeekdayToken(token: string): WeekdayToken | null {
   }
 }
 
-export function formatWeekdayToken(token: WeekdayToken): string {
+function formatWeekdayToken(token: WeekdayToken): string {
   return token.ordinal === null ? token.day : `${token.ordinal}${token.day}`
 }
 

@@ -29,7 +29,7 @@ export function affectedMonths(startDate: string, endDate: string): string[] {
   return Array.from(months)
 }
 
-export function monthBounds(yearMonth: string): { start: Date; end: Date } {
+function monthBounds(yearMonth: string): { start: Date; end: Date } {
   const [year, month] = yearMonth.split('-').map(Number)
   return {
     start: new Date(Date.UTC(year, month - 1, 1)),

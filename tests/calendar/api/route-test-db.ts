@@ -156,7 +156,7 @@ export interface FakeDb {
 
 const DEFAULT_TABLE = 'calendar_events'
 
-export function makeFakeDb(): FakeDb {
+function makeFakeDb(): FakeDb {
   const tables = new Map<string, Map<string, FakeRow>>()
   const ops: string[] = []
   const writes: FakeDb['writes'] = []

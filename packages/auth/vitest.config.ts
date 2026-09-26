@@ -81,6 +81,15 @@ export default defineConfig({
       // of this package rather than test-only -- but tests/auth still needs the
       // alias, since pnpm does not hoist to the repo root.
       jose: path.resolve(__dirname, 'node_modules/jose'),
+      // Same story as jose: a real dependency of this package, but tests/auth
+      // lives outside it and pnpm does not hoist to the repo root. Without the
+      // alias `vi.mock('@marsidev/react-turnstile')` resolves to nothing, the
+      // mock silently never applies, and the CAPTCHA tests run against the real
+      // widget (which needs a canvas it cannot get under jsdom).
+      '@marsidev/react-turnstile': path.resolve(
+        __dirname,
+        'node_modules/@marsidev/react-turnstile',
+      ),
       postgres: path.resolve(
         __dirname,
         '../../apps/calendar/node_modules/postgres',

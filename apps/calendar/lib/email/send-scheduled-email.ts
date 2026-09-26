@@ -15,7 +15,7 @@ const resend = resendKey ? new Resend(resendKey) : null
 /** The provider accepts a send at most this far ahead. */
 export const MAX_SCHEDULE_AHEAD_MS = 30 * 24 * 60 * 60 * 1000
 
-export class EmailProviderUnavailable extends Error {}
+class EmailProviderUnavailable extends Error {}
 
 function client(): Resend {
   if (!resend) throw new EmailProviderUnavailable('RESEND_API_KEY is not set')

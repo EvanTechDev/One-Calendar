@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import { encryptField, decryptField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 
-export const CATEGORY_COLORS = [
+const CATEGORY_COLORS = [
   { name: 'blue', value: 'bg-blue-500' },
   { name: 'green', value: 'bg-green-500' },
   { name: 'yellow', value: 'bg-yellow-500' },

@@ -336,7 +336,7 @@ export function isBannerEvent(event: CalendarEvent): boolean {
  * midnight is treated as exclusive-end (the event occupies up to the
  * previous day) — a bar for 1st 00:00 – 5th 00:00 must not cover the 5th.
  */
-export function getEventLastDay(event: CalendarEvent): Date {
+function getEventLastDay(event: CalendarEvent): Date {
   const start = new Date(event.startDate)
   const end = new Date(event.endDate)
 
@@ -646,7 +646,7 @@ export function formatHourMinute(
   return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 }
 
-export function formatDateWithTimezone(
+function formatDateWithTimezone(
   date: Date,
   language: Language,
   timeFormat: TimeFormat,

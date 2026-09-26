@@ -10,7 +10,7 @@
  * happen.
  */
 
-export const ROOM_CODE_PATTERN = /^[a-z0-9]{4}-[a-z0-9]{4}$/
+const ROOM_CODE_PATTERN = /^[a-z0-9]{4}-[a-z0-9]{4}$/
 
 export function isRoomCode(value: string): boolean {
   return ROOM_CODE_PATTERN.test(value)

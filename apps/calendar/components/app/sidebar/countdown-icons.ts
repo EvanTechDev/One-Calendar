@@ -13,14 +13,10 @@ import {
  * names lucide no longer exports, and searching the full library.
  */
 export type { CountdownIconGroup }
-export {
-  COUNTDOWN_ICON_NAMES as CATALOGUE_ICON_NAMES,
-  DEFAULT_COUNTDOWN_ICON,
-  isCountdownIconName,
-} from '@/lib/countdown-icons'
+export { DEFAULT_COUNTDOWN_ICON } from '@/lib/countdown-icons'
 
 /** True when lucide actually exports this icon. */
-export function isLucideIconName(name: string): boolean {
+function isLucideIconName(name: string): boolean {
   return name in lucideIcons
 }
 
@@ -32,7 +28,7 @@ export const COUNTDOWN_ICON_GROUPS: CountdownIconGroup[] = CATALOGUE_GROUPS.map(
   (group) => ({ ...group, icons: group.icons.filter(isLucideIconName) }),
 ).filter((group) => group.icons.length > 0)
 
-export const COUNTDOWN_ICON_NAMES: string[] = COUNTDOWN_ICON_GROUPS.flatMap(
+const COUNTDOWN_ICON_NAMES: string[] = COUNTDOWN_ICON_GROUPS.flatMap(
   (group) => group.icons,
 )
 

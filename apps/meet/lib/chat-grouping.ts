@@ -22,7 +22,7 @@ export interface ChatMessageLike {
   }
 }
 
-export interface ChatGroupMessage {
+interface ChatGroupMessage {
   id: string
   message: string
   timestamp: number

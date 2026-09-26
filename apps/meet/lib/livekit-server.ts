@@ -4,7 +4,7 @@ import { RoomServiceClient } from 'livekit-server-sdk'
  * LiveKit's REST API lives on the https origin matching the wss signalling
  * URL, so the scheme is swapped rather than configured separately.
  */
-export function livekitHttpUrl(): string {
+function livekitHttpUrl(): string {
   const url = process.env.LIVEKIT_URL
   if (!url) throw new Error('LIVEKIT_URL is not set')
   return url.replace(/^ws/, 'http')

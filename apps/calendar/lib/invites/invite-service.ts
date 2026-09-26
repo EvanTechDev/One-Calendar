@@ -32,7 +32,7 @@ async function sendEmail(payload: {
  * permanent once the participant adds the event to their calendar — see
  * ADR-0013 (the invite link expires; the grant does not).
  */
-export const INVITE_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const INVITE_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface ParticipantInput {
   email: string
@@ -191,7 +191,7 @@ export async function sendInviteEmails(params: {
   return { sent, failed }
 }
 
-export async function getInviteToken(
+async function getInviteToken(
   eventId: string,
   email: string,
 ): Promise<string | null> {
@@ -326,11 +326,6 @@ export async function removeParticipantFromCalendar(token: string) {
       updatedAt: new Date(),
     })
     .where(eq(eventInvites.inviteTokenHash, hashInviteToken(token)))
-}
-
-export async function deleteInvitesForEvent(eventId: string) {
-  const db = getDb()
-  await db.delete(eventInvites).where(eq(eventInvites.eventId, eventId))
 }
 
 export async function deleteInviteByToken(token: string) {

@@ -1,7 +1,7 @@
 import { fetchJson } from '@/lib/fetch-json'
 import type { CalendarColor } from '@/lib/calendar-colors'
 
-export type EventInviteData = {
+type EventInviteData = {
   id: string
   email: string
   status: 'pending' | 'accepted' | 'maybe' | 'declined'

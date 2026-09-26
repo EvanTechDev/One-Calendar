@@ -100,7 +100,7 @@ export async function resolveAnalyticsRange(
  * Encrypted envelopes ride along untouched and are dropped by the mapping
  * to `AnalyticsEngineEvent`.
  */
-export async function loadEngineEvents(
+async function loadEngineEvents(
   userId: string,
   window: AnalyticsRange,
 ): Promise<AnalyticsEngineEvent[]> {
