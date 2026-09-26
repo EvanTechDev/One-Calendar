@@ -37,8 +37,6 @@ const SIBLING_ORIGIN_IS_FINE = [
   'lib/auth/index.ts',
   // The allowlist for a return URL pointing back at the sibling.
   'lib/auth/return-to.ts',
-  // Reports configuration, including whether the domains can share a cookie.
-  'app/api/diagnostics/meet/route.ts',
 ]
 
 describe('the calendar does not send users to meet to sign in', () => {

@@ -39,8 +39,6 @@ const SIBLING_ORIGIN_IS_FINE = [
   'lib/auth/index.ts',
   // The allowlist for a return URL pointing back at the sibling.
   'lib/auth/return-to.ts',
-  // Reports configuration, including whether the two domains can share a cookie.
-  'app/api/diagnostics/route.ts',
   // Upcoming meetings are read from the calendar, which owns recurrence
   // expansion (ADR 0017) — a data call, not a navigation.
   'hooks/use-upcoming-meetings.ts',

@@ -41,7 +41,6 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
     useState<ServiceWorkerRegistration | null>(null)
   const [hasUpdate, setHasUpdate] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [hasCloudUpdate, setHasCloudUpdate] = useState(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -107,45 +106,6 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
     }
   }, [])
 
-  useEffect(() => {
-    const checkCloudBuildInfo = async () => {
-      try {
-        const response = await fetch(`/api/build-info?t=${Date.now()}`, {
-          cache: 'no-store',
-        })
-        if (!response.ok) return
-
-        const nextBuild = (await response.json()) as {
-          version?: string
-          commit?: string
-          deployedAt?: string
-        }
-
-        const changedByCommit =
-          Boolean(nextBuild.commit) && nextBuild.commit !== COMMIT_HASH
-        const changedByDeployTime =
-          Boolean(nextBuild.deployedAt) && nextBuild.deployedAt !== DEPLOYED_AT
-        const changedByVersion =
-          Boolean(nextBuild.version) && nextBuild.version !== APP_VERSION
-
-        setHasCloudUpdate(
-          changedByCommit || changedByDeployTime || changedByVersion,
-        )
-      } catch {
-        // Ignore transient network errors to keep the card non-blocking.
-      }
-    }
-
-    void checkCloudBuildInfo()
-    const timer = window.setInterval(() => {
-      void checkCloudBuildInfo()
-    }, 120000)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [])
-
   const t = translations[language]
   const deployedAgo = useMemo(
     () => formatTimeAgo(language, DEPLOYED_AT),
@@ -153,26 +113,15 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
   )
 
   const handleUpdateStatic = async () => {
-    if ((!updateRegistration && !hasCloudUpdate) || isUpdating) return
+    if (!updateRegistration || isUpdating) return
 
     setIsUpdating(true)
     try {
-      if (updateRegistration) {
-        await updateRegistration.update()
-      }
-      const waitingWorker = updateRegistration?.waiting
+      await updateRegistration.update()
+      const waitingWorker = updateRegistration.waiting
       if (waitingWorker) {
         waitingWorker.postMessage({ type: 'SKIP_WAITING' })
         return
-      }
-
-      if (hasCloudUpdate && 'caches' in window) {
-        const cacheKeys = await caches.keys()
-        await Promise.all(
-          cacheKeys
-            .filter((key) => key.startsWith('one-calendar-shell-'))
-            .map((key) => caches.delete(key)),
-        )
       }
 
       window.location.reload()
@@ -197,7 +146,7 @@ export default function BuildInfoCard({ language }: BuildInfoCardProps) {
           <span className="text-muted-foreground">{t.buildInfoDeployment}</span>
           <span>{t.buildInfoDeployedAgo.replace('{time}', deployedAgo)}</span>
         </div>
-        {hasUpdate || hasCloudUpdate ? (
+        {hasUpdate ? (
           <div className="flex items-center justify-between gap-4">
             <span className="text-muted-foreground">
               {t.buildInfoUpdateAvailable}
