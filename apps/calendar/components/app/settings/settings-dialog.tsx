@@ -318,7 +318,7 @@ function GeneralSettings({
                       className="size-4 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
                       style={{ backgroundColor: option.color }}
                     />
-                    {option.label}
+                    {t[option.labelKey]}
                   </span>
                 </SelectItem>
               ))}

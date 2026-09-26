@@ -1,11 +1,22 @@
+/**
+ * The theme colours a user can pick, in the order the picker lists them.
+ *
+ * `labelKey` rather than `label`: this module is plain data with no access to
+ * the active language, and a literal English label here is what put
+ * "Black & white / Orange / …" in front of every user regardless of their
+ * settings. The keys are the same `color*` keys the category palette in the
+ * sidebar already uses (`labelKey` there too), so the two pickers cannot
+ * disagree about what a colour is called. Six of the seven were already
+ * translated; only the grey theme needed a key of its own.
+ */
 export const CALENDAR_COLOR_OPTIONS = [
-  { value: 'black-white', label: 'Black & white', color: '#737373' },
-  { value: 'orange', label: 'Orange', color: '#f97316' },
-  { value: 'yellow', label: 'Yellow', color: '#facc15' },
-  { value: 'blue', label: 'Blue', color: '#3b82f6' },
-  { value: 'green', label: 'Green', color: '#22c55e' },
-  { value: 'pink', label: 'Pink', color: '#ec4899' },
-  { value: 'purple', label: 'Purple', color: '#a855f7' },
+  { value: 'black-white', labelKey: 'colorBlackWhite', color: '#737373' },
+  { value: 'orange', labelKey: 'colorOrange', color: '#f97316' },
+  { value: 'yellow', labelKey: 'colorYellow', color: '#facc15' },
+  { value: 'blue', labelKey: 'colorBlue', color: '#3b82f6' },
+  { value: 'green', labelKey: 'colorGreen', color: '#22c55e' },
+  { value: 'pink', labelKey: 'colorPink', color: '#ec4899' },
+  { value: 'purple', labelKey: 'colorPurple', color: '#a855f7' },
 ] as const
 
 export type CalendarColor = (typeof CALENDAR_COLOR_OPTIONS)[number]['value']
