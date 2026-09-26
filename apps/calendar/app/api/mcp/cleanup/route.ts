@@ -16,8 +16,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // A query param overrides, then the environment, then 30 days — the same
+  // window the write path prunes with, so both agree without configuration.
   const retentionDays = parseRetentionDays(
     new URL(request.url).searchParams.get('retentionDays'),
+    parseRetentionDays(process.env.MCP_AUDIT_RETENTION_DAYS ?? null),
   )
 
   const schedule = request.headers.get('x-vercel-cron-schedule')

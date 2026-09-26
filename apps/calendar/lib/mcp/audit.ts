@@ -13,10 +13,12 @@ import {
   type SQL,
 } from 'drizzle-orm'
 import crypto from 'crypto'
+import { parseRetentionDays } from './cleanup-config'
 import type { AuditEntry, AuditEntryType } from './types'
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   const db = await getDb()
+  scheduleRetentionPrune()
   await db.insert(mcpAuditLogs).values({
     id: crypto.randomUUID(),
     userId: entry.userId,
@@ -138,8 +140,16 @@ export async function getAuditToolNames(userId: string): Promise<string[]> {
 
 const DEFAULT_RETENTION_DAYS = 30
 
+/** Retention window for the opportunistic prune, from the environment. */
+function retentionWindowDays(): number {
+  return parseRetentionDays(
+    process.env.MCP_AUDIT_RETENTION_DAYS ?? null,
+    DEFAULT_RETENTION_DAYS,
+  )
+}
+
 export async function cleanupAuditLogs(
-  retentionDays: number = DEFAULT_RETENTION_DAYS,
+  retentionDays: number = retentionWindowDays(),
 ): Promise<number> {
   const db = await getDb()
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
@@ -148,4 +158,41 @@ export async function cleanupAuditLogs(
     .where(lt(mcpAuditLogs.createdAt, cutoff))
     .returning({ id: mcpAuditLogs.id })
   return result.length
+}
+
+/**
+ * How often one process may prune, and the in-flight guard.
+ *
+ * Every MCP call writes at least one row, so a prune on every write would put
+ * a `DELETE` on the hot path of every request. Six hours is well inside the
+ * retention window's own resolution: the oldest surviving row can only be a
+ * few hours older than the window, never unbounded.
+ */
+const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000
+let lastPruneAt = 0
+let pruneInFlight: Promise<unknown> | null = null
+
+/**
+ * Prune from the write path, because the cron cannot be relied on to do it.
+ *
+ * Retention is enforced by `/api/mcp/cleanup`, which Vercel calls daily — but
+ * that route 401s unless `CRON_SECRET` is set in the deployment, and with the
+ * secret unset the table only ever grows. It did: rows older than the window
+ * were still there months after the retention landed. A cron that depends on a
+ * secret nobody remembered to set is not a retention policy, so the busiest
+ * writer in the system also trims, and the cron stays as the backstop for
+ * installs with no MCP traffic.
+ *
+ * Best effort by construction: not awaited, so a slow or failing prune cannot
+ * delay the log write it rode along with, and a rejection is swallowed.
+ */
+function scheduleRetentionPrune(): void {
+  if (pruneInFlight) return
+  if (Date.now() - lastPruneAt < PRUNE_INTERVAL_MS) return
+  lastPruneAt = Date.now()
+  pruneInFlight = cleanupAuditLogs()
+    .catch(() => 0)
+    .finally(() => {
+      pruneInFlight = null
+    })
 }
