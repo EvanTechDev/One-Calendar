@@ -46,7 +46,7 @@
     "qr-code-styling": "latest",
     "react-email": "6.6.4",
     "resend": "6.14.0",
-    "sonner": "2.0.7"
+    "sonner": "2.0.8"
   },
   "devDependencies": {
     "@better-auth/memory-adapter": "1.7.2",

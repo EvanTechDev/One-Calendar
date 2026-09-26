@@ -31,3 +31,17 @@ minimumReleaseAgeExclude:
   - '@better-auth/telemetry@1.7.2'
   - better-auth@1.7.2
   - eve@0.51.1
+
+# One sonner, one copy of it. `toast()` and the mounted <Toaster> have to be
+# the same module instance or they talk to two different toast stores, and
+# every toast raised in the calendar app was silently dropped: it called
+# sonner 2.0.8 while <Toaster> (from @zntr/ui) came from 2.0.7.
+#
+# `@types/react` is pinned for the same reason. It is an *optional peer* of
+# both sonner and @types/react-dom, so pnpm keys its store directory by it —
+# three versions in the graph (19.2.2 in @zntr/auth, 19.2.18 at the root,
+# 19.3.0 pulled in as a peer of @types/react-dom) meant three copies of
+# sonner's files and three toast stores. One version, one instance.
+overrides:
+  sonner: 2.0.8
+  '@types/react': 19.2.18
