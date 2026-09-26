@@ -20,7 +20,7 @@ function positiveInt(value: string | null, fallback: number, max: number) {
 
 /**
  * Time-window presets rather than free-form dates: the audit log only
- * retains 30 days (see /api/mcp/cleanup), so fixed recent windows are the
+ * retains 30 days (see /api/blob/check), so fixed recent windows are the
  * only ranges that make sense.
  */
 const TIME_WINDOWS_MS: Record<string, number> = {

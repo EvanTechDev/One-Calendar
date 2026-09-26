@@ -175,8 +175,8 @@ let pruneInFlight: Promise<unknown> | null = null
 /**
  * Prune from the write path, because the cron cannot be relied on to do it.
  *
- * Retention is enforced by `/api/mcp/cleanup`, which Vercel calls daily — but
- * that route 401s unless `CRON_SECRET` is set in the deployment, and with the
+ * Retention is also enforced by the daily maintenance run, `/api/blob/check`,
+ * but that route needs `CRON_SECRET` to be set in the deployment — and with the
  * secret unset the table only ever grows. It did: rows older than the window
  * were still there months after the retention landed. A cron that depends on a
  * secret nobody remembered to set is not a retention policy, so the busiest
