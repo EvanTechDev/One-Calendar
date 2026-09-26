@@ -523,7 +523,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   )
 
   const settingsInitializedRef = useRef(false)
-  const [settingsViewReady, setSettingsViewReady] = useState(false)
+  // Seeded from the loading state, not hard-coded `false`. A caller that
+  // mounts the calendar only once the data has settled — the app page waits,
+  // so its loading screen is the only one — must not render a frame of this
+  // one on the way in. Mounted before the data arrives (nothing does that
+  // today) the seed is `false` and the layout effect below opens the gate as
+  // soon as it settles, exactly as before.
+  const [settingsViewReady, setSettingsViewReady] = useState(
+    settingsLoading !== 'loading',
+  )
 
   useEffect(() => {
     applyCalendarColor(settings.calendarColor)

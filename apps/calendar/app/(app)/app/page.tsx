@@ -13,6 +13,7 @@ export default function Home() {
   const [ready, setReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [viewChunkReady, setViewChunkReady] = useState(false)
+  const [started, setStarted] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -55,8 +56,8 @@ export default function Home() {
    *
    * So the waits are hoisted here instead, and the calendar only mounts once
    * the data has settled and its view chunk is in the module cache. The
-   * calendar keeps its own gate for any other caller; on this route it is
-   * satisfied before the first paint, so it never shows.
+   * calendar keeps its own gate for any other caller; its state is seeded from
+   * the same loading flag, so on this route it is already open at mount.
    */
   useEffect(() => {
     if (dataLoading === 'loading') return
@@ -74,7 +75,18 @@ export default function Home() {
     }
   }, [dataLoading, settings.defaultView])
 
-  if (!ready || isPending || dataLoading === 'loading' || !viewChunkReady) {
+  // A latch, not a live condition. Every one of these waits only resolves
+  // once, so deriving the gate from them would be equivalent — until one of
+  // them reports busy again mid-session and drops the whole app back to the
+  // loading screen. The screen is for start-up; after that the app is up.
+  const starting =
+    !ready || isPending || dataLoading === 'loading' || !viewChunkReady
+
+  useEffect(() => {
+    if (!starting) setStarted(true)
+  }, [starting])
+
+  if (!started) {
     return <AuthWaitingLoading />
   }
 
