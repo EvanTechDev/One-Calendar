@@ -144,6 +144,27 @@ const SettingsDialog = dynamic(loadSettingsDialog)
 // interaction; there is nothing meaningful to render on the server.
 const AiCommandPalette = dynamic(loadAiCommandPalette, { ssr: false })
 
+/**
+ * The view chunks, keyed by the view that selects them (`four-day` is the week
+ * grid with a different day count, so it shares its chunk).
+ *
+ * Exported so the app page can pull the saved default's chunk while it is
+ * still showing the loading screen. A `next/dynamic` component that has not
+ * resolved renders its loading fallback, which is `null` — so a chunk fetched
+ * after the calendar mounts leaves the middle column empty, and black in dark
+ * mode, for the length of the request. Preloading turns that into a microtask.
+ */
+export const CALENDAR_VIEW_CHUNKS: Record<
+  CalendarViewTypeValue,
+  () => Promise<unknown>
+> = {
+  day: loadDayView,
+  week: loadWeekView,
+  'four-day': loadWeekView,
+  month: loadMonthView,
+  year: loadYearView,
+}
+
 // Build-time presence flag (next.config.ts): deployments without a Groq
 // key get no AI affordances at all — no trigger, no shortcut — instead of
 // an entry point that 503s on use.
