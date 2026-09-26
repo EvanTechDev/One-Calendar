@@ -102,13 +102,16 @@ interface SettingsDialogProps extends GeneralSettingsProps {
  * side by side in the same dialog, so a divergence here reads as "a different
  * kind of screen" rather than "another tab".
  *
- * One deliberate difference: the control is `shrink` rather than the account
- * row's implicit fixed sizing, and the row carries no `w-full`. The account
- * rows hold a chevron, but these hold 192px selects, and a `shrink-0` control
- * that cannot fit the row escapes it — out through the group's border and past
- * the dialog edge. `w-full` is a percentage width, and every row here sits
- * inside Radix's `display: table` content wrapper, where percentage widths are
- * folded back into the intrinsic size; on a `div` row it buys nothing anyway.
+ * One deliberate difference: the control rides a `basis-40 sm:basis-48`
+ * shrinkable track and the row carries no `w-full`. The account rows hold a
+ * chevron; these hold selects whose trigger is `whitespace-nowrap`, so a
+ * fixed-width control sets a floor under the row's min-content width and
+ * pushes out through the group's border on a narrow dialog — and inside
+ * Radix's `display: table` scroll wrapper, percentage widths are folded back
+ * into the intrinsic size, so `w-full` is not available as a cap either. The
+ * track gives every control the same width while the panel has room, and
+ * gives way when it does not. `w-full` on the row itself is a percentage
+ * width too, and on a `div` flex row it buys nothing anyway.
  */
 function SettingRow({
   icon,
@@ -140,7 +143,7 @@ function SettingRow({
           </span>
         ) : null}
       </span>
-      <div className="flex min-w-0 shrink items-center justify-end gap-2">
+      <div className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 sm:basis-48">
         {children}
       </div>
     </div>
@@ -251,9 +254,11 @@ function GeneralSettings({
     setLanguage(newLang)
   }
 
-  // `max-w-full` so the fixed widths yield to a row that is genuinely narrow,
-  // rather than pushing past the group's border (see SettingRow).
-  const selectClass = 'w-40 max-w-full sm:w-48'
+  // Width comes from the row's control track (see SettingRow), not from the
+  // control: `w-full` against that track, plus `min-w-0` so the value — which
+  // the trigger renders `whitespace-nowrap` and line-clamps — ellipsizes
+  // instead of setting a floor under the row's min-content width.
+  const selectClass = 'w-full min-w-0'
   const calendarColor = selectedCalendarColor
 
   return (
@@ -444,6 +449,11 @@ function GeneralSettings({
           <Button
             variant="outline"
             size="sm"
+            // The button base is `shrink-0 whitespace-nowrap`, so next to the
+            // switch it sets a floor under the track and spills out of the
+            // group on a narrow dialog. It gives way instead, and only ever
+            // truncates once the track is genuinely too small for the label.
+            className="min-w-0 shrink truncate"
             onClick={() => setShortcutsOpen(true)}
           >
             {t.availableShortcuts}
