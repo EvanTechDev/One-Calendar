@@ -6,14 +6,12 @@ const testimonials = [
     quote:
       'We were re-planning the same week every Monday afternoon. Now I tell the agent what the week needs to look like on the Friday before, and Monday is just a review.',
     name: 'Elena Fischer',
-    company: 'Fieldnote',
     rating: 5,
   },
   {
     quote:
       'Recurring events used to be the thing that broke every other calendar we tried. Zentra edits one occurrence or the whole series, and the day, week, and month views all agree afterwards.',
     name: 'Marcus Oyelaran',
-    company: 'Cadence Labs',
     rating: 5,
   },
 ]
@@ -76,15 +74,9 @@ export function TestimonialsSection() {
                 ))}
               </div>
               <span className="bg-border h-3 w-px" />
-              <div className="text-xs">
-                <span className="text-foreground font-semibold">
-                  {testimonial.name}
-                </span>
-                <span className="text-muted-foreground">
-                  {' '}
-                  · {testimonial.company}
-                </span>
-              </div>
+              <span className="text-foreground text-xs font-semibold">
+                {testimonial.name}
+              </span>
             </figcaption>
 
             {i < testimonials.length - 1 && (
