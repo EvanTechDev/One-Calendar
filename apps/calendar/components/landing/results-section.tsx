@@ -4,7 +4,7 @@ const EASE = [0.16, 1, 0.3, 1] as const
 
 export function ResultsSection() {
   return (
-    <section className="mx-auto w-full max-w-5xl overflow-hidden px-4 py-10 md:px-8">
+    <section className="mx-auto w-full max-w-5xl overflow-hidden px-4 pt-10 pb-16 md:px-8 md:pb-24">
       <div className="space-y-2 text-center">
         <motion.p
           className="text-muted-foreground text-[11px] font-medium uppercase tracking-[0.18em]"
@@ -25,12 +25,15 @@ export function ResultsSection() {
         transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
       >
         <p className="text-foreground text-[28px] leading-[1.15] font-medium tracking-tight text-balance md:text-[44px]">
-          Teams on Zentra plan a week in{' '}
-          <span className="text-foreground/40">half a morning</span> instead of
-          a full one, cut <span className="text-foreground">6 hours</span> of
-          scheduling admin a month, and book{' '}
-          <span className="text-foreground">3&times; fewer</span>{' '}
-          double-bookings than they did on the calendar they switched from.
+          Teams on Zentra clear{' '}
+          <span className="text-foreground">3&times; more</span> scheduling
+          requests a day, move an entire afternoon with{' '}
+          <span className="text-foreground">one sentence</span>, and stop
+          tracking reminders by hand —{' '}
+          <span className="text-foreground/40">
+            99.9% of them go out on time
+          </span>{' '}
+          without anyone checking.
         </p>
 
         <motion.p

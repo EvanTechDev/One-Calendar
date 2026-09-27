@@ -24,7 +24,7 @@ const EASE = [0.16, 1, 0.3, 1] as const
 
 export function TestimonialsSection() {
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 md:px-8">
+    <section className="mx-auto w-full max-w-3xl px-4 pt-4 md:px-8">
       <div className="text-center">
         <motion.p
           className="text-muted-foreground text-[11px] font-medium uppercase tracking-[0.18em]"
