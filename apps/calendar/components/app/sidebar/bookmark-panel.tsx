@@ -208,7 +208,14 @@ export default function BookmarkPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
+      <SheetContent
+        side="right"
+        // The `!` suffixes are load-bearing: SheetContent sets
+        // `data-[side=right]:w-3/4` and `data-[side=right]:sm:max-w-sm`,
+        // which outrank a plain `w-*` on specificity. Without them the panel
+        // renders at 75% width capped to 384px, not the width asked for here.
+        className="w-[360px]! sm:w-[420px]! sm:max-w-none! p-0"
+      >
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center">
             <Bookmark className="mr-2 h-5 w-5" />
