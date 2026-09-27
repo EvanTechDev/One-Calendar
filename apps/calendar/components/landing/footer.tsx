@@ -1,7 +1,6 @@
 import { cn } from '@zntr/utils'
 import type { ReactNode } from 'react'
 import { ZentraLogo } from '@/components/brand/zentra-logo'
-import { generalSansBold } from '@/lib/font'
 
 type FooterLink = {
   title: string
@@ -78,11 +77,13 @@ export function Footer() {
       </div>
       <div className="via-border h-px w-full bg-linear-to-r" />
       <div className="overflow-hidden pt-8">
-        <h2
-          className={`${generalSansBold.className} text-center text-8xl tracking-tight text-foreground/10 md:text-[10rem] lg:text-[14rem] text-white`}
-        >
-          ZENTRA
-        </h2>
+        <img
+          alt="Zentra"
+          className="mx-auto w-full"
+          height={627}
+          src="/zentra-wordmark.svg"
+          width={3558}
+        />
       </div>
     </footer>
   )

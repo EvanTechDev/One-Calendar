@@ -2,7 +2,6 @@
 
 import { Button } from '@zntr/ui/button'
 import { ArrowRightIcon } from 'lucide-react'
-import { ZentraLogo } from '@/components/brand/zentra-logo'
 import Link from 'next/link'
 
 const stars = Array.from({ length: 165 }, (_, i) => ({
@@ -83,9 +82,13 @@ export function CallToAction() {
 
       <div className="relative flex flex-col justify-center items-center h-full w-full px-6 py-20 md:py-28">
         <div className="mb-8 flex items-center justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] bg-black/30 backdrop-blur-md ring-1 ring-white/20">
-            <ZentraLogo className="h-10 w-10" />
-          </div>
+          <img
+            alt="Zentra Calendar app icon"
+            className="size-24 drop-shadow-lg md:size-28"
+            height={112}
+            src="/product-logo.svg"
+            width={112}
+          />
         </div>
 
         <div className="space-y-4 mb-2">

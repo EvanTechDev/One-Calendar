@@ -3,6 +3,9 @@ import { HeroSection } from '@/components/landing/hero'
 import { LogosSection } from '@/components/landing/logos-section'
 import { FaqSection } from '@/components/landing/faq-section'
 import { FeatureSection } from '@/components/landing/feature-section'
+import { WorkflowSection } from '@/components/landing/workflow-section'
+import { CapabilitiesSection } from '@/components/landing/capabilities-section'
+import { ConsistencySection } from '@/components/landing/consistency-section'
 import { CallToAction } from '@/components/landing/cta'
 import { Footer } from '@/components/landing/footer'
 
@@ -13,6 +16,9 @@ export default function LandingPage() {
       <main className="flex w-full flex-col gap-20">
         <HeroSection />
         <FeatureSection />
+        <WorkflowSection />
+        <CapabilitiesSection />
+        <ConsistencySection />
         <LogosSection />
         <CallToAction />
         <FaqSection />
