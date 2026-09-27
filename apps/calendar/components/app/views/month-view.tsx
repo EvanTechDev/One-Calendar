@@ -254,7 +254,7 @@ export default function MonthView({
                           isSameMonth(day, date) ? '' : 'text-gray-400',
                           isSameMonth(day, date) &&
                             isSameDay(day, today) &&
-                            'inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-cal-today px-1 text-cal-today-foreground',
+                            'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-cal-today px-1 text-cal-today-foreground',
                         )}
                       >
                         {format(day, 'd')}
