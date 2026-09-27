@@ -6,7 +6,6 @@ const testimonials = [
     quote:
       'We were re-planning the same week every Monday afternoon. Now I tell the agent what the week needs to look like on the Friday before, and Monday is just a review.',
     name: 'Elena Fischer',
-    role: 'Head of Product',
     company: 'Fieldnote',
     rating: 5,
   },
@@ -14,7 +13,6 @@ const testimonials = [
     quote:
       'Recurring events used to be the thing that broke every other calendar we tried. Zentra edits one occurrence or the whole series, and the day, week, and month views all agree afterwards.',
     name: 'Marcus Oyelaran',
-    role: 'Founding Engineer',
     company: 'Cadence Labs',
     rating: 5,
   },
@@ -58,7 +56,7 @@ export function TestimonialsSection() {
           >
             <svg
               aria-hidden
-              className="text-foreground/15 mb-3"
+              className="text-foreground/30 mb-3"
               fill="currentColor"
               height="20"
               viewBox="0 0 36 28"
@@ -84,7 +82,7 @@ export function TestimonialsSection() {
                 </span>
                 <span className="text-muted-foreground">
                   {' '}
-                  · {testimonial.role}, {testimonial.company}
+                  · {testimonial.company}
                 </span>
               </div>
             </figcaption>
