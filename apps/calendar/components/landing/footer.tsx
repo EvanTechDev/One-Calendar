@@ -43,8 +43,6 @@ export function Footer() {
         'dark:bg-[radial-gradient(35%_128px_at_50%_0%,--theme(--color-foreground/.1),transparent)]',
       )}
     >
-      <div className="bg-foreground/20 absolute top-0 right-1/2 left-1/2 h-px w-1/3 -translate-x-1/2 -translate-y-1/2 rounded-full blur" />
-
       <div className="grid gap-8 py-6 md:py-8 lg:grid-cols-3 lg:gap-8">
         <div className="space-y-4">
           <ZentraLogo className="h-9 w-9" />
