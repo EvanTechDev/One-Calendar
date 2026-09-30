@@ -33,7 +33,10 @@ export interface MaintenanceJob {
  * omitted falls back to the environment.
  */
 export interface MaintenanceOptions {
-  /** Overrides the audit retention window, in days. */
+  /**
+   * Overrides the audit retention window, in days. Set from `?retentionDays=`
+   * on `/api/blob/check`; omitted means fall back to `MCP_AUDIT_RETENTION_DAYS`.
+   */
   auditRetentionDays?: number
 }
 
@@ -56,12 +59,16 @@ export const MAINTENANCE_JOBS = {
       return { tables: rows.map((row) => row.table_name) }
     },
   },
-  /** MCP audit history, trimmed to the retention window. */
+  /**
+   * MCP audit history, trimmed to the retention window.
+   *
+   * Returns `cleanupAuditLogs`'s whole result, including the window and cutoff
+   * it applied. Echoing back only a count is what made a misconfigured
+   * retention window indistinguishable from a job that had nothing to do.
+   */
   auditLogs: {
     name: 'auditLogs',
-    run: async ({ auditRetentionDays }) => ({
-      deleted: await cleanupAuditLogs(auditRetentionDays),
-    }),
+    run: async ({ auditRetentionDays }) => cleanupAuditLogs(auditRetentionDays),
   },
   /** Expired OAuth device codes and client assertions. */
   oauthState: {

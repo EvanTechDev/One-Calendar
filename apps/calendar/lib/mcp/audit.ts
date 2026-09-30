@@ -148,16 +148,39 @@ function retentionWindowDays(): number {
   )
 }
 
+/**
+ * What a prune actually did, under a window it names itself.
+ *
+ * The window and cutoff are part of the return value rather than something the
+ * caller recomputes, because a response that says only `deleted: 0` cannot be
+ * told apart from a job that did nothing. That ambiguity is what let a
+ * mistyped `MCP_AUDIT_RETENTION_DAYS` prune with a 365-day window, report a
+ * clean zero every night, and leave a table full of "expired" rows with nobody
+ * able to say why.
+ */
+export type AuditCleanupResult = {
+  /** Rows removed. */
+  deleted: number
+  /** The window applied — after the environment fallback and the clamp. */
+  retentionDays: number
+  /** Rows strictly older than this instant were deleted. */
+  cutoff: string
+}
+
 export async function cleanupAuditLogs(
   retentionDays: number = retentionWindowDays(),
-): Promise<number> {
+): Promise<AuditCleanupResult> {
   const db = await getDb()
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
   const result = await db
     .delete(mcpAuditLogs)
     .where(lt(mcpAuditLogs.createdAt, cutoff))
     .returning({ id: mcpAuditLogs.id })
-  return result.length
+  return {
+    deleted: result.length,
+    retentionDays,
+    cutoff: cutoff.toISOString(),
+  }
 }
 
 /**
@@ -191,7 +214,7 @@ function scheduleRetentionPrune(): void {
   if (Date.now() - lastPruneAt < PRUNE_INTERVAL_MS) return
   lastPruneAt = Date.now()
   pruneInFlight = cleanupAuditLogs()
-    .catch(() => 0)
+    .catch(() => null)
     .finally(() => {
       pruneInFlight = null
     })
