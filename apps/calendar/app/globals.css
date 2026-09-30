@@ -489,105 +489,27 @@ html {
    * It also stays true for a hybrid laptop until a mouse is attached, so a
    * desktop window narrowed on purpose keeps its hover affordances.
    *
-   * Two consequences, one per symptom that prompted this block.
+   * One consequence: tooltips. Radix opens a tooltip on focus, and tapping a
+   * button focuses it, so a tap popped the label of the control being
+   * pressed and read as the tap misfiring. There is no hover intent behind a
+   * finger, and nothing on screen can express one. Every tooltip trigger in
+   * the app is an icon button carrying its own `aria-label`, so assistive
+   * tech keeps the name and the bubble is pure decoration — safe to never
+   * paint. Keyboard focus is unaffected: a device with `hover: hover` does
+   * not match this query.
    *
-   * 1. Tooltips. Radix opens a tooltip on focus, and tapping a button
-   *    focuses it, so a tap popped the label of the control being pressed
-   *    and read as the tap misfiring. There is no hover intent behind a
-   *    finger, and nothing on screen can express one. Every tooltip
-   *    trigger in the app is an icon button carrying its own `aria-label`,
-   *    so assistive tech keeps the name and the bubble is pure decoration
-   *    — safe to never paint. Keyboard focus is unaffected: a device with
-   *    `hover: hover` does not match this query.
-   *
-   * 2. Overlay entrances. Every floating surface in the UI package animates
-   *    at `duration-100` — 100ms of zoom from 95%, and on the ones with no
-   *    slide, no fade worth the name either. Tuned for a mouse, that is a
-   *    hint of movement; read at finger speed it is over before it
-   *    registers, which is the "pops out rigidly" report.
-   *    Expressed through tw-animate-css's `--tw-enter-*` custom properties
-   *    rather than a `transform`, because `animate-in`'s keyframes read
-   *    those; setting `transform` directly would be discarded by the very
-   *    animation meant to draw it.
-   *
-   *    Widening the scale alone is not the answer. Scale and opacity give the
-   *    eye nothing to track — 6% of zoom over 200ms is an animation on paper
-   *    and nothing on screen. Direction is what reads, so the surfaces that
-   *    have no travel of their own get a short rise instead. That is the one
-   *    change worth keeping: 0.5rem is enough to be legible and small enough
-   *    to stay ordinary. Going wider — 0.75rem with 8% of scale over 240ms —
-   *    was tried and read as a cartoon, so the scale stays at the stock 6%
-   *    and the duration at the stock 200ms.
-   *
-   *    This covers every overlay slot, not just the popover. Dialog,
-   *    alert dialog and sheet were previously left out, and stayed lifeless
-   *    on touch for exactly that reason — a fix that names one component
-   *    fixes that component. Each entry below is a `*-content` slot in
-   *    packages/ui/src that carries the shared enter/exit classes.
+   * Overlay entrances are deliberately NOT touched here. Every floating
+   * surface arrives on the UI package's own `duration-100` + `zoom-in-95` —
+   * 100ms, 5% of zoom, no travel — and on touch that reads as an instant
+   * appearance. Overriding it from this file was tried and rejected in both
+   * directions: slower and wider read as no animation at all, slower with a
+   * rise read as a cartoon. If that default ever does need to change, it
+   * belongs in packages/ui/src where the duration is actually written, not
+   * as a touch-only override bolted on top of the library's own values.
    */
   @media (hover: none) {
     [data-slot='tooltip-content'] {
       display: none;
-    }
-
-    [data-slot='popover-content'][data-state='open'],
-    [data-slot='dialog-content'][data-state='open'],
-    [data-slot='sheet-content'][data-state='open'],
-    [data-slot='dropdown-menu-content'][data-state='open'],
-    [data-slot='dropdown-menu-sub-content'][data-state='open'],
-    [data-slot='select-content'][data-state='open'],
-    [data-slot='alert-dialog-content'][data-state='open'] {
-      animation-duration: 200ms;
-      --tw-enter-opacity: 0;
-      --tw-enter-scale: 0.94;
-    }
-
-    [data-slot='popover-content'][data-state='closed'],
-    [data-slot='dialog-content'][data-state='closed'],
-    [data-slot='sheet-content'][data-state='closed'],
-    [data-slot='dropdown-menu-content'][data-state='closed'],
-    [data-slot='dropdown-menu-sub-content'][data-state='closed'],
-    [data-slot='select-content'][data-state='closed'],
-    [data-slot='alert-dialog-content'][data-state='closed'] {
-      animation-duration: 130ms;
-      --tw-exit-opacity: 0;
-      --tw-exit-scale: 0.97;
-    }
-
-    /*
-     * Scale and opacity alone are close to invisible, which is what a first
-     * pass at this landed on. Direction is what the eye actually tracks, so
-     * give the surfaces that have no travel of their own a short rise out of
-     * their resting place.
-     *
-     * Deliberately not the whole list. Sheet, dropdown and select already
-     * carry `slide-in-from-*` / `slide-out-to-*`, so they move on their own
-     * and naming them here would trade a larger, direction-correct slide
-     * for a smaller arbitrary one.
-     */
-    [data-slot='dialog-content'][data-state='open'],
-    [data-slot='alert-dialog-content'][data-state='open'] {
-      --tw-enter-translate-y: 0.5rem;
-    }
-
-    [data-slot='dialog-content'][data-state='closed'],
-    [data-slot='alert-dialog-content'][data-state='closed'] {
-      --tw-exit-translate-y: 0.125rem;
-    }
-
-    /*
-     * The popover's own slide is gated on `max-md:`, so from 48rem up it
-     * arrives with no travel at all. Gated the same way in reverse: below
-     * 48rem its 2rem slide still applies and this must not weaken it.
-     */
-    @media (min-width: 48rem) {
-      [data-slot='popover-content'][data-state='open'] {
-        --tw-enter-translate-y: 0.5rem;
-      }
-
-      [data-slot='popover-content'][data-state='closed'] {
-        --tw-exit-translate-y: 0.125rem;
-      }
     }
   }
 }
