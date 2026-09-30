@@ -501,10 +501,12 @@ html {
    *    `hover: hover` does not match this query.
    *
    * 2. Overlay entrances. Every floating surface in the UI package animates
-   *    at `duration-100` — 100ms of zoom from 95%. Tuned for a mouse, that
-   *    is a hint of movement; read at finger speed it is over before it
-   *    registers, which is the "pops out rigidly" report. Slowing it and
-   *    widening the scale delta gives the motion enough duration to be seen.
+   *    at `duration-100` — 100ms of zoom from 95%, and on the ones with no
+   *    slide, no fade worth the name either. Tuned for a mouse, that is a
+   *    hint of movement; read at finger speed it is over before it
+   *    registers, which is the "pops out rigidly" report. So the entrance
+   *    here is slower, scaled further, and — where the surface has no travel
+   *    of its own — given a direction to move in.
    *    Expressed through tw-animate-css's `--tw-enter-*` custom properties
    *    rather than a `transform`, because `animate-in`'s keyframes read
    *    those; setting `transform` directly would be discarded by the very
@@ -521,16 +523,6 @@ html {
       display: none;
     }
 
-    [data-slot='popover-content'],
-    [data-slot='dialog-content'],
-    [data-slot='sheet-content'],
-    [data-slot='dropdown-menu-content'],
-    [data-slot='dropdown-menu-sub-content'],
-    [data-slot='select-content'],
-    [data-slot='alert-dialog-content'] {
-      animation-duration: 200ms;
-    }
-
     [data-slot='popover-content'][data-state='open'],
     [data-slot='dialog-content'][data-state='open'],
     [data-slot='sheet-content'][data-state='open'],
@@ -538,8 +530,9 @@ html {
     [data-slot='dropdown-menu-sub-content'][data-state='open'],
     [data-slot='select-content'][data-state='open'],
     [data-slot='alert-dialog-content'][data-state='open'] {
+      animation-duration: 240ms;
       --tw-enter-opacity: 0;
-      --tw-enter-scale: 0.94;
+      --tw-enter-scale: 0.92;
     }
 
     [data-slot='popover-content'][data-state='closed'],
@@ -549,8 +542,46 @@ html {
     [data-slot='dropdown-menu-sub-content'][data-state='closed'],
     [data-slot='select-content'][data-state='closed'],
     [data-slot='alert-dialog-content'][data-state='closed'] {
+      animation-duration: 150ms;
       --tw-exit-opacity: 0;
-      --tw-exit-scale: 0.97;
+      --tw-exit-scale: 0.96;
+    }
+
+    /*
+     * Scale and opacity alone are close to invisible, which is what a first
+     * pass at this landed on: 6% of zoom over 200ms is technically an
+     * animation and practically nothing. Direction is what the eye actually
+     * tracks, so give the surfaces that have no travel of their own a short
+     * rise out of their resting place.
+     *
+     * Deliberately not the whole list. Sheet, dropdown and select already
+     * carry `slide-in-from-*` / `slide-out-to-*`, so they move on their own
+     * and naming them here would trade a larger, direction-correct slide
+     * for a smaller arbitrary one.
+     */
+    [data-slot='dialog-content'][data-state='open'],
+    [data-slot='alert-dialog-content'][data-state='open'] {
+      --tw-enter-translate-y: 0.75rem;
+    }
+
+    [data-slot='dialog-content'][data-state='closed'],
+    [data-slot='alert-dialog-content'][data-state='closed'] {
+      --tw-exit-translate-y: 0.25rem;
+    }
+
+    /*
+     * The popover's own slide is gated on `max-md:`, so from 48rem up it
+     * arrives with no travel at all. Gated the same way in reverse: below
+     * 48rem its 2rem slide still applies and this must not weaken it.
+     */
+    @media (min-width: 48rem) {
+      [data-slot='popover-content'][data-state='open'] {
+        --tw-enter-translate-y: 0.75rem;
+      }
+
+      [data-slot='popover-content'][data-state='closed'] {
+        --tw-exit-translate-y: 0.25rem;
+      }
     }
   }
 }
