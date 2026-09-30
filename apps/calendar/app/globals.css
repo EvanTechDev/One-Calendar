@@ -478,4 +478,56 @@ html {
       scale: none !important;
     }
   }
+
+  /*
+   * Touch devices, at any width (ADR-0019).
+   *
+   * `hover: none` is the platform's own answer to "can this be hovered?".
+   * A width breakpoint cannot stand in for it: an iPad in landscape or a
+   * phone in landscape is a touch device well above 768px, and those are
+   * exactly the cases that were falling through to the desktop treatment.
+   * It also stays true for a hybrid laptop until a mouse is attached, so a
+   * desktop window narrowed on purpose keeps its hover affordances.
+   *
+   * Two consequences, one per symptom that prompted this block.
+   *
+   * 1. Tooltips. Radix opens a tooltip on focus, and tapping a button
+   *    focuses it, so a tap popped the label of the control being pressed
+   *    and read as the tap misfiring. There is no hover intent behind a
+   *    finger, and nothing on screen can express one. Every tooltip
+   *    trigger in the app is an icon button carrying its own `aria-label`,
+   *    so assistive tech keeps the name and the bubble is pure decoration
+   *    — safe to never paint. Keyboard focus is unaffected: a device with
+   *    `hover: hover` does not match this query.
+   *
+   * 2. Popover entrances. The shared popover animates open at
+   *    `duration-100` — 100ms of zoom from 95%. Tuned for a mouse, that is
+   *    a hint of movement; read at finger speed on a wide viewport (where
+   *    the `max-md:` slide-up below 768px never applied) it is over before
+   *    it registers, which is the "pops out rigidly" report. Slowing it
+   *    and widening the scale delta gives the motion enough duration to
+   *    be seen. Expressed through tw-animate-css's `--tw-enter-*` custom
+   *    properties rather than a `transform`, because `animate-in`'s
+   *    keyframes read those; setting `transform` directly would be
+   *    discarded by the very animation meant to draw it.
+   */
+  @media (hover: none) {
+    [data-slot='tooltip-content'] {
+      display: none;
+    }
+
+    [data-slot='popover-content'] {
+      animation-duration: 200ms;
+    }
+
+    [data-slot='popover-content'][data-state='open'] {
+      --tw-enter-opacity: 0;
+      --tw-enter-scale: 0.94;
+    }
+
+    [data-slot='popover-content'][data-state='closed'] {
+      --tw-exit-opacity: 0;
+      --tw-exit-scale: 0.97;
+    }
+  }
 }
