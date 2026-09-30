@@ -141,7 +141,12 @@ export function BookmarkPanelBody({
         </InputGroup>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+      {/* `-mr-4` pulls the scroll area out to the panel edge, so the 10px
+          scrollbar it renders internally sits in the gutter rather than
+          pushing the rows inward; `pr-4` hands that gutter back to the rows.
+          Without the pair a row ends 32px from the edge against the header's
+          16px, and the rows look short on the right for no visible reason. */}
+      <ScrollArea className="-mr-4 h-[calc(100vh-180px)] pr-4">
         {filteredBookmarks.length === 0 ? (
           <Empty className="h-32 border-0 p-0">
             <EmptyHeader>

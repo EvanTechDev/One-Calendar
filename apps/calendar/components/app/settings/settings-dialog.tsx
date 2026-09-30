@@ -254,11 +254,12 @@ function GeneralSettings({
     setLanguage(newLang)
   }
 
-  // Width comes from the row's control track (see SettingRow), not from the
-  // control: `w-full` against that track, plus `min-w-0` so the value — which
-  // the trigger renders `whitespace-nowrap` and line-clamps — ellipsizes
-  // instead of setting a floor under the row's min-content width.
-  const selectClass = 'w-full min-w-0'
+  // The trigger ships `w-fit`, so the select is only as wide as its own value
+  // and SettingRow's `justify-end` track parks it flush right. `max-w-full`
+  // stops a long timezone from pushing the row past its track, and `min-w-0`
+  // lets it shrink and line-clamp rather than set a floor under the row's
+  // min-content width.
+  const selectClass = 'max-w-full min-w-0'
   const calendarColor = selectedCalendarColor
 
   return (
