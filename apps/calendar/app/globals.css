@@ -500,32 +500,55 @@ html {
    *    — safe to never paint. Keyboard focus is unaffected: a device with
    *    `hover: hover` does not match this query.
    *
-   * 2. Popover entrances. The shared popover animates open at
-   *    `duration-100` — 100ms of zoom from 95%. Tuned for a mouse, that is
-   *    a hint of movement; read at finger speed on a wide viewport (where
-   *    the `max-md:` slide-up below 768px never applied) it is over before
-   *    it registers, which is the "pops out rigidly" report. Slowing it
-   *    and widening the scale delta gives the motion enough duration to
-   *    be seen. Expressed through tw-animate-css's `--tw-enter-*` custom
-   *    properties rather than a `transform`, because `animate-in`'s
-   *    keyframes read those; setting `transform` directly would be
-   *    discarded by the very animation meant to draw it.
+   * 2. Overlay entrances. Every floating surface in the UI package animates
+   *    at `duration-100` — 100ms of zoom from 95%. Tuned for a mouse, that
+   *    is a hint of movement; read at finger speed it is over before it
+   *    registers, which is the "pops out rigidly" report. Slowing it and
+   *    widening the scale delta gives the motion enough duration to be seen.
+   *    Expressed through tw-animate-css's `--tw-enter-*` custom properties
+   *    rather than a `transform`, because `animate-in`'s keyframes read
+   *    those; setting `transform` directly would be discarded by the very
+   *    animation meant to draw it.
+   *
+   *    This covers every overlay slot, not just the popover. Dialog,
+   *    alert dialog and sheet were previously left out, and stayed lifeless
+   *    on touch for exactly that reason — a fix that names one component
+   *    fixes that component. Each entry below is a `*-content` slot in
+   *    packages/ui/src that carries the shared enter/exit classes.
    */
   @media (hover: none) {
     [data-slot='tooltip-content'] {
       display: none;
     }
 
-    [data-slot='popover-content'] {
+    [data-slot='popover-content'],
+    [data-slot='dialog-content'],
+    [data-slot='sheet-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content'],
+    [data-slot='alert-dialog-content'] {
       animation-duration: 200ms;
     }
 
-    [data-slot='popover-content'][data-state='open'] {
+    [data-slot='popover-content'][data-state='open'],
+    [data-slot='dialog-content'][data-state='open'],
+    [data-slot='sheet-content'][data-state='open'],
+    [data-slot='dropdown-menu-content'][data-state='open'],
+    [data-slot='dropdown-menu-sub-content'][data-state='open'],
+    [data-slot='select-content'][data-state='open'],
+    [data-slot='alert-dialog-content'][data-state='open'] {
       --tw-enter-opacity: 0;
       --tw-enter-scale: 0.94;
     }
 
-    [data-slot='popover-content'][data-state='closed'] {
+    [data-slot='popover-content'][data-state='closed'],
+    [data-slot='dialog-content'][data-state='closed'],
+    [data-slot='sheet-content'][data-state='closed'],
+    [data-slot='dropdown-menu-content'][data-state='closed'],
+    [data-slot='dropdown-menu-sub-content'][data-state='closed'],
+    [data-slot='select-content'][data-state='closed'],
+    [data-slot='alert-dialog-content'][data-state='closed'] {
       --tw-exit-opacity: 0;
       --tw-exit-scale: 0.97;
     }
