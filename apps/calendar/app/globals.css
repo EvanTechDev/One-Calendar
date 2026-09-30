@@ -504,13 +504,20 @@ html {
    *    at `duration-100` — 100ms of zoom from 95%, and on the ones with no
    *    slide, no fade worth the name either. Tuned for a mouse, that is a
    *    hint of movement; read at finger speed it is over before it
-   *    registers, which is the "pops out rigidly" report. So the entrance
-   *    here is slower, scaled further, and — where the surface has no travel
-   *    of its own — given a direction to move in.
+   *    registers, which is the "pops out rigidly" report.
    *    Expressed through tw-animate-css's `--tw-enter-*` custom properties
    *    rather than a `transform`, because `animate-in`'s keyframes read
    *    those; setting `transform` directly would be discarded by the very
    *    animation meant to draw it.
+   *
+   *    Widening the scale alone is not the answer. Scale and opacity give the
+   *    eye nothing to track — 6% of zoom over 200ms is an animation on paper
+   *    and nothing on screen. Direction is what reads, so the surfaces that
+   *    have no travel of their own get a short rise instead. That is the one
+   *    change worth keeping: 0.5rem is enough to be legible and small enough
+   *    to stay ordinary. Going wider — 0.75rem with 8% of scale over 240ms —
+   *    was tried and read as a cartoon, so the scale stays at the stock 6%
+   *    and the duration at the stock 200ms.
    *
    *    This covers every overlay slot, not just the popover. Dialog,
    *    alert dialog and sheet were previously left out, and stayed lifeless
@@ -530,9 +537,9 @@ html {
     [data-slot='dropdown-menu-sub-content'][data-state='open'],
     [data-slot='select-content'][data-state='open'],
     [data-slot='alert-dialog-content'][data-state='open'] {
-      animation-duration: 240ms;
+      animation-duration: 200ms;
       --tw-enter-opacity: 0;
-      --tw-enter-scale: 0.92;
+      --tw-enter-scale: 0.94;
     }
 
     [data-slot='popover-content'][data-state='closed'],
@@ -542,17 +549,16 @@ html {
     [data-slot='dropdown-menu-sub-content'][data-state='closed'],
     [data-slot='select-content'][data-state='closed'],
     [data-slot='alert-dialog-content'][data-state='closed'] {
-      animation-duration: 150ms;
+      animation-duration: 130ms;
       --tw-exit-opacity: 0;
-      --tw-exit-scale: 0.96;
+      --tw-exit-scale: 0.97;
     }
 
     /*
      * Scale and opacity alone are close to invisible, which is what a first
-     * pass at this landed on: 6% of zoom over 200ms is technically an
-     * animation and practically nothing. Direction is what the eye actually
-     * tracks, so give the surfaces that have no travel of their own a short
-     * rise out of their resting place.
+     * pass at this landed on. Direction is what the eye actually tracks, so
+     * give the surfaces that have no travel of their own a short rise out of
+     * their resting place.
      *
      * Deliberately not the whole list. Sheet, dropdown and select already
      * carry `slide-in-from-*` / `slide-out-to-*`, so they move on their own
@@ -561,12 +567,12 @@ html {
      */
     [data-slot='dialog-content'][data-state='open'],
     [data-slot='alert-dialog-content'][data-state='open'] {
-      --tw-enter-translate-y: 0.75rem;
+      --tw-enter-translate-y: 0.5rem;
     }
 
     [data-slot='dialog-content'][data-state='closed'],
     [data-slot='alert-dialog-content'][data-state='closed'] {
-      --tw-exit-translate-y: 0.25rem;
+      --tw-exit-translate-y: 0.125rem;
     }
 
     /*
@@ -576,11 +582,11 @@ html {
      */
     @media (min-width: 48rem) {
       [data-slot='popover-content'][data-state='open'] {
-        --tw-enter-translate-y: 0.75rem;
+        --tw-enter-translate-y: 0.5rem;
       }
 
       [data-slot='popover-content'][data-state='closed'] {
-        --tw-exit-translate-y: 0.25rem;
+        --tw-exit-translate-y: 0.125rem;
       }
     }
   }
