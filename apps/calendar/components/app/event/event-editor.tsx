@@ -719,12 +719,18 @@ export default function EventEditor({
    * the quick-create parse. The isComposing guard matters: for IME users
    * (Chinese/Japanese — the primary audience for this feature) Enter first
    * confirms the composition candidate and must not fire a parse.
+   *
+   * preventDefault comes BEFORE every bail-out on purpose. A form with a
+   * submit button performs implicit submission on Enter from a text field,
+   * which is not what anyone means by "Enter in the title" — it saved the
+   * event outright. Suppressing it unconditionally keeps Enter meaning
+   * "parse this text" on AI deployments and inert everywhere else.
    */
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
+    e.preventDefault()
     if (event || !AI_ENABLED) return
     if (e.nativeEvent.isComposing) return
-    e.preventDefault()
     void runAiParse()
   }
 
@@ -1415,30 +1421,47 @@ export default function EventEditor({
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="min-w-0 space-y-4 pb-2">
                 {/*
-                Native fieldset disabling freezes the WHOLE form mid-parse —
-                not just the AI-fillable fields — so a half-applied draft can
-                never be saved or edited under the skeletons.
-              */}
-                <fieldset
-                  disabled={isAiParsing}
-                  className="min-w-0 space-y-4 pb-2"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="title">{t.title}</Label>
-                    {isAiParsing ? (
-                      <Skeleton className="h-9 w-full" />
-                    ) : (
-                      <Input
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={handleTitleKeyDown}
+                The title field is deliberately OUTSIDE the disabled
+                fieldset below, and stays mounted (readOnly + transparent,
+                with the skeleton painted over it) for the whole parse.
+                Both of the obvious alternatives destroy the user's caret:
+                swapping the input for a skeleton unmounts the focused
+                element, and a control inside a `disabled` fieldset gets
+                blurred — either way the browser hands focus to the next
+                control after the title, which reads as "Enter jumped to
+                the next field". Keeping it mounted and focusable keeps
+                the caret exactly where the user left it.
+                */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">{t.title}</Label>
+                  <div className="relative">
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onKeyDown={handleTitleKeyDown}
+                      readOnly={isAiParsing}
+                      aria-busy={isAiParsing}
+                      className={cn(isAiParsing && 'opacity-0')}
+                    />
+                    {isAiParsing && (
+                      <Skeleton
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 h-8"
                       />
                     )}
                   </div>
+                </div>
 
+                {/*
+                Native fieldset disabling freezes the REST of the form
+                mid-parse — not just the AI-fillable fields — so a
+                half-applied draft can never be saved or edited under the
+                skeletons.
+              */}
+                <fieldset disabled={isAiParsing} className="min-w-0 space-y-4">
                   <div className="flex items-center space-x-2">
                     {isAiParsing ? (
                       <Skeleton className="h-6 w-full" />
