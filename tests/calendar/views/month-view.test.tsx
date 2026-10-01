@@ -290,14 +290,15 @@ describe('MonthView cell geometry', () => {
 
   it('reserves one lane on every day, so no empty event slot appears', () => {
     const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
-    expect(new Set(bands(container))).toEqual(new Set(['28px']))
+    expect(new Set(bands(container))).toEqual(new Set(['20px']))
   })
 
   it('gives every day the same band when a single-day all-day event is present', () => {
-    // The regression this guards: reserving per day left the bar-less days of
-    // that week 20px higher than the covered day, so the event blocks stopped
-    // lining up. Flooring the reservation at one lane collapses the 0-lane and
-    // 1-lane cases to the same height, so the whole grid stays uniform.
+    // The regression this guards: reserving per day with a small floor left the
+    // bar-less days of that week a lane higher than the covered day, so the
+    // event blocks stopped lining up. Flooring the reservation at one lane
+    // collapses the 0-lane and 1-lane cases to the same height, so the whole
+    // grid stays uniform.
     const events = [
       createEvent({
         id: 'ad',
@@ -312,7 +313,7 @@ describe('MonthView cell geometry', () => {
       events,
     })
     expect(container.querySelector('[data-event-id="ad"]')).toBeTruthy()
-    expect(new Set(bands(container))).toEqual(new Set(['28px']))
+    expect(new Set(bands(container))).toEqual(new Set(['20px']))
   })
 
   it('reserves the extra lane only where all-day bars actually stack', () => {
@@ -342,13 +343,13 @@ describe('MonthView cell geometry', () => {
     // too. Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan
     // 12..18 is the third row.
     expect(bands(container).slice(14, 21)).toEqual([
-      '28px',
-      '28px',
-      '28px',
-      '56px',
-      '56px',
-      '28px',
-      '28px',
+      '20px',
+      '20px',
+      '20px',
+      '40px',
+      '40px',
+      '20px',
+      '20px',
     ])
   })
 })

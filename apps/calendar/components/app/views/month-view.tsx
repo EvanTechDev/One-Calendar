@@ -62,8 +62,12 @@ interface MonthViewProps {
 
 /** Height of the day-number block at the top of each cell, in px. */
 const DAY_NUMBER_BLOCK_HEIGHT = 36
-/** Height of one all-day bar, in px (matches single-day event blocks). */
-const ALL_DAY_BAR_HEIGHT = 24
+/**
+ * Height of one all-day bar, in px. Deliberately shorter than a timed event
+ * block (`p-1 text-xs` = 24px): the bar is a thin chip, and the shorter it is
+ * the tighter the uniform band below the day numbers can be.
+ */
+const ALL_DAY_BAR_HEIGHT = 16
 /** Vertical gap between stacked all-day bars, in px. */
 const ALL_DAY_BAR_GAP = 4
 /** Horizontal inset of a bar end that does not continue past the row, px. */
@@ -88,6 +92,9 @@ const ALL_DAY_BAR_LANE = ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP
  * height, so a week holding a single all-day event both lines its event blocks
  * up with the rest of the week and leaves no blank slot. Only a week whose bars
  * actually stack (2+ lanes) reserves more, and there the extra band is real.
+ *
+ * Keeping the floor small therefore means keeping the bar small: the floor can
+ * never be less than a bar, or the bar would overlap its own event list.
  */
 const DAY_NUMBER_GAP = ALL_DAY_BAR_LANE
 
@@ -396,7 +403,9 @@ export default function MonthView({
                     className={cn(
                       // max-md:hidden: on the Mobile Form banner events are
                       // dots in the cell like everything else (ADR-0019).
-                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs max-md:hidden',
+                      // py-0 + flex, because the bar is only as tall as one
+                      // text-xs line box: any vertical padding would clip it.
+                      'absolute flex items-center cursor-pointer overflow-hidden rounded-sm px-1.5 py-0 text-xs max-md:hidden',
                       event.color,
                       segment.continuesLeft && 'rounded-l-none',
                       segment.continuesRight && 'rounded-r-none',
@@ -434,7 +443,7 @@ export default function MonthView({
                       />
                     )}
                     <div
-                      className="pl-1.5 truncate"
+                      className="pl-1 truncate"
                       style={{ color: getEventAccentColor(event.color) }}
                     >
                       {event.title}
