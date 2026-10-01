@@ -256,3 +256,99 @@ describe('MonthView', () => {
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
   })
 })
+
+describe('MonthView cell geometry', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark')
+    vi.clearAllMocks()
+  })
+
+  /** Reserved all-day band height per day cell, in DOM order. */
+  function bands(container: HTMLElement): string[] {
+    return Array.from(
+      container.querySelectorAll<HTMLElement>('[data-all-day-band]'),
+    ).map((el) => el.style.height)
+  }
+
+  it('gives every day number the same 24px line box as the today chip', () => {
+    // Today's number is a filled 24px square (h-6); a bare number is only as
+    // tall as text-sm's line height, so without leading-6 it floats inside the
+    // block and today's number-to-event distance reads shorter than its
+    // neighbours'.
+    const { container } = renderMonthView({ date: new Date() })
+    const numbers = container.querySelectorAll(
+      '[data-day-cell] > div:first-child > span',
+    )
+    expect(numbers.length).toBeGreaterThan(0)
+    for (const number of numbers) {
+      expect(number.className).toContain('leading-6')
+    }
+    expect(container.querySelector('.bg-cal-today')?.className).toContain(
+      'leading-6',
+    )
+  })
+
+  it('reserves one lane on every day, so no empty event slot appears', () => {
+    const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
+    expect(new Set(bands(container))).toEqual(new Set(['28px']))
+  })
+
+  it('gives every day the same band when a single-day all-day event is present', () => {
+    // The regression this guards: reserving per day left the bar-less days of
+    // that week 20px higher than the covered day, so the event blocks stopped
+    // lining up. Flooring the reservation at one lane collapses the 0-lane and
+    // 1-lane cases to the same height, so the whole grid stays uniform.
+    const events = [
+      createEvent({
+        id: 'ad',
+        title: 'One Day Off',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 15, 0, 0),
+        endDate: new Date(2025, 0, 16, 0, 0),
+      }),
+    ]
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      events,
+    })
+    expect(container.querySelector('[data-event-id="ad"]')).toBeTruthy()
+    expect(new Set(bands(container))).toEqual(new Set(['28px']))
+  })
+
+  it('reserves the extra lane only where all-day bars actually stack', () => {
+    const events = [
+      createEvent({
+        id: 'a',
+        title: 'Trip Leg One',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 0, 0),
+      }),
+      createEvent({
+        id: 'b',
+        title: 'Trip Leg Two',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 15, 0, 0),
+        endDate: new Date(2025, 0, 17, 0, 0),
+      }),
+    ]
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      events,
+    })
+    // A midnight end is exclusive, so leg one covers Jan 14-15 and leg two
+    // Jan 15-16, overlapping on Jan 15 and pushing leg two into lane 1. Both
+    // of leg two's columns need room for two lanes — the lane above it counts
+    // too. Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan
+    // 12..18 is the third row.
+    expect(bands(container).slice(14, 21)).toEqual([
+      '28px',
+      '28px',
+      '28px',
+      '56px',
+      '56px',
+      '28px',
+      '28px',
+    ])
+  })
+})

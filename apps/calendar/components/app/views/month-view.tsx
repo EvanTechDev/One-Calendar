@@ -68,15 +68,28 @@ const ALL_DAY_BAR_HEIGHT = 24
 const ALL_DAY_BAR_GAP = 4
 /** Horizontal inset of a bar end that does not continue past the row, px. */
 const ALL_DAY_BAR_INSET = 8
+/** Vertical space one all-day bar lane occupies, px (bar plus its gap). */
+const ALL_DAY_BAR_LANE = ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP
 /**
  * Minimum breathing room between the day number and the first event in a cell,
- * px. The all-day bars already clear it — they are placed absolutely from
- * `DAY_NUMBER_BLOCK_HEIGHT`, which sits 4px below the number block — but the
- * timed events were laid out flush against the number. On today, whose number
- * sits in a filled square, that reads as one blob rather than a date above its
- * events.
+ * px — exactly one all-day bar lane.
+ *
+ * A cell reserves `max(lanesOverThisDay * ALL_DAY_BAR_LANE, DAY_NUMBER_GAP)`.
+ * Pinning the floor to a whole lane is what keeps the two ways a cell can be
+ * misaligned from fighting each other:
+ *
+ * - Reserve the row's lane count on every day and the event lists all line up,
+ *   but a day no bar covers shows a blank event-sized slot above its events.
+ * - Reserve per day and there is no blank slot, but the days a bar covers push
+ *   their event lists down a lane, so in the same row the event blocks no longer
+ *   line up.
+ *
+ * With the floor at one lane the 0-lane and 1-lane cases collapse to the same
+ * height, so a week holding a single all-day event both lines its event blocks
+ * up with the rest of the week and leaves no blank slot. Only a week whose bars
+ * actually stack (2+ lanes) reserves more, and there the extra band is real.
  */
-const DAY_NUMBER_GAP = 8
+const DAY_NUMBER_GAP = ALL_DAY_BAR_LANE
 
 export default function MonthView({
   date,
@@ -258,7 +271,14 @@ export default function MonthView({
                     >
                       <span
                         className={cn(
-                          'font-medium text-sm',
+                          // leading-6 gives every day the same 24px line box the
+                          // today chip occupies (h-6), so the number always
+                          // ends at the block's bottom edge. Without it a bare
+                          // day number is only as tall as text-sm's line height
+                          // and floats inside the block, leaving today looking
+                          // flush against its events while its neighbours do
+                          // not — the event blocks then read as misaligned.
+                          'font-medium text-sm leading-6',
                           isSameMonth(day, date) ? '' : 'text-gray-400',
                           isSameMonth(day, date) &&
                             isSameDay(day, today) &&
@@ -283,16 +303,16 @@ export default function MonthView({
                       ))}
                     </div>
 
-                    {/* Room for the all-day bars over this day, and never
-                        less than the minimum gap so the day number never
-                        sits flush against an event. */}
+                    {/* Room for the all-day bars over this day, floored at one
+                        lane so a bar-less day still lines its events up with
+                        the rest of the week. See DAY_NUMBER_GAP. */}
                     <div
                       className="max-md:hidden"
+                      data-all-day-band
                       style={{
                         height:
                           Math.max(
-                            (barLanes[dayIndex] ?? 0) *
-                              (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP),
+                            (barLanes[dayIndex] ?? 0) * ALL_DAY_BAR_LANE,
                             DAY_NUMBER_GAP,
                           ) + 'px',
                       }}
@@ -384,7 +404,7 @@ export default function MonthView({
                     style={{
                       top:
                         DAY_NUMBER_BLOCK_HEIGHT +
-                        lane * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP) +
+                        lane * ALL_DAY_BAR_LANE +
                         'px',
                       left: `calc(${startIndex} / 7 * 100% + ${leftInset}px)`,
                       width: `calc(${span} / 7 * 100% - ${leftInset + rightInset}px)`,
