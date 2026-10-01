@@ -210,16 +210,41 @@ function getTzFormatter(timeZone: string): Intl.DateTimeFormat {
 
 export function partsInTz(date: Date, timeZone: string): DateParts {
   const parts = getTzFormatter(timeZone).formatToParts(date)
-  const value = (type: string) =>
-    Number(parts.find((p) => p.type === type)?.value ?? '0')
-  return {
-    year: value('year'),
-    month: value('month'),
-    day: value('day'),
-    hour: value('hour'),
-    minute: value('minute'),
-    second: value('second'),
+  // One walk, not six: this runs once per expanded occurrence per request and
+  // once per occurrence on every client-side optimistic edit, and `find` over
+  // the ~10-entry parts array six times is ~60 comparisons plus six closures
+  // where one pass and six assignments will do.
+  const result: DateParts = {
+    year: 0,
+    month: 0,
+    day: 0,
+    hour: 0,
+    minute: 0,
+    second: 0,
   }
+  for (const part of parts) {
+    switch (part.type) {
+      case 'year':
+        result.year = Number(part.value)
+        break
+      case 'month':
+        result.month = Number(part.value)
+        break
+      case 'day':
+        result.day = Number(part.value)
+        break
+      case 'hour':
+        result.hour = Number(part.value)
+        break
+      case 'minute':
+        result.minute = Number(part.value)
+        break
+      case 'second':
+        result.second = Number(part.value)
+        break
+    }
+  }
+  return result
 }
 
 export function partsInLocal(date: Date): DateParts {
@@ -577,6 +602,15 @@ export function expandSeriesView<T extends SeriesViewInput>(
         timeZone,
       )
       const seriesOverrides = overridesBySeries[master.id] ?? []
+      // Indexed by stamp because the loop below looks up one override per
+      // expanded instance — a linear `find` made that instances × overrides, so
+      // a long-running daily series with a handful of edited occurrences ran
+      // thousands of comparisons on every read.
+      const overridesByStamp = new Map<string, T>()
+      for (const override of seriesOverrides) {
+        if (override.recurrenceId)
+          overridesByStamp.set(override.recurrenceId, override)
+      }
       const matchedRecurrenceIds = new Set<string>()
       // "All events" edits are only offered on the series' first visible
       // occurrence; the marker tells the client which instance that is.
@@ -589,10 +623,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           ? (instances[0]?.recurrenceId ?? null)
           : firstVisibleStampOfSeries(master, timeZone)
       for (const instance of instances) {
-        const override =
-          seriesOverrides.find(
-            (o) => o.recurrenceId === instance.recurrenceId,
-          ) ?? null
+        const override = overridesByStamp.get(instance.recurrenceId) ?? null
         matchedRecurrenceIds.add(instance.recurrenceId)
         const base = {
           ...master,

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import * as lucideIcons from 'lucide-react'
 import { Check, Search } from 'lucide-react'
 import { RemoveScroll } from 'react-remove-scroll'
 import { Button } from '@zntr/ui/button'
@@ -13,6 +12,7 @@ import {
   DEFAULT_COUNTDOWN_ICON,
   searchCountdownIcons,
 } from './countdown-icons'
+import { getCountdownGlyph } from './countdown-glyphs'
 
 interface CountdownIconPickerProps {
   value: string | undefined
@@ -33,10 +33,7 @@ function IconGlyph({
   size: number
   color: string
 }) {
-  const Component =
-    (lucideIcons[name as keyof typeof lucideIcons] as
-      | React.ComponentType<{ size?: number; style?: React.CSSProperties }>
-      | undefined) ?? lucideIcons.Clock
+  const Component = getCountdownGlyph(name)
   return <Component size={size} style={{ color }} />
 }
 

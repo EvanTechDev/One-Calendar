@@ -149,9 +149,17 @@ export function useLiveAnchorRect({
     update()
 
     const container = scrollContainerRef?.current
-    window.addEventListener('scroll', update, true)
+    // `passive` so the browser does not have to wait and see whether the
+    // handler cancels the scroll: it reads `getBoundingClientRect`, so it runs
+    // on every frame the calendar grid is scrolled, and an un-passive
+    // capture-phase scroll listener there blocks scrolling on the main thread.
+    // The handler never calls `preventDefault`, so nothing is lost.
+    window.addEventListener('scroll', update, { capture: true, passive: true })
     window.addEventListener('resize', update)
-    container?.addEventListener('scroll', update, true)
+    container?.addEventListener('scroll', update, {
+      capture: true,
+      passive: true,
+    })
 
     return () => {
       window.removeEventListener('scroll', update, true)

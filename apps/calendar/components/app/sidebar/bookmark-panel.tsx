@@ -80,9 +80,13 @@ export function BookmarkPanelBody({
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
+    // Joined through a Map, not `events.find` per bookmark: this effect depends
+    // on the whole expanded event list, which changes identity on every
+    // optimistic save, so the linear scan was bookmarks × occurrences.
+    const byId = new Map(events.map((event) => [event.id, event]))
     setBookmarks(
       serverBookmarks.map((bm) => {
-        const live = events.find((e) => e.id === bm.eventId)
+        const live = byId.get(bm.eventId)
         return {
           id: bm.id,
           eventId: bm.eventId,
@@ -118,11 +122,13 @@ export function BookmarkPanelBody({
     onEventClick({ ...event, id: event.eventId })
   }
 
+  // The needle is lower-cased once, not once per bookmark per field.
+  const needle = searchTerm.toLowerCase()
   const filteredBookmarks = bookmarks.filter(
     (bookmark) =>
-      bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bookmark.title.toLowerCase().includes(needle) ||
       (bookmark.description &&
-        bookmark.description.toLowerCase().includes(searchTerm.toLowerCase())),
+        bookmark.description.toLowerCase().includes(needle)),
   )
 
   return (

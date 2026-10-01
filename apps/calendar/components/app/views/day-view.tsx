@@ -51,6 +51,9 @@ interface DayViewProps {
   selection?: { start: Date; end: Date } | null
 }
 
+/** Loop-invariant: the hour rows the day column renders. */
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+
 export default function DayView({
   date,
   events,
@@ -71,7 +74,6 @@ export default function DayView({
     layoutEngine,
   } = useEventFilter({ events, config, date })
 
-  const hours = Array.from({ length: 24 }, (_, i) => i)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasScrolledRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -487,7 +489,7 @@ export default function DayView({
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground max-md:text-[10px]">
-          {hours.map((hour) => (
+          {HOURS.map((hour) => (
             <div key={hour} className="h-[60px] relative">
               <span
                 className={cn(
@@ -505,7 +507,7 @@ export default function DayView({
           className="relative border-l select-none"
           onMouseDown={handleGridMouseDown}
         >
-          {hours.map((hour) => (
+          {HOURS.map((hour) => (
             <div key={hour} className="h-[60px] border-t" />
           ))}
 

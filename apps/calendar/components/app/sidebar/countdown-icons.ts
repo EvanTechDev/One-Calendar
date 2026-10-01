@@ -1,4 +1,4 @@
-import * as lucideIcons from 'lucide-react'
+import { hasCountdownGlyph } from './countdown-glyphs'
 import {
   COUNTDOWN_ICON_GROUPS as CATALOGUE_GROUPS,
   type CountdownIconGroup,
@@ -10,14 +10,14 @@ import {
  * The catalogue itself lives in `@/lib/countdown-icons` so the MCP tool schema
  * can validate against the same list without pulling `lucide-react` into the
  * server bundle. This module adds the lucide-dependent parts: filtering out
- * names lucide no longer exports, and searching the full library.
+ * names lucide no longer exports, and searching the catalogue.
  */
 export type { CountdownIconGroup }
 export { DEFAULT_COUNTDOWN_ICON } from '@/lib/countdown-icons'
 
 /** True when lucide actually exports this icon. */
 function isLucideIconName(name: string): boolean {
-  return name in lucideIcons
+  return hasCountdownGlyph(name)
 }
 
 /**

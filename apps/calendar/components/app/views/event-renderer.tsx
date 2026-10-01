@@ -5,7 +5,10 @@ import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '@/components/app/calendar'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
+import {
+  EventLayoutEngine as EventLayoutEngineClass,
+  formatDateWithTimezone,
+} from '@/components/app/views/event-layout-engine'
 import { translations } from '@zntr/i18n/calendar'
 import {
   getEventAccentColor,
@@ -73,21 +76,6 @@ interface EventRendererProps {
   queueIgnoreEventClick?: () => void
   showTime?: boolean
   className?: string
-}
-
-function formatDateWithTimezone(
-  date: Date,
-  language: ViewConfig['language'],
-  timeFormat: ViewConfig['timeFormat'],
-  timezone: string,
-): string {
-  const options: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: timeFormat.is12Hour(),
-    timeZone: timezone,
-  }
-  return new Intl.DateTimeFormat(language.code, options).format(date)
 }
 
 export function EventRenderer({

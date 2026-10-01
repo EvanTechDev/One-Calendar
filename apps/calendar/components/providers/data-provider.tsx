@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useMemo,
   useCallback,
   type ReactNode,
 } from 'react'
@@ -50,6 +51,21 @@ const DATA_KEYS = {
   bookmarks: '/api/bookmarks',
   settings: '/api/settings',
 } as const
+
+/**
+ * Stable stand-ins for the not-yet-loaded case.
+ *
+ * `req.data?.events ?? []` allocates a fresh array on every render, so an
+ * in-flight request changed the identity of the data it had not produced yet —
+ * which then propagated to every consumer of this provider. One frozen
+ * instance each, so "no data yet" has the same identity on every render and the
+ * context value below only changes when the data actually changes.
+ */
+const NO_EVENTS: EventData[] = []
+const NO_CATEGORIES: CategoryData[] = []
+const NO_COUNTDOWNS: CountdownData[] = []
+const NO_BOOKMARKS: BookmarkData[] = []
+const NO_SETTINGS: SettingsData = {}
 
 interface DataContextValue {
   events: EventData[]
@@ -127,11 +143,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const bookmarksReq = useSWR(DATA_KEYS.bookmarks, () => api.bookmarks.list())
   const settingsReq = useSWR(DATA_KEYS.settings, () => api.settings.get())
 
-  const events = eventsReq.data?.events ?? []
-  const categories = categoriesReq.data?.categories ?? []
-  const countdowns = countdownsReq.data?.countdowns ?? []
-  const bookmarks = bookmarksReq.data?.bookmarks ?? []
-  const settings = settingsReq.data?.settings ?? {}
+  const events = eventsReq.data?.events ?? NO_EVENTS
+  const categories = categoriesReq.data?.categories ?? NO_CATEGORIES
+  const countdowns = countdownsReq.data?.countdowns ?? NO_COUNTDOWNS
+  const bookmarks = bookmarksReq.data?.bookmarks ?? NO_BOOKMARKS
+  const settings = settingsReq.data?.settings ?? NO_SETTINGS
 
   const requests = [
     eventsReq,
@@ -645,39 +661,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return (
-    <DataContext.Provider
-      value={{
-        events,
-        categories,
-        countdowns,
-        bookmarks,
-        settings,
-        loading,
-        error,
-        eventsLoaded,
-        categoriesLoaded,
-        refresh,
-        refreshEvents,
-        refreshCategories,
-        refreshCountdowns,
-        refreshBookmarks,
-        refreshSettings,
-        upsertEvent,
-        deleteEvent,
-        createCategory,
-        deleteCategory,
-        createCountdown,
-        deleteCountdown,
-        createBookmark,
-        deleteBookmark,
-        deleteBookmarkByEvent,
-        updateSettings,
-      }}
-    >
-      {children}
-    </DataContext.Provider>
+  // The provider sits above the whole signed-in app, and every consumer reads
+  // through `useData()`, so an unstable value re-rendered the calendar and
+  // whichever view was mounted on every tick of any one of the five SWR keys.
+  // Every callback here is a `useCallback` with a stable identity, so the value
+  // changes exactly when the data does.
+  const value = useMemo<DataContextValue>(
+    () => ({
+      events,
+      categories,
+      countdowns,
+      bookmarks,
+      settings,
+      loading,
+      error,
+      eventsLoaded,
+      categoriesLoaded,
+      refresh,
+      refreshEvents,
+      refreshCategories,
+      refreshCountdowns,
+      refreshBookmarks,
+      refreshSettings,
+      upsertEvent,
+      deleteEvent,
+      createCategory,
+      deleteCategory,
+      createCountdown,
+      deleteCountdown,
+      createBookmark,
+      deleteBookmark,
+      deleteBookmarkByEvent,
+      updateSettings,
+    }),
+    [
+      events,
+      categories,
+      countdowns,
+      bookmarks,
+      settings,
+      loading,
+      error,
+      eventsLoaded,
+      categoriesLoaded,
+      refresh,
+      refreshEvents,
+      refreshCategories,
+      refreshCountdowns,
+      refreshBookmarks,
+      refreshSettings,
+      upsertEvent,
+      deleteEvent,
+      createCategory,
+      deleteCategory,
+      createCountdown,
+      deleteCountdown,
+      createBookmark,
+      deleteBookmark,
+      deleteBookmarkByEvent,
+      updateSettings,
+    ],
   )
+
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 
 export function useData(): DataContextValue {

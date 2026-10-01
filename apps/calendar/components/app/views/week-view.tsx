@@ -61,6 +61,9 @@ interface WeekViewProps {
   selection?: { start: Date; end: Date } | null
 }
 
+/** Loop-invariant: the hour rows a day column renders. */
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+
 export default function WeekView({
   date,
   events,
@@ -80,16 +83,30 @@ export default function WeekView({
     [config],
   )
 
-  const weekStart = startOfWeek(date, {
-    weekStartsOn: config.firstDayOfWeek.value,
-  })
-  const weekEnd = endOfWeek(date, { weekStartsOn: config.firstDayOfWeek.value })
-  const weekDays = daysToShow
-    ? Array.from({ length: daysToShow }, (_, index) =>
-        addDays(startOfDay(fixedStartDate ?? date), index),
+  /**
+   * Memoised because `weekDays` is a dependency of the drag, selection and
+   * scroll effects further down. Built inline it was a fresh array every
+   * render, so all three tore down and re-registered their document listeners
+   * on every render — including once per `setDragPreview`, which is ~60 times a
+   * second mid-drag.
+   */
+  const weekDays = useMemo(() => {
+    const firstDay = fixedStartDate ?? date
+    if (daysToShow) {
+      return Array.from({ length: daysToShow }, (_, index) =>
+        addDays(startOfDay(firstDay), index),
       )
-    : eachDayOfInterval({ start: weekStart, end: weekEnd })
-  const hours = Array.from({ length: 24 }, (_, i) => i)
+    }
+    const weekStart = startOfWeek(firstDay, {
+      weekStartsOn: config.firstDayOfWeek.value,
+    })
+    return eachDayOfInterval({
+      start: weekStart,
+      end: endOfWeek(firstDay, {
+        weekStartsOn: config.firstDayOfWeek.value,
+      }),
+    })
+  }, [date, daysToShow, fixedStartDate, config.firstDayOfWeek.value])
   const TIME_GUTTER_WIDTH = 84
   // The gutter is a CSS variable with the desktop constant as fallback: on
   // desktop the variable is never set, so the resolved value is 84px exactly
@@ -649,7 +666,7 @@ export default function WeekView({
         ref={scrollContainerRef}
       >
         <div className="text-sm text-muted-foreground max-md:text-[10px]">
-          {hours.map((hour) => (
+          {HOURS.map((hour) => (
             <div key={hour} className="h-[60px] relative border-gray-200">
               <span
                 className={cn(
@@ -681,7 +698,7 @@ export default function WeekView({
               className="relative grid-col select-none"
               onMouseDown={(event) => handleGridMouseDown(dayIndex, event)}
             >
-              {hours.map((hour) => (
+              {HOURS.map((hour) => (
                 <div key={hour} className="h-[60px] border-t" />
               ))}
 

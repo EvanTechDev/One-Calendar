@@ -13,6 +13,7 @@ import {
 import { Label } from '@zntr/ui/label'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import CountdownIconPicker from './countdown-icon-picker'
+import { getCountdownGlyph } from './countdown-glyphs'
 import {
   Select,
   SelectTrigger,
@@ -32,7 +33,6 @@ import {
   Clock,
   Search,
 } from 'lucide-react'
-import { icons as lucideIcons } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
 import { cn } from '@zntr/utils'
 import { format } from 'date-fns'
@@ -145,9 +145,7 @@ export function CountdownBody() {
     withBackground = false,
   ) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? '#3b82f6'
-    const IconComponent =
-      lucideIcons[(iconName || 'Clock') as keyof typeof lucideIcons] ??
-      lucideIcons.Clock
+    const IconComponent = getCountdownGlyph(iconName || 'Clock')
     if (withBackground) {
       return (
         <div className="flex h-10 w-10 items-center justify-center rounded-full">

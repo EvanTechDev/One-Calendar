@@ -676,17 +676,35 @@ export function formatHourMinute(
   return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 }
 
-function formatDateWithTimezone(
+/**
+ * Formatters are cached per `(locale, 12-hour, zone)`.
+ *
+ * Constructing an `Intl.DateTimeFormat` costs one to two orders of magnitude
+ * more than calling `.format()` on it, and this is called twice per rendered
+ * event block — so a 100-block week meant 200 constructions on every render,
+ * and a render happens on every drag preview, every current-time tick and
+ * every save. The `Map` is bounded by the locale × clock-convention × zone
+ * cross-product a session actually visits.
+ */
+const timeFormatterCache = new Map<string, Intl.DateTimeFormat>()
+
+export function formatDateWithTimezone(
   date: Date,
   language: Language,
   timeFormat: TimeFormat,
   timezone: string,
 ): string {
-  const options: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: timeFormat.is12Hour(),
-    timeZone: timezone,
+  const hour12 = timeFormat.is12Hour()
+  const key = `${language.code}|${hour12 ? '12' : '24'}|${timezone}`
+  let formatter = timeFormatterCache.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(language.code, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12,
+      timeZone: timezone,
+    })
+    timeFormatterCache.set(key, formatter)
   }
-  return new Intl.DateTimeFormat(language.code, options).format(date)
+  return formatter.format(date)
 }
