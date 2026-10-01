@@ -193,33 +193,46 @@ html {
        would be unreadable. Aliasing them would silently move one whenever the
        other is retuned, so they stay separate by design. */
     --cal-create: #e5e5e5;
-    /* Calendar accent for the chrome (now line, create selection), and the data
+    /* Calendar accent for the chrome (now line, create selection) and the data
        ink of the analytics report. Monochrome by request: ink on light, paper
-       on dark — the hierarchy comes from opacity steps, not hue. */
-    --cal-accent: oklch(0.205 0 0);
-    /* The six chromatic themes' identity colours. The settings picker paints
-       its swatch from these and the theme blocks below hang `--cal-accent` off
-       them, so the colour a user picks is the colour the calendar draws — which
-       is the whole point of the setting. They used to be two unrelated lists
-       (these swatches lived in `lib/calendar-colors.ts`) and drifted: the
-       picker offered yellow as #facc15 while the calendar drew #ca8a04, and
-       "yellow" meant two different colours depending on where you looked.
+       on dark — the hierarchy comes from opacity steps, not hue. The grey theme
+       is the absence of an identity, so it has no theme block and keeps this
+       base value.
 
-       The grey theme is deliberately absent. It is the absence of an identity
-       rather than one more option, so it keeps the monochrome accent above. */
+       Note this is NOT what the grey swatch reads. `--cal-accent` is by
+       definition whatever theme is selected, so the picker painting its grey
+       option from it showed the *active* colour — pick yellow and the grey
+       swatch turned yellow. `--cal-color-black-white` below is the neutral
+       itself, which is what that option has to display. */
+    --cal-accent: oklch(0.205 0 0);
+    /* The themes' identity colours. The settings picker paints its swatch from
+       these and the theme blocks below hang `--cal-accent` off them, so the
+       colour a user picks is the colour the calendar draws — which is the whole
+       point of the setting. They used to be two unrelated lists (these swatches
+       lived in `lib/calendar-colors.ts`) and drifted: the picker offered yellow
+       as #facc15 while the calendar drew #ca8a04, and "yellow" meant two
+       different colours depending on where you looked.
+
+       The grey theme is in this list because its swatch is a real swatch that
+       has to read as the neutral — see the note on `--cal-accent` above. */
+    --cal-color-black-white: oklch(0.205 0 0);
     --cal-color-orange: #f97316;
     --cal-color-yellow: #facc15;
     --cal-color-blue: #3b82f6;
     --cal-color-green: #22c55e;
     --cal-color-pink: #ec4899;
     --cal-color-purple: #a855f7;
-    /* `--cal-accent`'s readable step, for the places the accent is the message
-       rather than the chrome: the create-selection time label, the rhythm
-       bars, the heatmap. An identity colour is tuned to be recognisable, not
-       legible — yellow on white is 1.53:1 — so type and data ink take this
-       instead, the same way a chart's axis labels never take its series hue.
-       In dark mode the accent is already light on a dark surface, so there the
-       two tokens hold the same value. */
+    /* `--cal-accent` stepped to hold as TYPE — currently just the
+       create-selection time label in the day and week views. An identity
+       colour is tuned to be recognisable, not legible (yellow on white is
+       1.53:1), so small text takes this instead, the same way a chart's axis
+       labels never take its series hue.
+
+       Deliberately not the analytics data ink. A heatmap cell and a rhythm bar
+       are marks, not type: they want the colour the user recognised, stepped by
+       opacity, and darkening them turned the ramp to mud at its palest steps. In
+       dark mode the accent is already light on a dark surface, so there the two
+       tokens hold the same value. */
     --cal-accent-ink: oklch(0.205 0 0);
     /* Today's date badge: one step deeper than the panel grays so it
        reads against the white grid.
@@ -238,6 +251,9 @@ html {
   }
 
   .dark {
+    /* Paper rather than ink, matching the base accent: the grey swatch has to
+       flip with the mode or it disappears into the dark surface. */
+    --cal-color-black-white: oklch(0.922 0 0);
     --cal-accent: oklch(0.922 0 0);
     --cal-accent-ink: oklch(0.922 0 0);
     --cal-now: #cbcbcb;
@@ -330,8 +346,9 @@ html {
 
      The accent steps up one brightness tier here, because an identity colour
      chosen to read as "yellow" on white is already loud on near-black —
-     #facc15 sits at 12.9:1 on #0a0a0a. That also settles `--cal-accent-ink`:
-     there is nothing left to darken, so it equals the accent. */
+     #facc15 sits at 12.9:1 on #0a0a0a. That also settles `--cal-accent-ink`,
+     which exists only to darken type for contrast: there is nothing left to
+     darken on a dark surface, so it equals the accent. */
   .dark[data-calendar-color='orange'] {
     --cal-accent: #fb923c;
     --cal-accent-ink: #fb923c;

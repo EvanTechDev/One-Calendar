@@ -34,16 +34,16 @@ export type CalendarColor = (typeof CALENDAR_COLOR_OPTIONS)[number]['value']
  * is the theme's definition: `--cal-color-yellow` is what the yellow theme
  * block sets `--cal-accent` to, so the dot and the calendar cannot disagree.
  *
- * The grey theme has no `--cal-color-*` variable — it is the absence of an
- * identity, and its swatch has to be the neutral it draws with. `--cal-accent`
- * resolves to the monochrome base, which is exactly that neutral, and it is the
- * one case where reading the live token is right: there is no per-theme value
- * to read it against.
+ * Every theme has a `--cal-color-*` name, the grey one included. It is tempting
+ * to let grey read the live `--cal-accent` instead, on the grounds that the
+ * neutral is what the grey theme draws — but `--cal-accent` is by definition
+ * whatever theme is *currently selected*, so that made the grey swatch paint
+ * the active colour: pick yellow and the grey option turned yellow too. The
+ * picker has to show all seven options at once, so every one of them has to
+ * name its own colour rather than inherit the selection's.
  */
 export function swatchColor(value: CalendarColor): string {
-  return value === 'black-white'
-    ? 'var(--cal-accent)'
-    : `var(--cal-color-${value})`
+  return `var(--cal-color-${value})`
 }
 
 export function normalizeCalendarColor(
