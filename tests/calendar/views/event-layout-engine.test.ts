@@ -9,6 +9,7 @@ import {
   isBannerEvent,
   coversFullCalendarDay,
   layoutAllDaySegments,
+  barLanesByColumn,
   snapToQuarterHour,
   formatTimeForDisplay,
   formatHourMinute,
@@ -627,6 +628,74 @@ describe('EventLayoutEngine', () => {
       })
       const segments = layoutAllDaySegments([event], rowDays)
       expect(segments[0]).toMatchObject({ startIndex: 1, span: 3 })
+    })
+  })
+
+  /**
+   * The month view turns this into the blank space under each day number. The
+   * bug it exists to prevent: reserving the ROW's lane count in every cell put
+   * an empty event-sized slot on days no bar reached, so a single all-day
+   * event on the 2nd showed a blank slot on the 1st.
+   */
+  describe('barLanesByColumn', () => {
+    const rowDays = Array.from(
+      { length: 7 },
+      (_, i) => new Date(2025, 0, 13 + i),
+    ) // Mon 13th .. Sun 19th
+
+    const allDayOn = (day: number) =>
+      createEvent({
+        id: `e${day}`,
+        isAllDay: true,
+        startDate: new Date(2025, 0, day, 0, 0),
+        endDate: new Date(2025, 0, day, 23, 59),
+      })
+
+    it('reports no lanes at all for an empty row', () => {
+      expect(barLanesByColumn([], 7)).toEqual([-1, -1, -1, -1, -1, -1, -1])
+    })
+
+    it('leaves the days either side of a one-day bar uncovered', () => {
+      const segments = layoutAllDaySegments([allDayOn(14)], rowDays)
+      // 14th is rowDays[1]; the 13th and 15th reserve nothing.
+      expect(barLanesByColumn(segments, 7)).toEqual([-1, 1, -1, -1, -1, -1, -1])
+    })
+
+    it('covers every column a multi-day bar spans', () => {
+      const event = createEvent({
+        id: 'trip',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 14, 0, 0),
+        endDate: new Date(2025, 0, 16, 23, 59),
+      })
+      const lanes = barLanesByColumn(layoutAllDaySegments([event], rowDays), 7)
+      expect(lanes).toEqual([-1, 1, 1, 1, -1, -1, -1])
+    })
+
+    it('counts lanes from the top, so a second lane needs both slots', () => {
+      const a = createEvent({
+        id: 'a',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 13, 0, 0),
+        endDate: new Date(2025, 0, 15, 23, 59),
+      })
+      const b = createEvent({
+        id: 'b',
+        isAllDay: true,
+        startDate: new Date(2025, 0, 15, 0, 0),
+        endDate: new Date(2025, 0, 15, 23, 59),
+      })
+      const segments = layoutAllDaySegments([a, b], rowDays)
+      expect(segments.find((s) => s.event.id === 'b')!.lane).toBe(1)
+      // The 15th carries the lane-1 bar, so it must reserve BOTH lanes.
+      expect(barLanesByColumn(segments, 7)).toEqual([1, 1, 2, -1, -1, -1, -1])
+    })
+
+    it('clips a bar that runs past the end of the row', () => {
+      const segments = [
+        { startIndex: 5, span: 4, lane: 0 },
+      ] as unknown as ReturnType<typeof layoutAllDaySegments>
+      expect(barLanesByColumn(segments, 7)).toEqual([-1, -1, -1, -1, -1, 1, 1])
     })
   })
 })

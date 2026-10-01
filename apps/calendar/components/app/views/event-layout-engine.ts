@@ -464,6 +464,36 @@ export function layoutAllDaySegments(
   return segments
 }
 
+/**
+ * How many all-day lanes each day column of a row must reserve space for,
+ * indexed by column. `-1` means no bar covers that column at all.
+ *
+ * Per COLUMN, not per row. The bars are absolutely positioned and each covers
+ * only the columns it spans, so reserving the row's tallest lane in every cell
+ * opened an empty event-sized slot on every day no bar reached — an all-day
+ * event on the 2nd showed a blank slot on the 1st, and on every other day of
+ * that week, that read as an event that failed to render.
+ *
+ * The count is `lane + 1`, not the tallest lane: lanes stack from the top, so
+ * a bar in lane 2 needs room for the two lanes above it too.
+ */
+export function barLanesByColumn(
+  segments: AllDaySegment[],
+  columnCount: number,
+): number[] {
+  const lanes = Array.from<number>({ length: columnCount }).fill(-1)
+
+  for (const segment of segments) {
+    const start = Math.max(segment.startIndex, 0)
+    const end = Math.min(segment.startIndex + segment.span, columnCount)
+    for (let column = start; column < end; column++) {
+      lanes[column] = Math.max(lanes[column], segment.lane + 1)
+    }
+  }
+
+  return lanes
+}
+
 export function getEventTimesForDay(
   event: CalendarEvent,
   day: Date,
