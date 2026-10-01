@@ -433,7 +433,16 @@ ${rawContent.substring(0, 500)}...`)
             startDate: event.startDate.toISOString(),
             endDate: event.endDate.toISOString(),
             isAllDay: event.isAllDay,
+            // `normalizeImportedEvent` computes the recurrence fields but the
+            // mapping below used to stop at `location`, so a restore flattened
+            // every series into one non-recurring event and dropped every
+            // single-instance edit. Send what was parsed.
+            description: event.description ?? null,
             location: event.location || null,
+            rrule: event.rrule ?? null,
+            exdate: event.exdate ?? null,
+            seriesId: event.seriesId ?? null,
+            recurrenceId: event.recurrenceId ?? null,
             participants: event.participants?.length
               ? event.participants.map((p: any) =>
                   typeof p === 'string' ? { name: p } : p,
@@ -634,7 +643,13 @@ ${rawContent.substring(0, 500)}...`)
       exdate: Array.isArray(input.exdate) ? input.exdate : null,
       ...(input.isOverride
         ? {
-            seriesId: input.seriesId ?? null,
+            // RFC 5545 gives every occurrence of a series ONE UID and
+            // distinguishes the edited one by RECURRENCE-ID, so `parseICS`
+            // derives both the master and its overrides from the same `id`.
+            // The series is therefore the id itself whenever the payload did
+            // not spell the link out — a JSON backup carries `seriesId`
+            // explicitly, an ICS file does not.
+            seriesId: input.seriesId ?? input.id ?? null,
             recurrenceId: input.recurrenceId ?? null,
             isOverride: true,
           }

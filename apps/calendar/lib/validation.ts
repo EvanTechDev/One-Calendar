@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { RRule } from 'rrule'
 import {
   DEFAULT_COUNTDOWN_ICON,
   isCountdownIconName,
@@ -23,6 +24,27 @@ const dateTimeString = z
 
 // Countdowns POST targetDate as "YYYY-MM-DD" (no time component).
 const dateOnlyString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+/**
+ * Whether `rrule` is a rule `expandSeries` can actually expand.
+ *
+ * `RRule.fromString` throws on anything malformed, and `expandSeries` catches
+ * that into `occurrences = []` — so a stored-but-unparsable rule is a series
+ * that exists in the database and renders as nothing. The write paths that
+ * take a rule from a live client (POST /api/events) validate it before storing
+ * for exactly this reason; import has to hold the same line.
+ */
+function isParsableRrule(rule: string | null | undefined): boolean {
+  if (rule === null || rule === undefined) return true
+  try {
+    return (
+      typeof RRule.fromString(rule.replace(/^RRULE:/i, '')).options.freq ===
+      'number'
+    )
+  } catch {
+    return false
+  }
+}
 
 export const eventSchema = z.object({
   id: z.string().min(1).max(100).optional(),
@@ -64,6 +86,46 @@ export const recurringFieldsSchema = z.object({
   exdate: z.array(z.string()).max(500).nullish(),
   apply_to: z.enum(['all', 'single', 'following']).nullish(),
 })
+
+/**
+ * RFC 5545 stamp: local `YYYYMMDD` for an all-day occurrence, UTC
+ * `YYYYMMDDTHHMMSSZ` for a timed one. Mirrors the regex on
+ * `invitePatchSchema.recurrenceId`, which cannot be shared because that field is
+ * a plain string constraint rather than a parse.
+ */
+const stampString = z
+  .string()
+  .regex(
+    /^\d{8}(T\d{6}Z)?$/,
+    'recurrenceId must be an RFC stamp (YYYYMMDD or YYYYMMDDTHHMMSSZ)',
+  )
+
+/**
+ * Import variant of {@link recurringFieldsSchema}, plus the two fields that make
+ * a row an Override rather than a Series master.
+ *
+ * Import previously used the bare {@link eventSchema}, which has no
+ * `rrule`/`exdate` keys at all — zod strips unknown keys, so a backup restore
+ * flattened every recurring series into one non-recurring event at the master's
+ * anchor, and every single-instance edit into a detached standalone event. See
+ * `lib/ics.ts` for the round-trip contract this violated.
+ *
+ * `rrule` is validated here rather than merely bounded, because `expandSeries`
+ * swallows a parse failure into an empty occurrence list: an unvalidated rule
+ * would restore as a series that exists in the database and renders empty
+ * everywhere, with no error anywhere. Rejecting the file up front is the
+ * recoverable failure; the phantom series is not.
+ */
+export const importRecurringFieldsShape = {
+  rrule: z
+    .string()
+    .max(500)
+    .nullish()
+    .refine(isParsableRrule, { message: 'Unparsable recurrence rule' }),
+  exdate: z.array(stampString).max(500).nullish(),
+  seriesId: z.string().min(1).max(100).nullish(),
+  recurrenceId: stampString.nullish(),
+}
 
 export const categorySchema = z.object({
   id: z.string().min(1).max(100).optional(),
@@ -110,7 +172,13 @@ const importCountdownSchema = countdownSchema.extend({
 })
 
 export const importSchema = z.object({
-  events: z.array(eventSchema).max(500).optional(),
+  // `eventSchema.extend`, not `and(...)`: the import payload carries an
+  // occurrence's series identity alongside the series' own rule, and an
+  // intersection type would make every consumer re-narrow the merged shape.
+  events: z
+    .array(eventSchema.extend(importRecurringFieldsShape))
+    .max(500)
+    .optional(),
   categories: z.array(categorySchema).max(200).optional(),
   countdowns: z.array(importCountdownSchema).max(200).optional(),
   bookmarks: z

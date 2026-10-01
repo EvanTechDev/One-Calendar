@@ -108,7 +108,12 @@ export default function InvitePage() {
   const [addError, setAddError] = useState('')
 
   useEffect(() => {
-    fetch(`/api/invite/${token}`)
+    // Aborted on cleanup so navigating away mid-flight cannot set state on an
+    // unmounted page, and so a slow response for a previous `token` can never
+    // land on top of the current one's.
+    const controller = new AbortController()
+    const { signal } = controller
+    fetch(`/api/invite/${token}`, { signal })
       .then((res) => {
         if (!res.ok) throw new Error('Invite not found')
         return res.json()
@@ -140,9 +145,12 @@ export default function InvitePage() {
         setLoading(false)
       })
       .catch((err) => {
+        // An abort is this effect's own teardown, not a failure to report.
+        if (controller.signal.aborted) return
         setError(err.message)
         setLoading(false)
       })
+    return () => controller.abort()
   }, [token])
 
   const handleRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {

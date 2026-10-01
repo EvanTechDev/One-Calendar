@@ -1036,6 +1036,15 @@ export const GET = async function GET(request: NextRequest) {
   }
 
   if (source === 'database') {
+    // The cache is keyed by user and month only, so a category filter must
+    // never reach the rows that get written into it: the filtered result was
+    // stored under the month key, and the next unfiltered read hit it as a
+    // complete month and silently omitted every event outside the requested
+    // category for the rest of the TTL. A category-filtered miss therefore
+    // skips the write — the read path already filters the cached month, so the
+    // next full read populates it correctly.
+    const writeBackToCache = !(startDate && endDate) || !categoryIds
+
     const query = getDb()
       .select()
       .from(calendarEvents)
@@ -1047,7 +1056,7 @@ export const GET = async function GET(request: NextRequest) {
 
     const results = await query
 
-    if (startDate && endDate) {
+    if (startDate && endDate && writeBackToCache) {
       const grouped = groupByMonth(results)
       for (const [ym, monthEvents] of grouped) {
         await setCachedEvents(currentUser.id, ym, monthEvents)
@@ -1466,13 +1475,18 @@ const postHandler = async function POST(request: NextRequest) {
     return NextResponse.json({ event: withInvites })
   }
 
+  // One unfiltered read, reused for both the authorisation decision and the
+  // merge base. The row has to be visible even when it belongs to somebody
+  // else — the 403 depends on seeing the foreign `userId`, and a
+  // userId-scoped read would instead fall through to the create path and
+  // upsert over a stranger's row. What closes the check-then-act window is the
+  // `targetWhere` on the upsert further down: if the row is deleted and
+  // recreated under a different owner between this read and that write, the
+  // conflict target no longer matches and nothing is overwritten. Previously
+  // this read the row, compared owners in JS, then re-read it unfiltered and
+  // upserted on `id` alone.
   const [old] = await getDb()
-    .select({
-      id: calendarEvents.id,
-      startDate: calendarEvents.startDate,
-      endDate: calendarEvents.endDate,
-      userId: calendarEvents.userId,
-    })
+    .select()
     .from(calendarEvents)
     .where(eq(calendarEvents.id, id))
 
@@ -1487,12 +1501,7 @@ const postHandler = async function POST(request: NextRequest) {
     )
   }
 
-  const [fullOld] = isUpdate
-    ? await getDb()
-        .select()
-        .from(calendarEvents)
-        .where(eq(calendarEvents.id, id))
-    : [undefined]
+  const fullOld = isUpdate ? old : undefined
 
   if (isUpdate && fullOld && fullOld.seriesId !== null) {
     const overrideRow = decryptEvent(fullOld) as unknown as EventRow
@@ -1787,6 +1796,12 @@ const postHandler = async function POST(request: NextRequest) {
     })
     .onConflictDoUpdate({
       target: calendarEvents.id,
+      // An update may only ever touch a row the caller still owns. Every other
+      // id-scoped write in the app carries `eq(userId, …)` in the statement
+      // itself (categories, countdowns, the invite PATCH); this is where the
+      // event write makes that guarantee stick rather than relying on the
+      // check-then-act above.
+      targetWhere: eq(calendarEvents.userId, user.id),
       set: {
         title: encryptField(id, body.title) ?? '',
         description: encryptField(id, body.description),

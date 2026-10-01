@@ -225,9 +225,6 @@ export function generateICSFile(events: IcsEvent[]): string {
           : `EXDATE:${event.exdate.join(',')}`,
       )
     }
-    if (carriesRule && (event.rrule || event.exdate?.length)) {
-    }
-
     lines.push('STATUS:CONFIRMED')
     lines.push('TRANSP:OPAQUE')
 
