@@ -532,5 +532,8 @@
   "aiAssistantConfirmAction": "确认操作",
   "aiAssistantApprove": "批准",
   "aiAssistantDeny": "拒绝",
-  "aiAssistantDenied": "已拒绝"
+  "aiAssistantDenied": "已拒绝",
+  "aiParseApplied": "已根据你的描述自动填充",
+  "aiParseError": "AI 无法解析这段文字——已保留你的原文，请手动填写",
+  "aiParseRateLimited": "AI 请求过于频繁——请一分钟后再试"
 }

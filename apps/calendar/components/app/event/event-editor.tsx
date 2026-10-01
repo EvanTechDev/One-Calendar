@@ -42,7 +42,9 @@ import { Calendar } from '@zntr/ui/calendar'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { useState, useEffect } from 'react'
+import { Skeleton } from '@zntr/ui/skeleton'
+import { useState, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { uuid } from '@/lib/uuid'
 import type { CalendarEvent } from '@/components/app/calendar'
@@ -64,6 +66,14 @@ import {
 import type { ViewConfig } from '@/lib/calendar-types'
 import { EventMeetingField } from '@/components/app/event/event-meeting-field'
 import { useEventMeetingDraft } from '@/hooks/use-event-meeting-draft'
+import type { ParsedEventDraft } from '@zntr/agent/parse'
+
+/**
+ * Build-time flag from next.config.ts (GROQ_API_KEY present). The
+ * natural-language quick-create — Enter in the title field — only exists
+ * on AI deployments; everywhere else Enter keeps its default behavior.
+ */
+const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   value: i.toString().padStart(2, '0'),
@@ -136,6 +146,36 @@ interface TimeInput {
   minutes: string
   rawInput: string
   isCustomInput: boolean
+}
+
+/**
+ * Every field an AI parse can touch, snapshotted before the request so the
+ * success toast's Undo can put the draft back exactly as it was.
+ */
+interface AiDraftSnapshot {
+  title: string
+  isAllDay: boolean
+  startDate: Date
+  endDate: Date
+  startTime: TimeInput
+  endTime: TimeInput
+  selectedCalendar: string
+  color: string
+  location: string
+  description: string
+  recurrenceEnabled: boolean
+  recFreq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  recInterval: number
+  recEndMode: 'never' | 'count' | 'until'
+  recCount: number
+  recUntil: Date
+  recWeeklyDays: string[]
+  recMonthlyMode: 'day' | 'weekday'
+  recMonthlyDay: number
+  recMonthlyWeek: number
+  recMonthlyWeekday: string
+  recYearlyMonth: number
+  recYearlyDay: number
 }
 
 export default function EventEditor({
@@ -440,6 +480,252 @@ export default function EventEditor({
       rawInput: format(date, 'HH:mm'),
       isCustomInput: false,
     }
+  }
+
+  const [isAiParsing, setIsAiParsing] = useState(false)
+  const aiParseAbortRef = useRef<AbortController | null>(null)
+
+  // Closing the popover mid-parse abandons the request: the draft it would
+  // have filled no longer exists, and there is nobody to toast at.
+  useEffect(() => {
+    if (!open) aiParseAbortRef.current?.abort()
+  }, [open])
+
+  const takeAiSnapshot = (): AiDraftSnapshot => ({
+    title,
+    isAllDay,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    selectedCalendar,
+    color,
+    location,
+    description,
+    recurrenceEnabled,
+    recFreq,
+    recInterval,
+    recEndMode,
+    recCount,
+    recUntil,
+    recWeeklyDays,
+    recMonthlyMode,
+    recMonthlyDay,
+    recMonthlyWeek,
+    recMonthlyWeekday,
+    recYearlyMonth,
+    recYearlyDay,
+  })
+
+  const restoreAiSnapshot = (snapshot: AiDraftSnapshot) => {
+    setTitle(snapshot.title)
+    setIsAllDay(snapshot.isAllDay)
+    setStartDate(snapshot.startDate)
+    setEndDate(snapshot.endDate)
+    setStartTime(snapshot.startTime)
+    setEndTime(snapshot.endTime)
+    setSelectedCalendar(snapshot.selectedCalendar)
+    setColor(snapshot.color)
+    setLocation(snapshot.location)
+    setDescription(snapshot.description)
+    setRecurrenceEnabled(snapshot.recurrenceEnabled)
+    setRecFreq(snapshot.recFreq)
+    setRecInterval(snapshot.recInterval)
+    setRecEndMode(snapshot.recEndMode)
+    setRecCount(snapshot.recCount)
+    setRecUntil(snapshot.recUntil)
+    setRecWeeklyDays(snapshot.recWeeklyDays)
+    setRecMonthlyMode(snapshot.recMonthlyMode)
+    setRecMonthlyDay(snapshot.recMonthlyDay)
+    setRecMonthlyWeek(snapshot.recMonthlyWeek)
+    setRecMonthlyWeekday(snapshot.recMonthlyWeekday)
+    setRecYearlyMonth(snapshot.recYearlyMonth)
+    setRecYearlyDay(snapshot.recYearlyDay)
+    setStartTimeError(false)
+    setEndTimeError(false)
+  }
+
+  /**
+   * Apply a sparse parsed draft: absent fields stay exactly as the user
+   * had them ("tomorrow 6pm" moves the event; it must not silently stretch
+   * it — an omitted end preserves the draft's current duration). Invalid
+   * values are dropped per-field rather than failing the whole parse, the
+   * same degradation the server applies.
+   */
+  const applyParsedEvent = (parsed: ParsedEventDraft) => {
+    if (parsed.title) setTitle(parsed.title)
+
+    const parsedStart = parsed.start ? new Date(parsed.start) : null
+    if (parsedStart && !isNaN(parsedStart.getTime())) {
+      const duration = getFullEndDate().getTime() - getFullStartDate().getTime()
+      setStartDate(parsedStart)
+      setStartTime(extractTimeFromDate(parsedStart))
+      const parsedEnd = parsed.end ? new Date(parsed.end) : null
+      const shiftedEnd =
+        parsedEnd && !isNaN(parsedEnd.getTime())
+          ? parsedEnd
+          : duration > 0
+            ? new Date(parsedStart.getTime() + duration)
+            : null
+      if (shiftedEnd) {
+        setEndDate(shiftedEnd)
+        setEndTime(extractTimeFromDate(shiftedEnd))
+      }
+    } else if (parsed.end) {
+      const parsedEnd = new Date(parsed.end)
+      if (!isNaN(parsedEnd.getTime())) {
+        setEndDate(parsedEnd)
+        setEndTime(extractTimeFromDate(parsedEnd))
+      }
+    }
+    setStartTimeError(false)
+    setEndTimeError(false)
+
+    if (parsed.isAllDay !== undefined) {
+      setIsAllDay(parsed.isAllDay)
+      if (parsed.isAllDay) {
+        setStartTime({
+          hours: '00',
+          minutes: '00',
+          rawInput: '00:00',
+          isCustomInput: false,
+        })
+        setEndTime({
+          hours: '23',
+          minutes: '59',
+          rawInput: '23:59',
+          isCustomInput: false,
+        })
+      }
+    }
+
+    if (parsed.location) setLocation(parsed.location)
+    if (parsed.description) setDescription(parsed.description)
+
+    // Category first (it implies a color, same as picking one by hand),
+    // then an explicitly stated color wins over the category's default.
+    if (
+      parsed.categoryId &&
+      calendars.some((c) => c.id === parsed.categoryId)
+    ) {
+      setSelectedCalendar(parsed.categoryId)
+      setColor(getEventColorByCalendarId(parsed.categoryId))
+    }
+    if (parsed.color) {
+      const hex = parsed.color.toLowerCase()
+      const option = EVENT_COLOR_OPTIONS.find(
+        (o) => EVENT_BG_TO_ACCENT[o.value]?.toLowerCase() === hex,
+      )
+      if (option) setColor(option.value)
+    }
+
+    if (parsed.rrule) {
+      try {
+        const parts = rruleToParts(parsed.rrule)
+        setRecurrenceEnabled(true)
+        setRecFreq(parts.freq)
+        setRecInterval(parts.interval || 1)
+        // The editor works on bare day names; ordinal prefixes ("2MO") are
+        // carried by the monthly-weekday controls instead.
+        setRecWeeklyDays(
+          (parts.byweekday ?? [])
+            .map((token) => parseWeekdayToken(token)?.day)
+            .filter((day): day is string => day !== undefined),
+        )
+        const firstWeekdayToken = parts.byweekday?.[0]
+        const firstWeekday = firstWeekdayToken
+          ? parseWeekdayToken(firstWeekdayToken)
+          : null
+        const setPos = parts.bysetpos?.[0] ?? firstWeekday?.ordinal ?? null
+        setRecMonthlyMode(
+          parts.byweekday && setPos !== null ? 'weekday' : 'day',
+        )
+        setRecMonthlyWeek(setPos ?? 1)
+        setRecMonthlyWeekday(firstWeekday?.day ?? 'MO')
+        const anchor =
+          parsedStart && !isNaN(parsedStart.getTime()) ? parsedStart : startDate
+        setRecMonthlyDay(parts.bymonthday?.[0] ?? anchor.getDate())
+        setRecYearlyDay(parts.bymonthday?.[0] ?? anchor.getDate())
+        setRecYearlyMonth(parts.bymonth?.[0] ?? anchor.getMonth() + 1)
+        if (parts.until) {
+          setRecEndMode('until')
+          setRecUntil(parseRfcStamp(parts.until).date)
+        } else if (parts.count !== null) {
+          setRecEndMode('count')
+          setRecCount(parts.count)
+        } else {
+          setRecEndMode('never')
+        }
+      } catch {
+        // Field-level degradation, client side: an rrule that survived the
+        // server's regex but breaks the full parser is dropped, not fatal.
+      }
+    }
+  }
+
+  /**
+   * Natural-language quick-create: send the title text to the parse route
+   * and let the model pre-fill the popover. The title input is NOT cleared
+   * while parsing — on any failure the user's text is simply still there.
+   */
+  const runAiParse = async () => {
+    const text = title.trim()
+    if (!text || isAiParsing) return
+
+    const snapshot = takeAiSnapshot()
+    const controller = new AbortController()
+    aiParseAbortRef.current?.abort()
+    aiParseAbortRef.current = controller
+    setIsAiParsing(true)
+    try {
+      const response = await fetch('/api/agent/parse-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        signal: controller.signal,
+      })
+      if (!response.ok) {
+        toast.error(
+          response.status === 429 ? t.aiParseRateLimited : t.aiParseError,
+        )
+        return
+      }
+      const data = (await response.json()) as { event?: ParsedEventDraft }
+      if (!data.event) {
+        toast.error(t.aiParseError)
+        return
+      }
+      applyParsedEvent(data.event)
+      toast.success(t.aiParseApplied, {
+        action: {
+          label: t.undo,
+          onClick: () => restoreAiSnapshot(snapshot),
+        },
+      })
+    } catch (error) {
+      // Popover closed or a second Enter superseded this request — silent.
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      toast.error(t.aiParseError)
+    } finally {
+      if (aiParseAbortRef.current === controller) {
+        aiParseAbortRef.current = null
+        setIsAiParsing(false)
+      }
+    }
+  }
+
+  /**
+   * Enter in the title field (create mode, AI deployments only) triggers
+   * the quick-create parse. The isComposing guard matters: for IME users
+   * (Chinese/Japanese — the primary audience for this feature) Enter first
+   * confirms the composition candidate and must not fire a parse.
+   */
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    if (event || !AI_ENABLED) return
+    if (e.nativeEvent.isComposing) return
+    e.preventDefault()
+    void runAiParse()
   }
 
   useEffect(() => {
@@ -1129,682 +1415,767 @@ export default function EventEditor({
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-              <form onSubmit={handleSubmit} className="space-y-4 pb-2">
-                <div className="space-y-2">
-                  <Label htmlFor="title">{t.title}</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="all-day"
-                    checked={isAllDay}
-                    onCheckedChange={(checked) => {
-                      const isChecked = checked as boolean
-                      setIsAllDay(isChecked)
-
-                      if (isChecked) {
-                        setStartTime({
-                          hours: '00',
-                          minutes: '00',
-                          rawInput: '00:00',
-                          isCustomInput: false,
-                        })
-
-                        setEndTime({
-                          hours: '23',
-                          minutes: '59',
-                          rawInput: '23:59',
-                          isCustomInput: false,
-                        })
-                      }
-                    }}
-                  />
-                  <Label htmlFor="all-day">{t.allDay}</Label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit}>
+                {/*
+                Native fieldset disabling freezes the WHOLE form mid-parse —
+                not just the AI-fillable fields — so a half-applied draft can
+                never be saved or edited under the skeletons.
+              */}
+                <fieldset
+                  disabled={isAiParsing}
+                  className="min-w-0 space-y-4 pb-2"
+                >
                   <div className="space-y-2">
-                    <Label>{t.startTime}</Label>
-                    <div className="flex flex-col space-y-2">
-                      <Popover
-                        open={startDateOpen}
-                        onOpenChange={setStartDateOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {format(startDate, 'yyyy-MM-dd')}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                handleStartDateChange(date)
-                                setStartDateOpen(false)
-                              }
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      {!isAllDay &&
-                        renderTimeSelector(
-                          startTime,
-                          handleStartTimeChange,
-                          handleStartTimeInput,
-                          startTimeOpen,
-                          setStartTimeOpen,
-                          startTimeError,
-                        )}
-                    </div>
+                    <Label htmlFor="title">{t.title}</Label>
+                    {isAiParsing ? (
+                      <Skeleton className="h-9 w-full" />
+                    ) : (
+                      <Input
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        onKeyDown={handleTitleKeyDown}
+                      />
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>{t.endTime}</Label>
-                    <div className="flex flex-col space-y-2">
-                      <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
+                  <div className="flex items-center space-x-2">
+                    {isAiParsing ? (
+                      <Skeleton className="h-6 w-full" />
+                    ) : (
+                      <>
+                        <Checkbox
+                          id="all-day"
+                          checked={isAllDay}
+                          onCheckedChange={(checked) => {
+                            const isChecked = checked as boolean
+                            setIsAllDay(isChecked)
+
+                            if (isChecked) {
+                              setStartTime({
+                                hours: '00',
+                                minutes: '00',
+                                rawInput: '00:00',
+                                isCustomInput: false,
+                              })
+
+                              setEndTime({
+                                hours: '23',
+                                minutes: '59',
+                                rawInput: '23:59',
+                                isCustomInput: false,
+                              })
+                            }
+                          }}
+                        />
+                        <Label htmlFor="all-day">{t.allDay}</Label>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {isAiParsing ? (
+                      <Skeleton className="h-[88px] w-full" />
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>{t.startTime}</Label>
+                        <div className="flex flex-col space-y-2">
+                          <Popover
+                            open={startDateOpen}
+                            onOpenChange={setStartDateOpen}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {format(endDate, 'yyyy-MM-dd')}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                setEndDate(date)
-                                setEndDateOpen(false)
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {format(startDate, 'yyyy-MM-dd')}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    handleStartDateChange(date)
+                                    setStartDateOpen(false)
+                                  }
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {!isAllDay &&
+                            renderTimeSelector(
+                              startTime,
+                              handleStartTimeChange,
+                              handleStartTimeInput,
+                              startTimeOpen,
+                              setStartTimeOpen,
+                              startTimeError,
+                            )}
+                        </div>
+                      </div>
+                    )}
+
+                    {isAiParsing ? (
+                      <Skeleton className="h-[88px] w-full" />
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>{t.endTime}</Label>
+                        <div className="flex flex-col space-y-2">
+                          <Popover
+                            open={endDateOpen}
+                            onOpenChange={setEndDateOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {format(endDate, 'yyyy-MM-dd')}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    setEndDate(date)
+                                    setEndDateOpen(false)
+
+                                    const fullStartDate = getFullStartDate()
+                                    const possibleEndDate = combineDateTime(
+                                      date,
+                                      endTime,
+                                    )
+
+                                    if (possibleEndDate < fullStartDate) {
+                                      setEndTimeError(true)
+                                    } else {
+                                      setEndTimeError(false)
+                                    }
+                                  }
+                                }}
+                                disabled={(date) => date < startDate}
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {!isAllDay &&
+                            renderTimeSelector(
+                              endTime,
+                              (hours, minutes) => {
+                                setEndTime({
+                                  hours,
+                                  minutes,
+                                  rawInput: `${hours}:${minutes}`,
+                                  isCustomInput: false,
+                                })
 
                                 const fullStartDate = getFullStartDate()
-                                const possibleEndDate = combineDateTime(
-                                  date,
-                                  endTime,
-                                )
+                                const possibleEndDate = set(new Date(endDate), {
+                                  hours: parseInt(hours, 10),
+                                  minutes: parseInt(minutes, 10),
+                                  seconds: 0,
+                                })
 
-                                if (possibleEndDate < fullStartDate) {
-                                  setEndTimeError(true)
-                                } else {
-                                  setEndTimeError(false)
-                                }
-                              }
-                            }}
-                            disabled={(date) => date < startDate}
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      {!isAllDay &&
-                        renderTimeSelector(
-                          endTime,
-                          (hours, minutes) => {
-                            setEndTime({
-                              hours,
-                              minutes,
-                              rawInput: `${hours}:${minutes}`,
-                              isCustomInput: false,
-                            })
-
-                            const fullStartDate = getFullStartDate()
-                            const possibleEndDate = set(new Date(endDate), {
-                              hours: parseInt(hours, 10),
-                              minutes: parseInt(minutes, 10),
-                              seconds: 0,
-                            })
-
-                            setEndTimeError(possibleEndDate < fullStartDate)
-                          },
-                          handleEndTimeInput,
-                          endTimeOpen,
-                          setEndTimeOpen,
-                          endTimeError,
+                                setEndTimeError(possibleEndDate < fullStartDate)
+                              },
+                              handleEndTimeInput,
+                              endTimeOpen,
+                              setEndTimeOpen,
+                              endTimeError,
+                            )}
+                        </div>
+                        {endTimeError && !isAllDay && (
+                          <p className="text-xs text-red-500">
+                            {t.endTimeError}
+                          </p>
                         )}
-                    </div>
-                    {endTimeError && !isAllDay && (
-                      <p className="text-xs text-red-500">{t.endTimeError}</p>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="calendar">{t.calendar}</Label>
-                  <Select
-                    value={calendarSelectValue}
-                    onValueChange={(value) => {
-                      setSelectedCalendar(value)
-                      if (value !== '__uncategorized__') {
-                        setColor(getEventColorByCalendarId(value))
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.selectCalendar} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {calendars.length > 0 && (
-                        <SelectItem value="__uncategorized__">
-                          <div className="flex items-center">
-                            <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
-                            {t.uncategorized}
-                          </div>
-                        </SelectItem>
-                      )}
-                      {calendars.map((calendar) => (
-                        <SelectItem key={calendar.id} value={calendar.id}>
-                          <div className="flex items-center">
-                            <div
-                              className={cn(
-                                'w-4 h-4 rounded-full mr-2',
-                                calendar.color,
-                              )}
-                            />
-                            {calendar.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="color">{t.color}</Label>
-                  <Select value={color} onValueChange={setColor}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.selectColor} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVENT_COLOR_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className="flex items-center">
-                            <div
-                              className={cn('w-4 h-4 rounded-full mr-2')}
-                              style={{
-                                backgroundColor:
-                                  EVENT_BG_TO_ACCENT[option.value],
-                              }}
-                            />
-                            {t[option.labelKey]}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">{t.location}</Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-
-                <EventMeetingField draft={meetingDraft} />
-
-                <div className="space-y-2">
-                  <Label htmlFor="participants">{t.participants}</Label>
-                  <Input
-                    id="participants"
-                    value={participants}
-                    onChange={(e) => {
-                      setParticipants(e.target.value)
-                      if (participantError) setParticipantError('')
-                    }}
-                    placeholder={t.participantsPlaceholder}
-                  />
-                  {participantError && (
-                    <p className="text-xs text-destructive">
-                      {participantError}
-                    </p>
-                  )}
-                </div>
-
-                {(!event || !isRecurringEvent) && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="repeat"
-                      checked={recurrenceEnabled}
-                      onCheckedChange={(checked) => {
-                        const enabled = checked as boolean
-                        setRecurrenceEnabled(enabled)
-                        if (enabled) {
-                          setRecWeeklyDays([weekdayOfDate(startDate)])
-                        }
-                      }}
-                    />
-                    <Label htmlFor="repeat">{t.repeatLabel}</Label>
-                  </div>
-                )}
-
-                {recurrenceEnabled && (event === null || applyTo === 'all') && (
-                  <div className="space-y-3 rounded-md border p-3">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="calendar">{t.calendar}</Label>
+                    {isAiParsing ? (
+                      <Skeleton className="h-9 w-full" />
+                    ) : (
                       <Select
-                        value={recFreq}
-                        onValueChange={(value) =>
-                          setRecFreq(
-                            value as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY',
-                          )
-                        }
+                        value={calendarSelectValue}
+                        onValueChange={(value) => {
+                          setSelectedCalendar(value)
+                          if (value !== '__uncategorized__') {
+                            setColor(getEventColorByCalendarId(value))
+                          }
+                        }}
                       >
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue />
+                        <SelectTrigger>
+                          <SelectValue placeholder={t.selectCalendar} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DAILY">
-                            {t.repeatFrequencyDaily}
-                          </SelectItem>
-                          <SelectItem value="WEEKLY">
-                            {t.repeatFrequencyWeekly}
-                          </SelectItem>
-                          <SelectItem value="MONTHLY">
-                            {t.repeatFrequencyMonthly}
-                          </SelectItem>
-                          <SelectItem value="YEARLY">
-                            {t.repeatFrequencyYearly}
-                          </SelectItem>
+                          {calendars.length > 0 && (
+                            <SelectItem value="__uncategorized__">
+                              <div className="flex items-center">
+                                <div className="w-4 h-4 rounded-full mr-2 border border-muted-foreground/50" />
+                                {t.uncategorized}
+                              </div>
+                            </SelectItem>
+                          )}
+                          {calendars.map((calendar) => (
+                            <SelectItem key={calendar.id} value={calendar.id}>
+                              <div className="flex items-center">
+                                <div
+                                  className={cn(
+                                    'w-4 h-4 rounded-full mr-2',
+                                    calendar.color,
+                                  )}
+                                />
+                                {calendar.name}
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min={1}
-                          value={recInterval}
-                          onChange={(e) =>
-                            setRecInterval(
-                              Math.max(1, parseInt(e.target.value, 10) || 1),
-                            )
-                          }
-                          className="w-16"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          {t.repeatEveryIntervalHint}
-                        </span>
-                      </div>
-                    </div>
-
-                    {recFreq === 'WEEKLY' && (
-                      <div className="flex flex-wrap gap-1">
-                        {WEEKDAY_ORDER.map((d) => {
-                          const selected = recWeeklyDays.includes(d)
-                          return (
-                            <Button
-                              key={d}
-                              type="button"
-                              size="sm"
-                              className="h-7 px-2"
-                              variant={selected ? 'default' : 'outline'}
-                              onClick={() =>
-                                setRecWeeklyDays((prev) =>
-                                  selected
-                                    ? prev.filter((x) => x !== d)
-                                    : [...prev, d],
-                                )
-                              }
-                            >
-                              {weekdayLabel(d)}
-                            </Button>
-                          )
-                        })}
-                      </div>
                     )}
+                  </div>
 
-                    {recFreq === 'MONTHLY' && (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                              recMonthlyMode === 'day' ? 'default' : 'outline'
+                  <div className="space-y-2">
+                    <Label htmlFor="color">{t.color}</Label>
+                    {isAiParsing ? (
+                      <Skeleton className="h-9 w-full" />
+                    ) : (
+                      <Select value={color} onValueChange={setColor}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t.selectColor} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVENT_COLOR_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center">
+                                <div
+                                  className={cn('w-4 h-4 rounded-full mr-2')}
+                                  style={{
+                                    backgroundColor:
+                                      EVENT_BG_TO_ACCENT[option.value],
+                                  }}
+                                />
+                                {t[option.labelKey]}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">{t.location}</Label>
+                    {isAiParsing ? (
+                      <Skeleton className="h-9 w-full" />
+                    ) : (
+                      <Input
+                        id="location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  <EventMeetingField draft={meetingDraft} />
+
+                  <div className="space-y-2">
+                    <Label htmlFor="participants">{t.participants}</Label>
+                    <Input
+                      id="participants"
+                      value={participants}
+                      onChange={(e) => {
+                        setParticipants(e.target.value)
+                        if (participantError) setParticipantError('')
+                      }}
+                      placeholder={t.participantsPlaceholder}
+                    />
+                    {participantError && (
+                      <p className="text-xs text-destructive">
+                        {participantError}
+                      </p>
+                    )}
+                  </div>
+
+                  {(!event || !isRecurringEvent) && (
+                    <div className="flex items-center space-x-2">
+                      {isAiParsing ? (
+                        <Skeleton className="h-6 w-full" />
+                      ) : (
+                        <>
+                          <Checkbox
+                            id="repeat"
+                            checked={recurrenceEnabled}
+                            onCheckedChange={(checked) => {
+                              const enabled = checked as boolean
+                              setRecurrenceEnabled(enabled)
+                              if (enabled) {
+                                setRecWeeklyDays([weekdayOfDate(startDate)])
+                              }
+                            }}
+                          />
+                          <Label htmlFor="repeat">{t.repeatLabel}</Label>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {recurrenceEnabled &&
+                    (event === null || applyTo === 'all') &&
+                    (isAiParsing ? (
+                      <Skeleton className="h-40 w-full" />
+                    ) : (
+                      <div className="space-y-3 rounded-md border p-3">
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={recFreq}
+                            onValueChange={(value) =>
+                              setRecFreq(
+                                value as
+                                  | 'DAILY'
+                                  | 'WEEKLY'
+                                  | 'MONTHLY'
+                                  | 'YEARLY',
+                              )
                             }
-                            onClick={() => setRecMonthlyMode('day')}
                           >
-                            {t.repeatMonthlyModeDay}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                              recMonthlyMode === 'weekday'
-                                ? 'default'
-                                : 'outline'
-                            }
-                            onClick={() => setRecMonthlyMode('weekday')}
-                          >
-                            {t.repeatMonthlyModeWeekday}
-                          </Button>
-                        </div>
-                        {recMonthlyMode === 'day' ? (
-                          <Input
-                            type="number"
-                            min={1}
-                            max={31}
-                            value={recMonthlyDay}
-                            onChange={(e) =>
-                              setRecMonthlyDay(
-                                Math.min(
-                                  31,
+                            <SelectTrigger className="w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="DAILY">
+                                {t.repeatFrequencyDaily}
+                              </SelectItem>
+                              <SelectItem value="WEEKLY">
+                                {t.repeatFrequencyWeekly}
+                              </SelectItem>
+                              <SelectItem value="MONTHLY">
+                                {t.repeatFrequencyMonthly}
+                              </SelectItem>
+                              <SelectItem value="YEARLY">
+                                {t.repeatFrequencyYearly}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              value={recInterval}
+                              onChange={(e) =>
+                                setRecInterval(
                                   Math.max(
                                     1,
                                     parseInt(e.target.value, 10) || 1,
                                   ),
-                                ),
-                              )
-                            }
-                            className="w-20"
-                          />
-                        ) : (
-                          <div className="flex gap-2">
-                            <Select
-                              value={String(recMonthlyWeek)}
-                              onValueChange={(v) =>
-                                setRecMonthlyWeek(parseInt(v, 10))
+                                )
                               }
-                            >
-                              <SelectTrigger className="w-[110px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, -1].map((w) => (
-                                  <SelectItem key={w} value={String(w)}>
-                                    {w === -1
-                                      ? t.recurrenceLastWeek
-                                      : t.recurrenceNthWeek.replace(
-                                          '{n}',
-                                          String(w),
-                                        )}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Select
-                              value={recMonthlyWeekday}
-                              onValueChange={setRecMonthlyWeekday}
-                            >
-                              <SelectTrigger className="w-[110px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {WEEKDAY_ORDER.map((d) => (
-                                  <SelectItem key={d} value={d}>
-                                    {weekdayLabel(d)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              className="w-16"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {t.repeatEveryIntervalHint}
+                            </span>
+                          </div>
+                        </div>
+
+                        {recFreq === 'WEEKLY' && (
+                          <div className="flex flex-wrap gap-1">
+                            {WEEKDAY_ORDER.map((d) => {
+                              const selected = recWeeklyDays.includes(d)
+                              return (
+                                <Button
+                                  key={d}
+                                  type="button"
+                                  size="sm"
+                                  className="h-7 px-2"
+                                  variant={selected ? 'default' : 'outline'}
+                                  onClick={() =>
+                                    setRecWeeklyDays((prev) =>
+                                      selected
+                                        ? prev.filter((x) => x !== d)
+                                        : [...prev, d],
+                                    )
+                                  }
+                                >
+                                  {weekdayLabel(d)}
+                                </Button>
+                              )
+                            })}
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {recFreq === 'YEARLY' && (
-                      <div className="flex gap-2">
-                        <Select
-                          value={String(recYearlyMonth)}
-                          onValueChange={(v) =>
-                            setRecYearlyMonth(parseInt(v, 10))
-                          }
-                        >
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                              (m) => (
-                                <SelectItem key={m} value={String(m)}>
-                                  {t.recurrenceYearlyMonth.replace(
-                                    '{n}',
-                                    String(m),
-                                  )}
-                                </SelectItem>
-                              ),
+                        {recFreq === 'MONTHLY' && (
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                  recMonthlyMode === 'day'
+                                    ? 'default'
+                                    : 'outline'
+                                }
+                                onClick={() => setRecMonthlyMode('day')}
+                              >
+                                {t.repeatMonthlyModeDay}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                  recMonthlyMode === 'weekday'
+                                    ? 'default'
+                                    : 'outline'
+                                }
+                                onClick={() => setRecMonthlyMode('weekday')}
+                              >
+                                {t.repeatMonthlyModeWeekday}
+                              </Button>
+                            </div>
+                            {recMonthlyMode === 'day' ? (
+                              <Input
+                                type="number"
+                                min={1}
+                                max={31}
+                                value={recMonthlyDay}
+                                onChange={(e) =>
+                                  setRecMonthlyDay(
+                                    Math.min(
+                                      31,
+                                      Math.max(
+                                        1,
+                                        parseInt(e.target.value, 10) || 1,
+                                      ),
+                                    ),
+                                  )
+                                }
+                                className="w-20"
+                              />
+                            ) : (
+                              <div className="flex gap-2">
+                                <Select
+                                  value={String(recMonthlyWeek)}
+                                  onValueChange={(v) =>
+                                    setRecMonthlyWeek(parseInt(v, 10))
+                                  }
+                                >
+                                  <SelectTrigger className="w-[110px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, -1].map((w) => (
+                                      <SelectItem key={w} value={String(w)}>
+                                        {w === -1
+                                          ? t.recurrenceLastWeek
+                                          : t.recurrenceNthWeek.replace(
+                                              '{n}',
+                                              String(w),
+                                            )}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select
+                                  value={recMonthlyWeekday}
+                                  onValueChange={setRecMonthlyWeekday}
+                                >
+                                  <SelectTrigger className="w-[110px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {WEEKDAY_ORDER.map((d) => (
+                                      <SelectItem key={d} value={d}>
+                                        {weekdayLabel(d)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             )}
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={31}
-                          value={recYearlyDay}
-                          onChange={(e) =>
-                            setRecYearlyDay(
-                              Math.min(
-                                31,
-                                Math.max(1, parseInt(e.target.value, 10) || 1),
-                              ),
-                            )
-                          }
-                          className="w-20"
-                        />
-                      </div>
-                    )}
+                          </div>
+                        )}
 
-                    <div className="space-y-2">
-                      <Label>{t.repeatEnds}</Label>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={
-                            recEndMode === 'never' ? 'default' : 'outline'
-                          }
-                          onClick={() => setRecEndMode('never')}
-                        >
-                          {t.repeatEndNever}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={
-                            recEndMode === 'count' ? 'default' : 'outline'
-                          }
-                          onClick={() => setRecEndMode('count')}
-                        >
-                          {t.repeatEndCount}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={
-                            recEndMode === 'until' ? 'default' : 'outline'
-                          }
-                          onClick={() => setRecEndMode('until')}
-                        >
-                          {t.repeatEndUntil}
-                        </Button>
-                      </div>
-                      {recEndMode === 'count' && (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={1}
-                            value={recCount}
-                            onChange={(e) =>
-                              setRecCount(
-                                Math.max(1, parseInt(e.target.value, 10) || 1),
-                              )
-                            }
-                            className="w-20"
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {t.repeatOccurrencesSuffix}
-                          </span>
-                        </div>
-                      )}
-                      {recEndMode === 'until' && (
-                        <Popover>
-                          <PopoverTrigger asChild>
+                        {recFreq === 'YEARLY' && (
+                          <div className="flex gap-2">
+                            <Select
+                              value={String(recYearlyMonth)}
+                              onValueChange={(v) =>
+                                setRecYearlyMonth(parseInt(v, 10))
+                              }
+                            >
+                              <SelectTrigger className="w-[130px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from(
+                                  { length: 12 },
+                                  (_, i) => i + 1,
+                                ).map((m) => (
+                                  <SelectItem key={m} value={String(m)}>
+                                    {t.recurrenceYearlyMonth.replace(
+                                      '{n}',
+                                      String(m),
+                                    )}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={31}
+                              value={recYearlyDay}
+                              onChange={(e) =>
+                                setRecYearlyDay(
+                                  Math.min(
+                                    31,
+                                    Math.max(
+                                      1,
+                                      parseInt(e.target.value, 10) || 1,
+                                    ),
+                                  ),
+                                )
+                              }
+                              className="w-20"
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label>{t.repeatEnds}</Label>
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               type="button"
-                              variant="outline"
-                              className="w-full justify-start text-left font-normal"
+                              size="sm"
+                              variant={
+                                recEndMode === 'never' ? 'default' : 'outline'
+                              }
+                              onClick={() => setRecEndMode('never')}
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {format(recUntil, 'yyyy-MM-dd')}
+                              {t.repeatEndNever}
                             </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={recUntil}
-                              onSelect={(date) => {
-                                if (date) setRecUntil(date)
-                              }}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={
+                                recEndMode === 'count' ? 'default' : 'outline'
+                              }
+                              onClick={() => setRecEndMode('count')}
+                            >
+                              {t.repeatEndCount}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={
+                                recEndMode === 'until' ? 'default' : 'outline'
+                              }
+                              onClick={() => setRecEndMode('until')}
+                            >
+                              {t.repeatEndUntil}
+                            </Button>
+                          </div>
+                          {recEndMode === 'count' && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={1}
+                                value={recCount}
+                                onChange={(e) =>
+                                  setRecCount(
+                                    Math.max(
+                                      1,
+                                      parseInt(e.target.value, 10) || 1,
+                                    ),
+                                  )
+                                }
+                                className="w-20"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {t.repeatOccurrencesSuffix}
+                              </span>
+                            </div>
+                          )}
+                          {recEndMode === 'until' && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="w-full justify-start text-left font-normal"
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {format(recUntil, 'yyyy-MM-dd')}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <Calendar
+                                  mode="single"
+                                  selected={recUntil}
+                                  onSelect={(date) => {
+                                    if (date) setRecUntil(date)
+                                  }}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
 
-                    {rulePreview && (
-                      <p className="text-xs font-mono text-muted-foreground">
-                        {rulePreview}
-                      </p>
+                        {rulePreview && (
+                          <p className="text-xs font-mono text-muted-foreground">
+                            {rulePreview}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+
+                  {seriesRule &&
+                    isRecurringEvent &&
+                    event &&
+                    applyTo !== 'all' && (
+                      <div className="space-y-2 rounded-md border p-3">
+                        <Label>{t.repeatRule}</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {describeRecurrence(seriesRule, languageCode)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t.repeatRuleEditHint}
+                        </p>
+                      </div>
                     )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notification">{t.notification}</Label>
+                    <Select
+                      value={notification}
+                      onValueChange={handleNotificationChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t.selectNotification} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_REMINDER}>
+                          {t.noReminder}
+                        </SelectItem>
+                        <SelectItem value="0">{t.atEventTime}</SelectItem>
+                        <SelectItem value="5">
+                          {t.minutesBefore.replace('{minutes}', '5')}
+                        </SelectItem>
+                        <SelectItem value="15">
+                          {t.minutesBefore.replace('{minutes}', '15')}
+                        </SelectItem>
+                        <SelectItem value="30">
+                          {t.minutesBefore.replace('{minutes}', '30')}
+                        </SelectItem>
+                        <SelectItem value="60">
+                          {t.hourBefore.replace('{hours}', '1')}
+                        </SelectItem>
+                        <SelectItem value="custom">{t.customTime}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
 
-                {seriesRule &&
-                  isRecurringEvent &&
-                  event &&
-                  applyTo !== 'all' && (
-                    <div className="space-y-2 rounded-md border p-3">
-                      <Label>{t.repeatRule}</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {describeRecurrence(seriesRule, languageCode)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.repeatRuleEditHint}
-                      </p>
-                    </div>
-                  )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="notification">{t.notification}</Label>
-                  <Select
-                    value={notification}
-                    onValueChange={handleNotificationChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.selectNotification} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_REMINDER}>
-                        {t.noReminder}
-                      </SelectItem>
-                      <SelectItem value="0">{t.atEventTime}</SelectItem>
-                      <SelectItem value="5">
-                        {t.minutesBefore.replace('{minutes}', '5')}
-                      </SelectItem>
-                      <SelectItem value="15">
-                        {t.minutesBefore.replace('{minutes}', '15')}
-                      </SelectItem>
-                      <SelectItem value="30">
-                        {t.minutesBefore.replace('{minutes}', '30')}
-                      </SelectItem>
-                      <SelectItem value="60">
-                        {t.hourBefore.replace('{hours}', '1')}
-                      </SelectItem>
-                      <SelectItem value="custom">{t.customTime}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/*
+                  {/*
               Disabled with no reminder selected: an email reminder needs a
               reminder time to be sent at. See ADR-0010.
             */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="email-reminder"
-                    checked={emailReminder}
-                    disabled={notification === NO_REMINDER}
-                    onCheckedChange={(checked) =>
-                      setEmailReminder(checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor="email-reminder"
-                    className={
-                      notification === NO_REMINDER
-                        ? 'text-muted-foreground'
-                        : ''
-                    }
-                  >
-                    {t.emailReminder}
-                  </Label>
-                </div>
-
-                {notification === 'custom' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="custom-notification-time">
-                      {t.customTimeMinutes}
-                    </Label>
-                    <Input
-                      id="custom-notification-time"
-                      type="number"
-                      min="1"
-                      value={customNotificationTime}
-                      onChange={(e) =>
-                        setCustomNotificationTime(e.target.value)
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="email-reminder"
+                      checked={emailReminder}
+                      disabled={notification === NO_REMINDER}
+                      onCheckedChange={(checked) =>
+                        setEmailReminder(checked as boolean)
                       }
-                      required
                     />
+                    <Label
+                      htmlFor="email-reminder"
+                      className={
+                        notification === NO_REMINDER
+                          ? 'text-muted-foreground'
+                          : ''
+                      }
+                    >
+                      {t.emailReminder}
+                    </Label>
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">{t.description}</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
+                  {notification === 'custom' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-notification-time">
+                        {t.customTimeMinutes}
+                      </Label>
+                      <Input
+                        id="custom-notification-time"
+                        type="number"
+                        min="1"
+                        value={customNotificationTime}
+                        onChange={(e) =>
+                          setCustomNotificationTime(e.target.value)
+                        }
+                        required
+                      />
+                    </div>
+                  )}
 
-                <div className="flex justify-end gap-2">
-                  {event && (
+                  <div className="space-y-2">
+                    <Label htmlFor="description">{t.description}</Label>
+                    {isAiParsing ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : (
+                      <Textarea
+                        id="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    {event && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          onEventDelete(
+                            event.id,
+                            isRecurringEvent ? applyTo : undefined,
+                          )
+                          onOpenChange(false)
+                        }}
+                      >
+                        {t.delete}
+                      </Button>
+                    )}
                     <Button
                       type="button"
-                      variant="destructive"
-                      onClick={() => {
-                        onEventDelete(
-                          event.id,
-                          isRecurringEvent ? applyTo : undefined,
-                        )
-                        onOpenChange(false)
-                      }}
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
                     >
-                      {t.delete}
+                      {t.cancel}
                     </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    {t.cancel}
-                  </Button>
-                  <Button type="submit">{event ? t.update : t.save}</Button>
-                </div>
+                    <Button type="submit">{event ? t.update : t.save}</Button>
+                  </div>
+                </fieldset>
               </form>
             </div>
           </PopoverContent>

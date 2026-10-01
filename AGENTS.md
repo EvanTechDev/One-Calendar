@@ -117,14 +117,43 @@ shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 with `GROQ_MODEL`), multi-step tool loop capped
 at 8 steps, per-user rate limit 20/5min. Requires `GROQ_API_KEY` (503 without).
 
-Tools are authored ONCE in `packages/agent/src/tools.ts` with eve's
-`defineTool`, against the `CalendarToolkit` port (`src/types.ts`). Two
-bindings exist: the app's database toolkit (`apps/calendar/lib/agent/toolkit.ts`,
-built from the SAME `lib/mcp/*-tools.ts` functions the MCP server uses — one
-write path, shared cache invalidation and reminder reconciliation) and an HTTP
-toolkit for the standalone eve runtime (`packages/agent/agent/`, run with
-`eve dev`). Keep `packages/agent/agent/instructions.md` in step with
-`src/instructions.ts`. Tests: `tests/agent/` (node env).
+Tools are authored ONCE in `packages/agent/src/tools.ts` — plain AI SDK
+`tool()`, with a local `defineTool` helper that adds the error boundary
+(a thrown tool error is returned as `{ error }` so the model can recover)
+and `needsApproval: true` on the two destructive tools — against the
+`CalendarToolkit` port (`src/types.ts`). The app binds it with its database
+toolkit (`apps/calendar/lib/agent/toolkit.ts`, built from the SAME
+`lib/mcp/*-tools.ts` functions the MCP server uses — one write path, shared
+cache invalidation and reminder reconciliation). Tests: `tests/agent/`
+(node env).
+
+`packages/agent/src/tools.ts` deliberately lowers through a type-erased
+shape: `tool()`'s overloads cannot be satisfied through a generic wrapper
+(INPUT collapses to `never`), so the definition is assigned to an erased
+local type and `execute` is called with `input as never`.
+
+## Natural-language quick-create
+
+Pressing Enter in the create-event popover's TITLE field (create mode only —
+never update — and only when `NEXT_PUBLIC_AI_ENABLED === '1'`) sends the
+text to `POST /api/agent/parse-event`, which runs ONE `generateObject`
+against `parseEventSchema` (`packages/agent/src/parse.ts`), NOT the chat
+tool loop. Rate limit 15/min per user (bucket `agent-parse-event`). The
+response is a SPARSE draft: any field the text did not state is absent and
+the popover keeps the user's value — `sanitizeParsedEvent` drops invalid
+fields one by one (field-level degradation) instead of failing the parse,
+and a text that yields only a title ("午餐") is still a success.
+
+In `components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
+draft (missing `end` shifts the whole event so the current duration is
+preserved; a hex colour is mapped to the option whose
+`EVENT_BG_TO_ACCENT` matches; `rruleToParts` populates the recurrence
+controls inside a try/catch for client-side degradation). While parsing,
+the AI-fillable fields render `Skeleton` and the whole form is wrapped in
+`<fieldset disabled>`. Success shows a toast with an Undo action (the
+snapshot taken before parsing); failure leaves the title text untouched and
+toasts `aiParseError` / `aiParseRateLimited` (429). Closing the popover
+aborts the request silently.
 
 ## Commit conventions
 

@@ -532,5 +532,8 @@
   "aiAssistantConfirmAction": "操作の確認",
   "aiAssistantApprove": "承認",
   "aiAssistantDeny": "拒否",
-  "aiAssistantDenied": "拒否されました"
+  "aiAssistantDenied": "拒否されました",
+  "aiParseApplied": "入力内容から自動入力しました",
+  "aiParseError": "AI が解析できませんでした。入力テキストは保持されています。手動で入力してください",
+  "aiParseRateLimited": "AI リクエストが多すぎます。1分後に再試行してください"
 }

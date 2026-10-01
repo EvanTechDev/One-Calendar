@@ -719,5 +719,8 @@
   "aiAssistantConfirmAction": "Confirm action",
   "aiAssistantApprove": "Approve",
   "aiAssistantDeny": "Deny",
-  "aiAssistantDenied": "denied"
+  "aiAssistantDenied": "denied",
+  "aiParseApplied": "Filled in from your description",
+  "aiParseError": "AI couldn't parse that — your text was kept, please fill in the fields manually",
+  "aiParseRateLimited": "Too many AI requests — try again in a minute"
 }

@@ -524,5 +524,8 @@
   "aiAssistantConfirmAction": "確認操作",
   "aiAssistantApprove": "批准",
   "aiAssistantDeny": "拒絕",
-  "aiAssistantDenied": "已拒絕"
+  "aiAssistantDenied": "已拒絕",
+  "aiParseApplied": "已根據你的描述自動填寫",
+  "aiParseError": "AI 無法解析這段文字——已保留你的原文，請手動填寫",
+  "aiParseRateLimited": "AI 請求過於頻繁——請一分鐘後再試"
 }
