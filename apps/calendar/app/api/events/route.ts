@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import {
   calendarEvents,
+  calendarCategories,
   eventInvites,
   settings,
   user,
@@ -113,6 +114,36 @@ function isValidStamp(stamp: string): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * Reject a `categoryId` that does not belong to the caller.
+ *
+ * Every other category-referencing write pairs the id with
+ * `eq(userId, session.userId)` in the same statement (categories, countdowns,
+ * the invite PATCH, the MCP list filter). The event write was the one exception:
+ * it passed `body.categoryId` straight through, so an event could hold a
+ * stranger's category id. No reader discloses the name — they all scope by
+ * `userId` — but the row would render uncategorised for its owner, and the
+ * foreign category's `ON DELETE SET NULL` would later mutate it.
+ *
+ * `null` (uncategorised) is always allowed and costs no query.
+ */
+async function rejectForeignCategory(
+  categoryId: string | null | undefined,
+  userId: string,
+): Promise<boolean> {
+  if (!categoryId) return false
+  const [cat] = await getDb()
+    .select({ id: calendarCategories.id })
+    .from(calendarCategories)
+    .where(
+      and(
+        eq(calendarCategories.id, categoryId),
+        eq(calendarCategories.userId, userId),
+      ),
+    )
+  return !cat
 }
 
 function encryptMergedFields(
@@ -1124,6 +1155,10 @@ const postHandler = async function POST(request: NextRequest) {
   const id = body.id ?? crypto.randomUUID()
   const isUpdate = !!body.id
   const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+
+  if (await rejectForeignCategory(body.categoryId, user.id)) {
+    return NextResponse.json({ error: 'Category not found' }, { status: 400 })
+  }
 
   const submittedFields: Partial<EventRow> = {
     title: body.title,

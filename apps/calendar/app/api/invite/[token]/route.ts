@@ -338,6 +338,25 @@ export const DELETE = async function DELETE(
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
   }
 
+  // Removing the event from the recipient's calendar is a destructive write on
+  // somebody else's account, so the token alone is not authority for it: a
+  // forwarded link is enough to revoke the grant, silently dropping the event
+  // out of the legitimate participant's merged view. The token is still what
+  // RESOLVES the invite, but the caller must also prove they are the invitee.
+  // Mirrors the check the sibling PATCH category branch already runs.
+  const currentUser = await getAuthedUser()
+  if (!currentUser?.email) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 },
+    )
+  }
+  if (
+    currentUser.email.toLowerCase().trim() !== invite.email.toLowerCase().trim()
+  ) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   await removeParticipantFromCalendar(token)
 
   return NextResponse.json({ success: true })
