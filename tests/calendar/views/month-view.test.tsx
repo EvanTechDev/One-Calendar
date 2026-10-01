@@ -317,7 +317,7 @@ describe('MonthView cell geometry', () => {
       '7px',
       '7px',
       '7px',
-      '20px',
+      '28px',
       '7px',
       '7px',
       '7px',
@@ -353,9 +353,9 @@ describe('MonthView cell geometry', () => {
     expect(bands(container).slice(14, 21)).toEqual([
       '7px',
       '7px',
-      '20px',
-      '40px',
-      '40px',
+      '28px',
+      '56px',
+      '56px',
       '7px',
       '7px',
     ])

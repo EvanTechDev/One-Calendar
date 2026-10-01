@@ -63,7 +63,7 @@ interface MonthViewProps {
 /** Height of the day-number block at the top of each cell, in px. */
 const DAY_NUMBER_BLOCK_HEIGHT = 36
 /** Height of one all-day bar, in px. */
-const ALL_DAY_BAR_HEIGHT = 16
+const ALL_DAY_BAR_HEIGHT = 24
 /** Vertical gap between stacked all-day bars, in px. */
 const ALL_DAY_BAR_GAP = 4
 /** Horizontal inset of a bar end that does not continue past the row, px. */
@@ -294,9 +294,8 @@ export default function MonthView({
                       ))}
                     </div>
 
-                    {/* Room for the all-day bars over this day, floored at one
-                        lane so a bar-less day still lines its events up with
-                        the rest of the week. See DAY_NUMBER_GAP. */}
+                    {/* Room for the all-day bars over this day, floored at the day-number
+                        gap. See DAY_NUMBER_GAP. */}
                     <div
                       className="max-md:hidden"
                       data-all-day-band
@@ -387,9 +386,7 @@ export default function MonthView({
                     className={cn(
                       // max-md:hidden: on the Mobile Form banner events are
                       // dots in the cell like everything else (ADR-0019).
-                      // py-0 + flex, because the bar is only as tall as one
-                      // text-xs line box: any vertical padding would clip it.
-                      'absolute flex items-center cursor-pointer overflow-hidden rounded-sm px-1.5 py-0 text-xs max-md:hidden',
+                      'absolute cursor-pointer overflow-hidden rounded-sm p-1 text-xs max-md:hidden',
                       event.color,
                       segment.continuesLeft && 'rounded-l-none',
                       segment.continuesRight && 'rounded-r-none',
@@ -427,7 +424,7 @@ export default function MonthView({
                       />
                     )}
                     <div
-                      className="pl-1 truncate"
+                      className="pl-1.5 truncate"
                       style={{ color: getEventAccentColor(event.color) }}
                     >
                       {event.title}
