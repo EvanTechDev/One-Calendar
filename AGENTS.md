@@ -134,7 +134,7 @@ local type and `execute` is called with `input as never`.
 
 ## Natural-language quick-create
 
-Pressing Enter in the create-event popover's TITLE field (create mode only —
+**Shift+Enter** in the create-event popover's TITLE field (create mode only —
 never update — and only when `NEXT_PUBLIC_AI_ENABLED === '1'`) sends the
 text to `POST /api/agent/parse-event`, which runs ONE `generateObject`
 against `parseEventSchema` (`packages/agent/src/parse.ts`), NOT the chat

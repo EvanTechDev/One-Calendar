@@ -715,20 +715,25 @@ export default function EventEditor({
   }
 
   /**
-   * Enter in the title field (create mode, AI deployments only) triggers
-   * the quick-create parse. The isComposing guard matters: for IME users
-   * (Chinese/Japanese — the primary audience for this feature) Enter first
-   * confirms the composition candidate and must not fire a parse.
+   * Shift+Enter in the title field (create mode, AI deployments only)
+   * triggers the quick-create parse. Plain Enter deliberately does
+   * NOTHING: the editor is a form with a submit button, so Enter in a text
+   * field means implicit submission to the browser, and users kept reading
+   * that as focus hopping to the next control. Shift is the only gesture
+   * that can be read as an explicit request to parse, so it is the only one
+   * bound here.
    *
-   * preventDefault comes BEFORE every bail-out on purpose. A form with a
-   * submit button performs implicit submission on Enter from a text field,
-   * which is not what anyone means by "Enter in the title" — it saved the
-   * event outright. Suppressing it unconditionally keeps Enter meaning
-   * "parse this text" on AI deployments and inert everywhere else.
+   * preventDefault comes BEFORE every bail-out on purpose — it has to
+   * suppress the implicit submission whether or not we end up parsing, or
+   * a stray Enter in the title would save the event. The isComposing guard
+   * matters too: for IME users (Chinese/Japanese — the primary audience for
+   * this feature) Enter first confirms the composition candidate, and that
+   * must not fire a parse.
    */
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     e.preventDefault()
+    if (!e.shiftKey) return
     if (event || !AI_ENABLED) return
     if (e.nativeEvent.isComposing) return
     void runAiParse()
