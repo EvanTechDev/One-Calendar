@@ -4,13 +4,31 @@
  * POST /api/agent/parse-event — a single generateObject call, NOT the chat
  * agent's multi-step tool loop.
  *
- * SCHEMA POSTURE — same as tools.ts: Groq's gateway 400s the whole request
- * on any schema violation, so every property is optional, there are no
- * enums or bounds, and looseObject tolerates hallucinated extra fields.
- * The guards live in {@link sanitizeParsedEvent}, which implements
- * FIELD-LEVEL DEGRADATION: an invalid field is dropped (the popover keeps
- * whatever the user had for it) instead of failing the whole parse. A
- * parse that only salvages title and start is still a win for the user.
+ * SCHEMA POSTURE — the OPPOSITE of tools.ts, and the difference is not
+ * cosmetic. This schema is sent as `response_format: json_schema`, i.e.
+ * OpenAI strict mode, and Groq rejects the request outright otherwise:
+ *
+ *   invalid JSON schema for response_format: 'response':
+ *   `additionalProperties:false` must be set on every object
+ *
+ * So every object here must be CLOSED (`z.object` emits
+ * `additionalProperties: false`; `z.looseObject` emits `{}` and 400s) and
+ * every key must appear in `required`. Zod gets both by making each field
+ * `.nullable()` rather than `.optional()` — `required: [all keys]` with
+ * `anyOf: [type, null]`, which is the canonical strict-mode encoding.
+ *
+ * `null` is also exactly the sparse contract we want: it means "the text
+ * did not state this", so the popover keeps the user's own value. There
+ * are still no enums and no bounds — those live in the descriptions and in
+ * {@link sanitizeParsedEvent}, which implements FIELD-LEVEL DEGRADATION: an
+ * invalid field is dropped instead of failing the whole parse, so a parse
+ * that only salvages title and start is still a win for the user.
+ *
+ * Do not "align" this with tools.ts. The tool-calling channel wants a
+ * loose schema (the gateway validates tool args itself and one
+ * hallucinated extra key killed whole conversations); strict mode forbids
+ * extras by construction. `tests/agent/parse.test.ts` asserts both halves
+ * of the strict contract so the two postures cannot be confused again.
  */
 import { z } from 'zod'
 import type { AgentCategory } from './types'
@@ -23,54 +41,54 @@ import {
 
 const isoHint = 'ISO 8601 date-time with offset, e.g. 2026-09-05T14:00:00+08:00'
 
-export const parseEventSchema = z.looseObject({
+export const parseEventSchema = z.object({
   title: z
     .string()
-    .optional()
+    .nullable()
     .describe(
       "Event title with date/time/location phrasing removed, in the user's language. Always provide it; echo the input if nothing can be extracted.",
     ),
   start: z
     .string()
-    .optional()
+    .nullable()
     .describe(
-      `Event start. ${isoHint}. Omit if the text states no date or time.`,
+      `Event start. ${isoHint}. Null if the text states no date or time.`,
     ),
   end: z
     .string()
-    .optional()
+    .nullable()
     .describe(
-      `Event end, after start. ${isoHint}. Omit when the text states no end or duration — the app applies its default duration.`,
+      `Event end, after start. ${isoHint}. Null when the text states no end or duration — the app applies its default duration.`,
     ),
   isAllDay: z
     .boolean()
-    .optional()
+    .nullable()
     .describe('True only when the text implies a whole-day event.'),
   location: z
     .string()
-    .optional()
-    .describe('Location stated in the text. Max 500 chars. Omit if none.'),
+    .nullable()
+    .describe('Location stated in the text. Max 500 chars. Null if none.'),
   description: z
     .string()
-    .optional()
+    .nullable()
     .describe(
-      'Extra detail from the text worth keeping as the event description. Max 2000 chars. Omit if none.',
+      'Extra detail from the text worth keeping as the event description. Max 2000 chars. Null if none.',
     ),
   categoryId: z
     .string()
-    .optional()
+    .nullable()
     .describe(
-      "Id from the user's category list in the instructions. Omit unless one clearly fits.",
+      "Id from the user's category list in the instructions. Null unless one clearly fits.",
     ),
   color: z
     .string()
-    .optional()
-    .describe(`${COLOR_DESCRIPTION} Set only when the text mentions a color.`),
+    .nullable()
+    .describe(`${COLOR_DESCRIPTION} Null unless the text mentions a color.`),
   rrule: z
     .string()
-    .optional()
+    .nullable()
     .describe(
-      'RFC 5545 recurrence rule with FREQ=, e.g. FREQ=WEEKLY;BYDAY=MO,WE. Only when the text describes repetition; anchor BYDAY/BYMONTHDAY to the resolved start date.',
+      'RFC 5545 recurrence rule with FREQ=, e.g. FREQ=WEEKLY;BYDAY=MO,WE. Null unless the text describes repetition; anchor BYDAY/BYMONTHDAY to the resolved start date.',
     ),
 })
 
@@ -103,8 +121,13 @@ const MAX_LENGTHS = {
   rrule: 500,
 } as const
 
+/**
+ * Null is the wire format for "not stated" (strict mode requires every key,
+ * see the schema posture note) and undefined covers hand-built callers, so
+ * both land on the same branch: the field is simply absent.
+ */
 function cleanString(
-  value: string | undefined,
+  value: string | null | undefined,
   max: number,
 ): string | undefined {
   if (typeof value !== 'string') return undefined

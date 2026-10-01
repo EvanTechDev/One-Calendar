@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildParseInstructions, sanitizeParsedEvent } from '@zntr/agent/parse'
+import { z } from 'zod'
+import {
+  buildParseInstructions,
+  parseEventSchema,
+  sanitizeParsedEvent,
+} from '@zntr/agent/parse'
 import type { AgentCategory } from '@zntr/agent/types'
 
 const categories: AgentCategory[] = [
@@ -129,5 +134,63 @@ describe('buildParseInstructions', () => {
       categories: [],
     })
     expect(instructions).toContain('never return categoryId')
+  })
+})
+
+// This schema is sent as `response_format: json_schema` (OpenAI strict mode),
+// and Groq 400s the whole request when the shape is off:
+//   `additionalProperties:false` must be set on every object
+// The tool schemas in tools.ts deliberately want the OPPOSITE posture, so
+// this is easy to "fix" in the wrong direction — assert the wire shape.
+describe('parseEventSchema strict-mode contract', () => {
+  const jsonSchema = z.toJSONSchema(parseEventSchema) as {
+    type: string
+    properties: Record<string, unknown>
+    required?: string[]
+    additionalProperties?: unknown
+  }
+
+  it('is a closed object', () => {
+    expect(jsonSchema.type).toBe('object')
+    expect(jsonSchema.additionalProperties).toBe(false)
+  })
+
+  it('lists every property as required, so absence is expressed as null', () => {
+    expect(new Set(jsonSchema.required)).toEqual(
+      new Set(Object.keys(jsonSchema.properties)),
+    )
+    expect(jsonSchema.required).toHaveLength(
+      Object.keys(jsonSchema.properties).length,
+    )
+  })
+
+  it('carries no enums or bounds — those are enforced in sanitizeParsedEvent', () => {
+    const serialized = JSON.stringify(jsonSchema)
+    for (const keyword of [
+      'enum',
+      'const',
+      'minimum',
+      'maximum',
+      'minLength',
+      'maxLength',
+      'pattern',
+    ]) {
+      expect(serialized).not.toContain(`"${keyword}"`)
+    }
+  })
+
+  it('accepts an all-null draft as "nothing was stated"', () => {
+    const parsed = parseEventSchema.parse({
+      title: null,
+      start: null,
+      end: null,
+      isAllDay: null,
+      location: null,
+      description: null,
+      categoryId: null,
+      color: null,
+      rrule: null,
+    })
+    expect(sanitizeParsedEvent(parsed, { categories })).toEqual({})
   })
 })
