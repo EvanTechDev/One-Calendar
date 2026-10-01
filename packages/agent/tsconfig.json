@@ -4,6 +4,6 @@
     "baseUrl": ".",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "agent/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }

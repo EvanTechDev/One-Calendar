@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCalendarTools, DESTRUCTIVE_TOOL_NAMES } from '@zntr/agent/tools'
-import { toAiTools } from '@zntr/agent/adapter'
+import { buildCalendarTools } from '@zntr/agent/tools'
 import type {
   AgentCreateEventInput,
   AgentEventSummary,
@@ -438,60 +437,32 @@ describe('buildCalendarTools', () => {
   })
 })
 
-describe('toAiTools', () => {
+describe('AI SDK tool surface', () => {
   it('converts a thrown toolkit error into an error result', async () => {
     const { toolkit } = makeFakeToolkit({
       listEvents: async () => {
         throw new Error('database on fire')
       },
     })
-    const tools = toAiTools(
-      buildCalendarTools(toolkit) as unknown as Parameters<typeof toAiTools>[0],
-    )
+    const tools = buildCalendarTools(toolkit)
     const result = await exec(tools.list_events, {})
     expect(result).toEqual({ error: 'database on fire' })
   })
 
-  it('passes successful results through unchanged', async () => {
+  it('bakes needsApproval into the destructive tools only', () => {
     const { toolkit } = makeFakeToolkit()
-    const tools = toAiTools(
-      buildCalendarTools(toolkit) as unknown as Parameters<typeof toAiTools>[0],
-    )
-    const result = (await exec(tools.list_categories, {})) as unknown[]
-    expect(result).toEqual([{ id: 'cat-1', name: 'Work', color: '#3b82f6' }])
-  })
-
-  it('preserves tool descriptions and schemas', () => {
-    const { toolkit } = makeFakeToolkit()
-    const eveTools = buildCalendarTools(toolkit)
-    const aiTools = toAiTools(
-      eveTools as unknown as Parameters<typeof toAiTools>[0],
-    )
-    expect(aiTools.create_event.description).toBe(
-      eveTools.create_event.description,
-    )
-    expect(aiTools.create_event.inputSchema).toBe(
-      eveTools.create_event.inputSchema,
-    )
-  })
-
-  it('marks only the requested tools as needing approval', () => {
-    const { toolkit } = makeFakeToolkit()
-    const aiTools = toAiTools(
-      buildCalendarTools(toolkit) as unknown as Parameters<typeof toAiTools>[0],
-      { needsApproval: DESTRUCTIVE_TOOL_NAMES },
-    )
+    const tools = buildCalendarTools(toolkit)
     expect(
-      (aiTools.delete_event as { needsApproval?: boolean }).needsApproval,
+      (tools.delete_event as { needsApproval?: boolean }).needsApproval,
     ).toBe(true)
     expect(
-      (aiTools.delete_countdown as { needsApproval?: boolean }).needsApproval,
+      (tools.delete_countdown as { needsApproval?: boolean }).needsApproval,
     ).toBe(true)
     expect(
-      (aiTools.list_events as { needsApproval?: boolean }).needsApproval,
+      (tools.list_events as { needsApproval?: boolean }).needsApproval,
     ).toBeUndefined()
     expect(
-      (aiTools.create_event as { needsApproval?: boolean }).needsApproval,
+      (tools.create_event as { needsApproval?: boolean }).needsApproval,
     ).toBeUndefined()
   })
 })

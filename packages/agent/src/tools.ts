@@ -1,13 +1,11 @@
 /**
- * The agent's tool set, authored with eve's `defineTool` and bound to a
- * {@link CalendarToolkit} at request time.
- *
- * Why eve definitions instead of raw `ai` tools: eve's ToolDefinition is a
- * superset (description + inputSchema + execute) that both runtimes accept —
- * the standalone eve app under packages/agent/agent/ re-exports these files
- * one-per-file as eve requires, and the in-app API route lowers them to AI
- * SDK tools through `toAiTools` in adapter.ts. One authoring surface, two
- * runtimes, zero drift.
+ * The agent's tool set, authored against the {@link CalendarToolkit} port
+ * and bound at request time. Tools are AI SDK native — this package used
+ * to author them with eve's `defineTool` so a standalone eve runtime could
+ * share them; that runtime (and the eve dependency) is gone, so a local
+ * {@link defineTool} helper now provides the same authoring shape plus the
+ * two things the old adapter added at lowering time: `needsApproval` on
+ * destructive tools, and an error boundary.
  *
  * SCHEMA POSTURE — read before "fixing" these schemas:
  * Groq's gateway validates every tool call against the JSON schema and a
@@ -23,7 +21,7 @@
  * RESULTS the model can read and correct on its next step. Tightening
  * these schemas reintroduces the dead-stream bug.
  */
-import { defineTool } from 'eve/tools'
+import { tool, type Tool } from 'ai'
 import { z } from 'zod'
 import type { CalendarToolkit } from './types'
 import {
@@ -50,6 +48,50 @@ const isoHint = 'ISO 8601 date-time with offset, e.g. 2026-09-05T14:00:00+08:00'
 const presetHint = `One of: ${PRESET_NAMES.join(', ')}. Mutually exclusive with start/end.`
 
 const applyToHint = `For recurring events: one of ${APPLY_TO_VALUES.join(', ')}. Omit for non-recurring events.`
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
+/**
+ * Authoring helper replacing eve's `defineTool`. Same definition shape,
+ * but builds an AI SDK tool directly and adds the error boundary that used
+ * to live in the adapter: a thrown tool error would abort the whole
+ * stream, so it is returned as an error RESULT the model can read and
+ * correct on its next step. `needsApproval` marks destructive tools so the
+ * palette shows a confirmation before they run.
+ */
+function defineTool<SCHEMA extends z.ZodType, OUTPUT>(definition: {
+  description: string
+  inputSchema: SCHEMA
+  execute: (input: z.infer<SCHEMA>) => Promise<OUTPUT>
+  needsApproval?: boolean
+}): Tool {
+  // TYPE ERASURE: `tool()`'s overloads cannot be satisfied through a
+  // generic wrapper (INPUT collapses to `never`), so the authored
+  // definition is lowered to the erased shape the old eve → AI SDK adapter
+  // used, cast and all. Runtime behaviour is identical.
+  const authored: {
+    description: string
+    inputSchema: z.ZodType
+    execute: (input: never, options: never) => unknown
+    needsApproval?: boolean
+  } = definition
+
+  return tool({
+    description: authored.description,
+    inputSchema: authored.inputSchema,
+    ...(authored.needsApproval ? { needsApproval: true } : {}),
+    execute: async (input, options) => {
+      try {
+        return await authored.execute(input as never, options as never)
+      } catch (error) {
+        return { error: errorMessage(error) }
+      }
+    },
+  })
+}
 
 /**
  * Presets are validated in execute, not in the JSON schema — see the
@@ -281,6 +323,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         .describe('Event id from list_events. Required.'),
       applyTo: z.string().optional().describe(applyToHint),
     }),
+    needsApproval: true,
     async execute(input) {
       const missing = requireFields(input, ['eventId'])
       if (missing) return missing
@@ -505,6 +548,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         .optional()
         .describe('Countdown id from list_countdowns. Required.'),
     }),
+    needsApproval: true,
     async execute(input) {
       const missing = requireFields(input, ['countdownId'])
       if (missing) return missing
@@ -531,13 +575,3 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
 }
 
 export type CalendarTools = ReturnType<typeof buildCalendarTools>
-
-/**
- * Tools that mutate or destroy data irreversibly. The in-app route marks
- * these `needsApproval` so the palette shows a confirmation before they
- * run (grilling Q2); read/create tools stay friction-free.
- */
-export const DESTRUCTIVE_TOOL_NAMES = [
-  'delete_event',
-  'delete_countdown',
-] as const

@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./tools": "./src/tools.ts",
-    "./adapter": "./src/adapter.ts",
+    "./parse": "./src/parse.ts",
     "./scheduling": "./src/scheduling.ts",
     "./instructions": "./src/instructions.ts",
     "./types": "./src/types.ts"
@@ -14,15 +14,14 @@
   "scripts": {
     "build": "tsc",
     "build:check": "tsc && tsc --noEmit",
-    "lint": "oxlint --fix --config ../../config/oxlint.json src agent",
-    "lint:check": "oxlint --config ../../config/oxlint.json src agent",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src",
+    "lint:check": "oxlint --config ../../config/oxlint.json src",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "ai": "7.0.92",
-    "eve": "0.51.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
