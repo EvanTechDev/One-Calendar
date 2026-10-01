@@ -134,8 +134,8 @@ local type and `execute` is called with `input as never`.
 
 ## Natural-language quick-create
 
-**Shift+Enter** in the create-event popover's TITLE field (create mode only —
-never update — and only when `NEXT_PUBLIC_AI_ENABLED === '1'`) sends the
+Enter in the create-event popover's TITLE field (create mode only — never
+update — and only when `NEXT_PUBLIC_AI_ENABLED === '1'`) sends the
 text to `POST /api/agent/parse-event`, which runs ONE `generateObject`
 against `parseEventSchema` (`packages/agent/src/parse.ts`), NOT the chat
 tool loop. Rate limit 15/min per user (bucket `agent-parse-event`). The
@@ -149,11 +149,22 @@ draft (missing `end` shifts the whole event so the current duration is
 preserved; a hex colour is mapped to the option whose
 `EVENT_BG_TO_ACCENT` matches; `rruleToParts` populates the recurrence
 controls inside a try/catch for client-side degradation). While parsing,
-the AI-fillable fields render `Skeleton` and the whole form is wrapped in
+the AI-fillable fields render `Skeleton` and the form body is wrapped in
 `<fieldset disabled>`. Success shows a toast with an Undo action (the
 snapshot taken before parsing); failure leaves the title text untouched and
 toasts `aiParseError` / `aiParseRateLimited` (429). Closing the popover
 aborts the request silently.
+
+**The title field MUST stay outside the `<form>`.** A text input owned by
+a form has Enter as implicit submission, and this editor ends in a
+`type="submit"` button — so an in-form title turned Enter into a submit,
+which read as "focus jumped to the next field". Cancelling that from
+keydown is not dependable; an input with no form owner simply has no
+implicit submission. The field is React-controlled (state, never
+FormData), so it behaves the same outside a form. It must also stay
+MOUNTED while parsing — swapping it for a `Skeleton` unmounts the focused
+element, and putting it inside the disabled `fieldset` blurs it; either
+one hands focus to the next control.
 
 ## Commit conventions
 
