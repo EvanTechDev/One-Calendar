@@ -8,7 +8,11 @@ import {
   type UIMessage,
 } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
-import { buildCalendarTools, buildInstructions } from '@zntr/agent'
+import {
+  buildCalendarTools,
+  buildInstructions,
+  summarizeProviderError,
+} from '@zntr/agent'
 import { createAppToolkit } from '@/lib/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit } from '@/lib/rate-limit'
@@ -105,7 +109,12 @@ export async function POST(request: NextRequest) {
     // any calendar task and small enough that a confused model stops fast.
     stopWhen: stepCountIs(8),
     onError({ error }) {
-      console.error('[agent-chat] stream error', error)
+      // Status and the provider's own message only — the SDK error object
+      // carries the whole request body, and with it the user's conversation.
+      const failure = summarizeProviderError(error)
+      console.error(
+        `[agent-chat] groq ${failure.status ?? 'no-status'} ${failure.kind}: ${failure.detail}`,
+      )
     },
   })
 

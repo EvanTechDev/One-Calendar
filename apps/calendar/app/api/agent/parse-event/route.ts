@@ -5,6 +5,7 @@ import {
   buildParseInstructions,
   parseEventSchema,
   sanitizeParsedEvent,
+  summarizeProviderError,
 } from '@zntr/agent'
 import { createAppToolkit } from '@/lib/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
@@ -83,8 +84,13 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     // Model/gateway/schema failure — the popover treats this as a full
-    // failure: skeletons end, the user's text stays, a toast explains.
-    console.error('[agent-parse-event] generateObject failed', error)
+    // failure: skeletons end, the user's text stays, a toast explains. Log the
+    // provider's status and its own message, never the SDK error object: that
+    // dumps the request body, and with it the user's text.
+    const failure = summarizeProviderError(error)
+    console.error(
+      `[agent-parse-event] groq ${failure.status ?? 'no-status'} ${failure.kind}: ${failure.detail}`,
+    )
     return NextResponse.json(
       { error: 'Could not parse the event' },
       { status: 502 },
