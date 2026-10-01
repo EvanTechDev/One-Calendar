@@ -56,6 +56,7 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 import { describeRecurrence } from '@/lib/recurrence/engine'
 import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
+import { childOverlayProps } from '@/lib/popover-nesting'
 import { MeetingLinkControls } from '@/components/app/event/event-meeting-link'
 import { useMeetingTiming } from '@/hooks/use-meeting-timing'
 import { isJoinUrgent } from '@/lib/meeting-timing'
@@ -488,6 +489,12 @@ export default function EventPreview({
         {renderedAnchor}
         <PopoverContent
           key={event.id}
+          // Tagged as a CHILD OVERLAY: when this preview was opened from a
+          // row of a month/year view's "N more events" list, that list is its
+          // parent, and Radix — which portals this content to <body>, outside
+          // the list's layer — would read every interaction here as an
+          // outside click and close the list too. See lib/popover-nesting.
+          {...childOverlayProps}
           side={popoverSide}
           align="center"
           sideOffset={12}

@@ -21,6 +21,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
 import { isMobileViewport } from '@/lib/mobile-viewport'
+import { isChildOverlayInteraction } from '@/lib/popover-nesting'
 
 interface YearViewProps {
   date: Date
@@ -295,6 +296,14 @@ export default function YearView({
               align="center"
               sideOffset={8}
               className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
+              // The event preview opened from one of these rows is a CHILD of
+              // this list, not an outside click. Radix portals it to <body>, so
+              // pressing its close button (or anything else in it) arrived here
+              // as "outside" and dismissed the list along with the preview.
+              // Outside clicks elsewhere still dismiss as before.
+              onInteractOutside={(e) => {
+                if (isChildOverlayInteraction(e.target)) e.preventDefault()
+              }}
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
                 {/*

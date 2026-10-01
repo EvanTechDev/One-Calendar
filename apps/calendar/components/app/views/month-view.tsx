@@ -21,11 +21,13 @@ import {
   getEventBackgroundColor,
 } from '@/lib/event-colors'
 import { isMobileViewport } from '@/lib/mobile-viewport'
+import { isChildOverlayInteraction } from '@/lib/popover-nesting'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   isBannerEvent,
   shouldShowEventOnDay,
   layoutAllDaySegments,
+  barLanesByColumn,
 } from '@/components/app/views/event-layout-engine'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { useCallback, useRef, useState } from 'react'
@@ -66,6 +68,15 @@ const ALL_DAY_BAR_HEIGHT = 24
 const ALL_DAY_BAR_GAP = 4
 /** Horizontal inset of a bar end that does not continue past the row, px. */
 const ALL_DAY_BAR_INSET = 8
+/**
+ * Minimum breathing room between the day number and the first event in a cell,
+ * px. The all-day bars already clear it — they are placed absolutely from
+ * `DAY_NUMBER_BLOCK_HEIGHT`, which sits 4px below the number block — but the
+ * timed events were laid out flush against the number. On today, whose number
+ * sits in a filled square, that reads as one blob rather than a date above its
+ * events.
+ */
+const DAY_NUMBER_GAP = 8
 
 export default function MonthView({
   date,
@@ -183,14 +194,11 @@ export default function MonthView({
 
         {weeks.map((week) => {
           const segments = layoutAllDaySegments(allDayCandidates, week)
-          const laneCount =
-            segments.length > 0
-              ? Math.max(...segments.map((s) => s.lane)) + 1
-              : 0
-          const lanesHeight =
-            laneCount > 0
-              ? laneCount * (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP)
-              : 0
+          // Space each CELL reserves for the all-day bars over it — per day
+          // column, not for the whole row. A day no bar covers owes only the
+          // minimum gap; giving it the row's lane count is what opened the
+          // blank event-sized slot next to a single-day all-day event.
+          const barLanes = barLanesByColumn(segments, week.length)
 
           return (
             <div
@@ -275,13 +283,20 @@ export default function MonthView({
                       ))}
                     </div>
 
-                    {/* Space reserved for the all-day bars overlaying the row */}
-                    {lanesHeight > 0 && (
-                      <div
-                        className="max-md:hidden"
-                        style={{ height: lanesHeight + 'px' }}
-                      />
-                    )}
+                    {/* Room for the all-day bars over this day, and never
+                        less than the minimum gap so the day number never
+                        sits flush against an event. */}
+                    <div
+                      className="max-md:hidden"
+                      style={{
+                        height:
+                          Math.max(
+                            (barLanes[dayIndex] ?? 0) *
+                              (ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP),
+                            DAY_NUMBER_GAP,
+                          ) + 'px',
+                      }}
+                    />
 
                     <div className="space-y-1 max-md:hidden">
                       {visibleEvents.map((event) => (
@@ -440,6 +455,14 @@ export default function MonthView({
             align="center"
             sideOffset={8}
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
+            // The event preview opened from one of these rows is a CHILD of
+            // this list, not an outside click. Radix portals it to <body>, so
+            // pressing its close button (or anything else in it) arrived here
+            // as "outside" and dismissed the list along with the preview.
+            // Outside clicks elsewhere still dismiss as before.
+            onInteractOutside={(e) => {
+              if (isChildOverlayInteraction(e.target)) e.preventDefault()
+            }}
           >
             <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="min-w-0 truncate text-sm font-medium">
