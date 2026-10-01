@@ -26,6 +26,7 @@ import {
   CALENDAR_COLOR_OPTIONS,
   applyCalendarColor,
   normalizeCalendarColor,
+  swatchColor,
   type CalendarColor,
 } from '@/lib/calendar-colors'
 import { useSettings } from '@/components/providers/data-provider'
@@ -297,7 +298,11 @@ function GeneralSettings({
               widest control in the panel, and every other colour in the app
               (the category create and edit dialogs) already picks one from a
               list. The circle rides along on the item so the trigger shows the
-              colour it has selected, not just its name. */}
+              colour it has selected, not just its name.
+
+              The circle is filled from the theme's own CSS variable, so it is
+              the colour the calendar will draw rather than a second opinion
+              about it — see `swatchColor()`. */}
           <Select
             value={calendarColor}
             onValueChange={(value: CalendarColor) => {
@@ -317,7 +322,7 @@ function GeneralSettings({
                   <span className="flex items-center gap-2">
                     <span
                       className="size-4 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
-                      style={{ backgroundColor: option.color }}
+                      style={{ backgroundColor: swatchColor(option.value) }}
                     />
                     {t[option.labelKey]}
                   </span>

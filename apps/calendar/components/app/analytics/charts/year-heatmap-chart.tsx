@@ -21,15 +21,20 @@ interface YearHeatmapChartProps {
 }
 
 // Single-hue ink ramp: matches the punch card and rhythm strip, which both
-// draw with `cal-accent`, so the whole report reads in one material — and in
-// the calendar color the user picked, since `cal-accent` is monochrome
+// draw with `cal-accent-ink`, so the whole report reads in one material — and in
+// the calendar color the user picked, since `cal-accent-ink` is monochrome
 // exactly when the grey theme is selected.
+//
+// The `-ink` variant rather than the accent: the palest step of this ramp is a
+// filled cell sitting on white, and a colour picked to read as a hue does not
+// survive being a 6%-opacity tint of itself. The ink is the accent already
+// stepped to a contrast that holds as data.
 const intensityClasses = [
   'bg-foreground/[0.06]',
-  'bg-cal-accent/25',
-  'bg-cal-accent/45',
-  'bg-cal-accent/70',
-  'bg-cal-accent',
+  'bg-cal-accent-ink/25',
+  'bg-cal-accent-ink/45',
+  'bg-cal-accent-ink/70',
+  'bg-cal-accent-ink',
 ]
 
 export function YearHeatmapChart({ data }: YearHeatmapChartProps) {

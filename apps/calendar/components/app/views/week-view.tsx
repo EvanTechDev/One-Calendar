@@ -835,7 +835,9 @@ export default function WeekView({
                     zIndex: 5,
                   }}
                 >
-                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                  {/* `cal-accent-ink`, not `cal-accent`: an identity colour
+                      is tuned to read as a hue, and yellow on white is 1.53:1. */}
+                  <div className="px-2 pt-1 text-xs font-medium text-cal-accent-ink">
                     {formatSelectionRange(
                       createSelection.startMinute,
                       createSelection.endMinute,
@@ -873,7 +875,9 @@ export default function WeekView({
                         zIndex: 5,
                       }}
                     >
-                      <div className="px-2 pt-1 text-xs font-medium text-cal-accent">
+                      {/* `cal-accent-ink`, not `cal-accent`: an identity colour
+                          is tuned to read as a hue, and yellow on white is 1.53:1. */}
+                      <div className="px-2 pt-1 text-xs font-medium text-cal-accent-ink">
                         {formatSelectionRange(
                           startMinute,
                           endMinute,

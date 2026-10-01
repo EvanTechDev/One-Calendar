@@ -44,6 +44,7 @@
   --color-ring: var(--ring);
   --color-cal-create: var(--cal-create);
   --color-cal-accent: var(--cal-accent);
+  --color-cal-accent-ink: var(--cal-accent-ink);
   --color-cal-today: var(--cal-today);
   --color-cal-today-foreground: var(--cal-today-foreground);
   --color-cal-now: var(--cal-now);
@@ -196,6 +197,30 @@ html {
        ink of the analytics report. Monochrome by request: ink on light, paper
        on dark — the hierarchy comes from opacity steps, not hue. */
     --cal-accent: oklch(0.205 0 0);
+    /* The six chromatic themes' identity colours. The settings picker paints
+       its swatch from these and the theme blocks below hang `--cal-accent` off
+       them, so the colour a user picks is the colour the calendar draws — which
+       is the whole point of the setting. They used to be two unrelated lists
+       (these swatches lived in `lib/calendar-colors.ts`) and drifted: the
+       picker offered yellow as #facc15 while the calendar drew #ca8a04, and
+       "yellow" meant two different colours depending on where you looked.
+
+       The grey theme is deliberately absent. It is the absence of an identity
+       rather than one more option, so it keeps the monochrome accent above. */
+    --cal-color-orange: #f97316;
+    --cal-color-yellow: #facc15;
+    --cal-color-blue: #3b82f6;
+    --cal-color-green: #22c55e;
+    --cal-color-pink: #ec4899;
+    --cal-color-purple: #a855f7;
+    /* `--cal-accent`'s readable step, for the places the accent is the message
+       rather than the chrome: the create-selection time label, the rhythm
+       bars, the heatmap. An identity colour is tuned to be recognisable, not
+       legible — yellow on white is 1.53:1 — so type and data ink take this
+       instead, the same way a chart's axis labels never take its series hue.
+       In dark mode the accent is already light on a dark surface, so there the
+       two tokens hold the same value. */
+    --cal-accent-ink: oklch(0.205 0 0);
     /* Today's date badge: one step deeper than the panel grays so it
        reads against the white grid.
 
@@ -214,6 +239,7 @@ html {
 
   .dark {
     --cal-accent: oklch(0.922 0 0);
+    --cal-accent-ink: oklch(0.922 0 0);
     --cal-now: #cbcbcb;
     --cal-create: #404040;
     --background: oklch(0.145 0 0);
@@ -251,42 +277,48 @@ html {
   }
 
   :root[data-calendar-color='orange'] {
-    --cal-accent: #ea580c;
+    --cal-accent: var(--cal-color-orange);
+    --cal-accent-ink: #c2410c;
     --cal-now: #f97316;
     --cal-today: #fdba74;
     --cal-today-foreground: #7c2d12;
   }
 
   :root[data-calendar-color='yellow'] {
-    --cal-accent: #ca8a04;
+    --cal-accent: var(--cal-color-yellow);
+    --cal-accent-ink: #a16207;
     --cal-now: #eab308;
     --cal-today: #fde68a;
     --cal-today-foreground: #713f12;
   }
 
   :root[data-calendar-color='blue'] {
-    --cal-accent: #2563eb;
+    --cal-accent: var(--cal-color-blue);
+    --cal-accent-ink: #1d4ed8;
     --cal-now: #3b82f6;
     --cal-today: #93c5fd;
     --cal-today-foreground: #1e3a8a;
   }
 
   :root[data-calendar-color='green'] {
-    --cal-accent: #16a34a;
+    --cal-accent: var(--cal-color-green);
+    --cal-accent-ink: #15803d;
     --cal-now: #22c55e;
     --cal-today: #86efac;
     --cal-today-foreground: #14532d;
   }
 
   :root[data-calendar-color='pink'] {
-    --cal-accent: #db2777;
+    --cal-accent: var(--cal-color-pink);
+    --cal-accent-ink: #be185d;
     --cal-now: #ec4899;
     --cal-today: #f9a8d4;
     --cal-today-foreground: #831843;
   }
 
   :root[data-calendar-color='purple'] {
-    --cal-accent: #7c3aed;
+    --cal-accent: var(--cal-color-purple);
+    --cal-accent-ink: #7e22ce;
     --cal-now: #8b5cf6;
     --cal-today: #d8b4fe;
     --cal-today-foreground: #581c87;
@@ -294,34 +326,45 @@ html {
 
   /* Dark variants retune the accent and the now line, but never the today
      badge: `--cal-today` and `--cal-today-foreground` are inherited from the
-     light blocks above, so a date looks identical in both modes. */
+     light blocks above, so a date looks identical in both modes.
+
+     The accent steps up one brightness tier here, because an identity colour
+     chosen to read as "yellow" on white is already loud on near-black —
+     #facc15 sits at 12.9:1 on #0a0a0a. That also settles `--cal-accent-ink`:
+     there is nothing left to darken, so it equals the accent. */
   .dark[data-calendar-color='orange'] {
     --cal-accent: #fb923c;
+    --cal-accent-ink: #fb923c;
     --cal-now: #fb923c;
   }
 
   .dark[data-calendar-color='yellow'] {
     --cal-accent: #fde047;
+    --cal-accent-ink: #fde047;
     --cal-now: #facc15;
   }
 
   .dark[data-calendar-color='blue'] {
     --cal-accent: #60a5fa;
+    --cal-accent-ink: #60a5fa;
     --cal-now: #60a5fa;
   }
 
   .dark[data-calendar-color='green'] {
     --cal-accent: #4ade80;
+    --cal-accent-ink: #4ade80;
     --cal-now: #4ade80;
   }
 
   .dark[data-calendar-color='pink'] {
     --cal-accent: #f472b6;
+    --cal-accent-ink: #f472b6;
     --cal-now: #f472b6;
   }
 
   .dark[data-calendar-color='purple'] {
     --cal-accent: #c084fc;
+    --cal-accent-ink: #c084fc;
     --cal-now: #c084fc;
   }
 
