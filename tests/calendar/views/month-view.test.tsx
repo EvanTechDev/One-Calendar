@@ -288,17 +288,17 @@ describe('MonthView cell geometry', () => {
     )
   })
 
-  it('reserves one lane on every day, so no empty event slot appears', () => {
+  it('reserves just the gap on a day no all-day bar covers', () => {
     const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
-    expect(new Set(bands(container))).toEqual(new Set(['20px']))
+    expect(new Set(bands(container))).toEqual(new Set(['7px']))
   })
 
-  it('gives every day the same band when a single-day all-day event is present', () => {
-    // The regression this guards: reserving per day with a small floor left the
-    // bar-less days of that week a lane higher than the covered day, so the
-    // event blocks stopped lining up. Flooring the reservation at one lane
-    // collapses the 0-lane and 1-lane cases to the same height, so the whole
-    // grid stays uniform.
+  it('reserves a lane only for the days the bar covers', () => {
+    // The blank-slot bug was a day inheriting the whole ROW's lane count, not
+    // the floor: with per-column reservation the covered day reserves its own
+    // lane and its neighbours stay at the gap. A midnight end is exclusive, so
+    // this bar covers Jan 15 alone. Jan 2025 starts on a Wednesday and weeks
+    // start Sunday, so Jan 12..18 is the third row.
     const events = [
       createEvent({
         id: 'ad',
@@ -313,7 +313,15 @@ describe('MonthView cell geometry', () => {
       events,
     })
     expect(container.querySelector('[data-event-id="ad"]')).toBeTruthy()
-    expect(new Set(bands(container))).toEqual(new Set(['20px']))
+    expect(bands(container).slice(14, 21)).toEqual([
+      '7px',
+      '7px',
+      '7px',
+      '20px',
+      '7px',
+      '7px',
+      '7px',
+    ])
   })
 
   it('reserves the extra lane only where all-day bars actually stack', () => {
@@ -343,13 +351,13 @@ describe('MonthView cell geometry', () => {
     // too. Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan
     // 12..18 is the third row.
     expect(bands(container).slice(14, 21)).toEqual([
-      '20px',
-      '20px',
+      '7px',
+      '7px',
       '20px',
       '40px',
       '40px',
-      '20px',
-      '20px',
+      '7px',
+      '7px',
     ])
   })
 })

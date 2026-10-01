@@ -62,11 +62,7 @@ interface MonthViewProps {
 
 /** Height of the day-number block at the top of each cell, in px. */
 const DAY_NUMBER_BLOCK_HEIGHT = 36
-/**
- * Height of one all-day bar, in px. Deliberately shorter than a timed event
- * block (`p-1 text-xs` = 24px): the bar is a thin chip, and the shorter it is
- * the tighter the uniform band below the day numbers can be.
- */
+/** Height of one all-day bar, in px. */
 const ALL_DAY_BAR_HEIGHT = 16
 /** Vertical gap between stacked all-day bars, in px. */
 const ALL_DAY_BAR_GAP = 4
@@ -75,28 +71,16 @@ const ALL_DAY_BAR_INSET = 8
 /** Vertical space one all-day bar lane occupies, px (bar plus its gap). */
 const ALL_DAY_BAR_LANE = ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP
 /**
- * Minimum breathing room between the day number and the first event in a cell,
- * px — exactly one all-day bar lane.
+ * Breathing room between the day number and whatever follows it in a cell, px.
  *
- * A cell reserves `max(lanesOverThisDay * ALL_DAY_BAR_LANE, DAY_NUMBER_GAP)`.
- * Pinning the floor to a whole lane is what keeps the two ways a cell can be
- * misaligned from fighting each other:
- *
- * - Reserve the row's lane count on every day and the event lists all line up,
- *   but a day no bar covers shows a blank event-sized slot above its events.
- * - Reserve per day and there is no blank slot, but the days a bar covers push
- *   their event lists down a lane, so in the same row the event blocks no longer
- *   line up.
- *
- * With the floor at one lane the 0-lane and 1-lane cases collapse to the same
- * height, so a week holding a single all-day event both lines its event blocks
- * up with the rest of the week and leaves no blank slot. Only a week whose bars
- * actually stack (2+ lanes) reserves more, and there the extra band is real.
- *
- * Keeping the floor small therefore means keeping the bar small: the floor can
- * never be less than a bar, or the bar would overlap its own event list.
+ * A cell reserves `max(lanesOverThisDay * ALL_DAY_BAR_LANE, DAY_NUMBER_GAP)`,
+ * so this is the floor for a day no all-day bar covers — the blank-slot bug was
+ * a day inheriting the whole row's lane count, not this floor. A day a bar does
+ * cover reserves its real lanes and so starts its event list lower than its
+ * bar-less neighbours; that gap is the price of not showing a phantom empty
+ * slot, and it is only visible in a week that has an all-day event.
  */
-const DAY_NUMBER_GAP = ALL_DAY_BAR_LANE
+const DAY_NUMBER_GAP = 7
 
 export default function MonthView({
   date,
