@@ -8,5 +8,8 @@ bun.lockb
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
-components/ui
+# The vendored shadcn components. This entry said `components/ui`, a path that
+# does not exist — they live in packages/ui/src — so prettier reformatted all 41
+# of them on every staged .tsx and fought every `npx shadcn add`.
+packages/ui/src
 locales

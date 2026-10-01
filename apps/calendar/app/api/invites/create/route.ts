@@ -6,6 +6,7 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
 import type { ApplyTo } from '@/lib/event-service'
+import { isEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -53,9 +54,8 @@ export const POST = async function POST(request: NextRequest) {
     )
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   for (const email of uniqueEmails) {
-    if (!emailRegex.test(email)) {
+    if (!isEmail(email)) {
       return NextResponse.json(
         { error: `Invalid email: ${email}` },
         { status: 400 },

@@ -29,29 +29,24 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/visibility'
 import type { ApplyTo } from '@/lib/event-service'
+import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_PARTICIPANTS = 20
 
+/**
+ * Adding to an existing participant list is not idempotent, so a repeat is a
+ * mistake here — unlike writing a whole list back onto an event, which
+ * `event-tools.ts` allows.
+ */
 function normalizeEmails(emails: string[]): string[] {
   if (emails.length === 0) {
     throw new ParticipantError('emails must not be empty')
   }
-  if (emails.length > MAX_PARTICIPANTS) {
-    throw new ParticipantError(
-      `Maximum ${MAX_PARTICIPANTS} participants allowed`,
-    )
-  }
-  const unique = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
-  if (unique.length !== emails.length) {
-    throw new ParticipantError('Duplicate emails not allowed')
-  }
-  for (const email of unique) {
-    if (!EMAIL_REGEX.test(email)) {
-      throw new ParticipantError(`Invalid email: ${email}`)
-    }
-  }
-  return unique
+  return normalizeEmailsShared(emails, {
+    max: MAX_PARTICIPANTS,
+    rejectDuplicates: true,
+    invalid: (message) => new ParticipantError(message),
+  })
 }
 
 async function getOwnedEvent(userId: string, eventId: string) {

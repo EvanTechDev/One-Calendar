@@ -39,6 +39,7 @@ import {
   withUntil,
 } from '@/lib/recurrence/engine'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
 import { RRule } from 'rrule'
 import crypto from 'crypto'
 
@@ -134,7 +135,6 @@ export interface ListEventsParams {
 }
 
 const MAX_PAGE_LIMIT = 100
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PALETTE_TO_EVENT_COLOR: Record<string, string> = {
   'bg-blue-500': 'bg-[#E6F6FD]',
   'bg-green-500': 'bg-[#E7F8F2]',
@@ -326,14 +326,15 @@ export function resolveTimeRange(
   }
 }
 
+/**
+ * Duplicates collapse rather than error: writing the whole participant list
+ * back onto an event is idempotent, and `add_event_participants` is the tool
+ * that treats a repeat as a mistake.
+ */
 export function normalizeEmails(emails: string[]): string[] {
-  const normalized = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
-  for (const email of normalized) {
-    if (!EMAIL_REGEX.test(email)) {
-      throw new InvalidEventQueryError(`Invalid participant email: ${email}`)
-    }
-  }
-  return normalized
+  return normalizeEmailsShared(emails, {
+    invalid: (message) => new InvalidEventQueryError(message),
+  })
 }
 
 export function colorCandidates(value: string): string[] {
@@ -564,12 +565,6 @@ function encryptMergedFields(
   return encrypted
 }
 
-/**
- * The user's IANA timezone from their settings, or undefined when unset or
- * invalid. Recurrence day math (split boundaries, whole-pattern day shifts,
- * all-day stamps) must run in the user's zone, not the server's, or an edit
- * made near midnight lands on the wrong day.
- */
 /**
  * Drops the cached month buckets a series touches. MCP mutations previously
  * skipped this, so a tool-driven edit left the web UI serving stale months

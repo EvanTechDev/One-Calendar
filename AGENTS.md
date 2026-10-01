@@ -15,7 +15,7 @@ packages/
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
   meetings/        @zntr/meetings — meeting/session/attendance/chat schema + operations
   ui/              @zntr/ui — shadcn/ui components (radix-nova style)
-  utils/           @zntr/utils — cn(), tailwind-merge, clsx
+  utils/           @zntr/utils — cn() (re-exported from the `cn` package), formatDate
   i18n/            @zntr/i18n — i18n generation from locale files
 ```
 
@@ -44,7 +44,9 @@ Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (bui
 
 ## TypeScript
 
-TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — build does **not** type-check. Run `pnpm type-check` separately. CI runs `pnpm install --frozen-lockfile && pnpm type-check`.
+TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — build does **not** type-check. Run `pnpm type-check` separately.
+
+**Nothing type-checks automatically.** `.github/workflows/tsc.yml` runs `pnpm install --frozen-lockfile && pnpm type-check`, but its trigger is `workflow_dispatch:` alone — no `push`, no `pull_request` — so it only runs when someone clicks Run in the Actions tab. Lint and tests have no workflow at all, and no tsconfig covers `tests/**`. Run `pnpm type-check`, `pnpm lint:check` and `pnpm test` before committing anything that could reach `main`.
 
 ## Testing
 
@@ -123,8 +125,14 @@ Tools are authored ONCE in `packages/agent/src/tools.ts` — plain AI SDK
 and `needsApproval: true` on the two destructive tools — against the
 `CalendarToolkit` port (`src/types.ts`). The app binds it with its database
 toolkit (`apps/calendar/lib/agent/toolkit.ts`, built from the SAME
-`lib/mcp/*-tools.ts` functions the MCP server uses — one write path, shared
-cache invalidation and reminder reconciliation). Tests: `tests/agent/`
+`lib/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
+external MCP client share cache invalidation and reminder reconciliation).
+It does **not** share a path with the REST handler in `app/api/events/route.ts`,
+which reimplements the same writes — including `encryptMergedFields`,
+`isValidRrule` and `isValidStamp`. Those copies have already drifted: the
+route's version handles `participants` and `emailReminder` and the MCP one does
+not, so `updateEvent` through the agent silently drops participant changes.
+Treat the two as a known split, not a shared abstraction. Tests: `tests/agent/`
 (node env).
 
 `packages/agent/src/tools.ts` deliberately lowers through a type-erased

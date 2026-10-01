@@ -44,6 +44,7 @@ import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { Skeleton } from '@zntr/ui/skeleton'
 import { useState, useEffect, useRef } from 'react'
+import { isEmail } from '@/lib/email'
 import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { uuid } from '@/lib/uuid'
@@ -1015,9 +1016,8 @@ export default function EventEditor({
 
     if (emails.length === 0) return []
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     for (const email of emails) {
-      if (!emailRegex.test(email)) {
+      if (!isEmail(email)) {
         setParticipantError(`Invalid email: ${email}`)
         return null
       }

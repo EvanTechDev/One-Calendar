@@ -2,9 +2,13 @@
  * The calendar app's implementation of @zntr/agent's CalendarToolkit port,
  * built from the SAME userId-scoped functions the MCP server exposes
  * (lib/mcp/*-tools.ts). The AI command palette and an external MCP client
- * therefore act through one code path: cache invalidation, field
- * encryption, reminder reconciliation and recurrence handling all come for
- * free and cannot drift.
+ * therefore share the MCP code path: cache invalidation, field encryption,
+ * reminder reconciliation and recurrence handling all come from one place.
+ *
+ * Note that this is one path between those two, not one path overall — the
+ * REST handler in app/api/events/route.ts implements the same writes
+ * independently, and its copy of `encryptMergedFields` has drifted (it handles
+ * `participants` and `emailReminder`; this one does not). See AGENTS.md.
  *
  * A toolkit instance is created per authenticated request and closes over
  * the userId — the agent package never sees user identity.

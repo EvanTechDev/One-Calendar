@@ -127,9 +127,15 @@ pnpm dlx drizzle-kit push
 For production, use migrations instead:
 
 ```bash
-pnpm dlx drizzle-kit generate
 pnpm dlx drizzle-kit migrate
 ```
+
+Do **not** run `drizzle-kit generate` to author a new migration. The snapshots in
+`drizzle/meta/` stop at `0002` while fifteen-plus migrations exist, so the
+generator reads the gap as a set of dropped and renamed tables and stops to ask
+about each one. Write the SQL by hand in `drizzle/` — follow the style of
+`0014_create_meeting_tables.sql` — and mirror the change in
+`lib/drizzle/schema.ts`. `AGENTS.md` records the same constraint.
 
 ## Tech stack
 

@@ -25,6 +25,7 @@ import {
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 import type { ApplyTo } from '@/lib/event-service'
+import { isEmail } from '@/lib/email'
 
 const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']
 
@@ -86,9 +87,8 @@ export const POST = async function POST(request: NextRequest) {
     )
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   for (const email of uniqueEmails) {
-    if (!emailRegex.test(email)) {
+    if (!isEmail(email)) {
       return NextResponse.json(
         { error: `Invalid email: ${email}` },
         { status: 400 },
