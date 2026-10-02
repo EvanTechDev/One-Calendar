@@ -45,7 +45,7 @@ export function Footer() {
     >
       <div className="grid gap-8 py-6 md:py-8 lg:grid-cols-3 lg:gap-8">
         <div className="space-y-4">
-          <ZentraLogo className="h-9 w-9" />
+          <ZentraLogo className="h-9 w-9" variant="dark" />
           <p className="text-muted-foreground mt-8 text-sm md:mt-0">
             Schedule everything. Own your time.
           </p>

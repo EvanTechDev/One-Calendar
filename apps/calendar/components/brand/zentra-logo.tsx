@@ -18,21 +18,35 @@ import { cn } from '@zntr/utils'
  *
  * `aria-hidden` when a visible brand name sits beside it — otherwise a screen
  * reader announces "Zentra Calendar" twice.
+ *
+ * `variant="dark"` pins the dark-grey artwork regardless of theme. The landing
+ * page is the reason: a brand mark is a fixed identity, and a logo that
+ * re-colours itself with the OS makes the marketing surface look like a
+ * different product depending on the visitor's laptop. In-app surfaces
+ * (sidebar, changelog, welcome) keep `auto`, because there the mark sits on
+ * whatever surface the user chose.
  */
 export function ZentraLogo({
   className,
   label = 'Zentra Calendar',
   decorative = false,
+  variant = 'auto',
 }: {
   className?: string
   /** Accessible name. Ignored when `decorative`. */
   label?: string
   /** True when adjacent text already names the brand. */
   decorative?: boolean
+  /** `auto` follows the theme; `dark` always uses the dark-grey artwork. */
+  variant?: 'auto' | 'dark'
 }) {
   const a11y = decorative
     ? { alt: '', 'aria-hidden': true as const }
     : { alt: label }
+
+  if (variant === 'dark') {
+    return <img src="/logo-dark.svg" {...a11y} className={className} />
+  }
 
   return (
     <>

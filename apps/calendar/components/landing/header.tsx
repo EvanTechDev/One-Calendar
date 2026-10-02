@@ -28,7 +28,7 @@ export function Header() {
               Named, not decorative: this is the only content of the home link,
               so without a name the link is unlabelled for a screen reader.
             */}
-            <ZentraLogo className="h-9 w-9" />
+            <ZentraLogo className="h-9 w-9" variant="dark" />
           </a>
           <DesktopNav />
         </div>
