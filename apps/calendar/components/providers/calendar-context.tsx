@@ -7,61 +7,17 @@ import { create } from 'zustand'
 import { useData } from '@/components/providers/data-provider'
 import type { EventData } from '@/lib/api-client'
 import type { CategoryData } from '@/lib/api-client'
+import type { CalendarEvent } from '@/lib/calendar-types'
+
+// Re-exported so the ~35 modules that already import it from the context keep
+// working; the declaration itself has one home now.
+export type { CalendarEvent }
 
 export interface CalendarCategory {
   id: string
   name: string
   color: string
   keywords?: string[]
-}
-
-export interface CalendarEvent {
-  id: string
-  title: string
-  startDate: Date
-  endDate: Date
-  isAllDay: boolean
-  rrule?: string | null
-  exdate?: string[] | null
-  seriesId?: string | null
-  recurrenceId?: string | null
-  /** True when this occurrence has its own stored single-instance edit. */
-  isOverride?: boolean
-  isFirstInstance?: boolean
-  location?: string
-  participants: string[]
-  /**
-   * Minutes before the start to remind, or null for no reminder.
-   * Zero is a real value — "at the event's start" — not an absent one.
-   */
-  notification: number | null
-  /** Also deliver the reminder by email. See ADR-0010. */
-  emailReminder?: boolean
-  description?: string
-  color: string
-  calendarId: string
-  viewOnly?: boolean
-  organizer?: {
-    name: string
-    email: string
-    image: string | null
-  } | null
-  invites?: Array<{
-    id: string
-    email: string
-    status: 'pending' | 'accepted' | 'maybe' | 'declined'
-    inviteToken: string
-    emailSent: boolean
-    addedToCalendar: boolean
-    userName: string | null
-    userImage: string | null
-  }>
-  /**
-   * The event's Meeting, carried on the event rather than fetched per-surface.
-   * Undefined means "not known here" (a locally constructed event); null means
-   * the server said there is none.
-   */
-  meeting?: { id: string; url: string } | null
 }
 
 function eventDataToCalendarEvent(e: EventData): CalendarEvent {

@@ -335,3 +335,67 @@ export const isCalendarView = (view: string): view is CalendarViewTypeValue => {
 }
 
 export type ViewType = CalendarViewTypeValue | 'analytics' | 'settings'
+
+/**
+ * One occurrence of one event, hydrated: dates are `Date`, not the strings
+ * `EventData` carries on the wire.
+ *
+ * This lived twice — here-adjacent in `components/app/calendar.tsx` and again
+ * in `components/providers/calendar-context.tsx` — and the two had to be kept
+ * in sync by hand across two 2,000-line files, with a knip `duplicates`
+ * suppression hiding the fact. Nothing about the shape is component-specific,
+ * so both of those files re-export this declaration and all 35 importers are
+ * unaffected.
+ *
+ * The wire form is `EventData` in `lib/api-client.ts`; `eventDataToCalendarEvent`
+ * in `components/providers/calendar-context.tsx` is the one mapper between them.
+ */
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  startDate: Date
+  endDate: Date
+  isAllDay: boolean
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  /** True when this occurrence has its own stored single-instance edit. */
+  isOverride?: boolean
+  isFirstInstance?: boolean
+  location?: string
+  participants: string[]
+  /**
+   * Minutes before the start to remind, or null for no reminder.
+   * Zero is a real value — "at the event's start" — not an absent one.
+   */
+  notification: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
+  description?: string
+  color: string
+  calendarId: string
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+  invites?: Array<{
+    id: string
+    email: string
+    status: 'pending' | 'accepted' | 'maybe' | 'declined'
+    inviteToken: string
+    emailSent: boolean
+    addedToCalendar: boolean
+    userName: string | null
+    userImage: string | null
+  }>
+  /**
+   * The event's Meeting, carried on the event rather than fetched per-surface.
+   * Undefined means "not known here" (a locally constructed event); null means
+   * the server said there is none.
+   */
+  meeting?: { id: string; url: string } | null
+}

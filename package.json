@@ -101,8 +101,7 @@
     ],
     "ignoreIssues": {
       "apps/calendar/components/providers/calendar-context.tsx": [
-        "exports",
-        "duplicates"
+        "exports"
       ],
       "packages/ui/src/**": [
         "exports"

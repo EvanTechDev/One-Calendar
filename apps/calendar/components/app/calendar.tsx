@@ -42,6 +42,11 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
+
+// Re-exported for the ~35 modules that already import it from here. The
+// declaration has one home now (lib/calendar-types.ts); this used to be a
+// second copy, kept in sync by hand, with a knip suppression hiding it.
+export type { CalendarEvent } from '@/lib/calendar-types'
 import {
   useSettings,
   useEvents,
@@ -222,56 +227,6 @@ export const CALENDAR_VIEW_CHUNKS: Record<
 // key get no AI affordances at all — no trigger, no shortcut — instead of
 // an entry point that 503s on use.
 const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
-
-export interface CalendarEvent {
-  id: string
-  title: string
-  startDate: Date
-  endDate: Date
-  isAllDay: boolean
-  rrule?: string | null
-  exdate?: string[] | null
-  seriesId?: string | null
-  recurrenceId?: string | null
-  /** True when this occurrence has its own stored single-instance edit. */
-  isOverride?: boolean
-  isFirstInstance?: boolean
-  location?: string
-  participants: string[]
-  /**
-   * Minutes before the start to remind, or null for no reminder.
-   * Zero is a real value — "at the event's start" — not an absent one.
-   */
-  notification: number | null
-  /** Also deliver the reminder by email. See ADR-0010. */
-  emailReminder?: boolean
-  description?: string
-  color: string
-  calendarId: string
-  viewOnly?: boolean
-  organizer?: {
-    name: string
-    email: string
-    image: string | null
-  } | null
-  invites?: Array<{
-    id: string
-    email: string
-    status: 'pending' | 'accepted' | 'maybe' | 'declined'
-    inviteToken: string
-    emailSent: boolean
-    addedToCalendar: boolean
-    userName: string | null
-    userImage: string | null
-  }>
-  /**
-   * The event's Meeting, carried on the event rather than fetched per-surface.
-   * Undefined means "not known here" (a locally constructed event); null means
-   * the server said there is none. Mirrors the declaration in
-   * providers/calendar-context.tsx, which this interface duplicates.
-   */
-  meeting?: { id: string; url: string } | null
-}
 
 interface CalendarProps {
   className?: string
