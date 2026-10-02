@@ -25,11 +25,11 @@ import { isChildOverlayInteraction } from '@/lib/popover-nesting'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   isBannerEvent,
-  shouldShowEventOnDay,
   layoutAllDaySegments,
   barLanesByColumn,
 } from '@/components/app/views/event-layout-engine'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
+import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
 import { useCallback, useRef, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
@@ -163,17 +163,19 @@ export default function MonthView({
   // the tap target only exists below the md breakpoint.
   const [daySheet, setDaySheet] = useState<{
     day: Date
-    events: CalendarEvent[]
+    events: readonly CalendarEvent[]
   } | null>(null)
+
+  // One index of events by day for the whole grid, instead of a full scan of
+  // the event list per day cell — and this view asks three times per cell, so
+  // it was making ~84 passes over the event list on every render.
+  const eventsByDay = useEventsByDay(events)
 
   const openDaySheet = useCallback(
     (day: Date) => {
-      const dayEvents = events.filter((event) =>
-        shouldShowEventOnDay(event, day),
-      )
-      setDaySheet({ day, events: dayEvents })
+      setDaySheet({ day, events: eventsOnDay(eventsByDay, day) })
     },
-    [events],
+    [eventsByDay],
   )
 
   const orderedDays = [
@@ -210,9 +212,8 @@ export default function MonthView({
               className="relative grid flex-1 grid-cols-7 border-t"
             >
               {week.map((day, dayIndex) => {
-                const timedEvents = events.filter(
-                  (event) =>
-                    !isBannerEvent(event) && shouldShowEventOnDay(event, day),
+                const timedEvents = eventsOnDay(eventsByDay, day).filter(
+                  (event) => !isBannerEvent(event),
                 )
                 const visibleEvents = timedEvents.slice(0, 3)
                 const remainingCount = timedEvents.length - visibleEvents.length
@@ -228,9 +229,8 @@ export default function MonthView({
                   selectionAnchorDay !== null &&
                   isSameDay(day, selectionAnchorDay)
 
-                const bannerEvents = events.filter(
-                  (event) =>
-                    isBannerEvent(event) && shouldShowEventOnDay(event, day),
+                const bannerEvents = eventsOnDay(eventsByDay, day).filter(
+                  (event) => isBannerEvent(event),
                 )
                 const dotEvents = [...bannerEvents, ...timedEvents]
 

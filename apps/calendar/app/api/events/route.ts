@@ -173,6 +173,37 @@ async function fetchOverrides(
   return rows as unknown as EventRow[]
 }
 
+/**
+ * Every override belonging to any of `seriesIds`, indexed by series.
+ *
+ * One statement for the whole set, for the same reason
+ * `deleteSeriesOccurrences` deletes in one statement: a caller with N series
+ * would otherwise pay N queries where the table has one index on `series_id`
+ * and can answer all of them at once.
+ */
+async function fetchOverridesFor(
+  seriesIds: string[],
+  dbx: Dbx = getDb(),
+): Promise<Map<string, EventRow[]>> {
+  const unique = [...new Set(seriesIds)]
+  const bySeries = new Map<string, EventRow[]>()
+  if (unique.length === 0) return bySeries
+
+  const rows = (await dbx
+    .select()
+    .from(calendarEvents)
+    .where(inArray(calendarEvents.seriesId, unique))) as unknown as EventRow[]
+
+  for (const row of rows) {
+    const key = row.seriesId
+    if (!key) continue
+    const existing = bySeries.get(key)
+    if (existing) existing.push(row)
+    else bySeries.set(key, [row])
+  }
+  return bySeries
+}
+
 async function deleteRow(
   userId: string,
   row: EventRow,
@@ -416,6 +447,34 @@ async function meetingsForEvents(
   return out
 }
 
+/**
+ * Display name and avatar for the given invitee addresses, lower-cased keys.
+ * No query at all for an empty list, which is the common case for an event with
+ * no invitations.
+ */
+async function inviteUsersByEmail(
+  emails: string[],
+): Promise<Record<string, { name: string; image: string | null }>> {
+  if (emails.length === 0) return {}
+
+  const users = await getDb()
+    .select({
+      email: user.email,
+      name: user.name,
+      image: user.image,
+    })
+    .from(user)
+    .where(inArray(user.email, emails))
+
+  return users.reduce(
+    (acc: Record<string, { name: string; image: string | null }>, u) => {
+      acc[u.email.toLowerCase()] = { name: u.name, image: u.image }
+      return acc
+    },
+    {} as Record<string, { name: string; image: string | null }>,
+  )
+}
+
 async function enrichEventsWithInvites(
   events: Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>,
   viewerId: string,
@@ -435,58 +494,47 @@ async function enrichEventsWithInvites(
 
   const inviteIds = events.map((e) => e.seriesId ?? e.id)
   const idKeys = [...new Set(inviteIds)]
-  const meetings = await meetingsForEvents(events, viewerId)
   const eventOwners = new Map(
     events.map((e) => [(e.seriesId ?? e.id) as string, e.userId]),
   )
 
-  const allInvites = await getDb()
-    .select({
-      id: eventInvites.id,
-      eventId: eventInvites.eventId,
-      email: eventInvites.email,
-      status: eventInvites.status,
-      inviteToken: eventInvites.inviteToken,
-      inviteTokenHash: eventInvites.inviteTokenHash,
-      emailSent: eventInvites.emailSent,
-      addedToCalendar: eventInvites.addedToCalendar,
-      expiresAt: eventInvites.expiresAt,
-      baselineKind: eventInvites.baselineKind,
-      fromStamp: eventInvites.fromStamp,
-      untilStamp: eventInvites.untilStamp,
-    })
-    .from(eventInvites)
-    .where(inArray(eventInvites.eventId, idKeys))
-
-  // Per-occurrence exceptions, so the organiser sees who is on THIS occurrence
-  // and their RSVP for it — not a series-wide answer.
-  const occurrencesByInvite = await getOccurrencesForInvites(
-    allInvites.map((i) => i.id),
-  )
+  // The meetings lookup is keyed by the events' own ids and the invite read by
+  // the invite rows — neither needs the other's result, so they go out together
+  // instead of one after the other. `enrichEventsWithInvites` runs on every
+  // `GET /api/events`, which is the app's hottest read: view switches, every
+  // optimistic-write revalidation and every SWR focus revalidation all land here.
+  const [meetings, allInvites] = await Promise.all([
+    meetingsForEvents(events, viewerId),
+    getDb()
+      .select({
+        id: eventInvites.id,
+        eventId: eventInvites.eventId,
+        email: eventInvites.email,
+        status: eventInvites.status,
+        inviteToken: eventInvites.inviteToken,
+        inviteTokenHash: eventInvites.inviteTokenHash,
+        emailSent: eventInvites.emailSent,
+        addedToCalendar: eventInvites.addedToCalendar,
+        expiresAt: eventInvites.expiresAt,
+        baselineKind: eventInvites.baselineKind,
+        fromStamp: eventInvites.fromStamp,
+        untilStamp: eventInvites.untilStamp,
+      })
+      .from(eventInvites)
+      .where(inArray(eventInvites.eventId, idKeys)),
+  ])
 
   const inviteEmails = [
     ...new Set(allInvites.map((i) => i.email.toLowerCase())),
   ]
 
-  let userMap: Record<string, { name: string; image: string | null }> = {}
-  if (inviteEmails.length > 0) {
-    const users = await getDb()
-      .select({
-        email: user.email,
-        name: user.name,
-        image: user.image,
-      })
-      .from(user)
-      .where(inArray(user.email, inviteEmails))
-
-    userMap = users.reduce(
-      (acc: Record<string, { name: string; image: string | null }>, u) => {
-        acc[u.email.toLowerCase()] = { name: u.name, image: u.image }
-        return acc
-      },
-      {} as Record<string, { name: string; image: string | null }>,
-    )
-  }
+  // Both need `allInvites` and neither needs the other.
+  const [occurrencesByInvite, userMap] = await Promise.all([
+    // Per-occurrence exceptions, so the organiser sees who is on THIS
+    // occurrence and their RSVP for it — not a series-wide answer.
+    getOccurrencesForInvites(allInvites.map((i) => i.id)),
+    inviteUsersByEmail(inviteEmails),
+  ])
 
   const viewerEmailLower = viewerEmail?.toLowerCase()
 
@@ -601,7 +649,16 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     : []
 
   const ownerMap = new Map(owners.map((u) => [u.id, u]))
-  const organiserTimeZones = await organiserTimeZonesFor(ownerIds)
+
+  // Everything the loop below needs that is not already in hand, fetched up
+  // front: the participants' own series overrides and their organisers' time
+  // zones. Both were queries issued from inside the loop or one after another,
+  // so a participant invited to N recurring events paid N+1 round-trips before
+  // the first occurrence was even expanded.
+  const [overridesBySeries, organiserTimeZones] = await Promise.all([
+    fetchOverridesFor(sharedResults.map((r) => r.id)),
+    organiserTimeZonesFor(ownerIds),
+  ])
 
   const out: Array<
     ReturnType<typeof decryptEvent> & {
@@ -637,7 +694,7 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     // ADR-0006 (participants never receive the recurrence rule).
     const exceptions = occurrencesByInvite.get(invite.id) ?? []
     const baseline = baselineOf(invite)
-    const overrides = await fetchOverrides(row.id)
+    const overrides = overridesBySeries.get(row.id) ?? []
     const instances = expandSeriesView(
       [decrypted as unknown as SeriesViewInput],
       overrides.map(decryptEvent) as unknown as SeriesViewInput[],

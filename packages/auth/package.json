@@ -15,6 +15,7 @@
     "./email-template": "./src/email-template.tsx",
     "./email": "./src/email.ts",
     "./turnstile": "./src/turnstile.ts",
+    "./better-auth-cookies": "./src/better-auth-cookies.ts",
     "./forms": "./src/forms/index.ts",
     "./account": "./src/account/index.ts",
     "./return-to": "./src/return-to.ts",

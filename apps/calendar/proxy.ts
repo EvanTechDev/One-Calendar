@@ -1,10 +1,11 @@
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-// Straight from better-auth rather than the `@zntr/auth` barrel: that barrel
-// re-exports `./server` (createAuth — the better-auth server plus the drizzle
-// adapter), and this file runs in edge middleware where neither is needed.
-// `getSessionCookie` is only ever a re-export of this subpath.
-import { getSessionCookie } from 'better-auth/cookies'
+// The dedicated subpath, not the `@zntr/auth` barrel: the barrel re-exports
+// `./server` (createAuth — the better-auth server plus the drizzle adapter),
+// and this file runs in edge middleware where neither is needed. The subpath
+// exists for the same reason, and also because `better-auth` is a dependency of
+// `@zntr/auth` rather than of this app, so it does not resolve from here.
+import { getSessionCookie } from '@zntr/auth/better-auth-cookies'
 
 export function getCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'

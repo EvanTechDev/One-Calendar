@@ -133,13 +133,16 @@ export class EventLayoutEngine {
   }
 
   separateEvents(
-    dayEvents: CalendarEvent[],
+    dayEvents: readonly CalendarEvent[],
     day: Date,
   ): { allDayEvents: CalendarEvent[]; regularEvents: CalendarEvent[] } {
     return separateEvents(dayEvents, day)
   }
 
-  layoutEventsForDay(dayEvents: CalendarEvent[], day: Date): LayoutEvent[] {
+  layoutEventsForDay(
+    dayEvents: readonly CalendarEvent[],
+    day: Date,
+  ): LayoutEvent[] {
     if (!dayEvents || dayEvents.length === 0) return []
 
     const { regularEvents } = this.separateEvents(dayEvents, day)
@@ -524,7 +527,7 @@ export function getEventTimesForDay(
 }
 
 export function separateEvents(
-  dayEvents: CalendarEvent[],
+  dayEvents: readonly CalendarEvent[],
   _day: Date,
 ): { allDayEvents: CalendarEvent[]; regularEvents: CalendarEvent[] } {
   const allDayEvents: CalendarEvent[] = []
@@ -544,7 +547,7 @@ export function separateEvents(
 }
 
 export function layoutEventsForDay(
-  dayEvents: CalendarEvent[],
+  dayEvents: readonly CalendarEvent[],
   day: Date,
 ): LayoutEvent[] {
   if (!dayEvents || dayEvents.length === 0) return []

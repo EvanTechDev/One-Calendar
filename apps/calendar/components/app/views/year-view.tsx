@@ -1,13 +1,11 @@
 'use client'
 
 import {
-  addDays,
   eachDayOfInterval,
   endOfMonth,
   format,
   isSameDay,
   isSameMonth,
-  startOfDay,
   startOfWeek,
 } from 'date-fns'
 import { translations } from '@zntr/i18n/calendar'
@@ -15,8 +13,8 @@ import type { CalendarEvent } from '../calendar'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { shouldShowEventOnDay } from '@/components/app/views/event-layout-engine'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
+import { useEventsByDay } from '@/hooks/use-events-by-day'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
@@ -87,41 +85,7 @@ export default function YearView({
     [config.firstDayOfWeek.value, t.weekdays],
   )
 
-  const eventsByDayKey = useMemo(() => {
-    const grouped = new Map<string, CalendarEvent[]>()
-    events.forEach((event) => {
-      // Every day the event occupies, not only the one it starts on. Bucketing
-      // by `startDate` alone left the second and third days of a multi-day
-      // event blank: a 1st–3rd all-day event showed a dot on the 1st and
-      // nothing on the 2nd or 3rd, and those days' popovers came up empty.
-      // `shouldShowEventOnDay` is the predicate the month, week and filter
-      // paths already use, so an end at midnight stays exclusive of that day;
-      // the loop below only bounds the days worth asking about.
-      const start = new Date(event.startDate)
-      const end = new Date(event.endDate)
-      const lastDay = startOfDay(end.getTime() > start.getTime() ? end : start)
-      for (
-        let day = startOfDay(start);
-        day.getTime() <= lastDay.getTime();
-        day = addDays(day, 1)
-      ) {
-        if (!shouldShowEventOnDay(event, day)) continue
-        const key = format(day, 'yyyy-MM-dd')
-        const existing = grouped.get(key) ?? []
-        existing.push(event)
-        grouped.set(key, existing)
-      }
-    })
-
-    grouped.forEach((dayEvents) => {
-      dayEvents.sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      )
-    })
-
-    return grouped
-  }, [events])
+  const eventsByDayKey = useEventsByDay(events)
 
   const months = useMemo(
     () =>

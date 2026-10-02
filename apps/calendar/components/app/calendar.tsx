@@ -51,10 +51,7 @@ import { getValidTimezone } from '@/lib/timezone'
 import { uuid } from '@/lib/uuid'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
-import EventPreview, {
-  type EventInvite,
-} from '@/components/app/event/event-preview'
-import EventEditor from '@/components/app/event/event-editor'
+import type { EventInvite } from '@/components/app/event/event-preview'
 import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import Sidebar from '@/components/app/sidebar/sidebar'
 import MobileSidebarDrawer from '@/components/app/sidebar/mobile-sidebar-drawer'
@@ -129,6 +126,8 @@ const loadAiCommandPalette = () =>
   import('@/components/app/ai/ai-command-palette').then(
     (m) => m.AiCommandPalette,
   )
+const loadEventPreview = () => import('@/components/app/event/event-preview')
+const loadEventEditor = () => import('@/components/app/event/event-editor')
 import {
   defaultExpansionWindow,
   optimisticFollowingSplit,
@@ -143,6 +142,60 @@ const SettingsDialog = dynamic(loadSettingsDialog)
 // ssr: false — the palette carries the chat transport and is pure client
 // interaction; there is nothing meaningful to render on the server.
 const AiCommandPalette = dynamic(loadAiCommandPalette, { ssr: false })
+/**
+ * The event preview and editor are ~3,200 lines between them, and drag
+ * react-day-picker and react-remove-scroll along with them. Both render nothing
+ * until they are opened, so none of that belongs in the chunk that paints the
+ * grid.
+ *
+ * No `ssr: false` here, unlike the palette above: both are portalled surfaces
+ * with no server-rendered output, and `ssr: false` would exclude them from the
+ * server graph entirely rather than merely moving code out of the initial
+ * chunk. They are also left mounted — no deferred-mount latch — because the
+ * preview holds the invite poll and the editor holds unsaved draft state;
+ * unmounting between opens would throw that away. {@link warmEventSurfaceChunks}
+ * fetches both chunks once the app has settled so the click that opens them
+ * lands on an already-parsed module instead of a network round-trip.
+ */
+const EventPreview = dynamic(loadEventPreview)
+const EventEditor = dynamic(loadEventEditor)
+
+type IdleCapableWindow = Window & {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout: number },
+  ) => number
+  cancelIdleCallback?: (handle: number) => void
+}
+
+/**
+ * Fetches the event preview and editor chunks when the browser is idle, so the
+ * first click on an event does not wait for them.
+ *
+ * Idle rather than immediate: the click cannot arrive before the grid has
+ * painted, and loading ~3,200 lines during the initial render would compete
+ * with the work that decides what the user sees first. The timeout is a
+ * ceiling for browsers that never report idle.
+ */
+function warmEventSurfaceChunks() {
+  const warm = () => {
+    // Both loaders are the same functions `dynamic()` was given, so warming
+    // here fills the module registry the wrapper will read from.
+    void loadEventPreview()
+    void loadEventEditor()
+  }
+
+  const idleWindow = window as IdleCapableWindow
+  const idleHandle = idleWindow.requestIdleCallback
+    ? idleWindow.requestIdleCallback(warm, { timeout: 4000 })
+    : null
+  const timerHandle = idleHandle === null ? window.setTimeout(warm, 1500) : null
+
+  return () => {
+    if (idleHandle !== null) idleWindow.cancelIdleCallback?.(idleHandle)
+    if (timerHandle !== null) window.clearTimeout(timerHandle)
+  }
+}
 
 /**
  * The view chunks, keyed by the view that selects them (`four-day` is the week
@@ -260,6 +313,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   >([])
   const calendarRef = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useLanguage()
+
+  // Warms the event preview and editor chunks off the critical path. Declared
+  // here rather than inside an existing effect so its only job is visible.
+  useEffect(() => warmEventSurfaceChunks(), [])
   const t = translations[language]
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
   const { setTheme } = useTheme()

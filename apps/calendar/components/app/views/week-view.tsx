@@ -31,6 +31,7 @@ import {
   layoutAllDaySegments,
 } from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
+import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
 
 interface WeekViewProps {
   date: Date
@@ -82,6 +83,10 @@ export default function WeekView({
     () => EventLayoutEngineClass.create(config),
     [config],
   )
+
+  // One index of events by day for the whole grid, instead of a full scan of
+  // the event list per day cell.
+  const eventsByDay = useEventsByDay(events)
 
   /**
    * Memoised because `weekDays` is a dependency of the drag, selection and
@@ -153,6 +158,61 @@ export default function WeekView({
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
 
+  /**
+   * Day-column centres and the grid's content-space top edge, measured once and
+   * reused for every `mousemove` of a drag.
+   *
+   * Asking the DOM for these inside the handler meant one `getBoundingClientRect`
+   * on the container plus one per day column — eight synchronous layouts per
+   * pointer event, ~480 a second mid-drag — and the handler then wrote state, so
+   * the next move read against layout the previous one had invalidated. That is
+   * what made the drop preview stutter on long weeks.
+   *
+   * The measurement is keyed on the only things that can move a column: the
+   * container's own horizontal scroll offset and its size. Vertical scrolling
+   * needs no invalidation — `clientY - top + scrollTop` is already a
+   * content-space coordinate, so the two terms move together.
+   */
+  const dragGeometryRef = useRef<{
+    columnCentersX: number[]
+    contentTop: number
+    scrollLeft: number
+    clientWidth: number
+    clientHeight: number
+  } | null>(null)
+
+  const readDragGeometry = () => {
+    const container = scrollContainerRef.current
+    if (!container) return null
+
+    const cached = dragGeometryRef.current
+    if (
+      cached &&
+      cached.scrollLeft === container.scrollLeft &&
+      cached.clientWidth === container.clientWidth &&
+      cached.clientHeight === container.clientHeight
+    ) {
+      return cached
+    }
+
+    const columnCentersX = Array.from(
+      container.querySelectorAll('.grid-col'),
+    ).map((item) => {
+      const rect = item.getBoundingClientRect()
+      return rect.left + rect.width / 2
+    })
+    const geometry = {
+      columnCentersX,
+      // Content space, so the caller does not have to add `scrollTop` itself.
+      contentTop: container.getBoundingClientRect().top - container.scrollTop,
+      scrollLeft: container.scrollLeft,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight,
+    }
+    dragGeometryRef.current = geometry
+    return geometry
+  }
+
   const queueIgnoreEventClick = () => {
     ignoreNextEventClickRef.current = true
     window.setTimeout(() => {
@@ -213,26 +273,21 @@ export default function WeekView({
         dragStartPosition &&
         scrollContainerRef.current
       ) {
-        const containerRect = scrollContainerRef.current.getBoundingClientRect()
-        const gridItems =
-          scrollContainerRef.current.querySelectorAll('.grid-col')
+        const geometry = readDragGeometry()
+        if (!geometry) return
 
         let closestDayIndex = 0
         let minDistance = Infinity
 
-        gridItems.forEach((item, index) => {
-          const rect = item.getBoundingClientRect()
-          const centerX = rect.left + rect.width / 2
-          const distance = Math.abs(e.clientX - centerX)
-
+        for (let index = 0; index < geometry.columnCentersX.length; index++) {
+          const distance = Math.abs(e.clientX - geometry.columnCentersX[index])
           if (distance < minDistance) {
             minDistance = distance
             closestDayIndex = index
           }
-        })
+        }
 
-        const relativeY =
-          e.clientY - containerRect.top + scrollContainerRef.current.scrollTop
+        const relativeY = e.clientY - geometry.contentTop
         const positionMinutes = snapToQuarterHour(relativeY)
         const startMinutes = snapToQuarterHour(
           positionMinutes - dragOffsetMinutesRef.current,
@@ -271,6 +326,7 @@ export default function WeekView({
       // handles and the context menu use).
       if (isDraggingRef.current) queueIgnoreEventClick()
       isDraggingRef.current = false
+      dragGeometryRef.current = null
       setDraggingEvent(null)
       setDragStartPosition(null)
       setDragOffset(null)
@@ -681,9 +737,7 @@ export default function WeekView({
         </div>
 
         {weekDays.map((day, dayIndex) => {
-          const dayEvents = events.filter((event) =>
-            layoutEngine.shouldShowEventOnDay(event, day),
-          )
+          const dayEvents = eventsOnDay(eventsByDay, day)
 
           const { regularEvents } = layoutEngine.separateEvents(dayEvents, day)
 
