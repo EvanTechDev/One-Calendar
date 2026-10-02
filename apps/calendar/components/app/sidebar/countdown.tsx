@@ -748,19 +748,14 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       {/*
-       * No button hover anywhere in this component (CORE-215).
-       *
-       * It used to be switched off one button at a time with
-       * `hover:bg-transparent` / `hover:bg-destructive`, which left the
-       * variant's `hover:text-foreground` alive — hence the `text-inherit`
-       * patch below it. One rule at the root covers both properties and
-       * reaches buttons added later; it also reverts delete's hover to the
-       * resting `bg-destructive/10` instead of escalating to solid red.
+       * No hover styling of its own, here or on any button inside
+       * (CORE-215). Each Button takes its hover from the variant it was
+       * given; this sheet used to override that per button —
+       * `hover:bg-transparent`, `hover:bg-destructive` — and then patch the
+       * leftover `hover:text-foreground` from here with
+       * `[&_button:hover]:text-inherit`.
        */}
-      <SheetContent
-        side="right"
-        className="w-[360px] sm:w-[420px] p-0 [&_button:hover]:bg-transparent [&_button:hover]:text-inherit"
-      >
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <CountdownBody />
       </SheetContent>
     </Sheet>
