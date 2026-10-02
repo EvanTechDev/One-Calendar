@@ -148,10 +148,16 @@ function selectionBorderClasses(
     selectionCoversDay(selection, addDays(day, offset))
   return cn(
     'border border-cal-accent/40',
-    // Drop a side exactly when the neighbour on it is selected, because that
-    // neighbour is the one drawing the edge they share.
-    dayIndex < 6 && adjacent(1) && 'border-r-0',
+    // A side is dropped when the neighbour on it draws the edge they share.
+    //
+    // The right side is the exception: the grey divider between two columns is
+    // drawn by the LEFT cell's right border, so a selected cell keeps its
+    // `border-r` and merely hands it back to the divider's grey. Dropping it —
+    // or leaving it accent — is what made the grid lines vanish between the
+    // days of a multi-day selection.
+    dayIndex < 6 && adjacent(1) && 'border-r-border',
     dayIndex > 0 && adjacent(-1) && 'border-l-0',
+    // Above and below, the week row already draws a grey `border-t`.
     adjacent(-7) && 'border-t-0',
     adjacent(7) && 'border-b-0',
   )
@@ -338,7 +344,9 @@ export default function MonthView({
                       : {})}
                     className={cn(
                       'min-h-[100px] p-2 max-md:min-h-[72px] max-md:p-1',
-                      !outline && dayIndex < 6 && 'border-r',
+                      // The grey divider between columns belongs to every cell
+                      // with a right neighbour, selected or not.
+                      dayIndex < 6 && 'border-r',
                       outline,
                       outline && 'bg-cal-accent/5',
                     )}

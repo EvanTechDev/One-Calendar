@@ -85,15 +85,23 @@ function selectedCells(container: HTMLElement): HTMLElement[] {
 const SIDECLASS = { top: 't', right: 'r', bottom: 'b', left: 'l' } as const
 
 /**
- * Which of the four edges a cell's outline paints.
+ * Which of the four edges a cell paints in the selection's ACCENT colour.
  *
- * The outline drops a side with `border-<side>-0`, so an edge is drawn exactly
- * when that class is absent.
+ * A side is accent when it was not dropped with `border-<side>-0` and was not
+ * handed back to the grey divider with `border-r-border`.
  */
 function edges(cell: HTMLElement): string[] {
-  return (['top', 'right', 'bottom', 'left'] as const).filter(
-    (side) => !cell.className.includes(`border-${SIDECLASS[side]}-0`),
-  )
+  return (['top', 'right', 'bottom', 'left'] as const).filter((side) => {
+    if (cell.className.includes(`border-${SIDECLASS[side]}-0`)) return false
+    if (side === 'right' && cell.className.includes('border-r-border'))
+      return false
+    return true
+  })
+}
+
+/** True when the cell draws the grey divider along its right edge. */
+function hasDivider(cell: HTMLElement): boolean {
+  return cell.className.includes('border-r')
 }
 
 describe('MonthView', () => {
@@ -477,14 +485,21 @@ describe('MonthView draft-selection outline', () => {
     })
     const cells = selectedCells(container)
     expect(cells).toHaveLength(2)
-    // Each drops only its interior side, so that edge exists once.
+    // Neither paints the shared edge in accent, so it is not drawn twice.
     expect(edges(cells[0])).toEqual(['top', 'bottom', 'left'])
     expect(edges(cells[1])).toEqual(['top', 'right', 'bottom'])
-    // And neither one declares the other's edge twice.
-    expect(cells[0].className).toContain('border-r-0')
+    // The SECOND cell drops its left edge, because the first one draws the
+    // divider they share; the first keeps a free accent left edge, because
+    // nothing is selected to its left.
     expect(cells[1].className).toContain('border-l-0')
     expect(cells[0].className).not.toContain('border-l-0')
-    expect(cells[1].className).not.toContain('border-r-0')
+
+    // And it is not gone either: the grey divider between two columns is drawn
+    // by the LEFT cell's right border, so exactly one of them carries it, in
+    // the grid's grey rather than the accent.
+    expect(hasDivider(cells[0])).toBe(true)
+    expect(hasDivider(cells[1])).toBe(false)
+    expect(cells[0].className).toContain('border-r-border')
   })
 
   it('paints only the outer edges of a run spanning several days', () => {
