@@ -140,6 +140,30 @@ html {
       0 10px 15px -3px rgb(0 0 0 / 0.1),
       0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
+
+  /* The colour of the month grid's draft-selection outline.
+
+     Tailwind guards every `color-mix()` it emits behind
+     `@supports (color: color-mix(in lab, red, red))` and falls back to the
+     plain token when the browser cannot mix. An inline `box-shadow` cannot
+     carry that guard — and an unsupported `color-mix()` does not degrade to
+     some other colour, it invalidates the whole declaration, so the outline
+     vanishes rather than turning solid. Declaring the colour here gives the
+     inline style a token to reference, with the same guard and the same
+     fallback the utilities get. */
+  [data-day-cell] {
+    --month-selection-edge: var(--cal-accent);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    [data-day-cell] {
+      --month-selection-edge: color-mix(
+        in oklab,
+        var(--cal-accent) 40%,
+        transparent
+      );
+    }
+  }
 }
 
 @layer base {

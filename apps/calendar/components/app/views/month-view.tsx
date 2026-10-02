@@ -164,16 +164,19 @@ function selectionSides(
  * `color-mix(in oklab, … 40%)` is how `ring-cal-accent/40` resolves; the
  * highlight is unchanged, only the doubled edge is gone.
  *
- * `--cal-accent`, NOT `--color-cal-accent`. The `@theme inline` block in
- * `globals.css` tells Tailwind to substitute these values into utilities at
- * build time rather than emit the `--color-*` variables, so only the underlying
- * property exists at runtime — referencing the `--color-` name leaves the
- * `color-mix()` invalid, which drops the whole declaration and leaves the cell
- * with no outline at all. jsdom cannot see that, so a test pins it.
+ * The colour arrives as `var(--month-selection-edge)`, defined in `globals.css`
+ * behind the same `@supports (color: color-mix(in lab, red, red))` guard
+ * Tailwind puts around its own `color-mix()` output, falling back to the plain
+ * token. An inline declaration cannot carry an `@supports` block, and a browser
+ * that cannot parse `color-mix()` does not merely render a different colour —
+ * it drops the whole declaration, so the outline would be gone rather than
+ * solid. It also must NOT name `--color-cal-accent`: the `@theme inline` block
+ * substitutes those into utilities at build time rather than emitting the
+ * `--color-*` variable, so that name resolves to nothing.
  */
 function selectionOutline(sides: SelectionSides): string {
   const edge = (offset: string) =>
-    `inset ${offset} 0 0 0 color-mix(in oklab, var(--cal-accent) 40%, transparent)`
+    `inset ${offset} 0 0 0 var(--month-selection-edge)`
   return [
     sides.top && edge('0 1px'),
     sides.right && edge('-1px 0'),

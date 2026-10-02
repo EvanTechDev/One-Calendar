@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import MonthView from '@/components/app/views/month-view'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
@@ -548,10 +550,22 @@ describe('MonthView draft-selection outline', () => {
   it('colours the outline from a token the stylesheet actually emits', () => {
     // `@theme inline` in globals.css substitutes the theme values into
     // utilities at build time instead of emitting `--color-*` variables, so a
-    // `var(--color-…)` reference resolves to nothing: the `color-mix()` around
-    // it becomes invalid, which drops the entire box-shadow declaration and
-    // leaves the selected cells with NO outline. jsdom happily keeps the
-    // unresolvable string, so only an assertion can hold this.
+    // `var(--color-…)` reference resolves to nothing: the declaration around it
+    // is invalid and the selected cells get NO outline. jsdom happily keeps
+    // an unresolvable string, so this has to be asserted.
+    //
+    // Rather than ban one spelling, check the outline only names tokens the
+    // stylesheet really declares outside `@theme inline` — which also catches
+    // a typo, and would catch the outline reaching for a raw `color-mix()`
+    // that no `@supports` guard is protecting.
+    const css = readFileSync(
+      resolve(process.cwd(), 'app/globals.css'),
+      'utf8',
+    ).replace(/@theme inline \{[\s\S]*?\n\}/g, '')
+    const declared = new Set(
+      [...css.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]),
+    )
+
     const { container } = renderMonthView({
       date: new Date(2025, 0, 15),
       selection: {
@@ -566,7 +580,7 @@ describe('MonthView draft-selection outline', () => {
     ].map((match) => match[1])
     expect(tokens.length).toBeGreaterThan(0)
     for (const token of tokens) {
-      expect(token).not.toMatch(/^--color-/)
+      expect(declared).toContain(token)
     }
   })
 })
