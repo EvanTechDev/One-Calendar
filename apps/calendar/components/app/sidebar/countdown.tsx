@@ -27,7 +27,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
 import {
   Plus,
   ArrowLeft,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  CalendarArrowDown,
+  CalendarArrowUp,
   Edit2,
+  History,
   Trash2,
   Calendar as CalendarIcon,
   Clock,
@@ -40,6 +45,12 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { dateLocale } from '@/lib/date-locale'
 import { toast } from 'sonner'
 import { ClockDashed } from '@/components/icons/clock-dashed'
+import {
+  COUNTDOWN_SORT_STORAGE_KEY,
+  DEFAULT_COUNTDOWN_SORT,
+  sortCountdowns,
+} from '@/lib/countdown-sort'
+import { useListSort, type ListSortOption } from './list-sort-menu'
 import {
   Empty,
   EmptyDescription,
@@ -56,6 +67,13 @@ interface Countdown {
   description?: string
   color: string
   icon?: string
+  /**
+   * The server's `created_at`, and the sort's only "when did this change" —
+   * the countdowns table has no updated_at. Optional because the save path
+   * builds a row locally before the server hands back the real one; a row with
+   * no stamp sorts to the end rather than to an arbitrary position.
+   */
+  createdAt?: string
 }
 
 interface CountdownToolProps {
@@ -74,6 +92,33 @@ const colorOptions: { value: string; labelKey: TranslationKey }[] = [
   { value: 'bg-pink-500', labelKey: 'colorPink' },
   { value: 'bg-indigo-500', labelKey: 'colorIndigo' },
   { value: 'bg-orange-500', labelKey: 'colorOrange' },
+]
+
+/**
+ * One entry per sort in `lib/list-sort.ts`, carrying the label and the trigger's
+ * icon. Same table the bookmark panel uses, over the same six orders — only the
+ * wording differs ("Name A–Z" here, "Title A–Z" there), so each panel keeps its
+ * own namespace rather than sharing labels that are only sometimes right.
+ */
+const SORT_OPTIONS: ListSortOption[] = [
+  { value: 'title-asc', labelKey: 'countdownSortNameAsc', Icon: ArrowDownAZ },
+  { value: 'title-desc', labelKey: 'countdownSortNameDesc', Icon: ArrowUpAZ },
+  {
+    value: 'date-asc',
+    labelKey: 'countdownSortDateAsc',
+    Icon: CalendarArrowDown,
+  },
+  {
+    value: 'date-desc',
+    labelKey: 'countdownSortDateDesc',
+    Icon: CalendarArrowUp,
+  },
+  {
+    value: 'created-desc',
+    labelKey: 'countdownSortCreatedDesc',
+    Icon: History,
+  },
+  { value: 'created-asc', labelKey: 'countdownSortCreatedAsc', Icon: History },
 ]
 
 const parseDateString = (dateStr: string) => {
@@ -121,6 +166,12 @@ export function CountdownBody() {
   const [language] = useLanguage()
   const t = translations[language]
   const [search, setSearch] = useState('')
+  const { sort, menu: sortMenu } = useListSort(
+    SORT_OPTIONS,
+    'countdownSort',
+    COUNTDOWN_SORT_STORAGE_KEY,
+    DEFAULT_COUNTDOWN_SORT,
+  )
 
   useEffect(() => {
     setCountdowns(
@@ -132,6 +183,7 @@ export function CountdownBody() {
         description: c.description ?? '',
         color: c.color ?? 'bg-blue-500',
         icon: c.icon ?? 'Clock',
+        createdAt: c.createdAt,
       })),
     )
   }, [serverCountdowns])
@@ -302,6 +354,8 @@ export function CountdownBody() {
       description: newCountdown.description || '',
       color: newCountdown.color,
       icon: newCountdown.icon || 'Clock',
+      // Carried over so an edit does not blank the stamp the "added" sorts read.
+      createdAt: selectedCountdown?.createdAt,
     }
 
     try {
@@ -355,8 +409,8 @@ export function CountdownBody() {
         </div>
       </SheetHeader>
       <div className="p-4">
-        <div className="mb-3">
-          <InputGroup className="w-full">
+        <div className="mb-3 flex items-center gap-2">
+          <InputGroup className="min-w-0 flex-1">
             <InputGroupAddon>
               <Search className="h-4 w-4 text-muted-foreground" />
             </InputGroupAddon>
@@ -366,6 +420,7 @@ export function CountdownBody() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </InputGroup>
+          {sortMenu}
         </div>
         <Button
           variant="outline"
@@ -389,8 +444,8 @@ export function CountdownBody() {
             </Empty>
           ) : (
             <div className="space-y-2">
-              {countdowns
-                .filter(
+              {sortCountdowns(
+                countdowns.filter(
                   (countdown) =>
                     countdown.name
                       .toLowerCase()
@@ -398,52 +453,53 @@ export function CountdownBody() {
                     countdown.description
                       ?.toLowerCase()
                       .includes(search.toLowerCase()),
+                ),
+                sort,
+              ).map((countdown) => {
+                const daysLeft = calculateDaysLeft(
+                  countdown.date,
+                  countdown.repeat,
                 )
-                .map((countdown) => {
-                  const daysLeft = calculateDaysLeft(
-                    countdown.date,
-                    countdown.repeat,
-                  )
-                  const formattedDate = formatDate(countdown.date)
+                const formattedDate = formatDate(countdown.date)
 
-                  return (
-                    <div
-                      key={countdown.id}
-                      className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
-                      onClick={() => viewCountdownDetail(countdown)}
-                    >
-                      <Avatar className="h-12 w-12 mr-3">
-                        <AvatarFallback className="bg-transparent">
-                          {renderCountdownIcon(
-                            countdown.icon,
-                            countdown.color,
-                            20,
-                            true,
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="font-medium">{countdown.name}</div>
-                        <div className="text-sm text-muted-foreground flex items-center mt-1">
-                          <CalendarIcon className="h-3 w-3 mr-1" />
-                          {formattedDate} • {tRepeat(countdown.repeat)}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div
-                          className={`text-lg font-bold ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
-                        >
-                          {Math.abs(daysLeft)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {daysLeft < 0
-                            ? t.countdownDaysAgo
-                            : t.countdownDaysLeft}
-                        </div>
+                return (
+                  <div
+                    key={countdown.id}
+                    className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
+                    onClick={() => viewCountdownDetail(countdown)}
+                  >
+                    <Avatar className="h-12 w-12 mr-3">
+                      <AvatarFallback className="bg-transparent">
+                        {renderCountdownIcon(
+                          countdown.icon,
+                          countdown.color,
+                          20,
+                          true,
+                        )}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="font-medium">{countdown.name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center mt-1">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {formattedDate} • {tRepeat(countdown.repeat)}
                       </div>
                     </div>
-                  )
-                })}
+                    <div className="text-right">
+                      <div
+                        className={`text-lg font-bold ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
+                      >
+                        {Math.abs(daysLeft)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {daysLeft < 0
+                          ? t.countdownDaysAgo
+                          : t.countdownDaysLeft}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </ScrollArea>

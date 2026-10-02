@@ -17,13 +17,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@zntr/ui/dropdown-menu'
-import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -46,10 +39,9 @@ import { DEFAULT_ACCENT, EVENT_BG_TO_ACCENT } from '@/lib/event-colors'
 import {
   BOOKMARK_SORT_STORAGE_KEY,
   DEFAULT_BOOKMARK_SORT,
-  normalizeBookmarkSort,
   sortBookmarks,
-  type BookmarkSort,
 } from '@/lib/bookmark-sort'
+import { useListSort, type ListSortOption } from './list-sort-menu'
 
 interface BookmarkPanelProps {
   open: boolean
@@ -64,6 +56,7 @@ interface BookmarkedEvent {
   endDate: string | Date
   color: string
   description?: string
+  /** `bookmarked_events.created_at`, and the sort's only "when did this change". */
   bookmarkedAt: string
   eventId: string
 }
@@ -77,11 +70,7 @@ function getDarkerColorClass(color: string) {
  * trigger's icon. The trigger shows the ACTIVE sort rather than a generic
  * "sort" glyph, so the list's order is legible from the closed panel.
  */
-const SORT_OPTIONS: {
-  value: BookmarkSort
-  labelKey: keyof (typeof translations)['en']
-  Icon: typeof ArrowDownAZ
-}[] = [
+const SORT_OPTIONS: ListSortOption[] = [
   { value: 'title-asc', labelKey: 'bookmarkSortTitleAsc', Icon: ArrowDownAZ },
   {
     value: 'title-desc',
@@ -99,45 +88,16 @@ const SORT_OPTIONS: {
     Icon: CalendarArrowUp,
   },
   {
-    value: 'bookmarked-desc',
+    value: 'created-desc',
     labelKey: 'bookmarkSortBookmarkedDesc',
     Icon: History,
   },
   {
-    value: 'bookmarked-asc',
+    value: 'created-asc',
     labelKey: 'bookmarkSortBookmarkedAsc',
     Icon: History,
   },
 ]
-
-/**
- * Read in an effect, not a `useState` initializer: this component is SSR'd, and
- * reading the browser's storage during render would make the trigger's icon and
- * the list order differ between the server's markup and the first client
- * paint. The flash is one frame of the default order.
- */
-function useStoredBookmarkSort(): [BookmarkSort, (sort: BookmarkSort) => void] {
-  const [sort, setSort] = useState<BookmarkSort>(DEFAULT_BOOKMARK_SORT)
-
-  useEffect(() => {
-    try {
-      setSort(
-        normalizeBookmarkSort(
-          window.localStorage.getItem(BOOKMARK_SORT_STORAGE_KEY),
-        ),
-      )
-    } catch {}
-  }, [])
-
-  const update = (next: BookmarkSort) => {
-    setSort(next)
-    try {
-      window.localStorage.setItem(BOOKMARK_SORT_STORAGE_KEY, next)
-    } catch {}
-  }
-
-  return [sort, update]
-}
 
 /**
  * The bookmark list without its Sheet shell. The desktop right-rail panel and
@@ -157,7 +117,12 @@ export function BookmarkPanelBody({
   const { events } = useCalendar()
   const [bookmarks, setBookmarks] = useState<BookmarkedEvent[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [sort, setSort] = useStoredBookmarkSort()
+  const { sort, menu: sortMenu } = useListSort(
+    SORT_OPTIONS,
+    'bookmarkSort',
+    BOOKMARK_SORT_STORAGE_KEY,
+    DEFAULT_BOOKMARK_SORT,
+  )
 
   useEffect(() => {
     // Joined through a Map, not `events.find` per bookmark: this effect depends
@@ -229,40 +194,7 @@ export function BookmarkPanelBody({
           />
         </InputGroup>
 
-        {/* `size="icon"` is `size-8`, matching InputGroup's `h-8`, so the button
-            does not change the row's height. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              aria-label={t.bookmarkSort}
-              title={t.bookmarkSort}
-            >
-              {(() => {
-                const active = SORT_OPTIONS.find((o) => o.value === sort)
-                const Icon = active?.Icon ?? History
-                return <Icon className="h-4 w-4" />
-              })()}
-            </Button>
-          </DropdownMenuTrigger>
-          {/* `w-auto`: the shared default is the trigger's width (32px here),
-              which is what locked event-preview's menu shut. */}
-          <DropdownMenuContent align="end" className="w-auto">
-            <DropdownMenuRadioGroup
-              value={sort}
-              onValueChange={(value) => setSort(value as BookmarkSort)}
-            >
-              {SORT_OPTIONS.map(({ value, labelKey, Icon }) => (
-                <DropdownMenuRadioItem key={value} value={value}>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  {t[labelKey]}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {sortMenu}
       </div>
 
       {/* `-mr-4` pulls the scroll area out to the panel edge, so the 10px
