@@ -48,11 +48,15 @@ function renderMonthView({
   date = new Date(2025, 0, 15),
   events = [] as CalendarEvent[],
   onEventClick = vi.fn(),
+  onDayNumberClick = vi.fn(),
+  onCellClick = vi.fn(),
   config,
 }: {
   date?: Date
   events?: CalendarEvent[]
   onEventClick?: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
+  onDayNumberClick?: (day: Date) => void
+  onCellClick?: (day: Date) => void
   config?: ViewConfig
 } = {}) {
   return render(
@@ -60,6 +64,8 @@ function renderMonthView({
       date={date}
       events={events}
       onEventClick={onEventClick}
+      onDayNumberClick={onDayNumberClick}
+      onCellClick={onCellClick}
       config={config ?? makeConfig()}
     />,
   )

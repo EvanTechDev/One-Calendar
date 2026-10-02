@@ -471,6 +471,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPendingRangeMove(null)
   }
 
+  // Set only by the month grid, which has no hour under the cursor to read.
+  // Everywhere else the clicked time slot decides, and this stays false.
+  const [quickCreateAllDay, setQuickCreateAllDay] = useState(false)
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
   )
@@ -1246,7 +1249,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewAnchorEl(null)
   }
 
-  const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
+  const handleTimeRangeSelect = (
+    startTime: Date,
+    endTime?: Date,
+    options?: { allDay?: boolean },
+  ) => {
+    setQuickCreateAllDay(options?.allDay === true)
     setQuickCreateStartTime(startTime)
     // Always a concrete range: the views render it as the blue selection box
     // the editor popover anchors to (CORE-191). The default 30-minute range
@@ -1279,6 +1287,34 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
     setEventEditorOpen(true)
+  }
+
+  /**
+   * Month view, day number clicked: show that day.
+   *
+   * The date is set before the view, so the day view lands on the day that was
+   * clicked rather than on whatever the month was anchored to.
+   */
+  const handleMonthDayNumberClick = useCallback((day: Date) => {
+    setDate(day)
+    setView('day')
+  }, [])
+
+  /**
+   * Month view, empty cell clicked: create on that day.
+   *
+   * No anchor element and no anchor rect, the same as creating from the sidebar
+   * or the N shortcut — the editor places itself, and the cell is already
+   * covered by the selection box it anchors to. The range spans the day from
+   * midnight to its last millisecond so the box covers one day: the month grid
+   * treats an end at midnight as excluding that day.
+   */
+  const handleMonthCellClick = (day: Date) => {
+    const start = new Date(day)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setHours(23, 59, 59, 999)
+    handleTimeRangeSelect(start, end, { allDay: true })
   }
 
   const handleInvitesAdded = (
@@ -2010,6 +2046,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <MonthView
                 date={date}
                 events={filteredEvents}
+                onDayNumberClick={handleMonthDayNumberClick}
+                onCellClick={handleMonthCellClick}
                 onEventClick={handleEventClick}
                 config={viewConfig}
                 selection={createSelectionRange}
@@ -2128,6 +2166,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
+          initialIsAllDay={quickCreateAllDay}
           onDraftRangeChange={setCreateDraftRange}
           event={selectedEvent}
           config={viewConfig}
