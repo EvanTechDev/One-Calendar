@@ -1305,10 +1305,25 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
    * The anchor is the cell itself — the editor popover needs a positioned
    * element to hang off, and the month grid has no hour to anchor to.
    */
-  const handleMonthCellClick = (day: Date, anchorEl: HTMLElement) => {
+  const handleMonthCellClick = (
+    day: Date,
+    anchorEl: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ) => {
     const start = new Date(day)
     start.setHours(0, 0, 0, 0)
     const end = new Date(start.getTime() + 86_400_000)
+    // The popover hangs off a point near the click, not off the cell.
+    //
+    // A month cell is nearly a seventh of the viewport wide, and anchoring to
+    // it directly hands the popover a rect with no room on either side — so it
+    // got clamped and rendered at half width. `anchorRectForClick` is the
+    // helper that turns a wide block into a narrow rect centred on the
+    // pointer, and every other click path already goes through it.
+    setEditorAnchorRect(
+      anchorRectForClick(anchorEl.getBoundingClientRect(), clientX, clientY),
+    )
     setEditorAnchorEl(anchorEl)
     handleTimeRangeSelect(start, end, { allDay: true })
   }

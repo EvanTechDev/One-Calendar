@@ -83,6 +83,10 @@ describe('month view clicks', () => {
 
     expect(onCellClick).toHaveBeenCalledTimes(1)
     expect(onCellClick.mock.calls[0]![1]).toBe(cell)
+    // The click point travels with it, so the popover can anchor beside the
+    // pointer rather than to the whole cell.
+    expect(onCellClick.mock.calls[0]![2]).toBe(30)
+    expect(onCellClick.mock.calls[0]![3]).toBe(90)
     expect(onCellClick.mock.calls[0]![0]).toBeInstanceOf(Date)
     expect(onDayNumberClick).not.toHaveBeenCalled()
   })

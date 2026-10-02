@@ -74,7 +74,12 @@ interface MonthViewProps {
    * be worse than asking. Desktop only; on mobile the whole cell is the tap
    * target for the day sheet.
    */
-  onCellClick: (day: Date, anchorEl: HTMLElement) => void
+  onCellClick: (
+    day: Date,
+    anchorEl: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ) => void
   config: ViewConfig
 }
 
@@ -279,7 +284,7 @@ export default function MonthView({
                       }
                       // Event blocks and all-day bars stop propagation, so
                       // this only ever fires on genuinely empty cell space.
-                      onCellClick(day, e.currentTarget)
+                      onCellClick(day, e.currentTarget, e.clientX, e.clientY)
                     }}
                   >
                     <div

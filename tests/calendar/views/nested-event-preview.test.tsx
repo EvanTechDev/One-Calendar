@@ -90,6 +90,10 @@ function Harness() {
         date={new Date(2025, 0, 15)}
         events={EVENTS}
         onEventClick={(event) => setPreviewEvent(event)}
+        // The cell handler is required by the props; this harness never clicks
+        // a cell, but leaving it off throws the moment anything does.
+        onDayNumberClick={() => {}}
+        onCellClick={() => {}}
         config={config}
       />
       {previewEvent && (

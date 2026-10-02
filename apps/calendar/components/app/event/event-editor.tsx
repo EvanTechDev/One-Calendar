@@ -848,14 +848,16 @@ export default function EventEditor({
       } else {
         resetForm()
         if (initialIsAllDay) {
-          // Full-day bounds, so the editor's own all-day normalisation has
-          // something correct to work from instead of a 09:00–09:30 it would
-          // silently stretch to cover the day.
           const allDayStart = new Date(initialDate ?? new Date())
           allDayStart.setHours(0, 0, 0, 0)
           setIsAllDay(true)
+          // Same day as the start, NOT the day after. Save does
+          // `startOfDay(endDate + 1)` to get the exclusive end, so pointing
+          // endDate at tomorrow makes it add a day again and the event lands
+          // as two days long. The end TIME reads 23:59 to the user; the date
+          // field has to stay on the start day for that save to come out right.
           setStartDate(allDayStart)
-          setEndDate(new Date(allDayStart.getTime() + 86_400_000))
+          setEndDate(new Date(allDayStart))
           setStartTime({
             hours: '00',
             minutes: '00',

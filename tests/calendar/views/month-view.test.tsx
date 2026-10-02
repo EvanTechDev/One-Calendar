@@ -56,7 +56,12 @@ function renderMonthView({
   events?: CalendarEvent[]
   onEventClick?: (event: CalendarEvent, anchorEl?: HTMLElement | null) => void
   onDayNumberClick?: (day: Date) => void
-  onCellClick?: (day: Date, anchorEl: HTMLElement) => void
+  onCellClick?: (
+    day: Date,
+    anchorEl: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ) => void
   config?: ViewConfig
 } = {}) {
   return render(
