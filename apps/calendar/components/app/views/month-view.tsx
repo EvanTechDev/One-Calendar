@@ -162,6 +162,9 @@ export default function MonthView({
       day: Date,
       remainingEvents: CalendarEvent[],
     ) => {
+      // The cell itself opens the create-event popover. Without this the click
+      // bubbles up and both popovers open on top of each other.
+      e.stopPropagation()
       const cell = (e.currentTarget as HTMLElement).closest(
         '[data-day-cell]',
       ) as HTMLElement | null

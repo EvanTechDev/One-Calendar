@@ -176,6 +176,26 @@ describe('MonthView', () => {
     expect(screen.getByText('1 more event')).toBeInTheDocument()
   })
 
+  // The "more events" button lives inside the cell, and the cell opens the
+  // create-event popover. Without a stopPropagation both popovers opened.
+  it('opens only the remaining-events popover, not the create editor', () => {
+    const onCellClick = vi.fn()
+    const events = Array.from({ length: 5 }, (_, i) =>
+      createEvent({
+        id: `e${i}`,
+        title: `Event ${i + 1}`,
+        startDate: new Date(2025, 0, 15, 10 + i, 0),
+      }),
+    )
+    renderMonthView({ date: new Date(2025, 0, 15), events, onCellClick })
+
+    fireEvent.click(screen.getByText('2 more events'))
+
+    expect(onCellClick).not.toHaveBeenCalled()
+    expect(screen.getByText('Event 4')).toBeInTheDocument()
+    expect(screen.getByText('Event 5')).toBeInTheDocument()
+  })
+
   it('calls onEventClick when an event is clicked', () => {
     const onEventClick = vi.fn()
     const events = [
