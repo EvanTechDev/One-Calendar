@@ -101,6 +101,20 @@ const ALL_DAY_BAR_LANE = ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP
  * slot, and it is only visible in a week that has an all-day event.
  */
 const DAY_NUMBER_GAP = 7
+/**
+ * Gap between the last all-day bar over a day and that day's timed events, px.
+ *
+ * A lane is `ALL_DAY_BAR_HEIGHT + ALL_DAY_BAR_GAP`, so the lane's trailing gap
+ * looks like it belongs between two bars — and between two bars it does. But
+ * the bars are positioned from the ROW's top (`DAY_NUMBER_BLOCK_HEIGHT`) while
+ * a cell's own flow reaches its band `ALL_DAY_BAR_GAP` higher than that: the
+ * cell's `p-2` and the shortened day-number block already sit below the row's
+ * offset line. That offset is exactly the size of the trailing gap, so the last
+ * bar ended flush against the first timed event with nothing between them.
+ * Reserving the gap here puts it back, so a day with an all-day bar reads the
+ * same as one without.
+ */
+const ALL_DAY_BAND_TRAILING_GAP = ALL_DAY_BAR_GAP
 
 export default function MonthView({
   date,
@@ -262,6 +276,12 @@ export default function MonthView({
                 )
                 const dotEvents = [...bannerEvents, ...timedEvents]
 
+                // All-day lanes over THIS day column. barLanesByColumn answers
+                // -1 for a column no bar reaches, which reads as a negative
+                // reserve — floored to 0 here so the band arithmetic below is
+                // about lanes that exist.
+                const lanes = Math.max(barLanes[dayIndex] ?? 0, 0)
+
                 return (
                   <div
                     key={day.toString()}
@@ -360,10 +380,9 @@ export default function MonthView({
                       data-all-day-band
                       style={{
                         height:
-                          Math.max(
-                            (barLanes[dayIndex] ?? 0) * ALL_DAY_BAR_LANE,
-                            DAY_NUMBER_GAP,
-                          ) + 'px',
+                          Math.max(lanes * ALL_DAY_BAR_LANE, DAY_NUMBER_GAP) +
+                          (lanes > 0 ? ALL_DAY_BAND_TRAILING_GAP : 0) +
+                          'px',
                       }}
                     />
 
@@ -376,14 +395,21 @@ export default function MonthView({
                             'relative text-xs truncate rounded-sm p-1 cursor-pointer text-white',
                             event.color,
                           )}
-                          onClick={(e) =>
+                          onClick={(e) => {
+                            // The cell opens the create-event popover. Without
+                            // this the click bubbles up, the editor opens on
+                            // top of the preview this handler just asked for,
+                            // and the event never looks like it opened at all.
+                            // Same reason the all-day bars and the day number
+                            // stop here.
+                            e.stopPropagation()
                             onEventClick(
                               event,
                               e.currentTarget as HTMLElement,
                               e.clientX,
                               e.clientY,
                             )
-                          }
+                          }}
                           style={{
                             opacity: 1,
                             backgroundColor: isDark

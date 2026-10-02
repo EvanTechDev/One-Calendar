@@ -216,6 +216,32 @@ describe('MonthView', () => {
     )
   })
 
+  it('opens the preview for a timed event, not the create editor', () => {
+    // The cell's own click opens the create-event popover, so a timed bar that
+    // let the click through opened the editor ON TOP of the preview it had just
+    // requested — the event looked like it could not be opened at all. The
+    // all-day bars already stopped propagation; these did not.
+    const onCellClick = vi.fn()
+    const onEventClick = vi.fn()
+    renderMonthView({
+      date: new Date(2025, 0, 15),
+      events: [
+        createEvent({
+          id: 'timed',
+          title: 'Standup',
+          startDate: new Date(2025, 0, 15, 10, 0),
+        }),
+      ],
+      onCellClick,
+      onEventClick,
+    })
+
+    fireEvent.click(screen.getByText('Standup'))
+
+    expect(onEventClick).toHaveBeenCalledTimes(1)
+    expect(onCellClick).not.toHaveBeenCalled()
+  })
+
   it('event has correct background in dark mode', () => {
     document.documentElement.classList.add('dark')
     const events = [
@@ -319,12 +345,14 @@ describe('MonthView cell geometry', () => {
     expect(new Set(bands(container))).toEqual(new Set(['7px']))
   })
 
-  it('reserves a lane only for the days the bar covers', () => {
+  it('reserves a lane plus a gap only for the days the bar covers', () => {
     // The blank-slot bug was a day inheriting the whole ROW's lane count, not
     // the floor: with per-column reservation the covered day reserves its own
-    // lane and its neighbours stay at the gap. A midnight end is exclusive, so
-    // this bar covers Jan 15 alone. Jan 2025 starts on a Wednesday and weeks
-    // start Sunday, so Jan 12..18 is the third row.
+    // lane and its neighbours stay at the gap. A lane is 28px (24px bar + 4px
+    // gap), and a covered day adds one more 4px on top so the bar does not sit
+    // flush against the first timed event. A midnight end is exclusive, so this
+    // bar covers Jan 15 alone. Jan 2025 starts on a Wednesday and weeks start
+    // Sunday, so Jan 12..18 is the third row.
     const events = [
       createEvent({
         id: 'ad',
@@ -343,7 +371,7 @@ describe('MonthView cell geometry', () => {
       '7px',
       '7px',
       '7px',
-      '28px',
+      '32px',
       '7px',
       '7px',
       '7px',
@@ -374,14 +402,15 @@ describe('MonthView cell geometry', () => {
     // A midnight end is exclusive, so leg one covers Jan 14-15 and leg two
     // Jan 15-16, overlapping on Jan 15 and pushing leg two into lane 1. Both
     // of leg two's columns need room for two lanes — the lane above it counts
-    // too. Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan
-    // 12..18 is the third row.
+    // too — so 2 x 28px plus the 4px trailing gap that separates the last bar
+    // from that day's timed events. Jan 2025 starts on a Wednesday and weeks
+    // start Sunday, so Jan 12..18 is the third row.
     expect(bands(container).slice(14, 21)).toEqual([
       '7px',
       '7px',
-      '28px',
-      '56px',
-      '56px',
+      '32px',
+      '60px',
+      '60px',
       '7px',
       '7px',
     ])
