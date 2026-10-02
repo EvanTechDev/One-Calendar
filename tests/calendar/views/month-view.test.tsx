@@ -544,4 +544,29 @@ describe('MonthView draft-selection outline', () => {
     const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
     expect(selectedCells(container)).toHaveLength(0)
   })
+
+  it('colours the outline from a token the stylesheet actually emits', () => {
+    // `@theme inline` in globals.css substitutes the theme values into
+    // utilities at build time instead of emitting `--color-*` variables, so a
+    // `var(--color-…)` reference resolves to nothing: the `color-mix()` around
+    // it becomes invalid, which drops the entire box-shadow declaration and
+    // leaves the selected cells with NO outline. jsdom happily keeps the
+    // unresolvable string, so only an assertion can hold this.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 15, 0, 0),
+        end: new Date(2025, 0, 16, 23, 59),
+      },
+    })
+    const tokens = [
+      ...(selectedCells(container)[0].style.boxShadow.matchAll(
+        /var\((--[\w-]+)\)/g,
+      ) ?? []),
+    ].map((match) => match[1])
+    expect(tokens.length).toBeGreaterThan(0)
+    for (const token of tokens) {
+      expect(token).not.toMatch(/^--color-/)
+    }
+  })
 })
