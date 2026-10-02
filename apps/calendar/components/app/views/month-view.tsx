@@ -116,6 +116,67 @@ const DAY_NUMBER_GAP = 7
  */
 const ALL_DAY_BAND_TRAILING_GAP = ALL_DAY_BAR_GAP
 
+/** Sides of a cell the draft-selection outline has to paint. */
+interface SelectionSides {
+  top: boolean
+  right: boolean
+  bottom: boolean
+  left: boolean
+}
+
+/**
+ * The sides of one selected cell that no selected NEIGHBOUR already paints.
+ *
+ * Selected cells used to carry `ring-1 ring-inset`, which paints all four sides
+ * of every selected cell — so the edge two adjacent selected days share was
+ * painted twice and read as a doubled border. This leaves each interior edge to
+ * the neighbour, and a contiguous run reads as one outlined block.
+ *
+ * Neighbours are GEOMETRIC, not merely chronological. Weeks are contiguous, so
+ * the day above/below is ±7 days; but the day to the left shares an edge only
+ * when it is in the same row, and the day to the right only when it is not the
+ * last column. A range crossing a row boundary must therefore paint both of the
+ * row-end edges — they are at opposite ends of the grid, not one line between
+ * two cells.
+ */
+function selectionSides(
+  day: Date,
+  dayIndex: number,
+  selection: { start: Date; end: Date },
+): SelectionSides {
+  return {
+    top: !selectionCoversDay(selection, subDays(day, 7)),
+    right: dayIndex === 6 || !selectionCoversDay(selection, addDays(day, 1)),
+    bottom: !selectionCoversDay(selection, addDays(day, 7)),
+    left: dayIndex === 0 || !selectionCoversDay(selection, subDays(day, 1)),
+  }
+}
+
+/**
+ * The cell outline as one inset box-shadow per side.
+ *
+ * A ring cannot express this: it paints all four sides or none, and per
+ * element. Comma-separated inset shadows are declared independently, which is
+ * what lets an interior edge be left unpainted. Built here rather than as
+ * utility classes because the side set is decided per cell at render time, and
+ * Tailwind only sees class names that appear literally in the source.
+ *
+ * `color-mix(in oklab, … 40%)` is how `ring-cal-accent/40` resolves; the
+ * highlight is unchanged, only the doubled edge is gone.
+ */
+function selectionOutline(sides: SelectionSides): string {
+  const edge = (offset: string) =>
+    `inset ${offset} 0 0 0 color-mix(in oklab, var(--color-cal-accent) 40%, transparent)`
+  return [
+    sides.top && edge('0 1px'),
+    sides.right && edge('-1px 0'),
+    sides.bottom && edge('0 -1px'),
+    sides.left && edge('1px 0'),
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
 export default function MonthView({
   date,
   events,
@@ -292,9 +353,17 @@ export default function MonthView({
                     className={cn(
                       'min-h-[100px] p-2 max-md:min-h-[72px] max-md:p-1',
                       dayIndex < 6 && 'border-r',
-                      isCreateTarget &&
-                        'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
+                      isCreateTarget && 'bg-cal-accent/5',
                     )}
+                    style={
+                      selection && isCreateTarget
+                        ? {
+                            boxShadow: selectionOutline(
+                              selectionSides(day, dayIndex, selection),
+                            ),
+                          }
+                        : undefined
+                    }
                     // Mobile Form: the whole cell is the tap target for the
                     // bottom sheet. Guarded by matchMedia so a desktop click
                     // on the cell background stays a no-op, exactly as today.

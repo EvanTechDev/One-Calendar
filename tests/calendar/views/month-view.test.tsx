@@ -51,6 +51,7 @@ function renderMonthView({
   onDayNumberClick = vi.fn(),
   onCellClick = vi.fn(),
   config,
+  selection = null,
 }: {
   date?: Date
   events?: CalendarEvent[]
@@ -58,6 +59,7 @@ function renderMonthView({
   onDayNumberClick?: (day: Date) => void
   onCellClick?: (day: Date) => void
   config?: ViewConfig
+  selection?: { start: Date; end: Date } | null
 } = {}) {
   return render(
     <MonthView
@@ -67,8 +69,28 @@ function renderMonthView({
       onDayNumberClick={onDayNumberClick}
       onCellClick={onCellClick}
       config={config ?? makeConfig()}
+      selection={selection}
     />,
   )
+}
+
+/** Cells carrying the draft-selection outline, in DOM (grid) order. */
+function selectedCells(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>('[data-day-cell]'),
+  ).filter((cell) => cell.style.boxShadow)
+}
+
+/** Which of the four inset edges a cell's outline paints. */
+function edges(cell: HTMLElement): string[] {
+  return [
+    ['top', 'inset 0 1px'],
+    ['right', 'inset -1px 0'],
+    ['bottom', 'inset 0 -1px'],
+    ['left', 'inset 1px 0'],
+  ]
+    .filter(([, offset]) => cell.style.boxShadow.includes(offset))
+    .map(([side]) => side)
 }
 
 describe('MonthView', () => {
@@ -414,5 +436,112 @@ describe('MonthView cell geometry', () => {
       '7px',
       '7px',
     ])
+  })
+})
+
+describe('MonthView draft-selection outline', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark')
+    vi.clearAllMocks()
+  })
+
+  // Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan 12..18 is
+  // the third row and Jan 15/16 are its 4th and 5th columns.
+  const thirdRow = 14
+
+  it('paints every side of a lone selected day', () => {
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 15, 10, 0),
+        end: new Date(2025, 0, 15, 11, 0),
+      },
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(1)
+    expect(edges(cells[0])).toEqual(['top', 'right', 'bottom', 'left'])
+  })
+
+  it('paints the edge two adjacent selected days share only once', () => {
+    // Both cells used to carry `ring-1 ring-inset`, so the edge between them
+    // was drawn by both and read as a doubled border — the bug. Each side of
+    // that edge now belongs to exactly one of the two cells.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 15, 0, 0),
+        end: new Date(2025, 0, 16, 23, 59),
+      },
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(2)
+    // The first day keeps its left edge and drops only its right; the second
+    // is the mirror.
+    expect(edges(cells[0])).toEqual(['top', 'bottom', 'left'])
+    expect(edges(cells[1])).toEqual(['top', 'right', 'bottom'])
+  })
+
+  it('paints only the outer edges of a run spanning several days', () => {
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 15, 0, 0),
+        end: new Date(2025, 0, 17, 23, 59),
+      },
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(3)
+    expect(edges(cells[0])).toEqual(['top', 'bottom', 'left'])
+    expect(edges(cells[1])).toEqual(['top', 'bottom'])
+    expect(edges(cells[2])).toEqual(['top', 'right', 'bottom'])
+  })
+
+  it('paints both row-end edges when the run crosses a week row', () => {
+    // Jan 18 is the last column of its row and Jan 19 the first of the next, so
+    // they share no edge — each keeps the edge at its end of the grid. Treating
+    // them as date-adjacent neighbours would erase both and open a gap.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 18, 0, 0),
+        end: new Date(2025, 0, 19, 23, 59),
+      },
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(2)
+    expect(cells[0]).toBe(
+      container.querySelectorAll('[data-day-cell]')[thirdRow + 6],
+    )
+    expect(cells[1]).toBe(
+      container.querySelectorAll('[data-day-cell]')[thirdRow + 7],
+    )
+    expect(edges(cells[0])).toContain('right')
+    expect(edges(cells[1])).toContain('left')
+  })
+
+  it('shares the horizontal edge between rows rather than doubling it', () => {
+    // The row above/below is ±7 days, and the two cells are vertically
+    // adjacent, so the edge between them is the same one line.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: {
+        start: new Date(2025, 0, 15, 0, 0),
+        end: new Date(2025, 0, 22, 23, 59),
+      },
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(8)
+    // Every day of the range is in one column, so the run is vertical: the top
+    // cell keeps its top edge, the bottom one its bottom, and neither interior
+    // horizontal edge is painted.
+    expect(edges(cells[0])).not.toContain('bottom')
+    expect(edges(cells[7])).not.toContain('top')
+    expect(edges(cells[0])).toContain('top')
+    expect(edges(cells[7])).toContain('bottom')
+  })
+
+  it('leaves every cell unoutlined when nothing is selected', () => {
+    const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
+    expect(selectedCells(container)).toHaveLength(0)
   })
 })
