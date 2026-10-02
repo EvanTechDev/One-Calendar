@@ -10,25 +10,37 @@ import {
 import { EVENT_COLORS } from '@/lib/event-colors'
 
 describe('mcp colors', () => {
-  it('offers a colour for every event colour the table defines', () => {
-    // Indigo and orange were missing here even though POST /api/events accepted
-    // both, so an MCP client could create an event it could not name back.
-    expect(COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length)
-    expect(COLOR_NAMES).toHaveLength(EVENT_COLORS.length)
-    expect(COLOR_HEX_VALUES).toHaveLength(EVENT_COLORS.length)
+  it('offers a colour for every selectable event colour', () => {
+    // Seven, matching the event colour menu. Indigo and orange are accepted as
+    // input — POST /api/events still takes them, and an existing event can wear
+    // one — but they are not offered, so they are not in the tool's colour list.
+    const selectable = EVENT_COLORS.filter((c) => c.selectable !== false)
+    expect(COLOR_OPTIONS).toHaveLength(selectable.length)
+    expect(COLOR_NAMES).toHaveLength(selectable.length)
+    expect(COLOR_HEX_VALUES).toHaveLength(selectable.length)
+    expect(COLOR_OPTIONS.map((c) => c.name)).not.toContain('indigo')
+    expect(COLOR_OPTIONS.map((c) => c.name)).not.toContain('orange')
   })
 
-  it('names every colour in the table', () => {
+  it('names every selectable colour in the table', () => {
     expect(new Set(COLOR_NAMES)).toEqual(
-      new Set(EVENT_COLORS.map((c) => c.mcpName)),
+      new Set(
+        EVENT_COLORS.filter((c) => c.selectable !== false).map(
+          (c) => c.mcpName,
+        ),
+      ),
     )
   })
 
   it('normalizes color names to app color values', () => {
     expect(normalizeColor('blue')).toBe('bg-[#E6F6FD]')
     expect(normalizeColor('teal')).toBe('bg-[#E6FAF7]')
-    expect(normalizeColor('indigo')).toBe('bg-[#EEF2FF]')
-    expect(normalizeColor('orange')).toBe('bg-[#FFF0E5]')
+    // The seven names, and only those seven. `indigo` and `orange` are not
+    // names a client can ask for; an event wearing one carries its raw
+    // `bg-[#EEF2FF]` value, which passes through untouched and is still a
+    // valid colour everywhere else.
+    expect(normalizeColor('indigo')).toBe('indigo')
+    expect(normalizeColor('bg-[#EEF2FF]')).toBe('bg-[#EEF2FF]')
   })
 
   it('normalizes hex codes to app color values', () => {

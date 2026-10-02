@@ -141,8 +141,22 @@ describe('event-colors', () => {
   })
 
   describe('EVENT_COLOR_OPTIONS', () => {
-    it('offers one swatch per colour in the table', () => {
-      expect(EVENT_COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length)
+    it('offers exactly the seven selectable swatches', () => {
+      // The event palette is seven and has always been seven — countdown,
+      // category, event and MCP all agree on that. Indigo and orange live in
+      // EVENT_COLORS so an event arriving wearing one still renders, but they
+      // are not offered for choosing.
+      expect(EVENT_COLOR_OPTIONS).toHaveLength(7)
+      expect(
+        EVENT_COLOR_OPTIONS.map((o) => o.value).filter((v) =>
+          /EEF2FF|FFF0E5/.test(v),
+        ),
+      ).toEqual([])
+    })
+
+    it('offers one swatch per selectable colour in the table', () => {
+      const selectable = EVENT_COLORS.filter((c) => c.selectable !== false)
+      expect(EVENT_COLOR_OPTIONS).toHaveLength(selectable.length)
     })
 
     it('each option has required properties', () => {
@@ -153,9 +167,9 @@ describe('event-colors', () => {
       })
     })
 
-    it('is exactly the table, in order', () => {
+    it('is the selectable subset of the table, in order', () => {
       expect(EVENT_COLOR_OPTIONS.map((o) => o.value)).toEqual(
-        EVENT_COLORS.map((c) => c.value),
+        EVENT_COLORS.filter((c) => c.selectable !== false).map((c) => c.value),
       )
     })
   })

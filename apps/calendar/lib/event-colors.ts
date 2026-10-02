@@ -13,8 +13,13 @@
  *   API or MCP could create (`bg-[#EEF2FF]`, `bg-[#FFF0E5]`) rendered with its
  *   near-white light background in dark mode, and `getEventBackgroundColor`
  *   returned `undefined` for it.
- * - `EVENT_COLOR_OPTIONS` also had 7, so those two colours could not be picked
- *   in the editor even though `POST /api/events` accepted them.
+ * - `EVENT_COLOR_OPTIONS` also had 7, and 7 is CORRECT. The product's event
+ *   palette is seven colours and countdown, category, event and MCP all agree
+ *   on that. `bg-[#EEF2FF]` and `bg-[#FFF0E5]` are storable but not offered,
+ *   so they are marked `selectable: false`: an event arriving wearing one from
+ *   an older file or an external client still needs an accent and a dark
+ *   background to render with, which is why they stay in this table at all —
+ *   but they are not on sale. Widening the picker to nine was wrong, not a fix.
  * - The palette classes resolved to two different hexes for the same colour:
  *   `bg-green-500` was `#10b981` (emerald-500's hex) here and `#22c55e` in
  *   `lib/mcp/colors.ts`, `bg-yellow-500` was `#f59e0b` (amber-500's) and
@@ -67,6 +72,21 @@ export interface EventColor {
   mcpName: string
   /** Label in the EVENT colour menu. */
   labelKey: ColorLabelKey
+  /**
+   * Whether the event colour menu offers this swatch.
+   *
+   * `false` for indigo and orange. The product's event palette is seven
+   * colours and has always been seven — adding two more to the picker was a
+   * wrong call, not a fix. They stay in this table because the API and MCP
+   * still accept them (`lib/validation.ts` `colorRegex`, `PALETTE_TO_EVENT_COLOR`),
+   * so an event can and does arrive wearing one from an older file or an
+   * external client. What that needs is a background and an accent to render
+   * with, which `accent` and `dark` provide; it does not need to be on sale.
+   *
+   * So: excluded from `EVENT_COLOR_OPTIONS` and from the MCP colour list, kept
+   * in `EVENT_BG_TO_ACCENT`, `EVENT_BG_TO_DARK` and `CHART_COLOR_ORDER`.
+   */
+  selectable?: false
   /**
    * Label in the category / countdown palette menu. Separate from
    * `labelKey` because the app genuinely names this hue two ways: the event
@@ -152,6 +172,7 @@ export const EVENT_COLORS: EventColor[] = [
     calendarHex: '#6366F1',
     mcpName: 'indigo',
     labelKey: 'colorIndigo',
+    selectable: false,
     paletteLabelKey: 'colorIndigo',
   },
   {
@@ -162,6 +183,7 @@ export const EVENT_COLORS: EventColor[] = [
     calendarHex: '#F97316',
     mcpName: 'orange',
     labelKey: 'colorOrange',
+    selectable: false,
     paletteLabelKey: 'colorOrange',
   },
   {
@@ -237,7 +259,17 @@ export interface ColorOption {
   calendarColor: string
 }
 
-export const EVENT_COLOR_OPTIONS: ColorOption[] = EVENT_COLORS.map((c) => ({
+/**
+ * The seven event swatches, in menu order.
+ *
+ * Derived from `EVENT_COLORS` and filtered by `selectable`, rather than typed
+ * out, so the two cannot drift. Indigo and orange are in the table for
+ * rendering events that arrive wearing them; they are not offered for
+ * choosing.
+ */
+export const EVENT_COLOR_OPTIONS: ColorOption[] = EVENT_COLORS.filter(
+  (c) => c.selectable !== false,
+).map((c) => ({
   value: c.value,
   labelKey: c.labelKey,
   calendarColor: c.calendarColor,

@@ -21,11 +21,19 @@ import {
 } from '@/lib/event-colors'
 
 /**
- * Event colours, in menu order. The MCP name is not derivable from the palette
- * class — the `#FEF5E6` background is stored against `bg-yellow-500` but is
- * called "amber" here, because that is what a client asking for amber expects.
+ * Event colours, in menu order — the same seven the event colour menu offers.
+ * The MCP name is not derivable from the palette class: the `#FEF5E6` background
+ * is stored against `bg-yellow-500` but is called "amber" here, because that is
+ * what a client asking for amber expects.
+ *
+ * Indigo and orange are filtered out with the rest of the non-selectable
+ * colours. They remain accepted on input (an older file or an existing event
+ * can still carry one), so `normalizeColor` still resolves them; they are just
+ * not on offer.
  */
-export const COLOR_OPTIONS = EVENT_COLORS.map((c) => ({
+export const COLOR_OPTIONS = EVENT_COLORS.filter(
+  (c) => c.selectable !== false,
+).map((c) => ({
   name: c.mcpName,
   value: c.value,
   hex: c.accent,

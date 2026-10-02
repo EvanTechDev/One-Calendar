@@ -466,12 +466,36 @@ ${rawContent.substring(0, 500)}...`)
 
       void refresh()
 
-      toast(
-        t.importSuccess.replace('{count}', importedEvents.length.toString()),
-        {
-          description: `${importedEvents.length} ${t.events}`,
-        },
-      )
+      // The server's count, not ours.
+      //
+      // The toast used to report `importedEvents.length` — the number of
+      // events we parsed locally — while the route silently skips any event
+      // whose id already belongs to another account (`skippedEvents`). So a
+      // file that parsed cleanly could report "imported 40 events" having
+      // written none of them, which reads as a broken app rather than as a
+      // refusal. It also hid the settings-only case, where the body carried
+      // events but none survived to be inserted.
+      const result = (await res.json().catch(() => null)) as {
+        imported?: { events?: number }
+        skippedEvents?: number
+      } | null
+      const inserted =
+        result?.imported?.events ?? normalizedImportedEvents.length
+      const skipped = result?.skippedEvents ?? 0
+
+      if (inserted === 0) {
+        toast.error(t.importWarning, {
+          description:
+            skipped > 0
+              ? `${skipped} ${t.events}`
+              : `${normalizedImportedEvents.length} ${t.events}`,
+        })
+      } else {
+        toast(
+          t.importSuccess.replace('{count}', String(inserted)),
+          skipped > 0 ? { description: `${skipped} ${t.events}` } : undefined,
+        )
+      }
 
       if (!debugMode) {
         setImportDialogOpen(false)
