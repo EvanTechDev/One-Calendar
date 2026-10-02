@@ -66,10 +66,18 @@ describe('mcp colors', () => {
 })
 
 describe('normalizeCountdownColor', () => {
-  it('defines the countdown palette names', () => {
-    expect(COUNTDOWN_COLOR_NAMES).toContain('blue')
-    expect(COUNTDOWN_COLOR_NAMES).toContain('indigo')
-    expect(COUNTDOWN_COLOR_NAMES).toContain('orange')
+  it('defines the countdown palette names, all seven', () => {
+    // Same seven as the category menu. Indigo, orange and the amber alias are
+    // not offered.
+    expect(COUNTDOWN_COLOR_NAMES).toEqual([
+      'blue',
+      'green',
+      'yellow',
+      'red',
+      'purple',
+      'pink',
+      'teal',
+    ])
   })
 
   it('maps color names to tailwind palette classes', () => {

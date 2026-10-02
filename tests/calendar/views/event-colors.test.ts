@@ -175,8 +175,11 @@ describe('event-colors', () => {
   })
 
   describe('PALETTE_COLOR_OPTIONS', () => {
-    it('offers one swatch per calendar swatch plus the amber alias', () => {
-      expect(PALETTE_COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length + 1)
+    it('is the seven the product has always offered', () => {
+      // Category/countdown palette. Not derived from EVENT_COLORS: it is a
+      // different list of different things (Tailwind classes, not event
+      // backgrounds) and it is seven. Deriving it once turned this into ten.
+      expect(PALETTE_COLOR_OPTIONS).toHaveLength(7)
     })
 
     it('keeps the order the colour menu has always rendered', () => {
@@ -184,27 +187,28 @@ describe('event-colors', () => {
         'bg-blue-500',
         'bg-green-500',
         'bg-yellow-500',
-        'bg-amber-500',
         'bg-red-500',
         'bg-purple-500',
         'bg-pink-500',
-        'bg-indigo-500',
-        'bg-orange-500',
         'bg-teal-500',
       ])
     })
 
-    it('labels the same hue two ways where the app genuinely does', () => {
-      // The event swatch reads "Amber" while the calendar swatch of the same
-      // hue reads "Yellow", because bg-yellow-500 is a distinct entry.
-      const yellow = PALETTE_COLOR_OPTIONS.find(
-        (o) => o.value === 'bg-yellow-500',
-      )
-      const amber = PALETTE_COLOR_OPTIONS.find(
-        (o) => o.value === 'bg-amber-500',
-      )
-      expect(yellow?.labelKey).toBe('colorYellow')
-      expect(amber?.labelKey).toBe('colorAmber')
+    it('offers no amber alias, indigo or orange', () => {
+      // All three arrived with the nine-colour experiment. None of them was in
+      // this menu before it, and `bg-amber-500` in particular duplicated
+      // `bg-yellow-500`.
+      const values = PALETTE_COLOR_OPTIONS.map((o) => o.value)
+      expect(values).not.toContain('bg-amber-500')
+      expect(values).not.toContain('bg-indigo-500')
+      expect(values).not.toContain('bg-orange-500')
+    })
+
+    it('labels the yellow entry "Yellow", as this menu always has', () => {
+      expect(
+        PALETTE_COLOR_OPTIONS.find((o) => o.value === 'bg-yellow-500')
+          ?.labelKey,
+      ).toBe('colorYellow')
     })
   })
 

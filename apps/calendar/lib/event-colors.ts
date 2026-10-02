@@ -211,15 +211,11 @@ export function paletteColorName(paletteClass: string): string {
 /**
  * Palette classes that are not any colour's primary `calendarColor` but name the
  * same hue, so a category created with one still resolves. Both the countdown
- * and category pickers offer `bg-amber-500` alongside `bg-yellow-500`.
+ * and `normalizeCountdownColor`/`PALETTE_TO_EVENT_COLOR` can resolve one if a
+ * client sends it. It is not offered in any picker.
  */
 const CALENDAR_COLOR_ALIASES: Record<string, string> = {
   'bg-amber-500': 'bg-[#FEF5E6]',
-}
-
-/** The alias class's own name and label, which the primary class does not share. */
-const CALENDAR_COLOR_ALIAS_LABELS: Record<string, ColorLabelKey> = {
-  'bg-amber-500': 'colorAmber',
 }
 
 export const DEFAULT_ACCENT = '#3A3A3A'
@@ -275,30 +271,39 @@ export const EVENT_COLOR_OPTIONS: ColorOption[] = EVENT_COLORS.filter(
   calendarColor: c.calendarColor,
 }))
 
-/** The palette class → hex list, in the order the colour menus present them. */
+/**
+ * The category / countdown palette: seven Tailwind palette classes.
+ *
+ * Written out rather than derived from `EVENT_COLORS`, deliberately. The two
+ * lists are not the same list. This one is Tailwind classes (`bg-blue-500`),
+ * in an order the product has always presented them, and it is seven — blue,
+ * green, yellow, red, purple, pink, teal. Deriving it produced ten swatches
+ * once `EVENT_COLORS` grew an amber alias and two extra hues, which is not a
+ * palette anyone had agreed to. The event menu is derived from the table
+ * because it IS the table; this menu is its own thing.
+ *
+ * The hexes still come from `TAILWIND_BG_TO_HEX`, so a class resolves to one
+ * value everywhere rather than to whichever table the code path used.
+ */
 export const PALETTE_COLOR_OPTIONS: Array<{
   value: string
   hex: string
   labelKey: ColorLabelKey
-}> = EVENT_COLORS.flatMap((c) => {
-  const own = [
-    {
-      value: c.calendarColor,
-      hex: c.calendarHex,
-      labelKey: c.paletteLabelKey,
-    },
-  ]
-  // `bg-amber-500` belongs immediately after the yellow it shadows.
-  for (const [palette, eventValue] of Object.entries(CALENDAR_COLOR_ALIASES)) {
-    if (eventValue !== c.value) continue
-    own.push({
-      value: palette,
-      hex: TAILWIND_BG_TO_HEX[palette] ?? c.calendarHex,
-      labelKey: CALENDAR_COLOR_ALIAS_LABELS[palette] ?? c.paletteLabelKey,
-    })
-  }
-  return own
-})
+}> = (
+  [
+    ['bg-blue-500', 'colorBlue'],
+    ['bg-green-500', 'colorGreen'],
+    ['bg-yellow-500', 'colorYellow'],
+    ['bg-red-500', 'colorRed'],
+    ['bg-purple-500', 'colorPurple'],
+    ['bg-pink-500', 'colorPink'],
+    ['bg-teal-500', 'colorTeal'],
+  ] as const
+).map(([value, labelKey]) => ({
+  value,
+  hex: TAILWIND_BG_TO_HEX[value] ?? DEFAULT_ACCENT,
+  labelKey,
+}))
 
 /** Every colour class an event row can store. Shared with the MCP tools. */
 export const EVENT_COLOR_VALUES = new Set(EVENT_COLORS.map((c) => c.value))
