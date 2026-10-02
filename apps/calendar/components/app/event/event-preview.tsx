@@ -707,12 +707,18 @@ export default function EventPreview({
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              {/* Wider than the default 8rem: the trigger is a
-                                  32px icon button, so the menu inherits its
-                                  width and items like "Copy invite link" wrap. */}
+                              {/* `w-auto`, because the shared default is
+                                  `w-(--radix-dropdown-menu-trigger-width)`:
+                                  the trigger here is a 32px icon button, so the
+                                  menu was locked to 32px and items like "Copy
+                                  invite link" wrapped inside it. `min-w-52`
+                                  only raised the floor, it did not release the
+                                  width. Tailwind emits `w-auto` after the
+                                  default, so this one wins. The component's own
+                                  `min-w-32` still applies as a lower bound. */}
                               <DropdownMenuContent
                                 align="end"
-                                className="min-w-52"
+                                className="w-auto"
                               >
                                 {!invite.emailSent ? (
                                   <DropdownMenuItem
