@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import createGlobe, { type COBEOptions } from 'cobe'
 import { useMotionValue, useSpring } from 'motion/react'
 
@@ -8,6 +8,15 @@ import { cn } from '@zntr/utils'
 
 const MOVEMENT_DAMPING = 1400
 
+/**
+ * Theme-independent globe settings: geometry and where the markers sit.
+ *
+ * Colours are NOT here. They are per-theme in {@link GLOBE_PALETTES}, because
+ * cobe bakes them into WebGL uniforms when the globe is created — a single
+ * fixed palette is legible on one background and invisible on the other. The
+ * dark palette used to be the only one, and at `baseColor` 0.08 the sphere was
+ * black on a black card: the atmosphere ring was the only thing you could see.
+ */
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
@@ -15,13 +24,7 @@ const GLOBE_CONFIG: COBEOptions = {
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.3,
-  dark: 0.6,
-  diffuse: 1.2,
   mapSamples: 16000,
-  mapBrightness: 0.6,
-  baseColor: [0.08, 0.08, 0.08],
-  markerColor: [251 / 255, 100 / 255, 21 / 255],
-  glowColor: [0.18, 0.18, 0.18],
   markers: [
     { location: [14.5995, 120.9842], size: 0.03 },
     { location: [19.076, 72.8777], size: 0.1 },
@@ -36,14 +39,75 @@ const GLOBE_CONFIG: COBEOptions = {
   ],
 }
 
+/**
+ * cobe colours are linear RGB in 0..1, not CSS values — hence the fractions.
+ *
+ * Dark is deliberately a mid slate rather than a near-black: the sphere needs
+ * to separate from the card behind it, and `mapBrightness` above 1 lifts the
+ * landmasses off the ocean without blowing out the marker colour.
+ */
+const GLOBE_PALETTES = {
+  light: {
+    dark: 0.4,
+    diffuse: 1.2,
+    mapBrightness: 0.72,
+    baseColor: [0.82, 0.85, 0.9],
+    glowColor: [0.55, 0.68, 0.88],
+    markerColor: [251 / 255, 100 / 255, 21 / 255],
+  },
+  dark: {
+    dark: 0.55,
+    diffuse: 1.15,
+    mapBrightness: 1.05,
+    baseColor: [0.17, 0.19, 0.24],
+    glowColor: [0.38, 0.52, 0.78],
+    markerColor: [251 / 255, 100 / 255, 21 / 255],
+  },
+} as const satisfies Record<string, Partial<COBEOptions>>
+
+type GlobeTheme = keyof typeof GLOBE_PALETTES
+
+/** Reads the class next-themes writes, so this needs no provider context. */
+function readTheme(): GlobeTheme {
+  if (typeof document === 'undefined') return 'light'
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+}
+
 export function Globe({
   className,
-  config = GLOBE_CONFIG,
+  config,
 }: {
   className?: string
+  /**
+   * Overrides applied on top of the base settings and the active theme's
+   * palette. Omit it to follow the theme.
+   */
   config?: COBEOptions
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [theme, setTheme] = useState<GlobeTheme>(readTheme)
+
+  // cobe has no notion of a theme, and its palette becomes GL uniforms at
+  // construction, so a theme change has to rebuild the globe rather than
+  // repaint it. next-themes writes `.dark` onto <html> before paint; watching
+  // that class attribute is the only signal available without pulling the
+  // provider's context into a component that is otherwise standalone.
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(readTheme()))
+    observer.observe(document.documentElement, {
+      attributeFilter: ['class'],
+      attributes: true,
+    })
+    return () => observer.disconnect()
+  }, [])
+
+  // Memoised on identity so the create/destroy effect below does not tear the
+  // globe down on every render. A caller passing an inline `config` literal
+  // will still churn it; that was true before this too.
+  const resolvedConfig = useMemo<COBEOptions>(
+    () => ({ ...GLOBE_CONFIG, ...GLOBE_PALETTES[theme], ...config }),
+    [theme, config],
+  )
   const phiRef = useRef(0)
   const widthRef = useRef(0)
   const pointerInteracting = useRef<number | null>(null)
@@ -82,7 +146,7 @@ export function Globe({
     onResize()
 
     const globe = createGlobe(canvasRef.current!, {
-      ...config,
+      ...resolvedConfig,
       width: widthRef.current * 2,
       height: widthRef.current * 2,
       onRender: (state) => {
@@ -98,7 +162,7 @@ export function Globe({
       globe.destroy()
       window.removeEventListener('resize', onResize)
     }
-  }, [rs, config])
+  }, [rs, resolvedConfig])
 
   return (
     <div
