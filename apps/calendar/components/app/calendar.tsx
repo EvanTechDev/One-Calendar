@@ -1290,12 +1290,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   /**
-   * Month view, day number clicked: show that day.
+   * A day's label was clicked in the month or week grid: show that day.
    *
    * The date is set before the view, so the day view lands on the day that was
-   * clicked rather than on whatever the month was anchored to.
+   * clicked rather than on whatever the grid was anchored to.
    */
-  const handleMonthDayNumberClick = useCallback((day: Date) => {
+  const handleDayLabelClick = useCallback((day: Date) => {
     setDate(day)
     setView('day')
   }, [])
@@ -2018,6 +2018,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
+                onDayHeaderClick={handleDayLabelClick}
                 config={viewConfig}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
@@ -2032,6 +2033,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 events={filteredEvents}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
+                onDayHeaderClick={handleDayLabelClick}
                 config={viewConfig}
                 daysToShow={4}
                 fixedStartDate={date}
@@ -2046,7 +2048,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <MonthView
                 date={date}
                 events={filteredEvents}
-                onDayNumberClick={handleMonthDayNumberClick}
+                onDayNumberClick={handleDayLabelClick}
                 onCellClick={handleMonthCellClick}
                 onEventClick={handleEventClick}
                 config={viewConfig}

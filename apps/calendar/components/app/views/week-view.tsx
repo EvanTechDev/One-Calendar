@@ -43,6 +43,15 @@ interface WeekViewProps {
     clientY?: number,
   ) => void
   onTimeSlotClick: (startDate: Date, endDate?: Date) => void
+  /**
+   * A day's header — its weekday name and date chip — was clicked: show that
+   * day in the day view.
+   *
+   * The whole pair is one control because it reads as one unit. The target is
+   * the inline box holding them rather than the grid column, so the empty
+   * column space beside them still belongs to the grid.
+   */
+  onDayHeaderClick: (day: Date) => void
   config: ViewConfig
   onEventDrop?: (
     event: CalendarEvent,
@@ -70,6 +79,7 @@ export default function WeekView({
   events,
   onEventClick,
   onTimeSlotClick,
+  onDayHeaderClick,
   config,
   onEventDrop,
   daysToShow,
@@ -680,7 +690,22 @@ export default function WeekView({
             {weekDays.map((day) => (
               <div key={day.toString()}>
                 <div className="p-2 text-center max-md:p-1">
-                  <div className="flex min-w-0 items-center justify-center gap-1.5 max-md:gap-1">
+                  <div
+                    className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-accent max-md:gap-1"
+                    role="button"
+                    tabIndex={0}
+                    // Weekday name and date chip are the same control, so the
+                    // name is the long one; the chip's own "15" would be a
+                    // useless label on its own.
+                    aria-label={format(day, 'PPPP')}
+                    onClick={() => onDayHeaderClick(day)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onDayHeaderClick(day)
+                      }
+                    }}
+                  >
                     <div className="min-w-0 truncate">
                       {t.weekdays[day.getDay()]}
                     </div>
