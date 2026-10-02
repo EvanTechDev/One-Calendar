@@ -466,7 +466,7 @@ export function CountdownBody() {
             <Button
               variant="ghost"
               size="icon"
-              className="mr-2 hover:bg-transparent"
+              className="mr-2"
               onClick={backToCountdownList}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -528,7 +528,7 @@ export function CountdownBody() {
           <div className="flex space-x-2 mt-8">
             <Button
               variant="outline"
-              className="flex-1 hover:bg-transparent"
+              className="flex-1"
               onClick={() => startEditCountdown(selectedCountdown)}
             >
               <Edit2 className="mr-2 h-4 w-4" />
@@ -536,7 +536,7 @@ export function CountdownBody() {
             </Button>
             <Button
               variant="destructive"
-              className="flex-1 hover:bg-destructive"
+              className="flex-1"
               onClick={() => deleteCountdown(selectedCountdown.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -555,7 +555,7 @@ export function CountdownBody() {
           <Button
             variant="ghost"
             size="icon"
-            className="mr-2 hover:bg-transparent"
+            className="mr-2"
             onClick={() => {
               if (selectedCountdown) {
                 setView('detail')
@@ -747,9 +747,19 @@ export function CountdownBody() {
 export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
+      {/*
+       * No button hover anywhere in this component (CORE-215).
+       *
+       * It used to be switched off one button at a time with
+       * `hover:bg-transparent` / `hover:bg-destructive`, which left the
+       * variant's `hover:text-foreground` alive — hence the `text-inherit`
+       * patch below it. One rule at the root covers both properties and
+       * reaches buttons added later; it also reverts delete's hover to the
+       * resting `bg-destructive/10` instead of escalating to solid red.
+       */}
       <SheetContent
         side="right"
-        className="w-[360px] sm:w-[420px] p-0 [&_button:hover]:text-inherit"
+        className="w-[360px] sm:w-[420px] p-0 [&_button:hover]:bg-transparent [&_button:hover]:text-inherit"
       >
         <CountdownBody />
       </SheetContent>
