@@ -57,6 +57,24 @@ interface MonthViewProps {
     clientX?: number,
     clientY?: number,
   ) => void
+  /**
+   * The day number was clicked: open that day in the day view.
+   *
+   * Distinct from clicking the cell, which creates. The number reads as a
+   * link to that day; the empty space around it reads as a target for a new
+   * event. Both fire on the same cell, so the number's handler stops
+   * propagation — otherwise every click on a date would also open the editor.
+   */
+  onDayNumberClick: (day: Date) => void
+  /**
+   * Empty space in a cell was clicked: create an all-day event on that day.
+   *
+   * All-day because a month cell has no time axis to click into — there is no
+   * hour under the cursor to infer, and guessing one from the pointer's Y would
+   * be worse than asking. Desktop only; on mobile the whole cell is the tap
+   * target for the day sheet.
+   */
+  onCellClick: (day: Date, anchorEl: HTMLElement) => void
   config: ViewConfig
 }
 
@@ -250,15 +268,39 @@ export default function MonthView({
                     // Mobile Form: the whole cell is the tap target for the
                     // bottom sheet. Guarded by matchMedia so a desktop click
                     // on the cell background stays a no-op, exactly as today.
-                    onClick={() => {
+                    onClick={(e) => {
+                      // Mobile Form: the whole cell is the tap target for the
+                      // bottom sheet (ADR-0019), so it must not also create.
                       if (isMobileViewport()) {
                         openDaySheet(day)
+                        return
                       }
+                      // Event blocks and all-day bars stop propagation, so
+                      // this only ever fires on genuinely empty cell space.
+                      onCellClick(day, e.currentTarget)
                     }}
                   >
                     <div
                       className="flex items-center max-md:justify-center"
                       style={{ height: DAY_NUMBER_BLOCK_HEIGHT - 12 + 'px' }}
+                      role="button"
+                      tabIndex={0}
+                      // The cell's own text is just "15", so a screen reader
+                      // needs the full date to announce the control.
+                      aria-label={format(day, 'PPPP')}
+                      onClick={(e) => {
+                        // Otherwise the click also reaches the cell handler and
+                        // opens the create editor for the same day.
+                        e.stopPropagation()
+                        onDayNumberClick(day)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          onDayNumberClick(day)
+                        }
+                      }}
                     >
                       <span
                         className={cn(
