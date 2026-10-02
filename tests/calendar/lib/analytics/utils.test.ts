@@ -68,8 +68,11 @@ describe('normalizeChartColor', () => {
   })
 
   it('maps tailwind bg- classes to hex', () => {
-    expect(normalizeChartColor('bg-blue-500')).toBe('#3b82f6')
-    expect(normalizeChartColor('bg-red-500')).toBe('#ef4444')
+    // Uppercase, because the colour table stores one canonical case for every
+    // hex. Consumers are insensitive to it: getChartColorOrderIndex lowercases
+    // before looking the value up, and a chart fill does not care.
+    expect(normalizeChartColor('bg-blue-500')).toBe('#3B82F6')
+    expect(normalizeChartColor('bg-red-500')).toBe('#EF4444')
   })
 
   it('maps bg-[] colors to hex', () => {
@@ -133,7 +136,7 @@ describe('mapEventsToAnalyticsEvents', () => {
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('1')
     expect(result[0].category).toBe('cal-1')
-    expect(result[0].color).toBe('#3b82f6')
+    expect(result[0].color).toBe('#3B82F6')
   })
 
   it('filters out events with invalid dates', () => {

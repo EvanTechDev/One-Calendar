@@ -52,6 +52,7 @@ import {
 } from '@zntr/ui/dropdown-menu'
 
 import type { ViewType } from '@/lib/calendar-types'
+import { PALETTE_COLOR_OPTIONS } from '@/lib/event-colors'
 
 interface SidebarProps {
   onCreateEvent: () => void
@@ -73,15 +74,13 @@ export interface CalendarCategory {
   keywords?: string[]
 }
 
-const CALENDAR_COLOR_OPTIONS = [
-  { value: 'bg-blue-500', hex: '#3b82f6', labelKey: 'colorBlue' },
-  { value: 'bg-green-500', hex: '#10b981', labelKey: 'colorGreen' },
-  { value: 'bg-yellow-500', hex: '#f59e0b', labelKey: 'colorYellow' },
-  { value: 'bg-red-500', hex: '#ef4444', labelKey: 'colorRed' },
-  { value: 'bg-purple-500', hex: '#8b5cf6', labelKey: 'colorPurple' },
-  { value: 'bg-pink-500', hex: '#ec4899', labelKey: 'colorPink' },
-  { value: 'bg-teal-500', hex: '#14b8a6', labelKey: 'colorTeal' },
-] as const
+/**
+ * The category colour menu. Derived from the shared palette so the swatch a
+ * user picks and the hex its dot is painted with cannot disagree — this list
+ * used to carry its own copy, which resolved `bg-green-500` to emerald's
+ * `#10b981` while the swatch and the chart painted `#22c55e`.
+ */
+const CALENDAR_COLOR_OPTIONS = PALETTE_COLOR_OPTIONS
 
 const CALENDAR_COLOR_MAP = Object.fromEntries(
   CALENDAR_COLOR_OPTIONS.map((option) => [option.value, option.hex]),

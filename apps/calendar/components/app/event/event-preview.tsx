@@ -55,11 +55,12 @@ import { RemoveScroll } from 'react-remove-scroll'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth/client'
 import { describeRecurrence } from '@/lib/recurrence/engine'
-import { TAILWIND_BG_TO_HEX } from '@/lib/event-colors'
+import { TAILWIND_BG_TO_HEX, getEventAccentColor } from '@/lib/event-colors'
 import { childOverlayProps } from '@/lib/popover-nesting'
 import { MeetingLinkControls } from '@/components/app/event/event-meeting-link'
 import { useMeetingTiming } from '@/hooks/use-meeting-timing'
 import { isJoinUrgent } from '@/lib/meeting-timing'
+import { fetchJson, messageOr } from '@/lib/fetch-json'
 
 export interface EventInvite {
   id: string
@@ -135,18 +136,6 @@ export default function EventPreview({
   const _isSignedIn = Boolean(session?.user)
   const { bookmarks, createBookmark, deleteBookmark } = useBookmarks()
   const ignoreOutsideUntilRef = useRef(0)
-  const colorMapping: Record<string, string> = {
-    'bg-[#E6F6FD]': '#3B82F6',
-    'bg-[#E7F8F2]': '#10B981',
-    'bg-[#FEF5E6]': '#F59E0B',
-    'bg-[#FFE4E6]': '#EF4444',
-    'bg-[#F3EEFE]': '#8B5CF6',
-    'bg-[#FCE7F3]': '#EC4899',
-    'bg-[#EEF2FF]': '#6366F1',
-    'bg-[#FFF0E5]': '#FB923C',
-    'bg-[#E6FAF7]': '#14B8A6',
-  }
-
   useEffect(() => {
     if (open) {
       ignoreOutsideUntilRef.current = Date.now() + 150
@@ -318,14 +307,17 @@ export default function EventPreview({
   const handleResendInvite = async (inviteId: string) => {
     if (!event) return
     try {
-      await fetch('/api/invites/manage', {
+      // Through fetchJson, not bare fetch: `fetch` only rejects when the request
+      // never completed, so a 403 or a 500 resolved normally and this reported
+      // "Invitation sent" for an invite that was not sent.
+      await fetchJson('/api/invites/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteId }),
       })
       toast.success(_t.invitationSent)
-    } catch {
-      toast.error(_t.invitationSendFailed)
+    } catch (error) {
+      toast.error(messageOr(error, _t.invitationSendFailed))
     }
   }
 
@@ -344,27 +336,16 @@ export default function EventPreview({
     try {
       const params = new URLSearchParams({ id: inviteId, scope })
       if (isRecurring) params.set('occurrenceId', event.id)
-      const response = await fetch(`/api/invites/manage?${params}`, {
+      await fetchJson(`/api/invites/manage?${params}`, {
         method: 'DELETE',
       })
-      if (!response.ok) {
-        const message = await response
-          .json()
-          .then((d) => d?.error)
-          .catch(() => null)
-        throw new Error(message ?? 'failed')
-      }
       // Correct for every scope here: the participant is gone from the
       // occurrence being viewed, which is what this list shows. The 15-second
       // poll reconciles the grant's remaining occurrences.
       setInvites((prev) => prev.filter((i) => i.id !== inviteId))
       toast.success(_t.participantRemoved)
     } catch (error) {
-      toast.error(
-        error instanceof Error && error.message !== 'failed'
-          ? error.message
-          : _t.participantRemoveFailed,
-      )
+      toast.error(messageOr(error, _t.participantRemoveFailed))
     }
   }
 
@@ -401,7 +382,7 @@ export default function EventPreview({
       // The session endpoint, not the token one: the emailed link expires but
       // the grant does not, so answering from the calendar must keep working
       // after the link dies (ADR-0013).
-      const response = await fetch('/api/invites/self', {
+      await fetchJson('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -410,24 +391,13 @@ export default function EventPreview({
           ...(event.recurrenceId ? { recurrenceId: event.recurrenceId } : {}),
         }),
       })
-      if (!response.ok) {
-        const message = await response
-          .json()
-          .then((d) => d?.error)
-          .catch(() => null)
-        throw new Error(message ?? 'failed')
-      }
       setInvites((prev) =>
         prev.map((i) =>
           i.id === dbInvite.id ? { ...i, status: newStatus } : i,
         ),
       )
     } catch (error) {
-      toast.error(
-        error instanceof Error && error.message !== 'failed'
-          ? error.message
-          : _t.rsvpUpdateFailed,
-      )
+      toast.error(messageOr(error, _t.rsvpUpdateFailed))
     }
   }
 
@@ -451,7 +421,12 @@ export default function EventPreview({
     try {
       // Session-authenticated: the invite link may have expired by now, but
       // the grant persists (ADR-0013).
-      await fetch('/api/invites/self', {
+      //
+      // fetchJson, not bare fetch: a rejected HTTP status resolved normally
+      // here, so `onCategoryChange` moved the event locally and the popover
+      // showed it in the new calendar while the server still had it in the old
+      // one — a silent divergence with no error to notice.
+      await fetchJson('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -460,8 +435,8 @@ export default function EventPreview({
         }),
       })
       onCategoryChange?.(event.id, value)
-    } catch {
-      toast.error(_t.moveEventFailed)
+    } catch (error) {
+      toast.error(messageOr(error, _t.moveEventFailed))
     }
   }
 
@@ -568,7 +543,7 @@ export default function EventPreview({
           <div className="px-5 pb-5 flex">
             <div
               className="w-2 self-stretch rounded-full mr-4"
-              style={{ backgroundColor: colorMapping[event.color] }}
+              style={{ backgroundColor: getEventAccentColor(event.color) }}
             />
 
             <div className="flex-1">

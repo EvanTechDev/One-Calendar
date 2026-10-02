@@ -1,21 +1,34 @@
 import { describe, it, expect } from 'vitest'
 import {
+  COLOR_OPTIONS,
   COLOR_NAMES,
   COLOR_HEX_VALUES,
   normalizeColor,
   normalizeCountdownColor,
   COUNTDOWN_COLOR_NAMES,
 } from '@/lib/mcp/colors'
+import { EVENT_COLORS } from '@/lib/event-colors'
 
 describe('mcp colors', () => {
-  it('defines 7 color names and hex values', () => {
-    expect(COLOR_NAMES).toHaveLength(7)
-    expect(COLOR_HEX_VALUES).toHaveLength(7)
+  it('offers a colour for every event colour the table defines', () => {
+    // Indigo and orange were missing here even though POST /api/events accepted
+    // both, so an MCP client could create an event it could not name back.
+    expect(COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length)
+    expect(COLOR_NAMES).toHaveLength(EVENT_COLORS.length)
+    expect(COLOR_HEX_VALUES).toHaveLength(EVENT_COLORS.length)
+  })
+
+  it('names every colour in the table', () => {
+    expect(new Set(COLOR_NAMES)).toEqual(
+      new Set(EVENT_COLORS.map((c) => c.mcpName)),
+    )
   })
 
   it('normalizes color names to app color values', () => {
     expect(normalizeColor('blue')).toBe('bg-[#E6F6FD]')
     expect(normalizeColor('teal')).toBe('bg-[#E6FAF7]')
+    expect(normalizeColor('indigo')).toBe('bg-[#EEF2FF]')
+    expect(normalizeColor('orange')).toBe('bg-[#FFF0E5]')
   })
 
   it('normalizes hex codes to app color values', () => {

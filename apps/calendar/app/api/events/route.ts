@@ -83,6 +83,7 @@ import {
 import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
+import { isValidTimezone } from '@/lib/timezone'
 
 export const runtime = 'nodejs'
 
@@ -787,29 +788,20 @@ async function resolveUserTz(
   explicit?: string | null,
 ): Promise<string> {
   const candidate = explicit?.trim()
-  if (candidate && isTzValid(candidate)) return candidate
+  if (candidate && isValidTimezone(candidate)) return candidate
   try {
     const [row] = await getDb()
       .select()
       .from(settings)
       .where(eq(settings.userId, userId))
     const data = (row?.data ?? {}) as { timezone?: unknown }
-    if (typeof data.timezone === 'string' && isTzValid(data.timezone)) {
+    if (typeof data.timezone === 'string' && isValidTimezone(data.timezone)) {
       return data.timezone
     }
   } catch {
     // fall through to UTC
   }
   return 'UTC'
-}
-
-function isTzValid(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone })
-    return true
-  } catch {
-    return false
-  }
 }
 
 export const GET = async function GET(request: NextRequest) {

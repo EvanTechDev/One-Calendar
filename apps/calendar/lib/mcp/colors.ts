@@ -1,12 +1,35 @@
-const COLOR_OPTIONS = [
-  { name: 'blue', value: 'bg-[#E6F6FD]', hex: '#3B82F6' },
-  { name: 'green', value: 'bg-[#E7F8F2]', hex: '#10B981' },
-  { name: 'amber', value: 'bg-[#FEF5E6]', hex: '#F59E0B' },
-  { name: 'red', value: 'bg-[#FFE4E6]', hex: '#EF4444' },
-  { name: 'purple', value: 'bg-[#F3EEFE]', hex: '#8B5CF6' },
-  { name: 'pink', value: 'bg-[#FCE7F3]', hex: '#EC4899' },
-  { name: 'teal', value: 'bg-[#E6FAF7]', hex: '#14B8A6' },
-] as const
+/**
+ * MCP colour vocabulary.
+ *
+ * Both lists are DERIVED from {@link EVENT_COLORS} in `lib/event-colors.ts`,
+ * which is the single place a colour is defined. They used to be hand-written
+ * here and had already drifted from the UI: the event list held 7 entries for 9
+ * storable colours, so `indigo` and `orange` — both accepted by
+ * `POST /api/events` and by the agent tools — were not in the MCP schema, and
+ * three palette hexes resolved to a different colour than the swatch a user
+ * would pick for the same name.
+ *
+ * The ORDER of both lists is load-bearing, not cosmetic: it is interpolated into
+ * the tool descriptions and enum schemas in `lib/mcp/server.ts`, so reordering
+ * changes what an MCP client sees.
+ */
+
+import {
+  EVENT_COLORS,
+  PALETTE_COLOR_OPTIONS,
+  paletteColorName,
+} from '@/lib/event-colors'
+
+/**
+ * Event colours, in menu order. The MCP name is not derivable from the palette
+ * class — the `#FEF5E6` background is stored against `bg-yellow-500` but is
+ * called "amber" here, because that is what a client asking for amber expects.
+ */
+export const COLOR_OPTIONS = EVENT_COLORS.map((c) => ({
+  name: c.mcpName,
+  value: c.value,
+  hex: c.accent,
+}))
 
 export const COLOR_NAMES = COLOR_OPTIONS.map((c) => c.name)
 
@@ -19,18 +42,14 @@ export const COLOR_HEX_LIST = COLOR_HEX_VALUES.join(', ')
 // Countdowns (and the UI palette) store Tailwind palette classes such as
 // "bg-blue-500" instead of the light event-style backgrounds. Names and hex
 // codes accepted by MCP are mapped to this palette.
-const COUNTDOWN_COLOR_OPTIONS = [
-  { name: 'blue', value: 'bg-blue-500', hex: '#3B82F6' },
-  { name: 'green', value: 'bg-green-500', hex: '#22C55E' },
-  { name: 'yellow', value: 'bg-yellow-500', hex: '#EAB308' },
-  { name: 'amber', value: 'bg-amber-500', hex: '#F59E0B' },
-  { name: 'red', value: 'bg-red-500', hex: '#EF4444' },
-  { name: 'purple', value: 'bg-purple-500', hex: '#A855F7' },
-  { name: 'pink', value: 'bg-pink-500', hex: '#EC4899' },
-  { name: 'indigo', value: 'bg-indigo-500', hex: '#6366F1' },
-  { name: 'orange', value: 'bg-orange-500', hex: '#F97316' },
-  { name: 'teal', value: 'bg-teal-500', hex: '#14B8A6' },
-] as const
+//
+// `PALETTE_COLOR_OPTIONS` orders the classes blue, green, yellow, amber, red,
+// purple, pink, indigo, orange, teal — the same order this file listed them in.
+const COUNTDOWN_COLOR_OPTIONS = PALETTE_COLOR_OPTIONS.map((c) => ({
+  name: paletteColorName(c.value),
+  value: c.value,
+  hex: c.hex.toUpperCase(),
+}))
 
 export const COUNTDOWN_COLOR_NAMES = COUNTDOWN_COLOR_OPTIONS.map((c) => c.name)
 

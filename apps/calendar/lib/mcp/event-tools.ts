@@ -9,6 +9,7 @@ import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
 import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
 import { normalizeColor } from './colors'
+import { EVENT_COLOR_VALUES, PALETTE_TO_EVENT_COLOR } from '@/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import { invalidateEventCache } from '@/lib/cache/events'
@@ -36,8 +37,12 @@ import {
   translateRuleByDays,
   translateStampsByDays,
   wallClockDayDelta,
+  weekdayIndexInTz,
   withUntil,
+  partsInTz,
+  tzOffsetMs,
 } from '@/lib/recurrence/engine'
+import { isValidTimezone } from '@/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
 import {
@@ -141,106 +146,67 @@ export interface ListEventsParams {
 }
 
 const MAX_PAGE_LIMIT = 100
-const PALETTE_TO_EVENT_COLOR: Record<string, string> = {
-  'bg-blue-500': 'bg-[#E6F6FD]',
-  'bg-green-500': 'bg-[#E7F8F2]',
-  'bg-yellow-500': 'bg-[#FEF5E6]',
-  'bg-amber-500': 'bg-[#FEF5E6]',
-  'bg-red-500': 'bg-[#FFE4E6]',
-  'bg-purple-500': 'bg-[#F3EEFE]',
-  'bg-pink-500': 'bg-[#FCE7F3]',
-  'bg-indigo-500': 'bg-[#EEF2FF]',
-  'bg-orange-500': 'bg-[#FFF0E5]',
-  'bg-teal-500': 'bg-[#E6FAF7]',
-}
-
-const EVENT_COLOR_VALUES = new Set([
-  'bg-[#E6F6FD]',
-  'bg-[#E7F8F2]',
-  'bg-[#FEF5E6]',
-  'bg-[#FFE4E6]',
-  'bg-[#F3EEFE]',
-  'bg-[#FCE7F3]',
-  'bg-[#EEF2FF]',
-  'bg-[#FFF0E5]',
-  'bg-[#E6FAF7]',
-])
 
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-testable)
 // ---------------------------------------------------------------------------
 
-function tzOffsetMs(date: Date, timeZone: string): number {
+/**
+ * The calendar date `date` falls on in `timeZone`.
+ *
+ * The zone is a caller-supplied tool argument, so an unrecognised one has to
+ * come back as a query error rather than a silent wrong answer — the engine's
+ * primitives throw `RangeError` from the `Intl` constructor, which is what this
+ * converts.
+ */
+function localDateParts(
+  date: Date,
+  timeZone: string,
+): { year: number; month: number; day: number } {
   try {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      timeZoneName: 'longOffset',
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-    const tzPart =
-      dtf.formatToParts(date).find((p) => p.type === 'timeZoneName')?.value ??
-      ''
-    const match = tzPart.match(/([+-])(\d{2}):(\d{2})/)
-    if (!match) return 0
-    const sign = match[1] === '-' ? -1 : 1
-    return sign * (Number(match[2]) * 60 + Number(match[3])) * 60 * 1000
-  } catch {
-    return 0
-  }
-}
-
-const WEEKDAY_INDEX: Record<string, number> = {
-  Sun: 0,
-  Mon: 1,
-  Tue: 2,
-  Wed: 3,
-  Thu: 4,
-  Fri: 5,
-  Sat: 6,
-}
-
-function localDateParts(date: Date, timeZone: string) {
-  let parts: Intl.DateTimeFormatPart[]
-  try {
-    parts = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      weekday: 'short',
-    }).formatToParts(date)
+    const p = partsInTz(date, timeZone)
+    return { year: p.year, month: p.month, day: p.day }
   } catch {
     throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
   }
-  const map: Record<string, string> = {}
-  for (const p of parts) {
-    if (p.type !== 'literal') map[p.type] = p.value
-  }
-  return {
-    year: Number(map.year),
-    month: Number(map.month),
-    day: Number(map.day),
-    weekday: map.weekday ?? '',
-  }
 }
 
+/**
+ * Days from the Monday of `date`'s week, in the zone's calendar.
+ */
 function daysFromMonday(date: Date, timeZone: string): number {
-  const idx = WEEKDAY_INDEX[localDateParts(date, timeZone).weekday] ?? 0
-  return (idx + 6) % 7
+  try {
+    return (weekdayIndexInTz(date, timeZone) + 6) % 7
+  } catch {
+    throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
+  }
 }
 
+/**
+ * Midnight at the start of `date`'s local day, as an instant.
+ *
+ * The offset is read twice on purpose. Reading it once at the wall-clock value
+ * read as if it were UTC — which is what the recurrence engine's
+ * `wallClockToInstant` does — is correct except when a DST transition falls
+ * between that guess and the true instant. Resolving it a second time at the
+ * first guess's result closes that window, and it is why this iteration is not
+ * folded into `wallClockToInstant`: the two serve different ranges, and
+ * collapsing them would quietly move weekly boundaries by an hour twice a year.
+ */
 function localMidnightInTz(date: Date, timeZone: string): Date {
   const { year, month, day } = localDateParts(date, timeZone)
-  const candidate = Date.UTC(year, month - 1, day) - tzOffsetMs(date, timeZone)
-  return new Date(
-    Date.UTC(year, month - 1, day) - tzOffsetMs(new Date(candidate), timeZone),
-  )
+  const naive = Date.UTC(year, month - 1, day)
+  const firstGuess = naive - offsetAt(timeZone, date.getTime())
+  return new Date(naive - offsetAt(timeZone, firstGuess))
+}
+
+/** The zone's offset at an instant, with an unrecognised zone as a query error. */
+function offsetAt(timeZone: string, utcMs: number): number {
+  try {
+    return tzOffsetMs(timeZone, utcMs)
+  } catch {
+    throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
+  }
 }
 
 function mondayOfWeek(date: Date, timeZone: string): Date {
@@ -562,8 +528,7 @@ async function resolveUserTimeZone(
   try {
     const settings = (await getSettings(userId)) as Record<string, unknown>
     const tz = settings.timezone
-    if (typeof tz !== 'string' || tz.trim().length === 0) return undefined
-    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    if (typeof tz !== 'string' || !isValidTimezone(tz)) return undefined
     return tz
   } catch {
     return undefined

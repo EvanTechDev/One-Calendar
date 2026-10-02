@@ -1,77 +1,121 @@
 import { describe, it, expect } from 'vitest'
 import {
+  EVENT_COLORS,
   EVENT_BG_TO_ACCENT,
   EVENT_BG_TO_DARK,
   DEFAULT_ACCENT,
   TAILWIND_BG_TO_HEX,
   CHART_COLOR_ORDER,
   EVENT_COLOR_OPTIONS,
+  PALETTE_COLOR_OPTIONS,
+  EVENT_COLOR_VALUES,
   CALENDAR_COLOR_TO_EVENT_COLOR,
+  PALETTE_TO_EVENT_COLOR,
+  paletteColorName,
   getEventAccentColor,
   getEventBackgroundColor,
   type ColorOption,
 } from '@/lib/event-colors'
 
+const HEX = /^#[0-9A-F]{6}$/
+
 describe('event-colors', () => {
-  describe('EVENT_BG_TO_ACCENT', () => {
-    it('maps all event background colors to accent colors', () => {
-      expect(EVENT_BG_TO_ACCENT['bg-[#E6F6FD]']).toBe('#3B82F6')
-      expect(EVENT_BG_TO_ACCENT['bg-[#E7F8F2]']).toBe('#10B981')
-      expect(EVENT_BG_TO_ACCENT['bg-[#FEF5E6]']).toBe('#F59E0B')
-      expect(EVENT_BG_TO_ACCENT['bg-[#FFE4E6]']).toBe('#EF4444')
-      expect(EVENT_BG_TO_ACCENT['bg-[#F3EEFE]']).toBe('#8B5CF6')
-      expect(EVENT_BG_TO_ACCENT['bg-[#FCE7F3]']).toBe('#EC4899')
-      expect(EVENT_BG_TO_ACCENT['bg-[#EEF2FF]']).toBe('#6366F1')
-      expect(EVENT_BG_TO_ACCENT['bg-[#FFF0E5]']).toBe('#FB923C')
-      expect(EVENT_BG_TO_ACCENT['bg-[#E6FAF7]']).toBe('#14B8A6')
+  // These are the tests that would have caught the drift this file now guards.
+  // The table used to be four hand-copied maps that disagreed with each other,
+  // and a suite that re-typed every hex passed happily while indigo and orange
+  // had no dark-mode background at all. So the invariants are derived from
+  // EVENT_COLORS rather than restated.
+  describe('EVENT_COLORS invariants', () => {
+    it('gives every colour a distinct event background', () => {
+      const values = EVENT_COLORS.map((c) => c.value)
+      expect(new Set(values).size).toBe(values.length)
     })
 
-    it('has correct number of mappings', () => {
-      expect(Object.keys(EVENT_BG_TO_ACCENT)).toHaveLength(9)
+    it('uses an arbitrary hex class for every event background', () => {
+      for (const color of EVENT_COLORS) {
+        expect(color.value).toMatch(/^bg-\[#[0-9A-F]{6}\]$/)
+      }
+    })
+
+    it('gives every colour a distinct calendar swatch', () => {
+      const swatches = EVENT_COLORS.map((c) => c.calendarColor)
+      expect(new Set(swatches).size).toBe(swatches.length)
+    })
+
+    it('gives every colour an accent, a dark background and a calendar hex', () => {
+      for (const color of EVENT_COLORS) {
+        expect(color.accent, `${color.value} accent`).toMatch(HEX)
+        expect(color.dark, `${color.value} dark`).toMatch(HEX)
+        expect(color.calendarHex, `${color.value} calendarHex`).toMatch(HEX)
+      }
+    })
+
+    it('gives every colour a distinct mcp name', () => {
+      const names = EVENT_COLORS.map((c) => c.mcpName)
+      expect(new Set(names).size).toBe(names.length)
+    })
+
+    it('derives every calendar swatch name from bg-<name>-500', () => {
+      for (const color of EVENT_COLORS) {
+        expect(paletteColorName(color.calendarColor)).toBe(
+          color.calendarColor.slice(3, -4),
+        )
+      }
+    })
+  })
+
+  describe('EVENT_BG_TO_ACCENT', () => {
+    it('covers every colour in the table', () => {
+      for (const color of EVENT_COLORS) {
+        expect(EVENT_BG_TO_ACCENT[color.value], color.value).toBe(color.accent)
+      }
+      expect(Object.keys(EVENT_BG_TO_ACCENT)).toHaveLength(EVENT_COLORS.length)
     })
   })
 
   describe('EVENT_BG_TO_DARK', () => {
-    it('maps all event background colors to dark mode colors', () => {
-      expect(EVENT_BG_TO_DARK['bg-[#E6F6FD]']).toBe('#2F4655')
-      expect(EVENT_BG_TO_DARK['bg-[#E7F8F2]']).toBe('#2D4935')
-      expect(EVENT_BG_TO_DARK['bg-[#FEF5E6]']).toBe('#4F3F1B')
-      expect(EVENT_BG_TO_DARK['bg-[#FFE4E6]']).toBe('#6C2920')
-      expect(EVENT_BG_TO_DARK['bg-[#F3EEFE]']).toBe('#483A63')
-      expect(EVENT_BG_TO_DARK['bg-[#FCE7F3]']).toBe('#5A334A')
-      expect(EVENT_BG_TO_DARK['bg-[#E6FAF7]']).toBe('#1F4A47')
+    // This one used to be short by exactly the two colours the MCP path could
+    // already create, so those events rendered with no dark-mode background.
+    it('covers every colour in the table', () => {
+      for (const color of EVENT_COLORS) {
+        expect(EVENT_BG_TO_DARK[color.value], color.value).toBe(color.dark)
+      }
+      expect(Object.keys(EVENT_BG_TO_DARK)).toHaveLength(EVENT_COLORS.length)
     })
 
-    it('has correct number of mappings', () => {
-      expect(Object.keys(EVENT_BG_TO_DARK)).toHaveLength(7)
-    })
-  })
-
-  describe('DEFAULT_ACCENT', () => {
-    it('has default fallback color', () => {
-      expect(DEFAULT_ACCENT).toBe('#3A3A3A')
+    it('has a dark background for the colours the API accepts but the old table omitted', () => {
+      expect(EVENT_BG_TO_DARK['bg-[#EEF2FF]']).toMatch(HEX)
+      expect(EVENT_BG_TO_DARK['bg-[#FFF0E5]']).toMatch(HEX)
     })
   })
 
   describe('TAILWIND_BG_TO_HEX', () => {
-    it('maps tailwind colors to hex', () => {
-      expect(TAILWIND_BG_TO_HEX['bg-blue-500']).toBe('#3b82f6')
-      expect(TAILWIND_BG_TO_HEX['bg-green-500']).toBe('#10b981')
-      expect(TAILWIND_BG_TO_HEX['bg-yellow-500']).toBe('#f59e0b')
-      expect(TAILWIND_BG_TO_HEX['bg-red-500']).toBe('#ef4444')
-      expect(TAILWIND_BG_TO_HEX['bg-purple-500']).toBe('#8b5cf6')
-      expect(TAILWIND_BG_TO_HEX['bg-pink-500']).toBe('#ec4899')
-      expect(TAILWIND_BG_TO_HEX['bg-teal-500']).toBe('#14b8a6')
+    it('resolves every calendar swatch to its hex', () => {
+      for (const color of EVENT_COLORS) {
+        expect(
+          TAILWIND_BG_TO_HEX[color.calendarColor],
+          color.calendarColor,
+        ).toBe(color.calendarHex)
+      }
     })
 
-    it('also maps custom event colors', () => {
-      expect(TAILWIND_BG_TO_HEX['bg-[#E6F6FD]']).toBe('#3B82F6')
-      expect(TAILWIND_BG_TO_HEX['bg-[#E7F8F2]']).toBe('#10B981')
+    it('resolves the amber alias to the accent of the colour it aliases', () => {
+      expect(TAILWIND_BG_TO_HEX['bg-amber-500']).toBe('#F59E0B')
+      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-amber-500']).toBe('bg-[#FEF5E6]')
+    })
+
+    it('resolves every key it advertises to a hex', () => {
+      for (const [key, hex] of Object.entries(TAILWIND_BG_TO_HEX)) {
+        expect(hex, key).toMatch(HEX)
+      }
     })
   })
 
   describe('CHART_COLOR_ORDER', () => {
-    it('has predefined chart color order', () => {
+    it('lists every colour, so none falls through to the catch-all', () => {
+      // Indigo and orange used to be absent, so a category in either hue
+      // charted as teal. Teal is last because it is what anything still
+      // unmatched resolves to; the rest keep the order charts have used.
       expect(CHART_COLOR_ORDER).toEqual([
         '#3b82f6',
         '#10b981',
@@ -79,14 +123,26 @@ describe('event-colors', () => {
         '#ef4444',
         '#8b5cf6',
         '#ec4899',
+        '#6366f1',
+        '#fb923c',
         '#14b8a6',
       ])
+    })
+
+    it('is exactly the table accents, lowercased', () => {
+      expect(CHART_COLOR_ORDER).toEqual(
+        EVENT_COLORS.map((c) => c.accent.toLowerCase()),
+      )
+    })
+
+    it('contains no duplicates', () => {
+      expect(new Set(CHART_COLOR_ORDER).size).toBe(CHART_COLOR_ORDER.length)
     })
   })
 
   describe('EVENT_COLOR_OPTIONS', () => {
-    it('has all color options defined', () => {
-      expect(EVENT_COLOR_OPTIONS).toHaveLength(7)
+    it('offers one swatch per colour in the table', () => {
+      expect(EVENT_COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length)
     })
 
     it('each option has required properties', () => {
@@ -97,38 +153,75 @@ describe('event-colors', () => {
       })
     })
 
-    it('contains expected colors', () => {
-      const values = EVENT_COLOR_OPTIONS.map((o) => o.value)
-      expect(values).toContain('bg-[#E6F6FD]')
-      expect(values).toContain('bg-[#E7F8F2]')
-      expect(values).toContain('bg-[#FEF5E6]')
-      expect(values).toContain('bg-[#FFE4E6]')
-      expect(values).toContain('bg-[#F3EEFE]')
-      expect(values).toContain('bg-[#FCE7F3]')
-      expect(values).toContain('bg-[#E6FAF7]')
+    it('is exactly the table, in order', () => {
+      expect(EVENT_COLOR_OPTIONS.map((o) => o.value)).toEqual(
+        EVENT_COLORS.map((c) => c.value),
+      )
+    })
+  })
+
+  describe('PALETTE_COLOR_OPTIONS', () => {
+    it('offers one swatch per calendar swatch plus the amber alias', () => {
+      expect(PALETTE_COLOR_OPTIONS).toHaveLength(EVENT_COLORS.length + 1)
+    })
+
+    it('keeps the order the colour menu has always rendered', () => {
+      expect(PALETTE_COLOR_OPTIONS.map((o) => o.value)).toEqual([
+        'bg-blue-500',
+        'bg-green-500',
+        'bg-yellow-500',
+        'bg-amber-500',
+        'bg-red-500',
+        'bg-purple-500',
+        'bg-pink-500',
+        'bg-indigo-500',
+        'bg-orange-500',
+        'bg-teal-500',
+      ])
+    })
+
+    it('labels the same hue two ways where the app genuinely does', () => {
+      // The event swatch reads "Amber" while the calendar swatch of the same
+      // hue reads "Yellow", because bg-yellow-500 is a distinct entry.
+      const yellow = PALETTE_COLOR_OPTIONS.find(
+        (o) => o.value === 'bg-yellow-500',
+      )
+      const amber = PALETTE_COLOR_OPTIONS.find(
+        (o) => o.value === 'bg-amber-500',
+      )
+      expect(yellow?.labelKey).toBe('colorYellow')
+      expect(amber?.labelKey).toBe('colorAmber')
+    })
+  })
+
+  describe('EVENT_COLOR_VALUES', () => {
+    it('is the set of every event background the API accepts', () => {
+      expect([...EVENT_COLOR_VALUES].sort()).toEqual(
+        EVENT_COLORS.map((c) => c.value).sort(),
+      )
     })
   })
 
   describe('CALENDAR_COLOR_TO_EVENT_COLOR', () => {
-    it('maps calendar colors to event colors', () => {
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-blue-500']).toBe('bg-[#E6F6FD]')
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-green-500']).toBe('bg-[#E7F8F2]')
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-yellow-500']).toBe(
-        'bg-[#FEF5E6]',
-      )
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-red-500']).toBe('bg-[#FFE4E6]')
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-purple-500']).toBe(
-        'bg-[#F3EEFE]',
-      )
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-pink-500']).toBe('bg-[#FCE7F3]')
-      expect(CALENDAR_COLOR_TO_EVENT_COLOR['bg-teal-500']).toBe('bg-[#E6FAF7]')
+    it('maps every calendar swatch to its event background', () => {
+      for (const color of EVENT_COLORS) {
+        expect(
+          CALENDAR_COLOR_TO_EVENT_COLOR[color.calendarColor],
+          color.calendarColor,
+        ).toBe(color.value)
+      }
+    })
+
+    it('is the same map the MCP tools validate against', () => {
+      expect(PALETTE_TO_EVENT_COLOR).toBe(CALENDAR_COLOR_TO_EVENT_COLOR)
     })
   })
 
   describe('getEventAccentColor', () => {
-    it('returns accent color for known event colors', () => {
-      expect(getEventAccentColor('bg-[#E6F6FD]')).toBe('#3B82F6')
-      expect(getEventAccentColor('bg-[#E7F8F2]')).toBe('#10B981')
+    it('returns the accent for every colour in the table', () => {
+      for (const color of EVENT_COLORS) {
+        expect(getEventAccentColor(color.value)).toBe(color.accent)
+      }
     })
 
     it('returns DEFAULT_ACCENT for unknown colors', () => {
@@ -139,9 +232,12 @@ describe('event-colors', () => {
   })
 
   describe('getEventBackgroundColor', () => {
-    it('returns dark background for dark mode', () => {
-      expect(getEventBackgroundColor('bg-[#E6F6FD]', true)).toBe('#2F4655')
-      expect(getEventBackgroundColor('bg-[#E7F8F2]', true)).toBe('#2D4935')
+    it('returns a dark background for every colour in the table', () => {
+      for (const color of EVENT_COLORS) {
+        expect(getEventBackgroundColor(color.value, true), color.value).toBe(
+          color.dark,
+        )
+      }
     })
 
     it('returns undefined for light mode', () => {
@@ -154,6 +250,12 @@ describe('event-colors', () => {
 
     it('returns undefined for unknown colors in dark mode', () => {
       expect(getEventBackgroundColor('bg-unknown', true)).toBeUndefined()
+    })
+  })
+
+  describe('DEFAULT_ACCENT', () => {
+    it('has default fallback color', () => {
+      expect(DEFAULT_ACCENT).toBe('#3A3A3A')
     })
   })
 })

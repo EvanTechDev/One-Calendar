@@ -269,11 +269,34 @@ function partsOfUtcDay(date: Date): DateParts {
   }
 }
 
-function tzOffsetMs(timeZone: string, utcMs: number): number {
+/**
+ * The zone's UTC offset, in ms, at the given instant.
+ *
+ * Note the argument order — the zone first, then the instant. A sibling copy
+ * used to live in `lib/mcp/event-tools.ts` with these two swapped and built a
+ * fresh `Intl.DateTimeFormat` per call; two same-named helpers taking their
+ * arguments in opposite orders is a footgun, so there is one now.
+ *
+ * Throws `RangeError` for an unrecognised zone, because the underlying
+ * `Intl.DateTimeFormat` constructor does.
+ */
+export function tzOffsetMs(timeZone: string, utcMs: number): number {
   const p = partsInTz(new Date(utcMs), timeZone)
   return (
     Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - utcMs
   )
+}
+
+/**
+ * The weekday `date` falls on in `timeZone`, 0 = Sunday.
+ *
+ * Derived from the calendar date rather than asking the formatter for a
+ * `weekday` field, so this costs nothing extra: `partsInTz` has already resolved
+ * the calendar date, and `Date.UTC` on it is exact.
+ */
+export function weekdayIndexInTz(date: Date, timeZone: string): number {
+  const p = partsInTz(date, timeZone)
+  return new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()
 }
 
 export function wallClockToInstant(
