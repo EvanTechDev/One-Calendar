@@ -169,72 +169,20 @@ function DashboardVisual() {
           </FeatureDescription>
         </div>
       </div>
-      {/*
-       * A drawn week grid, not a screenshot.
-       *
-       * This was an Unsplash photo of somebody else's analytics dashboard,
-       * which is three things wrong at once: it is a stock image of a product
-       * that is not this one, it is fetched from a third party on every visit,
-       * and it is a raster that cannot follow the theme — the card had to mask
-       * its corners around the edges of a photograph.
-       *
-       * The same grid the app actually renders, in the app's own tokens, so it
-       * is legible in either theme and can never go stale against the real UI.
-       */}
+      {/* Dashboard Screen */}
       <div className="mask-b-from-90% mask-r-from-90% relative aspect-video sm:aspect-auto">
         <div className="absolute -right-1 -bottom-1 aspect-video max-h-50 rounded-tl-3xl border border-foreground/10 bg-card p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] sm:max-h-42 md:aspect-square md:max-h-50 lg:aspect-16/12">
-          <div className="h-full overflow-hidden rounded-tl-[calc(1.5rem-4px)] border border-foreground/10 p-2">
-            <WeekGridMock />
+          <div className="aspect-video h-full overflow-hidden rounded-tl-[calc(1.5rem-4px)] border border-foreground/10 *:pointer-events-none *:size-full *:shrink-0 *:select-none object-cover">
+            <img
+              alt="Dashboard preview"
+              className="object-cover"
+              height={360}
+              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop"
+              width={640}
+            />
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-/** Seven columns and a few blocks — the shape of the week view, in tokens. */
-function WeekGridMock() {
-  const blocks: Array<{
-    day: number
-    start: number
-    span: number
-    tone: string
-  }> = [
-    { day: 0, start: 1, span: 2, tone: 'bg-primary/70' },
-    { day: 0, start: 5, span: 2, tone: 'bg-foreground/20' },
-    { day: 1, start: 2, span: 1, tone: 'bg-foreground/30' },
-    { day: 2, start: 0, span: 3, tone: 'bg-primary/45' },
-    { day: 3, start: 3, span: 2, tone: 'bg-foreground/20' },
-    { day: 4, start: 1, span: 1, tone: 'bg-primary/70' },
-    { day: 5, start: 4, span: 3, tone: 'bg-foreground/15' },
-    { day: 6, start: 2, span: 2, tone: 'bg-foreground/25' },
-  ]
-
-  return (
-    <div className="flex h-full gap-1" aria-hidden>
-      {Array.from({ length: 7 }, (_, day) => (
-        <div className="relative flex-1 space-y-px" key={day}>
-          {Array.from({ length: 16 }, (_, line) => (
-            <div
-              className="h-1/16 rounded-full bg-foreground/5"
-              // The grid is decorative and purely positional.
-              key={line}
-            />
-          ))}
-          {blocks
-            .filter((b) => b.day === day)
-            .map((b) => (
-              <div
-                className={cn('absolute inset-x-0 rounded-[3px]', b.tone)}
-                key={`${b.day}-${b.start}`}
-                style={{
-                  top: `${b.start * 6.25}%`,
-                  height: `${b.span * 6.25}%`,
-                }}
-              />
-            ))}
-        </div>
-      ))}
     </div>
   )
 }
