@@ -6,6 +6,11 @@
  * from structural columns only (dates, category id, all-day flag, createdAt).
  * That keeps the analytics path fast and avoids handling plaintext content
  * for a purely statistical feature.
+ *
+ * Category *names* are the one exception, and only behind
+ * `include_category_names` — they are a label for an id the caller already
+ * asked about, not content. They are decrypted on the way out
+ * ({@link readCategoryName}); the raw column is the `{"v":1,"ct":…}` envelope.
  */
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, calendarCategories } from '@/lib/drizzle/schema'
@@ -23,6 +28,7 @@ import {
   type AnalyticsRange,
 } from '@/lib/analytics/engine'
 import { InvalidEventQueryError } from './errors'
+import { decryptFieldStrict } from '@/lib/field-crypto'
 import { getSettings } from './settings-tools'
 
 export interface AnalyticsRangeParams {
@@ -157,6 +163,16 @@ async function loadEngineEvents(
   }))
 }
 
+/**
+ * Category names are stored encrypted, keyed by the category's own row id.
+ * Reading the column raw handed callers the `{"v":1,"ct":…}` envelope as if
+ * it were the name (CORE-214), so decryption is mandatory here — there is no
+ * "show the ciphertext" fallback.
+ */
+function readCategoryName(row: { id: string; name: string | null }): string {
+  return decryptFieldStrict(row.id, row.name) ?? ''
+}
+
 async function loadCategoryNames(userId: string): Promise<Map<string, string>> {
   const db = await getDb()
   const rows = await db
@@ -166,7 +182,7 @@ async function loadCategoryNames(userId: string): Promise<Map<string, string>> {
     })
     .from(calendarCategories)
     .where(eq(calendarCategories.userId, userId))
-  return new Map(rows.map((row) => [row.id, row.name]))
+  return new Map(rows.map((row) => [row.id, readCategoryName(row)]))
 }
 
 export interface GetAnalyticsSummaryParams extends AnalyticsRangeParams {

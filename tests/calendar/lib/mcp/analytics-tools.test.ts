@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// `field-crypto` reads SALT at module load, and static imports run before any
+// statement in this file — so the assignment has to be hoisted too.
+vi.hoisted(() => {
+  process.env.SALT = 'analytics-tools-test-salt-key'
+})
+
 const state = vi.hoisted(() => ({
   settings: {} as Record<string, unknown>,
   eventRows: [] as Record<string, unknown>[],
@@ -39,6 +45,7 @@ import {
   getAnalyticsInsights,
 } from '@/lib/mcp/analytics-tools'
 import { InvalidEventQueryError } from '@/lib/mcp/errors'
+import { encryptField, FieldDecryptionError } from '@/lib/field-crypto'
 
 function eventRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -204,6 +211,85 @@ describe('getAnalyticsSummary', () => {
       categoryId: 'cat-1',
       categoryName: 'Work',
     })
+  })
+
+  // CORE-214: the column holds the {"v":1,"ct":…} envelope, and the raw
+  // column used to be returned as the name.
+  it('decrypts category names stored as ciphertext', async () => {
+    state.eventRows = [eventRow()]
+    state.categoryRows = [
+      { id: 'cat-1', name: encryptField('cat-1', 'Deep Work')! },
+    ]
+    const result = await getAnalyticsSummary('u1', {
+      start_date: '2025-06-01T00:00:00Z',
+      end_date: '2025-06-15T00:00:00Z',
+      timezone: 'UTC',
+      compare_previous_period: false,
+      include_category_names: true,
+    })
+    expect(result.byCategory[0].categoryName).toBe('Deep Work')
+    expect(JSON.stringify(result)).not.toContain('"ct"')
+  })
+
+  it('decrypts category names in insights too', async () => {
+    // `category_shift` needs >= 5 events on both sides of the comparison, so
+    // put a whole category in the window and none in the previous one.
+    state.eventRows = [
+      ...Array.from({ length: 6 }, (_, i) =>
+        eventRow({
+          startDate: new Date(`2025-06-0${2 + i}T10:00:00Z`),
+          endDate: new Date(`2025-06-0${2 + i}T11:00:00Z`),
+          categoryId: 'cat-2',
+        }),
+      ),
+      ...Array.from({ length: 6 }, (_, i) =>
+        eventRow({
+          startDate: new Date(`2025-05-${20 + i}T10:00:00Z`),
+          endDate: new Date(`2025-05-${20 + i}T11:00:00Z`),
+          categoryId: 'cat-9',
+        }),
+      ),
+    ]
+    state.categoryRows = [
+      { id: 'cat-2', name: encryptField('cat-2', 'Meetings')! },
+    ]
+    const result = await getAnalyticsInsights('u1', {
+      start_date: '2025-06-01T00:00:00Z',
+      end_date: '2025-06-15T00:00:00Z',
+      timezone: 'UTC',
+      include_category_names: true,
+    })
+    const shift = result.insights.find((i) => i.type === 'category_shift')
+    expect(shift?.data.categoryId).toBe('cat-2')
+    expect(shift?.data.categoryName).toBe('Meetings')
+    expect(JSON.stringify(result)).not.toContain('"ct"')
+  })
+
+  // The ticket's "return null or a clear error, NOT ciphertext" — a name we
+  // cannot decrypt is a server fault (wrong SALT / corrupt data), not a
+  // reason to answer with the envelope.
+  it('fails loudly on an undecryptable category name', async () => {
+    state.eventRows = [eventRow()]
+    state.categoryRows = [
+      {
+        id: 'cat-1',
+        name: JSON.stringify({
+          v: 1,
+          ct: 'deadbeef',
+          iv: '00'.repeat(16),
+          tag: '00'.repeat(16),
+        }),
+      },
+    ]
+    await expect(
+      getAnalyticsSummary('u1', {
+        start_date: '2025-06-01T00:00:00Z',
+        end_date: '2025-06-15T00:00:00Z',
+        timezone: 'UTC',
+        compare_previous_period: false,
+        include_category_names: true,
+      }),
+    ).rejects.toBeInstanceOf(FieldDecryptionError)
   })
 })
 
