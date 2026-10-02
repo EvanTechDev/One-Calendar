@@ -104,6 +104,8 @@ export default function MonthView({
   date,
   events,
   onEventClick,
+  onDayNumberClick,
+  onCellClick,
   config,
   selection = null,
 }: MonthViewProps) {
