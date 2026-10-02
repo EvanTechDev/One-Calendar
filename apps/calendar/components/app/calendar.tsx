@@ -471,9 +471,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPendingRangeMove(null)
   }
 
-  // The month grid's empty-cell click has no time axis to read, so it asks
-  // for an all-day event explicitly rather than inheriting the 30-minute default.
-  const [quickCreateAllDay, setQuickCreateAllDay] = useState(false)
   const [quickCreateStartTime, setQuickCreateStartTime] = useState<Date | null>(
     null,
   )
@@ -1249,12 +1246,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewAnchorEl(null)
   }
 
-  const handleTimeRangeSelect = (
-    startTime: Date,
-    endTime?: Date,
-    options?: { allDay?: boolean },
-  ) => {
-    setQuickCreateAllDay(options?.allDay === true)
+  const handleTimeRangeSelect = (startTime: Date, endTime?: Date) => {
+    setQuickCreateStartTime(startTime)
     // Always a concrete range: the views render it as the blue selection box
     // the editor popover anchors to (CORE-191). The default 30-minute range
     // is clamped to the start's own day — creating at 23:40 must not spill
@@ -1286,46 +1279,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewAnchorRect(null)
     setPreviewAnchorEl(null)
     setEventEditorOpen(true)
-  }
-
-  /**
-   * Month view: the day number was clicked, so open that day.
-   *
-   * Set the date before the view so the day view renders the day that was
-   * clicked rather than whatever the month view was anchored to.
-   */
-  const handleMonthDayNumberClick = useCallback((day: Date) => {
-    setDate(day)
-    setView('day')
-  }, [])
-
-  /**
-   * Month view: empty cell space was clicked, so create an all-day event.
-   *
-   * The anchor is the cell itself — the editor popover needs a positioned
-   * element to hang off, and the month grid has no hour to anchor to.
-   */
-  const handleMonthCellClick = (
-    day: Date,
-    anchorEl: HTMLElement,
-    clientX: number,
-    clientY: number,
-  ) => {
-    const start = new Date(day)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(start.getTime() + 86_400_000)
-    // The popover hangs off a point near the click, not off the cell.
-    //
-    // A month cell is nearly a seventh of the viewport wide, and anchoring to
-    // it directly hands the popover a rect with no room on either side — so it
-    // got clamped and rendered at half width. `anchorRectForClick` is the
-    // helper that turns a wide block into a narrow rect centred on the
-    // pointer, and every other click path already goes through it.
-    setEditorAnchorRect(
-      anchorRectForClick(anchorEl.getBoundingClientRect(), clientX, clientY),
-    )
-    setEditorAnchorEl(anchorEl)
-    handleTimeRangeSelect(start, end, { allDay: true })
   }
 
   const handleInvitesAdded = (
@@ -2057,8 +2010,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <MonthView
                 date={date}
                 events={filteredEvents}
-                onDayNumberClick={handleMonthDayNumberClick}
-                onCellClick={handleMonthCellClick}
                 onEventClick={handleEventClick}
                 config={viewConfig}
                 selection={createSelectionRange}
@@ -2177,7 +2128,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           onInvitesAdded={handleInvitesAdded}
           initialDate={quickCreateStartTime || date}
           initialEndDate={quickCreateEndTime}
-          initialIsAllDay={quickCreateAllDay}
           onDraftRangeChange={setCreateDraftRange}
           event={selectedEvent}
           config={viewConfig}

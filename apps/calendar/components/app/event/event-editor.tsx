@@ -116,15 +116,6 @@ interface EventEditorProps {
   initialDate: Date
   initialEndDate?: Date | null
   /**
-   * Open the create form already all-day.
-   *
-   * Only the month grid's empty-cell click needs this: that cell has no time
-   * axis, so there is no hour under the cursor to read, and 30 minutes is an
-   * arbitrary answer to a question the user never asked. Everywhere else the
-   * view has an axis and the time comes from where they clicked.
-   */
-  initialIsAllDay?: boolean
-  /**
    * Live draft range while creating. Fired whenever the editor's start/end
    * date-time fields change, so the views can keep the selection box
    * (CORE-191) in sync with what the user is typing. Not fired when editing
@@ -197,7 +188,6 @@ export default function EventEditor({
   onInvitesAdded,
   initialDate,
   initialEndDate,
-  initialIsAllDay,
   onDraftRangeChange,
   replacesPreview = false,
   event,
@@ -847,30 +837,7 @@ export default function EventEditor({
         }
       } else {
         resetForm()
-        if (initialIsAllDay) {
-          const allDayStart = new Date(initialDate ?? new Date())
-          allDayStart.setHours(0, 0, 0, 0)
-          setIsAllDay(true)
-          // Same day as the start, NOT the day after. Save does
-          // `startOfDay(endDate + 1)` to get the exclusive end, so pointing
-          // endDate at tomorrow makes it add a day again and the event lands
-          // as two days long. The end TIME reads 23:59 to the user; the date
-          // field has to stay on the start day for that save to come out right.
-          setStartDate(allDayStart)
-          setEndDate(new Date(allDayStart))
-          setStartTime({
-            hours: '00',
-            minutes: '00',
-            rawInput: '00:00',
-            isCustomInput: false,
-          })
-          setEndTime({
-            hours: '23',
-            minutes: '59',
-            rawInput: '23:59',
-            isCustomInput: false,
-          })
-        } else if (initialDate) {
+        if (initialDate) {
           const dialogStartDate = new Date(initialDate)
           const dialogEndDate =
             initialEndDate && initialEndDate > initialDate
@@ -902,7 +869,7 @@ export default function EventEditor({
         }
       }
     }
-  }, [event, calendars, initialDate, initialEndDate, initialIsAllDay, open])
+  }, [event, calendars, initialDate, initialEndDate, open])
 
   /**
    * A fresh id for each draft session, minted on CLOSE rather than on open.
